@@ -37,7 +37,7 @@ Technical names: repo `mydata-kiwi/mydata`, command `mydata`, background service
 
 - Domain: mydata.kiwi. DNS is in Cloudflare, records set to DNS only (proxy off, on purpose).
 - GitHub org: `mydata-kiwi`.
-- Website repo: `mydata-kiwi/mydata-kiwi.github.io`. One `index.html`, deployed by GitHub Pages from `main`. Custom domain mydata.kiwi is configured; HTTPS certificate was still provisioning when this was written, so check Settings → Pages and tick Enforce HTTPS if it is not ticked.
+- Website repo: `mydata-kiwi/mydata-kiwi.github.io`. One `index.html`, deployed by GitHub Pages from `main`. Custom domain mydata.kiwi is verified and served over HTTPS from GitHub Pages.
 - Logo: hand-drawn outlined kiwi bird with a green wash. Colours: background `#E3EFBF`, wash `#A9CC4E`, ink `#2A2018`.
 - Website palette: `--bg #FCFDF7`, `--surface #FFFFFF`, `--band #E3EFBF`, `--fg #2A2018`, `--muted #655646`, `--line #D6E0BD`, `--kiwi #A9CC4E`, `--kiwi-deep #4C7814`, `--skin #6B4F35`, `--cream #FBF7EC`. Fonts: Bricolage Grotesque, Figtree, JetBrains Mono. Light theme only.
 - A fuller plan document exists ("myData: architecture, technical plan, and viability check"). This file supersedes it where they differ.
@@ -216,10 +216,17 @@ Full report: `host/results/2026-10-12-a-REPORT.md`. Measured on battery, with BT
 - **Results are shown by code.** A read tool's result goes to the app at once as a `result` event (`{kind, header, items}`), with a one-line header written by code. Single-tool requests: result on screen median 13.4 → 3.5 s, worst 35.7 → 5.9 s; end of reply 13.4 → 7.0 s, worst 35.7 → 8.2 s.
 - **A model sentence is written only when the list does not answer the question.** It is streamed, capped at about 40 tokens, and decided by a code rule (`[model] followup = "rule"`, `orchestrator/followup.py`). Tool choice is unchanged: 27/40 requests before and after.
 - **Rejected: a `then` field on the tool-choice call.** It changed which tools the model chose (BS10, BM04, BU01).
-- **Open defect: the rule misses sentences.** It caught 4 of the 12 needed in a blind probe set. Widen it with general question forms and score once on a new blind set; this set has been seen.
+- **Open defect: the rule misses sentences.** It caught 4 of the 12 needed in a blind probe set (open item 1 below).
 - **Keep warm.** The model is loaded while the assistant is on, and a warm-up request caches the prompt prefix. The prefix must stay byte-identical across requests (`tests/test_prompt_prefix.py`).
 - **Grounding fixes.** "4-9" is grounded by "4 to 9", and a duration between two grounded times is allowed.
 - **Speed.** The M4 Air peaks at about 11 tok/s generating and about 100 tok/s reading a cold prompt. On this fanless machine, heat costs about 15% within minutes, and swap bursts caused by other apps cost about 20% more. Background CPU load does not matter. The earlier 8.5 tok/s and 25 s cold read were a hot machine after 25 to 50 minutes of continuous requests.
+
+**Open items for the next assistant round** (agreed; not built):
+
+1. **Follow-up sentence: flip the default.** Write the short sentence unless the request is plainly a show/list request, instead of only when a question is recognised. A missed answer is worse than an extra sentence. Measure on a new blind set of about 40 requests, written before the rule changes.
+2. **Keep the input usable while the second model call runs.** Cancel that call if the user sends something new.
+3. **Temperature for the tool-choice call.** Measure 0 and 0.2 against today's 0.6 on a new frozen set, reporting requests that pass on all reps.
+4. **Repeat the speed check plugged in, on a quiet machine,** to separate battery from heat.
 
 ## Build order after the test passes
 
