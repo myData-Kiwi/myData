@@ -12,7 +12,7 @@ Early build. Done:
 - **the host** (phase 1): `mydatad` with the tool layer and permission gate, HTTP API, MCP, app and agent tokens;
 - **the first two apps** (phase 2): myData (setup, status, settings) and myAssistant (chat), in Flutter, macOS first.
 
-The tools still serve fake demo data, and the host's today is pinned to its date (18 March 2026). **Next:** myContacts and myCalendar with real data (CardDAV, CalDAV), replacing the fake tools; see "Build order". Chained requests are an open problem, not a blocker: the planner write-up and the timing breakdown in `host/results/2026-10-11-b-REPORT.md` are the starting points.
+The tools still serve fake demo data, and the host's today is pinned to its date (18 March 2026). **Next:** myContacts and myCalendar with real data (CardDAV, CalDAV), replacing the fake tools; see "Build order". Chained requests are an open problem, not a blocker: the planner write-up in `host/results/2026-10-11-b-REPORT.md` is the starting point. Answer latency is in "Answer latency" below.
 
 ## Ground rules
 
@@ -201,13 +201,25 @@ Full report: `myData/results/2026-10-11-b-REPORT.md`. New frozen set `cases_2026
 - No planner was built, as agreed for this round. The report lists what one would need to fix. Measure any planner on a new frozen set; 2026-10-11-b has now been seen.
 - **Kept: (a) tool descriptions and (c) grounding.**
   - (a) gave +5 runs at no cost.
-  - (c) did not raise the score. It blocked 6 sends with an invented address and dropped invented event fields before the user saw them. Its one cost is a duration worked out from two times (BA03), which it drops.
+  - (c) did not raise the score. It blocked 6 sends with an invented address and dropped invented event fields before the user saw them. Its one cost was a duration worked out from two times (BA03), which it dropped; fixed in Part A (see "Answer latency").
 - **Not kept: (b) per-request tool filtering.** It is off by default (`Engine.route=False`); the module stays so the measurement can be reproduced. It gained nothing, added 0.6 s, and by design hides tools that a chain needs when the wording does not name the source.
 - The kept combination (a + c, without b) was not itself measured.
 - Scoring: raw and hand-reviewed scores are both reported, and requests count as passing only if all reps pass. The hand-review rule for refusals is automated in `scoring.py`.
 - Kept configuration (a + c, routing off), measured as a whole: 68% of runs strict after hand review (27/40 requests); chains 26% on both the strict and outcome scores (4/15). Median 12.4 s to the final answer, worst 39.5 s.
 - Thinking on, chains only: strict 40% (4/15 requests), outcome 48% (6/15). Median 181 s to the final answer, worst 693 s. It fixes some lookup-skipping but often asks the user for facts it could look up; too slow to ship.
-- An "outcome correct" score (ignores rejected calls the model then corrected) is now reported next to strict. Defect found: grounding reads "4-9" as one token and rejects "Slides 4-9" (BC14); not yet fixed.
+- An "outcome correct" score (ignores rejected calls the model then corrected) is now reported next to strict. Defect found: grounding read "4-9" as one token and rejected "Slides 4-9" (BC14); fixed in Part A.
+
+## Answer latency (Part A, 2026-10-12)
+
+Full report: `host/results/2026-10-12-a-REPORT.md`. Measured on battery, with BTLEServer using one core throughout.
+
+- **Results are shown by code.** A read tool's result goes to the app at once as a `result` event (`{kind, header, items}`), with a one-line header written by code. Single-tool requests: result on screen median 13.4 → 3.5 s, worst 35.7 → 5.9 s; end of reply 13.4 → 7.0 s, worst 35.7 → 8.2 s.
+- **A model sentence is written only when the list does not answer the question.** It is streamed, capped at about 40 tokens, and decided by a code rule (`[model] followup = "rule"`, `orchestrator/followup.py`). Tool choice is unchanged: 27/40 requests before and after.
+- **Rejected: a `then` field on the tool-choice call.** It changed which tools the model chose (BS10, BM04, BU01).
+- **Open defect: the rule misses sentences.** It caught 4 of the 12 needed in a blind probe set. Widen it with general question forms and score once on a new blind set; this set has been seen.
+- **Keep warm.** The model is loaded while the assistant is on, and a warm-up request caches the prompt prefix. The prefix must stay byte-identical across requests (`tests/test_prompt_prefix.py`).
+- **Grounding fixes.** "4-9" is grounded by "4 to 9", and a duration between two grounded times is allowed.
+- **Speed.** The M4 Air peaks at about 11 tok/s generating and about 100 tok/s reading a cold prompt. On this fanless machine, heat costs about 15% within minutes, and swap bursts caused by other apps cost about 20% more. Background CPU load does not matter. The earlier 8.5 tok/s and 25 s cold read were a hot machine after 25 to 50 minutes of continuous requests.
 
 ## Build order after the test passes
 
@@ -215,7 +227,7 @@ Full report: `myData/results/2026-10-11-b-REPORT.md`. New frozen set `cases_2026
 2. ~~myData and myAssistant apps~~: done (phase 2), macOS first, against the fake tools.
 3. **Next:** myContacts and myCalendar (CardDAV, CalDAV), replacing the fake contact and calendar tools with real data. Smallest data; proves sync. Each is a new app in `app/apps`; switch off the demo date once real data is in.
 4. myMail (IMAP sync, FTS5 search), replacing the fake mail tools.
-5. myAssistant against the real tools; revisit chained requests (planner) and answer latency (timing breakdown).
+5. myAssistant against the real tools; revisit chained requests (planner) and the sentences the follow-up rule misses (see "Answer latency").
 6. myPhotos (import, CLIP index, faces). The largest piece; expect 6 to 8 weekends.
 7. Phone clients and remote access (the host is localhost-only until then).
 8. Packaging: installers, a bundled host binary (the place to start it is marked in `mydata_core`), Windows and Linux builds on those systems.

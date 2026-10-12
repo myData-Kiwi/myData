@@ -1,0 +1,25 @@
+start: cold prompt 102.6 tok/s (load 1.57 s), warm gen 11.1 tok/s
+after 10 minutes: cold prompt 75.9 tok/s (load 1.05 s), warm gen 8.7 tok/s
+`qwen3:14b`. Cold = model just loaded and prompt not cached; warm = loaded, prefix cached. Generation speed from a 128-token answer.
+
+| When | Load s | Cold prompt read tok/s | Warm prompt read s | Generation tok/s (warm) | Memory free | Swap used | Pages out / swapped out during the phase | Battery / system °C | Load avg | Power |
+|---|---|---|---|---|---|---|---|---|---|---|
+| start | 1.57 | 102.6 (1269 tokens in 12.37 s) | 0.09 | 11.1 | 78% | 13.3 GB | 134 / 0 | 30.69 / 33.69 | { 3.12 3.05 3.06 } | battery 27% |
+| after 10 minutes | 1.05 | 75.9 (1272 tokens in 16.77 s) | 0.11 | 8.7 | 29% | 13.3 GB | 0 / 0 | 31.38 / 40.59 | { 5.64 8.47 5.97 } | battery 20% |
+
+During 10 minutes of continuous requests (82 model calls): generation 11.2 tok/s (first fifth) → 9.2 tok/s (last fifth); all calls 5.9–11.8.
+
+| Minute | Memory free | Pages out / swapped out since the last minute | Battery / system °C | Busiest processes |
+|---|---|---|---|---|
+| 0 | 33% | - | 30.73 / 34.09 | 100.0 /usr/sbin/BTLEServer; 16.0 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Renderer).app/Contents/MacOS/Code Helper (Renderer); 15.2 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer |
+| 1 | 33% | 132 / 0 | 31.06 / 37.39 | 100.0 /usr/sbin/BTLEServer; 33.8 /usr/sbin/coreaudiod; 20.9 /Applications/Ollama.app/Contents/Resources/llama-server |
+| 2 | 32% | 47 / 0 | 31.34 / 40.19 | 100.0 /usr/sbin/BTLEServer; 13.1 /Users/patelti4/.vscode/extensions/anthropic.claude-code-2.1.296-darwin-arm64/resources/native-binary/claude; 12.6 /Applications/Ollama.app/Contents/Resources/llama-server |
+| 3 | 34% | 20 / 0 | 31.41 / 40.89 | 100.0 /usr/sbin/BTLEServer; 9.4 /Applications/ESET Endpoint Security.app/Contents/MacOS/sysinfod; 9.3 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer |
+| 4 | 34% | 87 / 0 | 31.44 / 41.19 | 100.0 /usr/sbin/BTLEServer; 20.5 /Applications/Ollama.app/Contents/Resources/llama-server; 5.4 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer |
+| 5 | 34% | 32 / 0 | 31.47 / 41.5 | 112.4 /usr/sbin/coreaudiod; 99.3 /usr/sbin/BTLEServer; 11.3 /Applications/Ollama.app/Contents/Resources/llama-server |
+| 6 | 35% | 31 / 0 | 31.48 / 41.59 | 99.2 /usr/sbin/BTLEServer; 17.8 /Applications/Ollama.app/Contents/Resources/llama-server; 5.9 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer |
+| 7 | 25% | 985 / 27135 | 31.44 / 41.19 | 95.6 /usr/sbin/BTLEServer; 44.9 /usr/sbin/coreaudiod; 41.5 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer |
+| 8 | 23% | 489 / 0 | 31.43 / 41.09 | 98.1 /usr/sbin/BTLEServer; 12.5 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer; 10.9 /usr/libexec/duetexpertd |
+| 9 | 29% | 57 / 0 | 31.43 / 41.0 | 100.0 /usr/sbin/BTLEServer; 11.8 /Applications/Ollama.app/Contents/Resources/llama-server; 5.5 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer |
+| 10 | 29% | 0 / 0 | 31.38 / 40.59 | 100.0 /usr/sbin/BTLEServer; 21.4 /Applications/Ollama.app/Contents/Resources/llama-server; 6.1 /Library/Application Support/JAMF/Jamf.app/Contents/MacOS/JamfDaemon.app/Contents/MacOS/JamfDaemon |
+

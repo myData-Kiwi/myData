@@ -1,0 +1,947 @@
+{
+ "model": "qwen3:14b",
+ "minutes": 10.0,
+ "phases": [
+  {
+   "name": "start",
+   "env": {
+    "vm": {
+     "pageins": 113088071,
+     "pageouts": 1432902,
+     "swapins": 7141204,
+     "swapouts": 11517703
+    },
+    "temps": {
+     "battery_c": 30.69,
+     "system_c": 33.69
+    },
+    "memorystatus_level": "78",
+    "at": "18:14:08",
+    "power": [
+     "Now drawing from 'Battery Power'",
+     " -InternalBattery-0 (id=24117347)\t27%; discharging; 2:53 remaining present: true"
+    ],
+    "thermal": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded",
+    "memory_free_percent": 78,
+    "swap": "total = 15360.00M  used = 13646.56M  free = 1713.44M  (encrypted)",
+    "load": "{ 3.12 3.05 3.06 }",
+    "ollama_ps": "NAME    ID    SIZE    PROCESSOR    CONTEXT    RUNNER    UNTIL",
+    "top": [
+     " 99.7 /usr/sbin/BTLEServer",
+     " 49.7 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Renderer).app/Contents/MacOS/Code Helper (Renderer)",
+     " 17.4 /Users/patelti4/.vscode/extensions/anthropic.claude-code-2.1.296-darwin-arm64/resources/native-binary/claude",
+     " 16.3 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer",
+     " 12.9 /Users/patelti4/Documents/projects/myData-Kiwi/myData/host/.venv/bin/python3"
+    ]
+   },
+   "cold_load": {
+    "cached": false,
+    "prompt_tokens": 1269,
+    "prompt_s": 12.37,
+    "prompt_tok_s": 102.6,
+    "gen_tokens": 128,
+    "gen_s": 11.56,
+    "gen_tok_s": 11.1,
+    "load_s": 1.57
+   },
+   "warm": {
+    "cached": true,
+    "prompt_tokens": 1269,
+    "prompt_s": 0.09,
+    "prompt_tok_s": 13599.8,
+    "gen_tokens": 128,
+    "gen_s": 11.54,
+    "gen_tok_s": 11.1,
+    "load_s": 0.01
+   },
+   "env_after": {
+    "vm": {
+     "pageins": 113115570,
+     "pageouts": 1433036,
+     "swapins": 7141230,
+     "swapouts": 11517703
+    },
+    "temps": {
+     "battery_c": 30.73,
+     "system_c": 34.09
+    },
+    "memorystatus_level": "33",
+    "at": "18:14:48",
+    "power": [
+     "Now drawing from 'Battery Power'",
+     " -InternalBattery-0 (id=24117347)\t26%; discharging; 2:43 remaining present: true"
+    ],
+    "thermal": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded",
+    "memory_free_percent": 33,
+    "swap": "total = 15360.00M  used = 13646.56M  free = 1713.44M  (encrypted)",
+    "load": "{ 2.94 3.01 3.04 }",
+    "ollama_ps": "NAME         ID              SIZE     PROCESSOR    CONTEXT    RUNNER      UNTIL   \nqwen3:14b    bdbd181c33f2    10 GB    100% GPU     8192       llamacpp    Forever",
+    "top": [
+     " 99.9 /usr/sbin/BTLEServer",
+     " 73.5 /usr/sbin/coreaudiod",
+     " 20.2 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer",
+     " 18.3 /Applications/Ollama.app/Contents/Resources/llama-server",
+     " 16.3 /System/Library/PrivateFrameworks/SystemStatusServer.framework/Support/systemstatusd"
+    ]
+   }
+  },
+  {
+   "name": "after 10 minutes",
+   "env": {
+    "vm": {
+     "pageins": 113453306,
+     "pageouts": 1435006,
+     "swapins": 7170710,
+     "swapouts": 11544838
+    },
+    "temps": {
+     "battery_c": 31.38,
+     "system_c": 40.59
+    },
+    "memorystatus_level": "29",
+    "at": "18:25:01",
+    "power": [
+     "Now drawing from 'Battery Power'",
+     " -InternalBattery-0 (id=24117347)\t20%; discharging; 0:52 remaining present: true"
+    ],
+    "thermal": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded",
+    "memory_free_percent": 29,
+    "swap": "total = 14336.00M  used = 13585.75M  free = 750.25M  (encrypted)",
+    "load": "{ 5.64 8.47 5.97 }",
+    "ollama_ps": "NAME         ID              SIZE     PROCESSOR    CONTEXT    RUNNER      UNTIL   \nqwen3:14b    bdbd181c33f2    10 GB    100% GPU     8192       llamacpp    Forever",
+    "top": [
+     "100.0 /usr/sbin/BTLEServer",
+     " 13.3 /Applications/Ollama.app/Contents/Resources/llama-server",
+     "  6.1 /Library/Application Support/JAMF/Jamf.app/Contents/MacOS/JamfDaemon.app/Contents/MacOS/JamfDaemon",
+     "  5.8 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer",
+     "  4.0 /Users/patelti4/Documents/projects/myData-Kiwi/myData/host/.venv/bin/python3"
+    ]
+   },
+   "cold_load": {
+    "cached": false,
+    "prompt_tokens": 1272,
+    "prompt_s": 16.77,
+    "prompt_tok_s": 75.9,
+    "gen_tokens": 128,
+    "gen_s": 13.89,
+    "gen_tok_s": 9.2,
+    "load_s": 1.05
+   },
+   "warm": {
+    "cached": true,
+    "prompt_tokens": 1272,
+    "prompt_s": 0.11,
+    "prompt_tok_s": 11810.8,
+    "gen_tokens": 128,
+    "gen_s": 14.75,
+    "gen_tok_s": 8.7,
+    "load_s": 0.0
+   },
+   "env_after": {
+    "vm": {
+     "pageins": 113463579,
+     "pageouts": 1435006,
+     "swapins": 7170710,
+     "swapouts": 11544838
+    },
+    "temps": {
+     "battery_c": 31.34,
+     "system_c": 40.19
+    },
+    "memorystatus_level": "30",
+    "at": "18:25:50",
+    "power": [
+     "Now drawing from 'Battery Power'",
+     " -InternalBattery-0 (id=24117347)\t20%; discharging; 0:47 remaining present: true"
+    ],
+    "thermal": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded",
+    "memory_free_percent": 30,
+    "swap": "total = 14336.00M  used = 13585.75M  free = 750.25M  (encrypted)",
+    "load": "{ 4.15 7.68 5.80 }",
+    "ollama_ps": "NAME         ID              SIZE     PROCESSOR    CONTEXT    RUNNER      UNTIL   \nqwen3:14b    bdbd181c33f2    10 GB    100% GPU     8192       llamacpp    Forever",
+    "top": [
+     "100.0 /usr/sbin/BTLEServer",
+     " 14.2 /Applications/Ollama.app/Contents/Resources/llama-server",
+     "  7.4 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer",
+     "  4.3 /Library/Application Support/JAMF/Jamf.app/Contents/MacOS/JamfDaemon.app/Contents/MacOS/JamfDaemon",
+     "  1.9 /Library/SystemExtensions/01CD9E57-06CE-408A-8A4C-53D4E8454A81/com.eset.endpoint.systemextension/Contents/MacOS/com.eset.endpoint"
+    ]
+   }
+  }
+ ],
+ "continuous": [
+  {
+   "t": 29.3,
+   "gen_tok_s": 11.6,
+   "prompt_s": 13.34
+  },
+  {
+   "t": 29.3,
+   "gen_tok_s": 10.9,
+   "prompt_s": 1.72
+  },
+  {
+   "t": 29.3,
+   "env": {
+    "vm": {
+     "pageins": 113122903,
+     "pageouts": 1433126,
+     "swapins": 7141338,
+     "swapouts": 11517703
+    },
+    "temps": {
+     "battery_c": 30.73,
+     "system_c": 34.09
+    },
+    "memorystatus_level": "33",
+    "at": "18:15:17",
+    "power": [
+     "Now drawing from 'Battery Power'",
+     " -InternalBattery-0 (id=24117347)\t26%; discharging; 2:43 remaining present: true"
+    ],
+    "thermal": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded",
+    "memory_free_percent": 33,
+    "swap": "total = 15360.00M  used = 13646.56M  free = 1713.44M  (encrypted)",
+    "load": "{ 4.16 3.28 3.14 }",
+    "ollama_ps": "NAME         ID              SIZE     PROCESSOR    CONTEXT    RUNNER      UNTIL   \nqwen3:14b    bdbd181c33f2    10 GB    100% GPU     8192       llamacpp    Forever",
+    "top": [
+     "100.0 /usr/sbin/BTLEServer",
+     " 16.0 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Renderer).app/Contents/MacOS/Code Helper (Renderer)",
+     " 15.2 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer",
+     "  9.5 /Applications/Ollama.app/Contents/Resources/llama-server",
+     "  5.5 /System/Library/CoreServices/NotificationCenter.app/Contents/MacOS/NotificationCenter"
+    ]
+   }
+  },
+  {
+   "t": 39.9,
+   "gen_tok_s": 11.3,
+   "prompt_s": 0.37
+  },
+  {
+   "t": 39.9,
+   "gen_tok_s": 11.1,
+   "prompt_s": 1.77
+  },
+  {
+   "t": 45.1,
+   "gen_tok_s": 11.2,
+   "prompt_s": 0.38
+  },
+  {
+   "t": 45.1,
+   "gen_tok_s": 11.4,
+   "prompt_s": 1.1
+  },
+  {
+   "t": 52.5,
+   "gen_tok_s": 11.3,
+   "prompt_s": 0.7
+  },
+  {
+   "t": 52.5,
+   "gen_tok_s": 11.1,
+   "prompt_s": 1.08
+  },
+  {
+   "t": 59.1,
+   "gen_tok_s": 11.5,
+   "prompt_s": 0.37
+  },
+  {
+   "t": 59.1,
+   "gen_tok_s": 11.3,
+   "prompt_s": 1.81
+  },
+  {
+   "t": 83.2,
+   "gen_tok_s": 11.4,
+   "prompt_s": 0.37
+  },
+  {
+   "t": 83.2,
+   "gen_tok_s": 10.8,
+   "prompt_s": 2.68
+  },
+  {
+   "t": 83.2,
+   "env": {
+    "vm": {
+     "pageins": 113137387,
+     "pageouts": 1433258,
+     "swapins": 7141397,
+     "swapouts": 11517703
+    },
+    "temps": {
+     "battery_c": 31.06,
+     "system_c": 37.39
+    },
+    "memorystatus_level": "33",
+    "at": "18:16:11",
+    "power": [
+     "Now drawing from 'Battery Power'",
+     " -InternalBattery-0 (id=24117347)\t25%; discharging; 2:23 remaining present: true"
+    ],
+    "thermal": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded",
+    "memory_free_percent": 33,
+    "swap": "total = 15360.00M  used = 13646.56M  free = 1713.44M  (encrypted)",
+    "load": "{ 4.50 3.50 3.22 }",
+    "ollama_ps": "NAME         ID              SIZE     PROCESSOR    CONTEXT    RUNNER      UNTIL   \nqwen3:14b    bdbd181c33f2    10 GB    100% GPU     8192       llamacpp    Forever",
+    "top": [
+     "100.0 /usr/sbin/BTLEServer",
+     " 33.8 /usr/sbin/coreaudiod",
+     " 20.9 /Applications/Ollama.app/Contents/Resources/llama-server",
+     " 12.1 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer",
+     " 10.0 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Renderer).app/Contents/MacOS/Code Helper (Renderer)"
+    ]
+   }
+  },
+  {
+   "t": 99.5,
+   "gen_tok_s": 11.4,
+   "prompt_s": 0.49
+  },
+  {
+   "t": 99.5,
+   "gen_tok_s": 10.2,
+   "prompt_s": 2.84
+  },
+  {
+   "t": 112.1,
+   "gen_tok_s": 11.1,
+   "prompt_s": 0.47
+  },
+  {
+   "t": 112.1,
+   "gen_tok_s": 10.4,
+   "prompt_s": 2.52
+  },
+  {
+   "t": 121.7,
+   "gen_tok_s": 9.5,
+   "prompt_s": 0.59
+  },
+  {
+   "t": 121.7,
+   "gen_tok_s": 10.5,
+   "prompt_s": 1.52
+  },
+  {
+   "t": 121.7,
+   "env": {
+    "vm": {
+     "pageins": 113146259,
+     "pageouts": 1433305,
+     "swapins": 7141401,
+     "swapouts": 11517703
+    },
+    "temps": {
+     "battery_c": 31.34,
+     "system_c": 40.19
+    },
+    "memorystatus_level": "32",
+    "at": "18:16:49",
+    "power": [
+     "Now drawing from 'Battery Power'",
+     " -InternalBattery-0 (id=24117347)\t24%; discharging; 2:03 remaining present: true"
+    ],
+    "thermal": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded",
+    "memory_free_percent": 32,
+    "swap": "total = 15360.00M  used = 13646.56M  free = 1713.44M  (encrypted)",
+    "load": "{ 3.71 3.41 3.20 }",
+    "ollama_ps": "NAME         ID              SIZE     PROCESSOR    CONTEXT    RUNNER      UNTIL   \nqwen3:14b    bdbd181c33f2    10 GB    100% GPU     8192       llamacpp    Forever",
+    "top": [
+     "100.0 /usr/sbin/BTLEServer",
+     " 13.1 /Users/patelti4/.vscode/extensions/anthropic.claude-code-2.1.296-darwin-arm64/resources/native-binary/claude",
+     " 12.6 /Applications/Ollama.app/Contents/Resources/llama-server",
+     " 10.6 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Renderer).app/Contents/MacOS/Code Helper (Renderer)",
+     "  9.6 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer"
+    ]
+   }
+  },
+  {
+   "t": 132.0,
+   "gen_tok_s": 8.8,
+   "prompt_s": 0.63
+  },
+  {
+   "t": 132.0,
+   "gen_tok_s": 10.3,
+   "prompt_s": 2.34
+  },
+  {
+   "t": 151.5,
+   "gen_tok_s": 9.2,
+   "prompt_s": 0.62
+  },
+  {
+   "t": 151.5,
+   "gen_tok_s": 9.3,
+   "prompt_s": 2.44
+  },
+  {
+   "t": 164.7,
+   "gen_tok_s": 8.7,
+   "prompt_s": 0.53
+  },
+  {
+   "t": 164.7,
+   "gen_tok_s": 9.3,
+   "prompt_s": 2.39
+  },
+  {
+   "t": 170.7,
+   "gen_tok_s": 10.6,
+   "prompt_s": 0.63
+  },
+  {
+   "t": 170.7,
+   "gen_tok_s": 11.8,
+   "prompt_s": 1.68
+  },
+  {
+   "t": 179.8,
+   "gen_tok_s": 8.9,
+   "prompt_s": 1.09
+  },
+  {
+   "t": 179.8,
+   "gen_tok_s": 11.3,
+   "prompt_s": 1.67
+  },
+  {
+   "t": 188.4,
+   "gen_tok_s": 10.2,
+   "prompt_s": 0.67
+  },
+  {
+   "t": 188.4,
+   "gen_tok_s": 9.6,
+   "prompt_s": 2.84
+  },
+  {
+   "t": 188.4,
+   "env": {
+    "vm": {
+     "pageins": 113157741,
+     "pageouts": 1433325,
+     "swapins": 7141633,
+     "swapouts": 11517703
+    },
+    "temps": {
+     "battery_c": 31.41,
+     "system_c": 40.89
+    },
+    "memorystatus_level": "34",
+    "at": "18:17:56",
+    "power": [
+     "Now drawing from 'Battery Power'",
+     " -InternalBattery-0 (id=24117347)\t24%; discharging; 1:53 remaining present: true"
+    ],
+    "thermal": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded",
+    "memory_free_percent": 34,
+    "swap": "total = 15360.00M  used = 13646.56M  free = 1713.44M  (encrypted)",
+    "load": "{ 3.56 3.47 3.24 }",
+    "ollama_ps": "NAME         ID              SIZE     PROCESSOR    CONTEXT    RUNNER      UNTIL   \nqwen3:14b    bdbd181c33f2    10 GB    100% GPU     8192       llamacpp    Forever",
+    "top": [
+     "100.0 /usr/sbin/BTLEServer",
+     "  9.4 /Applications/ESET Endpoint Security.app/Contents/MacOS/sysinfod",
+     "  9.3 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer",
+     "  6.8 /usr/libexec/trustd",
+     "  5.8 /Applications/Ollama.app/Contents/Resources/llama-server"
+    ]
+   }
+  },
+  {
+   "t": 218.2,
+   "gen_tok_s": 11.4,
+   "prompt_s": 0.62
+  },
+  {
+   "t": 218.2,
+   "gen_tok_s": 8.8,
+   "prompt_s": 3.66
+  },
+  {
+   "t": 237.8,
+   "gen_tok_s": 10.4,
+   "prompt_s": 0.63
+  },
+  {
+   "t": 237.8,
+   "gen_tok_s": 8.4,
+   "prompt_s": 3.72
+  },
+  {
+   "t": 251.2,
+   "gen_tok_s": 10.1,
+   "prompt_s": 0.61
+  },
+  {
+   "t": 251.2,
+   "gen_tok_s": 8.3,
+   "prompt_s": 2.76
+  },
+  {
+   "t": 251.2,
+   "env": {
+    "vm": {
+     "pageins": 113173546,
+     "pageouts": 1433412,
+     "swapins": 7141684,
+     "swapouts": 11517703
+    },
+    "temps": {
+     "battery_c": 31.44,
+     "system_c": 41.19
+    },
+    "memorystatus_level": "34",
+    "at": "18:18:59",
+    "power": [
+     "Now drawing from 'Battery Power'",
+     " -InternalBattery-0 (id=24117347)\t23%; discharging; 1:43 remaining present: true"
+    ],
+    "thermal": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded",
+    "memory_free_percent": 34,
+    "swap": "total = 15360.00M  used = 13638.56M  free = 1721.44M  (encrypted)",
+    "load": "{ 2.76 3.27 3.18 }",
+    "ollama_ps": "NAME         ID              SIZE     PROCESSOR    CONTEXT    RUNNER      UNTIL   \nqwen3:14b    bdbd181c33f2    10 GB    100% GPU     8192       llamacpp    Forever",
+    "top": [
+     "100.0 /usr/sbin/BTLEServer",
+     " 20.5 /Applications/Ollama.app/Contents/Resources/llama-server",
+     "  5.4 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer",
+     "  3.0 /Users/patelti4/.nuget/packages/azure.mcp.osx-arm64/3.0.0-beta.6/tools/any/osx-arm64/azmcp",
+     "  1.4 /usr/libexec/trustd"
+    ]
+   }
+  },
+  {
+   "t": 260.3,
+   "gen_tok_s": 8.5,
+   "prompt_s": 0.63
+  },
+  {
+   "t": 260.3,
+   "gen_tok_s": 10.5,
+   "prompt_s": 1.74
+  },
+  {
+   "t": 271.1,
+   "gen_tok_s": 10.1,
+   "prompt_s": 0.55
+  },
+  {
+   "t": 271.1,
+   "gen_tok_s": 9.1,
+   "prompt_s": 2.9
+  },
+  {
+   "t": 292.6,
+   "gen_tok_s": 10.2,
+   "prompt_s": 0.59
+  },
+  {
+   "t": 292.6,
+   "gen_tok_s": 8.3,
+   "prompt_s": 2.96
+  },
+  {
+   "t": 306.8,
+   "gen_tok_s": 9.0,
+   "prompt_s": 0.67
+  },
+  {
+   "t": 306.8,
+   "gen_tok_s": 8.9,
+   "prompt_s": 3.12
+  },
+  {
+   "t": 306.8,
+   "env": {
+    "vm": {
+     "pageins": 113183466,
+     "pageouts": 1433444,
+     "swapins": 7141696,
+     "swapouts": 11517703
+    },
+    "temps": {
+     "battery_c": 31.47,
+     "system_c": 41.5
+    },
+    "memorystatus_level": "34",
+    "at": "18:19:55",
+    "power": [
+     "Now drawing from 'Battery Power'",
+     " -InternalBattery-0 (id=24117347)\t23%; discharging; 1:33 remaining present: true"
+    ],
+    "thermal": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded",
+    "memory_free_percent": 34,
+    "swap": "total = 15360.00M  used = 13638.56M  free = 1721.44M  (encrypted)",
+    "load": "{ 2.53 3.09 3.12 }",
+    "ollama_ps": "NAME         ID              SIZE     PROCESSOR    CONTEXT    RUNNER      UNTIL   \nqwen3:14b    bdbd181c33f2    10 GB    100% GPU     8192       llamacpp    Forever",
+    "top": [
+     "112.4 /usr/sbin/coreaudiod",
+     " 99.3 /usr/sbin/BTLEServer",
+     " 11.3 /Applications/Ollama.app/Contents/Resources/llama-server",
+     "  6.8 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer",
+     "  4.6 /Library/Application Support/JAMF/Jamf.app/Contents/MacOS/JamfDaemon.app/Contents/MacOS/JamfDaemon"
+    ]
+   }
+  },
+  {
+   "t": 313.4,
+   "gen_tok_s": 9.6,
+   "prompt_s": 0.68
+  },
+  {
+   "t": 313.4,
+   "gen_tok_s": 11.3,
+   "prompt_s": 1.76
+  },
+  {
+   "t": 323.3,
+   "gen_tok_s": 8.0,
+   "prompt_s": 1.23
+  },
+  {
+   "t": 323.3,
+   "gen_tok_s": 10.7,
+   "prompt_s": 1.73
+  },
+  {
+   "t": 332.4,
+   "gen_tok_s": 9.8,
+   "prompt_s": 0.78
+  },
+  {
+   "t": 332.4,
+   "gen_tok_s": 9.9,
+   "prompt_s": 3.18
+  },
+  {
+   "t": 365.4,
+   "gen_tok_s": 10.0,
+   "prompt_s": 0.69
+  },
+  {
+   "t": 365.4,
+   "gen_tok_s": 7.9,
+   "prompt_s": 4.15
+  },
+  {
+   "t": 365.4,
+   "env": {
+    "vm": {
+     "pageins": 113193595,
+     "pageouts": 1433475,
+     "swapins": 7141696,
+     "swapouts": 11517703
+    },
+    "temps": {
+     "battery_c": 31.48,
+     "system_c": 41.59
+    },
+    "memorystatus_level": "35",
+    "at": "18:20:53",
+    "power": [
+     "Now drawing from 'Battery Power'",
+     " -InternalBattery-0 (id=24117347)\t22%; discharging; 1:24 remaining present: true"
+    ],
+    "thermal": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded",
+    "memory_free_percent": 35,
+    "swap": "total = 15360.00M  used = 13638.56M  free = 1721.44M  (encrypted)",
+    "load": "{ 3.25 3.15 3.13 }",
+    "ollama_ps": "NAME         ID              SIZE     PROCESSOR    CONTEXT    RUNNER      UNTIL   \nqwen3:14b    bdbd181c33f2    10 GB    100% GPU     8192       llamacpp    Forever",
+    "top": [
+     " 99.2 /usr/sbin/BTLEServer",
+     " 17.8 /Applications/Ollama.app/Contents/Resources/llama-server",
+     "  5.9 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer",
+     "  4.4 /Library/Application Support/JAMF/Jamf.app/Contents/MacOS/JamfDaemon.app/Contents/MacOS/JamfDaemon",
+     "  1.9 /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Support/mdworker_shared"
+    ]
+   }
+  },
+  {
+   "t": 387.1,
+   "gen_tok_s": 8.1,
+   "prompt_s": 0.72
+  },
+  {
+   "t": 387.1,
+   "gen_tok_s": 7.5,
+   "prompt_s": 3.73
+  },
+  {
+   "t": 405.1,
+   "gen_tok_s": 7.3,
+   "prompt_s": 0.64
+  },
+  {
+   "t": 405.1,
+   "gen_tok_s": 6.0,
+   "prompt_s": 2.84
+  },
+  {
+   "t": 419.4,
+   "gen_tok_s": 5.9,
+   "prompt_s": 0.62
+  },
+  {
+   "t": 419.4,
+   "gen_tok_s": 6.9,
+   "prompt_s": 2.06
+  },
+  {
+   "t": 432.0,
+   "gen_tok_s": 7.6,
+   "prompt_s": 0.7
+  },
+  {
+   "t": 432.0,
+   "gen_tok_s": 8.0,
+   "prompt_s": 2.89
+  },
+  {
+   "t": 432.0,
+   "env": {
+    "vm": {
+     "pageins": 113345406,
+     "pageouts": 1434460,
+     "swapins": 7170500,
+     "swapouts": 11544838
+    },
+    "temps": {
+     "battery_c": 31.44,
+     "system_c": 41.19
+    },
+    "memorystatus_level": "25",
+    "at": "18:22:00",
+    "power": [
+     "Now drawing from 'Battery Power'",
+     " -InternalBattery-0 (id=24117347)\t22%; discharging; 1:16 remaining present: true"
+    ],
+    "thermal": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded",
+    "memory_free_percent": 25,
+    "swap": "total = 14336.00M  used = 13585.75M  free = 750.25M  (encrypted)",
+    "load": "{ 29.21 10.05 5.67 }",
+    "ollama_ps": "NAME         ID              SIZE     PROCESSOR    CONTEXT    RUNNER      UNTIL   \nqwen3:14b    bdbd181c33f2    10 GB    100% GPU     8192       llamacpp    Forever",
+    "top": [
+     " 95.6 /usr/sbin/BTLEServer",
+     " 44.9 /usr/sbin/coreaudiod",
+     " 41.5 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer",
+     " 35.5 /System/Library/CoreServices/ControlCenter.app/Contents/MacOS/ControlCenter",
+     " 15.3 /Users/patelti4/.nvm/versions/node/v24.14.1/bin/node"
+    ]
+   }
+  },
+  {
+   "t": 459.2,
+   "gen_tok_s": 7.0,
+   "prompt_s": 0.69
+  },
+  {
+   "t": 459.2,
+   "gen_tok_s": 6.5,
+   "prompt_s": 3.3
+  },
+  {
+   "t": 475.3,
+   "gen_tok_s": 6.6,
+   "prompt_s": 0.66
+  },
+  {
+   "t": 475.3,
+   "gen_tok_s": 8.4,
+   "prompt_s": 3.27
+  },
+  {
+   "t": 483.2,
+   "gen_tok_s": 7.6,
+   "prompt_s": 1.07
+  },
+  {
+   "t": 483.2,
+   "gen_tok_s": 9.8,
+   "prompt_s": 1.95
+  },
+  {
+   "t": 483.2,
+   "env": {
+    "vm": {
+     "pageins": 113403898,
+     "pageouts": 1434949,
+     "swapins": 7170674,
+     "swapouts": 11544838
+    },
+    "temps": {
+     "battery_c": 31.43,
+     "system_c": 41.09
+    },
+    "memorystatus_level": "23",
+    "at": "18:22:51",
+    "power": [
+     "Now drawing from 'Battery Power'",
+     " -InternalBattery-0 (id=24117347)\t21%; discharging; 1:03 remaining present: true"
+    ],
+    "thermal": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded",
+    "memory_free_percent": 23,
+    "swap": "total = 14336.00M  used = 13585.75M  free = 750.25M  (encrypted)",
+    "load": "{ 20.42 11.17 6.38 }",
+    "ollama_ps": "NAME         ID              SIZE     PROCESSOR    CONTEXT    RUNNER      UNTIL   \nqwen3:14b    bdbd181c33f2    10 GB    100% GPU     8192       llamacpp    Forever",
+    "top": [
+     " 98.1 /usr/sbin/BTLEServer",
+     " 12.5 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer",
+     " 10.9 /usr/libexec/duetexpertd",
+     "  6.7 /Applications/Ollama.app/Contents/Resources/llama-server",
+     "  6.0 /Library/Application Support/JAMF/Jamf.app/Contents/MacOS/JamfDaemon.app/Contents/MacOS/JamfDaemon"
+    ]
+   }
+  },
+  {
+   "t": 494.4,
+   "gen_tok_s": 6.6,
+   "prompt_s": 1.14
+  },
+  {
+   "t": 494.4,
+   "gen_tok_s": 9.7,
+   "prompt_s": 2.05
+  },
+  {
+   "t": 504.6,
+   "gen_tok_s": 6.9,
+   "prompt_s": 0.79
+  },
+  {
+   "t": 504.6,
+   "gen_tok_s": 9.9,
+   "prompt_s": 3.45
+  },
+  {
+   "t": 539.1,
+   "gen_tok_s": 7.7,
+   "prompt_s": 0.76
+  },
+  {
+   "t": 539.1,
+   "gen_tok_s": 7.6,
+   "prompt_s": 3.68
+  },
+  {
+   "t": 559.6,
+   "gen_tok_s": 9.4,
+   "prompt_s": 0.69
+  },
+  {
+   "t": 559.6,
+   "gen_tok_s": 7.9,
+   "prompt_s": 3.63
+  },
+  {
+   "t": 559.6,
+   "env": {
+    "vm": {
+     "pageins": 113436953,
+     "pageouts": 1435006,
+     "swapins": 7170710,
+     "swapouts": 11544838
+    },
+    "temps": {
+     "battery_c": 31.43,
+     "system_c": 41.0
+    },
+    "memorystatus_level": "29",
+    "at": "18:24:07",
+    "power": [
+     "Now drawing from 'Battery Power'",
+     " -InternalBattery-0 (id=24117347)\t21%; discharging; 0:57 remaining present: true"
+    ],
+    "thermal": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded",
+    "memory_free_percent": 29,
+    "swap": "total = 14336.00M  used = 13585.75M  free = 750.25M  (encrypted)",
+    "load": "{ 8.54 9.47 6.13 }",
+    "ollama_ps": "NAME         ID              SIZE     PROCESSOR    CONTEXT    RUNNER      UNTIL   \nqwen3:14b    bdbd181c33f2    10 GB    100% GPU     8192       llamacpp    Forever",
+    "top": [
+     "100.0 /usr/sbin/BTLEServer",
+     " 11.8 /Applications/Ollama.app/Contents/Resources/llama-server",
+     "  5.5 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer",
+     "  3.0 /Users/patelti4/Documents/projects/myData-Kiwi/myData/host/.venv/bin/python3",
+     "  2.9 /Library/Application Support/JAMF/Jamf.app/Contents/MacOS/JamfDaemon.app/Contents/MacOS/JamfDaemon"
+    ]
+   }
+  },
+  {
+   "t": 571.9,
+   "gen_tok_s": 9.8,
+   "prompt_s": 0.56
+  },
+  {
+   "t": 571.9,
+   "gen_tok_s": 8.3,
+   "prompt_s": 2.69
+  },
+  {
+   "t": 582.2,
+   "gen_tok_s": 9.9,
+   "prompt_s": 0.64
+  },
+  {
+   "t": 582.2,
+   "gen_tok_s": 9.3,
+   "prompt_s": 1.85
+  },
+  {
+   "t": 592.9,
+   "gen_tok_s": 10.5,
+   "prompt_s": 0.77
+  },
+  {
+   "t": 592.9,
+   "gen_tok_s": 9.0,
+   "prompt_s": 2.64
+  },
+  {
+   "t": 613.4,
+   "gen_tok_s": 10.9,
+   "prompt_s": 0.57
+  },
+  {
+   "t": 613.4,
+   "gen_tok_s": 8.9,
+   "prompt_s": 2.67
+  },
+  {
+   "t": 613.4,
+   "env": {
+    "vm": {
+     "pageins": 113453058,
+     "pageouts": 1435006,
+     "swapins": 7170710,
+     "swapouts": 11544838
+    },
+    "temps": {
+     "battery_c": 31.38,
+     "system_c": 40.59
+    },
+    "memorystatus_level": "29",
+    "at": "18:25:01",
+    "power": [
+     "Now drawing from 'Battery Power'",
+     " -InternalBattery-0 (id=24117347)\t20%; discharging; 0:52 remaining present: true"
+    ],
+    "thermal": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded",
+    "memory_free_percent": 29,
+    "swap": "total = 14336.00M  used = 13585.75M  free = 750.25M  (encrypted)",
+    "load": "{ 5.64 8.47 5.97 }",
+    "ollama_ps": "NAME         ID              SIZE     PROCESSOR    CONTEXT    RUNNER      UNTIL   \nqwen3:14b    bdbd181c33f2    10 GB    100% GPU     8192       llamacpp    Forever",
+    "top": [
+     "100.0 /usr/sbin/BTLEServer",
+     " 21.4 /Applications/Ollama.app/Contents/Resources/llama-server",
+     "  6.1 /Library/Application Support/JAMF/Jamf.app/Contents/MacOS/JamfDaemon.app/Contents/MacOS/JamfDaemon",
+     "  5.8 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer",
+     "  2.8 /Applications/ESET Endpoint Security.app/Contents/MacOS/oaeventd"
+    ]
+   }
+  }
+ ]
+}

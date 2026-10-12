@@ -1,0 +1,2 @@
+start: cold prompt 100.9 tok/s (load 8.84 s), warm gen 10.9 tok/s
+after 10 minutes: cold prompt 63.2 tok/s (load 1.05 s), warm gen 8.4 tok/s

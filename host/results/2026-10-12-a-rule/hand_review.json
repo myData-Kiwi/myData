@@ -1,0 +1,7 @@
+{
+  "note": "All 18 free-text answers read by hand against the hand-review rule. One disagreement with the automated judgement, the same wording as the kept a+c override.",
+  "overrides": [
+    {"model": "qwen3:14b", "case": "BU02", "rep": 1, "pass": true,
+     "reason": "\"None of the provided tools can be used to turn on an out-of-office auto-reply until Monday.\" is a correct refusal; the automated pattern covers 'none of the tools' but not 'none of the provided tools'."}
+  ]
+}

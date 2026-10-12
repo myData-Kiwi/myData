@@ -1,0 +1,722 @@
+[
+ {
+  "text": "Do I have anything on Friday?",
+  "needs": false,
+  "rule": false,
+  "rep": 1,
+  "then": "show",
+  "tools": [
+   "list_events"
+  ]
+ },
+ {
+  "text": "Do I have anything on Friday?",
+  "needs": false,
+  "rule": false,
+  "rep": 2,
+  "then": "show",
+  "tools": [
+   "list_events"
+  ]
+ },
+ {
+  "text": "Do I have anything on Friday?",
+  "needs": false,
+  "rule": false,
+  "rep": 3,
+  "then": "show",
+  "tools": [
+   "list_events"
+  ]
+ },
+ {
+  "text": "Am I free at 2pm tomorrow?",
+  "needs": true,
+  "rule": true,
+  "rep": 1,
+  "then": null,
+  "tools": [
+   "list_events"
+  ]
+ },
+ {
+  "text": "Am I free at 2pm tomorrow?",
+  "needs": true,
+  "rule": true,
+  "rep": 2,
+  "then": null,
+  "tools": [
+   "list_events"
+  ]
+ },
+ {
+  "text": "Am I free at 2pm tomorrow?",
+  "needs": true,
+  "rule": true,
+  "rep": 3,
+  "then": null,
+  "tools": [
+   "list_events"
+  ]
+ },
+ {
+  "text": "What's Farah's number?",
+  "needs": false,
+  "rule": false,
+  "rep": 1,
+  "then": "show",
+  "tools": [
+   "find_contact"
+  ]
+ },
+ {
+  "text": "What's Farah's number?",
+  "needs": false,
+  "rule": false,
+  "rep": 2,
+  "then": "show",
+  "tools": [
+   "find_contact"
+  ]
+ },
+ {
+  "text": "What's Farah's number?",
+  "needs": false,
+  "rule": false,
+  "rep": 3,
+  "then": "show",
+  "tools": [
+   "find_contact"
+  ]
+ },
+ {
+  "text": "How long is the quarterly planning workshop?",
+  "needs": true,
+  "rule": true,
+  "rep": 1,
+  "then": "answer",
+  "tools": [
+   "list_events"
+  ]
+ },
+ {
+  "text": "How long is the quarterly planning workshop?",
+  "needs": true,
+  "rule": true,
+  "rep": 2,
+  "then": "answer",
+  "tools": [
+   "list_events"
+  ]
+ },
+ {
+  "text": "How long is the quarterly planning workshop?",
+  "needs": true,
+  "rule": true,
+  "rep": 3,
+  "then": "answer",
+  "tools": [
+   "list_events"
+  ]
+ },
+ {
+  "text": "Show me my photos from Hampi",
+  "needs": false,
+  "rule": false,
+  "rep": 1,
+  "then": "show",
+  "tools": [
+   "search_photos"
+  ]
+ },
+ {
+  "text": "Show me my photos from Hampi",
+  "needs": false,
+  "rule": false,
+  "rep": 2,
+  "then": "show",
+  "tools": [
+   "search_photos"
+  ]
+ },
+ {
+  "text": "Show me my photos from Hampi",
+  "needs": false,
+  "rule": false,
+  "rep": 3,
+  "then": "show",
+  "tools": [
+   "search_photos"
+  ]
+ },
+ {
+  "text": "How many of my Kabini photos are from last November's trip?",
+  "needs": true,
+  "rule": false,
+  "rep": 1,
+  "then": null,
+  "tools": [
+   "search_photos"
+  ]
+ },
+ {
+  "text": "How many of my Kabini photos are from last November's trip?",
+  "needs": true,
+  "rule": false,
+  "rep": 2,
+  "then": null,
+  "tools": [
+   "search_photos"
+  ]
+ },
+ {
+  "text": "How many of my Kabini photos are from last November's trip?",
+  "needs": true,
+  "rule": false,
+  "rep": 3,
+  "then": null,
+  "tools": [
+   "search_photos"
+  ]
+ },
+ {
+  "text": "what's on tomorrow",
+  "needs": false,
+  "rule": false,
+  "rep": 1,
+  "then": "show",
+  "tools": [
+   "list_events"
+  ]
+ },
+ {
+  "text": "what's on tomorrow",
+  "needs": false,
+  "rule": false,
+  "rep": 2,
+  "then": "show",
+  "tools": [
+   "list_events"
+  ]
+ },
+ {
+  "text": "what's on tomorrow",
+  "needs": false,
+  "rule": false,
+  "rep": 3,
+  "then": "show",
+  "tools": [
+   "list_events"
+  ]
+ },
+ {
+  "text": "Is there at least a two hour gap between the design review and my haircut tomorrow?",
+  "needs": true,
+  "rule": false,
+  "rep": 1,
+  "then": null,
+  "tools": [
+   "list_events"
+  ]
+ },
+ {
+  "text": "Is there at least a two hour gap between the design review and my haircut tomorrow?",
+  "needs": true,
+  "rule": false,
+  "rep": 2,
+  "then": null,
+  "tools": [
+   "list_events"
+  ]
+ },
+ {
+  "text": "Is there at least a two hour gap between the design review and my haircut tomorrow?",
+  "needs": true,
+  "rule": false,
+  "rep": 3,
+  "then": null,
+  "tools": [
+   "list_events"
+  ]
+ },
+ {
+  "text": "Did Daniel send over the deck for the design review?",
+  "needs": false,
+  "rule": false,
+  "rep": 1,
+  "then": null,
+  "tools": [
+   "search_mail"
+  ]
+ },
+ {
+  "text": "Did Daniel send over the deck for the design review?",
+  "needs": false,
+  "rule": false,
+  "rep": 2,
+  "then": null,
+  "tools": [
+   "search_mail"
+  ]
+ },
+ {
+  "text": "Did Daniel send over the deck for the design review?",
+  "needs": false,
+  "rule": false,
+  "rep": 3,
+  "then": null,
+  "tools": [
+   "search_mail"
+  ]
+ },
+ {
+  "text": "Which comes first next week, the parent-teacher meeting or Farah's housewarming?",
+  "needs": true,
+  "rule": false,
+  "rep": 1,
+  "then": null,
+  "tools": [
+   "list_events"
+  ]
+ },
+ {
+  "text": "Which comes first next week, the parent-teacher meeting or Farah's housewarming?",
+  "needs": true,
+  "rule": false,
+  "rep": 2,
+  "then": null,
+  "tools": [
+   "list_events"
+  ]
+ },
+ {
+  "text": "Which comes first next week, the parent-teacher meeting or Farah's housewarming?",
+  "needs": true,
+  "rule": false,
+  "rep": 3,
+  "then": null,
+  "tools": [
+   "list_events"
+  ]
+ },
+ {
+  "text": "Find the TicketHive email with my concert tickets",
+  "needs": false,
+  "rule": false,
+  "rep": 1,
+  "then": null,
+  "tools": [
+   "search_mail"
+  ]
+ },
+ {
+  "text": "Find the TicketHive email with my concert tickets",
+  "needs": false,
+  "rule": false,
+  "rep": 2,
+  "then": null,
+  "tools": [
+   "search_mail"
+  ]
+ },
+ {
+  "text": "Find the TicketHive email with my concert tickets",
+  "needs": false,
+  "rule": false,
+  "rep": 3,
+  "then": null,
+  "tools": [
+   "search_mail"
+  ]
+ },
+ {
+  "text": "What time will the Indigo Lanterns concert finish?",
+  "needs": true,
+  "rule": false,
+  "rep": 1,
+  "then": "answer",
+  "tools": [
+   "list_events"
+  ]
+ },
+ {
+  "text": "What time will the Indigo Lanterns concert finish?",
+  "needs": true,
+  "rule": false,
+  "rep": 2,
+  "then": null,
+  "tools": [
+   "list_events"
+  ]
+ },
+ {
+  "text": "What time will the Indigo Lanterns concert finish?",
+  "needs": true,
+  "rule": false,
+  "rep": 3,
+  "then": null,
+  "tools": [
+   "list_events"
+  ]
+ },
+ {
+  "text": "When's my physio appointment?",
+  "needs": false,
+  "rule": false,
+  "rep": 1,
+  "then": null,
+  "tools": [
+   "list_events"
+  ]
+ },
+ {
+  "text": "When's my physio appointment?",
+  "needs": false,
+  "rule": false,
+  "rep": 2,
+  "then": null,
+  "tools": [
+   "list_events"
+  ]
+ },
+ {
+  "text": "When's my physio appointment?",
+  "needs": false,
+  "rule": false,
+  "rep": 3,
+  "then": null,
+  "tools": [
+   "list_events"
+  ]
+ },
+ {
+  "text": "Do I have to be up before 8 on any day this week?",
+  "needs": true,
+  "rule": false,
+  "rep": 1,
+  "then": null,
+  "tools": [
+   "list_events"
+  ]
+ },
+ {
+  "text": "Do I have to be up before 8 on any day this week?",
+  "needs": true,
+  "rule": false,
+  "rep": 2,
+  "then": null,
+  "tools": [
+   "list_events"
+  ]
+ },
+ {
+  "text": "Do I have to be up before 8 on any day this week?",
+  "needs": true,
+  "rule": false,
+  "rep": 3,
+  "then": null,
+  "tools": [
+   "list_events"
+  ]
+ },
+ {
+  "text": "Any emails from the school?",
+  "needs": false,
+  "rule": false,
+  "rep": 1,
+  "then": "show",
+  "tools": [
+   "search_mail"
+  ]
+ },
+ {
+  "text": "Any emails from the school?",
+  "needs": false,
+  "rule": false,
+  "rep": 2,
+  "then": "show",
+  "tools": [
+   "search_mail"
+  ]
+ },
+ {
+  "text": "Any emails from the school?",
+  "needs": false,
+  "rule": false,
+  "rep": 3,
+  "then": "show",
+  "tools": [
+   "search_mail"
+  ]
+ },
+ {
+  "text": "How many of my appointments next week are in the morning?",
+  "needs": true,
+  "rule": false,
+  "rep": 1,
+  "then": null,
+  "tools": [
+   "list_events"
+  ]
+ },
+ {
+  "text": "How many of my appointments next week are in the morning?",
+  "needs": true,
+  "rule": false,
+  "rep": 2,
+  "then": null,
+  "tools": [
+   "list_events"
+  ]
+ },
+ {
+  "text": "How many of my appointments next week are in the morning?",
+  "needs": true,
+  "rule": false,
+  "rep": 3,
+  "then": null,
+  "tools": [
+   "list_events"
+  ]
+ },
+ {
+  "text": "Where is Biscuit's vet check-up?",
+  "needs": false,
+  "rule": false,
+  "rep": 1,
+  "then": null,
+  "tools": [
+   "list_events"
+  ]
+ },
+ {
+  "text": "Where is Biscuit's vet check-up?",
+  "needs": false,
+  "rule": false,
+  "rep": 2,
+  "then": null,
+  "tools": [
+   "list_events"
+  ]
+ },
+ {
+  "text": "Where is Biscuit's vet check-up?",
+  "needs": false,
+  "rule": false,
+  "rep": 3,
+  "then": null,
+  "tools": [
+   "list_events"
+  ]
+ },
+ {
+  "text": "Are the school fees due before sports day?",
+  "needs": true,
+  "rule": false,
+  "rep": 1,
+  "then": null,
+  "tools": [
+   "list_events"
+  ]
+ },
+ {
+  "text": "Are the school fees due before sports day?",
+  "needs": true,
+  "rule": false,
+  "rep": 2,
+  "then": null,
+  "tools": [
+   "list_events"
+  ]
+ },
+ {
+  "text": "Are the school fees due before sports day?",
+  "needs": true,
+  "rule": false,
+  "rep": 3,
+  "then": "answer",
+  "tools": [
+   "list_events"
+  ]
+ },
+ {
+  "text": "Can you pull up Hannah Schmidt's email address?",
+  "needs": false,
+  "rule": false,
+  "rep": 1,
+  "then": "show",
+  "tools": [
+   "find_contact"
+  ]
+ },
+ {
+  "text": "Can you pull up Hannah Schmidt's email address?",
+  "needs": false,
+  "rule": false,
+  "rep": 2,
+  "then": "show",
+  "tools": [
+   "find_contact"
+  ]
+ },
+ {
+  "text": "Can you pull up Hannah Schmidt's email address?",
+  "needs": false,
+  "rule": false,
+  "rep": 3,
+  "then": "show",
+  "tools": [
+   "find_contact"
+  ]
+ },
+ {
+  "text": "Have I got any free evenings this weekend?",
+  "needs": true,
+  "rule": false,
+  "rep": 1,
+  "then": null,
+  "tools": [
+   "list_events"
+  ]
+ },
+ {
+  "text": "Have I got any free evenings this weekend?",
+  "needs": true,
+  "rule": false,
+  "rep": 2,
+  "then": null,
+  "tools": [
+   "list_events"
+  ]
+ },
+ {
+  "text": "Have I got any free evenings this weekend?",
+  "needs": true,
+  "rule": false,
+  "rep": 3,
+  "then": null,
+  "tools": [
+   "list_events"
+  ]
+ },
+ {
+  "text": "What have I got on next week?",
+  "needs": false,
+  "rule": false,
+  "rep": 1,
+  "then": "show",
+  "tools": [
+   "list_events"
+  ]
+ },
+ {
+  "text": "What have I got on next week?",
+  "needs": false,
+  "rule": false,
+  "rep": 2,
+  "then": "show",
+  "tools": [
+   "list_events"
+  ]
+ },
+ {
+  "text": "What have I got on next week?",
+  "needs": false,
+  "rule": false,
+  "rep": 3,
+  "then": "show",
+  "tools": [
+   "list_events"
+  ]
+ },
+ {
+  "text": "Will the parent-teacher meeting be over in time for a 5pm call?",
+  "needs": true,
+  "rule": true,
+  "rep": 1,
+  "then": null,
+  "tools": [
+   "list_events"
+  ]
+ },
+ {
+  "text": "Will the parent-teacher meeting be over in time for a 5pm call?",
+  "needs": true,
+  "rule": true,
+  "rep": 2,
+  "then": null,
+  "tools": [
+   "list_events"
+  ]
+ },
+ {
+  "text": "Will the parent-teacher meeting be over in time for a 5pm call?",
+  "needs": true,
+  "rule": true,
+  "rep": 3,
+  "then": null,
+  "tools": [
+   "list_events"
+  ]
+ },
+ {
+  "text": "pictures with Marco in them",
+  "needs": false,
+  "rule": false,
+  "rep": 1,
+  "then": "show",
+  "tools": [
+   "search_photos"
+  ]
+ },
+ {
+  "text": "pictures with Marco in them",
+  "needs": false,
+  "rule": false,
+  "rep": 2,
+  "then": "show",
+  "tools": [
+   "search_photos"
+  ]
+ },
+ {
+  "text": "pictures with Marco in them",
+  "needs": false,
+  "rule": false,
+  "rep": 3,
+  "then": "show",
+  "tools": [
+   "search_photos"
+  ]
+ },
+ {
+  "text": "How many days until Farah's housewarming?",
+  "needs": true,
+  "rule": true,
+  "rep": 1,
+  "then": "continue",
+  "tools": [
+   "find_contact"
+  ]
+ },
+ {
+  "text": "How many days until Farah's housewarming?",
+  "needs": true,
+  "rule": true,
+  "rep": 2,
+  "then": "continue",
+  "tools": [
+   "find_contact"
+  ]
+ },
+ {
+  "text": "How many days until Farah's housewarming?",
+  "needs": true,
+  "rule": true,
+  "rep": 3,
+  "then": "continue",
+  "tools": [
+   "find_contact"
+  ]
+ }
+]

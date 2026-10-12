@@ -1,0 +1,122 @@
+writing results/2026-10-12-a-field/runs.jsonl  (set 2026-10-11-b, cases sha a654c13a124da746)
+loading qwen3:14b...
+qwen3:14b      BS01 #1 PASS    4.1s  
+qwen3:14b      BS01 #2 PASS    4.5s  
+qwen3:14b      BS01 #3 PASS    3.5s  
+qwen3:14b      BS02 #1 PASS   16.1s  
+qwen3:14b      BS02 #2 PASS   15.6s  
+qwen3:14b      BS02 #3 PASS   15.8s  
+qwen3:14b      BS03 #1 PASS    4.1s  
+qwen3:14b      BS03 #2 PASS    4.3s  
+qwen3:14b      BS03 #3 PASS    4.2s  
+qwen3:14b      BS04 #1 PASS   10.7s  
+qwen3:14b      BS04 #2 PASS    8.9s  
+qwen3:14b      BS04 #3 PASS   10.3s  
+qwen3:14b      BS05 #1 PASS    3.9s  
+qwen3:14b      BS05 #2 PASS    4.4s  
+qwen3:14b      BS05 #3 PASS    3.4s  
+qwen3:14b      BS06 #1 PASS    3.8s  
+qwen3:14b      BS06 #2 PASS    4.2s  
+qwen3:14b      BS06 #3 PASS    3.5s  
+qwen3:14b      BS07 #1 PASS    5.0s  
+qwen3:14b      BS07 #2 PASS    3.6s  
+qwen3:14b      BS07 #3 PASS    3.9s  
+qwen3:14b      BS08 #1 PASS    4.6s  
+qwen3:14b      BS08 #2 PASS    3.7s  
+qwen3:14b      BS08 #3 PASS    4.2s  
+qwen3:14b      BS09 #1 PASS   10.2s  
+qwen3:14b      BS09 #2 PASS   10.2s  
+qwen3:14b      BS09 #3 PASS   10.3s  
+qwen3:14b      BS10 #1 fail    7.0s  tools used ['search_mail'], want ['list_events']; no valid list_events call; extra call(s): search_mail({'query': 'Biscuit vet appointment'})
+qwen3:14b      BS10 #2 fail    9.1s  tools used ['search_mail'], want ['list_events']; no valid list_events call; extra call(s): search_mail({'query': 'Biscuit vet appointment'})
+qwen3:14b      BS10 #3 fail    7.4s  tools used ['search_mail'], want ['list_events']; no valid list_events call; extra call(s): search_mail({'query': 'Biscuit vet appointment'})
+qwen3:14b      BA01 #1 PASS    5.7s  
+qwen3:14b      BA01 #2 PASS    5.1s  
+qwen3:14b      BA01 #3 PASS    5.4s  
+qwen3:14b      BA02 #1 fail    7.8s  list_events.date: 'next week' resolves to 2026-03-23..2026-03-29, want 2026-03-23..2026-03-25; list_events.query: not asked for ('Monday to Wednesday')
+qwen3:14b      BA02 #2 fail    8.3s  list_events.date: 'next week' resolves to 2026-03-23..2026-03-29, want 2026-03-23..2026-03-25; list_events.query: not asked for ('Monday to Wednesday')
+qwen3:14b      BA02 #3 fail    8.3s  list_events.date: 'next week' resolves to 2026-03-23..2026-03-29, want 2026-03-23..2026-03-25; list_events.query: not asked for ('Monday to Wednesday')
+qwen3:14b      BA03 #1 PASS   12.4s  
+qwen3:14b      BA03 #2 PASS   12.0s  
+qwen3:14b      BA03 #3 PASS   12.2s  
+qwen3:14b      BA04 #1 PASS    5.1s  
+qwen3:14b      BA04 #2 PASS    4.8s  
+qwen3:14b      BA04 #3 PASS    5.0s  
+qwen3:14b      BA05 #1 PASS   10.9s  
+qwen3:14b      BA05 #2 PASS   15.9s  
+qwen3:14b      BA05 #3 PASS   15.7s  
+qwen3:14b      BC01 #1 fail   41.9s  tools used ['search_photos'], want ['list_events', 'search_photos']; no valid list_events call; search_photos.date: 'last month' resolves to 2026-02-01..2026-02
+qwen3:14b      BC01 #2 fail   35.5s  tools used ['search_photos'], want ['list_events', 'search_photos']; no valid list_events call; search_photos.date: 'last month' resolves to 2026-02-01..2026-02
+qwen3:14b      BC01 #3 fail   34.9s  tools used ['search_photos'], want ['list_events', 'search_photos']; no valid list_events call; search_photos.date: 'last month' resolves to 2026-02-01..2026-02
+qwen3:14b      BC02 #1 fail   28.6s  tools used ['find_contact', 'search_mail', 'send_mail'], want ['find_contact', 'list_events', 'send_mail']; no valid list_events call; send_mail.body: "Hi Hanna
+qwen3:14b      BC02 #2 fail   51.5s  send_mail rejected: ungrounded body: '3:30pm.' not in the request or any earlier result; send_mail rejected: ungrounded body: '3:30pm.' not in the request or an
+qwen3:14b      BC02 #3 fail   42.4s  send_mail rejected: ungrounded body: '3:30pm.' not in the request or any earlier result; tools used ['find_contact', 'search_mail', 'send_mail'], want ['find_co
+qwen3:14b      BC03 #1 fail   29.7s  list_events rejected: could not understand the date 'next'; list_events rejected: could not understand the date 'next'; create_event rejected: could not underst
+qwen3:14b      BC03 #2 fail   28.3s  list_events rejected: could not understand the date 'next'; list_events rejected: could not understand the date 'next'; create_event rejected: could not underst
+qwen3:14b      BC03 #3 fail   27.4s  list_events rejected: could not understand the date 'next'; list_events rejected: could not understand the date 'next'; create_event rejected: could not underst
+qwen3:14b      BC04 #1 fail   34.9s  list_events rejected: could not understand the date 'the day of Farah's housewarming'; list_events rejected: could not understand the date 'the day of Farah's h
+qwen3:14b      BC04 #2 fail   32.7s  list_events rejected: could not understand the date 'the day of Farah's housewarming'; list_events rejected: could not understand the date 'the day of Farah's h
+qwen3:14b      BC04 #3 fail   33.4s  list_events rejected: could not understand the date 'the day of Farah's housewarming'; list_events rejected: could not understand the date 'the day of Farah's h
+qwen3:14b      BC05 #1 fail   11.4s  tools used ['find_contact', 'list_events'], want ['list_events', 'search_mail']; no valid search_mail call; extra call(s): find_contact({'name': 'Daniel'}); out
+qwen3:14b      BC05 #2 fail   11.5s  tools used ['find_contact', 'list_events'], want ['list_events', 'search_mail']; no valid search_mail call; extra call(s): find_contact({'name': 'Daniel'}); out
+qwen3:14b      BC05 #3 fail   11.5s  tools used ['find_contact', 'list_events'], want ['list_events', 'search_mail']; no valid search_mail call; extra call(s): find_contact({'name': 'Daniel'}); out
+qwen3:14b      BC06 #1 PASS   24.2s  
+qwen3:14b      BC06 #2 fail   36.4s  tools used ['find_contact', 'list_events', 'search_mail', 'send_mail'], want ['find_contact', 'list_events', 'send_mail']; extra call(s): search_mail({'sender':
+qwen3:14b      BC06 #3 fail   28.7s  tools used ['find_contact', 'list_events', 'search_mail', 'send_mail'], want ['find_contact', 'list_events', 'send_mail']; extra call(s): search_mail({'query': 
+qwen3:14b      BC07 #1 fail   12.9s  tools used ['create_event'], want ['create_event', 'search_mail']; no valid search_mail call; create_event.date: 'next friday' resolves to 2026-03-27..2026-03-2
+qwen3:14b      BC07 #2 fail   15.9s  tools used ['create_event'], want ['create_event', 'search_mail']; no valid search_mail call; create_event.date: 'next friday' resolves to 2026-03-27..2026-03-2
+qwen3:14b      BC07 #3 fail    5.6s  tools used ['create_event'], want ['create_event', 'search_mail']; no valid search_mail call; create_event.date: 'next friday' resolves to 2026-03-27..2026-03-2
+qwen3:14b      BC08 #1 fail   26.6s  list_events rejected: could not understand the date 'that evening'; tools used ['create_event', 'find_contact', 'list_events', 'search_mail'], want ['create_eve
+qwen3:14b      BC08 #2 fail   35.9s  list_events rejected: could not understand the date 'that evening'; tools used ['create_event', 'find_contact', 'list_events', 'search_mail'], want ['create_eve
+qwen3:14b      BC08 #3 fail   26.5s  list_events rejected: could not understand the date 'that evening'; tools used ['create_event', 'find_contact', 'list_events', 'search_mail'], want ['create_eve
+qwen3:14b      BC09 #1 PASS   27.6s  
+qwen3:14b      BC09 #2 PASS   24.3s  
+qwen3:14b      BC09 #3 PASS   26.4s  
+qwen3:14b      BC10 #1 fail   35.5s  send_mail rejected: ungrounded body: '123' not in the request or any earlier result; send_mail rejected: ungrounded body: '123' not in the request or any earlie
+qwen3:14b      BC10 #2 fail   36.1s  send_mail rejected: ungrounded body: '123' not in the request or any earlier result; send_mail rejected: ungrounded body: '123' not in the request or any earlie
+qwen3:14b      BC10 #3 fail   36.6s  send_mail rejected: ungrounded body: '123' not in the request or any earlier result; send_mail rejected: ungrounded body: '456' not in the request or any earlie
+qwen3:14b      BC11 #1 fail   21.6s  search_photos rejected: could not understand the date 'the day Vikram Menon sent the plan for his safari'; extra call(s): search_photos({'date': 'the day Vikram
+qwen3:14b      BC11 #2 fail   16.2s  search_photos rejected: could not understand the date 'the day Vikram Menon sent the plan for his safari'; extra call(s): search_photos({'date': 'the day Vikram
+qwen3:14b      BC11 #3 fail   16.9s  search_photos rejected: could not understand the date 'the day Vikram Menon sent the plan for his safari'; extra call(s): search_photos({'date': 'the day Vikram
+qwen3:14b      BC15 #1 fail   10.1s  tools used ['find_contact'], want ['list_events', 'search_mail']; no valid search_mail call; no valid list_events call; extra call(s): find_contact({'name': 'Ra
+qwen3:14b      BC15 #2 fail    9.1s  tools used ['find_contact'], want ['list_events', 'search_mail']; no valid search_mail call; no valid list_events call; extra call(s): find_contact({'name': 'Ra
+qwen3:14b      BC15 #3 fail    9.5s  tools used ['find_contact'], want ['list_events', 'search_mail']; no valid search_mail call; no valid list_events call; extra call(s): find_contact({'name': 'Ra
+qwen3:14b      BC12 #1 PASS   26.1s  
+qwen3:14b      BC12 #2 PASS   23.5s  
+qwen3:14b      BC12 #3 PASS   25.9s  
+qwen3:14b      BC13 #1 PASS   20.8s  
+qwen3:14b      BC13 #2 PASS   20.4s  
+qwen3:14b      BC13 #3 PASS   20.6s  
+qwen3:14b      BC14 #1 PASS   15.9s  
+qwen3:14b      BC14 #2 PASS   15.7s  
+qwen3:14b      BC14 #3 PASS   15.4s  
+qwen3:14b      BM01 #1 PASS    4.7s  
+qwen3:14b      BM01 #2 PASS    3.9s  
+qwen3:14b      BM01 #3 PASS    4.3s  
+qwen3:14b      BM02 #1 PASS    4.7s  
+qwen3:14b      BM02 #2 PASS    3.4s  
+qwen3:14b      BM02 #3 PASS    4.3s  
+qwen3:14b      BM03 #1 PASS    4.4s  
+qwen3:14b      BM03 #2 PASS    4.7s  
+qwen3:14b      BM03 #3 PASS    4.4s  
+qwen3:14b      BM04 #1 fail   18.2s  send_mail rejected: ungrounded to: 'anand@example.com' not in the request or any earlier result; tools used ['find_contact', 'search_photos', 'send_mail'], want
+qwen3:14b      BM04 #2 fail   17.0s  send_mail rejected: ungrounded to: 'Anand' not in the request or any earlier result; tools used ['find_contact', 'search_photos', 'send_mail'], want ['find_cont
+qwen3:14b      BM04 #3 fail   17.9s  send_mail rejected: ungrounded to: 'Anand' not in the request or any earlier result; tools used ['find_contact', 'search_photos', 'send_mail'], want ['find_cont
+qwen3:14b      BN01 #1 PASS    2.4s  
+qwen3:14b      BN01 #2 PASS    2.6s  
+qwen3:14b      BN01 #3 PASS    2.0s  
+qwen3:14b      BN02 #1 PASS   15.3s  
+qwen3:14b      BN02 #2 PASS   14.7s  
+qwen3:14b      BN02 #3 PASS   15.3s  
+qwen3:14b      BN03 #1 PASS    1.6s  
+qwen3:14b      BN03 #2 PASS    1.5s  
+qwen3:14b      BN03 #3 PASS    1.3s  
+qwen3:14b      BU01 #1 fail   23.6s  tools used ['find_contact', 'search_photos', 'send_mail'], want none; extra call(s): search_photos({'place': 'Coorg'}), find_contact({'name': 'Kavya Iyer'}), se
+qwen3:14b      BU01 #2 fail   24.3s  tools used ['find_contact', 'search_photos', 'send_mail'], want none; extra call(s): search_photos({'place': 'Coorg'}), find_contact({'name': 'Kavya Iyer'}), se
+qwen3:14b      BU01 #3 fail   24.6s  tools used ['find_contact', 'search_photos', 'send_mail'], want none; extra call(s): search_photos({'place': 'Coorg'}), find_contact({'name': 'Kavya Iyer'}), se
+qwen3:14b      BU02 #1 PASS    6.5s  
+qwen3:14b      BU02 #2 PASS    6.8s  
+qwen3:14b      BU02 #3 PASS    5.9s  
+qwen3:14b      BU03 #1 PASS    6.6s  
+qwen3:14b      BU03 #2 PASS    6.1s  
+qwen3:14b      BU03 #3 PASS    6.1s  

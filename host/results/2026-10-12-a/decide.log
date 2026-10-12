@@ -1,0 +1,72 @@
+False rule=False then=show Do I have anything on Friday?
+False rule=False then=show Do I have anything on Friday?
+False rule=False then=show Do I have anything on Friday?
+True  rule=True  then=None Am I free at 2pm tomorrow?
+True  rule=True  then=None Am I free at 2pm tomorrow?
+True  rule=True  then=None Am I free at 2pm tomorrow?
+False rule=False then=show What's Farah's number?
+False rule=False then=show What's Farah's number?
+False rule=False then=show What's Farah's number?
+True  rule=True  then=answer How long is the quarterly planning workshop?
+True  rule=True  then=answer How long is the quarterly planning workshop?
+True  rule=True  then=answer How long is the quarterly planning workshop?
+False rule=False then=show Show me my photos from Hampi
+False rule=False then=show Show me my photos from Hampi
+False rule=False then=show Show me my photos from Hampi
+True  rule=False then=None How many of my Kabini photos are from last November's trip?
+True  rule=False then=None How many of my Kabini photos are from last November's trip?
+True  rule=False then=None How many of my Kabini photos are from last November's trip?
+False rule=False then=show what's on tomorrow
+False rule=False then=show what's on tomorrow
+False rule=False then=show what's on tomorrow
+True  rule=False then=None Is there at least a two hour gap between the design review and my haircut tomorrow?
+True  rule=False then=None Is there at least a two hour gap between the design review and my haircut tomorrow?
+True  rule=False then=None Is there at least a two hour gap between the design review and my haircut tomorrow?
+False rule=False then=None Did Daniel send over the deck for the design review?
+False rule=False then=None Did Daniel send over the deck for the design review?
+False rule=False then=None Did Daniel send over the deck for the design review?
+True  rule=False then=None Which comes first next week, the parent-teacher meeting or Farah's housewarming?
+True  rule=False then=None Which comes first next week, the parent-teacher meeting or Farah's housewarming?
+True  rule=False then=None Which comes first next week, the parent-teacher meeting or Farah's housewarming?
+False rule=False then=None Find the TicketHive email with my concert tickets
+False rule=False then=None Find the TicketHive email with my concert tickets
+False rule=False then=None Find the TicketHive email with my concert tickets
+True  rule=False then=answer What time will the Indigo Lanterns concert finish?
+True  rule=False then=None What time will the Indigo Lanterns concert finish?
+True  rule=False then=None What time will the Indigo Lanterns concert finish?
+False rule=False then=None When's my physio appointment?
+False rule=False then=None When's my physio appointment?
+False rule=False then=None When's my physio appointment?
+True  rule=False then=None Do I have to be up before 8 on any day this week?
+True  rule=False then=None Do I have to be up before 8 on any day this week?
+True  rule=False then=None Do I have to be up before 8 on any day this week?
+False rule=False then=show Any emails from the school?
+False rule=False then=show Any emails from the school?
+False rule=False then=show Any emails from the school?
+True  rule=False then=None How many of my appointments next week are in the morning?
+True  rule=False then=None How many of my appointments next week are in the morning?
+True  rule=False then=None How many of my appointments next week are in the morning?
+False rule=False then=None Where is Biscuit's vet check-up?
+False rule=False then=None Where is Biscuit's vet check-up?
+False rule=False then=None Where is Biscuit's vet check-up?
+True  rule=False then=None Are the school fees due before sports day?
+True  rule=False then=None Are the school fees due before sports day?
+True  rule=False then=answer Are the school fees due before sports day?
+False rule=False then=show Can you pull up Hannah Schmidt's email address?
+False rule=False then=show Can you pull up Hannah Schmidt's email address?
+False rule=False then=show Can you pull up Hannah Schmidt's email address?
+True  rule=False then=None Have I got any free evenings this weekend?
+True  rule=False then=None Have I got any free evenings this weekend?
+True  rule=False then=None Have I got any free evenings this weekend?
+False rule=False then=show What have I got on next week?
+False rule=False then=show What have I got on next week?
+False rule=False then=show What have I got on next week?
+True  rule=True  then=None Will the parent-teacher meeting be over in time for a 5pm call?
+True  rule=True  then=None Will the parent-teacher meeting be over in time for a 5pm call?
+True  rule=True  then=None Will the parent-teacher meeting be over in time for a 5pm call?
+False rule=False then=show pictures with Marco in them
+False rule=False then=show pictures with Marco in them
+False rule=False then=show pictures with Marco in them
+True  rule=True  then=continue How many days until Farah's housewarming?
+True  rule=True  then=continue How many days until Farah's housewarming?
+True  rule=True  then=continue How many days until Farah's housewarming?
