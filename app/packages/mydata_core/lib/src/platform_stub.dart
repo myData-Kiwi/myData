@@ -27,3 +27,5 @@ class _UnsupportedPlatform implements HostPlatform {
 }
 
 HostPlatform hostPlatform = _UnsupportedPlatform();
+
+DeviceStore deviceStore = MemoryDeviceStore();

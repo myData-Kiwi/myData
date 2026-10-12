@@ -103,3 +103,26 @@ void goldenMatrix(String name, Widget Function() build,
     });
   }
 }
+
+/// Defines one screenshot test per [themeMatrix] case for a whole app screen: [build] gets the theme case
+/// and returns the app (its own MaterialApp, themed with `theme.data`), rendered at [size] into
+/// `screenshots/<name>.<theme>-<mode>.png`. Run with --update-goldens to refresh them.
+void screenMatrix(String name, Widget Function(ThemeCase theme) build,
+    {Size size = const Size(1280, 800), Future<void> Function(WidgetTester tester)? before}) {
+  for (final theme in themeMatrix) {
+    testWidgets('$name screenshot (${theme.label})', (tester) async {
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      painting.debugDisableShadows = false;
+      try {
+        await tester.pumpWidget(build(theme));
+        if (before != null) await before(tester);
+        await tester.pump(const Duration(seconds: 1));
+        await expectLater(find.byType(MaterialApp).first, matchesGoldenFile('screenshots/$name.${theme.label}.png'));
+      } finally {
+        painting.debugDisableShadows = true;
+      }
+    });
+  }
+}

@@ -6,4 +6,6 @@ export 'package:mydata_client/api.dart';
 
 export 'src/availability.dart';
 export 'src/host_controller.dart';
-export 'src/platform.dart' show HostEnvironment, HostPlatform, LaunchResult, hostPlatform;
+export 'src/appearance.dart';
+export 'src/platform.dart'
+    show DeviceStore, HostEnvironment, HostPlatform, LaunchResult, MemoryDeviceStore, deviceStore, hostPlatform;

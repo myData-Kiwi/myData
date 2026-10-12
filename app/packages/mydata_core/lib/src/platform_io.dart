@@ -10,6 +10,17 @@ export 'platform_types.dart';
 /// Overrides the host folder at build time (integration tests): --dart-define=MYDATA_HOME=/path
 const _homeOverride = String.fromEnvironment('MYDATA_HOME');
 
+/// The host's folder on this machine: the same rules as the host (host/src/mydata/service/config.py).
+String _myDataHome() {
+  if (_homeOverride.isNotEmpty) return _homeOverride;
+  final env = Platform.environment;
+  if (env['MYDATA_HOME']?.isNotEmpty ?? false) return env['MYDATA_HOME']!;
+  final userHome = env['HOME'] ?? env['USERPROFILE'] ?? '.';
+  if (Platform.isMacOS) return '$userHome/Library/Application Support/myData';
+  if (Platform.isWindows) return '${env['APPDATA'] ?? '$userHome\\AppData\\Roaming'}\\myData';
+  return '${env['XDG_DATA_HOME'] ?? '$userHome/.local/share'}/mydata';
+}
+
 /// Desktop: the same folder rules as the host (host/src/mydata/service/config.py).
 class _IoPlatform implements HostPlatform {
   @override
@@ -18,15 +29,7 @@ class _IoPlatform implements HostPlatform {
   @override
   String get unsupportedReason => '';
 
-  String _home() {
-    if (_homeOverride.isNotEmpty) return _homeOverride;
-    final env = Platform.environment;
-    if (env['MYDATA_HOME']?.isNotEmpty ?? false) return env['MYDATA_HOME']!;
-    final userHome = env['HOME'] ?? env['USERPROFILE'] ?? '.';
-    if (Platform.isMacOS) return '$userHome/Library/Application Support/myData';
-    if (Platform.isWindows) return '${env['APPDATA'] ?? '$userHome\\AppData\\Roaming'}\\myData';
-    return '${env['XDG_DATA_HOME'] ?? '$userHome/.local/share'}/mydata';
-  }
+  String _home() => _myDataHome();
 
   @override
   Future<HostEnvironment> environment() async {
@@ -115,3 +118,31 @@ class _IoPlatform implements HostPlatform {
 }
 
 HostPlatform hostPlatform = _IoPlatform();
+
+/// `device/settings.json` in the myData folder: this device's own settings (mode), shared by every myData
+/// app on it. Not host data: a later remote host never sees it.
+class _FileDeviceStore implements DeviceStore {
+  File get _file => File('${_myDataHome()}/device/settings.json');
+
+  @override
+  Future<Map<String, Object?>> read() async {
+    try {
+      final v = jsonDecode(await _file.readAsString());
+      return v is Map<String, Object?> ? v : {};
+    } on Object {
+      return {};
+    }
+  }
+
+  @override
+  Future<void> write(Map<String, Object?> values) async {
+    final f = _file;
+    await f.parent.create(recursive: true);
+    // Write then rename, so the other app never reads half a file.
+    final tmp = File('${f.path}.tmp');
+    await tmp.writeAsString(jsonEncode(values));
+    await tmp.rename(f.path);
+  }
+}
+
+DeviceStore deviceStore = _FileDeviceStore();

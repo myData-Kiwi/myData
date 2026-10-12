@@ -13,6 +13,7 @@ dependencies:
     sdk: flutter
   http: ^1.6.0
   mydata_client: ^0.1.0
+  mydata_ui: ^0.0.1
   toml: ^0.18.0
 
 dev_dependencies:

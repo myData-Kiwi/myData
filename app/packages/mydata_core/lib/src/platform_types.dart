@@ -37,3 +37,25 @@ abstract class HostPlatform {
   /// Bring up the myData app (on its Setup screen). Returns false where this is not possible.
   Future<bool> openMyDataApp({bool setup = true});
 }
+
+/// Settings that belong to this device, not to the host, shared by every myData app on it (light or dark
+/// mode). Swapped for [MemoryDeviceStore] in tests.
+abstract class DeviceStore {
+  /// The stored JSON object, or an empty map if there is none or it cannot be read.
+  Future<Map<String, Object?>> read();
+
+  /// Replaces the stored object.
+  Future<void> write(Map<String, Object?> values);
+}
+
+/// A [DeviceStore] in memory: the web build (no files) and tests.
+class MemoryDeviceStore implements DeviceStore {
+  MemoryDeviceStore([Map<String, Object?>? initial]) : _values = {...?initial};
+  Map<String, Object?> _values;
+
+  @override
+  Future<Map<String, Object?>> read() async => {..._values};
+
+  @override
+  Future<void> write(Map<String, Object?> values) async => _values = {...values};
+}

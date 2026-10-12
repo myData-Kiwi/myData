@@ -41,6 +41,7 @@ class HostConnection {
   late final approvals = ApprovalsApi(client);
   late final agents = AgentsApi(client);
   late final tools = ToolsApi(client);
+  late final appearance = AppearanceApi(client);
 }
 
 /// Finds the host, starts it if needed (as a separate process that outlives this app), waits for it,
