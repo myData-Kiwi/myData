@@ -1066,7 +1066,7 @@
                 }
               }
             },
-            "description": "Server-sent events, one JSON object per `data:` line, `event:` naming the type:\n`conversation` {conversation_id}, `progress` {tool, label}, `delta` {text}, `step` {},\n`pending_approval` {approval}, `clarify` {options, text}, `message` {text, outcome}, `error` {message}, `done` {}.\n`delta` text is provisional: on `step` discard what has streamed so far; `message.text` is the reply."
+            "description": "Server-sent events, one JSON object per `data:` line, `event:` naming the type:\n`conversation` {conversation_id}, `progress` {tool, label}, `result` {tool, kind, header, items}, `delta` {text},\n`step` {}, `pending_approval` {approval}, `clarify` {options, text}, `message` {text, outcome, by}, `error`\n{message}, `done` {}. A `result` is a tool's result, sent the moment the tool returns, with a header written by\ncode; kind is events, mail, contacts, photos or event_created. `delta` text is provisional: on `step` discard\nwhat has streamed so far; `message.text` is the reply, and `message.by` is \"code\" when the shown result was the\nanswer (its text is then the result's header) or \"model\" for a sentence the model wrote."
           },
           "401": {
             "content": {

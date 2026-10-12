@@ -142,9 +142,12 @@ class ToolOut(BaseModel):
 
 
 SSE_DESCRIPTION = """Server-sent events, one JSON object per `data:` line, `event:` naming the type:
-`conversation` {conversation_id}, `progress` {tool, label}, `delta` {text}, `step` {},
-`pending_approval` {approval}, `clarify` {options, text}, `message` {text, outcome}, `error` {message}, `done` {}.
-`delta` text is provisional: on `step` discard what has streamed so far; `message.text` is the reply."""
+`conversation` {conversation_id}, `progress` {tool, label}, `result` {tool, kind, header, items}, `delta` {text},
+`step` {}, `pending_approval` {approval}, `clarify` {options, text}, `message` {text, outcome, by}, `error`
+{message}, `done` {}. A `result` is a tool's result, sent the moment the tool returns, with a header written by
+code; kind is events, mail, contacts, photos or event_created. `delta` text is provisional: on `step` discard
+what has streamed so far; `message.text` is the reply, and `message.by` is "code" when the shown result was the
+answer (its text is then the result's header) or "model" for a sentence the model wrote."""
 
 
 # ---------------------------------------------------------------- app

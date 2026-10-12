@@ -53,6 +53,15 @@ final class ApprovalItem extends ChatItem {
   String? get error => _error;
 }
 
+/// A tool's result, shown as a list or cards ([kind]: events, mail, contacts, photos, event_created).
+final class ResultItem extends ChatItem {
+  ResultItem({required this.tool, required this.kind, required this.header, required this.items});
+  final String tool;
+  final String kind;
+  final String header;
+  final List<Map<String, Object?>> items;
+}
+
 /// A message that failed. [retryText] is the user's message, to send again.
 final class ChatError extends ChatItem {
   ChatError(this.message, {required this.retryText, this.statusCode});
@@ -153,12 +162,24 @@ class ChatController extends ChangeNotifier {
         final reply = _reply;
         if (reply != null && reply.streaming) _items.remove(reply);
         _reply = null;
+      case ResultEvent(:final tool, :final kind, :final header, :final items):
+        final reply = _reply;
+        if (reply != null && reply.streaming) _items.remove(reply); // text before a tool result was not the answer
+        _reply = null;
+        _items.add(ResultItem(tool: tool, kind: kind, header: header, items: items));
       case PendingApprovalEvent(:final approval):
         _held.add(ApprovalItem(approval));
       case ClarifyEvent(text: final question):
         _finish(question, 'clarify');
-      case MessageEvent(text: final reply, :final outcome):
-        _finish(reply, outcome);
+      case MessageEvent(text: final reply, :final outcome, :final byCode):
+        if (byCode) {
+          // The shown result was the answer; its header already says what the text would.
+          final streaming = _reply;
+          if (streaming != null && streaming.streaming) _items.remove(streaming);
+          _reply = null;
+        } else {
+          _finish(reply, outcome);
+        }
         return true;
       case ErrorEvent(:final message, :final statusCode):
         _fail(message, text, statusCode: statusCode);

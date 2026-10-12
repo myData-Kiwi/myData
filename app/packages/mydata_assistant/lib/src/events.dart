@@ -43,8 +43,19 @@ sealed class AssistantEvent {
               if (o is Map) o.cast<String, Object?>(),
           ],
         );
+      case 'result':
+        final items = json['items'] is List ? json['items'] as List : const [];
+        return ResultEvent(
+          tool: text('tool'),
+          kind: text('kind'),
+          header: text('header'),
+          items: [
+            for (final i in items)
+              if (i is Map) i.cast<String, Object?>(),
+          ],
+        );
       case 'message':
-        return MessageEvent(text: text('text'), outcome: json['outcome'] as String?);
+        return MessageEvent(text: text('text'), outcome: json['outcome'] as String?, byCode: json['by'] == 'code');
       case 'error':
         return ErrorEvent(text('message'));
       case 'done':
@@ -105,11 +116,24 @@ final class ClarifyEvent extends AssistantEvent {
   final List<Map<String, Object?>> options;
 }
 
-/// The authoritative final reply.
+/// A tool's result, sent the moment the tool returns; the header is written by the host's code.
+final class ResultEvent extends AssistantEvent {
+  const ResultEvent({required this.tool, required this.kind, required this.header, required this.items});
+  final String tool;
+
+  /// events, mail, contacts, photos or event_created.
+  final String kind;
+  final String header;
+  final List<Map<String, Object?>> items;
+}
+
+/// The authoritative final reply. [byCode] when the shown result was the answer: the text is then only
+/// its header, and nothing new needs showing.
 final class MessageEvent extends AssistantEvent {
-  const MessageEvent({required this.text, this.outcome});
+  const MessageEvent({required this.text, this.outcome, this.byCode = false});
   final String text;
   final String? outcome;
+  final bool byCode;
 }
 
 /// The request failed. [statusCode] is set when the host refused it outright (503: the assistant is

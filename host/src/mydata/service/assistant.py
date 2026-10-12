@@ -5,12 +5,15 @@ orchestrator in a worker thread and yields events as they happen:
 
   conversation      {"conversation_id"}                     first event of every reply
   progress          {"tool", "label"}                       a tool is running ("Searching mail")
+  result            {"tool", "kind", "header", "items"}     a tool's result, shown at once (kind: events, mail,
+                                                            contacts, photos, event_created); header by code
   delta             {"text"}                                reply text as it is generated (provisional)
   step              {}                                      the model moved on to tool calls: discard the
                                                             delta text so far; "message" is authoritative
   pending_approval  {"approval": {...}}                     an irreversible call is held for the user
   clarify           {"options": [...], "text"}              a lookup matched several; the user must pick
-  message           {"text", "outcome"}                     the final reply
+  message           {"text", "outcome", "by"}               the final reply; by "code" when the shown result
+                                                            was the answer (text = its header, nothing new)
   error             {"message"}                             the request failed
   done              {}                                      last event
 """
@@ -54,7 +57,7 @@ class Assistant:
     def warm(self) -> None:
         """Load the model and cache the shared prompt prefix (see engine.request_prefix)."""
         model = self._model_factory()
-        model.warm(*request_prefix(self.registry))
+        model.warm(*request_prefix(self.registry, followup=self.settings.followup))
 
     # ---------------------------------------------------------------- conversations
 
@@ -92,7 +95,7 @@ class Assistant:
                 with self._busy:
                     history = self.history(cid)
                     engine = Engine(self._model_factory(), self._today(), registry=self.registry,
-                                    caller="assistant")
+                                    caller="assistant", followup=self.settings.followup)
                     run = engine.run(text, history=history, on_event=emit, context={"conversation_id": cid})
                     final = self._settle(cid, len(history), run)
                     self._log(cid, run)
@@ -146,7 +149,7 @@ class Assistant:
             new += [{"role": "assistant", "content": reply}]
             out.append({"type": "message", "text": reply, "outcome": run.outcome})
         else:
-            out.append({"type": "message", "text": run.final_text, "outcome": run.outcome})
+            out.append({"type": "message", "text": run.final_text, "outcome": run.outcome, "by": run.reply_by})
         self._append(cid, new)
         return out + [{"type": "done"}]
 

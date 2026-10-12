@@ -9,4 +9,5 @@ export 'src/chat_controller.dart';
 export 'src/chat_view.dart';
 export 'src/events.dart';
 export 'src/host_errors.dart' show describeHostError;
+export 'src/result_view.dart';
 export 'src/sse.dart';

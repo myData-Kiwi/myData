@@ -4,6 +4,7 @@ import 'package:mydata_ui/mydata_ui.dart';
 
 import 'approval_card.dart';
 import 'chat_controller.dart';
+import 'result_view.dart';
 
 /// The conversation and the message input. Enter sends; Shift+Enter starts a new line.
 class ChatView extends StatefulWidget {
@@ -137,6 +138,7 @@ class _ItemView extends StatelessWidget {
       mine: false,
     ),
     final ProgressLine line => _ProgressRow(line),
+    final ResultItem r => ResultCard(kind: r.kind, header: r.header, items: r.items),
     final ApprovalItem a => ApprovalCard(
       approval: a.approval,
       deciding: a.deciding,

@@ -211,7 +211,7 @@ def test_http_pending_approval_event_and_conversation_continue(tmp_path):
         assert [k for k, _ in first][-3:] == ["pending_approval", "message", "done"]
         second = parse_sse(c.post("/assistant/messages", headers=AUTH,
                                   json={"text": "thanks", "conversation_id": cid}).text)
-    assert second[-2] == ("message", {"text": "Okay.", "outcome": "answered"})
+    assert second[-2] == ("message", {"text": "Okay.", "outcome": "answered", "by": "model"})
     assert spy.calls == []
 
 

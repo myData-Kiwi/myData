@@ -51,17 +51,22 @@ class OllamaChat:
     # The engine may pass on_delta to receive reply text as it is generated.
     streams = True
 
-    def chat(self, messages: list[dict], tools: list[dict], on_delta: Callable[[str], None] | None = None) -> dict:
+    def chat(self, messages: list[dict], tools: list[dict], on_delta: Callable[[str], None] | None = None,
+             max_text: int | None = None, stop_on_text: bool = False) -> dict:
+        """max_text: stop after this many streamed text pieces (about that many tokens). stop_on_text: stop at
+        the first text (only a tool call is wanted). A stopped reply has "aborted": True."""
+        streamed = on_delta is not None or max_text is not None or stop_on_text
         payload = {
             "model": self.name,
             "messages": messages,
             "tools": tools,
-            "stream": on_delta is not None,
+            "stream": streamed,
             "think": self.think,
             "options": self.options,
             "keep_alive": self.keep_alive,
         }
-        body = self._post("/api/chat", payload) if on_delta is None else self._stream("/api/chat", payload, on_delta)
+        body = self._stream("/api/chat", payload, on_delta, max_text, stop_on_text) if streamed \
+            else self._post("/api/chat", payload)
         msg = body.get("message") or {}
         return {
             "role": "assistant",
@@ -70,13 +75,16 @@ class OllamaChat:
             "tool_calls": msg.get("tool_calls") or [],
             "stats": {k: body.get(k) for k in ("total_duration", "load_duration", "prompt_eval_count",
                                                "prompt_eval_duration", "eval_count", "eval_duration")},
+            "aborted": bool(body.get("aborted")),
         }
 
-    def _stream(self, path: str, payload: dict, on_delta: Callable[[str], None]) -> dict:
-        """Read Ollama's streamed reply (one JSON object per line) and assemble it like a non-streamed one."""
+    def _stream(self, path: str, payload: dict, on_delta: Callable[[str], None] | None,
+                max_text: int | None = None, stop_on_text: bool = False) -> dict:
+        """Read Ollama's streamed reply (one JSON object per line) and assemble it like a non-streamed one.
+        Stopping early closes the connection, which makes Ollama stop generating."""
         req = urllib.request.Request(self.host + path, data=json.dumps(payload).encode(),
                                      headers={"Content-Type": "application/json"})
-        content, thinking, calls, last = [], [], [], {}
+        content, thinking, calls, last, aborted = [], [], [], {}, False
         try:
             with urllib.request.urlopen(req, timeout=self.timeout) as resp:
                 for line in resp:
@@ -87,8 +95,15 @@ class OllamaChat:
                         raise OllamaError(str(chunk["error"]))
                     m = chunk.get("message") or {}
                     if m.get("content"):
+                        if stop_on_text and m["content"].strip():
+                            aborted = True
+                            break
                         content.append(m["content"])
-                        on_delta(m["content"])
+                        if on_delta:
+                            on_delta(m["content"])
+                        if max_text is not None and len(content) >= max_text:
+                            aborted = True
+                            break
                     if m.get("thinking"):
                         thinking.append(m["thinking"])
                     calls.extend(m.get("tool_calls") or [])
@@ -97,7 +112,8 @@ class OllamaChat:
             raise OllamaError(f"{e.code}: {e.read().decode(errors='replace')}") from None
         except urllib.error.URLError as e:
             raise OllamaError(f"cannot reach Ollama at {self.host}: {e.reason}") from None
-        return {**last, "message": {"content": "".join(content), "thinking": "".join(thinking), "tool_calls": calls}}
+        return {**last, "aborted": aborted,
+                "message": {"content": "".join(content), "thinking": "".join(thinking), "tool_calls": calls}}
 
     def warm(self, system: dict, tools: list[dict]) -> None:
         """One tiny request with the real system message and tool definitions, so Ollama loads the model and

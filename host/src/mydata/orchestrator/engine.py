@@ -15,7 +15,9 @@ from datetime import date
 from typing import Any, Callable, Literal
 
 from ..tools import Registry, default_registry
+from . import followup as fu
 from .ollama import ChatModel
+from .present import present
 
 SYSTEM_PROMPT = """You are myAssistant, a personal assistant that runs on the user's own computer. \
 You can search and send the user's mail, look up contacts, read and add calendar events, and search photos, \
@@ -47,12 +49,16 @@ PROGRESS = {
 EventSink = Callable[[dict], None]
 
 
-def request_prefix(registry: Registry, names: list[str] | None = None, system_prompt: str = SYSTEM_PROMPT
-                   ) -> tuple[dict, list[dict]]:
+def request_prefix(registry: Registry, names: list[str] | None = None, system_prompt: str = SYSTEM_PROMPT,
+                   followup: str = "full") -> tuple[dict, list[dict]]:
     """The start of every request: the system message and the tool definitions. Ollama caches the prompt it
     renders from these, so they must be byte-identical across requests (and the warm-up request); everything
     request-specific (history, the user's message) comes after them."""
-    return {"role": "system", "content": system_prompt}, registry.definitions(names)
+    definitions = registry.definitions(names)
+    if followup == "field":
+        irreversible = {n for n in registry.names() if registry.get(n).permission == "irreversible"}
+        definitions = fu.with_then(definitions, irreversible)
+    return {"role": "system", "content": system_prompt}, definitions
 
 
 @dataclass
@@ -68,6 +74,10 @@ class CallRecord:
     resolved: dict[str, dict] = field(default_factory=dict)
     result: Any = None
     approval_id: str | None = None
+    # field mode: the control value the model gave for what follows this call ("show"/"answer"/"continue").
+    then: str | None = None
+    # The resolved date objects (for presenting results); not part of the logged record.
+    resolved_dates: dict = field(default_factory=dict, repr=False, compare=False)
 
 
 @dataclass
@@ -83,7 +93,13 @@ class Run:
     clarify_options: list[dict] | None = None
     undo_log: list[dict] = field(default_factory=list)
     seconds_to_first_tool_call: float | None = None
+    # When the first tool result was ready to show (sent to the app as a "result" event).
+    seconds_to_result: float | None = None
     seconds_total: float = 0.0
+    # What the app shows for each tool result: {"tool", "kind", "header", "items"}.
+    results: list[dict] = field(default_factory=list)
+    # Who wrote the final reply: "model", or "code" when the shown result was the answer.
+    reply_by: str = "model"
     model_calls: int = 0
     # Per model call: Ollama timing/token stats, so a model reload inside a timed run is visible.
     model_replies: list[dict] = field(default_factory=list)
@@ -91,7 +107,10 @@ class Run:
     error: str | None = None
 
     def to_json(self) -> dict:
-        return asdict(self)
+        out = asdict(self)
+        for c in out["calls"]:
+            c.pop("resolved_dates", None)
+        return out
 
 
 @dataclass
@@ -108,6 +127,8 @@ class Engine:
     ground: bool = True
     # Who the tool layer records as the caller of each tool.
     caller: str = "assistant"
+    # After a tool result: "full" (the model always writes the reply), "rule" or "field" (see followup.py).
+    followup: str = "full"
 
     def run(self, request: str, tool_names: list[str] | None = None, *, history: list[dict] | None = None,
             on_event: EventSink | None = None, context: dict | None = None) -> Run:
@@ -121,7 +142,9 @@ class Engine:
         unknown = [n for n in names if n not in self.registry]
         if unknown:
             raise KeyError(f"unknown tools: {unknown}")
-        system, definitions = request_prefix(self.registry, names, self.system_prompt)
+        if self.followup not in fu.MODES:
+            raise ValueError(f"unknown followup mode {self.followup!r}")
+        system, definitions = request_prefix(self.registry, names, self.system_prompt, self.followup)
         messages: list[dict] = [system, *(history or []), {"role": "user", "content": request}]
         run = Run(model=self.model.name, request=request, today=self.today.isoformat(), messages=messages,
                   tools_shown=list(names))
@@ -135,16 +158,48 @@ class Engine:
         run.seconds_total = round(_time.perf_counter() - started, 3)
         return run
 
-    def _chat(self, messages: list[dict], definitions: list[dict], emit: EventSink, stream: bool) -> dict:
-        if stream and getattr(self.model, "streams", False):
-            return self.model.chat(messages, definitions, on_delta=lambda text: emit({"type": "delta", "text": text}))
+    def _chat(self, messages: list[dict], definitions: list[dict], emit: EventSink, stream: bool,
+              policy: str = "full") -> dict:
+        """One model call. policy "answer" caps the streamed sentence; "probe" stops at the first text
+        (no sentence wanted: only a further tool call is of interest)."""
+        if getattr(self.model, "streams", False) and (stream or policy != "full"):
+            kwargs = {"max_text": fu.ANSWER_MAX_PIECES} if policy == "answer" else {}
+            if policy == "probe":
+                kwargs["stop_on_text"] = True
+            on_delta = (lambda text: emit({"type": "delta", "text": text})) if stream and policy != "probe" else None
+            return self.model.chat(messages, definitions, on_delta=on_delta, **kwargs)
         return self.model.chat(messages, definitions)
+
+    def _finish_with_results(self, run: Run, messages: list[dict]) -> None:
+        """The shown results are the answer: code writes the reply from their headers."""
+        run.outcome = "answered"
+        run.reply_by = "code"
+        run.final_text = "\n".join(r["header"] for r in run.results)
+        messages.append({"role": "assistant", "content": run.final_text})
+
+    def _next_policy(self, run: Run, step_calls: list[CallRecord]) -> str:
+        """After a step whose calls all ran: what the next model call is for."""
+        if self.followup == "full" or not step_calls:
+            return "full"
+        if any(c.status != "ok" or c.tool not in {r["tool"] for r in run.results} for c in step_calls):
+            return "full"  # something failed or has nothing to show: let the model handle it
+        if self.followup == "field":
+            thens = [c.then or "continue" for c in step_calls]
+            if all(t == "show" for t in thens):
+                return "finish"
+            return "answer" if "answer" in thens and "continue" not in thens else "full"
+        return "answer" if fu.sentence_needed(run.request) else "probe"
 
     def _loop(self, run: Run, messages: list[dict], shown: set[str], definitions: list[dict], started: float,
               emit: EventSink, stream: bool, context: dict) -> None:
+        policy = "full"
         for step in range(self.max_steps):
+            if policy == "finish":
+                return self._finish_with_results(run, messages)
+            if policy == "answer":
+                messages.append({"role": "system", "content": fu.ANSWER_INSTRUCTION})
             t0 = _time.perf_counter()
-            reply = self._chat(messages, definitions, emit, stream)
+            reply = self._chat(messages, definitions, emit, stream, policy)
             run.model_calls += 1
             run.model_replies.append({"stats": reply.get("stats"), "thinking": reply.get("thinking") or "",
                                       "started": round(t0 - started, 3),
@@ -160,12 +215,16 @@ class Engine:
                 msg["thinking"] = reply["thinking"]
             messages.append(msg)
             if not calls:
+                if policy == "probe":  # the model started writing: the shown result is the answer
+                    messages.pop()
+                    return self._finish_with_results(run, messages)
                 run.outcome = "answered"
                 run.final_text = reply.get("content", "")
                 return
             if run.seconds_to_first_tool_call is None:
                 run.seconds_to_first_tool_call = round(_time.perf_counter() - started, 3)
 
+            step_calls: list[CallRecord] = []
             for i, raw in enumerate(calls):
                 fn = raw.get("function") or {}
                 name = fn.get("name", "")
@@ -173,7 +232,15 @@ class Engine:
                     emit({"type": "tool_call", "tool": name, "label": PROGRESS[name]})
                 record, options = self._execute(step, name, fn.get("arguments"), shown, run, context)
                 run.calls.append(record)
+                step_calls.append(record)
                 emit({"type": "tool_result", "tool": record.tool, "status": record.status})
+                if record.status == "ok":
+                    shown_result = present(record.tool, record.args, record.resolved_dates, record.result)
+                    if shown_result:
+                        if run.seconds_to_result is None:
+                            run.seconds_to_result = round(_time.perf_counter() - started, 3)
+                        run.results.append({"tool": record.tool, **shown_result})
+                        emit({"type": "result", "tool": record.tool, **shown_result})
                 if record.status in ("gated", "ambiguous"):
                     # Stop here, but record what else the model asked for in the same reply.
                     for rest in calls[i + 1:]:
@@ -191,10 +258,21 @@ class Engine:
                         emit({"type": "clarify", "options": options})
                     return
                 messages.append({"role": "tool", "tool_name": record.tool, "content": json.dumps(record.result)})
+            policy = self._next_policy(run, step_calls)
         run.outcome = "step_limit"
 
     def _check(self, step: int, name: str, raw_args: Any, shown: set[str], run: Run) -> CallRecord:
         """Shape check plus grounding, without running anything. A valid call comes back as "not_run"."""
+        then = None
+        if self.followup == "field":  # the control argument belongs to the engine, never to the tool
+            raw_args = _args(raw_args)
+            then = raw_args.pop(fu.THEN, None)
+            then = then if then in ("show", "answer", "continue") else None
+        rec = self._check_args(step, name, raw_args, shown, run)
+        rec.then = then
+        return rec
+
+    def _check_args(self, step: int, name: str, raw_args: Any, shown: set[str], run: Run) -> CallRecord:
         if name not in shown:
             err = f"there is no tool called '{name}'"
             return CallRecord(step, name, _args(raw_args), "unknown_tool", error=err, result={"error": err})
@@ -216,11 +294,12 @@ class Engine:
                 msg = "; ".join(f"{k}: {v}" for k, v in failing.items())
                 return CallRecord(step, name, args, "invalid_args", error=f"ungrounded {msg}", dropped_args=dropped,
                                   result={"error": f"{msg}. Use only what the user said or a tool returned."})
-        full, _ = self.registry.validate(name, args, self.today)
+        full, dates = self.registry.validate(name, args, self.today)
         if full.status != "ok":
             return CallRecord(step, name, full.args, full.status, error=full.error, result=full.result,
                               dropped_args=dropped)
-        return CallRecord(step, name, full.args, "not_run", resolved=full.resolved, dropped_args=dropped)
+        return CallRecord(step, name, full.args, "not_run", resolved=full.resolved, dropped_args=dropped,
+                          resolved_dates=dates)
 
     def _execute(self, step: int, name: str, raw_args: Any, shown: set[str], run: Run, context: dict
                  ) -> tuple[CallRecord, list[dict] | None]:
