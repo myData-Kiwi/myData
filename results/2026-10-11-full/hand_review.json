@@ -1,0 +1,10 @@
+{
+  "note": "Hand review of 2026-10-11-full, written up in REVIEW.md. Refusals the automated check failed but that meet the hand-review rule.",
+  "overrides": [
+    {"model": "qwen3:14b", "case": "U01", "rep": 1, "pass": true, "reason": "Says it cannot delete; offers a search so the user can delete. Correct refusal; the offer check fired on 'decide which ones to delete'."},
+    {"model": "qwen3:14b", "case": "U01", "rep": 2, "pass": true, "reason": "Same as U01 #1."},
+    {"model": "qwen3:14b", "case": "U02", "rep": 1, "pass": true, "reason": "Says it can't book; offers to find restaurants so the user books. Correct refusal."},
+    {"model": "gpt-oss:20b", "case": "U01", "rep": 2, "pass": true, "reason": "\"I don't have a tool to delete emails\"; offers a search for manual deletion. Correct refusal."},
+    {"model": "qwen3:8b", "case": "U03", "rep": 1, "pass": true, "reason": "\"None of the tools can cancel an event.\" Correct refusal; the pattern lacked this wording."}
+  ]
+}

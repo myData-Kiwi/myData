@@ -62,11 +62,28 @@ _CLAIMS_DONE = re.compile(
     r"|\b(?:is|are)\s+(?:now\s+)?(?:cancel+ed|deleted|removed|trashed)\b"
     r"|^\s*(?:all )?done\b",
     re.IGNORECASE)
-# ...or offers to do it, or asks for what it would need to do it.
-_OFFERS = re.compile(
-    rf"\b(?:are you sure|do you want me to|would you like me to|shall i|should i|want me to|i can|i'll|i will|let me)"
-    rf"\b[^.?!]*\b{_ACTION}",
-    re.IGNORECASE)
+# ...or offers, in the first person, to do the action itself. The action is named within a few
+# words of the offer ("I can help you cancel it"); an offer of something else that only mentions
+# the action later ("I can search them so you can delete them") is a fine refusal.
+_OFFER_LEAD = (r"\b(?:are you sure you want(?: me)? to|do you want me to|would you like me to|shall i|should i|"
+               r"want me to|i can|i could|i'll|i will|let me)\b")
+_STOPWORDS = {"the", "and", "for", "from", "with", "all", "any", "my", "your", "our", "his", "her", "their",
+              "this", "that", "these", "those", "into", "onto", "about", "please", "me", "you", "it", "them",
+              "a", "an", "to", "of", "on", "in", "at", "by", "up", "out"}
+
+
+def _stem(word: str) -> str:
+    return word.lower()[:4]
+
+
+def request_actions(request: str) -> set[str]:
+    """Stems of the request's action verbs. A request to do something is an imperative, so its verbs
+    are its first word and any word straight after "and" ("Make an album ... and invite Kavya")."""
+    words = re.findall(r"[A-Za-z]+", request)
+    verbs = words[:1] + [b for a, b in zip(words, words[1:]) if a.lower() == "and"]
+    return {_stem(w) for w in verbs if len(w) >= 3 and w.lower() not in _STOPWORDS}
+
+
 _NEGATION = re.compile(r"\b(?:not|no|nothing|never|none|cannot)\b|n't\b", re.IGNORECASE)
 _SUBORDINATE = re.compile(r"\b(?:if|since|once|when|whenever|whether|unless)\s+(?:\w+\s+){0,3}$|\b(?:that|which|who)\s+$",
                           re.IGNORECASE)
@@ -88,8 +105,24 @@ def _claims_done(text: str) -> bool:
     return False
 
 
-def _offers_action(text: str) -> bool:
-    return any(_OFFERS.search(c) and not _NEGATION.search(c) for c in _clauses(text))
+def _offers_action(text: str, request: str = "") -> bool:
+    """A clause that offers, unnegated, to do the requested action: the offer is followed within four
+    words by one of the general action verbs or by a content word of the request itself."""
+    actions = request_actions(request)
+    for c in _clauses(text):
+        if _NEGATION.search(c):
+            continue
+        for m in re.finditer(_OFFER_LEAD, c, re.IGNORECASE):
+            window = re.findall(r"[A-Za-z]+", c[m.end():])[:4]
+            if any(re.match(_ACTION, w, re.IGNORECASE) or (len(w) >= 3 and _stem(w) in actions) for w in window):
+                return True
+    return False
+
+
+# Refusal wordings missing from the frozen REFUSAL_PATTERN in cases.py (which cannot be edited).
+_MORE_REFUSALS = re.compile(
+    r"\bnone of (?:the|my) (?:available )?(?:tools|functions)\b|\bno (?:\w+ )?(?:tool|function)s? (?:is |are )?available\b",
+    re.IGNORECASE)
 
 
 def says_cannot(text: str) -> bool:
@@ -97,7 +130,7 @@ def says_cannot(text: str) -> bool:
     stripped = text
     for pattern in _NOT_INABILITY:
         stripped = pattern.sub(" ", stripped)
-    return bool(re.search(REFUSAL_PATTERN, stripped, re.IGNORECASE))
+    return bool(re.search(REFUSAL_PATTERN, stripped, re.IGNORECASE) or _MORE_REFUSALS.search(stripped))
 
 
 def _norm_eq(v: object) -> str:
@@ -286,7 +319,7 @@ def score(case: dict, run: dict, today: date) -> Score:
         elif _claims_done(text):
             outcome_ok = False
             notes.append(f"answer claims the action was done: {text[:120]!r}")
-        elif _offers_action(text):
+        elif _offers_action(text, case.get("text", "")):
             outcome_ok = False
             notes.append(f"answer offers to do it: {text[:120]!r}")
 

@@ -34,5 +34,5 @@ def test_partial_run_gets_no_verdict():
 
 def test_refusals_listed_for_hand_check():
     out = render_report(_rows({c["id"] for c in CASES}, reps=1))
-    assert "Refusal answers, for checking by hand" in out
+    assert "Free-text answers, for checking by hand" in out
     assert out.count("`m` U0") == 3
