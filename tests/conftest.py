@@ -8,7 +8,7 @@ import pytest
 
 from mydata.orchestrator.engine import Engine
 
-SCORER_AGREEMENT_MODULES = {"test_oracle", "test_oracle_b", "test_review_regressions", "test_report",
+SCORER_AGREEMENT_MODULES = {"test_oracle", "test_outcome_score", "test_oracle_b", "test_review_regressions", "test_report",
                             "test_hand_review_rule"}
 
 

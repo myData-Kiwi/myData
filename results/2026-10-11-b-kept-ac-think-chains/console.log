@@ -1,0 +1,47 @@
+writing results/2026-10-11-b-kept-ac-think-chains/runs.jsonl  (set 2026-10-11-b, cases sha a654c13a124da746)
+loading qwen3:14b...
+qwen3:14b      BC01 #1 fail  181.2s  tools used ['search_photos'], want ['list_events', 'search_photos']; no valid list_events call; search_photos.date: 'last month' resolves to 2026-02-01..2026-02
+qwen3:14b      BC01 #2 fail  291.9s  tools used ['search_photos'], want ['list_events', 'search_photos']; no valid list_events call; search_photos.date: 'last month' resolves to 2026-02-01..2026-02
+qwen3:14b      BC01 #3 fail  210.2s  tools used ['search_photos'], want ['list_events', 'search_photos']; no valid list_events call; search_photos.date: 'last month' resolves to 2026-02-01..2026-02
+qwen3:14b      BC02 #1 fail  237.3s  tools used none, want ['find_contact', 'list_events', 'send_mail']; no valid list_events call; no valid find_contact call; no valid send_mail call; outcome answ
+qwen3:14b      BC02 #2 fail  123.6s  tools used none, want ['find_contact', 'list_events', 'send_mail']; no valid list_events call; no valid find_contact call; no valid send_mail call; outcome answ
+qwen3:14b      BC02 #3 PASS  451.8s  
+qwen3:14b      BC03 #1 PASS  229.7s  
+qwen3:14b      BC03 #2 PASS  175.7s  
+qwen3:14b      BC03 #3 PASS  692.6s  
+qwen3:14b      BC04 #1 PASS  226.1s  
+qwen3:14b      BC04 #2 PASS  503.0s  
+qwen3:14b      BC04 #3 PASS  228.6s  
+qwen3:14b      BC05 #1 fail  131.0s  tools used ['list_events'], want ['list_events', 'search_mail']; list_events.query: not asked for ('meeting'); no valid search_mail call
+qwen3:14b      BC05 #2 fail  183.5s  tools used ['list_events'], want ['list_events', 'search_mail']; list_events.query: not asked for ('meeting'); no valid search_mail call
+qwen3:14b      BC05 #3 fail  262.3s  tools used ['list_events'], want ['list_events', 'search_mail']; list_events.query: not asked for ('meeting'); no valid search_mail call
+qwen3:14b      BC06 #1 PASS  129.9s  
+qwen3:14b      BC06 #2 fail   66.4s  tools used none, want ['find_contact', 'list_events', 'send_mail']; no valid list_events call; no valid find_contact call; no valid send_mail call; outcome answ
+qwen3:14b      BC06 #3 PASS  235.9s  
+qwen3:14b      BC07 #1 PASS  344.2s  
+qwen3:14b      BC07 #2 fail   90.8s  tools used none, want ['create_event', 'search_mail']; no valid search_mail call; no valid create_event call
+qwen3:14b      BC07 #3 fail   61.5s  tools used none, want ['create_event', 'search_mail']; no valid search_mail call; no valid create_event call
+qwen3:14b      BC08 #1 fail  209.3s  tools used ['create_event', 'search_mail'], want ['create_event', 'list_events', 'search_mail']; no valid list_events call
+qwen3:14b      BC08 #2 fail   78.2s  tools used none, want ['create_event', 'list_events', 'search_mail']; no valid search_mail call; no valid list_events call; no valid create_event call
+qwen3:14b      BC08 #3 fail  392.0s  tools used ['create_event', 'search_mail'], want ['create_event', 'list_events', 'search_mail']; no valid list_events call
+qwen3:14b      BC09 #1 PASS  161.8s  
+qwen3:14b      BC09 #2 PASS  294.1s  
+qwen3:14b      BC09 #3 PASS  304.7s  
+qwen3:14b      BC10 #1 fail  110.3s  tools used none, want ['find_contact', 'search_mail', 'send_mail']; no valid search_mail call; no valid find_contact call; no valid send_mail call; outcome answ
+qwen3:14b      BC10 #2 fail  135.3s  tools used none, want ['find_contact', 'search_mail', 'send_mail']; no valid search_mail call; no valid find_contact call; no valid send_mail call; outcome answ
+qwen3:14b      BC10 #3 fail  143.7s  tools used none, want ['find_contact', 'search_mail', 'send_mail']; no valid search_mail call; no valid find_contact call; no valid send_mail call; outcome answ
+qwen3:14b      BC11 #1 fail  201.6s  extra call(s): search_photos({'date': '2025-10-20'})
+qwen3:14b      BC11 #2 fail  382.5s  extra call(s): search_photos({'date': '2025-10-20'})
+qwen3:14b      BC11 #3 fail  195.8s  search_photos.date: '2025-10-20' resolves to 2025-10-20..2025-10-20, want 2025-11-08..2025-11-08
+qwen3:14b      BC15 #1 fail   86.5s  tools used none, want ['list_events', 'search_mail']; no valid search_mail call; no valid list_events call; answer 'I need to know the specific date and time wh
+qwen3:14b      BC15 #2 fail   96.2s  tools used none, want ['list_events', 'search_mail']; no valid search_mail call; no valid list_events call; answer "To check your availability for Ravi's flat i
+qwen3:14b      BC15 #3 fail  105.4s  tools used none, want ['list_events', 'search_mail']; no valid search_mail call; no valid list_events call; answer "To check if you're free when Ravi wants to c
+qwen3:14b      BC12 #1 fail  109.2s  send_mail rejected: ungrounded to: 'leena@example.com' not in the request or any earlier result; extra call(s): send_mail({'to': 'leena@example.com', 'subject':
+qwen3:14b      BC12 #2 PASS  271.6s  
+qwen3:14b      BC12 #3 PASS  214.1s  
+qwen3:14b      BC13 #1 PASS   99.7s  
+qwen3:14b      BC13 #2 PASS  110.1s  
+qwen3:14b      BC13 #3 PASS  109.7s  
+qwen3:14b      BC14 #1 fail  105.8s  send_mail rejected: ungrounded subject: '4-9' not in the request or any earlier result; extra call(s): send_mail({'subject': 'Feedback on Slides 4-9', 'body': "
+qwen3:14b      BC14 #2 fail  176.3s  send_mail rejected: ungrounded subject: '4-9' not in the request or any earlier result; extra call(s): send_mail({'subject': 'Comments on Slides 4-9 by Friday N
+qwen3:14b      BC14 #3 fail  162.9s  send_mail rejected: ungrounded subject: '4-9' not in the request or any earlier result; extra call(s): send_mail({'to': 'daniel.okafor@example.com', 'subject': 

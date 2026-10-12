@@ -173,6 +173,9 @@ Full report: `myData/results/2026-10-11-b-REPORT.md`. New frozen set `cases_2026
 - **Not kept: (b) per-request tool filtering.** It is off by default (`Engine.route=False`); the module stays so the measurement can be reproduced. It gained nothing, added 0.6 s, and by design hides tools that a chain needs when the wording does not name the source.
 - The kept combination (a + c, without b) was not itself measured.
 - Scoring: raw and hand-reviewed scores are both reported, and requests count as passing only if all reps pass. The hand-review rule for refusals is automated in `scoring.py`.
+- Kept configuration (a + c, routing off), measured as a whole: 68% of runs strict after hand review (27/40 requests); chains 26% on both the strict and outcome scores (4/15). Median 12.4 s to the final answer, worst 39.5 s.
+- Thinking on, chains only: strict 40% (4/15 requests), outcome 48% (6/15). Median 181 s to the final answer, worst 693 s. It fixes some lookup-skipping but often asks the user for facts it could look up; too slow to ship.
+- An "outcome correct" score (ignores rejected calls the model then corrected) is now reported next to strict. Defect found: grounding reads "4-9" as one token and rejects "Slides 4-9" (BC14); not yet fixed.
 
 ## Build order after the test passes
 

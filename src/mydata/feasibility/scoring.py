@@ -325,3 +325,23 @@ def score(case: dict, run: dict, today: date) -> Score:
 
     fully = right_tool and args_ok and not invented and outcome_ok
     return Score(right_tool, args_ok, invented, outcome_ok, fully, notes)
+
+
+# ---------------------------------------------------------------- outcome score
+
+REJECTED = ("bad_date", "invalid_args", "unknown_tool")
+
+
+def outcome_score(case: dict, run: dict, today: date) -> Score:
+    """The strict score, judged on the calls that stood: a call the code rejected is ignored when the
+    model later made an accepted call to the same tool (it corrected itself). A run whose last call
+    was rejected, or that never corrected a rejection, still fails."""
+    calls = run.get("calls", [])
+    if calls and calls[-1]["status"] in REJECTED:
+        s = score(case, run, today)
+        return Score(s.right_tool, False, s.invented, s.outcome_ok, False,
+                     s.notes + ["last call was rejected"])
+    kept = [c for i, c in enumerate(calls)
+            if not (c["status"] in REJECTED
+                    and any(d["tool"] == c["tool"] and d["status"] not in REJECTED for d in calls[i + 1:]))]
+    return score(case, {**run, "calls": kept}, today)

@@ -28,7 +28,7 @@ from ..orchestrator.engine import SYSTEM_PROMPT, Engine
 from ..orchestrator.ollama import OllamaChat
 from ..orchestrator.tools import TOOLS
 from . import scoring as scoring_module
-from .scoring import score
+from .scoring import outcome_score, score
 from .sets import DEFAULT_SET, CaseSet, load_set, use_data
 
 HAND_REVIEW_RULE = (
@@ -61,8 +61,10 @@ def digests(case_set: CaseSet) -> dict:
     }
 
 
-def think_setting(model: str) -> bool | str:
+def think_setting(model: str, on: bool = False) -> bool | str:
     # gpt-oss has no "off"; "low" is its least-thinking level.
+    if on:
+        return "medium" if model.startswith("gpt-oss") else True
     return "low" if model.startswith("gpt-oss") else False
 
 
@@ -81,7 +83,7 @@ def cmd_run(ns: argparse.Namespace) -> int:
     for m in ns.models:
         info = OllamaChat(m).show()
         models_meta[m] = {
-            "think": think_setting(m), "options": {"num_ctx": ns.num_ctx},
+            "think": think_setting(m, ns.think), "options": {"num_ctx": ns.num_ctx},
             "digest": OllamaChat(m).digest(),
             "modified_at": info.get("modified_at"), "parameters": info.get("parameters"),
             "details": info.get("details"),
@@ -100,7 +102,7 @@ def cmd_run(ns: argparse.Namespace) -> int:
 
     with runs_path.open("a") as fh, use_data(case_set.data):
         for model_name in ns.models:
-            model = OllamaChat(model_name, think=think_setting(model_name), options={"num_ctx": ns.num_ctx})
+            model = OllamaChat(model_name, think=think_setting(model_name, ns.think), options={"num_ctx": ns.num_ctx})
             print(f"loading {model_name}...", file=sys.stderr)
             model.load()
             # One untimed request (not one of the cases) to warm the shared prompt prefix.
@@ -111,7 +113,8 @@ def cmd_run(ns: argparse.Namespace) -> int:
                     run = engine.run(case["text"]).to_json()
                     s = score(case, run, case_set.today)
                     row = {"model": model_name, "case": case["id"], "type": case["type"], "rep": rep,
-                           "run": run, "score": s.to_json()}
+                           "run": run, "score": s.to_json(),
+                           "outcome_score": outcome_score(case, run, case_set.today).to_json()}
                     fh.write(json.dumps(row) + "\n")
                     fh.flush()
                     mark = "PASS" if s.fully_correct else "fail"
@@ -139,11 +142,23 @@ def load_hand_review(runs_path: Path) -> dict[tuple[str, str, int], dict]:
     return {(e["model"], e["case"], int(e["rep"])): e for e in entries}
 
 
+def add_outcome(rows: list[dict], case_set: CaseSet) -> list[dict]:
+    """Outcome score for every row, worked out from the logged run (so old runs get it too)."""
+    by_id = {c["id"]: c for c in case_set.cases}
+    with use_data(case_set.data):
+        for r in rows:
+            r["outcome_score"] = outcome_score(by_id[r["case"]], r["run"], case_set.today).to_json()
+    return rows
+
+
 def apply_hand_review(rows: list[dict], overrides: dict) -> list[dict]:
     for r in rows:
         o = overrides.get((r["model"], r["case"], r["rep"]))
         r["hand_pass"] = o["pass"] if o else r["score"]["fully_correct"]
         r["hand_reason"] = o["reason"] if o else None
+        if o and "outcome_score" in r:
+            # An override judges the reply itself, which both scores depend on.
+            r["outcome_score"] = {**r["outcome_score"], "fully_correct": o["pass"]}
     return rows
 
 
@@ -191,6 +206,23 @@ def _cell(rows: list[dict]) -> str:
     return f"{runs} · {reqs}"
 
 
+def _outcome(rows: list[dict]) -> int:
+    return sum(r["outcome_score"]["fully_correct"] for r in rows)
+
+
+def _worst(rows: list[dict]) -> str:
+    return f"{max(r['run']['seconds_total'] for r in rows):.1f}" if rows else "-"
+
+
+def _outcome_cell(rows: list[dict]) -> str:
+    if not rows:
+        return "-"
+    reqs: dict[str, list[bool]] = defaultdict(list)
+    for r in rows:
+        reqs[r["case"]].append(r["outcome_score"]["fully_correct"])
+    return f"{_pct(_outcome(rows), len(rows))} · {sum(all(v) for v in reqs.values())}/{len(reqs)}"
+
+
 def _verdict(pct: float) -> str:
     return ("works (>=90%)" if pct >= 90 else "look at failures (70-90%)" if pct >= 70
             else "not viable as planned (<70%)")
@@ -202,6 +234,7 @@ def render_report(rows: list[dict], meta: dict | None = None, case_set: CaseSet 
     for r in rows:
         r.setdefault("hand_pass", r["score"]["fully_correct"])
         r.setdefault("hand_reason", None)
+        r.setdefault("outcome_score", r["score"])
     lines: list[str] = ["# Feasibility test results", ""]
     if meta:
         lines += [f"- Run {meta['stamp']}, request set {meta.get('set', DEFAULT_SET)}"
@@ -234,9 +267,10 @@ def render_report(rows: list[dict], meta: dict | None = None, case_set: CaseSet 
 
     lines += ["## Overall", "",
               "| Model | Runs | Right tool | Args strict | Invented | Fully correct (raw) | Fully correct (hand-reviewed) "
-              "| Requests passed, all reps (raw) | Requests passed, all reps (hand-reviewed) | Verdict (hand-reviewed) "
-              "| Median s to 1st tool call | Median s total | Model errors | Retried after rejection |",
-              "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
+              "| Outcome correct | Requests passed, all reps (raw) | Requests passed, all reps (hand-reviewed) "
+              "| Verdict (hand-reviewed) | Median s to 1st tool call | Median s to final answer | Worst s to final answer "
+              "| Model errors | Retried after rejection |",
+              "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for m in models:
         rs = [r for r in rows if r["model"] == m]
         raw = sum(r["score"]["fully_correct"] for r in rs)
@@ -247,22 +281,28 @@ def render_report(rows: list[dict], meta: dict | None = None, case_set: CaseSet 
             f"| `{m}` | {len(rs)} | {_pct(sum(r['score']['right_tool'] for r in rs), len(rs))} | "
             f"{_pct(sum(r['score']['args_ok'] for r in rs), len(rs))} | {sum(r['score']['invented'] for r in rs)} | "
             f"{raw}/{len(rs)} ({_pct(raw, len(rs))}) | **{hand}/{len(rs)} ({_pct(hand, len(rs))})** | "
+            f"{_outcome(rs)} ({_pct(_outcome(rs), len(rs))}) | "
             f"{rq_raw}/{n} ({_pct(rq_raw, n)}) | {rq_hand}/{n} ({_pct(rq_hand, n)}) | "
             f"{gaps.get(m) or _verdict(100 * hand / len(rs))} | {_first_tool_median(rs)} | "
-            f"{_median([r['run']['seconds_total'] for r in rs])} | "
+            f"{_median([r['run']['seconds_total'] for r in rs])} | {_worst(rs)} | "
             f"{sum(r['run']['outcome'] == 'model_error' for r in rs)} | {sum(_retried(r) for r in rs)} |")
     lines += ["", "Fully correct = right tools, every argument strictly right, nothing invented, and the run "
               "ended the right way (answered / held for approval / stopped to ask). Model errors count as failures. "
               "A request passes only if every rep is fully correct. \"Retried after rejection\" counts runs where "
-              "the code rejected a call and the model then fixed it; information only, never credit.", "",
+              "the code rejected a call and the model then fixed it; information only, never credit in the strict "
+              "score. \"Outcome correct\" is the same strict test applied to the calls that stood: a rejected call "
+              "is ignored if the model later made an accepted call to the same tool; a run whose last call was "
+              "rejected, or that never corrected a rejection, still fails. \"Final answer\" is the end of the "
+              "run: the reply, or the point where the code held a send for approval or stopped to ask.", "",
               "**Hand-review rule.** " + HAND_REVIEW_RULE, ""]
 
     for m in models:
         rs = [r for r in rows if r["model"] == m]
         lines += [f"## `{m}` by request type", "",
                   "| Type | Runs | Right tool | Args strict | Invented | Outcome right | Fully correct (raw) "
-                  "| Fully correct (hand-reviewed) | Requests passed, all reps (raw / hand) | Median s to 1st tool call |",
-                  "|---|---|---|---|---|---|---|---|---|---|"]
+                  "| Fully correct (hand-reviewed) | Outcome correct | Requests passed, all reps (raw / hand) "
+                  "| Median s to 1st tool call |",
+                  "|---|---|---|---|---|---|---|---|---|---|---|"]
         for t, label in case_set.types.items():
             ts = [r for r in rs if r["type"] == t]
             if not ts:
@@ -274,7 +314,8 @@ def render_report(rows: list[dict], meta: dict | None = None, case_set: CaseSet 
                 f"{_pct(sum(r['score']['args_ok'] for r in ts), len(ts))} | {sum(r['score']['invented'] for r in ts)} | "
                 f"{_pct(sum(r['score']['outcome_ok'] for r in ts), len(ts))} | "
                 f"{_pct(sum(r['score']['fully_correct'] for r in ts), len(ts))} | "
-                f"**{_pct(sum(r['hand_pass'] for r in ts), len(ts))}** | {rq_raw}/{n} / {rq_hand}/{n} | "
+                f"**{_pct(sum(r['hand_pass'] for r in ts), len(ts))}** | {_pct(_outcome(ts), len(ts))} | "
+                f"{rq_raw}/{n} / {rq_hand}/{n} | "
                 f"{_first_tool_median(ts)} |")
         lines.append("")
 
@@ -351,7 +392,7 @@ def _load_scored(path: Path, rescore_rows: bool = False) -> tuple[list[dict], di
     rows = load_rows(path)
     if rescore_rows:
         rows = rescore(rows, case_set)
-    return apply_hand_review(rows, load_hand_review(path)), meta, case_set
+    return apply_hand_review(add_outcome(rows, case_set), load_hand_review(path)), meta, case_set
 
 
 def cmd_report(ns: argparse.Namespace) -> int:
@@ -385,16 +426,20 @@ def cmd_report(ns: argparse.Namespace) -> int:
 def render_compare(labelled: list[tuple[str, list[dict], dict | None]], case_set: CaseSet) -> str:
     """One row per run (baseline, +a, +b, ...): overall, chains, each other type, median s to first tool call."""
     types = [t for t in case_set.types if t != "chain"]
-    head = ["Run", "Overall", "Chains"] + [case_set.types[t] for t in types] + ["Median s to 1st tool call"]
+    head = (["Run", "Overall (strict)", "Overall (outcome)", "Chains (strict)", "Chains (outcome)"]
+            + [case_set.types[t] for t in types]
+            + ["Median s to 1st tool call", "Median s to final answer", "Worst s to final answer"])
     lines = ["| " + " | ".join(head) + " |", "|" + "---|" * len(head)]
     for label, rows, _ in labelled:
-        cells = [label, _cell(rows), _cell([r for r in rows if r["type"] == "chain"])]
+        chains = [r for r in rows if r["type"] == "chain"]
+        cells = [label, _cell(rows), _outcome_cell(rows), _cell(chains), _outcome_cell(chains)]
         cells += [_cell([r for r in rows if r["type"] == t]) for t in types]
-        cells.append(_first_tool_median(rows))
+        cells += [_first_tool_median(rows), _median([r["run"]["seconds_total"] for r in rows]), _worst(rows)]
         lines.append("| " + " | ".join(cells) + " |")
     lines += ["",
               "Each cell: share of runs fully correct · requests passed on all reps. Where the hand-reviewed "
-              "number differs from the raw automated one, both are shown as raw / hand-reviewed.", ""]
+              "number differs from the raw automated one, both are shown as raw / hand-reviewed. Strict counts "
+              "every call; outcome ignores rejected calls the model then corrected (see a run's report.md).", ""]
     label, rows, _ = labelled[-1]
     by_id = {c["id"]: c for c in case_set.cases}
     failing = defaultdict(list)
@@ -441,6 +486,7 @@ def main(argv: list[str] | None = None) -> int:
     r.add_argument("--stamp", help="results subdirectory name (default: current time)")
     r.add_argument("--num-ctx", type=int, default=8192)
     r.add_argument("--keep-loaded", action="store_true")
+    r.add_argument("--think", action="store_true", help="turn thinking on (default off)")
     r.set_defaults(fn=cmd_run)
     p = sub.add_parser("report", help="print the report for a runs.jsonl")
     p.add_argument("runs")

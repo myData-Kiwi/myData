@@ -1,0 +1,4 @@
+{
+  "note": "Chain requests only: no no-tool or no-suitable-tool answers to hand-review (BC15's answer is judged by its answer matcher, not the hand-review rule). No overrides.",
+  "overrides": []
+}
