@@ -139,7 +139,7 @@ class _ItemView extends StatelessWidget {
     ),
     final ProgressLine line => _ProgressRow(line),
     final ResultItem r => ResultCard(kind: r.kind, header: r.header, items: r.items),
-    final ApprovalItem a => ApprovalCard(
+    final ApprovalItem a => AssistantApprovalCard(
       approval: a.approval,
       deciding: a.deciding,
       error: a.error,

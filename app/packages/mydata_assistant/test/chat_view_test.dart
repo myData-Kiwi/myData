@@ -40,6 +40,7 @@ StatusOut status({bool enabled = true, String state = 'ready', Map<String, Objec
       'agents_connected': 0,
       'today': '2026-03-18',
       'demo_date': false,
+      'theme': 'kiwi',
       'model': {
         'name': 'qwen3:14b',
         'state': state,
@@ -79,7 +80,7 @@ void main() {
 
     expect(find.text('Checking calendar'), findsOneWidget);
     expect(find.text('It is waiting for your approval.'), findsOneWidget);
-    expect(find.byType(ApprovalCard), findsOneWidget);
+    expect(find.byType(AssistantApprovalCard), findsOneWidget);
     expect(tester.widget<TextField>(find.byKey(ChatView.inputKey)).enabled, isTrue);
 
     await tester.ensureVisible(find.text('Approve'));

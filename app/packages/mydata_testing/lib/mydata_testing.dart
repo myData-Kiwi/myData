@@ -8,6 +8,7 @@ library;
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/painting.dart' as painting;
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mydata_ui/mydata_ui.dart';
@@ -88,11 +89,17 @@ void goldenMatrix(String name, Widget Function() build,
       tester.view.physicalSize = size;
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
+      // flutter_test draws shadows without blur by default; goldens should look like the app.
+      painting.debugDisableShadows = false;
       await tester.pumpWidget(themedFrame(theme, build(),
           reduceMotion: reduceMotion, reduceTransparency: reduceTransparency));
       if (before != null) await before(tester);
       await tester.pumpAndSettle();
-      await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/$name.${theme.label}.png'));
+      try {
+        await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/$name.${theme.label}.png'));
+      } finally {
+        painting.debugDisableShadows = true;
+      }
     });
   }
 }

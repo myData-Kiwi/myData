@@ -8,8 +8,8 @@ import 'package:mydata_ui/mydata_ui.dart';
 /// full value, and who asked. Nothing is shortened or hidden, because this is what runs if approved.
 ///
 /// Pending: Approve and Reject (disabled while [deciding]). Decided: the outcome and who decided.
-class ApprovalCard extends StatelessWidget {
-  const ApprovalCard({
+class AssistantApprovalCard extends StatelessWidget {
+  const AssistantApprovalCard({
     super.key,
     required this.approval,
     required this.onApprove,

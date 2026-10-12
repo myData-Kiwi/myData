@@ -24,7 +24,7 @@ Future<void> show(
       theme: legacyTheme(),
       home: Scaffold(
         body: SingleChildScrollView(
-          child: ApprovalCard(
+          child: AssistantApprovalCard(
             approval: a,
             deciding: deciding,
             error: error,
