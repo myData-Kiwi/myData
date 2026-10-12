@@ -1,0 +1,4 @@
+{
+  "note": "All 18 free-text answers read by hand against the hand-review rule; all agree with the automated judgement. No overrides. This run predates the tools_shown field; the tools shown per request are select_tools(request) from routing.py at commit 0284fa1 (deterministic).",
+  "overrides": []
+}

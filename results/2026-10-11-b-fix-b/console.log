@@ -1,0 +1,122 @@
+writing results/2026-10-11-b-fix-b/runs.jsonl  (set 2026-10-11-b, cases sha a654c13a124da746)
+loading qwen3:14b...
+qwen3:14b      BS01 #1 PASS   19.3s  
+qwen3:14b      BS01 #2 PASS   17.2s  
+qwen3:14b      BS01 #3 PASS   13.3s  
+qwen3:14b      BS02 #1 PASS   14.9s  
+qwen3:14b      BS02 #2 PASS   12.5s  
+qwen3:14b      BS02 #3 PASS   13.6s  
+qwen3:14b      BS03 #1 PASS    8.1s  
+qwen3:14b      BS03 #2 PASS    6.5s  
+qwen3:14b      BS03 #3 PASS    5.7s  
+qwen3:14b      BS04 #1 PASS   17.5s  
+qwen3:14b      BS04 #2 PASS    9.3s  
+qwen3:14b      BS04 #3 PASS    8.8s  
+qwen3:14b      BS05 #1 PASS   20.8s  
+qwen3:14b      BS05 #2 PASS    8.9s  
+qwen3:14b      BS05 #3 PASS    8.5s  
+qwen3:14b      BS06 #1 PASS   30.2s  
+qwen3:14b      BS06 #2 PASS   30.2s  
+qwen3:14b      BS06 #3 PASS   29.9s  
+qwen3:14b      BS07 #1 PASS   19.1s  
+qwen3:14b      BS07 #2 PASS   18.3s  
+qwen3:14b      BS07 #3 PASS   18.8s  
+qwen3:14b      BS08 #1 PASS   16.6s  
+qwen3:14b      BS08 #2 PASS   16.0s  
+qwen3:14b      BS08 #3 PASS   20.8s  
+qwen3:14b      BS09 #1 PASS   21.4s  
+qwen3:14b      BS09 #2 PASS   12.0s  
+qwen3:14b      BS09 #3 PASS   12.6s  
+qwen3:14b      BS10 #1 PASS   14.1s  
+qwen3:14b      BS10 #2 PASS   11.4s  
+qwen3:14b      BS10 #3 PASS   12.4s  
+qwen3:14b      BA01 #1 PASS   14.2s  
+qwen3:14b      BA01 #2 PASS   15.7s  
+qwen3:14b      BA01 #3 PASS   14.7s  
+qwen3:14b      BA02 #1 fail    7.9s  list_events.date: 'next week' resolves to 2026-03-23..2026-03-29, want 2026-03-23..2026-03-25; list_events.query: not asked for ('Monday to Wednesday')
+qwen3:14b      BA02 #2 fail    9.8s  list_events.date: 'next week' resolves to 2026-03-23..2026-03-29, want 2026-03-23..2026-03-25; list_events.query: not asked for ('Monday to Wednesday')
+qwen3:14b      BA02 #3 fail    7.5s  list_events.date: 'next week' resolves to 2026-03-23..2026-03-29, want 2026-03-23..2026-03-25; list_events.query: not asked for ('Monday to Wednesday')
+qwen3:14b      BA03 #1 PASS   14.2s  
+qwen3:14b      BA03 #2 PASS   12.6s  
+qwen3:14b      BA03 #3 PASS   12.6s  
+qwen3:14b      BA04 #1 PASS   37.2s  
+qwen3:14b      BA04 #2 PASS   40.6s  
+qwen3:14b      BA04 #3 PASS   44.4s  
+qwen3:14b      BA05 #1 PASS   19.6s  
+qwen3:14b      BA05 #2 PASS   14.7s  
+qwen3:14b      BA05 #3 PASS   17.0s  
+qwen3:14b      BC01 #1 fail   42.6s  tools used ['search_photos'], want ['list_events', 'search_photos']; no valid list_events call; search_photos.date: 'last month' resolves to 2026-02-01..2026-02
+qwen3:14b      BC01 #2 fail   41.5s  tools used ['search_photos'], want ['list_events', 'search_photos']; no valid list_events call; search_photos.date: 'last month' resolves to 2026-02-01..2026-02
+qwen3:14b      BC01 #3 fail   42.8s  tools used ['search_photos'], want ['list_events', 'search_photos']; no valid list_events call; search_photos.date: 'last month' resolves to 2026-02-01..2026-02
+qwen3:14b      BC02 #1 fail   28.4s  tools used ['find_contact', 'send_mail'], want ['find_contact', 'list_events', 'send_mail']; no valid list_events call; send_mail.body: "Hi Hannah,\n\nI'd like 
+qwen3:14b      BC02 #2 fail   17.3s  tools used ['find_contact', 'send_mail'], want ['find_contact', 'list_events', 'send_mail']; no valid list_events call; send_mail.body: "Hi Hannah,\n\nI'd like 
+qwen3:14b      BC02 #3 fail   18.5s  tools used ['find_contact', 'send_mail'], want ['find_contact', 'list_events', 'send_mail']; no valid list_events call; send_mail.body: "Hi Hannah,\n\nI'd like 
+qwen3:14b      BC03 #1 fail   22.8s  tools used ['create_event'], want ['create_event', 'list_events']; no valid list_events call; create_event.time: missing; create_event.location: 'Same location 
+qwen3:14b      BC03 #2 fail   13.2s  tools used ['create_event'], want ['create_event', 'list_events']; no valid list_events call; create_event.time: missing; create_event.location: 'Same as next o
+qwen3:14b      BC03 #3 fail   13.0s  tools used ['create_event'], want ['create_event', 'list_events']; no valid list_events call; create_event.time: missing; create_event.location: 'same location 
+qwen3:14b      BC04 #1 fail   25.6s  create_event rejected: could not understand the date 'the day of Farah's housewarming'; tools used ['create_event', 'search_mail', 'search_photos'], want ['crea
+qwen3:14b      BC04 #2 fail   13.1s  create_event rejected: could not understand the date 'day of Farah's housewarming'; tools used ['create_event'], want ['create_event', 'list_events']; no valid 
+qwen3:14b      BC04 #3 fail   15.1s  create_event rejected: could not understand the date 'day of Farah's housewarming'; tools used ['create_event'], want ['create_event', 'list_events']; no valid 
+qwen3:14b      BC05 #1 fail   15.8s  tools used ['search_mail'], want ['list_events', 'search_mail']; no valid list_events call; search_mail.sender: "the person I'm meeting" is not one of ['daniel'
+qwen3:14b      BC05 #2 fail   12.3s  tools used ['search_mail'], want ['list_events', 'search_mail']; no valid list_events call; search_mail.sender: "the person I'm meeting" is not one of ['daniel'
+qwen3:14b      BC05 #3 fail   10.3s  tools used ['search_mail'], want ['list_events', 'search_mail']; no valid list_events call; search_mail.sender: missing; search_mail.query: 'meeting' lacks any 
+qwen3:14b      BC06 #1 PASS   38.1s  
+qwen3:14b      BC06 #2 PASS   27.7s  
+qwen3:14b      BC06 #3 PASS   25.1s  
+qwen3:14b      BC07 #1 fail   10.7s  tools used none, want ['create_event', 'search_mail']; no valid search_mail call; no valid create_event call
+qwen3:14b      BC07 #2 fail   13.2s  tools used ['create_event'], want ['create_event', 'search_mail']; no valid search_mail call; create_event.date: 'next friday' resolves to 2026-03-27..2026-03-2
+qwen3:14b      BC07 #3 fail    4.7s  tools used none, want ['create_event', 'search_mail']; no valid search_mail call; no valid create_event call
+qwen3:14b      BC08 #1 fail   21.5s  list_events rejected: could not understand the date 'that evening'; list_events rejected: could not understand the date 'that evening'; tools used ['list_events
+qwen3:14b      BC08 #2 fail    3.8s  tools used none, want ['create_event', 'list_events', 'search_mail']; no valid search_mail call; no valid list_events call; no valid create_event call
+qwen3:14b      BC08 #3 fail   16.7s  list_events rejected: could not understand the date 'that evening'; list_events rejected: could not understand the date 'that evening'; tools used ['list_events
+qwen3:14b      BC09 #1 fail   13.4s  tools used ['find_contact', 'send_mail'], want ['find_contact', 'search_mail', 'send_mail']; no valid search_mail call; send_mail.body: 'Please find the booking
+qwen3:14b      BC09 #2 fail   13.8s  tools used ['find_contact', 'send_mail'], want ['find_contact', 'search_mail', 'send_mail']; no valid search_mail call; send_mail.body: 'Please find the booking
+qwen3:14b      BC09 #3 fail   15.2s  tools used ['find_contact', 'send_mail'], want ['find_contact', 'search_mail', 'send_mail']; no valid search_mail call; send_mail.body: 'Please find the booking
+qwen3:14b      BC10 #1 fail   21.0s  tools used ['find_contact', 'send_mail'], want ['find_contact', 'search_mail', 'send_mail']; no valid search_mail call; send_mail.body: 'Ollie, Leena has moved 
+qwen3:14b      BC10 #2 fail   20.8s  tools used ['find_contact', 'send_mail'], want ['find_contact', 'search_mail', 'send_mail']; no valid search_mail call; send_mail.body: 'Ollie, Leena has moved 
+qwen3:14b      BC10 #3 fail   21.1s  tools used ['find_contact', 'send_mail'], want ['find_contact', 'search_mail', 'send_mail']; no valid search_mail call; send_mail.body: "Ollie, Leena has moved 
+qwen3:14b      BC11 #1 fail   17.0s  search_photos rejected: could not understand the date 'that day'; search_photos rejected: could not understand the date 'that day'; tools used ['search_photos']
+qwen3:14b      BC11 #2 fail   31.5s  search_photos rejected: could not understand the date 'the day Vikram Menon sent the plan for his safari'; extra call(s): search_photos({'date': 'the day Vikram
+qwen3:14b      BC11 #3 fail   39.0s  search_photos rejected: could not understand the date 'the day Vikram Menon sent the plan for his safari'; extra call(s): search_photos({'date': 'the day Vikram
+qwen3:14b      BC15 #1 fail   11.3s  tools used ['list_events'], want ['list_events', 'search_mail']; no valid search_mail call; list_events.date: missing; list_events.query: not asked for ('Ravi f
+qwen3:14b      BC15 #2 fail   10.0s  tools used ['list_events'], want ['list_events', 'search_mail']; no valid search_mail call; list_events.date: missing; list_events.query: not asked for ('Ravi f
+qwen3:14b      BC15 #3 fail    9.7s  tools used ['list_events'], want ['list_events', 'search_mail']; no valid search_mail call; list_events.date: missing; list_events.query: not asked for ('Ravi f
+qwen3:14b      BC12 #1 PASS   28.5s  
+qwen3:14b      BC12 #2 PASS   21.6s  
+qwen3:14b      BC12 #3 PASS   21.6s  
+qwen3:14b      BC13 #1 PASS   21.3s  
+qwen3:14b      BC13 #2 PASS   21.0s  
+qwen3:14b      BC13 #3 PASS   20.4s  
+qwen3:14b      BC14 #1 PASS   16.9s  
+qwen3:14b      BC14 #2 PASS   15.3s  
+qwen3:14b      BC14 #3 PASS   15.9s  
+qwen3:14b      BM01 #1 PASS    3.7s  
+qwen3:14b      BM01 #2 PASS    4.1s  
+qwen3:14b      BM01 #3 PASS    3.4s  
+qwen3:14b      BM02 #1 PASS    3.3s  
+qwen3:14b      BM02 #2 PASS    3.9s  
+qwen3:14b      BM02 #3 PASS    3.0s  
+qwen3:14b      BM03 #1 PASS    7.0s  
+qwen3:14b      BM03 #2 PASS    3.6s  
+qwen3:14b      BM03 #3 PASS    3.4s  
+qwen3:14b      BM04 #1 PASS    7.9s  
+qwen3:14b      BM04 #2 PASS    9.6s  
+qwen3:14b      BM04 #3 PASS    7.6s  
+qwen3:14b      BN01 #1 PASS    7.3s  
+qwen3:14b      BN01 #2 PASS    2.6s  
+qwen3:14b      BN01 #3 PASS    2.1s  
+qwen3:14b      BN02 #1 PASS   18.9s  
+qwen3:14b      BN02 #2 PASS   13.5s  
+qwen3:14b      BN02 #3 PASS   18.1s  
+qwen3:14b      BN03 #1 PASS    1.7s  
+qwen3:14b      BN03 #2 PASS    1.1s  
+qwen3:14b      BN03 #3 PASS    1.2s  
+qwen3:14b      BU01 #1 PASS   12.5s  
+qwen3:14b      BU01 #2 PASS    6.0s  
+qwen3:14b      BU01 #3 PASS    7.4s  
+qwen3:14b      BU02 #1 PASS    9.2s  
+qwen3:14b      BU02 #2 PASS    6.8s  
+qwen3:14b      BU02 #3 PASS    9.0s  
+qwen3:14b      BU03 #1 PASS   24.8s  
+qwen3:14b      BU03 #2 PASS    6.7s  
+qwen3:14b      BU03 #3 PASS    8.1s  
