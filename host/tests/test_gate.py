@@ -166,7 +166,7 @@ def test_mcp_send_mail_is_held_and_cannot_be_approved_over_mcp(tmp_path):
     assert bad.is_error
     assert spy.calls == []
     a = registry.approval(payload["approval_id"])
-    assert a.status == "pending" and a.caller == "mcp" and a.args == ARGS
+    assert a.status == "pending" and a.caller == "app:mydata" and a.args == ARGS
 
 
 def test_mcp_read_tool_runs(tmp_path):

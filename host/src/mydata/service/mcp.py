@@ -45,9 +45,11 @@ def build_mcp(registry: Registry, today: Callable[[], date] = date.today) -> Str
 
     async def on_call_tool(ctx: ServerRequestContext[Any], params: types.CallToolRequestParams
                            ) -> types.CallToolResult:
+        principal = getattr(getattr(ctx.request, "state", None), "principal", None)
+        caller = principal.label if principal else "mcp"
         try:
             inv = await anyio.to_thread.run_sync(
-                lambda: registry.invoke(params.name, params.arguments or {}, caller="mcp", today=today()))
+                lambda: registry.invoke(params.name, params.arguments or {}, caller=caller, today=today()))
         except Exception as e:  # a bug in a tool or the resolver is an error result, never a crashed request
             logger.exception("mcp tool call failed")
             return types.CallToolResult(content=[types.TextContent(text=json.dumps(

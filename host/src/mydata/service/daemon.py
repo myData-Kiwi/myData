@@ -22,7 +22,7 @@ from .assistant import Assistant
 from .config import ConfigError, Settings, load_settings
 from .logs import log, setup_logging
 from .model import ModelManager
-from .security import ensure_token
+from .auth import AgentStore, Authenticator, ensure_app_tokens
 
 logger = logging.getLogger("mydata.daemon")
 
@@ -75,11 +75,15 @@ def daemon_pid(settings: Settings) -> int | None:
 
 
 def build(settings: Settings):
-    token = ensure_token(settings.token_path)
+    legacy = settings.home / "token"  # phase 1 had one shared token; it is replaced by per-app tokens
+    if legacy.exists():
+        legacy.unlink()
+        log(logger, logging.INFO, "removed the old shared token; apps now have their own", path=str(legacy))
+    auth = Authenticator(ensure_app_tokens(settings.home), AgentStore(settings.home))
     registry = default_registry()
     models = ModelManager(settings)
     assistant = Assistant(settings, registry)
-    return create_app(token, registry, models, assistant), models
+    return create_app(auth, registry, models, assistant), models
 
 
 def main(argv: list[str] | None = None) -> int:

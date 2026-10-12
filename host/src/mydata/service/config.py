@@ -6,7 +6,8 @@ Everything lives in one per-user folder (override with MYDATA_HOME):
   Windows %APPDATA%\\myData
 
   config.toml   settings (written with defaults on first start)
-  token         the API token, readable only by this user
+  app-tokens/   one token per app (mydata, myassistant, cli), each readable only by this user
+  agents.json   agent tokens (hashes only), managed with `mydata agent ...`
   mydatad.pid   the running service's process id
   logs/         mydatad.log (structured), assistant.jsonl (every assistant request)
 """
@@ -74,9 +75,9 @@ class Settings:
     def config_path(self) -> Path:
         return self.home / "config.toml"
 
-    @property
-    def token_path(self) -> Path:
-        return self.home / "token"
+    def app_token_path(self, app: str) -> Path:
+        from .auth import app_token_path
+        return app_token_path(self.home, app)
 
     @property
     def pid_path(self) -> Path:

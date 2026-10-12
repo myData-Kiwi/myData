@@ -14,11 +14,14 @@ import uvicorn
 
 from mydata.service.api import create_app
 from mydata.service.assistant import Assistant
+from mydata.service.auth import AgentStore, Authenticator
 from mydata.service.config import Settings
 from mydata.tools import TOOLS, Registry, ToolResult
 
 TODAY = date(2026, 3, 18)
-TOKEN = "t" * 43
+TOKEN = "t" * 43  # the myData app's token
+ASSISTANT_TOKEN = "a" * 43  # myAssistant's token
+CLI_TOKEN = "c" * 43
 
 
 class Spy:
@@ -85,7 +88,10 @@ def make_app(tmp: Path, scripts: list[list] | None = None):
     queue = list(scripts or [])
     assistant = Assistant(settings, registry, model_factory=lambda: Scripted(queue.pop(0) if queue else []),
                           today=lambda: TODAY)
-    return create_app(TOKEN, registry, ReadyModels(), assistant), registry, spy
+    auth = Authenticator({"mydata": TOKEN, "myassistant": ASSISTANT_TOKEN, "cli": CLI_TOKEN}, AgentStore(tmp))
+    app = create_app(auth, registry, ReadyModels(), assistant)
+    app.auth = auth  # for tests that create agent tokens
+    return app, registry, spy
 
 
 def free_port() -> int:

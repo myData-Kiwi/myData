@@ -10,6 +10,7 @@ from pathlib import Path
 
 from ..tools import default_registry
 from .api import create_app
+from .auth import AgentStore, Authenticator
 from .assistant import Assistant
 from .config import Settings
 from .model import ModelManager
@@ -18,7 +19,8 @@ from .model import ModelManager
 def openapi_document() -> dict:
     settings = Settings(home=Path("/nonexistent"))
     registry = default_registry()
-    guarded = create_app("x" * 43, registry, ModelManager(settings), Assistant(settings, registry))
+    auth = Authenticator({"mydata": "x" * 43}, AgentStore(Path("/nonexistent")))
+    guarded = create_app(auth, registry, ModelManager(settings), Assistant(settings, registry))
     doc = guarded.app.openapi()
     doc["components"].setdefault("securitySchemes", {})["bearer"] = {"type": "http", "scheme": "bearer"}
     doc["security"] = [{"bearer": []}]
@@ -29,6 +31,7 @@ def openapi_document() -> dict:
     for item in doc["paths"].values():
         for op in item.values():
             op["responses"].setdefault("401", {"description": "missing or wrong token", "content": err})
+            op["responses"].setdefault("403", {"description": "agent tokens can only use /mcp", "content": err})
             op["responses"].setdefault("421", {"description": "the Host header is not this machine", "content": err})
     doc["servers"] = [{"url": "http://127.0.0.1:47821", "description": "this machine only"}]
     return doc

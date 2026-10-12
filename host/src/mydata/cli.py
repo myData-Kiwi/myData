@@ -5,6 +5,9 @@
     mydata status    show what the host reports (exit 0 running, 3 not running)
     mydata run       run mydatad in the foreground (development)
     mydata openapi   print the OpenAPI document (or write it with --out)
+    mydata agent create NAME   create a token for an MCP agent (shown once)
+    mydata agent list          list agent tokens
+    mydata agent revoke ID     revoke an agent token (by id or name)
 """
 
 from __future__ import annotations
@@ -26,7 +29,7 @@ from .service.security import TokenError, read_token
 
 def _get_status(settings: Settings, timeout: float = 2) -> dict | None:
     try:
-        token = read_token(settings.token_path)
+        token = read_token(settings.app_token_path("cli"))
     except TokenError:
         return None
     req = urllib.request.Request(settings.base_url + "/status", headers={"Authorization": f"Bearer {token}"})
@@ -120,6 +123,36 @@ def cmd_openapi(out: str | None) -> int:
     return 0
 
 
+def cmd_agent(settings: Settings, ns: argparse.Namespace) -> int:
+    from .service.auth import AgentStore
+    store = AgentStore(settings.home)
+    if ns.action == "create":
+        try:
+            agent, token = store.create(ns.name)
+        except ValueError as e:
+            print(f"mydata: {e}", file=sys.stderr)
+            return 2
+        print(f"Created agent {agent.name!r} (id {agent.id}). Its token, shown only now:\n\n  {token}\n\n"
+              f"Give it to the agent as `Authorization: Bearer <token>` for {settings.base_url}/mcp")
+        return 0
+    if ns.action == "list":
+        rows = store.list()
+        if not rows:
+            print("No agent tokens.")
+        for a in rows:
+            state = "revoked" if a["revoked"] else ("connected" if a["connected"] else "active")
+            print(f"{a['id']}  {a['name']:24}  {state:9}  created {a['created_at']}"
+                  + (f"  last seen {a['last_seen_at']}" if a["last_seen_at"] else ""))
+        return 0
+    try:
+        agent = store.revoke(ns.ref)
+    except KeyError as e:
+        print(f"mydata: {e.args[0]}", file=sys.stderr)
+        return 1
+    print(f"Revoked agent {agent.name!r} (id {agent.id}). It can no longer connect.")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="mydata", description="Control the myData host.")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -127,6 +160,11 @@ def main(argv: list[str] | None = None) -> int:
         sub.add_parser(name)
     o = sub.add_parser("openapi")
     o.add_argument("--out")
+    ag = sub.add_parser("agent", help="manage MCP agent tokens")
+    agsub = ag.add_subparsers(dest="action", required=True)
+    agsub.add_parser("create").add_argument("name")
+    agsub.add_parser("list")
+    agsub.add_parser("revoke").add_argument("ref", metavar="ID")
     ns = ap.parse_args(argv)
     if ns.cmd == "openapi":
         return cmd_openapi(ns.out)
@@ -138,6 +176,8 @@ def main(argv: list[str] | None = None) -> int:
     except ConfigError as e:
         print(f"mydata: {e}", file=sys.stderr)
         return 2
+    if ns.cmd == "agent":
+        return cmd_agent(settings, ns)
     return {"start": cmd_start, "stop": cmd_stop, "status": cmd_status}[ns.cmd](settings)
 
 

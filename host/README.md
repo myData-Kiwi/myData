@@ -11,12 +11,18 @@ uv run mydata run        # foreground, for development
 uv run pytest -q         # all tests; no model needed
 ```
 
-**What it serves.** Only `127.0.0.1`, port 47821 by default. Every request needs `Authorization: Bearer <token>`.
+**Tokens.** Every request needs `Authorization: Bearer <token>`.
+- **App tokens**, one per app (`app-tokens/mydata`, `myassistant`, `cli`), each readable only by you. They can use every route, including approving held calls. Each approval records which app decided.
+- **Agent tokens**, for MCP agents (`uv run mydata agent create|list|revoke`, or from the myData app). They reach `/mcp` only, and only their hash is stored (`agents.json`).
+
+**What it serves.** Only `127.0.0.1`, port 47821 by default.
 - `GET /status`: version, model state and download progress.
 - `POST /assistant/messages`: one message, with the reply streamed as server-sent events.
 - `GET /approvals`, `GET /approvals/{id}`, `POST /approvals/{id}`: approvals.
 - `GET /tools`: the tool registry.
 - `/mcp`: MCP over Streamable HTTP, on the same tool registry and the same gate.
+- `GET /agents`, `POST /agents`, `DELETE /agents/{id}`: agent tokens.
+- `POST /model/retry`: try again to get the model ready.
 
 `openapi.json` is generated from the app (`uv run mydata openapi --out openapi.json`). A test fails if it goes stale.
 
@@ -25,7 +31,7 @@ uv run pytest -q         # all tests; no model needed
 - Linux: `~/.local/share/mydata`
 - Windows: `%APPDATA%\myData`
 
-It holds `config.toml`, `token` (readable only by you), `mydatad.pid`, and `logs/`:
+It holds `config.toml`, `app-tokens/`, `agents.json`, `mydatad.pid`, and `logs/`:
 - `mydatad.log`: structured JSON lines.
 - `assistant.jsonl`: every assistant request.
 - `ollama.log`: Ollama's output, if the host started Ollama.

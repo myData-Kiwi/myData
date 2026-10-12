@@ -97,12 +97,16 @@ def _host_ok(host_header: str) -> bool:
 
 
 class GuardMiddleware:
-    """Pure ASGI middleware (does not buffer streamed responses) that refuses any request without the
-    right token or with a non-local Host header, before it reaches any route, including /mcp."""
+    """Pure ASGI middleware (does not buffer streamed responses) in front of every route, /mcp included.
 
-    def __init__(self, app, token: str):
+    - Host header must name this machine (421 otherwise).
+    - `Authorization: Bearer <token>` must be an app token or a live agent token (401 otherwise).
+    - Agent tokens reach /mcp only (403 anywhere else).
+    The caller is passed on as scope["state"]["principal"] (auth.Principal), for the routes to record."""
+
+    def __init__(self, app, authenticate):
         self.app = app
-        self._expected = f"Bearer {token}".encode()
+        self._authenticate = authenticate
 
     async def __call__(self, scope, receive, send):
         if scope["type"] == "websocket":  # the API has no WebSocket routes
@@ -112,8 +116,13 @@ class GuardMiddleware:
         headers = dict(scope.get("headers") or [])
         if not _host_ok(headers.get(b"host", b"").decode("latin-1")):
             return await _reject(send, 421, "requests must be addressed to this machine")
-        if not hmac.compare_digest(headers.get(b"authorization", b""), self._expected):
+        auth = headers.get(b"authorization", b"")
+        principal = self._authenticate(auth[7:]) if auth.startswith(b"Bearer ") and len(auth) > 7 else None
+        if principal is None:
             return await _reject(send, 401, "missing or wrong token", {"www-authenticate": "Bearer"})
+        if principal.kind == "agent" and scope.get("path") != "/mcp":
+            return await _reject(send, 403, "agent tokens can only use /mcp")
+        scope.setdefault("state", {})["principal"] = principal
         return await self.app(scope, receive, send)
 
 

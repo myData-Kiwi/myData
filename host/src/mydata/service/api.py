@@ -6,7 +6,12 @@
   GET  /approvals/{id}         one approval
   POST /approvals/{id}         approve or reject; approving runs exactly the held call, once
   GET  /tools                  the tool registry
+  GET  /agents                 agent tokens (never the tokens themselves), and which are connected
+  POST /agents                 create an agent token; the token is returned once
+  DELETE /agents/{id}          revoke an agent token
   /mcp                         MCP (Streamable HTTP) over the same registry and gate
+
+App tokens can use every route. Agent tokens can use only /mcp (security.GuardMiddleware).
 """
 
 from __future__ import annotations
@@ -18,7 +23,7 @@ import time
 from contextlib import asynccontextmanager
 from typing import Any, Literal
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from starlette.routing import Route
@@ -26,6 +31,7 @@ from starlette.routing import Route
 from .. import __version__
 from ..tools import ApprovalError, Registry
 from .assistant import Assistant
+from .auth import Authenticator
 from .mcp import build_mcp
 from .model import ModelManager
 from .security import GuardMiddleware
@@ -55,6 +61,7 @@ class StatusOut(BaseModel):
     ready: bool = Field(description="true when the assistant can answer")
     uptime_seconds: float
     model: ModelOut
+    agents_connected: int = Field(description="agent tokens used in the last five minutes")
 
 
 class MessageIn(BaseModel):
@@ -71,6 +78,7 @@ class ApprovalOut(BaseModel):
     created_at: str
     status: Literal["pending", "approved", "rejected", "failed"]
     decided_at: str | None = None
+    decided_by: str | None = Field(default=None, description="which app decided, e.g. app:myassistant")
     result: Any = None
     error: str | None = None
     context: dict[str, Any] = {}
@@ -78,6 +86,24 @@ class ApprovalOut(BaseModel):
 
 class DecisionIn(BaseModel):
     decision: Literal["approve", "reject"]
+
+
+class AgentOut(BaseModel):
+    id: str
+    name: str
+    created_at: str
+    revoked: bool
+    revoked_at: str | None = None
+    last_seen_at: str | None = None
+    connected: bool
+
+
+class AgentIn(BaseModel):
+    name: str = Field(min_length=1, max_length=64)
+
+
+class AgentCreated(AgentOut):
+    token: str = Field(description="shown once; give it to the agent as its bearer token for /mcp")
 
 
 class ToolOut(BaseModel):
@@ -96,7 +122,7 @@ SSE_DESCRIPTION = """Server-sent events, one JSON object per `data:` line, `even
 # ---------------------------------------------------------------- app
 
 
-def create_app(token: str, registry: Registry, models: ModelManager, assistant: Assistant):
+def create_app(auth: Authenticator, registry: Registry, models: ModelManager, assistant: Assistant):
     """The ASGI app: FastAPI routes plus /mcp, wrapped in the token and Host checks."""
     started = time.time()
     session_manager = build_mcp(registry)
@@ -114,7 +140,8 @@ def create_app(token: str, registry: Registry, models: ModelManager, assistant: 
     def status() -> StatusOut:
         m = models.status()
         return StatusOut(version=__version__, ready=m.state == "ready", uptime_seconds=round(time.time() - started, 1),
-                         model=ModelOut(**m.to_json()))
+                         model=ModelOut(**m.to_json()),
+                         agents_connected=sum(a["connected"] for a in auth.agents.list()))
 
     @app.post("/model/retry", response_model=StatusOut)
     def retry() -> StatusOut:
@@ -145,9 +172,9 @@ def create_app(token: str, registry: Registry, models: ModelManager, assistant: 
 
     @app.post("/approvals/{approval_id}", response_model=ApprovalOut,
               responses={404: {"description": "no such approval"}, 409: {"description": "already decided"}})
-    def decide(approval_id: str, body: DecisionIn) -> ApprovalOut:
+    def decide(approval_id: str, body: DecisionIn, request: Request) -> ApprovalOut:
         try:
-            a = registry.decide(approval_id, body.decision == "approve", decided_by="user")
+            a = registry.decide(approval_id, body.decision == "approve", decided_by=request.state.principal.label)
         except ApprovalError as e:
             code = 404 if "no such" in str(e) else 409
             raise HTTPException(code, str(e)) from None
@@ -158,9 +185,29 @@ def create_app(token: str, registry: Registry, models: ModelManager, assistant: 
     def tools() -> list[ToolOut]:
         return [ToolOut(**t) for t in registry.describe()]
 
+    @app.get("/agents", response_model=list[AgentOut])
+    def agents() -> list[AgentOut]:
+        return [AgentOut(**a) for a in auth.agents.list()]
+
+    @app.post("/agents", response_model=AgentCreated, status_code=201)
+    def create_agent(body: AgentIn) -> AgentCreated:
+        try:
+            agent, token = auth.agents.create(body.name)
+        except ValueError as e:
+            raise HTTPException(422, str(e)) from None
+        return AgentCreated(**agent.public(None), token=token)
+
+    @app.delete("/agents/{agent_id}", response_model=AgentOut, responses={404: {"description": "no such agent"}})
+    def revoke_agent(agent_id: str) -> AgentOut:
+        try:
+            agent = auth.agents.revoke(agent_id)
+        except KeyError as e:
+            raise HTTPException(404, str(e)) from None
+        return AgentOut(**agent.public(None))
+
     app.router.routes.append(Route("/mcp", endpoint=_mcp_endpoint(session_manager)))
     app.state.session_manager = session_manager
-    return GuardMiddleware(app, token)
+    return GuardMiddleware(app, auth)
 
 
 def _mcp_endpoint(session_manager):

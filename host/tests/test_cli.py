@@ -31,7 +31,7 @@ def test_start_status_stop(tmp_path):
         assert _mydata(tmp_path, "start").returncode == 0  # second start: already running, no second process
         assert int((tmp_path / "mydatad.pid").read_text()) == pid
 
-        token = (tmp_path / "token").read_text()
+        token = (tmp_path / "app-tokens" / "cli").read_text()
         for _ in range(50):
             req = urllib.request.Request(f"http://127.0.0.1:{port}/status", headers={"Authorization": f"Bearer {token}"})
             status = json.loads(urllib.request.urlopen(req, timeout=2).read())
