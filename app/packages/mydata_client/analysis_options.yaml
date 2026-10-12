@@ -1,0 +1,4 @@
+# Generated code: not linted.
+analyzer:
+  exclude:
+    - "**"

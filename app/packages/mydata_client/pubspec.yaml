@@ -1,0 +1,14 @@
+# Written by hand so the generated package can join the workspace; everything in lib/ is generated
+# from host/openapi.json by tool/generate_client.sh.
+name: mydata_client
+description: myData host API client (generated from host/openapi.json).
+version: 0.1.0
+publish_to: none
+resolution: workspace
+environment:
+  sdk: ^3.13.0
+dependencies:
+  collection: ^1.18.0
+  http: ^1.2.0
+  intl: ^0.20.0
+  meta: ^1.12.0

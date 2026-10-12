@@ -1,0 +1,12 @@
+# Dart workspace: the myData apps and the packages they share. One lock file, one `flutter pub get`.
+name: mydata_workspace
+publish_to: none
+environment:
+  sdk: ^3.13.0
+workspace:
+  - packages/mydata_client
+  - packages/mydata_core
+  - packages/mydata_ui
+  - packages/mydata_assistant
+  - apps/mydata
+  - apps/myassistant
