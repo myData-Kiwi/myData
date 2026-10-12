@@ -1,0 +1,35 @@
+<!-- @dsCard group="Navigation" height=230 -->
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700&family=Figtree:wght@400;600&family=JetBrains+Mono&display=swap">
+<style>
+body{margin:0;padding:24px;background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:22px}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.btn{height:44px;padding:0 22px;border-radius:var(--radius-control);font:600 15px/1 var(--font-body);border:0;cursor:pointer}
+.primary{background:var(--accent);color:var(--on-accent)}
+.tonal{background:var(--accent-soft);color:var(--accent)}
+.plain{background:transparent;color:var(--accent)}
+.danger{background:var(--danger);color:var(--on-danger)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.card{background:var(--surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-1)}
+.tile{width:36px;height:36px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;flex:none}
+.tile svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.t-accent{background:var(--accent-soft);color:var(--accent)}.t-ok{background:var(--success-soft);color:var(--success)}
+.t-warn{background:var(--warning-soft);color:var(--warning)}.t-info{background:var(--info-soft);color:var(--info)}
+.chipst{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:var(--radius-pill);font:600 13px/1 var(--font-body);white-space:nowrap}
+.cap{font-size:13px;line-height:18px;color:var(--ink-muted)}
+.stage{position:relative;height:180px;border-radius:var(--radius-lg);overflow:hidden;background:var(--surface-sunken);max-width:520px}
+.b{position:absolute;top:12px;height:156px;border-radius:var(--radius-sm)}
+.bar{position:absolute;left:16px;right:16px;bottom:16px;display:flex;gap:4px;padding:6px;border-radius:var(--radius-xl);background:var(--glass-fill);-webkit-backdrop-filter:blur(var(--blur-glass)) saturate(1.6);backdrop-filter:blur(var(--blur-glass)) saturate(1.6);border:1px solid var(--glass-stroke);box-shadow:var(--shadow-glass)}
+.tab{flex:1;height:44px;border:0;border-radius:var(--radius-pill);background:transparent;color:var(--ink);font:400 14px var(--font-body);cursor:pointer}
+.tab[aria-current="page"]{background:var(--accent-soft);color:var(--accent);font-weight:600}
+</style></head><body>
+<div class="stage">
+<div class="b" aria-hidden="true" style="left:12px;width:30%;background:var(--accent)"></div>
+<div class="b" aria-hidden="true" style="left:calc(30% + 20px);width:22%;background:var(--skin)"></div>
+<div class="b" aria-hidden="true" style="left:calc(52% + 28px);width:20%;background:var(--success)"></div>
+<div class="b" aria-hidden="true" style="right:12px;width:18%;background:var(--warning)"></div>
+<nav class="bar" aria-label="myPhotos"><button class="tab" type="button" aria-current="page">Library</button><button class="tab" type="button">Albums</button><button class="tab" type="button">People</button><button class="tab" type="button">Places</button></nav>
+</div>
+</body></html>

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-label="myData kiwi logo">
+<rect width="1024" height="1024" fill="#E3EFBF"/>
+<g transform="translate(-20 -28) scale(4)">
+<path d="M50 136 C46 96 82 72 122 76 C160 80 180 110 172 142 C164 174 122 190 88 182 C66 176 52 160 50 136 Z" fill="#A9CC4E"/>
+<g fill="none" stroke="#2A2018" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round">
+<path d="M60 128 C58 94 88 76 120 78 C140 80 150 85 158 78 C162 62 184 57 192 73"/>
+<path d="M191 78 C205 95 214 118 219 147 C205 127 194 112 180 98"/>
+<path d="M180 98 C179 131 160 164 124 172 C92 178 62 160 60 128"/>
+<path d="M104 174 C103 186 105 196 104 206 C110 205 116 207 121 206"/>
+<path d="M132 171 C133 184 131 196 133 206 C139 204 145 207 150 205"/>
+</g>
+<g fill="none" stroke="#2A2018" stroke-width="3.5" stroke-linecap="round">
+<path d="M90 116 C94 122 94 129 92 135"/>
+<path d="M110 110 C114 118 114 126 112 133"/>
+<path d="M131 115 C134 122 134 128 132 135"/>
+<path d="M70 214 C100 211 140 216 176 212"/>
+</g>
+<circle cx="179" cy="76" r="3.2" fill="#2A2018"/>
+</g>
+</svg>

@@ -1,0 +1,81 @@
+<!-- @dsCard group="Theming" height=620 -->
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700&family=Figtree:wght@400;600&display=swap">
+<style>
+.m-light{--bg:#F6F6F5;--surface:#FFFFFF;--surface-raised:#FFFFFF;--surface-sunken:#EDEDEB;--line:#E3E3E0;--line-strong:#83837E;--ink:#1A1A19;--ink-muted:#5C5C58;--kiwi-wash:#E0E0DD;--paper:#FFFFFF;--glass-fill:rgba(255, 255, 255, 0.72);--scrim:rgba(20, 20, 20, 0.35);--success:#256B29;--success-soft:#DDF2DF;--focus:#B3261E;--sh:0 4px 20px rgba(20,20,20,.07)}
+.m-dark{--bg:#111111;--surface:#1A1A1A;--surface-raised:#232323;--surface-sunken:#0B0B0B;--line:#2E2E2E;--line-strong:#7C7C7C;--ink:#EDEDEB;--ink-muted:#A8A8A4;--kiwi-wash:#333333;--paper:#EDEDEB;--glass-fill:rgba(26, 26, 26, 0.72);--scrim:rgba(0, 0, 0, 0.6);--success:#7BC67E;--success-soft:#1C3A1F;--focus:#F2867E;--sh:0 4px 20px rgba(0,0,0,.35)}
+.t-kiwi.m-light{--accent:#4C7814;--on-accent:#FFFFFF;--accent-soft:#EBF3DA}
+.t-kiwi.m-dark{--accent:#A9CC4E;--on-accent:#1A2408;--accent-soft:#28331A}
+.t-graphite.m-light{--accent:#232323;--on-accent:#FFFFFF;--accent-soft:#E7E7E4}
+.t-graphite.m-dark{--accent:#E6E6E4;--on-accent:#161616;--accent-soft:#2C2C2C}
+.t-dusk.m-light{--accent:#3D5AA9;--on-accent:#FFFFFF;--accent-soft:#E5EAF8}
+.t-dusk.m-dark{--accent:#9DB4F2;--on-accent:#0E1A3A;--accent-soft:#232C47}
+.t-plum.m-light{--accent:#7A3E8E;--on-accent:#FFFFFF;--accent-soft:#F1E4F5}
+.t-plum.m-dark{--accent:#D2A6E0;--on-accent:#2A0F33;--accent-soft:#3B2145}
+.t-rose.m-light{--accent:#A63A5B;--on-accent:#FFFFFF;--accent-soft:#F8E3E9}
+.t-rose.m-dark{--accent:#EFA3B8;--on-accent:#33101C;--accent-soft:#40222B}
+.t-amber.m-light{--accent:#8A5100;--on-accent:#FFFFFF;--accent-soft:#FBEBCF}
+.t-amber.m-dark{--accent:#F0B45A;--on-accent:#2E1B00;--accent-soft:#3D2C0C}
+*{box-sizing:border-box}
+body{margin:0;padding:24px;background:var(--bg);color:var(--ink);font-family:var(--font-body,Figtree,system-ui,sans-serif);font-size:15px;line-height:22px}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.grp{display:flex;flex-wrap:wrap;gap:10px}
+.swt{display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 18px 0 11px;border-radius:999px;border:0;background:var(--surface);box-shadow:var(--shadow-1);color:var(--ink);font:600 15px/1 var(--font-body,Figtree,system-ui,sans-serif);cursor:pointer}
+.swt[aria-checked=true]{box-shadow:0 0 0 2px var(--ink)}
+.disc{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;flex:none}
+.disc svg{width:12px;height:12px;visibility:hidden}
+.swt[aria-checked=true] .disc svg{visibility:visible}
+.note{font-size:13px;line-height:18px;color:var(--ink-muted);margin:10px 0 20px}
+.pair{display:flex;flex-wrap:wrap;gap:16px}
+.scr{flex:1 1 340px;min-width:0}
+.lbl{font:600 13px/18px var(--font-body,Figtree,system-ui,sans-serif);margin-bottom:6px}
+.win{display:flex;background:var(--bg);color:var(--ink);border-radius:20px;overflow:hidden;min-height:410px;box-shadow:0 0 0 1px var(--line)}
+.side{width:136px;flex:none;padding:16px 8px;display:flex;flex-direction:column;gap:2px}
+.app{font:700 17px/22px "Plus Jakarta Sans",var(--font-display,system-ui),sans-serif;letter-spacing:-0.01em;padding:0 10px 10px}
+.nav{padding:8px 12px;border-radius:999px;font-size:14px;line-height:20px;color:var(--ink-muted)}
+.nav.sel{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.host{margin-top:auto;padding:8px 10px;font-size:12px;line-height:16px;color:var(--ink-muted)}
+.host i{display:inline-block;width:7px;height:7px;border-radius:50%;background:#4C7814;margin-right:6px}
+.m-dark .host i{background:#A9CC4E}
+.main{flex:1;min-width:0;padding:16px 16px 16px 8px;display:flex;flex-direction:column;gap:14px}
+.h{font:700 24px/30px "Plus Jakarta Sans",var(--font-display,system-ui),sans-serif;letter-spacing:-0.02em}
+.seg{display:inline-flex;align-self:flex-start;background:var(--surface-sunken);border-radius:999px;padding:3px;max-width:100%}
+.seg span{padding:5px 12px;border-radius:999px;font-size:13px;line-height:18px;color:var(--ink-muted);white-space:nowrap}
+.seg .on{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:var(--sh)}
+.card{display:flex;gap:12px;background:var(--surface);border-radius:20px;padding:16px;box-shadow:var(--sh)}
+.tile{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex:none;background:var(--accent-soft);color:var(--accent)}
+.tile svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.ct{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.ct span,.set span span{font-size:13px;line-height:18px;color:var(--ink-muted)}
+.ct a{color:var(--accent);font-weight:600;text-decoration:underline}
+.bar{height:8px;border-radius:999px;background:var(--surface-sunken);margin-top:8px;overflow:hidden}.bar i{display:block;width:62%;height:100%;border-radius:999px;background:var(--accent)}
+.set{justify-content:space-between;align-items:center}.set>span:first-child{display:flex;flex-direction:column}
+.tg{width:48px;height:28px;border-radius:999px;background:var(--accent);position:relative;flex:none}.tg::after{content:"";position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;background:var(--on-accent)}
+.acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:auto}
+.b{height:40px;padding:0 20px;border-radius:999px;font:600 14px/1 var(--font-body,Figtree,system-ui,sans-serif);border:0;cursor:pointer;white-space:nowrap}
+.p{background:var(--accent);color:var(--on-accent)}.s{background:var(--accent-soft);color:var(--accent)}
+@media(max-width:420px){.side{display:none}.main{padding-left:16px}}
+</style></head><body>
+<div class="grp" role="radiogroup" aria-label="Theme"><button role="radio" aria-checked="true" data-t="kiwi" class="swt" type="button"><span class="disc" style="background:#4C7814"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 6.400l2.300 2.300 4.700-5.200" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Kiwi</button><button role="radio" aria-checked="false" data-t="graphite" class="swt" type="button"><span class="disc" style="background:#232323"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 6.400l2.300 2.300 4.700-5.200" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Graphite</button><button role="radio" aria-checked="false" data-t="dusk" class="swt" type="button"><span class="disc" style="background:#3D5AA9"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 6.400l2.300 2.300 4.700-5.200" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Dusk</button><button role="radio" aria-checked="false" data-t="plum" class="swt" type="button"><span class="disc" style="background:#7A3E8E"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 6.400l2.300 2.300 4.700-5.200" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Plum</button><button role="radio" aria-checked="false" data-t="rose" class="swt" type="button"><span class="disc" style="background:#A63A5B"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 6.400l2.300 2.300 4.700-5.200" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Rose</button><button role="radio" aria-checked="false" data-t="amber" class="swt" type="button"><span class="disc" style="background:#8A5100"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 6.400l2.300 2.300 4.700-5.200" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Amber</button></div>
+<div class="note" id="note"></div>
+<div class="pair"><div class="scr m-light t-kiwi" data-m="light"><div class="lbl">Light</div><div class="win">
+<div class="side"><div class="app">myPhotos</div><div class="nav sel">Library</div><div class="nav">Albums</div><div class="nav">People</div><div class="nav">Places</div><div class="host"><i></i>Connected to your host</div></div>
+<div class="main"><div class="h">Library</div><div class="seg"><span class="on">All</span><span>Favourites</span><span>Videos</span></div>
+<div class="card"><span class="tile"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"></rect><circle cx="9" cy="10" r="1.6"></circle><path d="M4 17l5-4 4 3 3-2 4 3"></path></svg></span><div class="ct"><b>Backing up 248 photos</b><span>To the drive on this Mac. <a href="#" onclick="return false">See details</a></span><div class="bar"><i></i></div></div></div>
+<div class="card set"><span><b>Group photos by face</b><span>Runs on your host.</span></span><span class="tg"></span></div>
+<div class="acts"><button class="b p" type="button">Add photos</button><button class="b s" type="button">New album</button></div></div></div></div><div class="scr m-dark t-kiwi" data-m="dark"><div class="lbl">Dark</div><div class="win">
+<div class="side"><div class="app">myPhotos</div><div class="nav sel">Library</div><div class="nav">Albums</div><div class="nav">People</div><div class="nav">Places</div><div class="host"><i></i>Connected to your host</div></div>
+<div class="main"><div class="h">Library</div><div class="seg"><span class="on">All</span><span>Favourites</span><span>Videos</span></div>
+<div class="card"><span class="tile"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"></rect><circle cx="9" cy="10" r="1.6"></circle><path d="M4 17l5-4 4 3 3-2 4 3"></path></svg></span><div class="ct"><b>Backing up 248 photos</b><span>To the drive on this Mac. <a href="#" onclick="return false">See details</a></span><div class="bar"><i></i></div></div></div>
+<div class="card set"><span><b>Group photos by face</b><span>Runs on your host.</span></span><span class="tg"></span></div>
+<div class="acts"><button class="b p" type="button">Add photos</button><button class="b s" type="button">New album</button></div></div></div></div></div>
+<script>
+var names={"kiwi": "The brand greens. The default.", "graphite": "The neutral theme: greys only, no colour.", "dusk": "A calm blue.", "plum": "Purple.", "rose": "A deep pink.", "amber": "A warm orange-brown."};
+var b=[].slice.call(document.querySelectorAll('.swt'));
+function pick(x){b.forEach(function(y){var on=y===x;y.setAttribute('aria-checked',on);y.tabIndex=on?0:-1});
+document.querySelectorAll('.scr').forEach(function(s){s.className='scr m-'+s.dataset.m+' t-'+x.dataset.t});
+document.getElementById('note').textContent=names[x.dataset.t]+' Choosing a theme applies it to every myData app.'}
+b.forEach(function(x,i){x.onclick=function(){pick(x)};x.onkeydown=function(e){var d=e.key=='ArrowRight'||e.key=='ArrowDown'?1:e.key=='ArrowLeft'||e.key=='ArrowUp'?-1:0;if(d){e.preventDefault();var n=b[(i+d+b.length)%b.length];n.focus();pick(n)}}});
+pick(b[0]);
+</script>
+</body></html>

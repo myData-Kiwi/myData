@@ -1,0 +1,36 @@
+<!-- @dsCard group="Inputs" height=170 -->
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700&family=Figtree:wght@400;600&family=JetBrains+Mono&display=swap">
+<style>
+body{margin:0;padding:24px;background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:22px}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.btn{height:44px;padding:0 22px;border-radius:var(--radius-control);font:600 15px/1 var(--font-body);border:0;cursor:pointer}
+.primary{background:var(--accent);color:var(--on-accent)}
+.tonal{background:var(--accent-soft);color:var(--accent)}
+.plain{background:transparent;color:var(--accent)}
+.danger{background:var(--danger);color:var(--on-danger)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.card{background:var(--surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-1)}
+.tile{width:36px;height:36px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;flex:none}
+.tile svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.t-accent{background:var(--accent-soft);color:var(--accent)}.t-ok{background:var(--success-soft);color:var(--success)}
+.t-warn{background:var(--warning-soft);color:var(--warning)}.t-info{background:var(--info-soft);color:var(--info)}
+.chipst{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:var(--radius-pill);font:600 13px/1 var(--font-body);white-space:nowrap}
+.cap{font-size:13px;line-height:18px;color:var(--ink-muted)}
+.g{max-width:560px}
+.sw{display:flex;gap:14px;align-items:center;padding:14px 18px;border-top:1px solid var(--line)}
+.sw:first-child{border-top:0}
+.sw span.txt{flex:1}
+.sw input{appearance:none;-webkit-appearance:none;width:50px;height:30px;border-radius:999px;background:var(--surface-sunken);border:1px solid var(--line-strong);position:relative;cursor:pointer;flex:none;margin:0}
+.sw input::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:var(--line-strong);transition:transform .12s}
+.sw input:checked{background:var(--accent);border-color:var(--accent)}
+.sw input:checked::after{transform:translateX(20px);background:var(--on-accent)}
+.t{font-weight:600;display:block}
+</style></head><body>
+<div class="card g">
+<label class="sw"><span class="txt"><span class="t">Assistant</span><span class="cap">Ask questions and take actions in plain language. Downloads a language model.</span></span><input id="s-sw-a" type="checkbox"></label>
+<label class="sw"><span class="txt"><span class="t">Group photos by face</span><span class="cap">Finds the same person across your photos. You name the groups.</span></span><input id="s-sw-f" type="checkbox" checked></label>
+</div>
+</body></html>
