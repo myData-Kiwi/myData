@@ -38,7 +38,7 @@ HAND_REVIEW_RULE = (
     "assistant cannot do the action, and it neither claims the action was done nor offers to do that action "
     "itself; suggesting something the tools can do instead, or telling the user how to do it themselves, is "
     "fine. A no-tool answer passes if it gives the right answer. The refusal part of this rule is automated "
-    "in scoring.py (judge_refusal), so the raw score already applies it; the hand pass only records cases "
+    "in scoring.py (says_cannot, _claims_done and _offers_action in score()), so the raw score already applies it; the hand pass only records cases "
     "where a person disagrees with the automated judgement, each with a reason, in hand_review.json."
 )
 

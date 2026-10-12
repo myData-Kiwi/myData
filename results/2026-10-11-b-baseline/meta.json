@@ -1,0 +1,249 @@
+{
+  "stamp": "2026-10-11-b-baseline",
+  "set": "2026-10-11-b",
+  "label": "baseline",
+  "today": "2026-03-18",
+  "cases_sha": "a654c13a124da746",
+  "tools_sha": "921c25b9aeb506c9",
+  "tools_code_sha": "92386ae0965b2214",
+  "prompt_sha": "f1e38b7a73805ead",
+  "dates_sha": "5ab197fda1944fe0",
+  "scoring_sha": "493feeea10028606",
+  "engine_sha": "cb5ee12820460152",
+  "client_sha": "e2ab4c5267dbc948",
+  "reps": 3,
+  "models": {
+    "qwen3:14b": {
+      "think": false,
+      "options": {
+        "num_ctx": 8192
+      },
+      "digest": "bdbd181c33f2ed1b31c972991882db3cf4d192569092138a7d29e973cd9debe8",
+      "modified_at": "2026-10-11T19:08:06.988466172-04:00",
+      "parameters": "repeat_penalty                 1\nstop                           \"<|im_start|>\"\nstop                           \"<|im_end|>\"\ntemperature                    0.6\ntop_k                          20\ntop_p                          0.95",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "qwen3",
+        "families": [
+          "qwen3"
+        ],
+        "parameter_size": "14.8B",
+        "quantization_level": "Q4_K_M"
+      }
+    }
+  },
+  "ollama_version": "0.40.1",
+  "sampling": "model defaults, no seed (variance across reps is part of the measurement)",
+  "system_prompt": "You are myAssistant, a personal assistant that runs on the user's own computer. You can search and send the user's mail, look up contacts, read and add calendar events, and search photos, using the tools provided.\n\nRules:\n- Pass dates and times exactly as the user said them, for example \"next friday\", \"last December\", \"tomorrow at 3pm\". Never work out calendar dates yourself.\n- Only fill in tool arguments the user's request gives you. Leave the rest out.\n- Email addresses come from find_contact. Never guess one.\n- If the request needs no tool, answer directly.\n- If none of the tools can do what the user asks, say so plainly and do not call any tool.\n",
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "search_mail",
+        "description": "Search the user's email. Returns matching messages with sender, date, subject and body.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Words to look for in the subject or body."
+            },
+            "sender": {
+              "type": "string",
+              "description": "Name or address of the sender, as the user said it."
+            },
+            "date": {
+              "type": "string",
+              "description": "The date exactly as the user said it, for example 'next friday', 'last December', 'tomorrow', 'March 30', 'the last two weeks'. Do not convert it to a calendar date."
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "send_mail",
+        "description": "Send an email. The user must approve before it is sent.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "to": {
+              "type": "string",
+              "description": "Recipient email address, taken from a find_contact result. Never guess an address."
+            },
+            "subject": {
+              "type": "string",
+              "description": "Subject line."
+            },
+            "body": {
+              "type": "string",
+              "description": "Message text."
+            }
+          },
+          "required": [
+            "to",
+            "subject",
+            "body"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "search_photos",
+        "description": "Search the user's photo library by what is in the picture, who is in it, where and when it was taken.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "What the photo shows, for example 'beach at sunset'."
+            },
+            "person": {
+              "type": "string",
+              "description": "Name of a person who appears in the photo."
+            },
+            "place": {
+              "type": "string",
+              "description": "A named location such as a city, region or country."
+            },
+            "date": {
+              "type": "string",
+              "description": "The date exactly as the user said it, for example 'next friday', 'last December', 'tomorrow', 'March 30', 'the last two weeks'. Do not convert it to a calendar date."
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "find_contact",
+        "description": "Look up a person in the user's contacts by name. Returns name, email and phone.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "The name as the user said it."
+            }
+          },
+          "required": [
+            "name"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "list_events",
+        "description": "List calendar events. With no date, lists upcoming events.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "date": {
+              "type": "string",
+              "description": "The date exactly as the user said it, for example 'next friday', 'last December', 'tomorrow', 'March 30', 'the last two weeks'. Do not convert it to a calendar date."
+            },
+            "query": {
+              "type": "string",
+              "description": "Words to look for in the event title or location."
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "create_event",
+        "description": "Add an event to the user's calendar.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string",
+              "description": "Short title for the event."
+            },
+            "date": {
+              "type": "string",
+              "description": "The date exactly as the user said it, for example 'next friday', 'last December', 'tomorrow', 'March 30', 'the last two weeks'. Do not convert it to a calendar date."
+            },
+            "time": {
+              "type": "string",
+              "description": "Start time as the user said it, for example '3pm' or '09:40'."
+            },
+            "location": {
+              "type": "string",
+              "description": "Where the event takes place."
+            },
+            "duration_minutes": {
+              "type": "integer",
+              "description": "Length of the event in minutes."
+            }
+          },
+          "required": [
+            "title",
+            "date"
+          ],
+          "additionalProperties": false
+        }
+      }
+    }
+  ],
+  "host": "macOS-26.7.1-arm64-arm-64bit-Mach-O",
+  "cases": [
+    "BS01",
+    "BS02",
+    "BS03",
+    "BS04",
+    "BS05",
+    "BS06",
+    "BS07",
+    "BS08",
+    "BS09",
+    "BS10",
+    "BA01",
+    "BA02",
+    "BA03",
+    "BA04",
+    "BA05",
+    "BC01",
+    "BC02",
+    "BC03",
+    "BC04",
+    "BC05",
+    "BC06",
+    "BC07",
+    "BC08",
+    "BC09",
+    "BC10",
+    "BC11",
+    "BC15",
+    "BC12",
+    "BC13",
+    "BC14",
+    "BM01",
+    "BM02",
+    "BM03",
+    "BM04",
+    "BN01",
+    "BN02",
+    "BN03",
+    "BU01",
+    "BU02",
+    "BU03"
+  ]
+}
