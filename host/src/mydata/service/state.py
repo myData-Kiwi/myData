@@ -37,6 +37,11 @@ class HostState:
         theme = self._read().get("theme", DEFAULT_THEME)
         return theme if theme in THEME_IDS else DEFAULT_THEME
 
+    @property
+    def theme_chosen(self) -> bool:
+        """Whether someone has chosen a theme yet. First run offers the choice until they have."""
+        return "theme" in self._read()
+
     def set_theme(self, theme: str) -> None:
         if theme not in THEME_IDS:
             raise ValueError(f"unknown theme {theme!r}; valid themes: {', '.join(THEME_IDS)}")

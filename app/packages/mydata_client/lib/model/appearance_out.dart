@@ -13,9 +13,13 @@ part of openapi.api;
 class AppearanceOut {
   /// Returns a new [AppearanceOut] instance.
   AppearanceOut({
+    required this.chosen,
     required this.theme,
     this.themes = const [],
   });
+
+  /// false until someone has chosen a theme; first run offers the choice
+  bool chosen;
 
   /// the theme every app uses; mode is per device and not stored here
   String theme;
@@ -27,19 +31,22 @@ class AppearanceOut {
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is AppearanceOut &&
+          other.chosen == chosen &&
           other.theme == theme &&
           _deepEquality.equals(other.themes, themes);
 
   @override
   int get hashCode =>
       // ignore: unnecessary_parenthesis
-      (theme.hashCode) + (themes.hashCode);
+      (chosen.hashCode) + (theme.hashCode) + (themes.hashCode);
 
   @override
-  String toString() => 'AppearanceOut[theme=$theme, themes=$themes]';
+  String toString() =>
+      'AppearanceOut[chosen=$chosen, theme=$theme, themes=$themes]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
+    json[r'chosen'] = this.chosen;
     json[r'theme'] = this.theme;
     json[r'themes'] = this.themes;
     return json;
@@ -56,6 +63,10 @@ class AppearanceOut {
       // Note 1: the values aren't checked for validity beyond being non-null.
       // Note 2: this code is stripped in release mode!
       assert(() {
+        assert(json.containsKey(r'chosen'),
+            'Required key "AppearanceOut[chosen]" is missing from JSON.');
+        assert(json[r'chosen'] != null,
+            'Required key "AppearanceOut[chosen]" has a null value in JSON.');
         assert(json.containsKey(r'theme'),
             'Required key "AppearanceOut[theme]" is missing from JSON.');
         assert(json[r'theme'] != null,
@@ -68,6 +79,7 @@ class AppearanceOut {
       }());
 
       return AppearanceOut(
+        chosen: mapValueOfType<bool>(json, r'chosen')!,
         theme: mapValueOfType<String>(json, r'theme')!,
         themes: ThemeOut.listFromJson(json[r'themes']),
       );
@@ -126,6 +138,7 @@ class AppearanceOut {
 
   /// The list of required keys that must be present in a JSON.
   static const requiredKeys = <String>{
+    'chosen',
     'theme',
     'themes',
   };

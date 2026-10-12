@@ -93,3 +93,15 @@ def test_agent_tokens_cannot_read_or_set_the_theme(tmp_path):
 def test_hand_edited_unknown_theme_reads_as_default(tmp_path):
     (tmp_path / "state.json").write_text(json.dumps({"theme": "neon", "assistant_enabled": False}))
     assert HostState(tmp_path).theme == "kiwi"
+
+
+def test_first_run_until_a_theme_is_chosen(tmp_path):
+    c, _ = _app(tmp_path)
+    assert c.get("/appearance", headers=_h(TOKEN)).json()["chosen"] is False
+    # choosing Kiwi, the default, still counts as a choice: first run is over
+    assert c.put("/appearance", json={"theme": "kiwi"}, headers=_h(TOKEN)).json()["chosen"] is True
+    assert HostState(tmp_path).theme_chosen
+    # the assistant switch alone does not end first run
+    other = tmp_path / "other"
+    HostState(other).set_assistant_enabled(False)
+    assert not HostState(other).theme_chosen

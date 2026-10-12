@@ -148,6 +148,11 @@
       },
       "AppearanceOut": {
         "properties": {
+          "chosen": {
+            "description": "false until someone has chosen a theme; first run offers the choice",
+            "title": "Chosen",
+            "type": "boolean"
+          },
           "theme": {
             "description": "the theme every app uses; mode is per device and not stored here",
             "title": "Theme",
@@ -164,7 +169,8 @@
         },
         "required": [
           "theme",
-          "themes"
+          "themes",
+          "chosen"
         ],
         "title": "AppearanceOut",
         "type": "object"

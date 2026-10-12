@@ -124,6 +124,7 @@ class ThemeOut(BaseModel):
 class AppearanceOut(BaseModel):
     theme: str = Field(description="the theme every app uses; mode is per device and not stored here")
     themes: list[ThemeOut] = Field(description="every theme, in the order to show them")
+    chosen: bool = Field(description="false until someone has chosen a theme; first run offers the choice")
 
 
 class AppearanceIn(BaseModel):
@@ -177,7 +178,7 @@ def create_app(auth: Authenticator, registry: Registry, models: ModelManager, as
     started = time.time()
     session_manager = build_mcp(registry)
     # Without a state file (the OpenAPI document), the theme lives in memory only.
-    no_state = {"theme": DEFAULT_THEME}
+    no_state = {"theme": DEFAULT_THEME, "chosen": False}
 
     def current_theme() -> str:
         return state.theme if state is not None else no_state["theme"]
@@ -234,7 +235,9 @@ def create_app(auth: Authenticator, registry: Registry, models: ModelManager, as
         return status()
 
     def appearance_out() -> AppearanceOut:
-        return AppearanceOut(theme=current_theme(), themes=[ThemeOut(id=i, name=n) for i, n in THEMES])
+        chosen = state.theme_chosen if state is not None else no_state["chosen"]
+        return AppearanceOut(theme=current_theme(), themes=[ThemeOut(id=i, name=n) for i, n in THEMES],
+                             chosen=chosen)
 
     @app.get("/appearance", tags=["appearance"], response_model=AppearanceOut)
     def appearance() -> AppearanceOut:
@@ -251,6 +254,7 @@ def create_app(auth: Authenticator, registry: Registry, models: ModelManager, as
             state.set_theme(body.theme)
         else:
             no_state["theme"] = body.theme
+            no_state["chosen"] = True
         return appearance_out()
 
     @app.post("/shutdown", tags=["host"], status_code=202, responses={403: {"description": "only the myData app can stop the host"}})
