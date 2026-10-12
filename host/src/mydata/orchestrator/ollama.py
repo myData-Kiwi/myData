@@ -6,7 +6,7 @@ import json
 import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
-from typing import Any, Protocol
+from typing import Any, Callable, Protocol
 
 DEFAULT_HOST = "http://127.0.0.1:11434"
 
@@ -47,17 +47,20 @@ class OllamaChat:
         except urllib.error.URLError as e:
             raise OllamaError(f"cannot reach Ollama at {self.host}: {e.reason}") from None
 
-    def chat(self, messages: list[dict], tools: list[dict]) -> dict:
+    # The engine may pass on_delta to receive reply text as it is generated.
+    streams = True
+
+    def chat(self, messages: list[dict], tools: list[dict], on_delta: Callable[[str], None] | None = None) -> dict:
         payload = {
             "model": self.name,
             "messages": messages,
             "tools": tools,
-            "stream": False,
+            "stream": on_delta is not None,
             "think": self.think,
             "options": self.options,
             "keep_alive": self.keep_alive,
         }
-        body = self._post("/api/chat", payload)
+        body = self._post("/api/chat", payload) if on_delta is None else self._stream("/api/chat", payload, on_delta)
         msg = body.get("message") or {}
         return {
             "role": "assistant",
@@ -66,6 +69,33 @@ class OllamaChat:
             "tool_calls": msg.get("tool_calls") or [],
             "stats": {k: body.get(k) for k in ("total_duration", "load_duration", "prompt_eval_count", "eval_count")},
         }
+
+    def _stream(self, path: str, payload: dict, on_delta: Callable[[str], None]) -> dict:
+        """Read Ollama's streamed reply (one JSON object per line) and assemble it like a non-streamed one."""
+        req = urllib.request.Request(self.host + path, data=json.dumps(payload).encode(),
+                                     headers={"Content-Type": "application/json"})
+        content, thinking, calls, last = [], [], [], {}
+        try:
+            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+                for line in resp:
+                    if not line.strip():
+                        continue
+                    chunk = json.loads(line)
+                    if chunk.get("error"):
+                        raise OllamaError(str(chunk["error"]))
+                    m = chunk.get("message") or {}
+                    if m.get("content"):
+                        content.append(m["content"])
+                        on_delta(m["content"])
+                    if m.get("thinking"):
+                        thinking.append(m["thinking"])
+                    calls.extend(m.get("tool_calls") or [])
+                    last = chunk
+        except urllib.error.HTTPError as e:
+            raise OllamaError(f"{e.code}: {e.read().decode(errors='replace')}") from None
+        except urllib.error.URLError as e:
+            raise OllamaError(f"cannot reach Ollama at {self.host}: {e.reason}") from None
+        return {**last, "message": {"content": "".join(content), "thinking": "".join(thinking), "tool_calls": calls}}
 
     def load(self) -> None:
         """Load the model into memory so the first timed request does not pay for it."""

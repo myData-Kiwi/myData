@@ -3,7 +3,7 @@
 import pytest
 
 from mydata.orchestrator.routing import ALL_TOOLS, select_tools
-from mydata.orchestrator.tools import TOOLS
+from mydata.tools import TOOLS
 
 MAIL, SEND, PHOTOS, CONTACT, EVENTS, CREATE = (
     "search_mail", "send_mail", "search_photos", "find_contact", "list_events", "create_event",

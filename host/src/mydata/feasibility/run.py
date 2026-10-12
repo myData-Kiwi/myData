@@ -19,14 +19,14 @@ from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 
-from ..orchestrator import dates as dates_module
+from ..tools import dates as dates_module
 from ..orchestrator import engine as engine_module
 from ..orchestrator import fixtures
 from ..orchestrator import ollama as ollama_module
-from ..orchestrator import tools as tools_module
+from ..tools import builtin as tools_module
 from ..orchestrator.engine import SYSTEM_PROMPT, Engine
 from ..orchestrator.ollama import OllamaChat
-from ..orchestrator.tools import TOOLS
+from ..tools import TOOLS
 from . import scoring as scoring_module
 from .scoring import outcome_score, score
 from .sets import DEFAULT_SET, CaseSet, load_set, use_data

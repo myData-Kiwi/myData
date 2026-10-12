@@ -4,10 +4,21 @@ version = "0.0.1"
 description = "myData host: self-hosted personal cloud with a local assistant"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "fastapi>=0.143.0",
+    "mcp>=2.3.0",
+    "uvicorn[standard]>=0.54.0",
+]
+
+[project.scripts]
+mydata = "mydata.cli:main"
+mydatad = "mydata.service.daemon:main"
 
 [dependency-groups]
-dev = ["pytest>=8"]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=8",
+]
 
 [build-system]
 requires = ["hatchling"]

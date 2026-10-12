@@ -35,7 +35,7 @@ from __future__ import annotations
 
 import re
 
-from .tools import TOOLS
+from ..tools import TOOLS
 
 ALL_TOOLS: list[str] = list(TOOLS)
 

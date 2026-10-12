@@ -8,7 +8,7 @@ import pytest
 
 from mydata.feasibility.cases import CASES
 from mydata.feasibility.scoring import score
-from mydata.orchestrator.dates import DateParseError, parse_time, resolve
+from mydata.tools.dates import DateParseError, parse_time, resolve
 from mydata.orchestrator.engine import Engine
 from mydata.orchestrator.fixtures import TODAY
 

@@ -238,11 +238,13 @@ def resolve(phrase: str, today: date, bias: Bias = "future") -> Resolved:
     """Resolve a natural date phrase. Raises DateParseError if it cannot."""
     if not isinstance(phrase, str) or not phrase.strip():
         raise DateParseError("empty date")
+    if len(phrase) > 200:
+        raise DateParseError("the date phrase is too long")
     try:
         return _resolve(phrase, today, bias)
     except DateParseError:
         raise
-    except (ValueError, OverflowError):
+    except (ValueError, OverflowError, RecursionError):
         raise DateParseError(f"'{phrase}' is out of range") from None
 
 
@@ -372,6 +374,8 @@ def _resolve_core(s: str, today: date, bias: Bias, phrase: str) -> tuple[date, d
     m = re.fullmatch(rf"({_WD})\s+(?:the\s+)?(.+)", s)
     if m:
         # "saturday the 4th of april", "friday march 27": resolve the rest, check the weekday.
+        if re.match(rf"(?:{_WD})\b", m.group(2)):
+            raise DateParseError(f"could not understand the date '{phrase}'")
         start, end = _resolve_core(m.group(2), today, bias, phrase)
         if start != end:
             raise DateParseError(f"could not understand the date '{phrase}'")

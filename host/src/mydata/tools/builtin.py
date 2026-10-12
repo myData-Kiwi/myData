@@ -1,53 +1,24 @@
-"""Tool registry: definitions shown to the model, permission class, and handlers.
+"""The six built-in tools: definitions, permissions and handlers.
 
-The handlers here are fakes over canned data (see fixtures.py). They exist so
-chained requests have something real-looking to chain on. The engine records
-every call's arguments regardless of what the handler does.
+The handlers are fakes over canned data (orchestrator/fixtures.py), kept so the assistant and the
+feasibility harness have something real-looking to chain on. Real mail, contacts, calendar and
+photos replace them app by app; the definitions and permissions stay.
 """
 
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, field
 from datetime import date, timedelta
-from typing import Any, Callable, Literal
+from typing import Callable
 
-from . import fixtures
-from .dates import Bias, Resolved
-
-Permission = Literal["read", "write", "irreversible"]
+from ..orchestrator import fixtures
+from .dates import Resolved
+from .registry import Registry, Tool, ToolResult
 
 DATE_HELP = (
     "The date exactly as the user said it, for example 'next friday', 'last December', "
     "'tomorrow', 'March 30', 'the last two weeks'. Do not convert it to a calendar date."
 )
-
-
-@dataclass
-class ToolResult:
-    data: Any
-    # Several equally good matches: the engine stops and asks the user to pick.
-    ambiguous: list[dict] | None = None
-    # Reversible writes return how to undo them.
-    undo: dict | None = None
-
-
-@dataclass
-class Tool:
-    name: str
-    description: str
-    parameters: dict
-    permission: Permission
-    handler: Callable[[dict, dict[str, Resolved], date], ToolResult]
-    # Parameters holding date phrases, and which way a bare phrase leans.
-    date_params: dict[str, Bias] = field(default_factory=dict)
-    time_params: tuple[str, ...] = ()
-
-    def definition(self) -> dict:
-        return {
-            "type": "function",
-            "function": {"name": self.name, "description": self.description, "parameters": self.parameters},
-        }
 
 
 def _schema(props: dict, required: list[str]) -> dict:
@@ -258,10 +229,15 @@ TOOLS: dict[str, Tool] = {
                 },
                 ["title", "date"],
             ),
-            permission="write",
+            permission="reversible",
             handler=_create_event,
             date_params={"date": "future"},
             time_params=("time",),
         ),
     ]
 }
+
+
+def default_registry(today: Callable[[], date] = date.today) -> Registry:
+    """A fresh registry of the built-in tools, with its own approval store."""
+    return Registry(TOOLS.values(), today=today)

@@ -22,7 +22,7 @@ import json
 import re
 from typing import Any
 
-from .dates import DateParseError, parse_time
+from ..tools.dates import DateParseError, parse_time
 
 COMPOSED = {("send_mail", "subject"), ("send_mail", "body"), ("create_event", "title")}
 ADDRESSES = {("send_mail", "to")}
@@ -119,8 +119,9 @@ def check(tool: str, args: dict, required: list[str], skip: set[str], src: Sourc
         if name in skip:
             pass
         elif (tool, name) in ADDRESSES:
-            if str(value).strip().lower() not in src.emails and not any(e in str(value).lower() for e in src.emails):
-                problems = [str(value)]
+            # Every address in the value must come from a source; a known one cannot carry an invented one.
+            found = [e.lower() for e in _EMAIL.findall(str(value))]
+            problems = [e for e in found if e not in src.emails] if found else [str(value)]
         elif (tool, name) in COMPOSED:
             problems = _fact_problems(str(value), src)
         elif isinstance(value, (int, float)) and not isinstance(value, bool):
