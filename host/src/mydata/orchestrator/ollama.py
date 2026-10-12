@@ -30,7 +30,8 @@ class OllamaChat:
     # False turns thinking off. gpt-oss cannot turn it off; it takes "low".
     think: bool | str = False
     options: dict[str, Any] = field(default_factory=lambda: {"num_ctx": 8192})
-    keep_alive: str = "30m"
+    # How long Ollama keeps the model loaded after a request ("30m"; -1 keeps it until unloaded).
+    keep_alive: str | int = "30m"
     timeout: float = 600.0
 
     def _post(self, path: str, payload: dict) -> dict:
@@ -97,6 +98,14 @@ class OllamaChat:
         except urllib.error.URLError as e:
             raise OllamaError(f"cannot reach Ollama at {self.host}: {e.reason}") from None
         return {**last, "message": {"content": "".join(content), "thinking": "".join(thinking), "tool_calls": calls}}
+
+    def warm(self, system: dict, tools: list[dict]) -> None:
+        """One tiny request with the real system message and tool definitions, so Ollama loads the model and
+        caches the shared prompt prefix before the first user request."""
+        self._post("/api/chat", {
+            "model": self.name, "messages": [system, {"role": "user", "content": "Hello"}], "tools": tools,
+            "stream": False, "think": self.think, "options": {**self.options, "num_predict": 1},
+            "keep_alive": self.keep_alive})
 
     def load(self) -> None:
         """Load the model into memory so the first timed request does not pay for it."""

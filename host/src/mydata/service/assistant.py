@@ -26,7 +26,7 @@ from datetime import date
 from pathlib import Path
 from typing import Callable, Iterator
 
-from ..orchestrator.engine import Engine, Run
+from ..orchestrator.engine import Engine, Run, request_prefix
 from ..orchestrator.ollama import ChatModel, OllamaChat
 from ..tools import Approval, Registry
 from .config import Settings
@@ -40,14 +40,21 @@ class Assistant:
                  model_factory: Callable[[], ChatModel] | None = None, today: Callable[[], date] = date.today):
         self.settings = settings
         self.registry = registry
+        # keep_alive -1: while the assistant is on, the model stays loaded (switching it off unloads it).
         self._model_factory = model_factory or (lambda: OllamaChat(
-            settings.model, host=settings.ollama_url, think=settings.think, options={"num_ctx": settings.num_ctx}))
+            settings.model, host=settings.ollama_url, think=settings.think, options={"num_ctx": settings.num_ctx},
+            keep_alive=-1))
         self._today = today
         self.today = today
         self._conversations: dict[str, list[dict]] = {}
         self._lock = threading.Lock()
         # One model on one machine: answer one message at a time.
         self._busy = threading.Lock()
+
+    def warm(self) -> None:
+        """Load the model and cache the shared prompt prefix (see engine.request_prefix)."""
+        model = self._model_factory()
+        model.warm(*request_prefix(self.registry))
 
     # ---------------------------------------------------------------- conversations
 

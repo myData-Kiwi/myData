@@ -83,8 +83,8 @@ def build(settings: Settings):
     auth = Authenticator(ensure_app_tokens(settings.home), AgentStore(settings.home))
     registry = default_registry(today=settings.today)
     state = HostState(settings.home)
-    models = ModelManager(settings, enabled=state.assistant_enabled)
     assistant = Assistant(settings, registry, today=settings.today)
+    models = ModelManager(settings, enabled=state.assistant_enabled, warm=assistant.warm)
     stop = lambda: os.kill(os.getpid(), signal.SIGTERM)  # the same clean shutdown as `mydata stop`
     return create_app(auth, registry, models, assistant, state=state, shutdown=stop), models
 

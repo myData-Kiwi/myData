@@ -24,6 +24,7 @@ import urllib.error
 import urllib.request
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
+from typing import Callable
 
 from .config import Settings
 from .logs import log
@@ -56,8 +57,11 @@ class ModelStatus:
 
 
 class ModelManager:
-    def __init__(self, settings: Settings, log_dir: Path | None = None, enabled: bool = True):
+    def __init__(self, settings: Settings, log_dir: Path | None = None, enabled: bool = True,
+                 warm: Callable[[], None] | None = None):
         self.settings = settings
+        # Loads the model with the assistant's real prompt prefix (Assistant.warm); None loads it bare.
+        self._warm = warm
         self._enabled = enabled
         self._cancel = threading.Event()  # set when the assistant is switched off mid-preparation
         self.log_dir = log_dir or settings.log_dir
@@ -147,6 +151,13 @@ class ModelManager:
         self._stopping.set()
         if self._thread and self._thread.is_alive():
             self._thread.join(timeout=5)
+        # The model is kept loaded while the host runs; free the memory when the host stops (unless Ollama
+        # itself is about to stop because the host started it).
+        if self._enabled and not self._child and self._status.loaded and self._reachable():
+            try:
+                self._post("/api/chat", {"model": self.settings.model, "messages": [], "keep_alive": 0}, 30)
+            except Exception:
+                logger.warning("could not unload the model", exc_info=True)
         if self._child and self._child.poll() is None:
             log(logger, logging.INFO, "stopping the Ollama server the host started", pid=self._child.pid)
             self._child.terminate()
@@ -186,8 +197,11 @@ class ModelManager:
             if self._cancel.is_set():
                 return
             self._set(state="loading", progress=None)
-            self._post("/api/chat", {"model": self.settings.model, "messages": [],
-                                     "options": {"num_ctx": self.settings.num_ctx}, "keep_alive": "30m"}, 600)
+            if self._warm:
+                self._warm()
+            else:
+                self._post("/api/chat", {"model": self.settings.model, "messages": [],
+                                         "options": {"num_ctx": self.settings.num_ctx}, "keep_alive": -1}, 600)
             if self._cancel.is_set():
                 return
             self._set(state="ready", loaded=True, error=None)

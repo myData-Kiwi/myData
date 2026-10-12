@@ -47,6 +47,14 @@ PROGRESS = {
 EventSink = Callable[[dict], None]
 
 
+def request_prefix(registry: Registry, names: list[str] | None = None, system_prompt: str = SYSTEM_PROMPT
+                   ) -> tuple[dict, list[dict]]:
+    """The start of every request: the system message and the tool definitions. Ollama caches the prompt it
+    renders from these, so they must be byte-identical across requests (and the warm-up request); everything
+    request-specific (history, the user's message) comes after them."""
+    return {"role": "system", "content": system_prompt}, registry.definitions(names)
+
+
 @dataclass
 class CallRecord:
     step: int
@@ -113,9 +121,8 @@ class Engine:
         unknown = [n for n in names if n not in self.registry]
         if unknown:
             raise KeyError(f"unknown tools: {unknown}")
-        definitions = self.registry.definitions(names)
-        messages: list[dict] = [{"role": "system", "content": self.system_prompt}, *(history or []),
-                                {"role": "user", "content": request}]
+        system, definitions = request_prefix(self.registry, names, self.system_prompt)
+        messages: list[dict] = [system, *(history or []), {"role": "user", "content": request}]
         run = Run(model=self.model.name, request=request, today=self.today.isoformat(), messages=messages,
                   tools_shown=list(names))
         emit = on_event or (lambda _e: None)

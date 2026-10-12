@@ -60,3 +60,17 @@ def test_ollama_not_installed_is_a_clear_state(tmp_path, monkeypatch):
         time.sleep(0.05)
     s = mm.status()
     assert s.state == "ollama_missing" and "ollama.com" in s.error
+
+
+def test_loads_the_model_with_the_warm_request(tmp_path, monkeypatch):
+    monkeypatch.setenv("PATH", f"{FAKE}{os.pathsep}{os.environ['PATH']}")
+    monkeypatch.setenv("FAKE_OLLAMA_PIDFILE", str(tmp_path / "fake.pid"))
+    warmed = []
+    mm = ModelManager(Settings(home=tmp_path, ollama_url=f"http://127.0.0.1:{free_port()}", model="tiny:1b"),
+                      warm=lambda: warmed.append(True))
+    mm.start()
+    deadline = time.time() + 30
+    while mm.status().state not in ("ready", "error") and time.time() < deadline:
+        time.sleep(0.05)
+    assert mm._status.state == "ready" and warmed == [True]
+    mm.stop()
