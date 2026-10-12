@@ -11,6 +11,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  http: ^1.6.0
+  mydata_client: ^0.1.0
+  mydata_core: ^0.0.1
+  mydata_ui: ^0.0.1
 
 dev_dependencies:
   flutter_test:

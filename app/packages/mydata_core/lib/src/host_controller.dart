@@ -32,7 +32,7 @@ enum HostPhase {
 /// The authenticated API of a running host, for this app.
 class HostConnection {
   HostConnection(this.baseUrl, this.token)
-      : client = ApiClient(basePath: baseUrl, authentication: HttpBearerAuth()..accessToken = token);
+    : client = ApiClient(basePath: baseUrl, authentication: HttpBearerAuth()..accessToken = token);
   final String baseUrl;
   final String token;
   final ApiClient client;
@@ -98,9 +98,11 @@ class HostController extends ChangeNotifier {
         return;
       }
       if (env.hostCommand == null) {
-        _go(HostPhase.notConfigured,
-            error: 'There is no command to start the myData host with.',
-            detail: 'Development: run `uv run mydata dev-setup` in host/ once, then retry.\nHost folder: ${env.home}');
+        _go(
+          HostPhase.notConfigured,
+          error: 'There is no command to start the myData host with.',
+          detail: 'Development: run `uv run mydata dev-setup` in host/ once, then retry.\nHost folder: ${env.home}',
+        );
         return;
       }
       _go(HostPhase.starting);
@@ -110,9 +112,11 @@ class HostController extends ChangeNotifier {
         if (await _tryStatus(env)) return _running();
         await Future<void>.delayed(const Duration(milliseconds: 500));
       }
-      _go(HostPhase.failedToStart,
-          error: 'The myData host did not start.',
-          detail: launch.output.isEmpty ? 'No answer within ${startTimeout.inSeconds} seconds.' : launch.output);
+      _go(
+        HostPhase.failedToStart,
+        error: 'The myData host did not start.',
+        detail: launch.output.isEmpty ? 'No answer within ${startTimeout.inSeconds} seconds.' : launch.output,
+      );
     } on Object catch (e) {
       _go(HostPhase.failedToStart, error: 'The myData host could not be reached.', detail: '$e');
     } finally {
@@ -140,26 +144,40 @@ class HostController extends ChangeNotifier {
   }
 
   void _running() {
+    if (_disposed) return; // disposed while connecting: start nothing
     _missed = 0;
     _go(HostPhase.running);
     _poll = Timer.periodic(pollInterval, (_) => refresh());
   }
 
-  /// Refresh /status now. Two misses in a row while running means the host stopped.
-  Future<void> refresh() async {
+  /// Refresh /status now; returns whether the host answered. Two misses in a row while running means
+  /// the host stopped. Listeners hear about every attempt, so a "Check again" button always responds.
+  Future<bool> refresh() async {
     final env = environment;
-    if (env == null || phase != HostPhase.running) return;
+    if (env == null || phase != HostPhase.running) return false;
     if (await _tryStatus(env)) {
       _missed = 0;
       if (!_disposed) notifyListeners();
-      return;
+      return true;
     }
     if (++_missed >= 2) {
       _poll?.cancel();
-      _go(HostPhase.lost,
-          error: 'The myData host stopped while the app was open.',
-          detail: 'Its log is in ${env.home}/logs/mydatad.log');
+      _go(
+        HostPhase.lost,
+        error: 'The myData host stopped while the app was open.',
+        detail: 'Its log is in ${env.home}/logs/mydatad.log',
+      );
+    } else if (!_disposed) {
+      notifyListeners();
     }
+    return false;
+  }
+
+  /// Use a status the host just returned (e.g. from PUT /assistant/settings) without asking again.
+  void updateStatus(StatusOut fresh) {
+    if (phase != HostPhase.running) return;
+    status = fresh;
+    if (!_disposed) notifyListeners();
   }
 
   /// Stop the host. Only the myData app owns the host's lifetime; the host refuses this from others.

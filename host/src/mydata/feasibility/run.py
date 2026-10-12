@@ -473,6 +473,12 @@ def cmd_compare(ns: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_timing(ns: argparse.Namespace) -> int:
+    from .timing import run_timing
+    print(run_timing(ns.set, ns.model, ns.reps, Path(ns.out) / ns.stamp)["report"])
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="python -m mydata.feasibility")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -493,6 +499,13 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--rescore", action="store_true", help="re-score from raw runs with the current scorer")
     p.add_argument("--allow-changed-cases", action="store_true")
     p.set_defaults(fn=cmd_report)
+    t = sub.add_parser("timing", help="where the time goes in single-step requests")
+    t.add_argument("--set", default="2026-10-11-b")
+    t.add_argument("--model", default="qwen3:14b")
+    t.add_argument("--reps", type=int, default=3)
+    t.add_argument("--out", default="results")
+    t.add_argument("--stamp", required=True)
+    t.set_defaults(fn=lambda ns: _cmd_timing(ns))
     c = sub.add_parser("compare", help="one table across runs: label=path/runs.jsonl ...")
     c.add_argument("runs", nargs="+")
     c.add_argument("--rescore", action="store_true")

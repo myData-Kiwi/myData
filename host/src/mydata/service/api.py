@@ -162,10 +162,12 @@ def create_app(auth: Authenticator, registry: Registry, models: ModelManager, as
             yield
 
     app = FastAPI(title="myData host", version=__version__, lifespan=lifespan, docs_url=None, redoc_url=None,
+                  # operation ids = function names, so the generated client reads status(), decide(), ...
+                  generate_unique_id_function=lambda route: route.name,
                   description="Local API of the myData host. Listens on localhost only; every request needs "
                               "`Authorization: Bearer <token>` from the token file in the host's folder.")
 
-    @app.get("/status", response_model=StatusOut)
+    @app.get("/status", tags=["host"], response_model=StatusOut)
     def status() -> StatusOut:
         m = models.status()
         return StatusOut(version=__version__, ready=m.state == "ready", assistant_enabled=models.enabled,
@@ -177,13 +179,13 @@ def create_app(auth: Authenticator, registry: Registry, models: ModelManager, as
                          agents_connected=sum(a["connected"] for a in auth.agents.list()),
                          today=assistant.today().isoformat(), demo_date=assistant.settings.pin_today is not None)
 
-    @app.post("/model/retry", response_model=StatusOut)
+    @app.post("/model/retry", tags=["host"], response_model=StatusOut)
     def retry() -> StatusOut:
         """Try again to get the model ready (after an error, or once Ollama is installed)."""
         models.retry()
         return status()
 
-    @app.post("/assistant/messages", response_class=StreamingResponse,
+    @app.post("/assistant/messages", tags=["assistant"], response_class=StreamingResponse,
               responses={200: {"content": {"text/event-stream": {"schema": {"type": "string"}}},
                                "description": SSE_DESCRIPTION},
                          503: {"description": "the model is not ready yet; see GET /status"}})
@@ -195,7 +197,7 @@ def create_app(auth: Authenticator, registry: Registry, models: ModelManager, as
         return StreamingResponse(_sse(assistant, body.text, body.conversation_id), media_type="text/event-stream",
                                  headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
-    @app.put("/assistant/settings", response_model=StatusOut)
+    @app.put("/assistant/settings", tags=["assistant"], response_model=StatusOut)
     def assistant_settings(body: AssistantSettingsIn) -> StatusOut:
         """Switch the assistant on (the model is prepared, downloading it if needed) or off (nothing is
         downloaded or loaded; the rest of myData works without it)."""
@@ -204,7 +206,7 @@ def create_app(auth: Authenticator, registry: Registry, models: ModelManager, as
         models.set_enabled(body.enabled)
         return status()
 
-    @app.post("/shutdown", status_code=202, responses={403: {"description": "only the myData app can stop the host"}})
+    @app.post("/shutdown", tags=["host"], status_code=202, responses={403: {"description": "only the myData app can stop the host"}})
     def shutdown_host(request: Request) -> dict:
         """Stop the host. Only the myData app (which owns the host's lifetime) and the mydata command may."""
         if request.state.principal.label not in ("app:mydata", "app:cli"):
@@ -213,18 +215,18 @@ def create_app(auth: Authenticator, registry: Registry, models: ModelManager, as
             threading.Timer(0.2, shutdown).start()  # after this response is sent
         return {"stopping": True}
 
-    @app.get("/approvals", response_model=list[ApprovalOut])
+    @app.get("/approvals", tags=["approvals"], response_model=list[ApprovalOut])
     def approvals(status: Literal["pending", "approved", "rejected", "failed"] | None = None) -> list[ApprovalOut]:
         return [ApprovalOut(**a.to_json()) for a in registry.approvals(status)]
 
-    @app.get("/approvals/{approval_id}", response_model=ApprovalOut, responses={404: {"description": "no such approval"}})
+    @app.get("/approvals/{approval_id}", tags=["approvals"], response_model=ApprovalOut, responses={404: {"description": "no such approval"}})
     def approval(approval_id: str) -> ApprovalOut:
         a = registry.approval(approval_id)
         if a is None:
             raise HTTPException(404, "no such approval")
         return ApprovalOut(**a.to_json())
 
-    @app.post("/approvals/{approval_id}", response_model=ApprovalOut,
+    @app.post("/approvals/{approval_id}", tags=["approvals"], response_model=ApprovalOut,
               responses={404: {"description": "no such approval"}, 409: {"description": "already decided"}})
     def decide(approval_id: str, body: DecisionIn, request: Request) -> ApprovalOut:
         try:
@@ -235,15 +237,15 @@ def create_app(auth: Authenticator, registry: Registry, models: ModelManager, as
         assistant.note_decision(a)
         return ApprovalOut(**a.to_json())
 
-    @app.get("/tools", response_model=list[ToolOut])
+    @app.get("/tools", tags=["tools"], response_model=list[ToolOut])
     def tools() -> list[ToolOut]:
         return [ToolOut(**t) for t in registry.describe()]
 
-    @app.get("/agents", response_model=list[AgentOut])
+    @app.get("/agents", tags=["agents"], response_model=list[AgentOut])
     def agents() -> list[AgentOut]:
         return [AgentOut(**a) for a in auth.agents.list()]
 
-    @app.post("/agents", response_model=AgentCreated, status_code=201)
+    @app.post("/agents", tags=["agents"], response_model=AgentCreated, status_code=201)
     def create_agent(body: AgentIn) -> AgentCreated:
         try:
             agent, token = auth.agents.create(body.name)
@@ -251,7 +253,7 @@ def create_app(auth: Authenticator, registry: Registry, models: ModelManager, as
             raise HTTPException(422, str(e)) from None
         return AgentCreated(**agent.public(None), token=token)
 
-    @app.delete("/agents/{agent_id}", response_model=AgentOut, responses={404: {"description": "no such agent"}})
+    @app.delete("/agents/{agent_id}", tags=["agents"], response_model=AgentOut, responses={404: {"description": "no such agent"}})
     def revoke_agent(agent_id: str) -> AgentOut:
         try:
             agent = auth.agents.revoke(agent_id)

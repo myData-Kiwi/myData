@@ -34,4 +34,9 @@ def openapi_document() -> dict:
             op["responses"].setdefault("403", {"description": "agent tokens can only use /mcp", "content": err})
             op["responses"].setdefault("421", {"description": "the Host header is not this machine", "content": err})
     doc["servers"] = [{"url": "http://127.0.0.1:47821", "description": "this machine only"}]
+    # FastAPI's validation error says a location item is "string or integer"; the Dart generator cannot
+    # express that union, so the published spec leaves the item type open.
+    loc = doc["components"]["schemas"].get("ValidationError", {}).get("properties", {}).get("loc")
+    if loc:
+        loc["items"] = {}
     return doc

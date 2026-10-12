@@ -67,7 +67,8 @@ class OllamaChat:
             "content": msg.get("content") or "",
             "thinking": msg.get("thinking") or "",
             "tool_calls": msg.get("tool_calls") or [],
-            "stats": {k: body.get(k) for k in ("total_duration", "load_duration", "prompt_eval_count", "eval_count")},
+            "stats": {k: body.get(k) for k in ("total_duration", "load_duration", "prompt_eval_count",
+                                               "prompt_eval_duration", "eval_count", "eval_duration")},
         }
 
     def _stream(self, path: str, payload: dict, on_delta: Callable[[str], None]) -> dict:

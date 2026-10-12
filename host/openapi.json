@@ -559,16 +559,7 @@
             "title": "Input"
           },
           "loc": {
-            "items": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "integer"
-                }
-              ]
-            },
+            "items": {},
             "title": "Location",
             "type": "array"
           },
@@ -606,7 +597,7 @@
   "paths": {
     "/agents": {
       "get": {
-        "operationId": "agents_agents_get",
+        "operationId": "agents",
         "responses": {
           "200": {
             "content": {
@@ -615,7 +606,7 @@
                   "items": {
                     "$ref": "#/components/schemas/AgentOut"
                   },
-                  "title": "Response Agents Agents Get",
+                  "title": "Response Agents",
                   "type": "array"
                 }
               }
@@ -653,10 +644,13 @@
             "description": "the Host header is not this machine"
           }
         },
-        "summary": "Agents"
+        "summary": "Agents",
+        "tags": [
+          "agents"
+        ]
       },
       "post": {
-        "operationId": "create_agent_agents_post",
+        "operationId": "create_agent",
         "requestBody": {
           "content": {
             "application/json": {
@@ -719,12 +713,15 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Create Agent"
+        "summary": "Create Agent",
+        "tags": [
+          "agents"
+        ]
       }
     },
     "/agents/{agent_id}": {
       "delete": {
-        "operationId": "revoke_agent_agents__agent_id__delete",
+        "operationId": "revoke_agent",
         "parameters": [
           {
             "in": "path",
@@ -791,12 +788,15 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Revoke Agent"
+        "summary": "Revoke Agent",
+        "tags": [
+          "agents"
+        ]
       }
     },
     "/approvals": {
       "get": {
-        "operationId": "approvals_approvals_get",
+        "operationId": "approvals",
         "parameters": [
           {
             "in": "query",
@@ -829,7 +829,7 @@
                   "items": {
                     "$ref": "#/components/schemas/ApprovalOut"
                   },
-                  "title": "Response Approvals Approvals Get",
+                  "title": "Response Approvals",
                   "type": "array"
                 }
               }
@@ -877,12 +877,15 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Approvals"
+        "summary": "Approvals",
+        "tags": [
+          "approvals"
+        ]
       }
     },
     "/approvals/{approval_id}": {
       "get": {
-        "operationId": "approval_approvals__approval_id__get",
+        "operationId": "approval",
         "parameters": [
           {
             "in": "path",
@@ -949,10 +952,13 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Approval"
+        "summary": "Approval",
+        "tags": [
+          "approvals"
+        ]
       },
       "post": {
-        "operationId": "decide_approvals__approval_id__post",
+        "operationId": "decide",
         "parameters": [
           {
             "in": "path",
@@ -1032,12 +1038,15 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Decide"
+        "summary": "Decide",
+        "tags": [
+          "approvals"
+        ]
       }
     },
     "/assistant/messages": {
       "post": {
-        "operationId": "messages_assistant_messages_post",
+        "operationId": "messages",
         "requestBody": {
           "content": {
             "application/json": {
@@ -1103,13 +1112,16 @@
             "description": "the model is not ready yet; see GET /status"
           }
         },
-        "summary": "Messages"
+        "summary": "Messages",
+        "tags": [
+          "assistant"
+        ]
       }
     },
     "/assistant/settings": {
       "put": {
         "description": "Switch the assistant on (the model is prepared, downloading it if needed) or off (nothing is\ndownloaded or loaded; the rest of myData works without it).",
-        "operationId": "assistant_settings_assistant_settings_put",
+        "operationId": "assistant_settings",
         "requestBody": {
           "content": {
             "application/json": {
@@ -1172,13 +1184,16 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Assistant Settings"
+        "summary": "Assistant Settings",
+        "tags": [
+          "assistant"
+        ]
       }
     },
     "/model/retry": {
       "post": {
         "description": "Try again to get the model ready (after an error, or once Ollama is installed).",
-        "operationId": "retry_model_retry_post",
+        "operationId": "retry",
         "responses": {
           "200": {
             "content": {
@@ -1221,20 +1236,23 @@
             "description": "the Host header is not this machine"
           }
         },
-        "summary": "Retry"
+        "summary": "Retry",
+        "tags": [
+          "host"
+        ]
       }
     },
     "/shutdown": {
       "post": {
         "description": "Stop the host. Only the myData app (which owns the host's lifetime) and the mydata command may.",
-        "operationId": "shutdown_host_shutdown_post",
+        "operationId": "shutdown_host",
         "responses": {
           "202": {
             "content": {
               "application/json": {
                 "schema": {
                   "additionalProperties": true,
-                  "title": "Response Shutdown Host Shutdown Post",
+                  "title": "Response Shutdown Host",
                   "type": "object"
                 }
               }
@@ -1265,12 +1283,15 @@
             "description": "the Host header is not this machine"
           }
         },
-        "summary": "Shutdown Host"
+        "summary": "Shutdown Host",
+        "tags": [
+          "host"
+        ]
       }
     },
     "/status": {
       "get": {
-        "operationId": "status_status_get",
+        "operationId": "status",
         "responses": {
           "200": {
             "content": {
@@ -1313,12 +1334,15 @@
             "description": "the Host header is not this machine"
           }
         },
-        "summary": "Status"
+        "summary": "Status",
+        "tags": [
+          "host"
+        ]
       }
     },
     "/tools": {
       "get": {
-        "operationId": "tools_tools_get",
+        "operationId": "tools",
         "responses": {
           "200": {
             "content": {
@@ -1327,7 +1351,7 @@
                   "items": {
                     "$ref": "#/components/schemas/ToolOut"
                   },
-                  "title": "Response Tools Tools Get",
+                  "title": "Response Tools",
                   "type": "array"
                 }
               }
@@ -1365,7 +1389,10 @@
             "description": "the Host header is not this machine"
           }
         },
-        "summary": "Tools"
+        "summary": "Tools",
+        "tags": [
+          "tools"
+        ]
       }
     }
   },

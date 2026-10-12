@@ -29,6 +29,5 @@ String describeModel(ModelOut m) {
     ModelOutStateEnum.ready => '${m.name} is ready',
     ModelOutStateEnum.error => 'The model could not be prepared',
     ModelOutStateEnum.disabled => 'The assistant is switched off',
-
   };
 }

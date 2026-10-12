@@ -136,9 +136,12 @@ class Engine:
     def _loop(self, run: Run, messages: list[dict], shown: set[str], definitions: list[dict], started: float,
               emit: EventSink, stream: bool, context: dict) -> None:
         for step in range(self.max_steps):
+            t0 = _time.perf_counter()
             reply = self._chat(messages, definitions, emit, stream)
             run.model_calls += 1
-            run.model_replies.append({"stats": reply.get("stats"), "thinking": reply.get("thinking") or ""})
+            run.model_replies.append({"stats": reply.get("stats"), "thinking": reply.get("thinking") or "",
+                                      "started": round(t0 - started, 3),
+                                      "seconds": round(_time.perf_counter() - t0, 3)})
             calls = reply.get("tool_calls") or []
             if calls and stream:
                 emit({"type": "step"})  # any text streamed in this step was not the answer

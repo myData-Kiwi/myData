@@ -1,11 +1,11 @@
 {
-    "name": "myassistant",
-    "short_name": "myassistant",
+    "name": "myAssistant",
+    "short_name": "myAssistant",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#FCFDF7",
+    "theme_color": "#4C7814",
+    "description": "myAssistant: chat with the assistant on your own myData host.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

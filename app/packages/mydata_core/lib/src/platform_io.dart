@@ -83,8 +83,11 @@ class _IoPlatform implements HostPlatform {
     final cmd = env.hostCommand!;
     try {
       // `mydata start` runs the host detached and returns once it answers (or fails).
-      final r = await Process.run(cmd.first, cmd.sublist(1), environment: {'MYDATA_HOME': env.home})
-          .timeout(const Duration(seconds: 90));
+      final r = await Process.run(
+        cmd.first,
+        cmd.sublist(1),
+        environment: {'MYDATA_HOME': env.home},
+      ).timeout(const Duration(seconds: 90));
       final out = '${r.stdout}${r.stderr}'.trim();
       return LaunchResult(r.exitCode == 0, out);
     } on Object catch (e) {
@@ -95,8 +98,16 @@ class _IoPlatform implements HostPlatform {
   @override
   Future<bool> openMyDataApp({bool setup = true}) async {
     if (Platform.isMacOS) {
-      final r = await Process.run('open', ['-b', 'kiwi.mydata.mydata', if (setup) ...['--args', '--setup']]);
-      return r.exitCode == 0;
+      try {
+        final r = await Process.run('open', [
+          '-b',
+          'kiwi.mydata.mydata',
+          if (setup) ...['--args', '--setup'],
+        ]);
+        return r.exitCode == 0;
+      } on ProcessException {
+        return false;
+      }
     }
     // TODO(windows, linux): launch the installed myData app once there are installers.
     return false;

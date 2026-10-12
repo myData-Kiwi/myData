@@ -16,12 +16,25 @@ class FakeHost {
         req.response.statusCode = answering ? 401 : 503;
       } else {
         req.response.headers.contentType = ContentType.json;
-        req.response.write(jsonEncode({
-          'version': '0.1.0', 'ready': true, 'assistant_enabled': true, 'uptime_seconds': 1.0,
-          'memory': {'host_bytes': 1000}, 'agents_connected': 0, 'today': '2026-03-18', 'demo_date': true,
-          'model': {'name': 'qwen3:14b', 'state': 'ready', 'loaded': true, 'ollama_reachable': true,
-                    'ollama_started_by_host': false},
-        }));
+        req.response.write(
+          jsonEncode({
+            'version': '0.1.0',
+            'ready': true,
+            'assistant_enabled': true,
+            'uptime_seconds': 1.0,
+            'memory': {'host_bytes': 1000},
+            'agents_connected': 0,
+            'today': '2026-03-18',
+            'demo_date': true,
+            'model': {
+              'name': 'qwen3:14b',
+              'state': 'ready',
+              'loaded': true,
+              'ollama_reachable': true,
+              'ollama_started_by_host': false,
+            },
+          }),
+        );
       }
       req.response.close();
     });
@@ -52,6 +65,7 @@ class FakePlatform implements HostPlatform {
     onStart?.call();
     return const LaunchResult(false, 'mydatad exited with code 1');
   }
+
   @override
   Future<bool> openMyDataApp({bool setup = true}) async => false;
 }
@@ -90,8 +104,11 @@ void main() {
 
   test('a host that never answers is a failure with the launcher output', () async {
     final host = FakeHost()..answering = false;
-    final c = HostController(app: 'mydata', platform: FakePlatform(await host.start()),
-        startTimeout: const Duration(seconds: 1));
+    final c = HostController(
+      app: 'mydata',
+      platform: FakePlatform(await host.start()),
+      startTimeout: const Duration(seconds: 1),
+    );
     await c.connect();
     expect(c.phase, HostPhase.failedToStart);
     expect(c.detail, contains('exited with code 1'));
@@ -100,8 +117,11 @@ void main() {
 
   test('a host that stops while open is reported as lost, and retry recovers', () async {
     final host = FakeHost();
-    final c = HostController(app: 'mydata', platform: FakePlatform(await host.start()),
-        pollInterval: const Duration(milliseconds: 50));
+    final c = HostController(
+      app: 'mydata',
+      platform: FakePlatform(await host.start()),
+      pollInterval: const Duration(milliseconds: 50),
+    );
     await c.connect();
     host.answering = false;
     await Future<void>.delayed(const Duration(milliseconds: 400));
