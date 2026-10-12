@@ -71,7 +71,7 @@ Widget themedFrame(ThemeCase theme, Widget child,
         reduceMotion: reduceMotion,
         reduceTransparency: reduceTransparency,
         child: Builder(
-          builder: (context) => ColoredBox(
+          builder: (context) => Material(
             color: context.colors.bg,
             child: Padding(padding: padding, child: Align(alignment: Alignment.topLeft, child: child)),
           ),

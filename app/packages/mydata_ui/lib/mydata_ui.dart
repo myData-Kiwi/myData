@@ -10,3 +10,7 @@ export 'src/legacy_widgets.dart';
 export 'src/licenses.dart';
 export 'src/motion.dart';
 export 'src/theme.dart';
+export 'src/widgets/icon_tile.dart';
+export 'src/widgets/kiwi.dart';
+export 'src/widgets/pressable.dart';
+export 'src/widgets/status.dart';
