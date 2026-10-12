@@ -1,0 +1,108 @@
+{
+  "stamp": "2026-10-11-full",
+  "today": "2026-03-18",
+  "cases_sha": "b6a7d704b9ca1e16",
+  "tools_sha": "223db083dd2e961f",
+  "prompt_sha": "f1e38b7a73805ead",
+  "dates_sha": "5ab197fda1944fe0",
+  "scoring_sha": "1cae7496d089cbff",
+  "engine_sha": "cb5ee12820460152",
+  "client_sha": "e2ab4c5267dbc948",
+  "reps": 3,
+  "models": {
+    "qwen3:14b": {
+      "think": false,
+      "options": {
+        "num_ctx": 8192
+      },
+      "digest": "bdbd181c33f2ed1b31c972991882db3cf4d192569092138a7d29e973cd9debe8",
+      "modified_at": "2026-10-11T19:08:06.988466172-04:00",
+      "parameters": "repeat_penalty                 1\nstop                           \"<|im_start|>\"\nstop                           \"<|im_end|>\"\ntemperature                    0.6\ntop_k                          20\ntop_p                          0.95",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "qwen3",
+        "families": [
+          "qwen3"
+        ],
+        "parameter_size": "14.8B",
+        "quantization_level": "Q4_K_M"
+      }
+    },
+    "gpt-oss:20b": {
+      "think": "low",
+      "options": {
+        "num_ctx": 8192
+      },
+      "digest": "f38aa0c53da5f8c49d08c43a99df24ff53167fe68e24664a7777288e7656fdfe",
+      "modified_at": "2026-10-11T20:25:55.809109303-04:00",
+      "parameters": "temperature                    1",
+      "details": {
+        "parent_model": "dhiltgen/gpt-oss:20b-llamacpp",
+        "format": "gguf",
+        "family": "gpt-oss",
+        "families": [
+          "gpt-oss"
+        ],
+        "parameter_size": "20.9B",
+        "quantization_level": "MXFP4",
+        "runner": "llamacpp"
+      }
+    },
+    "qwen3:8b": {
+      "think": false,
+      "options": {
+        "num_ctx": 8192
+      },
+      "digest": "500a1f067a9f782620b40bee6f7b0c89e17ae61f686b92c24933e4ca4b2b8b41",
+      "modified_at": "2026-10-11T20:26:48.617846325-04:00",
+      "parameters": "repeat_penalty                 1\nstop                           \"<|im_start|>\"\nstop                           \"<|im_end|>\"\ntemperature                    0.6\ntop_k                          20\ntop_p                          0.95",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "qwen3",
+        "families": [
+          "qwen3"
+        ],
+        "parameter_size": "8.2B",
+        "quantization_level": "Q4_K_M"
+      }
+    }
+  },
+  "ollama_version": "0.40.1",
+  "sampling": "model defaults, no seed (variance across reps is part of the measurement)",
+  "system_prompt": "You are myAssistant, a personal assistant that runs on the user's own computer. You can search and send the user's mail, look up contacts, read and add calendar events, and search photos, using the tools provided.\n\nRules:\n- Pass dates and times exactly as the user said them, for example \"next friday\", \"last December\", \"tomorrow at 3pm\". Never work out calendar dates yourself.\n- Only fill in tool arguments the user's request gives you. Leave the rest out.\n- Email addresses come from find_contact. Never guess one.\n- If the request needs no tool, answer directly.\n- If none of the tools can do what the user asks, say so plainly and do not call any tool.\n",
+  "host": "macOS-26.7.1-arm64-arm-64bit-Mach-O",
+  "cases": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "A01",
+    "A02",
+    "A03",
+    "A04",
+    "A05",
+    "A06",
+    "C01",
+    "C02",
+    "C03",
+    "C04",
+    "C05",
+    "M01",
+    "M02",
+    "M03",
+    "N01",
+    "N02",
+    "N03",
+    "U01",
+    "U02",
+    "U03"
+  ]
+}
