@@ -1,0 +1,7 @@
+{
+  "note": "All 18 free-text answers read by hand against the hand-review rule. Two disagreements, the same wording as earlier overrides.",
+  "overrides": [
+    {"model": "qwen3:14b", "case": "BU02", "rep": 2, "pass": true, "reason": "\"None of the provided tools can be used to turn on an out-of-office auto-reply.\" is a correct refusal; the pattern lacks 'none of the provided tools'."},
+    {"model": "qwen3:14b", "case": "BU02", "rep": 3, "pass": true, "reason": "Same as #2."}
+  ]
+}
