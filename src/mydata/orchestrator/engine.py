@@ -80,8 +80,9 @@ class Engine:
     tools: dict[str, Tool] = field(default_factory=lambda: dict(TOOLS))
     system_prompt: str = SYSTEM_PROMPT
     max_steps: int = 6
-    # Show the model only the tools routing.select_tools picks for the request (fix b).
-    route: bool = True
+    # Show the model only the tools routing.select_tools picks for the request (fix b). Off: in round 2
+    # it gained nothing, added 0.6 s and hides tools that chains need (results/2026-10-11-b-REPORT.md).
+    route: bool = False
     # Check every argument against the request and earlier results (grounding.py, fix c).
     ground: bool = True
 

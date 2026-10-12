@@ -6,7 +6,7 @@ This file is the project's working memory. Read it before doing anything. Update
 
 ## Status
 
-Concept stage. The marketing site and the feasibility-test harness are built (`mydata-kiwi/mydata`: `src/mydata/orchestrator`, `src/mydata/feasibility`). The test ran on 2026-10-11 (see "Feasibility test result"). Its result is 70 to 90% for the best model, so next comes fixing the failing types in code and measuring again with a new request set, not apps.
+Concept stage. Built so far: the marketing site and the orchestrator with its feasibility harness (`mydata-kiwi/mydata`: `src/mydata/orchestrator`, `src/mydata/feasibility`). Two rounds of feasibility testing are done (see "Feasibility test result" and "Round 2 result"). **The host skeleton is next**: service process, config, logging, and the orchestrator from the harness. The round-2 time box is over; chained requests are not solved and are carried forward as an open problem, not a blocker.
 
 ## Ground rules
 
@@ -152,7 +152,27 @@ Full detail: `myData/results/2026-10-11-full/report.md` and `REVIEW.md`. 30 requ
 - gpt-oss:20b and qwen3:8b invent optional arguments (location, duration) on every create_event. qwen3:14b does not.
 - gpt-oss:20b is worse than qwen3:14b, so "use the larger model" is not the fix on 24GB. `qwen3:14b` is the working model.
 - Thinking off gives a median of 2.5 to 3.9 s to the first tool call.
-- Next, in code: per-request tool filtering; a grounding check that drops argument values found in neither the user's words nor earlier tool results; a planner step or code recipes for chains. Then a new, separately frozen request set. Never edit the 2026-10-11 set.
+- Round 2 (below) tried the code fixes for chains on a new set. Never edit the 2026-10-11 set.
+
+## Round 2 result (2026-10-11/12)
+
+Full report: `myData/results/2026-10-11-b-REPORT.md`. New frozen set `cases_2026_10_11_b.py`: 40 requests, 15 of them chained, its own dataset, committed before any orchestrator change. Model `qwen3:14b`, thinking off, 3 reps. Each row adds one fix.
+
+| Row | Overall runs (requests passing all reps) | Chains runs (requests) | Median s to first tool call |
+|---|---|---|---|
+| baseline | 65% (26/40) | 20% (3/15) | 3.8 |
+| +a tool descriptions | 70% (28/40 hand-reviewed) | 28% (4/15) | 3.9 |
+| +b per-request tool filtering | 70% (28/40) | 26% (4/15) | 4.5 |
+| +c grounding check | 67% (27/40) | 26% (4/15) | 4.6 |
+
+- Chains stay far under 80%. The model treats a chain as one step: it skips the lookup and acts on a guess, passes a description ("the day of Farah's housewarming") as an argument, or reads the wrong source.
+- No planner was built, as agreed for this round. The report lists what one would need to fix. Measure any planner on a new frozen set; 2026-10-11-b has now been seen.
+- **Kept: (a) tool descriptions and (c) grounding.**
+  - (a) gave +5 runs at no cost.
+  - (c) did not raise the score. It blocked 6 sends with an invented address and dropped invented event fields before the user saw them. Its one cost is a duration worked out from two times (BA03), which it drops.
+- **Not kept: (b) per-request tool filtering.** It is off by default (`Engine.route=False`); the module stays so the measurement can be reproduced. It gained nothing, added 0.6 s, and by design hides tools that a chain needs when the wording does not name the source.
+- The kept combination (a + c, without b) was not itself measured.
+- Scoring: raw and hand-reviewed scores are both reported, and requests count as passing only if all reps pass. The hand-review rule for refusals is automated in `scoring.py`.
 
 ## Build order after the test passes
 

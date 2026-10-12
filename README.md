@@ -12,6 +12,8 @@ uv run pytest -q                                      # harness tests; no model 
 uv run python -m mydata.feasibility run               # qwen3:14b and gpt-oss:20b, 3 reps each
 uv run python -m mydata.feasibility run --models qwen3:8b --only S01 A01
 uv run python -m mydata.feasibility report results/<stamp>/runs.jsonl [--rescore]
+uv run python -m mydata.feasibility run --set 2026-10-11-b --models qwen3:14b --label baseline
+uv run python -m mydata.feasibility compare baseline=results/a/runs.jsonl +a=results/b/runs.jsonl
 ```
 
 Needs Ollama running locally with the models pulled.

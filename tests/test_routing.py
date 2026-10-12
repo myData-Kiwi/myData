@@ -89,8 +89,8 @@ def test_engine_shows_only_the_selected_tools():
             return {"content": "ok", "tool_calls": []}
 
     m = Recorder()
-    Engine(m, TODAY).run("Show me pictures of the lake")
+    Engine(m, TODAY, route=True).run("Show me pictures of the lake")
     assert m.tools == select_tools("Show me pictures of the lake") == ["search_photos"]
     m = Recorder()
-    Engine(m, TODAY, route=False).run("Show me pictures of the lake")
+    Engine(m, TODAY).run("Show me pictures of the lake")  # routing is off by default
     assert len(m.tools) == 6
