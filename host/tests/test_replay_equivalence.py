@@ -4,6 +4,7 @@ feasibility run must give the same calls, statuses, tool results, outcomes and s
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -52,6 +53,19 @@ def _strip(call: dict) -> dict:
     return out
 
 
+def _explained_by_new_grounding_rules(new: list[dict], old: list[dict]) -> bool:
+    """Runs recorded before the two grounding rules of round 3 (numeric ranges, durations between grounded
+    times) may differ only at the first call those rules decide differently; later calls then differ too."""
+    for a, b in zip(new, old):
+        if a == b:
+            continue
+        old_reason = " ".join([*(b.get("dropped_args") or {}).values(), b.get("error") or ""])
+        if "duration_minutes" in a["args"] and "duration_minutes" in (b.get("dropped_args") or {}):
+            return True  # a duration between two grounded times is now kept
+        return bool(re.search(r"'\d+(?:-\d+)+'", old_reason)) and a["status"] != "invalid_args"
+    return False
+
+
 @pytest.mark.parametrize("run_dir", sorted(CONFIG))
 def test_replay_matches_logged_run(run_dir):
     path = RESULTS / run_dir / "runs.jsonl"
@@ -65,8 +79,12 @@ def test_replay_matches_logged_run(run_dir):
             engine = Engine(Replay(row["model"], logged["messages"]), case_set.today, **CONFIG[run_dir])
             new = engine.run(logged["request"]).to_json()
             case = by_id[row["case"]]
+            new_calls, old_calls = [_strip(c) for c in new["calls"]], [_strip(c) for c in logged["calls"]]
+            if new_calls != old_calls and CONFIG[run_dir]["ground"] and _explained_by_new_grounding_rules(new_calls,
+                                                                                                         old_calls):
+                continue
             same = (
-                [_strip(c) for c in new["calls"]] == [_strip(c) for c in logged["calls"]]
+                new_calls == old_calls
                 and new["outcome"] == logged["outcome"]
                 and new["final_text"] == logged["final_text"]
                 and score(case, new, case_set.today) == score(case, logged, case_set.today)

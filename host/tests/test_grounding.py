@@ -26,10 +26,10 @@ def test_values_copied_from_results_are_kept():
                            {"title": "Piano lesson", "date": "2026-05-12", "time": "4:45pm",
                             "location": "Riverside Music School", "duration_minutes": 45},
                            "Copy my piano lesson", [EVENT], required=["title", "date"], skip={"date"})
-    # Title, time and place are copied from the event; a duration worked out from 16:45-17:30 is not
-    # written anywhere, so it is dropped rather than trusted.
-    assert set(kept) == {"title", "date", "time", "location"}
-    assert set(dropped) == {"duration_minutes"}
+    # Title, time and place are copied from the event, and 45 minutes is the time between its grounded
+    # start and end (16:45-17:30), so everything is kept.
+    assert set(kept) == {"title", "date", "time", "location", "duration_minutes"}
+    assert not dropped
 
 
 def test_mail_body_facts_must_come_from_sources():
@@ -125,3 +125,38 @@ def test_engine_rejects_ungrounded_required_argument_and_tells_the_model():
     assert run.calls[0].status == "invalid_args" and "ungrounded" in run.calls[0].error
     assert "Use only what the user said" in model.seen[1][-1]["content"]
 
+
+
+def test_numeric_range_is_grounded_by_its_numbers():
+    _, _, failing = run("send_mail", {"to": "jo.park@example.com", "subject": "Notes on slides 4-9",
+                                      "body": "I went through slides 4-9."},
+                        "Tell Jo I've gone through slides 4 to 9", [CONTACT], required=["to", "subject", "body"])
+    assert not failing
+
+
+def test_range_with_an_ungrounded_end_still_fails():
+    _, _, failing = run("send_mail", {"to": "jo.park@example.com", "subject": "Slides 4-12", "body": "Done."},
+                        "Tell Jo I've gone through slides 4 to 9", [CONTACT], required=["to", "subject", "body"])
+    assert "subject" in failing
+
+
+def test_codes_with_letters_must_appear_whole():
+    res = [{"messages": [{"body": "Order ZX-4410"}]}, CONTACT]
+    _, _, failing = run("send_mail", {"to": "jo.park@example.com", "subject": "x", "body": "Order ZX-9"},
+                        "Send Jo my order number", res, required=["to", "subject", "body"])
+    assert "body" in failing
+
+
+def test_duration_from_two_grounded_times_is_kept():
+    kept, dropped, _ = run("create_event", {"title": "Team retro", "date": "the 2nd of April", "time": "3pm",
+                                            "duration_minutes": 90},
+                           "Add a team retro on the 2nd of April from 3pm to 4:30pm", required=["title", "date"],
+                           skip={"date"})
+    assert kept["duration_minutes"] == 90 and not dropped
+
+
+def test_duration_not_between_grounded_times_is_dropped():
+    _, dropped, _ = run("create_event", {"title": "Team retro", "date": "the 2nd of April", "duration_minutes": 60},
+                        "Add a team retro on the 2nd of April from 3pm to 4:30pm", required=["title", "date"],
+                        skip={"date"})
+    assert "duration_minutes" in dropped

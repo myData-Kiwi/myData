@@ -7,7 +7,10 @@ The rule depends only on the kind of argument, never on particular words:
 - Text the model composes (an email's subject and body, an event title) is free wording, so only
   the facts inside it are checked: times, numbers and codes (any token with a digit), and email
   addresses must each appear in a source. A time without am/pm counts if either reading appears.
-- A time or number argument must appear in a source as a time or number.
+- A time or number argument must appear in a source as a time or number. Two general allowances:
+  numbers joined by hyphens ("4-9", "2026-03-30") are grounded when each number is, so a range the
+  user wrote as "4 to 9" grounds "4-9"; and a number of minutes is grounded when it is the difference
+  between two grounded times, so "3pm to 4:30pm" grounds a 90-minute duration.
 - Any other text argument (a search query, a name, a place): each content word must appear in a
   source. "Appear" allows simple inflections: words match on their first five letters.
 
@@ -55,6 +58,17 @@ class Sources:
         rest = _EMAIL.sub(" ", _TIME.sub(" ", text))
         self.tokens = {_norm_token(t) for t in _DIGIT_TOKEN.findall(rest)}
         self.tokens |= {d for t in self.tokens for d in re.findall(r"\d+", t)}
+        self.tokens |= {d.lstrip("0") or "0" for d in list(self.tokens) if d.isdigit()}
+        self.durations = _durations(self.times)
+
+    def number(self, token: str) -> bool:
+        """Is this number (or numeric range or date like 4-9, 2026-03-30) grounded?"""
+        t = _norm_token(token)
+        if t in self.tokens:
+            return True
+        if re.fullmatch(r"\d+(?:-\d+)+", t):
+            return all((part.lstrip("0") or "0") in self.tokens for part in t.split("-"))
+        return t.isdigit() and int(t) in self.durations
 
 
 def _stem(word: str) -> str:
@@ -86,6 +100,12 @@ def _times(text: str) -> set[str]:
     return out
 
 
+def _durations(times: set[str]) -> set[int]:
+    """Minutes between any two grounded times on the same day (later minus earlier)."""
+    mins = sorted({int(t[:2]) * 60 + int(t[3:]) for t in times})
+    return {b - a for i, a in enumerate(mins) for b in mins[i + 1:]}
+
+
 def _fact_problems(value: str, src: Sources) -> list[str]:
     """Facts in composed text that no source mentions."""
     problems = []
@@ -98,7 +118,7 @@ def _fact_problems(value: str, src: Sources) -> list[str]:
     rest = _EMAIL.sub(" ", _TIME.sub(" ", value))
     for tok in _DIGIT_TOKEN.findall(rest):
         t = _norm_token(tok)
-        if t and t not in src.tokens:
+        if t and not src.number(t):
             problems.append(tok)
     return problems
 
@@ -125,7 +145,7 @@ def check(tool: str, args: dict, required: list[str], skip: set[str], src: Sourc
         elif (tool, name) in COMPOSED:
             problems = _fact_problems(str(value), src)
         elif isinstance(value, (int, float)) and not isinstance(value, bool):
-            if _norm_token(str(int(value))) not in src.tokens:
+            if not src.number(str(int(value))):
                 problems = [str(value)]
         elif _is_time(value):
             if not (_times(str(value)) & src.times) and _bare_hour(value) not in src.times:
