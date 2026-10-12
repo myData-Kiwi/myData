@@ -17,7 +17,7 @@ class MyDataApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) => MaterialApp(
     title: 'myData',
-    theme: myDataTheme(),
+    theme: legacyTheme(),
     debugShowCheckedModeBanner: false,
     home: _Home(controller: controller, openSetup: openSetup),
   );

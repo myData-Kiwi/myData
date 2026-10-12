@@ -128,7 +128,7 @@ class AgentTokenRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 10),
       decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: MyDataColors.line)),
+        border: Border(top: BorderSide(color: LegacyColors.line)),
       ),
       child: Row(
         children: [
@@ -214,7 +214,7 @@ class NewTokenDialog extends StatelessWidget {
           children: [
             Text(
               'Copy it now. It will not be shown again.',
-              style: t.bodyMedium?.copyWith(color: MyDataColors.danger, fontWeight: FontWeight.w600),
+              style: t.bodyMedium?.copyWith(color: LegacyColors.danger, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 12),
             _Copyable(label: 'Token', value: agent.token),
@@ -255,10 +255,10 @@ class _CopyableState extends State<_Copyable> {
       const SizedBox(height: 4),
       Container(
         padding: const EdgeInsets.fromLTRB(12, 4, 4, 4),
-        decoration: BoxDecoration(color: MyDataColors.cream, borderRadius: BorderRadius.circular(8)),
+        decoration: BoxDecoration(color: LegacyColors.cream, borderRadius: BorderRadius.circular(8)),
         child: Row(
           children: [
-            Expanded(child: SelectableText(widget.value, style: monoStyle(size: 12))),
+            Expanded(child: SelectableText(widget.value, style: legacyMonoStyle(size: 12))),
             TextButton(onPressed: _copy, child: Text(_copied ? 'Copied' : 'Copy')),
           ],
         ),

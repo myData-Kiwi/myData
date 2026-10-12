@@ -40,7 +40,7 @@ class ApprovalCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                const Icon(Icons.front_hand_outlined, size: 20, color: MyDataColors.skin),
+                const Icon(Icons.front_hand_outlined, size: 20, color: LegacyColors.skin),
                 const SizedBox(width: 8),
                 Expanded(child: Text('This needs your approval', style: t.titleMedium)),
                 _StatusBadge(approval.status),
@@ -81,13 +81,13 @@ class _Field extends StatelessWidget {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: monoStyle(size: 12, color: MyDataColors.muted)),
+        Text(label, style: legacyMonoStyle(size: 12, color: LegacyColors.muted)),
         const SizedBox(height: 4),
         Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(color: MyDataColors.cream, borderRadius: BorderRadius.circular(8)),
-          child: SelectableText(value, style: monoStyle()),
+          decoration: BoxDecoration(color: LegacyColors.cream, borderRadius: BorderRadius.circular(8)),
+          child: SelectableText(value, style: legacyMonoStyle()),
         ),
       ],
     ),
@@ -108,7 +108,7 @@ class _Actions extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (error != null) ...[
-          Text('Your decision was not recorded: $error', style: t.bodyMedium?.copyWith(color: MyDataColors.danger)),
+          Text('Your decision was not recorded: $error', style: t.bodyMedium?.copyWith(color: LegacyColors.danger)),
           const SizedBox(height: 10),
         ],
         Wrap(
@@ -120,7 +120,7 @@ class _Actions extends StatelessWidget {
             OutlinedButton(onPressed: deciding ? null : onReject, child: const Text('Reject')),
             if (deciding) ...[
               const SizedBox.square(dimension: 18, child: CircularProgressIndicator(strokeWidth: 2)),
-              Text('Sending your decision', style: t.bodyMedium?.copyWith(color: MyDataColors.muted)),
+              Text('Sending your decision', style: t.bodyMedium?.copyWith(color: LegacyColors.muted)),
             ],
           ],
         ),
@@ -139,11 +139,11 @@ class _Outcome extends StatelessWidget {
     final (text, color) = switch (approval.status) {
       ApprovalOutStatusEnum.approved => (
         approval.tool == 'send_mail' ? 'Approved and sent' : 'Approved and done',
-        MyDataColors.kiwiDeep,
+        LegacyColors.kiwiDeep,
       ),
-      ApprovalOutStatusEnum.rejected => ('Rejected. Nothing was done.', MyDataColors.fg),
-      ApprovalOutStatusEnum.failed => ('Failed: ${approval.error ?? 'no reason given'}', MyDataColors.danger),
-      _ => ('Waiting for a decision', MyDataColors.muted),
+      ApprovalOutStatusEnum.rejected => ('Rejected. Nothing was done.', LegacyColors.fg),
+      ApprovalOutStatusEnum.failed => ('Failed: ${approval.error ?? 'no reason given'}', LegacyColors.danger),
+      _ => ('Waiting for a decision', LegacyColors.muted),
     };
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

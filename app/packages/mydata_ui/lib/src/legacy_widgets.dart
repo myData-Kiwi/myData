@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-import 'colors.dart';
-import 'theme.dart';
+import 'legacy_colors.dart';
+import 'legacy_theme.dart';
 
 /// The kiwi logo.
 class KiwiLogo extends StatelessWidget {
@@ -11,7 +11,7 @@ class KiwiLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SvgPicture.asset('assets/logo/kiwi.svg',
-      package: MyDataFonts.package, width: size * 210 / 180, height: size, semanticsLabel: 'myData');
+      package: LegacyFonts.package, width: size * 210 / 180, height: size, semanticsLabel: 'myData');
 }
 
 /// The header of every app window: kiwi logo, app name, optional actions.
@@ -28,7 +28,7 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
         height: preferredSize.height,
         padding: const EdgeInsets.symmetric(horizontal: 20),
         decoration: const BoxDecoration(
-            color: MyDataColors.bg, border: Border(bottom: BorderSide(color: MyDataColors.line))),
+            color: LegacyColors.bg, border: Border(bottom: BorderSide(color: LegacyColors.line))),
         child: Row(children: [
           const KiwiLogo(size: 34),
           const SizedBox(width: 10),
@@ -75,8 +75,8 @@ class MessagePanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
     final icon = switch (kind) {
-      PanelKind.error => const Icon(Icons.error_outline, color: MyDataColors.danger, size: 36),
-      PanelKind.info => const Icon(Icons.info_outline, color: MyDataColors.kiwiDeep, size: 36),
+      PanelKind.error => const Icon(Icons.error_outline, color: LegacyColors.danger, size: 36),
+      PanelKind.info => const Icon(Icons.info_outline, color: LegacyColors.kiwiDeep, size: 36),
       PanelKind.working => const KiwiLogo(size: 48),
     };
     return Center(
@@ -100,10 +100,10 @@ class MessagePanel extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                    color: kind == PanelKind.error ? MyDataColors.dangerBg : MyDataColors.cream,
+                    color: kind == PanelKind.error ? LegacyColors.dangerBg : LegacyColors.cream,
                     borderRadius: BorderRadius.circular(8)),
                 child: SelectableText(detail!,
-                    style: monoStyle(size: 12, color: kind == PanelKind.error ? MyDataColors.danger : MyDataColors.fg)),
+                    style: legacyMonoStyle(size: 12, color: kind == PanelKind.error ? LegacyColors.danger : LegacyColors.fg)),
               ),
             ],
             if (onPrimary != null || onSecondary != null) ...[
@@ -157,8 +157,8 @@ class InfoRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        SizedBox(width: 160, child: Text(label, style: t.bodyMedium?.copyWith(color: MyDataColors.muted))),
-        Expanded(child: SelectableText(value, style: mono ? monoStyle() : t.bodyMedium)),
+        SizedBox(width: 160, child: Text(label, style: t.bodyMedium?.copyWith(color: LegacyColors.muted))),
+        Expanded(child: SelectableText(value, style: mono ? legacyMonoStyle() : t.bodyMedium)),
       ]),
     );
   }
@@ -173,10 +173,10 @@ class StatusPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (bg, fg) = switch (tone) {
-      PillTone.good => (MyDataColors.band, MyDataColors.kiwiDeep),
-      PillTone.warn => (MyDataColors.cream, MyDataColors.skin),
-      PillTone.bad => (MyDataColors.dangerBg, MyDataColors.danger),
-      PillTone.neutral => (MyDataColors.cream, MyDataColors.muted),
+      PillTone.good => (LegacyColors.band, LegacyColors.kiwiDeep),
+      PillTone.warn => (LegacyColors.cream, LegacyColors.skin),
+      PillTone.bad => (LegacyColors.dangerBg, LegacyColors.danger),
+      PillTone.neutral => (LegacyColors.cream, LegacyColors.muted),
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),

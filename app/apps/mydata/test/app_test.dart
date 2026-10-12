@@ -43,7 +43,7 @@ void main() {
       ..memory = MemoryOut(hostBytes: 120000000, modelBytes: 9300000000);
     await tester.pumpWidget(
       MaterialApp(
-        theme: myDataTheme(),
+        theme: legacyTheme(),
         home: Scaffold(
           body: StatusScreen(status: status, agents: agents),
         ),

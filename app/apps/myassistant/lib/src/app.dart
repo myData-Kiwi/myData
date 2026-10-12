@@ -15,7 +15,7 @@ class MyAssistantApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) => MaterialApp(
     title: 'myAssistant',
-    theme: myDataTheme(),
+    theme: legacyTheme(),
     debugShowCheckedModeBanner: false,
     home: AssistantHome(host: host),
   );

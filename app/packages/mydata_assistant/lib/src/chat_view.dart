@@ -119,7 +119,7 @@ class _EmptyChat extends StatelessWidget {
       child: Text(
         'Ask about your calendar, mail, contacts or photos.',
         textAlign: TextAlign.center,
-        style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: MyDataColors.muted),
+        style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: LegacyColors.muted),
       ),
     ),
   );
@@ -169,8 +169,8 @@ class _Bubble extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: mine ? MyDataColors.band : MyDataColors.surface,
-          border: mine ? null : Border.all(color: MyDataColors.line),
+          color: mine ? LegacyColors.band : LegacyColors.surface,
+          border: mine ? null : Border.all(color: LegacyColors.line),
           borderRadius: BorderRadius.circular(12),
         ),
         child: SelectableText(text, style: Theme.of(context).textTheme.bodyLarge),
@@ -189,14 +189,14 @@ class _ProgressRow extends StatelessWidget {
       SizedBox.square(
         dimension: 16,
         child: line.done
-            ? const Icon(Icons.check, size: 16, color: MyDataColors.kiwiDeep)
+            ? const Icon(Icons.check, size: 16, color: LegacyColors.kiwiDeep)
             : const CircularProgressIndicator(strokeWidth: 2),
       ),
       const SizedBox(width: 8),
       Flexible(
         child: Text(
           line.done ? line.label : '${line.label}…',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: MyDataColors.muted),
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: LegacyColors.muted),
         ),
       ),
     ],
@@ -214,7 +214,7 @@ class _Composer extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
     decoration: const BoxDecoration(
-      border: Border(top: BorderSide(color: MyDataColors.line)),
+      border: Border(top: BorderSide(color: LegacyColors.line)),
     ),
     child: Center(
       child: ConstrainedBox(

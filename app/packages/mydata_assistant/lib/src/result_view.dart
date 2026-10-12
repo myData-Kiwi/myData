@@ -22,7 +22,7 @@ class ResultCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(_icon, size: 18, color: MyDataColors.kiwiDeep),
+                Icon(_icon, size: 18, color: LegacyColors.kiwiDeep),
                 const SizedBox(width: 8),
                 Expanded(child: Text(header, style: t.titleSmall)),
               ],
@@ -97,8 +97,8 @@ class ResultCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(s('name'), style: t.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
-          if (s('email').isNotEmpty) SelectableText(s('email'), style: monoStyle(size: 12)),
-          if (s('phone').isNotEmpty) SelectableText(s('phone'), style: monoStyle(size: 12)),
+          if (s('email').isNotEmpty) SelectableText(s('email'), style: legacyMonoStyle(size: 12)),
+          if (s('phone').isNotEmpty) SelectableText(s('phone'), style: legacyMonoStyle(size: 12)),
         ],
       ),
       _ => Text(item.toString(), style: muted),
@@ -117,11 +117,11 @@ class _PhotoTile extends StatelessWidget {
     return Container(
       width: 150,
       padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(color: MyDataColors.cream, borderRadius: BorderRadius.circular(8)),
+      decoration: BoxDecoration(color: LegacyColors.cream, borderRadius: BorderRadius.circular(8)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.photo_outlined, size: 28, color: MyDataColors.muted),
+          const Icon(Icons.photo_outlined, size: 28, color: LegacyColors.muted),
           const SizedBox(height: 6),
           Text('${photo['place'] ?? ''}', style: t.labelLarge, maxLines: 1, overflow: TextOverflow.ellipsis),
           Text('${photo['day'] ?? ''}', style: t.bodySmall),

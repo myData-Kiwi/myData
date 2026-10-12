@@ -60,7 +60,7 @@ void main() {
 
   testWidgets('the result card shows the header and every item', (tester) async {
     await tester.pumpWidget(MaterialApp(
-        theme: myDataTheme(),
+        theme: legacyTheme(),
         home: Scaffold(body: ResultCard(kind: _events.kind, header: _events.header, items: _events.items))));
     expect(find.text('2 events on Thursday 19 March'), findsOneWidget);
     expect(find.text('Personal training'), findsOneWidget);

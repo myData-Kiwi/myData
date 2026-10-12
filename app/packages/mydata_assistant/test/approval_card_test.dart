@@ -21,7 +21,7 @@ Future<void> show(
   addTearDown(tester.view.reset);
   return tester.pumpWidget(
     MaterialApp(
-      theme: myDataTheme(),
+      theme: legacyTheme(),
       home: Scaffold(
         body: SingleChildScrollView(
           child: ApprovalCard(
@@ -57,7 +57,7 @@ void main() {
     expect(full, findsOneWidget);
     final body = tester.widget<SelectableText>(full);
     expect(body.maxLines, isNull);
-    expect(body.style?.fontFamily, contains(MyDataFonts.mono));
+    expect(body.style?.fontFamily, contains(LegacyFonts.mono));
   });
 
   testWidgets('Approve and Reject call their callbacks', (tester) async {

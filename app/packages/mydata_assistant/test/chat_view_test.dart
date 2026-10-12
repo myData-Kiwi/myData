@@ -26,7 +26,7 @@ class ScriptedBackend implements AssistantBackend {
 }
 
 Widget app(Widget child) => MaterialApp(
-  theme: myDataTheme(),
+  theme: legacyTheme(),
   home: Scaffold(body: child),
 );
 

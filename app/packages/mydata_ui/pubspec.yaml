@@ -1,5 +1,5 @@
 name: mydata_ui
-description: "myData design system: palette, fonts, logo and shared widgets."
+description: "myData design system: tokens generated from design/, theme, fonts, logo and shared widgets."
 publish_to: none
 version: 0.0.1
 
@@ -16,6 +16,7 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  mydata_testing: ^0.0.1
   flutter_lints: ^6.0.0
 
 # For information on the generic Dart part of this file, see the
@@ -24,27 +25,23 @@ dev_dependencies:
 # The following section is specific to Flutter packages.
 flutter:
   assets:
-    - assets/logo/kiwi.svg
+    - assets/logo/
+    - assets/fonts/OFL-plusjakartasans.txt
+    - assets/fonts/OFL-figtree.txt
+    - assets/fonts/OFL-jetbrainsmono.txt
+  # Only the weights the design uses (design/README.md, "Type"). Licences: assets/fonts/OFL-*.txt.
   fonts:
+    - family: PlusJakartaSans
+      fonts:
+        - asset: assets/fonts/PlusJakartaSans-700.ttf
+          weight: 700
     - family: Figtree
       fonts:
         - asset: assets/fonts/Figtree-400.ttf
           weight: 400
-        - asset: assets/fonts/Figtree-500.ttf
-          weight: 500
         - asset: assets/fonts/Figtree-600.ttf
           weight: 600
-        - asset: assets/fonts/Figtree-700.ttf
-          weight: 700
-    - family: BricolageGrotesque
-      fonts:
-        - asset: assets/fonts/BricolageGrotesque-600.ttf
-          weight: 600
-        - asset: assets/fonts/BricolageGrotesque-700.ttf
-          weight: 700
     - family: JetBrainsMono
       fonts:
         - asset: assets/fonts/JetBrainsMono-400.ttf
           weight: 400
-        - asset: assets/fonts/JetBrainsMono-600.ttf
-          weight: 600

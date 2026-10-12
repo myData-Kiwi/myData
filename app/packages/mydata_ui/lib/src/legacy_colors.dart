@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 /// The palette from CLAUDE.md (the website's tokens). Light theme only.
-abstract final class MyDataColors {
+abstract final class LegacyColors {
   static const bg = Color(0xFFFCFDF7);
   static const surface = Color(0xFFFFFFFF);
   static const band = Color(0xFFE3EFBF);
@@ -18,8 +18,8 @@ abstract final class MyDataColors {
   static const dangerBg = Color(0xFFFBEDE7);
 }
 
-abstract final class MyDataFonts {
-  static const display = 'BricolageGrotesque';
+abstract final class LegacyFonts {
+  static const display = 'PlusJakartaSans';
   static const body = 'Figtree';
   static const mono = 'JetBrainsMono';
   static const package = 'mydata_ui';

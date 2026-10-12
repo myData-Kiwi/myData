@@ -23,7 +23,7 @@ Future<Calls> pumpSetup(
   final calls = Calls();
   await tester.pumpWidget(
     MaterialApp(
-      theme: myDataTheme(),
+      theme: legacyTheme(),
       home: SetupScreen(
         phase: phase,
         status: status,
