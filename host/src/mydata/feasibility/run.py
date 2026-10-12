@@ -90,6 +90,7 @@ def cmd_run(ns: argparse.Namespace) -> int:
         }
     meta = {
         "stamp": stamp, "set": case_set.name, "label": ns.label, "today": case_set.today.isoformat(),
+        "followup": ns.followup,
         **digests(case_set), "reps": ns.reps,
         "models": models_meta, "ollama_version": probe.version(),
         "sampling": "model defaults, no seed (variance across reps is part of the measurement)",
@@ -107,7 +108,7 @@ def cmd_run(ns: argparse.Namespace) -> int:
             model.load()
             # One untimed request (not one of the cases) to warm the shared prompt prefix.
             Engine(model, case_set.today).run("Hello")
-            engine = Engine(model, case_set.today)
+            engine = Engine(model, case_set.today, followup=ns.followup)
             for case in selected:
                 for rep in range(1, ns.reps + 1):
                     run = engine.run(case["text"]).to_json()
@@ -473,6 +474,18 @@ def cmd_compare(ns: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_latency(name: str, ns: argparse.Namespace) -> int:
+    from . import latency
+    out = Path(ns.out) / ns.stamp
+    if name == "latency":
+        print(latency.run_latency(ns.set, ns.model, ns.reps, ns.modes, out))
+    elif name == "decide":
+        print(latency.run_decide(ns.set, ns.model, ns.reps, out))
+    else:
+        print(latency.run_speed(ns.set, ns.model, ns.minutes, out))
+    return 0
+
+
 def _cmd_timing(ns: argparse.Namespace) -> int:
     from .timing import run_timing
     print(run_timing(ns.set, ns.model, ns.reps, Path(ns.out) / ns.stamp)["report"])
@@ -493,6 +506,8 @@ def main(argv: list[str] | None = None) -> int:
     r.add_argument("--num-ctx", type=int, default=8192)
     r.add_argument("--keep-loaded", action="store_true")
     r.add_argument("--think", action="store_true", help="turn thinking on (default off)")
+    r.add_argument("--followup", default="full", choices=["full", "rule", "field"],
+                   help="after a tool result: model always writes the reply (full), or rule / field")
     r.set_defaults(fn=cmd_run)
     p = sub.add_parser("report", help="print the report for a runs.jsonl")
     p.add_argument("runs")
@@ -506,6 +521,18 @@ def main(argv: list[str] | None = None) -> int:
     t.add_argument("--out", default="results")
     t.add_argument("--stamp", required=True)
     t.set_defaults(fn=lambda ns: _cmd_timing(ns))
+    for name, helptext in (("latency", "time to result on screen / end of reply by follow-up mode"),
+                           ("decide", "code rule vs then-field on the labelled follow-up probes"),
+                           ("speed", "prompt-read and generation speed, cold and warm, over time")):
+        q = sub.add_parser(name, help=helptext)
+        q.add_argument("--set", default="2026-10-11-b")
+        q.add_argument("--model", default="qwen3:14b")
+        q.add_argument("--reps", type=int, default=3)
+        q.add_argument("--modes", nargs="+", default=["full", "rule", "field"])
+        q.add_argument("--minutes", type=float, default=10)
+        q.add_argument("--out", default="results")
+        q.add_argument("--stamp", required=True)
+        q.set_defaults(fn=lambda ns, name=name: _cmd_latency(name, ns))
     c = sub.add_parser("compare", help="one table across runs: label=path/runs.jsonl ...")
     c.add_argument("runs", nargs="+")
     c.add_argument("--rescore", action="store_true")
