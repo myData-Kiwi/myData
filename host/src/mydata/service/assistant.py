@@ -43,6 +43,7 @@ class Assistant:
         self._model_factory = model_factory or (lambda: OllamaChat(
             settings.model, host=settings.ollama_url, think=settings.think, options={"num_ctx": settings.num_ctx}))
         self._today = today
+        self.today = today
         self._conversations: dict[str, list[dict]] = {}
         self._lock = threading.Lock()
         # One model on one machine: answer one message at a time.

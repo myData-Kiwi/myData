@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import ipaddress
 import os
+from datetime import date
 import sys
 import tomllib
 from dataclasses import dataclass, field
@@ -40,6 +41,12 @@ num_ctx = 8192
 
 [log]
 level = "INFO"
+
+[dev]
+# The tools still serve fake demo data dated around 18 March 2026, so the host's "today" is pinned
+# to that date: "tomorrow" then means 19 March and finds the demo events. Set to false to use the
+# real date. Remove this setting when the tools serve real data.
+pin_today = "2026-03-18"
 """
 
 
@@ -69,7 +76,12 @@ class Settings:
     think: bool = False
     num_ctx: int = 8192
     log_level: str = "INFO"
+    # Development: the date the host treats as today (None = the real date). See DEFAULT_CONFIG [dev].
+    pin_today: date | None = None
     extra: dict = field(default_factory=dict)
+
+    def today(self) -> date:
+        return self.pin_today or date.today()
 
     @property
     def config_path(self) -> Path:
@@ -117,6 +129,20 @@ def _get(table: dict, key: str, kind: type, default):
     return v
 
 
+def _pin_today(dev: dict) -> date | None:
+    """On by default (also for config files written before the setting existed) while the tools are fakes."""
+    from ..orchestrator.fixtures import TODAY as DEMO_TODAY
+    v = dev.get("pin_today", DEMO_TODAY.isoformat())
+    if v is False or v == "":
+        return None
+    if not isinstance(v, str):
+        raise ConfigError(f"dev.pin_today must be a date like \"2026-03-18\" or false, not {v!r}")
+    try:
+        return date.fromisoformat(v)
+    except ValueError:
+        raise ConfigError(f"dev.pin_today {v!r} is not a date (YYYY-MM-DD)") from None
+
+
 def load_settings(home: Path | None = None, create: bool = True) -> Settings:
     """Read config.toml, writing the defaults first if it does not exist."""
     home = home or home_dir()
@@ -130,7 +156,7 @@ def load_settings(home: Path | None = None, create: bool = True) -> Settings:
         raw = tomllib.loads(path.read_text())
     except tomllib.TOMLDecodeError as e:
         raise ConfigError(f"{path}: {e}") from None
-    server, model, log = _table(raw, "server"), _table(raw, "model"), _table(raw, "log")
+    server, model, log, dev = _table(raw, "server"), _table(raw, "model"), _table(raw, "log"), _table(raw, "dev")
     s = Settings(
         home=home,
         host=_get(server, "server.host", str, "127.0.0.1"),
@@ -142,6 +168,7 @@ def load_settings(home: Path | None = None, create: bool = True) -> Settings:
         think=_get(model, "model.think", bool, False),
         num_ctx=_get(model, "model.num_ctx", int, 8192),
         log_level=_get(log, "log.level", str, "INFO").upper(),
+        pin_today=_pin_today(dev),
     )
     if s.log_level not in ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"):
         raise ConfigError(f"log.level {s.log_level!r} is not a log level")

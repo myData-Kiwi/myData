@@ -393,6 +393,11 @@
             "title": "Agents Connected",
             "type": "integer"
           },
+          "demo_date": {
+            "description": "true while today is pinned to the demo data's date",
+            "title": "Demo Date",
+            "type": "boolean"
+          },
           "model": {
             "$ref": "#/components/schemas/ModelOut"
           },
@@ -400,6 +405,11 @@
             "description": "true when the assistant can answer",
             "title": "Ready",
             "type": "boolean"
+          },
+          "today": {
+            "description": "the date the host treats as today",
+            "title": "Today",
+            "type": "string"
           },
           "uptime_seconds": {
             "title": "Uptime Seconds",
@@ -415,7 +425,9 @@
           "ready",
           "uptime_seconds",
           "model",
-          "agents_connected"
+          "agents_connected",
+          "today",
+          "demo_date"
         ],
         "title": "StatusOut",
         "type": "object"

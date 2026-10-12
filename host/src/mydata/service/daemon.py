@@ -80,9 +80,9 @@ def build(settings: Settings):
         legacy.unlink()
         log(logger, logging.INFO, "removed the old shared token; apps now have their own", path=str(legacy))
     auth = Authenticator(ensure_app_tokens(settings.home), AgentStore(settings.home))
-    registry = default_registry()
+    registry = default_registry(today=settings.today)
     models = ModelManager(settings)
-    assistant = Assistant(settings, registry)
+    assistant = Assistant(settings, registry, today=settings.today)
     return create_app(auth, registry, models, assistant), models
 
 
@@ -103,6 +103,10 @@ def main(argv: list[str] | None = None) -> int:
     app, models = build(settings)
     log(logger, logging.INFO, "starting", version=__version__, host=settings.host, port=settings.port,
         home=str(settings.home), model=settings.model)
+    if settings.pin_today:
+        log(logger, logging.WARNING, f"DEMO DATE: the host treats {settings.pin_today.isoformat()} as today, because the "
+            "tools serve fake demo data. Set [dev] pin_today = false in config.toml to use the real date.",
+            pin_today=settings.pin_today.isoformat())
     models.start()
     # uvicorn shuts down gracefully on SIGTERM/SIGINT, then re-raises the signal to the handler that was
     # installed before it. With the default handler that kills the process before the cleanup below runs,

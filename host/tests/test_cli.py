@@ -83,4 +83,5 @@ def test_detached_daemon_logs_each_line_once(tmp_path):
     finally:
         _mydata(tmp_path, "stop")
     assert (tmp_path / "logs" / "mydatad.log").read_text().count('"msg": "starting"') == 1
+    assert "DEMO DATE" in (tmp_path / "logs" / "mydatad.log").read_text()
     assert '"msg"' not in (tmp_path / "logs" / "mydatad.out").read_text()

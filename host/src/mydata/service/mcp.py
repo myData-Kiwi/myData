@@ -11,8 +11,7 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import date
-from typing import Any, Callable
+from typing import Any
 
 import anyio
 import mcp_types as types
@@ -31,7 +30,7 @@ _ERRORS = {"unknown_tool", "invalid_args", "bad_date", "error"}
 logger = logging.getLogger("mydata.mcp")
 
 
-def build_mcp(registry: Registry, today: Callable[[], date] = date.today) -> StreamableHTTPSessionManager:
+def build_mcp(registry: Registry) -> StreamableHTTPSessionManager:
     def tool_list() -> list[types.Tool]:
         return [types.Tool.model_validate({
             "name": t["name"],
@@ -49,7 +48,7 @@ def build_mcp(registry: Registry, today: Callable[[], date] = date.today) -> Str
         caller = principal.label if principal else "mcp"
         try:
             inv = await anyio.to_thread.run_sync(
-                lambda: registry.invoke(params.name, params.arguments or {}, caller=caller, today=today()))
+                lambda: registry.invoke(params.name, params.arguments or {}, caller=caller))
         except Exception as e:  # a bug in a tool or the resolver is an error result, never a crashed request
             logger.exception("mcp tool call failed")
             return types.CallToolResult(content=[types.TextContent(text=json.dumps(

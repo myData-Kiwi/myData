@@ -62,6 +62,8 @@ class StatusOut(BaseModel):
     uptime_seconds: float
     model: ModelOut
     agents_connected: int = Field(description="agent tokens used in the last five minutes")
+    today: str = Field(description="the date the host treats as today")
+    demo_date: bool = Field(description="true while today is pinned to the demo data's date")
 
 
 class MessageIn(BaseModel):
@@ -141,7 +143,8 @@ def create_app(auth: Authenticator, registry: Registry, models: ModelManager, as
         m = models.status()
         return StatusOut(version=__version__, ready=m.state == "ready", uptime_seconds=round(time.time() - started, 1),
                          model=ModelOut(**m.to_json()),
-                         agents_connected=sum(a["connected"] for a in auth.agents.list()))
+                         agents_connected=sum(a["connected"] for a in auth.agents.list()),
+                         today=assistant.today().isoformat(), demo_date=assistant.settings.pin_today is not None)
 
     @app.post("/model/retry", response_model=StatusOut)
     def retry() -> StatusOut:
