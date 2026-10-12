@@ -210,6 +210,10 @@ class ApiClient {
           return AgentIn.fromJson(value);
         case 'AgentOut':
           return AgentOut.fromJson(value);
+        case 'AppearanceIn':
+          return AppearanceIn.fromJson(value);
+        case 'AppearanceOut':
+          return AppearanceOut.fromJson(value);
         case 'ApprovalOut':
           return ApprovalOut.fromJson(value);
         case 'AssistantSettingsIn':
@@ -232,6 +236,8 @@ class ApiClient {
           return Progress.fromJson(value);
         case 'StatusOut':
           return StatusOut.fromJson(value);
+        case 'ThemeOut':
+          return ThemeOut.fromJson(value);
         case 'ToolOut':
           return ToolOut.fromJson(value);
         case 'ValidationError':

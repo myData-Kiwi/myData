@@ -132,6 +132,43 @@
         "title": "AgentOut",
         "type": "object"
       },
+      "AppearanceIn": {
+        "properties": {
+          "theme": {
+            "description": "a theme id from GET /appearance",
+            "title": "Theme",
+            "type": "string"
+          }
+        },
+        "required": [
+          "theme"
+        ],
+        "title": "AppearanceIn",
+        "type": "object"
+      },
+      "AppearanceOut": {
+        "properties": {
+          "theme": {
+            "description": "the theme every app uses; mode is per device and not stored here",
+            "title": "Theme",
+            "type": "string"
+          },
+          "themes": {
+            "description": "every theme, in the order to show them",
+            "items": {
+              "$ref": "#/components/schemas/ThemeOut"
+            },
+            "title": "Themes",
+            "type": "array"
+          }
+        },
+        "required": [
+          "theme",
+          "themes"
+        ],
+        "title": "AppearanceOut",
+        "type": "object"
+      },
       "ApprovalOut": {
         "properties": {
           "args": {
@@ -487,6 +524,11 @@
             "title": "Ready",
             "type": "boolean"
           },
+          "theme": {
+            "description": "the theme every app uses; mode is per device and not stored here",
+            "title": "Theme",
+            "type": "string"
+          },
           "today": {
             "description": "the date the host treats as today",
             "title": "Today",
@@ -510,9 +552,28 @@
           "model",
           "agents_connected",
           "today",
-          "demo_date"
+          "demo_date",
+          "theme"
         ],
         "title": "StatusOut",
+        "type": "object"
+      },
+      "ThemeOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "ThemeOut",
         "type": "object"
       },
       "ToolOut": {
@@ -791,6 +852,131 @@
         "summary": "Revoke Agent",
         "tags": [
           "agents"
+        ]
+      }
+    },
+    "/appearance": {
+      "get": {
+        "description": "The theme every app uses, and the themes to choose from. Light or dark mode is per device.",
+        "operationId": "appearance",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppearanceOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "missing or wrong token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "agent tokens can only use /mcp"
+          },
+          "421": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "the Host header is not this machine"
+          }
+        },
+        "summary": "Appearance",
+        "tags": [
+          "appearance"
+        ]
+      },
+      "put": {
+        "description": "Set the theme every app uses. Apps follow the change through GET /status.",
+        "operationId": "set_appearance",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppearanceIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppearanceOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "description": "no such theme"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "missing or wrong token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "agent tokens can only use /mcp"
+          },
+          "421": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "the Host header is not this machine"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Set Appearance",
+        "tags": [
+          "appearance"
         ]
       }
     },

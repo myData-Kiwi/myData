@@ -20,6 +20,7 @@ class StatusOut {
     required this.memory,
     required this.model,
     required this.ready,
+    required this.theme,
     required this.today,
     required this.uptimeSeconds,
     required this.version,
@@ -43,6 +44,9 @@ class StatusOut {
   /// true when the assistant can answer
   bool ready;
 
+  /// the theme every app uses; mode is per device and not stored here
+  String theme;
+
   /// the date the host treats as today
   String today;
 
@@ -61,6 +65,7 @@ class StatusOut {
           other.memory == memory &&
           other.model == model &&
           other.ready == ready &&
+          other.theme == theme &&
           other.today == today &&
           other.uptimeSeconds == uptimeSeconds &&
           other.version == version;
@@ -75,13 +80,14 @@ class StatusOut {
       (memory.hashCode) +
       (model.hashCode) +
       (ready.hashCode) +
+      (theme.hashCode) +
       (today.hashCode) +
       (uptimeSeconds.hashCode) +
       (version.hashCode);
 
   @override
   String toString() =>
-      'StatusOut[agentsConnected=$agentsConnected, assistantEnabled=$assistantEnabled, demoDate=$demoDate, lastError=$lastError, memory=$memory, model=$model, ready=$ready, today=$today, uptimeSeconds=$uptimeSeconds, version=$version]';
+      'StatusOut[agentsConnected=$agentsConnected, assistantEnabled=$assistantEnabled, demoDate=$demoDate, lastError=$lastError, memory=$memory, model=$model, ready=$ready, theme=$theme, today=$today, uptimeSeconds=$uptimeSeconds, version=$version]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
@@ -96,6 +102,7 @@ class StatusOut {
     json[r'memory'] = this.memory;
     json[r'model'] = this.model;
     json[r'ready'] = this.ready;
+    json[r'theme'] = this.theme;
     json[r'today'] = this.today;
     json[r'uptime_seconds'] = this.uptimeSeconds;
     json[r'version'] = this.version;
@@ -137,6 +144,10 @@ class StatusOut {
             'Required key "StatusOut[ready]" is missing from JSON.');
         assert(json[r'ready'] != null,
             'Required key "StatusOut[ready]" has a null value in JSON.');
+        assert(json.containsKey(r'theme'),
+            'Required key "StatusOut[theme]" is missing from JSON.');
+        assert(json[r'theme'] != null,
+            'Required key "StatusOut[theme]" has a null value in JSON.');
         assert(json.containsKey(r'today'),
             'Required key "StatusOut[today]" is missing from JSON.');
         assert(json[r'today'] != null,
@@ -160,6 +171,7 @@ class StatusOut {
         memory: MemoryOut.fromJson(json[r'memory'])!,
         model: ModelOut.fromJson(json[r'model'])!,
         ready: mapValueOfType<bool>(json, r'ready')!,
+        theme: mapValueOfType<String>(json, r'theme')!,
         today: mapValueOfType<String>(json, r'today')!,
         uptimeSeconds: num.parse('${json[r'uptime_seconds']}'),
         version: mapValueOfType<String>(json, r'version')!,
@@ -225,6 +237,7 @@ class StatusOut {
     'memory',
     'model',
     'ready',
+    'theme',
     'today',
     'uptime_seconds',
     'version',

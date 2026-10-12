@@ -6,6 +6,8 @@
   GET  /approvals/{id}         one approval
   POST /approvals/{id}         approve or reject; approving runs exactly the held call, once
   PUT  /assistant/settings     switch the assistant on or off
+  GET  /appearance             the theme every app uses, and the themes to choose from
+  PUT  /appearance             set the theme every app uses (light or dark mode is per device, not here)
   POST /shutdown               stop the host (the myData app and the mydata command only)
   GET  /tools                  the tool registry
   GET  /agents                 agent tokens (never the tokens themselves), and which are connected
@@ -35,6 +37,7 @@ from starlette.routing import Route
 
 from .. import __version__
 from ..tools import ApprovalError, Registry
+from .appearance import DEFAULT_THEME, THEME_IDS, THEMES
 from .assistant import Assistant
 from .auth import Authenticator
 from .logs import LAST_ERROR
@@ -86,6 +89,7 @@ class StatusOut(BaseModel):
     agents_connected: int = Field(description="agent tokens used in the last five minutes")
     today: str = Field(description="the date the host treats as today")
     demo_date: bool = Field(description="true while today is pinned to the demo data's date")
+    theme: str = Field(description="the theme every app uses; mode is per device and not stored here")
 
 
 class MessageIn(BaseModel):
@@ -110,6 +114,20 @@ class ApprovalOut(BaseModel):
 
 class AssistantSettingsIn(BaseModel):
     enabled: bool
+
+
+class ThemeOut(BaseModel):
+    id: str
+    name: str
+
+
+class AppearanceOut(BaseModel):
+    theme: str = Field(description="the theme every app uses; mode is per device and not stored here")
+    themes: list[ThemeOut] = Field(description="every theme, in the order to show them")
+
+
+class AppearanceIn(BaseModel):
+    theme: str = Field(description="a theme id from GET /appearance")
 
 
 class DecisionIn(BaseModel):
@@ -158,6 +176,11 @@ def create_app(auth: Authenticator, registry: Registry, models: ModelManager, as
     """The ASGI app: FastAPI routes plus /mcp, wrapped in the token and Host checks."""
     started = time.time()
     session_manager = build_mcp(registry)
+    # Without a state file (the OpenAPI document), the theme lives in memory only.
+    no_state = {"theme": DEFAULT_THEME}
+
+    def current_theme() -> str:
+        return state.theme if state is not None else no_state["theme"]
 
     @asynccontextmanager
     async def lifespan(_app):
@@ -180,7 +203,8 @@ def create_app(auth: Authenticator, registry: Registry, models: ModelManager, as
                          uptime_seconds=round(time.time() - started, 1),
                          model=ModelOut(**m.to_json()),
                          agents_connected=sum(a["connected"] for a in auth.agents.list()),
-                         today=assistant.today().isoformat(), demo_date=assistant.settings.pin_today is not None)
+                         today=assistant.today().isoformat(), demo_date=assistant.settings.pin_today is not None,
+                         theme=current_theme())
 
     @app.post("/model/retry", tags=["host"], response_model=StatusOut)
     def retry() -> StatusOut:
@@ -208,6 +232,26 @@ def create_app(auth: Authenticator, registry: Registry, models: ModelManager, as
             state.set_assistant_enabled(body.enabled)
         models.set_enabled(body.enabled)
         return status()
+
+    def appearance_out() -> AppearanceOut:
+        return AppearanceOut(theme=current_theme(), themes=[ThemeOut(id=i, name=n) for i, n in THEMES])
+
+    @app.get("/appearance", tags=["appearance"], response_model=AppearanceOut)
+    def appearance() -> AppearanceOut:
+        """The theme every app uses, and the themes to choose from. Light or dark mode is per device."""
+        return appearance_out()
+
+    @app.put("/appearance", tags=["appearance"], response_model=AppearanceOut,
+             responses={400: {"description": "no such theme"}})
+    def set_appearance(body: AppearanceIn) -> AppearanceOut:
+        """Set the theme every app uses. Apps follow the change through GET /status."""
+        if body.theme not in THEME_IDS:
+            raise HTTPException(400, f"no such theme: {body.theme}; choose one of {', '.join(THEME_IDS)}")
+        if state is not None:
+            state.set_theme(body.theme)
+        else:
+            no_state["theme"] = body.theme
+        return appearance_out()
 
     @app.post("/shutdown", tags=["host"], status_code=202, responses={403: {"description": "only the myData app can stop the host"}})
     def shutdown_host(request: Request) -> dict:

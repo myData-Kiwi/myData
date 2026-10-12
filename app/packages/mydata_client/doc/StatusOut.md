@@ -15,6 +15,7 @@ Name | Type | Description | Notes
 **memory** | [**MemoryOut**](MemoryOut.md) |  | 
 **model** | [**ModelOut**](ModelOut.md) |  | 
 **ready** | **bool** | true when the assistant can answer | 
+**theme** | **String** | the theme every app uses; mode is per device and not stored here | 
 **today** | **String** | the date the host treats as today | 
 **uptimeSeconds** | **num** |  | 
 **version** | **String** |  | 

@@ -26,6 +26,7 @@ class FakeHost {
             'agents_connected': 0,
             'today': '2026-03-18',
             'demo_date': true,
+            'theme': 'kiwi',
             'model': {
               'name': 'qwen3:14b',
               'state': 'ready',

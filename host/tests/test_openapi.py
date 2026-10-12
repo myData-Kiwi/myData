@@ -19,4 +19,4 @@ def test_openapi_declares_bearer_auth_and_localhost_server():
     assert doc["servers"][0]["url"].startswith("http://127.0.0.1:")
     assert set(doc["paths"]) == {"/status", "/model/retry", "/assistant/messages", "/approvals",
                                  "/approvals/{approval_id}", "/tools", "/agents", "/agents/{agent_id}",
-                                 "/assistant/settings", "/shutdown"}
+                                 "/assistant/settings", "/shutdown", "/appearance"}

@@ -16,6 +16,7 @@ StatusOut statusWith(ModelOutStateEnum state, {Progress? progress, String? error
     error: error,
   ),
   ready: state == ModelOutStateEnum.ready,
+  theme: 'kiwi',
   today: '2026-03-18',
   uptimeSeconds: 12,
   version: '0.1.0',

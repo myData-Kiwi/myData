@@ -67,6 +67,8 @@ Class | Method | HTTP request | Description
 *AgentsApi* | [**agents**](doc//AgentsApi.md#agents) | **GET** /agents | Agents
 *AgentsApi* | [**createAgent**](doc//AgentsApi.md#createagent) | **POST** /agents | Create Agent
 *AgentsApi* | [**revokeAgent**](doc//AgentsApi.md#revokeagent) | **DELETE** /agents/{agent_id} | Revoke Agent
+*AppearanceApi* | [**appearance**](doc//AppearanceApi.md#appearance) | **GET** /appearance | Appearance
+*AppearanceApi* | [**setAppearance**](doc//AppearanceApi.md#setappearance) | **PUT** /appearance | Set Appearance
 *ApprovalsApi* | [**approval**](doc//ApprovalsApi.md#approval) | **GET** /approvals/{approval_id} | Approval
 *ApprovalsApi* | [**approvals**](doc//ApprovalsApi.md#approvals) | **GET** /approvals | Approvals
 *ApprovalsApi* | [**decide**](doc//ApprovalsApi.md#decide) | **POST** /approvals/{approval_id} | Decide
@@ -83,6 +85,8 @@ Class | Method | HTTP request | Description
  - [AgentCreated](doc//AgentCreated.md)
  - [AgentIn](doc//AgentIn.md)
  - [AgentOut](doc//AgentOut.md)
+ - [AppearanceIn](doc//AppearanceIn.md)
+ - [AppearanceOut](doc//AppearanceOut.md)
  - [ApprovalOut](doc//ApprovalOut.md)
  - [AssistantSettingsIn](doc//AssistantSettingsIn.md)
  - [DecisionIn](doc//DecisionIn.md)
@@ -94,6 +98,7 @@ Class | Method | HTTP request | Description
  - [ModelOut](doc//ModelOut.md)
  - [Progress](doc//Progress.md)
  - [StatusOut](doc//StatusOut.md)
+ - [ThemeOut](doc//ThemeOut.md)
  - [ToolOut](doc//ToolOut.md)
  - [ValidationError](doc//ValidationError.md)
 

@@ -29,6 +29,7 @@ part 'auth/http_basic_auth.dart';
 part 'auth/http_bearer_auth.dart';
 
 part 'api/agents_api.dart';
+part 'api/appearance_api.dart';
 part 'api/approvals_api.dart';
 part 'api/assistant_api.dart';
 part 'api/host_api.dart';
@@ -37,6 +38,8 @@ part 'api/tools_api.dart';
 part 'model/agent_created.dart';
 part 'model/agent_in.dart';
 part 'model/agent_out.dart';
+part 'model/appearance_in.dart';
+part 'model/appearance_out.dart';
 part 'model/approval_out.dart';
 part 'model/assistant_settings_in.dart';
 part 'model/decision_in.dart';
@@ -48,6 +51,7 @@ part 'model/message_in.dart';
 part 'model/model_out.dart';
 part 'model/progress.dart';
 part 'model/status_out.dart';
+part 'model/theme_out.dart';
 part 'model/tool_out.dart';
 part 'model/validation_error.dart';
 
