@@ -6,7 +6,13 @@ This file is the project's working memory. Read it before doing anything. Update
 
 ## Status
 
-Concept stage. Built so far: the marketing site and the orchestrator with its feasibility harness (`mydata-kiwi/mydata`: `src/mydata/orchestrator`, `src/mydata/feasibility`). Two rounds of feasibility testing are done (see "Feasibility test result" and "Round 2 result"). **The host skeleton is next**: service process, config, logging, and the orchestrator from the harness. The round-2 time box is over; chained requests are not solved and are carried forward as an open problem, not a blocker.
+Early build. Done:
+- the marketing site;
+- two rounds of feasibility testing (see "Feasibility test result" and "Round 2 result");
+- **the host** (phase 1): `mydatad` with the tool layer and permission gate, HTTP API, MCP, app and agent tokens;
+- **the first two apps** (phase 2): myData (setup, status, settings) and myAssistant (chat), in Flutter, macOS first.
+
+The tools still serve fake demo data, and the host's today is pinned to its date (18 March 2026). **Next:** myContacts and myCalendar with real data (CardDAV, CalDAV), replacing the fake tools; see "Build order". Chained requests are an open problem, not a blocker: the planner write-up and the timing breakdown in `host/results/2026-10-11-b-REPORT.md` are the starting points.
 
 ## Ground rules
 
@@ -20,8 +26,8 @@ Concept stage. Built so far: the marketing site and the orchestrator with its fe
 
 | Name | What it is | Runs on |
 |---|---|---|
-| myData | The host: stores, syncs, indexes, runs models. Also the dashboard and file browser | Hosts on macOS, Windows, Linux. Dashboard everywhere |
-| myAssistant | Chat and voice client | Everywhere |
+| myData | The host (`mydatad`): stores, syncs, indexes, runs models. Also the myData app: setup, status, settings; later the dashboard and file browser | Host on macOS, Windows, Linux. App everywhere |
+| myAssistant | Chat (later voice) app | Everywhere |
 | myContacts, myCalendar, myMail, myPhotos | First apps | Everywhere, as clients |
 | myNotes, myReminders, myFiles, myDocs, myHealth, myHome and others | Later apps | Everywhere, as clients |
 
@@ -41,7 +47,15 @@ Technical names: repo `mydata-kiwi/mydata`, command `mydata`, background service
 One host per household, clients on every device.
 
 - **Host**: a background service that outlives any window and starts at login. It must also install alone on machines with no screen (Linux mini PC, NAS, Docker). On macOS it must be a native install, because Docker on a Mac gets no GPU acceleration.
-- **Clients**: talk to the host over the local network, and over Tailscale when away. Never expose the model server's port to the internet.
+- **Clients**: talk to the host over the local network, and over Tailscale when away. Never expose the model server's port to the internet. **For now the host listens on localhost only** (127.0.0.1); phone and remote access come later as a separate, explicit design.
+- **The host owns data and tools; agents are replaceable.** Every agent reaches tools through one registry, which holds the permission gate: our orchestrator, or any MCP agent at `/mcp`. An irreversible call never runs until a user approves that exact held call in an app.
+- **Tokens.**
+  - **App tokens:** one per app (`app-tokens/<app>` in the host's folder, readable only by the user). They can do everything, including approving, and each approval records which app decided.
+  - **Agent tokens:** created and revoked with `mydata agent ...` or in the myData app, with only their hash stored. They reach `/mcp` only.
+- **Apps.** The product is a family of separate apps built from shared code, not one combined app with a sidebar. Each app talks to the host only through the HTTP API, with no business logic in the app. The user opens an app and the host starts by itself.
+  - Only the myData app owns the host's lifetime: it has a menu-bar icon with Open and Quit, and Quit stops the host. The host enforces this: `/shutdown` refuses other apps.
+  - Other apps, such as myAssistant, can start the host but never stop it.
+  - The assistant is optional: the apps work without a model.
 - **No app depends on the chat.** myPhotos talks to the host directly.
 - **Phones cannot host.** iOS and Android suspend background apps and lack the memory. No third-party wake word on iOS; no iMessage or phone-call control.
 
@@ -77,7 +91,25 @@ No language model looks at photos. Search uses CLIP embeddings for descriptions,
 
 ### Client stack
 
-Undecided between Flutter, React Native, and Tauri. A web client comes first. Flutter has no official Liquid Glass components.
+**Flutter**, one codebase for macOS, Windows, Linux, web, iOS and Android; macOS first. The Dart API client is generated from `host/openapi.json` (OpenAPI Generator) and never hand-written. Flutter has no official Liquid Glass components. The web build compiles but only explains that it needs the desktop app, until remote access exists.
+
+### Repo layout
+
+```
+host/                 Python: mydatad, mydata command, tool layer, API, MCP, orchestrator, feasibility harness
+  openapi.json        generated from the app; the Dart client is generated from it
+  results/            feasibility runs and reports
+app/                  Dart workspace
+  packages/mydata_client     generated API client
+  packages/mydata_core       host lifecycle (find, start, wait, watch), app tokens, error states
+  packages/mydata_ui         design system: palette, fonts, logo, shared widgets
+  packages/mydata_assistant  chat, streamed replies, progress lines, approval card
+  apps/mydata                the myData app
+  apps/myassistant           the myAssistant app
+CLAUDE.md, README.md
+```
+
+Each later app (myContacts, myCalendar, ...) is a new `app/apps/<name>` on the same packages.
 
 ## Hardware and model findings
 
@@ -179,22 +211,26 @@ Full report: `myData/results/2026-10-11-b-REPORT.md`. New frozen set `cases_2026
 
 ## Build order after the test passes
 
-1. Host skeleton: service process, config, logging, the orchestrator from the test harness.
-2. myContacts and myCalendar (CardDAV, CalDAV): smallest data, proves sync.
-3. myMail (IMAP sync, FTS5 search).
-4. myAssistant chat client against real tools.
-5. myPhotos (import, CLIP index, faces). Largest piece; expect 6 to 8 weekends.
-6. Phone clients.
+1. ~~Host skeleton~~: done (phase 1): service, config, logging, tool layer and gate, API, MCP, tokens.
+2. ~~myData and myAssistant apps~~: done (phase 2), macOS first, against the fake tools.
+3. **Next:** myContacts and myCalendar (CardDAV, CalDAV), replacing the fake contact and calendar tools with real data. Smallest data; proves sync. Each is a new app in `app/apps`; switch off the demo date once real data is in.
+4. myMail (IMAP sync, FTS5 search), replacing the fake mail tools.
+5. myAssistant against the real tools; revisit chained requests (planner) and answer latency (timing breakdown).
+6. myPhotos (import, CLIP index, faces). The largest piece; expect 6 to 8 weekends.
+7. Phone clients and remote access (the host is localhost-only until then).
+8. Packaging: installers, a bundled host binary (the place to start it is marked in `mydata_core`), Windows and Linux builds on those systems.
 
 ## Open questions
 
 - Licence: MIT or AGPL.
-- Host language: not chosen. Python is fine for the test.
 - Whether to reuse existing servers (for example Radicale for CardDAV and CalDAV) or write them.
-- Client framework.
+- Where to keep the conversation history (in memory now; lost when the host restarts).
+- Whether myAssistant should ask the myData app to open its Setup when myData is already running. Today `--setup` only works on a cold start of myData.
 - Website: may move to a static-site generator. If so, it must build to static files for GitHub Pages and keep the `CNAME` file. Not a priority.
 
 ## Known rough edges
 
 - The website's header animation (kiwi walks in, pecks the "M" to lower case, jumps) and the pull-to-refresh kiwi-slice loader were never visually verified end to end. Expect to tune timing and positions.
 - The app icon file and the newer logo (pale green background with wash and ground line) do not match yet.
+- The myData and myAssistant apps still use Flutter's default app icons; the kiwi is only in their headers and the menu-bar icon.
+- Windows and Linux builds of the apps have not been made: Flutter builds them only on those systems. Their code paths compile (`flutter analyze`).
