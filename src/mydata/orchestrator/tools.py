@@ -152,7 +152,13 @@ TOOLS: dict[str, Tool] = {
     for t in [
         Tool(
             name="search_mail",
-            description="Search the user's email. Returns matching messages with sender, date, subject and body.",
+            description=(
+                "Search the user's email: what other people wrote or sent them, such as messages, replies, "
+                "confirmations, tickets, receipts and newsletters. Returns matching messages with sender, date, "
+                "subject and body. Use it for what someone said, sent or confirmed in writing. "
+                "Not for the user's own appointments, meetings and plans: those come from list_events, "
+                "never from search_mail, even when an email mentions them."
+            ),
             parameters=_schema(
                 {
                     "query": {"type": "string", "description": "Words to look for in the subject or body."},
@@ -167,7 +173,11 @@ TOOLS: dict[str, Tool] = {
         ),
         Tool(
             name="send_mail",
-            description="Send an email. The user must approve before it is sent.",
+            description=(
+                "Send a new email. The user must approve before it is sent. The address must come from a "
+                "find_contact result, and every fact in the message must come from the user's request or an "
+                "earlier tool result. Not for replying to, forwarding or deleting existing mail."
+            ),
             parameters=_schema(
                 {
                     "to": {"type": "string", "description": "Recipient email address, taken from a find_contact result. Never guess an address."},
@@ -181,7 +191,11 @@ TOOLS: dict[str, Tool] = {
         ),
         Tool(
             name="search_photos",
-            description="Search the user's photo library by what is in the picture, who is in it, where and when it was taken.",
+            description=(
+                "Search the user's photo library by what is in the picture, who is in it, where and when it was "
+                "taken. Returns photos with their date, place and people. Use it for pictures, and for when or "
+                "where a photo was taken. Not for documents, emails or calendar events."
+            ),
             parameters=_schema(
                 {
                     "query": {"type": "string", "description": "What the photo shows, for example 'beach at sunset'."},
@@ -197,7 +211,11 @@ TOOLS: dict[str, Tool] = {
         ),
         Tool(
             name="find_contact",
-            description="Look up a person in the user's contacts by name. Returns name, email and phone.",
+            description=(
+                "Look up a person in the user's contacts by name. Returns name, email and phone. Use it to get "
+                "an email address before send_mail, or when the user asks for someone's details. Not for "
+                "finding messages from a person (search_mail) or events with them (list_events)."
+            ),
             parameters=_schema(
                 {"name": {"type": "string", "description": "The name as the user said it."}},
                 ["name"],
@@ -207,7 +225,12 @@ TOOLS: dict[str, Tool] = {
         ),
         Tool(
             name="list_events",
-            description="List calendar events. With no date, lists upcoming events.",
+            description=(
+                "List events in the user's own calendar: appointments, meetings, bookings, classes and plans, "
+                "with their date, time and place. Appointments and meetings come from list_events, never from "
+                "search_mail. Use it for when or where something on the user's schedule is, or whether they are "
+                "free. With no date, lists upcoming events. Not for what people wrote in emails."
+            ),
             parameters=_schema(
                 {
                     "date": {"type": "string", "description": DATE_HELP},
@@ -221,7 +244,10 @@ TOOLS: dict[str, Tool] = {
         ),
         Tool(
             name="create_event",
-            description="Add an event to the user's calendar.",
+            description=(
+                "Add a new event to the user's calendar. Not for changing, moving or cancelling an existing "
+                "event: there is no tool for that."
+            ),
             parameters=_schema(
                 {
                     "title": {"type": "string", "description": "Short title for the event."},
