@@ -43,6 +43,8 @@ class CallRecord:
     status: Status
     error: str | None = None
     invented_args: list[str] = field(default_factory=list)
+    # Optional arguments the grounding check removed, with the reason.
+    dropped_args: dict[str, str] = field(default_factory=dict)
     resolved: dict[str, dict] = field(default_factory=dict)
     result: Any = None
 
@@ -77,8 +79,15 @@ class Engine:
     tools: dict[str, Tool] = field(default_factory=lambda: dict(TOOLS))
     system_prompt: str = SYSTEM_PROMPT
     max_steps: int = 6
+    # Show the model only the tools routing.select_tools picks for the request (fix b).
+    route: bool = True
+    # Check every argument against the request and earlier results (grounding.py).
+    ground: bool = False
 
     def run(self, request: str, tool_names: list[str] | None = None) -> Run:
+        if tool_names is None and self.route:
+            from .routing import select_tools
+            tool_names = select_tools(request)
         tools = {n: self.tools[n] for n in (tool_names or self.tools)}
         definitions = [t.definition() for t in tools.values()]
         messages: list[dict] = [
@@ -123,7 +132,7 @@ class Engine:
                     # Stop here, but record what else the model asked for in the same reply.
                     for rest in calls[i + 1:]:
                         rfn = rest.get("function") or {}
-                        run.calls.append(self._validate(step, rfn.get("name", ""), rfn.get("arguments"), tools)[0])
+                        run.calls.append(self._validate(step, rfn.get("name", ""), rfn.get("arguments"), tools, run)[0])
                     if record.status == "gated":
                         run.outcome = "pending_approval"
                         run.pending = {"tool": record.tool, "args": record.args}
@@ -135,7 +144,7 @@ class Engine:
         run.outcome = "step_limit"
 
     def _execute(self, step: int, name: str, raw_args: Any, tools: dict[str, Tool], run: Run) -> tuple[CallRecord, Any]:
-        rec, resolved = self._validate(step, name, raw_args, tools)
+        rec, resolved = self._validate(step, name, raw_args, tools, run)
         if rec.status != "not_run":
             return rec, None
         rec.status = "ok"
@@ -161,7 +170,8 @@ class Engine:
             return rec, result.ambiguous
         return rec, None
 
-    def _validate(self, step: int, name: str, raw_args: Any, tools: dict[str, Tool]) -> tuple[CallRecord, dict[str, Resolved]]:
+    def _validate(self, step: int, name: str, raw_args: Any, tools: dict[str, Tool], run: Run
+                  ) -> tuple[CallRecord, dict[str, Resolved]]:
         """Check a call without running it. A valid call comes back with status "not_run"."""
         args = _parse_args(raw_args)
         tool = tools.get(name)
@@ -184,6 +194,21 @@ class Engine:
             rec.result = {"error": rec.error}
             return rec, {}
 
+        dropped: dict[str, str] = {}
+        if self.ground:
+            from . import grounding
+
+            # Values must come from the request or an earlier result. Unfounded optional arguments
+            # are removed; an unfounded required one fails the call and the model is told why.
+            sources = grounding.Sources(run.request, [c.result for c in run.calls if c.status == "ok"])
+            args, dropped, failing = grounding.check(name, args, tool.parameters.get("required", []),
+                                                     set(tool.date_params), sources)
+            if failing:
+                msg = "; ".join(f"{k}: {v}" for k, v in failing.items())
+                rec = CallRecord(step, name, args, "invalid_args", error=f"ungrounded {msg}", dropped_args=dropped)
+                rec.result = {"error": f"{msg}. Use only what the user said or a tool returned."}
+                return rec, {}
+
         resolved: dict[str, Resolved] = {}
         try:
             for p, bias in tool.date_params.items():
@@ -197,7 +222,8 @@ class Engine:
             rec.result = {"error": f"{e}. Pass the date as the user said it."}
             return rec, {}
 
-        return CallRecord(step, name, args, "not_run", resolved={k: v.to_json() for k, v in resolved.items()}), resolved
+        return CallRecord(step, name, args, "not_run", resolved={k: v.to_json() for k, v in resolved.items()},
+                          dropped_args=dropped), resolved
 
 
 def _parse_args(raw: Any) -> dict:
