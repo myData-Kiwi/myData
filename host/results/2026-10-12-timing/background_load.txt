@@ -1,0 +1,384 @@
+=== 18:53:32 2.97 4.53 4.92
+100.0 /usr/sbin/BTLEServer
+ 19.2 /Users/patelti4/.vscode/extensions/anthropic.claude-code-2.1.296-darwin-arm64/resources/native-binary/claude
+ 11.6 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Renderer).app/Contents/MacOS/Code Helper (Renderer)
+  9.1 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  3.4 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Plugin).app/Contents/MacOS/Code Helper (Plugin)
+=== 18:54:02 3.49 4.51 4.89
+ 97.5 /usr/sbin/BTLEServer
+ 40.6 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Renderer).app/Contents/MacOS/Code Helper (Renderer)
+ 13.0 /Applications/Ollama.app/Contents/Resources/llama-server
+  8.2 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  1.8 /Library/SystemExtensions/A18B1613-7C65-4375-8DE6-79960CF20C28/com.eset.firewall.systemextension/Contents/MacOS/com.eset.firewall
+=== 18:54:32 3.26 4.35 4.82
+100.0 /usr/sbin/BTLEServer
+ 16.2 /Applications/Ollama.app/Contents/Resources/llama-server
+  7.3 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  4.9 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Renderer).app/Contents/MacOS/Code Helper (Renderer)
+  1.5 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper.app/Contents/MacOS/Code Helper
+=== 18:55:02 2.96 4.17 4.74
+ 99.3 /usr/sbin/BTLEServer
+ 15.5 /Applications/Ollama.app/Contents/Resources/llama-server
+ 12.3 /Applications/Ollama.app/Contents/Resources/ollama
+  7.9 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  4.1 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Renderer).app/Contents/MacOS/Code Helper (Renderer)
+=== 18:55:32 2.72 4.00 4.65
+100.0 /usr/sbin/BTLEServer
+ 10.7 /Applications/Ollama.app/Contents/Resources/llama-server
+  9.6 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  4.7 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Renderer).app/Contents/MacOS/Code Helper (Renderer)
+  3.6 /usr/libexec/corebrightnessd
+=== 18:56:02 2.62 3.85 4.58
+ 98.5 /usr/sbin/BTLEServer
+  9.2 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  5.1 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Renderer).app/Contents/MacOS/Code Helper (Renderer)
+  2.0 /Library/Application Support/JAMF/Jamf.app/Contents/MacOS/JamfDaemon.app/Contents/MacOS/JamfDaemon
+  2.0 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper.app/Contents/MacOS/Code Helper
+=== 18:56:32 2.65 3.74 4.51
+ 99.9 /usr/sbin/BTLEServer
+ 14.5 /Applications/Ollama.app/Contents/Resources/llama-server
+  7.8 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  3.6 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Renderer).app/Contents/MacOS/Code Helper (Renderer)
+  1.5 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper.app/Contents/MacOS/Code Helper
+=== 18:57:02 2.51 3.60 4.43
+100.0 /usr/sbin/BTLEServer
+ 23.8 com.apple.weather.menu
+ 10.7 /Applications/Ollama.app/Contents/Resources/llama-server
+  7.6 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  2.7 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Renderer).app/Contents/MacOS/Code Helper (Renderer)
+=== 18:57:32 2.48 3.49 4.37
+100.0 /usr/sbin/BTLEServer
+ 10.4 /Applications/Ollama.app/Contents/Resources/llama-server
+  7.7 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  3.7 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Renderer).app/Contents/MacOS/Code Helper (Renderer)
+  3.5 /Users/patelti4/.vscode/extensions/anthropic.claude-code-2.1.296-darwin-arm64/resources/native-binary/claude
+=== 18:58:02 2.70 3.46 4.32
+ 99.4 /usr/sbin/BTLEServer
+ 23.6 /System/Library/PrivateFrameworks/AppStoreDaemon.framework/Support/appstoreagent
+  8.6 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  4.7 /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Support/corespotlightd
+  4.3 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Renderer).app/Contents/MacOS/Code Helper (Renderer)
+=== 18:58:32 3.03 3.48 4.30
+ 98.4 /usr/sbin/BTLEServer
+ 27.9 /System/Library/ExtensionKit/Extensions/AssetMetricsExtension.appex/Contents/MacOS/AssetMetricsExtension
+ 13.0 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+ 10.1 /Applications/Ollama.app/Contents/Resources/llama-server
+  7.7 /System/Library/PrivateFrameworks/BiomeStreams.framework/Support/biomed
+=== 18:59:02 3.26 3.50 4.28
+100.0 /usr/sbin/BTLEServer
+ 10.1 /Applications/Ollama.app/Contents/Resources/llama-server
+  7.4 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  2.3 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Renderer).app/Contents/MacOS/Code Helper (Renderer)
+  1.6 /Library/Application Support/JAMF/Jamf.app/Contents/MacOS/JamfDaemon.app/Contents/MacOS/JamfDaemon
+=== 18:59:33 3.22 3.46 4.24
+100.0 /usr/sbin/BTLEServer
+  9.5 /Applications/Ollama.app/Contents/Resources/llama-server
+  8.6 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  3.8 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Renderer).app/Contents/MacOS/Code Helper (Renderer)
+  1.9 /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Support/mdworker_shared
+=== 19:00:03 2.75 3.32 4.16
+100.0 /usr/sbin/BTLEServer
+ 83.1 /System/Library/PrivateFrameworks/CacheDelete.framework/deleted
+ 56.7 /usr/libexec/mobileassetd
+ 53.0 /System/Library/PrivateFrameworks/CloudKitDaemon.framework/Support/cloudd
+ 21.7 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+=== 19:00:33 2.33 3.16 4.07
+100.0 /usr/sbin/BTLEServer
+ 13.2 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  4.4 /Users/patelti4/.vscode/extensions/anthropic.claude-code-2.1.296-darwin-arm64/resources/native-binary/claude
+  3.7 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Renderer).app/Contents/MacOS/Code Helper (Renderer)
+  2.1 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper.app/Contents/MacOS/Code Helper
+=== 19:01:03 2.35 3.08 4.01
+ 98.8 /usr/sbin/BTLEServer
+ 15.3 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  7.8 /Applications/Ollama.app/Contents/Resources/llama-server
+  6.8 /Users/patelti4/.vscode/extensions/anthropic.claude-code-2.1.296-darwin-arm64/resources/native-binary/claude
+  3.0 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Renderer).app/Contents/MacOS/Code Helper (Renderer)
+=== 19:01:33 2.07 2.94 3.93
+100.0 /usr/sbin/BTLEServer
+ 17.5 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  4.1 /Users/patelti4/.vscode/extensions/anthropic.claude-code-2.1.296-darwin-arm64/resources/native-binary/claude
+  3.9 /usr/libexec/corebrightnessd
+  3.7 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Renderer).app/Contents/MacOS/Code Helper (Renderer)
+=== 19:02:03 1.93 2.82 3.85
+ 98.1 /usr/sbin/BTLEServer
+ 17.4 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  3.6 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Renderer).app/Contents/MacOS/Code Helper (Renderer)
+  3.4 /System/Library/CoreServices/NotificationCenter.app/Contents/MacOS/NotificationCenter
+  1.9 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper.app/Contents/MacOS/Code Helper
+=== 19:02:33 1.94 2.74 3.78
+100.0 /usr/sbin/BTLEServer
+ 15.3 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  3.5 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Renderer).app/Contents/MacOS/Code Helper (Renderer)
+  1.8 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper.app/Contents/MacOS/Code Helper
+  0.4 /Users/patelti4/.vscode/extensions/anthropic.claude-code-2.1.296-darwin-arm64/resources/native-binary/claude
+=== 19:03:03 1.90 2.65 3.71
+100.0 /usr/sbin/BTLEServer
+ 18.5 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  4.1 /usr/libexec/corebrightnessd
+  2.4 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Renderer).app/Contents/MacOS/Code Helper (Renderer)
+  2.2 /System/Library/CoreServices/ControlCenter.app/Contents/MacOS/ControlCenter
+=== 19:03:33 2.35 2.70 3.69
+100.0 /usr/sbin/BTLEServer
+ 31.4 /Users/patelti4/.vscode/extensions/anthropic.claude-code-2.1.296-darwin-arm64/resources/native-binary/claude
+ 16.6 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  3.9 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Renderer).app/Contents/MacOS/Code Helper (Renderer)
+  2.2 /Library/Application Support/JAMF/Jamf.app/Contents/MacOS/JamfDaemon.app/Contents/MacOS/JamfDaemon
+=== 19:04:03 2.65 2.74 3.67
+100.0 /usr/sbin/BTLEServer
+ 15.4 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  1.2 /Library/Application Support/JAMF/Jamf.app/Contents/MacOS/JamfDaemon.app/Contents/MacOS/JamfDaemon
+  0.9 /usr/sbin/cfprefsd
+  0.6 /Users/patelti4/.vscode/extensions/anthropic.claude-code-2.1.296-darwin-arm64/resources/native-binary/claude
+=== 19:04:33 3.48 2.95 3.72
+ 99.1 /usr/sbin/BTLEServer
+  5.9 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  3.4 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper.app/Contents/MacOS/Code Helper
+  2.2 /System/Library/PrivateFrameworks/SystemStatusServer.framework/Support/systemstatusd
+  1.0 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Renderer).app/Contents/MacOS/Code Helper (Renderer)
+=== 19:05:03 2.97 2.87 3.66
+ 98.9 /usr/sbin/BTLEServer
+  5.6 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  1.4 /usr/libexec/locationd
+  0.4 /Users/patelti4/.vscode/extensions/anthropic.claude-code-2.1.296-darwin-arm64/resources/native-binary/claude
+  0.2 /usr/sbin/coreaudiod
+=== 19:05:33 2.46 2.76 3.59
+ 98.5 /usr/sbin/BTLEServer
+  5.7 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  1.6 /Applications/ESET Endpoint Security.app/Contents/MacOS/appmonitord
+  0.6 /usr/sbin/coreaudiod
+  0.5 /Users/patelti4/.vscode/extensions/anthropic.claude-code-2.1.296-darwin-arm64/resources/native-binary/claude
+=== 19:06:03 2.35 2.70 3.54
+100.0 /usr/sbin/BTLEServer
+ 12.9 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  5.2 /Library/Application Support/JAMF/Jamf.app/Contents/MacOS/JamfDaemon.app/Contents/MacOS/JamfDaemon
+  4.4 /Applications/ESET Endpoint Security.app/Contents/MacOS/oaeventd
+  3.6 /usr/libexec/corebrightnessd
+=== 19:06:33 2.33 2.66 3.50
+ 98.1 /usr/sbin/BTLEServer
+ 12.3 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  4.2 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper.app/Contents/MacOS/Code Helper
+  4.0 /usr/libexec/corebrightnessd
+  2.1 /System/Library/CoreServices/ControlCenter.app/Contents/MacOS/ControlCenter
+=== 19:07:03 2.11 2.58 3.44
+ 99.6 /usr/sbin/BTLEServer
+ 12.2 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  3.8 /usr/libexec/corebrightnessd
+  2.1 /Library/Application Support/JAMF/Jamf.app/Contents/MacOS/JamfDaemon.app/Contents/MacOS/JamfDaemon
+  2.0 /System/Library/CoreServices/ControlCenter.app/Contents/MacOS/ControlCenter
+=== 19:07:34 2.26 2.57 3.40
+100.0 /usr/sbin/BTLEServer
+ 10.3 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  3.1 /usr/sbin/coreaudiod
+  1.0 /Applications/ESET Endpoint Security.app/Contents/MacOS/appmonitord
+  0.6 /Users/patelti4/.vscode/extensions/anthropic.claude-code-2.1.296-darwin-arm64/resources/native-binary/claude
+=== 19:08:04 2.66 2.63 3.39
+ 99.6 /usr/sbin/BTLEServer
+ 13.7 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  4.2 /usr/libexec/corebrightnessd
+  3.1 /Library/Application Support/JAMF/Jamf.app/Contents/MacOS/JamfDaemon.app/Contents/MacOS/JamfDaemon
+  2.3 /usr/sbin/coreaudiod
+=== 19:08:34 3.26 2.78 3.42
+ 98.1 /usr/sbin/BTLEServer
+ 52.0 /System/Library/CoreServices/NotificationCenter.app/Contents/MacOS/NotificationCenter
+ 14.6 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  5.2 /usr/sbin/coreaudiod
+  3.8 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper.app/Contents/MacOS/Code Helper
+=== 19:09:04 3.11 2.78 3.40
+ 98.6 /usr/sbin/BTLEServer
+ 24.4 /usr/sbin/coreaudiod
+ 15.2 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  6.3 /System/Library/PrivateFrameworks/SystemStatusServer.framework/Support/systemstatusd
+  2.7 /usr/libexec/runningboardd
+=== 19:09:34 3.06 2.80 3.38
+100.0 /usr/sbin/BTLEServer
+ 23.9 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Renderer).app/Contents/MacOS/Code Helper (Renderer)
+  6.0 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  1.8 /usr/libexec/locationd
+  1.8 /Library/SystemExtensions/A18B1613-7C65-4375-8DE6-79960CF20C28/com.eset.firewall.systemextension/Contents/MacOS/com.eset.firewall
+=== 19:10:04 2.81 2.77 3.35
+100.0 /usr/sbin/BTLEServer
+  5.5 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  0.4 /Users/patelti4/.vscode/extensions/anthropic.claude-code-2.1.296-darwin-arm64/resources/native-binary/claude
+  0.4 /usr/libexec/trustd
+  0.4 /Library/Application Support/JAMF/Jamf.app/Contents/MacOS/JamfDaemon.app/Contents/MacOS/JamfDaemon
+=== 19:10:34 2.68 2.74 3.32
+100.0 /usr/sbin/BTLEServer
+  7.2 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  3.5 /usr/libexec/corebrightnessd
+  1.9 /System/Library/CoreServices/ControlCenter.app/Contents/MacOS/ControlCenter
+  1.3 /System/Library/PrivateFrameworks/AmbientDisplay.framework/Versions/A/XPCServices/com.apple.AmbientDisplayAgent.xpc/Contents/MacOS/com.apple.AmbientDisplayAgent
+=== 19:11:04 2.83 2.78 3.31
+ 98.5 /usr/sbin/BTLEServer
+ 12.5 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  4.0 /usr/libexec/corebrightnessd
+  2.4 /System/Library/CoreServices/ControlCenter.app/Contents/MacOS/ControlCenter
+  1.5 /Library/Application Support/JAMF/Jamf.app/Contents/MacOS/JamfDaemon.app/Contents/MacOS/JamfDaemon
+=== 19:11:34 2.47 2.70 3.27
+100.0 /usr/sbin/BTLEServer
+  6.3 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  0.7 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Renderer).app/Contents/MacOS/Code Helper (Renderer)
+  0.4 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Plugin).app/Contents/MacOS/Code Helper (Plugin)
+  0.4 /usr/libexec/locationd
+=== 19:12:04 3.01 2.81 3.28
+ 99.6 /usr/sbin/BTLEServer
+ 61.3 /usr/sbin/coreaudiod
+ 20.1 /System/Library/PrivateFrameworks/SystemStatusServer.framework/Support/systemstatusd
+ 18.0 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  4.3 /Library/Application Support/JAMF/Jamf.app/Contents/MacOS/JamfDaemon.app/Contents/MacOS/JamfDaemon
+=== 19:12:34 3.48 2.94 3.31
+136.9 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Renderer).app/Contents/MacOS/Code Helper (Renderer)
+ 99.0 /usr/sbin/BTLEServer
+  8.8 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  6.9 /Library/Application Support/JAMF/Jamf.app/Contents/MacOS/JamfDaemon.app/Contents/MacOS/JamfDaemon
+  4.5 /Applications/ESET Endpoint Security.app/Contents/MacOS/oaeventd
+=== 19:13:04 3.09 2.89 3.28
+ 98.4 /usr/sbin/BTLEServer
+  9.2 /Applications/ESET Endpoint Security.app/Contents/MacOS/oaeventd
+  5.8 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  3.0 /Library/Application Support/JAMF/Jamf.app/Contents/MacOS/JamfDaemon.app/Contents/MacOS/JamfDaemon
+  2.7 /Applications/ESET Endpoint Security.app/Contents/MacOS/oaeventd
+=== 19:13:34 4.44 3.19 3.37
+ 97.2 /usr/sbin/BTLEServer
+ 84.9 /System/Library/ExtensionKit/Extensions/AssetMetricsExtension.appex/Contents/MacOS/AssetMetricsExtension
+ 76.7 /System/Library/PrivateFrameworks/CacheDelete.framework/deleted
+ 30.2 /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Support/mds
+ 27.5 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+=== 19:14:04 3.88 3.18 3.36
+ 99.1 /usr/sbin/BTLEServer
+ 11.1 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  3.8 /System/Library/CoreServices/NotificationCenter.app/Contents/MacOS/NotificationCenter
+  1.7 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Plugin).app/Contents/MacOS/Code Helper (Plugin)
+  1.5 /Library/Application Support/JAMF/Jamf.app/Contents/MacOS/JamfDaemon.app/Contents/MacOS/JamfDaemon
+=== 19:14:34 3.40 3.14 3.34
+ 99.6 /usr/sbin/BTLEServer
+  5.4 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  1.7 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Plugin).app/Contents/MacOS/Code Helper (Plugin)
+  0.7 /Library/Application Support/JAMF/Jamf.app/Contents/MacOS/JamfDaemon.app/Contents/MacOS/JamfDaemon
+  0.5 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Renderer).app/Contents/MacOS/Code Helper (Renderer)
+=== 19:15:04 3.25 3.13 3.33
+ 99.2 /usr/sbin/BTLEServer
+  5.4 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  0.8 /Users/patelti4/.vscode/extensions/anthropic.claude-code-2.1.296-darwin-arm64/resources/native-binary/claude
+  0.8 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Plugin).app/Contents/MacOS/Code Helper (Plugin)
+  0.6 /Library/Application Support/JAMF/Jamf.app/Contents/MacOS/JamfDaemon.app/Contents/MacOS/JamfDaemon
+=== 19:15:35 3.02 3.08 3.31
+100.0 /usr/sbin/BTLEServer
+  6.1 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  2.7 /usr/libexec/searchpartyd
+  1.8 /Library/Application Support/JAMF/Jamf.app/Contents/MacOS/JamfDaemon.app/Contents/MacOS/JamfDaemon
+  1.0 /usr/libexec/locationd
+=== 19:16:05 2.67 2.99 3.27
+ 98.7 /usr/sbin/BTLEServer
+  6.1 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  1.8 /Library/Application Support/JAMF/Jamf.app/Contents/MacOS/JamfDaemon.app/Contents/MacOS/JamfDaemon
+  0.9 sed
+  0.7 ps
+=== 19:16:35 2.30 2.88 3.21
+ 99.4 /usr/sbin/BTLEServer
+  5.5 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  0.9 /usr/libexec/locationd
+  0.4 /Users/patelti4/.vscode/extensions/anthropic.claude-code-2.1.296-darwin-arm64/resources/native-binary/claude
+  0.3 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Renderer).app/Contents/MacOS/Code Helper (Renderer)
+=== 19:17:05 2.24 2.81 3.18
+ 98.7 /usr/sbin/BTLEServer
+  5.6 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  3.3 /Applications/Ollama.app/Contents/Resources/llama-server
+  0.4 /Users/patelti4/.vscode/extensions/anthropic.claude-code-2.1.296-darwin-arm64/resources/native-binary/claude
+  0.2 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Renderer).app/Contents/MacOS/Code Helper (Renderer)
+=== 19:17:35 2.08 2.71 3.13
+100.0 /usr/sbin/BTLEServer
+  5.5 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  2.3 /usr/libexec/locationd
+  1.0 /Users/patelti4/.vscode/extensions/anthropic.claude-code-2.1.296-darwin-arm64/resources/native-binary/claude
+  0.2 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper.app/Contents/MacOS/Code Helper
+=== 19:18:05 2.19 2.68 3.10
+ 98.7 /usr/sbin/BTLEServer
+ 67.2 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Renderer).app/Contents/MacOS/Code Helper (Renderer)
+ 10.9 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  6.2 /Applications/ESET Endpoint Security.app/Contents/MacOS/sysinfod
+  4.6 /usr/libexec/trustd
+=== 19:18:35 2.11 2.61 3.06
+100.0 /usr/sbin/BTLEServer
+ 16.8 /Applications/ESET Endpoint Security.app/Contents/MacOS/sysinfod
+ 16.4 /usr/libexec/trustd
+  5.0 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  0.3 /Users/patelti4/.vscode/extensions/anthropic.claude-code-2.1.296-darwin-arm64/resources/native-binary/claude
+=== 19:19:05 2.05 2.55 3.02
+ 99.1 /usr/sbin/BTLEServer
+ 15.0 /Applications/ESET Endpoint Security.app/Contents/MacOS/sysinfod
+ 10.7 /usr/libexec/trustd
+  5.7 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  1.6 /Library/Application Support/JAMF/Jamf.app/Contents/MacOS/JamfDaemon.app/Contents/MacOS/JamfDaemon
+=== 19:19:35 2.95 2.71 3.06
+100.0 /usr/sbin/BTLEServer
+ 34.3 /Applications/ESET Endpoint Security.app/Contents/MacOS/updated
+  9.7 /Applications/ESET Endpoint Security.app/Contents/MacOS/oaeventd
+  5.6 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  4.6 /Applications/ESET Endpoint Security.app/Contents/MacOS/sysinfod
+=== 19:20:05 2.77 2.69 3.04
+100.0 /usr/sbin/BTLEServer
+ 97.2 /Applications/ESET Endpoint Security.app/Contents/MacOS/scand
+  5.5 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  4.7 /Applications/ESET Endpoint Security.app/Contents/MacOS/sysinfod
+  3.0 /usr/libexec/trustd
+=== 19:20:35 2.69 2.67 3.02
+100.0 /usr/sbin/BTLEServer
+  5.3 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  3.0 /Applications/ESET Endpoint Security.app/Contents/MacOS/sysinfod
+  2.6 /usr/libexec/trustd
+  0.4 /Users/patelti4/.vscode/extensions/anthropic.claude-code-2.1.296-darwin-arm64/resources/native-binary/claude
+=== 19:21:05 3.20 2.79 3.05
+ 99.6 /usr/sbin/BTLEServer
+  8.5 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  3.6 /Library/Application Support/JAMF/Jamf.app/Contents/MacOS/JamfDaemon.app/Contents/MacOS/JamfDaemon
+  3.4 /usr/libexec/corebrightnessd
+  2.9 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Plugin).app/Contents/MacOS/Code Helper (Plugin)
+=== 19:21:36 2.76 2.73 3.02
+ 99.4 /usr/sbin/BTLEServer
+ 11.2 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  7.6 docker
+  2.5 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Plugin).app/Contents/MacOS/Code Helper (Plugin)
+  2.2 /Library/Application Support/JAMF/Jamf.app/Contents/MacOS/JamfDaemon.app/Contents/MacOS/JamfDaemon
+=== 19:22:06 2.61 2.69 2.99
+100.0 /usr/sbin/BTLEServer
+ 10.2 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  1.8 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Plugin).app/Contents/MacOS/Code Helper (Plugin)
+  1.5 /Library/Application Support/JAMF/Jamf.app/Contents/MacOS/JamfDaemon.app/Contents/MacOS/JamfDaemon
+  1.1 /usr/sbin/bluetoothd
+=== 19:22:36 2.39 2.63 2.96
+100.0 /usr/sbin/BTLEServer
+  5.6 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  1.7 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Plugin).app/Contents/MacOS/Code Helper (Plugin)
+  1.3 /Library/Application Support/JAMF/Jamf.app/Contents/MacOS/JamfDaemon.app/Contents/MacOS/JamfDaemon
+  1.1 /usr/libexec/trustd
+=== 19:23:06 2.43 2.61 2.94
+ 99.0 /usr/sbin/BTLEServer
+  9.9 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  1.9 /Users/patelti4/.vscode/extensions/anthropic.claude-code-2.1.296-darwin-arm64/resources/native-binary/claude
+  1.6 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Plugin).app/Contents/MacOS/Code Helper (Plugin)
+  0.9 /usr/libexec/trustd
+=== 19:23:36 2.65 2.65 2.94
+ 99.1 /usr/sbin/BTLEServer
+  5.7 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  2.3 /Library/Application Support/JAMF/Jamf.app/Contents/MacOS/JamfDaemon.app/Contents/MacOS/JamfDaemon
+  1.6 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Plugin).app/Contents/MacOS/Code Helper (Plugin)
+  0.6 /usr/libexec/trustd
+=== 19:24:06 2.64 2.65 2.93
+ 98.4 /usr/sbin/BTLEServer
+  5.8 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  1.2 /Library/Application Support/JAMF/Jamf.app/Contents/MacOS/JamfDaemon.app/Contents/MacOS/JamfDaemon
+  1.0 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Renderer).app/Contents/MacOS/Code Helper (Renderer)
+  0.9 /Users/patelti4/.vscode/extensions/anthropic.claude-code-2.1.296-darwin-arm64/resources/native-binary/claude
+=== 19:24:36 4.28 3.03 3.06
+ 99.0 /usr/sbin/BTLEServer
+ 13.0 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  5.3 /usr/libexec/sysmond
+  4.1 /usr/libexec/corebrightnessd
+  3.5 /System/Library/PrivateFrameworks/SystemStatusServer.framework/Support/systemstatusd
+=== 19:25:06 3.62 3.00 3.04
+100.0 /usr/sbin/BTLEServer
+  5.9 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  3.5 /usr/libexec/corebrightnessd
+  3.3 /usr/libexec/networkserviceproxy
+  1.9 /Users/patelti4/.vscode/extensions/anthropic.claude-code-2.1.296-darwin-arm64/resources/native-binary/claude

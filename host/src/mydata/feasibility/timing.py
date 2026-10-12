@@ -5,12 +5,12 @@
 Runs the set's single-tool requests with the kept configuration and records, per model call, Ollama's
 own counters: prompt tokens evaluated, seconds reading the prompt, output tokens, seconds generating.
 
-Cache reuse is not reported by Ollama, so it is measured afterwards: every logged call is sent again
-with a short tag at the very start of the system prompt, which defeats the prompt cache, and the
-number of prompt tokens Ollama evaluates then is the call's full prompt length (minus the tag, whose
-own cost is measured too). A timed call that evaluated fewer tokens than its full length reused a
-cached prefix of the difference. These probe calls run after all timed runs, so they never disturb the
-cache the timed runs saw.
+Cache reuse is not reported by Ollama: it gives the full prompt length as prompt_eval_count even when it
+reuses a cached prefix. So it is measured afterwards: every logged call is sent again with a short tag at
+the very start of the system prompt, which defeats the prompt cache, and Ollama's time to read that cold
+prompt is recorded. A timed call that read its prompt in under half the cold time reused a cached prefix;
+the share of the prompt it skipped is estimated as 1 - timed/cold. These probe calls run after all timed
+runs, so they never disturb the cache the timed runs saw.
 
 Then the time to the final answer is split into the tool-choice call, tool execution (everything
 between the two model calls: validation, grounding, the tool itself, engine overhead) and the phrasing
@@ -34,8 +34,9 @@ from .sets import load_set, use_data
 NS = 1e9
 
 
-def _probe(model: OllamaChat, messages: list[dict], tools: list[dict], tag: str) -> int:
-    """Prompt tokens Ollama evaluates for these messages with `tag` prepended to the system prompt."""
+def _probe(model: OllamaChat, messages: list[dict], tools: list[dict], tag: str) -> tuple[int, float]:
+    """(prompt tokens, seconds reading the prompt) for these messages with `tag` prepended to the system
+    prompt, which makes the read cold."""
     msgs = [dict(m) for m in messages]
     msgs[0] = {**msgs[0], "content": tag + msgs[0]["content"]}
     payload = {"model": model.name, "messages": msgs, "tools": tools, "stream": False, "think": model.think,
@@ -43,7 +44,8 @@ def _probe(model: OllamaChat, messages: list[dict], tools: list[dict], tag: str)
     req = urllib.request.Request(model.host + "/api/chat", data=json.dumps(payload).encode(),
                                  headers={"Content-Type": "application/json"})
     with urllib.request.urlopen(req, timeout=600) as resp:
-        return int(json.loads(resp.read()).get("prompt_eval_count") or 0)
+        body = json.loads(resp.read())
+    return int(body.get("prompt_eval_count") or 0), (body.get("prompt_eval_duration") or 0) / NS
 
 
 def _inputs(run: dict) -> list[list[dict]]:
@@ -69,17 +71,7 @@ def run_timing(set_name: str, model_name: str, reps: int, out_dir: Path) -> dict
                 print(f"{case['id']} #{rep} {run['seconds_total']:.1f}s, {run['model_calls']} model calls",
                       file=sys.stderr)
 
-        # Cache probes, after every timed run. The tag's own cost: two tags of known length differ by one.
-        tag_a, tag_b = f"[{secrets.token_hex(4)}] ", f"[{secrets.token_hex(4)}] [{secrets.token_hex(4)}] "
-        base = [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": "Hello"}]
-        tag_cost = _probe(model, base, tools, tag_b) - _probe(model, base, tools, tag_a)
-        for row in rows:
-            for call, msgs in zip(row["run"]["model_replies"], _inputs(row["run"])):
-                full = _probe(model, msgs, tools, f"[{secrets.token_hex(4)}] ") - tag_cost
-                st = call["stats"] or {}
-                evaluated = int(st.get("prompt_eval_count") or 0)
-                call["probe"] = {"full_prompt_tokens": full, "cached_tokens": max(0, full - evaluated),
-                                 "cache_reused": evaluated < full - 2}
+        tag_cost = probe_cache(model, rows, tools)
 
     out_dir.mkdir(parents=True, exist_ok=True)
     with (out_dir / "timing.jsonl").open("w") as fh:
@@ -93,6 +85,40 @@ def run_timing(set_name: str, model_name: str, reps: int, out_dir: Path) -> dict
     return {"rows": rows, "meta": meta, "report": report}
 
 
+def probe_cache(model: OllamaChat, rows: list[dict], tools: list[dict]) -> int:
+    """Cold-read every logged call (see the module docstring) and mark which timed calls reused a cached
+    prefix. Returns the tag's own token cost."""
+    tag_a, tag_b = f"[{secrets.token_hex(4)}] ", f"[{secrets.token_hex(4)}] [{secrets.token_hex(4)}] "
+    base = [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": "Hello"}]
+    tag_cost = _probe(model, base, tools, tag_b)[0] - _probe(model, base, tools, tag_a)[0]
+    for row in rows:
+        for call, msgs in zip(row["run"]["model_replies"], _inputs(row["run"])):
+            count, cold_s = _probe(model, msgs, tools, f"[{secrets.token_hex(4)}] ")
+            timed_s = ((call["stats"] or {}).get("prompt_eval_duration") or 0) / NS
+            reused = cold_s > 0 and timed_s < 0.5 * cold_s
+            call["probe"] = {"full_prompt_tokens": count - tag_cost, "cold_read_s": round(cold_s, 3),
+                             "cache_reused": reused,
+                             "skipped_share": round(max(0.0, 1 - timed_s / cold_s), 2) if cold_s else 0.0}
+    return tag_cost
+
+
+def reprobe(out_dir: Path, model_name: str) -> str:
+    """Redo the cache probes on a saved timing run (the timed runs themselves stay as recorded)."""
+    rows = [json.loads(line) for line in (out_dir / "timing.jsonl").read_text().splitlines() if line.strip()]
+    meta = json.loads((out_dir / "meta.json").read_text())
+    case_set = load_set(meta["set"])
+    model = OllamaChat(model_name, think=False, options={"num_ctx": 8192})
+    with use_data(case_set.data):
+        meta["tag_cost_tokens"] = probe_cache(model, rows, default_registry(today=lambda: case_set.today).definitions())
+    with (out_dir / "timing.jsonl").open("w") as fh:
+        for row in rows:
+            fh.write(json.dumps(row) + "\n")
+    (out_dir / "meta.json").write_text(json.dumps(meta, indent=2))
+    report = render_timing(rows, meta)
+    (out_dir / "timing.md").write_text(report)
+    return report
+
+
 def _med(xs: list[float]) -> str:
     return f"{statistics.median(xs):.2f}" if xs else "-"
 
@@ -100,10 +126,12 @@ def _med(xs: list[float]) -> str:
 def render_timing(rows: list[dict], meta: dict) -> str:
     lines = [f"Model `{meta['model']}`, thinking off, kept configuration (tool descriptions + grounding, no routing), "
              f"set {meta['set']}, the {len(meta['cases'])} single-tool requests × {meta['reps']} reps, "
-             f"Ollama {meta['ollama_version']}. Nothing else ran on the machine.", ""]
+             f"Ollama {meta['ollama_version']}.", ""]
+    if meta.get("load_note"):
+        lines += [meta["load_note"], ""]
 
     lines += ["**Per model call** (median over runs; s = seconds)", "",
-              "| Call | Runs | Prompt tokens (full) | Prompt tokens evaluated | Reused cached prefix | s reading prompt "
+              "| Call | Runs | Prompt tokens | Reused a cached prefix | s reading prompt | s reading it cold "
               "| Output tokens | s generating | s total (wall) |",
               "|---|---|---|---|---|---|---|---|---|"]
     for pos, name in ((0, "1: tool choice"), (1, "2: phrasing")):
@@ -115,9 +143,10 @@ def render_timing(rows: list[dict], meta: dict) -> str:
         reused = sum(c["probe"]["cache_reused"] for c in calls)
         lines.append(
             f"| {name} | {len(calls)} | {_med([c['probe']['full_prompt_tokens'] for c in calls])} | "
-            f"{_med([s.get('prompt_eval_count') or 0 for s in st])} | {reused}/{len(calls)} "
-            f"(median {_med([c['probe']['cached_tokens'] for c in calls])} tokens) | "
+            f"{reused}/{len(calls)} (median {100 * statistics.median(c['probe']['skipped_share'] for c in calls):.0f}% "
+            f"of the prompt skipped) | "
             f"{_med([(s.get('prompt_eval_duration') or 0) / NS for s in st])} | "
+            f"{_med([c['probe']['cold_read_s'] for c in calls])} | "
             f"{_med([s.get('eval_count') or 0 for s in st])} | "
             f"{_med([(s.get('eval_duration') or 0) / NS for s in st])} | {_med([c['seconds'] for c in calls])} |")
     lines.append("")
@@ -131,27 +160,31 @@ def render_timing(rows: list[dict], meta: dict) -> str:
         total = run["seconds_total"]
         split.append((a, total - a - b, b, total))
     if split:
-        tot = statistics.median(s[3] for s in split)
-        lines += ["**Time to the final answer**, split (median over runs with one tool call and two model calls)", "",
-                  "| Part | Median s | Share of the median total |", "|---|---|---|"]
-        for i, name in enumerate(("Tool-choice call", "Tool execution (incl. validation, grounding)",
+        mean_tot = statistics.fmean(s[3] for s in split)
+        lines += ["**Time to the final answer**, split (runs with one tool call and two model calls). Shares use "
+                  "the means, which add up; medians are shown beside them.", "",
+                  "| Part | Mean s | Median s | Share of the mean total |", "|---|---|---|---|"]
+        for i, name in enumerate(("Tool-choice call", "Tool execution (validation, grounding, the tool, engine)",
                                   "Phrasing call")):
-            m = statistics.median(s[i] for s in split)
-            lines.append(f"| {name} | {m:.2f} | {100 * m / tot:.0f}% |")
-        lines += [f"| **Total to final answer** | **{tot:.2f}** | |", ""]
+            mean = statistics.fmean(s[i] for s in split)
+            lines.append(f"| {name} | {mean:.2f} | {statistics.median(s[i] for s in split):.2f} | "
+                         f"{100 * mean / mean_tot:.0f}% |")
+        lines += [f"| **Total to final answer** | **{mean_tot:.2f}** | **{statistics.median(s[3] for s in split):.2f}** "
+                  f"| 100% |", ""]
     other = [r for r in rows if len(r["run"]["model_replies"]) != 2 or len(r["run"]["calls"]) != 1]
     if other:
         lines.append("Runs left out of the split (not one tool call and two model calls): "
                      + ", ".join(f"{r['case']} #{r['rep']} ({r['run']['model_calls']} calls)" for r in other) + ".")
         lines.append("")
 
-    lines += ["**Every run**", "", "| Run | Call | Prompt tokens evaluated / full | Cached | s reading | "
+    lines += ["**Every run**", "", "| Run | Call | Prompt tokens | Cached prefix | s reading (cold) | "
               "Output tokens | s generating | s wall |", "|---|---|---|---|---|---|---|---|"]
     for r in rows:
         for i, c in enumerate(r["run"]["model_replies"], 1):
             s = c["stats"] or {}
-            lines.append(f"| {r['case']} #{r['rep']} | {i} | {s.get('prompt_eval_count')} / "
-                         f"{c['probe']['full_prompt_tokens']} | {'yes' if c['probe']['cache_reused'] else 'no'} | "
-                         f"{(s.get('prompt_eval_duration') or 0) / NS:.2f} | {s.get('eval_count')} | "
+            lines.append(f"| {r['case']} #{r['rep']} | {i} | {c['probe']['full_prompt_tokens']} | "
+                         f"{'yes' if c['probe']['cache_reused'] else 'no'} | "
+                         f"{(s.get('prompt_eval_duration') or 0) / NS:.2f} ({c['probe']['cold_read_s']:.2f}) | "
+                         f"{s.get('eval_count')} | "
                          f"{(s.get('eval_duration') or 0) / NS:.2f} | {c['seconds']:.2f} |")
     return "\n".join(lines) + "\n"

@@ -1,0 +1,20 @@
+{
+  "set": "2026-10-11-b",
+  "model": "qwen3:14b",
+  "reps": 3,
+  "tag_cost_tokens": 10,
+  "ollama_version": "0.40.1",
+  "cases": [
+    "BS01",
+    "BS02",
+    "BS03",
+    "BS04",
+    "BS05",
+    "BS06",
+    "BS07",
+    "BS08",
+    "BS09",
+    "BS10"
+  ],
+  "load_note": "**Background load (not a quiet machine):** run with Arc, VS Code and this Claude Code session open, and macOS's Bluetooth daemon (BTLEServer) using 100% of one CPU core throughout. One-minute load average 1.9 to 4.4 (median 2.7) over 64 samples, 30 s apart (background_load.txt). The model ran 100% on the GPU."
+}
