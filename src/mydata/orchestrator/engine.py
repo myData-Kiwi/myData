@@ -55,6 +55,7 @@ class Run:
     request: str
     today: str
     calls: list[CallRecord] = field(default_factory=list)
+    tools_shown: list[str] = field(default_factory=list)
     outcome: Outcome = "answered"
     final_text: str = ""
     pending: dict | None = None  # the gated call awaiting approval
@@ -81,8 +82,8 @@ class Engine:
     max_steps: int = 6
     # Show the model only the tools routing.select_tools picks for the request (fix b).
     route: bool = True
-    # Check every argument against the request and earlier results (grounding.py).
-    ground: bool = False
+    # Check every argument against the request and earlier results (grounding.py, fix c).
+    ground: bool = True
 
     def run(self, request: str, tool_names: list[str] | None = None) -> Run:
         if tool_names is None and self.route:
@@ -94,7 +95,8 @@ class Engine:
             {"role": "system", "content": self.system_prompt},
             {"role": "user", "content": request},
         ]
-        run = Run(model=self.model.name, request=request, today=self.today.isoformat(), messages=messages)
+        run = Run(model=self.model.name, request=request, today=self.today.isoformat(), messages=messages,
+                  tools_shown=list(tools))
         started = _time.perf_counter()
         try:
             self._loop(run, messages, tools, definitions, started)
