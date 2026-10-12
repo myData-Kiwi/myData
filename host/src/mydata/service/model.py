@@ -2,6 +2,7 @@
 
 States, in order: starting → (ollama_starting) → (pulling) → loading → ready.
 Failure states: ollama_missing (Ollama is not installed), error (anything else, with a message).
+disabled: the user switched the assistant off (nothing is downloaded or loaded).
 
 - If Ollama is not reachable and start_ollama is on, start `ollama serve` as a child process,
   bound to 127.0.0.1, and stop it again on shutdown. If the host did not start it, it leaves it alone.
@@ -55,8 +56,10 @@ class ModelStatus:
 
 
 class ModelManager:
-    def __init__(self, settings: Settings, log_dir: Path | None = None):
+    def __init__(self, settings: Settings, log_dir: Path | None = None, enabled: bool = True):
         self.settings = settings
+        self._enabled = enabled
+        self._cancel = threading.Event()  # set when the assistant is switched off mid-preparation
         self.log_dir = log_dir or settings.log_dir
         self._status = ModelStatus(name=settings.model)
         self._lock = threading.Lock()
@@ -89,6 +92,27 @@ class ModelManager:
     def ready(self) -> bool:
         return self.status().state == "ready"
 
+    @property
+    def enabled(self) -> bool:
+        return self._enabled
+
+    def set_enabled(self, enabled: bool) -> None:
+        """Switch the assistant on (start getting the model ready) or off (stop, unload, download nothing)."""
+        self._enabled = enabled
+        if enabled:
+            self._cancel.clear()
+            self.retry()
+            return
+        self._cancel.set()
+        if self._thread and self._thread.is_alive():
+            self._thread.join(timeout=10)
+        if self._reachable():
+            try:  # free the memory
+                self._post("/api/chat", {"model": self.settings.model, "messages": [], "keep_alive": 0}, 30)
+            except Exception:
+                logger.warning("could not unload the model", exc_info=True)
+        self._set(state="disabled", loaded=False, progress=None, error=None)
+
     def start(self) -> None:
         """Begin getting the model ready in the background, and keep watching so a failed state recovers
         by itself once it can (Ollama comes back, gets installed, or our own child can be restarted)."""
@@ -99,7 +123,11 @@ class ModelManager:
             self._supervisor.start()
 
     def retry(self) -> None:
-        """Try again now (the app's retry button). Does nothing while an attempt is running."""
+        """Try again now (the app's retry button). Does nothing while an attempt is running or while the
+        assistant is switched off."""
+        if not self._enabled:
+            self._set(state="disabled", loaded=False, progress=None, error=None)
+            return
         if self._thread and self._thread.is_alive():
             return
         self._thread = threading.Thread(target=self._prepare, name="model-manager", daemon=True)
@@ -108,7 +136,7 @@ class ModelManager:
     def _supervise(self) -> None:
         while not self._stopping.wait(self.retry_every):
             state = self.status().state  # status() also notices a dead Ollama
-            if state not in ("error", "ollama_missing") or (self._thread and self._thread.is_alive()):
+            if not self._enabled or state not in ("error", "ollama_missing") or (self._thread and self._thread.is_alive()):
                 continue
             installed = bool(shutil.which("ollama") or any(Path(p).exists() for p in OLLAMA_CANDIDATES))
             if self._reachable() or (self.settings.start_ollama and installed):
@@ -153,11 +181,15 @@ class ModelManager:
                     self._set(state="error", error=f"model {self.settings.model} is not downloaded")
                     return
                 self._pull()
-                if self._stopping.is_set():
+                if self._stopping.is_set() or self._cancel.is_set():
                     return
+            if self._cancel.is_set():
+                return
             self._set(state="loading", progress=None)
             self._post("/api/chat", {"model": self.settings.model, "messages": [],
                                      "options": {"num_ctx": self.settings.num_ctx}, "keep_alive": "30m"}, 600)
+            if self._cancel.is_set():
+                return
             self._set(state="ready", loaded=True, error=None)
         except Exception as e:  # any failure is a state the app can show, with a retry
             self._set(state="error", error=f"{type(e).__name__}: {e}")
@@ -198,7 +230,7 @@ class ModelManager:
                                      headers={"Content-Type": "application/json"})
         with urllib.request.urlopen(req, timeout=3600) as resp:
             for line in resp:
-                if self._stopping.is_set():
+                if self._stopping.is_set() or self._cancel.is_set():
                     return
                 if not line.strip():
                     continue
@@ -232,6 +264,16 @@ class ModelManager:
         names = {m.get("name") for m in self._get("/api/tags").get("models", [])}
         want = self.settings.model
         return want in names or (":" not in want and f"{want}:latest" in names)
+
+    def model_bytes(self) -> int | None:
+        """Memory the loaded model takes in Ollama, if it is loaded."""
+        try:
+            for m in self._get("/api/ps", 2).get("models", []):
+                if m.get("name") == self.settings.model:
+                    return int(m.get("size") or 0)
+        except (urllib.error.URLError, OSError, ValueError):
+            return None
+        return None
 
     def _is_loaded(self) -> bool | None:
         """True/False from Ollama; None if Ollama does not answer."""

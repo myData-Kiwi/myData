@@ -5,6 +5,8 @@
   GET  /approvals              approvals, optionally filtered by status
   GET  /approvals/{id}         one approval
   POST /approvals/{id}         approve or reject; approving runs exactly the held call, once
+  PUT  /assistant/settings     switch the assistant on or off
+  POST /shutdown               stop the host (the myData app and the mydata command only)
   GET  /tools                  the tool registry
   GET  /agents                 agent tokens (never the tokens themselves), and which are connected
   POST /agents                 create an agent token; the token is returned once
@@ -18,10 +20,13 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import threading
 import time
 from contextlib import asynccontextmanager
-from typing import Any, Literal
+from typing import Any, Callable, Literal
+
+import psutil
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import StreamingResponse
@@ -32,6 +37,8 @@ from .. import __version__
 from ..tools import ApprovalError, Registry
 from .assistant import Assistant
 from .auth import Authenticator
+from .logs import LAST_ERROR
+from .state import HostState
 from .mcp import build_mcp
 from .model import ModelManager
 from .security import GuardMiddleware
@@ -48,7 +55,8 @@ class Progress(BaseModel):
 
 class ModelOut(BaseModel):
     name: str
-    state: Literal["starting", "ollama_starting", "ollama_missing", "pulling", "loading", "ready", "error"]
+    state: Literal["starting", "ollama_starting", "ollama_missing", "pulling", "loading", "ready", "error",
+                   "disabled"]
     loaded: bool
     progress: Progress | None = None
     error: str | None = None
@@ -56,9 +64,23 @@ class ModelOut(BaseModel):
     ollama_started_by_host: bool
 
 
+class MemoryOut(BaseModel):
+    host_bytes: int = Field(description="memory the host process uses")
+    model_bytes: int | None = Field(default=None, description="memory the loaded model uses in Ollama")
+
+
+class ErrorOut(BaseModel):
+    at: str
+    message: str
+    logger: str
+
+
 class StatusOut(BaseModel):
     version: str
     ready: bool = Field(description="true when the assistant can answer")
+    assistant_enabled: bool = Field(description="false when the user switched the assistant off")
+    memory: MemoryOut
+    last_error: ErrorOut | None = None
     uptime_seconds: float
     model: ModelOut
     agents_connected: int = Field(description="agent tokens used in the last five minutes")
@@ -84,6 +106,10 @@ class ApprovalOut(BaseModel):
     result: Any = None
     error: str | None = None
     context: dict[str, Any] = {}
+
+
+class AssistantSettingsIn(BaseModel):
+    enabled: bool
 
 
 class DecisionIn(BaseModel):
@@ -124,7 +150,8 @@ SSE_DESCRIPTION = """Server-sent events, one JSON object per `data:` line, `even
 # ---------------------------------------------------------------- app
 
 
-def create_app(auth: Authenticator, registry: Registry, models: ModelManager, assistant: Assistant):
+def create_app(auth: Authenticator, registry: Registry, models: ModelManager, assistant: Assistant,
+               state: HostState | None = None, shutdown: Callable[[], None] | None = None):
     """The ASGI app: FastAPI routes plus /mcp, wrapped in the token and Host checks."""
     started = time.time()
     session_manager = build_mcp(registry)
@@ -141,7 +168,11 @@ def create_app(auth: Authenticator, registry: Registry, models: ModelManager, as
     @app.get("/status", response_model=StatusOut)
     def status() -> StatusOut:
         m = models.status()
-        return StatusOut(version=__version__, ready=m.state == "ready", uptime_seconds=round(time.time() - started, 1),
+        return StatusOut(version=__version__, ready=m.state == "ready", assistant_enabled=models.enabled,
+                         memory=MemoryOut(host_bytes=psutil.Process(os.getpid()).memory_info().rss,
+                                          model_bytes=models.model_bytes() if m.state == "ready" else None),
+                         last_error=ErrorOut(**LAST_ERROR.last) if LAST_ERROR.last else None,
+                         uptime_seconds=round(time.time() - started, 1),
                          model=ModelOut(**m.to_json()),
                          agents_connected=sum(a["connected"] for a in auth.agents.list()),
                          today=assistant.today().isoformat(), demo_date=assistant.settings.pin_today is not None)
@@ -157,10 +188,30 @@ def create_app(auth: Authenticator, registry: Registry, models: ModelManager, as
                                "description": SSE_DESCRIPTION},
                          503: {"description": "the model is not ready yet; see GET /status"}})
     async def messages(body: MessageIn):
+        if not models.enabled:
+            raise HTTPException(503, "the assistant is switched off; switch it on in the myData app")
         if not models.ready():
             raise HTTPException(503, "the model is not ready yet; see GET /status")
         return StreamingResponse(_sse(assistant, body.text, body.conversation_id), media_type="text/event-stream",
                                  headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+    @app.put("/assistant/settings", response_model=StatusOut)
+    def assistant_settings(body: AssistantSettingsIn) -> StatusOut:
+        """Switch the assistant on (the model is prepared, downloading it if needed) or off (nothing is
+        downloaded or loaded; the rest of myData works without it)."""
+        if state is not None:
+            state.set_assistant_enabled(body.enabled)
+        models.set_enabled(body.enabled)
+        return status()
+
+    @app.post("/shutdown", status_code=202, responses={403: {"description": "only the myData app can stop the host"}})
+    def shutdown_host(request: Request) -> dict:
+        """Stop the host. Only the myData app (which owns the host's lifetime) and the mydata command may."""
+        if request.state.principal.label not in ("app:mydata", "app:cli"):
+            raise HTTPException(403, "only the myData app can stop the host")
+        if shutdown is not None:
+            threading.Timer(0.2, shutdown).start()  # after this response is sent
+        return {"stopping": True}
 
     @app.get("/approvals", response_model=list[ApprovalOut])
     def approvals(status: Literal["pending", "approved", "rejected", "failed"] | None = None) -> list[ApprovalOut]:

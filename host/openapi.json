@@ -226,6 +226,19 @@
         "title": "ApprovalOut",
         "type": "object"
       },
+      "AssistantSettingsIn": {
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled"
+        ],
+        "title": "AssistantSettingsIn",
+        "type": "object"
+      },
       "DecisionIn": {
         "properties": {
           "decision": {
@@ -241,6 +254,29 @@
           "decision"
         ],
         "title": "DecisionIn",
+        "type": "object"
+      },
+      "ErrorOut": {
+        "properties": {
+          "at": {
+            "title": "At",
+            "type": "string"
+          },
+          "logger": {
+            "title": "Logger",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "at",
+          "message",
+          "logger"
+        ],
+        "title": "ErrorOut",
         "type": "object"
       },
       "GuardError": {
@@ -266,6 +302,32 @@
           }
         },
         "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "MemoryOut": {
+        "properties": {
+          "host_bytes": {
+            "description": "memory the host process uses",
+            "title": "Host Bytes",
+            "type": "integer"
+          },
+          "model_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "memory the loaded model uses in Ollama",
+            "title": "Model Bytes"
+          }
+        },
+        "required": [
+          "host_bytes"
+        ],
+        "title": "MemoryOut",
         "type": "object"
       },
       "MessageIn": {
@@ -342,7 +404,8 @@
               "pulling",
               "loading",
               "ready",
-              "error"
+              "error",
+              "disabled"
             ],
             "title": "State",
             "type": "string"
@@ -393,10 +456,28 @@
             "title": "Agents Connected",
             "type": "integer"
           },
+          "assistant_enabled": {
+            "description": "false when the user switched the assistant off",
+            "title": "Assistant Enabled",
+            "type": "boolean"
+          },
           "demo_date": {
             "description": "true while today is pinned to the demo data's date",
             "title": "Demo Date",
             "type": "boolean"
+          },
+          "last_error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "memory": {
+            "$ref": "#/components/schemas/MemoryOut"
           },
           "model": {
             "$ref": "#/components/schemas/ModelOut"
@@ -423,6 +504,8 @@
         "required": [
           "version",
           "ready",
+          "assistant_enabled",
+          "memory",
           "uptime_seconds",
           "model",
           "agents_connected",
@@ -1023,6 +1106,75 @@
         "summary": "Messages"
       }
     },
+    "/assistant/settings": {
+      "put": {
+        "description": "Switch the assistant on (the model is prepared, downloading it if needed) or off (nothing is\ndownloaded or loaded; the rest of myData works without it).",
+        "operationId": "assistant_settings_assistant_settings_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssistantSettingsIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "missing or wrong token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "agent tokens can only use /mcp"
+          },
+          "421": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "the Host header is not this machine"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Assistant Settings"
+      }
+    },
     "/model/retry": {
       "post": {
         "description": "Try again to get the model ready (after an error, or once Ollama is installed).",
@@ -1070,6 +1222,50 @@
           }
         },
         "summary": "Retry"
+      }
+    },
+    "/shutdown": {
+      "post": {
+        "description": "Stop the host. Only the myData app (which owns the host's lifetime) and the mydata command may.",
+        "operationId": "shutdown_host_shutdown_post",
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Shutdown Host Shutdown Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "missing or wrong token"
+          },
+          "403": {
+            "description": "only the myData app can stop the host"
+          },
+          "421": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "the Host header is not this machine"
+          }
+        },
+        "summary": "Shutdown Host"
       }
     },
     "/status": {

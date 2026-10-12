@@ -71,8 +71,16 @@ class ReadyModels:
     def status(self):
         return self._S()
 
+    enabled = True
+
     def ready(self):
         return True
+
+    def model_bytes(self):
+        return 9_000_000_000
+
+    def set_enabled(self, enabled):
+        self.enabled = enabled
 
 
 SEND_TO_NISHA = [

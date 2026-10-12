@@ -22,6 +22,7 @@ from .assistant import Assistant
 from .config import ConfigError, Settings, load_settings
 from .logs import log, setup_logging
 from .model import ModelManager
+from .state import HostState
 from .auth import AgentStore, Authenticator, ensure_app_tokens
 
 logger = logging.getLogger("mydata.daemon")
@@ -81,9 +82,11 @@ def build(settings: Settings):
         log(logger, logging.INFO, "removed the old shared token; apps now have their own", path=str(legacy))
     auth = Authenticator(ensure_app_tokens(settings.home), AgentStore(settings.home))
     registry = default_registry(today=settings.today)
-    models = ModelManager(settings)
+    state = HostState(settings.home)
+    models = ModelManager(settings, enabled=state.assistant_enabled)
     assistant = Assistant(settings, registry, today=settings.today)
-    return create_app(auth, registry, models, assistant), models
+    stop = lambda: os.kill(os.getpid(), signal.SIGTERM)  # the same clean shutdown as `mydata stop`
+    return create_app(auth, registry, models, assistant, state=state, shutdown=stop), models
 
 
 def main(argv: list[str] | None = None) -> int:

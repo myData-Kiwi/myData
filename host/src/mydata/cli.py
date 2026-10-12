@@ -8,6 +8,7 @@
     mydata agent create NAME   create a token for an MCP agent (shown once)
     mydata agent list          list agent tokens
     mydata agent revoke ID     revoke an agent token (by id or name)
+    mydata dev-setup           tell the apps how to start this development host (writes app_config.json)
 """
 
 from __future__ import annotations
@@ -153,10 +154,24 @@ def cmd_agent(settings: Settings, ns: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_dev_setup(settings: Settings) -> int:
+    """The apps start the host with the command in <home>/app_config.json. In development that is this
+    checkout's Python running `mydata start`; a packaged install will start a bundled host binary instead."""
+    settings.home.mkdir(parents=True, exist_ok=True)
+    config = {
+        "host_command": [sys.executable, "-m", "mydata.cli", "start"],
+        "note": "Development: written by `mydata dev-setup`. The apps run this to start the host.",
+    }
+    path = settings.home / "app_config.json"
+    path.write_text(json.dumps(config, indent=2) + "\n")
+    print(f"Wrote {path}:\n  host command: {' '.join(config['host_command'])}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="mydata", description="Control the myData host.")
     sub = ap.add_subparsers(dest="cmd", required=True)
-    for name in ("start", "stop", "status", "run"):
+    for name in ("start", "stop", "status", "run", "dev-setup"):
         sub.add_parser(name)
     o = sub.add_parser("openapi")
     o.add_argument("--out")
@@ -178,6 +193,8 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     if ns.cmd == "agent":
         return cmd_agent(settings, ns)
+    if ns.cmd == "dev-setup":
+        return cmd_dev_setup(settings)
     return {"start": cmd_start, "stop": cmd_stop, "status": cmd_status}[ns.cmd](settings)
 
 

@@ -30,6 +30,21 @@ class JsonFormatter(logging.Formatter):
         return json.dumps(out, ensure_ascii=False, default=str)
 
 
+class LastError(logging.Handler):
+    """Keeps the most recent ERROR record, for the Status screen."""
+
+    def __init__(self):
+        super().__init__(logging.ERROR)
+        self.last: dict | None = None
+
+    def emit(self, record: logging.LogRecord) -> None:
+        self.last = {"at": datetime.fromtimestamp(record.created, timezone.utc).isoformat(timespec="seconds"),
+                     "message": record.getMessage(), "logger": record.name}
+
+
+LAST_ERROR = LastError()
+
+
 def setup_logging(log_dir: Path, level: str = "INFO", to_stderr: bool = True) -> None:
     log_dir.mkdir(parents=True, exist_ok=True)
     root = logging.getLogger()
@@ -40,6 +55,7 @@ def setup_logging(log_dir: Path, level: str = "INFO", to_stderr: bool = True) ->
                                                         encoding="utf-8")
     file_handler.setFormatter(fmt)
     root.addHandler(file_handler)
+    root.addHandler(LAST_ERROR)
     if to_stderr:
         err = logging.StreamHandler(sys.stderr)
         err.setFormatter(fmt)
