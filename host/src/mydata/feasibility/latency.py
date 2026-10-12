@@ -123,7 +123,9 @@ def render_decide(rows: list[dict]) -> str:
     field = [r for r in rows]
     decided = [r for r in field if r["then"] in ("show", "answer")]
     field_ok = sum((r["then"] == "answer") == r["needs"] for r in decided)
-    lines = [f"{len(per_text)} labelled requests (8 answered by the list, 8 needing a sentence).", "",
+    needs = sum(r["needs"] for r in per_text.values())
+    lines = [f"{len(per_text)} labelled requests ({len(per_text) - needs} answered by the list, {needs} needing a "
+             f"sentence), written blind to both methods.", "",
              "| Method | Correct | Wrong | Undecided |", "|---|---|---|---|",
              f"| Code rule | {rule_ok}/{len(per_text)} | {len(per_text) - rule_ok} | 0 |",
              f"| `then` field (all reps) | {field_ok}/{len(field)} | {len(decided) - field_ok} | "
@@ -147,10 +149,32 @@ def _sh(cmd: list[str]) -> str:
         return f"({cmd[0]}: {e})"
 
 
+def _vm() -> dict:
+    out = {}
+    for line in _sh(["vm_stat"]).splitlines():
+        m = re.match(r"(Pageins|Pageouts|Swapins|Swapouts):\s+(\d+)", line)
+        if m:
+            out[m.group(1).lower()] = int(m.group(2))
+    return out
+
+
+def _temps() -> dict:
+    """Battery and system temperatures in °C (macOS AppleSmartBattery): a heat proxy without admin rights."""
+    out = {}
+    for key in ("Temperature", "VirtualTemperature"):
+        m = re.search(rf'"{key}" = (\d+)', _sh(["ioreg", "-rn", "AppleSmartBattery"]))
+        if m:
+            out["battery_c" if key == "Temperature" else "system_c"] = int(m.group(1)) / 100
+    return out
+
+
 def environment() -> dict:
     mp = _sh(["memory_pressure", "-Q"])
     free = re.search(r"free percentage: (\d+)%", mp)
     return {
+        "vm": _vm(),
+        "temps": _temps(),
+        "memorystatus_level": _sh(["sysctl", "-n", "kern.memorystatus_level"]),
         "at": time.strftime("%H:%M:%S"),
         "power": _sh(["pmset", "-g", "batt"]).splitlines()[0:2],
         "thermal": _sh(["pmset", "-g", "therm"]),
@@ -169,9 +193,10 @@ def _post(model: OllamaChat, payload: dict) -> dict:
         return json.loads(resp.read())
 
 
-def _probe(model: OllamaChat, system: dict, tools: list[dict], cached: bool, generate: int) -> dict:
-    """One request: a cold (tagged, uncached) or warm (cached prefix) prompt, then `generate` tokens."""
-    sys_msg = system if cached else {**system, "content": f"[{secrets.token_hex(4)}] " + system["content"]}
+def _probe(model: OllamaChat, system: dict, tools: list[dict], cached: bool, generate: int, tag: str) -> dict:
+    """One request with `tag` at the start of the system prompt, then `generate` tokens. The first request
+    with a new tag reads the whole prompt (cold); repeating it reads it from the cache (warm)."""
+    sys_msg = {**system, "content": tag + system["content"]}
     body = _post(model, {"model": model.name, "think": False, "stream": False, "keep_alive": -1, "tools": tools,
                          "options": {**model.options, "num_predict": generate, "temperature": 0},
                          "messages": [sys_msg, {"role": "user", "content":
@@ -188,7 +213,7 @@ def run_speed(set_name: str, model_name: str, minutes: float, out: Path) -> str:
     case_set = load_set(set_name)
     model = _model(model_name)
     registry = default_registry(today=lambda: case_set.today)
-    system, tools = request_prefix(registry, followup="field")
+    system, tools = request_prefix(registry, followup="rule")
     singles = [c["text"] for c in case_set.cases if c["type"] == "single"]
     log: dict = {"model": model_name, "minutes": minutes, "phases": []}
 
@@ -196,8 +221,9 @@ def run_speed(set_name: str, model_name: str, minutes: float, out: Path) -> str:
         env = environment()
         _post(model, {"model": model.name, "messages": [], "keep_alive": 0})  # unload: the next read is cold
         time.sleep(2)
-        cold = _probe(model, system, tools, cached=False, generate=128)
-        warm = _probe(model, system, tools, cached=True, generate=128)
+        tag = f"[{secrets.token_hex(4)}] "
+        cold = _probe(model, system, tools, cached=False, generate=128, tag=tag)
+        warm = _probe(model, system, tools, cached=True, generate=128, tag=tag)
         log["phases"].append({"name": name, "env": env, "cold_load": cold, "warm": warm,
                               "env_after": environment()})
         print(f"{name}: cold prompt {cold['prompt_tok_s']} tok/s (load {cold['load_s']} s), "
@@ -228,17 +254,34 @@ def run_speed(set_name: str, model_name: str, minutes: float, out: Path) -> str:
     return report
 
 
+def _power(env: dict) -> str:
+    """"AC" or "battery 28%" from `pmset -g batt`; "-" when the run did not record it."""
+    lines = env.get("power") or []
+    if not lines:
+        return "-"
+    if "AC Power" in lines[0]:
+        return "AC"
+    pct = re.search(r"(\d+)%", " ".join(lines))
+    return f"battery {pct.group(1)}%" if pct else "battery"
+
+
 def render_speed(log: dict) -> str:
     lines = [f"`{log['model']}`. Cold = model just loaded and prompt not cached; warm = loaded, prefix cached. "
              f"Generation speed from a 128-token answer.", "",
              "| When | Load s | Cold prompt read tok/s | Warm prompt read s | Generation tok/s (warm) | "
-             "Memory free | Swap | Thermal | Load avg |", "|---|---|---|---|---|---|---|---|---|"]
+             "Memory free | Swap used | Pages out / swapped out during the phase | Battery / system °C | Load avg | Power |",
+             "|---|---|---|---|---|---|---|---|---|---|---|"]
     for p in log["phases"]:
-        e, c, w = p["env"], p["cold_load"], p["warm"]
-        therm = " ".join(e["thermal"].split())[-60:]
+        e, c, w, a = p["env"], p["cold_load"], p["warm"], p.get("env_after", p["env"])
+        dv = {k: a.get("vm", {}).get(k, 0) - e.get("vm", {}).get(k, 0) for k in ("pageouts", "swapouts")}
+        t = e.get("temps", {})
+        swap = re.search(r"used = ([\d.]+)M", e["swap"])
         lines.append(f"| {p['name']} | {c['load_s']} | {c['prompt_tok_s']} ({c['prompt_tokens']} tokens in "
                      f"{c['prompt_s']} s) | {w['prompt_s']} | {w['gen_tok_s']} | {e['memory_free_percent']}% | "
-                     f"{e['swap']} | {therm} | {e['load']} |")
+                     f"{float(swap.group(1)) / 1024:.1f} GB | {dv['pageouts']} / {dv['swapouts']} | "
+                     f"{t.get('battery_c', '-')} / {t.get('system_c', '-')} | {e['load']} | {_power(e)} |" if swap else
+                     f"| {p['name']} | {c['load_s']} | {c['prompt_tok_s']} | {w['prompt_s']} | {w['gen_tok_s']} | "
+                     f"{e['memory_free_percent']}% | {e['swap']} | | | {e['load']} | {_power(e)} |")
     gen = [s for s in log.get("continuous", []) if "gen_tok_s" in s]
     if gen:
         n = len(gen)
@@ -249,8 +292,14 @@ def render_speed(log: dict) -> str:
                       f"all calls {min(s['gen_tok_s'] for s in gen):.1f}–{max(s['gen_tok_s'] for s in gen):.1f}."]
     envs = [s["env"] for s in log.get("continuous", []) if "env" in s]
     if envs:
-        lines += ["", "| Minute | Memory free | Swap | Thermal | Busiest processes |", "|---|---|---|---|---|"]
+        lines += ["", "| Minute | Memory free | Pages out / swapped out since the last minute | Battery / system °C "
+                      "| Busiest processes |", "|---|---|---|---|---|"]
+        prev = None
         for k, e in enumerate(envs):
-            lines.append(f"| {k} | {e['memory_free_percent']}% | {e['swap']} | {' '.join(e['thermal'].split())[-50:]} | "
-                         f"{'; '.join(x.strip() for x in e['top'][:3])} |")
+            vm, t = e.get("vm", {}), e.get("temps", {})
+            delta = (f"{vm.get('pageouts', 0) - prev.get('pageouts', 0)} / {vm.get('swapouts', 0) - prev.get('swapouts', 0)}"
+                     if prev else "-")
+            prev = vm
+            lines.append(f"| {k} | {e['memory_free_percent']}% | {delta} | {t.get('battery_c', '-')} / "
+                         f"{t.get('system_c', '-')} | {'; '.join(x.strip() for x in e['top'][:3])} |")
     return "\n".join(lines) + "\n"

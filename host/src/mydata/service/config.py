@@ -40,7 +40,7 @@ think = false
 num_ctx = 8192
 # After a tool's result is shown: "field" (the tool-choice call says whether a sentence is needed),
 # "rule" (code decides from the request), or "full" (the model always writes the reply).
-followup = "field"
+followup = "rule"
 
 [log]
 level = "INFO"
@@ -78,7 +78,7 @@ class Settings:
     pull_if_missing: bool = True
     think: bool = False
     num_ctx: int = 8192
-    followup: str = "field"
+    followup: str = "rule"
     log_level: str = "INFO"
     # Development: the date the host treats as today (None = the real date). See DEFAULT_CONFIG [dev].
     pin_today: date | None = None
@@ -171,7 +171,7 @@ def load_settings(home: Path | None = None, create: bool = True) -> Settings:
         pull_if_missing=_get(model, "model.pull_if_missing", bool, True),
         think=_get(model, "model.think", bool, False),
         num_ctx=_get(model, "model.num_ctx", int, 8192),
-        followup=_get(model, "model.followup", str, "field"),
+        followup=_get(model, "model.followup", str, "rule"),
         log_level=_get(log, "log.level", str, "INFO").upper(),
         pin_today=_pin_today(dev),
     )

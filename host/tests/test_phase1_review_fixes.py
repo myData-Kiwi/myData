@@ -190,7 +190,7 @@ def test_step_event_marks_streamed_text_before_tool_calls(tmp_path):
     class Streaming(Scripted):
         streams = True
 
-        def chat(self, messages, tools, on_delta=None):
+        def chat(self, messages, tools, on_delta=None, **_):
             r = super().chat(messages, tools)
             if on_delta:
                 on_delta(r["content"] or "Let me check. ")
