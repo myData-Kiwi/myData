@@ -13,9 +13,10 @@ Early build. Done:
 - **the first two apps** (phase 2): myData (setup, status, settings) and myAssistant (chat), in Flutter, macOS first;
 - **answer latency** (Part A): results on screen in about 3.5 s instead of 13;
 - **the design system** (Part B): `design/` in Flutter (`mydata_ui`), six themes in light and dark, the theme stored on the host and followed by every app;
-- **real contacts and calendars on the host** (phase 3): a read-only mirror from **This Mac** (macOS Contacts and EventKit, the main path on a Mac host) or from a followed iCloud account (CardDAV, CalDAV; under Advanced, for hosts that are not Macs). See "Contacts and calendars sources".
+- **real contacts and calendars on the host** (phase 3): a read-only mirror from **This Mac** (macOS Contacts and EventKit, the main path on a Mac host) or from a followed iCloud account (CardDAV, CalDAV; under Advanced, for hosts that are not Macs). See "Contacts and calendars sources";
+- **the myContacts and myCalendar apps** (phase 4): read-only views of the mirror, with links between the apps (`mycontacts://contact/<id>`, `mycalendar://day/<date>`, `mydata://settings/sources`). myAssistant opens a real contact or event result in them when they are installed, and myData's Status lists the apps with their counts and sources.
 
-With no source on, the tools serve fake demo data and the host's today is pinned to its date (18 March 2026). With any source on (real mode), `find_contact` and `list_events` read the mirror and use the real date. **Next:** the myContacts and myCalendar apps on the mirrored data; see "Build order". Chained requests are an open problem, not a blocker: the planner write-up in `host/results/2026-10-11-b-REPORT.md` is the starting point. Answer latency is in "Answer latency" below.
+**Sync is read-only for now:** the host only reads from its sources, and no app edits a contact or an event. The two modes are described in "Demo and real mode". **Next:** myMail; see "Build order". Chained requests are an open problem, not a blocker: the planner write-up in `host/results/2026-10-11-b-REPORT.md` is the starting point. Answer latency is in "Answer latency" below.
 
 ## Ground rules
 
@@ -66,7 +67,7 @@ One host per household, clients on every device.
 - **Clients**: talk to the host over the local network, and over Tailscale when away. Never expose the model server's port to the internet. **For now the host listens on localhost only** (127.0.0.1); phone and remote access come later as a separate, explicit design.
 - **The host owns data and tools; agents are replaceable.** Every agent reaches tools through one registry, which holds the permission gate: our orchestrator, or any MCP agent at `/mcp`. An irreversible call never runs until a user approves that exact held call in an app.
 - **Tokens.**
-  - **App tokens:** one per app (`app-tokens/<app>` in the host's folder, readable only by the user). They can do everything, including approving, and each approval records which app decided.
+  - **App tokens:** one per app (`app-tokens/<app>` in the host's folder, readable only by the user). The myData app, myAssistant and the `mydata` command can do everything, including approving, and each approval records which app decided. myContacts and myCalendar only read: their tokens get GET, nothing else (`READ_ONLY_APPS`).
   - **Agent tokens:** created and revoked with `mydata agent ...` or in the myData app, with only their hash stored. They reach `/mcp` only.
 - **Apps.** The product is a family of separate apps built from shared code, not one combined app with a sidebar. Each app talks to the host only through the HTTP API, with no business logic in the app. The user opens an app and the host starts by itself.
   - Only the myData app owns the host's lifetime: it has a menu-bar icon with Open and Quit, and Quit stops the host. The host enforces this: `/shutdown` refuses other apps.
@@ -103,6 +104,14 @@ Read-only mirrors in `contacts.sqlite` and `calendar.sqlite` (`host/src/mydata/s
   - Large snapshots arrive in parts of a few MB.
 - **iCloud account** (Advanced): CardDAV and CalDAV with an app-specific password and the Apple Account email, which may differ from an address on the user's own domain. It holds every date.
 - **Switching mode ends every conversation.** The host moves its conversation epoch on (`state.json`, `conversation_epoch` in `/status`); myAssistant then shows one line saying a new conversation has started, and a message to an older epoch's conversation gets a `reset` event.
+- **The same account through both sources** (an iCloud account set up on the Mac and also followed) is mirrored twice: its contacts and calendars are listed twice, and myCalendar lets the user hide either copy. Hiding is kept on the device and followed by myCalendar only: myAssistant's answers come from the host and still include hidden calendars (and both copies). While This Mac is on, Settings says under each followed account that following it is not needed on a Mac that has it in System Settings.
+
+### Demo and real mode
+
+The host is in **demo mode** while no source is on, and in **real mode** as soon as one is (`mode` in `/status`). Turning the first source on or the last one off switches it.
+
+- **Demo mode:** the six built-in tools serve the fake data in `orchestrator/fixtures.py`, and the host's today is pinned to 18 March 2026 (`demo_date` in `/status`; myData shows a "Demo date" chip, myAssistant "Demo data"). MCP agents get the same six fake tools. myContacts and myCalendar have nothing to show and point to myData, Settings, Sources. Results in myAssistant never open in another app: their ids and days are not the user's.
+- **Real mode:** only `find_contact` and `list_events` are offered, reading the mirror, with the real date and the machine's time zone. Mail, photos and creating events have no real source yet, so those tools are not offered. MCP agents get no tools. The request log records the mode and holds no mirrored data. A `result` event says `"mode": "real"`; a contact item carries its id and an event item its day, so myAssistant opens them in myContacts and myCalendar when installed.
 
 ### Assistant
 
@@ -141,13 +150,15 @@ app/                  Dart workspace
   packages/mydata_core       host lifecycle (find, start, wait, watch), app tokens, error states
   packages/mydata_ui         design system: tokens generated from design/, MyDataTheme, fonts, logo, widgets
   packages/mydata_testing    test helpers: bundled fonts in tests, golden and screenshot matrices
-  packages/mydata_assistant  chat, streamed replies, progress lines, approval card
+  packages/mydata_assistant  chat, streamed replies, progress lines, approval card, results that open in their apps
   apps/mydata                the myData app
   apps/myassistant           the myAssistant app
+  apps/mycontacts            the myContacts app (read-only)
+  apps/mycalendar            the myCalendar app (read-only)
 CLAUDE.md, README.md
 ```
 
-Each later app (myContacts, myCalendar, ...) is a new `app/apps/<name>` on the same packages.
+Each later app (myMail, myPhotos, ...) is a new `app/apps/<name>` on the same packages. `mydata_core` also holds the links between the apps (`AppLinks`, `IncomingLinks`, `InstalledApps`; the runner side is `macos_snippets/LinksAppDelegate.swift`).
 
 ## Hardware and model findings
 
@@ -272,8 +283,8 @@ Full report: `host/results/2026-10-12-a-REPORT.md`. Measured on battery, with BT
 2. ~~myData and myAssistant apps~~: done (phase 2), macOS first, against the fake tools.
 3. ~~Answer latency~~: done (Part A, 2026-10-12): results shown by code, the model kept warm. Open items are listed under "Answer latency".
 4. ~~Design system~~: done (Part B): `design/` implemented in `mydata_ui`, the theme stored on the host, both apps restyled.
-5. myContacts and myCalendar. **Done:** the host side, with This Mac (Contacts, EventKit) as the main source on a Mac and iCloud (CardDAV, CalDAV) under Advanced, replacing the fake contact and calendar tools in real mode. **Next:** the two apps, each a new app in `app/apps`. myCalendar must show the window limit that `/events` reports.
-6. myMail (IMAP sync, FTS5 search), replacing the fake mail tools.
+5. ~~myContacts and myCalendar~~: done. The host side, with This Mac (Contacts, EventKit) as the main source on a Mac and iCloud (CardDAV, CalDAV) under Advanced, replacing the fake contact and calendar tools in real mode; then the two read-only apps in `app/apps`, the links between the apps, myAssistant's results opening in them, and the apps on myData's Status. myCalendar shows the window limit that `/events` reports.
+6. **Next:** myMail (IMAP sync, FTS5 search), replacing the fake mail tools.
 7. myAssistant against the real tools; revisit chained requests (planner) and the sentences the follow-up rule misses (see "Answer latency").
    - **Real-mode tool descriptions:** in real mode `find_contact` and `list_events` still use the descriptions measured on the demo set, which mention mail. New descriptions need a new frozen request set and a measurement before they replace them.
    - **Outside agents and real data:** MCP agents are blocked from real data (in real mode they get no tools). Later: a per-agent permission, granted in the myData app, off by default, with a warning that the data may leave this machine.
@@ -304,7 +315,8 @@ Full report: `host/results/2026-10-12-a-REPORT.md`. Measured on battery, with BT
 - Design-system gaps found while restyling:
   - The loading "kiwi slice" has not been drawn. `KiwiLoader` (the kiwi mark on a turning badge) is a placeholder.
   - The icon set has not been drawn. The apps use Material outline icons.
-- myAssistant's "Open myData" (assistant off) can only bring myData forward. It cannot open it at Settings, because there is no way to send a running myData a command.
+- myAssistant's "Open myData" (assistant off) can only bring myData forward, or open Setup on a cold start. myData now takes one link, `mydata://settings/sources`, but there is none for its Assistant setting yet.
+- The links between the apps, myAssistant's results opening in myContacts and myCalendar, and the Status rows' "Open" are tested with fakes only. None has been tried between built apps on a Mac, and myContacts and myCalendar have not been run against a real host. myCalendar's time zone channel has not been tried live.
 - The phone layouts (floating tab bar, large title) are built and covered by goldens, but have not been run on a phone.
 - Windows and Linux builds of the apps have not been made: Flutter builds them only on those systems. Their code paths compile (`flutter analyze`).
 - This Mac has not been verified:

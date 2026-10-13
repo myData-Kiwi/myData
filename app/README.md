@@ -2,8 +2,10 @@
 
 A family of separate apps built from shared code. There is no combined app.
 
-- `apps/mydata`: the **myData** app: Setup, Status and Settings. It owns the host's lifetime and has a menu-bar icon with Open and Quit. Closing its window keeps the host running; Quit, from the icon or with Cmd+Q, stops it.
-- `apps/myassistant`: the **myAssistant** chat app. It can start the host but never stops it.
+- `apps/mydata`: the **myData** app: Setup, Status and Settings. It owns the host's lifetime and has a menu-bar icon with Open and Quit. Closing its window keeps the host running; Quit, from the icon or with Cmd+Q, stops it. Status lists myContacts, myCalendar and myAssistant (installed or not, the counts of contacts and calendars and their sources, Open). It opens `mydata://settings/sources` links at Settings, Sources (after setup, if a link arrives during it).
+- `apps/myassistant`: the **myAssistant** chat app. It can start the host but never stops it. In real mode a contact or event in a result opens in myContacts or myCalendar when that app is installed; otherwise the row is not interactive.
+- `apps/mycontacts`: the **myContacts** app: the contacts the host mirrors from its sources, read-only. It can start the host but never stops it, opens `mycontacts://contact/<id>` links, and remembers the contact last opened on this device.
+- `apps/mycalendar`: the **myCalendar** app: a month of the calendars the host mirrors, the selected day's events, and which calendars this device shows, read-only. It can start the host but never stops it, opens `mycalendar://day/<YYYY-MM-DD>` links, and shows This Mac's window limit (and why a source reads nothing) above the grid. Times in an event's own zone come from macOS's time zone database over the `mycalendar/zones` channel in its runner.
 - `packages/mydata_client`: the Dart API client, **generated** from `host/openapi.json` by `tool/generate_client.sh`. Never edit it by hand.
 - `packages/mydata_core`: host lifecycle (find, start, wait for `/status`, watch), app tokens, error states.
 - `packages/mydata_ui`: the design system, generated from `design/` at the repo root (the source of truth): tokens, `MyDataTheme` (themes chosen on the host, light and dark per device), motion, accessibility, bundled fonts, the kiwi logo and the shared widgets. See its README for the owner's decisions where `design/` disagreed with itself.
