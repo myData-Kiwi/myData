@@ -24,6 +24,19 @@ The tools still serve fake demo data, and the host's today is pinned to its date
 - No trademark filing planned. "myData" is descriptive and crowded.
 - Owner's working style: direct, concise answers. Stress-test ideas and lead with what is wrong or missing. No flattery.
 
+## Commits
+
+Follow [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/).
+
+- **Subject:** `type(scope): summary`. Lower case, imperative, no full stop, 72 characters at most.
+- **Types:** `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`.
+- **Scopes:** `host`, `app`, `ui`, `assistant`, `design`, `docs`. Omit the scope if none fits.
+- **Breaking changes:** `!` after the type or scope, plus a `BREAKING CHANGE:` footer.
+- **Body:** optional, at most 5 short lines saying why, not a list of every file. Most commits need no body.
+- **One logical change per commit.**
+- **Never add a `Co-Authored-By` trailer or any other mention of Claude.**
+- Commits use the personal identity, set for this folder by `~/.gitconfig-mydata-kiwi`.
+
 ## Names
 
 | Name | What it is | Runs on |
