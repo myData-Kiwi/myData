@@ -274,6 +274,8 @@ Full report: `host/results/2026-10-12-a-REPORT.md`. Measured on battery, with BT
 5. myContacts and myCalendar. **Done:** the host side, with This Mac (Contacts, EventKit) as the main source on a Mac and iCloud (CardDAV, CalDAV) under Advanced, replacing the fake contact and calendar tools in real mode. **Next:** the two apps, each a new app in `app/apps`. myCalendar must show the window limit that `/events` reports.
 6. myMail (IMAP sync, FTS5 search), replacing the fake mail tools.
 7. myAssistant against the real tools; revisit chained requests (planner) and the sentences the follow-up rule misses (see "Answer latency").
+   - **Real-mode tool descriptions:** in real mode `find_contact` and `list_events` still use the descriptions measured on the demo set, which mention mail. New descriptions need a new frozen request set and a measurement before they replace them.
+   - **Outside agents and real data:** MCP agents are blocked from real data (in real mode they get no tools). Later: a per-agent permission, granted in the myData app, off by default, with a warning that the data may leave this machine.
 8. myPhotos (import, CLIP index, faces). The largest piece; expect 6 to 8 weekends.
 9. Phone clients and remote access (the host is localhost-only until then).
 10. Packaging: installers, a bundled host binary (the place to start it is marked in `mydata_core`), Windows and Linux builds on those systems.
