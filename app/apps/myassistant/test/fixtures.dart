@@ -181,3 +181,59 @@ List<AssistantEvent> emailRishita() => [
   const MessageEvent(text: 'The email is ready. It is waiting for your approval.', outcome: 'pending_approval'),
   const DoneEvent(),
 ];
+
+/// LaunchServices as a fake: the apps in [present] are installed. Counts the lookups.
+class FakeLaunchServices {
+  FakeLaunchServices([Set<MyDataAppId> present = const {}]) : present = {...present};
+  Set<MyDataAppId> present;
+  int lookups = 0;
+
+  Future<CommandResult> call(String executable, List<String> arguments) async {
+    lookups++;
+    final installed = present.any((a) => a.bundleId == arguments.last);
+    return CommandResult(0, installed ? '/Applications/${arguments.last}.app' : '');
+  }
+
+  /// The installed apps myAssistant asks about, looked up through this fake.
+  InstalledApps apps() => InstalledApps(
+    apps: const [MyDataAppId.mycontacts, MyDataAppId.mycalendar],
+    links: AppLinks(run: call, macOS: true),
+  );
+}
+
+/// A contact's id on the host (invented).
+const avaId = '2f1c9a52-7d3e-4b8a-9c61-0e5d4f3a2b10';
+
+/// "Ava's number and what's on Friday?" in real mode: the user's own contact and event, which open in their apps.
+List<AssistantEvent> realLookups({bool real = true}) => [
+  const ConversationEvent('c3'),
+  const ProgressEvent(tool: 'find_contact', label: 'Looking up Ava'),
+  ResultEvent(
+    tool: 'find_contact',
+    kind: 'contacts',
+    header: 'Ava Fictional',
+    realMode: real,
+    items: const [
+      {'id': avaId, 'name': 'Ava Fictional', 'email': 'ava.fictional@example.com', 'phone': '+1 202 555 0101'},
+    ],
+  ),
+  const ProgressEvent(tool: 'list_events', label: 'Checking calendar'),
+  ResultEvent(
+    tool: 'list_events',
+    kind: 'events',
+    header: '1 event on Friday 20 March',
+    realMode: real,
+    items: const [
+      {
+        'title': 'Dinner with Ava (invented)',
+        'date': '2026-03-20',
+        'day': 'Friday 20 March',
+        'start': '19:00',
+        'end': '21:00',
+        'location': '12 Example Street',
+      },
+    ],
+  ),
+  const MessageEvent(text: '1 event on Friday 20 March', outcome: 'answered', byCode: true),
+  const DoneEvent(),
+];

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:mydata_assistant/mydata_assistant.dart';
 import 'package:mydata_core/mydata_core.dart';
@@ -10,12 +12,27 @@ import 'package:mydata_ui/mydata_ui.dart';
 /// The frame's one section is Chat. At the bottom of the sidebar it says how the host is: starting,
 /// connected (with a link that opens myData), or unreachable (with Retry). The web build, which cannot reach
 /// a host, shows only its panel, without the frame.
+///
+/// In real mode, a contact or event in a result opens in myContacts or myCalendar when that app is installed
+/// on this Mac; whether it is, is looked up once and again whenever myAssistant comes back to the front.
 class AssistantHome extends StatefulWidget {
-  const AssistantHome({super.key, required this.host, this.backend});
+  const AssistantHome({super.key, required this.host, this.backend, this.apps, this.openLink});
   final HostController host;
 
   /// The chat's way to the host; null uses the host's API through [host]'s connection.
   final AssistantBackend? backend;
+
+  /// Whether myContacts and myCalendar are installed; null looks them up ([InstalledApps]).
+  final InstalledApps? apps;
+
+  /// Opens a link in its app; null uses [appLinks].
+  final Future<bool> Function(MyDataLink link)? openLink;
+
+  /// The apps a result can open its items in.
+  static const linkedApps = [MyDataAppId.mycontacts, MyDataAppId.mycalendar];
+
+  /// When opening an item in its app failed.
+  static String openFailed(MyDataAppId app) => 'myAssistant could not open ${app.displayName}. Open it yourself.';
 
   static const appName = 'myAssistant';
   static const sections = [AppSection(icon: Icons.chat_bubble_outline_rounded, label: 'Chat')];
@@ -31,6 +48,7 @@ class _AssistantHomeState extends State<AssistantHome> {
   late final AssistantBackend _backend =
       widget.backend ?? (_hostBackend = HostAssistantBackend(() => widget.host.connection));
   late final _chat = ChatController(_backend);
+  late final InstalledApps _apps = widget.apps ?? InstalledApps(apps: AssistantHome.linkedApps);
 
   /// Set when the myData app could not be opened from here; the notice names the place to go for the
   /// screen it is shown on ([AssistantUnavailable.openFailedNotice]).
@@ -43,6 +61,7 @@ class _AssistantHomeState extends State<AssistantHome> {
     super.initState();
     _host.addListener(_followHost);
     _host.connect();
+    unawaited(_apps.start());
   }
 
   /// Every status poll goes to the chat: a switch between demo and real mode ends the conversation there.
@@ -55,9 +74,20 @@ class _AssistantHomeState extends State<AssistantHome> {
   void dispose() {
     _host.removeListener(_followHost);
     _chat.dispose();
+    if (widget.apps == null) _apps.dispose();
     _hostBackend?.close();
     _host.dispose();
     super.dispose();
+  }
+
+  /// Opens a result's item in its app. If that fails (the app was removed meanwhile), says so and looks again,
+  /// so its rows stop offering it.
+  Future<void> _openItem(MyDataLink link) async {
+    final open = widget.openLink ?? appLinks.openLink;
+    final opened = await open(link).catchError((Object _) => false);
+    if (!mounted || opened) return;
+    ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(content: Text(AssistantHome.openFailed(link.app))));
+    unawaited(_apps.refresh());
   }
 
   /// Whether the myData app came up. A launcher that throws (e.g. `open` could not be run) counts as no.
@@ -139,7 +169,7 @@ class _AssistantHomeState extends State<AssistantHome> {
     ),
     HostPhase.running =>
       assistantAvailability(status!) == AssistantAvailability.ready
-          ? _ChatPage(chat: _chat, demoDate: status.demoDate)
+          ? _ChatPage(chat: _chat, demoDate: status.demoDate, apps: _apps, onOpen: _openItem)
           : AssistantUnavailable(
               status: status,
               notice: _openFailed ? AssistantUnavailable.openFailedNotice(status) : null,
@@ -162,9 +192,11 @@ class _AssistantHomeState extends State<AssistantHome> {
 
 /// The chat under its title, with a "Demo data" chip while the host's tools serve sample data.
 class _ChatPage extends StatelessWidget {
-  const _ChatPage({required this.chat, required this.demoDate});
+  const _ChatPage({required this.chat, required this.demoDate, required this.apps, required this.onOpen});
   final ChatController chat;
   final bool demoDate;
+  final InstalledApps apps;
+  final ValueChanged<MyDataLink> onOpen;
 
   @override
   Widget build(BuildContext context) {
@@ -208,7 +240,13 @@ class _ChatPage extends StatelessWidget {
           child: MediaQuery.removePadding(
             context: context,
             removeTop: true,
-            child: ChatView(controller: chat),
+            child: ListenableBuilder(
+              listenable: apps,
+              builder: (context, _) => ChatView(
+                controller: chat,
+                links: ResultLinks(installed: apps.installed, onOpen: onOpen),
+              ),
+            ),
           ),
         ),
       ],

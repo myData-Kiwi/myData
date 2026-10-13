@@ -19,6 +19,8 @@ void desktop(WidgetTester tester) {
 MyDataColors colorsOf(WidgetTester tester) => tester.element(find.byType(AppFrame)).colors;
 
 void main() {
+  group('opening results in their apps', linksTests);
+
   testWidgets('without a start command: the error, its detail, and Retry that tries again', (tester) async {
     desktop(tester);
     final platform = NoHostPlatform(supported: true);
@@ -221,4 +223,98 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
+}
+
+void linksTests() {
+  Future<void> ask(WidgetTester tester, String text) async {
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(ChatView.inputKey), text);
+    await tester.tap(find.byKey(ChatView.sendKey));
+    await tester.pumpAndSettle();
+  }
+
+  Widget app(FakeLaunchServices launch, List<MyDataLink> opened, {bool real = true, bool opens = true}) =>
+      MyAssistantApp(
+        host: FakeHost(
+          phaseOnConnect: HostPhase.running,
+          statusOnConnect: hostStatus(real: real),
+        ),
+        store: MemoryDeviceStore(),
+        backend: ScriptedBackend([realLookups(real: real)]),
+        apps: launch.apps(),
+        openLink: (link) async {
+          opened.add(link);
+          return opens;
+        },
+      );
+
+  testWidgets('a real contact opens in myContacts and an event\'s day in myCalendar', (tester) async {
+    desktop(tester);
+    final launch = FakeLaunchServices({MyDataAppId.mycontacts, MyDataAppId.mycalendar});
+    final opened = <MyDataLink>[];
+    await tester.pumpWidget(app(launch, opened));
+    await ask(tester, "Ava's number and what's on Friday?");
+    expect(find.byIcon(Icons.chevron_right_rounded), findsNWidgets(2));
+    await tester.tap(find.text('ava.fictional@example.com'));
+    await tester.tap(find.text('Dinner with Ava (invented)'));
+    await tester.pump();
+    expect(opened, [OpenContact(avaId), OpenDay(DateTime(2026, 3, 20))]);
+  });
+
+  testWidgets('installed apps are looked up once, and again when myAssistant comes back to the front', (tester) async {
+    desktop(tester);
+    final launch = FakeLaunchServices({MyDataAppId.mycontacts});
+    final opened = <MyDataLink>[];
+    await tester.pumpWidget(app(launch, opened));
+    await ask(tester, "Ava's number and what's on Friday?");
+    expect(launch.lookups, 2); // one per app, once
+    // myCalendar is not installed: its row does nothing.
+    expect(find.byIcon(Icons.chevron_right_rounded), findsOneWidget);
+    await tester.tap(find.text('Dinner with Ava (invented)'));
+    expect(opened, isEmpty);
+
+    launch.present.add(MyDataAppId.mycalendar);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+    expect(launch.lookups, 4);
+    expect(find.byIcon(Icons.chevron_right_rounded), findsNWidgets(2));
+    await tester.tap(find.text('Dinner with Ava (invented)'));
+    expect(opened, [OpenDay(DateTime(2026, 3, 20))]);
+  });
+
+  testWidgets('with neither app installed no row is interactive', (tester) async {
+    desktop(tester);
+    final opened = <MyDataLink>[];
+    await tester.pumpWidget(app(FakeLaunchServices(), opened));
+    await ask(tester, "Ava's number and what's on Friday?");
+    expect(find.byIcon(Icons.chevron_right_rounded), findsNothing);
+    expect(find.byType(Pressable), findsWidgets); // the composer's button; not the rows:
+    await tester.tap(find.text('ava.fictional@example.com'));
+    expect(opened, isEmpty);
+  });
+
+  testWidgets('sample results (demo mode) never open anything', (tester) async {
+    desktop(tester);
+    final opened = <MyDataLink>[];
+    await tester.pumpWidget(app(FakeLaunchServices({...MyDataAppId.values}), opened, real: false));
+    await ask(tester, "Ava's number and what's on Friday?");
+    expect(find.byIcon(Icons.chevron_right_rounded), findsNothing);
+    await tester.tap(find.text('ava.fictional@example.com'));
+    expect(opened, isEmpty);
+  });
+
+  testWidgets('an app that would not open: one line says so, and the apps are looked up again', (tester) async {
+    desktop(tester);
+    final launch = FakeLaunchServices({MyDataAppId.mycontacts, MyDataAppId.mycalendar});
+    final opened = <MyDataLink>[];
+    await tester.pumpWidget(app(launch, opened, opens: false));
+    await ask(tester, "Ava's number and what's on Friday?");
+    launch.present.clear(); // removed meanwhile
+    await tester.tap(find.text('ava.fictional@example.com'));
+    await tester.pumpAndSettle();
+    expect(find.text(AssistantHome.openFailed(MyDataAppId.mycontacts)), findsOneWidget);
+    expect(launch.lookups, 4);
+    expect(find.byIcon(Icons.chevron_right_rounded), findsNothing);
+  });
 }

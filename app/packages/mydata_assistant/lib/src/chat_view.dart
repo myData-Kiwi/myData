@@ -20,9 +20,13 @@ import 'result_view.dart';
 ///   beneath it. Both are disabled while a reply is coming in; the field gets focus back afterwards.
 /// - Everything in the conversation can be selected and copied.
 class ChatView extends StatefulWidget {
-  const ChatView({super.key, required this.controller});
+  const ChatView({super.key, required this.controller, this.links});
 
   final ChatController controller;
+
+  /// Opens real contact and event results in myContacts and myCalendar when installed ([ResultCard]); null
+  /// opens nothing.
+  final ResultLinks? links;
 
   static const inputKey = ValueKey('chat-input');
   static const sendKey = ValueKey('chat-send');
@@ -183,7 +187,7 @@ class _ChatViewState extends State<ChatView> {
                     : (item is ProgressLine && previous is ProgressLine ? ChatView.progressGap : ChatView.itemGap);
                 return Padding(
                   padding: EdgeInsets.only(top: gap),
-                  child: item == null ? const _Working() : _ItemView(item: item, chat: _chat),
+                  child: item == null ? const _Working() : _ItemView(item: item, chat: _chat, links: widget.links),
                 );
               },
             ),
@@ -241,9 +245,10 @@ class _EmptyChat extends StatelessWidget {
 }
 
 class _ItemView extends StatelessWidget {
-  const _ItemView({required this.item, required this.chat});
+  const _ItemView({required this.item, required this.chat, this.links});
   final ChatItem item;
   final ChatController chat;
+  final ResultLinks? links;
 
   @override
   Widget build(BuildContext context) => switch (item) {
@@ -252,7 +257,13 @@ class _ItemView extends StatelessWidget {
       reply.text.isEmpty && !reply.streaming ? 'No answer.' : reply.text,
     ),
     final ProgressLine line => _ProgressRow(line),
-    final ResultItem r => ResultCard(kind: r.kind, header: r.header, items: r.items),
+    final ResultItem r => ResultCard(
+      kind: r.kind,
+      header: r.header,
+      items: r.items,
+      realMode: r.realMode,
+      links: links,
+    ),
     final ApprovalItem a => AssistantApprovalCard(
       approval: a.approval,
       deciding: a.deciding,

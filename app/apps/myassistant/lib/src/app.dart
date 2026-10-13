@@ -12,7 +12,7 @@ import 'home.dart';
 /// myData shows here within one poll) and this device's mode (re-read from the device store on the same
 /// interval), and follows the system's reduced motion and reduced transparency.
 class MyAssistantApp extends StatefulWidget {
-  const MyAssistantApp({super.key, required this.host, this.store, this.backend});
+  const MyAssistantApp({super.key, required this.host, this.store, this.backend, this.apps, this.openLink});
 
   /// This app's view of the host, made with `app: 'myassistant'`. The app connects and disposes it.
   final HostController host;
@@ -22,6 +22,12 @@ class MyAssistantApp extends StatefulWidget {
 
   /// The chat's way to the host; null uses the host's API. Tests pass a fake.
   final AssistantBackend? backend;
+
+  /// Whether myContacts and myCalendar are installed; null looks them up on this Mac. Tests pass one.
+  final InstalledApps? apps;
+
+  /// Opens a link in its app; null uses [appLinks]. Tests pass a fake.
+  final Future<bool> Function(MyDataLink link)? openLink;
 
   @override
   State<MyAssistantApp> createState() => _MyAssistantAppState();
@@ -54,7 +60,7 @@ class _MyAssistantAppState extends State<MyAssistantApp> {
         themeMode: theme.themeMode,
         debugShowCheckedModeBanner: false,
         builder: (context, child) => MyDataAccessibilityScope(child: child ?? const SizedBox.shrink()),
-        home: AssistantHome(host: widget.host, backend: widget.backend),
+        home: AssistantHome(host: widget.host, backend: widget.backend, apps: widget.apps, openLink: widget.openLink),
       );
     },
   );

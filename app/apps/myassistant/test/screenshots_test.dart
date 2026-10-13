@@ -1,5 +1,6 @@
 // Whole-app screenshots in Kiwi and Graphite, light and dark: test/screenshots/<name>.<theme>-<mode>.png.
 // Refresh with `flutter test --update-goldens test/screenshots_test.dart`.
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mydata_assistant/mydata_assistant.dart';
@@ -11,12 +12,15 @@ import 'package:myassistant/src/app.dart';
 import 'fixtures.dart';
 
 /// The app as it starts on a device in [t]'s mode, with the host in [phase] reporting [t]'s theme.
-Widget app(ThemeCase t, HostPhase phase, {StatusOut? status, AssistantBackend? backend}) => MyAssistantApp(
-  host: FakeHost(phaseOnConnect: phase, statusOnConnect: status),
-  // The device remembers the last theme seen, so the app draws in it before the host answers.
-  store: MemoryDeviceStore({'mode': t.brightness.name, 'lastTheme': t.themeId}),
-  backend: backend,
-);
+Widget app(ThemeCase t, HostPhase phase, {StatusOut? status, AssistantBackend? backend, InstalledApps? apps}) =>
+    MyAssistantApp(
+      host: FakeHost(phaseOnConnect: phase, statusOnConnect: status),
+      // The device remembers the last theme seen, so the app draws in it before the host answers.
+      store: MemoryDeviceStore({'mode': t.brightness.name, 'lastTheme': t.themeId}),
+      backend: backend,
+      apps: apps,
+      openLink: (_) async => true,
+    );
 
 /// Lets the app read the device's mode and the host's theme, which land after the first frame, and lets
 /// the theme's cross-fade finish. Frame by frame, not pumpAndSettle: the loading kiwi never settles.
@@ -41,6 +45,28 @@ void main() {
     (t) => app(t, HostPhase.running,
         status: hostStatus(theme: t.themeId), backend: ScriptedBackend([freeAtSixThirty()])),
     before: (tester) => ask(tester, 'Am I free at 6:30 tomorrow?'),
+  );
+
+  // Real mode, with myContacts and myCalendar installed: the contact and the event open in their apps
+  // (a chevron on each row); the event row is hovered.
+  screenMatrix(
+    'chat_links',
+    (t) => app(
+      t,
+      HostPhase.running,
+      status: hostStatus(theme: t.themeId, real: true),
+      backend: ScriptedBackend([realLookups()]),
+      apps: FakeLaunchServices({MyDataAppId.mycontacts, MyDataAppId.mycalendar}).apps(),
+    ),
+    before: (tester) async {
+      await ask(tester, "Ava's number and what's on Friday?");
+      tester.binding.focusManager.highlightStrategy = FocusHighlightStrategy.alwaysTraditional;
+      addTearDown(() => tester.binding.focusManager.highlightStrategy = FocusHighlightStrategy.automatic);
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      await mouse.addPointer(location: tester.getCenter(find.text('Dinner with Ava (invented)')));
+      addTearDown(mouse.removePointer);
+      await tester.pumpAndSettle();
+    },
   );
 
   screenMatrix(

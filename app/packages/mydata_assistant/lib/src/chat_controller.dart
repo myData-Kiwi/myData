@@ -55,11 +55,20 @@ final class ApprovalItem extends ChatItem {
 
 /// A tool's result, shown as a list or cards ([kind]: events, mail, contacts, photos, event_created).
 final class ResultItem extends ChatItem {
-  ResultItem({required this.tool, required this.kind, required this.header, required this.items});
+  ResultItem({
+    required this.tool,
+    required this.kind,
+    required this.header,
+    required this.items,
+    this.realMode = false,
+  });
   final String tool;
   final String kind;
   final String header;
   final List<Map<String, Object?>> items;
+
+  /// The items are the user's own data, so they can be opened in myContacts or myCalendar.
+  final bool realMode;
 }
 
 /// The host switched between demo and real mode, which ended the conversation; what follows is a new one.
@@ -235,11 +244,11 @@ class ChatController extends ChangeNotifier {
         final reply = _reply;
         if (reply != null && reply.streaming) _items.remove(reply);
         _reply = null;
-      case ResultEvent(:final tool, :final kind, :final header, :final items):
+      case ResultEvent(:final tool, :final kind, :final header, :final items, :final realMode):
         final reply = _reply;
         if (reply != null && reply.streaming) _items.remove(reply); // text before a tool result was not the answer
         _reply = null;
-        _items.add(ResultItem(tool: tool, kind: kind, header: header, items: items));
+        _items.add(ResultItem(tool: tool, kind: kind, header: header, items: items, realMode: realMode));
       case PendingApprovalEvent(:final approval):
         _held.add(ApprovalItem(approval));
       case ClarifyEvent(text: final question):

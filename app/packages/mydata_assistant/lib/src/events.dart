@@ -51,6 +51,7 @@ sealed class AssistantEvent {
           tool: text('tool'),
           kind: text('kind'),
           header: text('header'),
+          realMode: json['mode'] == 'real',
           items: [
             for (final i in items)
               if (i is Map) i.cast<String, Object?>(),
@@ -129,13 +130,23 @@ final class ClarifyEvent extends AssistantEvent {
 
 /// A tool's result, sent the moment the tool returns; the header is written by the host's code.
 final class ResultEvent extends AssistantEvent {
-  const ResultEvent({required this.tool, required this.kind, required this.header, required this.items});
+  const ResultEvent({
+    required this.tool,
+    required this.kind,
+    required this.header,
+    required this.items,
+    this.realMode = false,
+  });
   final String tool;
 
   /// events, mail, contacts, photos or event_created.
   final String kind;
   final String header;
   final List<Map<String, Object?>> items;
+
+  /// Whether the items are the user's own data (the host's real mode), not sample data. Only real items
+  /// open in their own app; a host that does not say counts as demo.
+  final bool realMode;
 }
 
 /// The authoritative final reply. [byCode] when the shown result was the answer: the text is then only
