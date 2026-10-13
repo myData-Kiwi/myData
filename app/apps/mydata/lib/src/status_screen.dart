@@ -4,17 +4,31 @@ import 'package:mydata_ui/mydata_ui.dart';
 
 import 'agent_list.dart';
 import 'agent_tokens.dart';
+import 'apps_section.dart';
 import 'format.dart';
+import 'source_list.dart';
 
 /// The host at a glance. Rebuilt on every status poll.
 ///
-/// Tiles: the cards all use the `accent` tile (they are the same kind of thing), the agents the untinted
-/// one, so the screen has two tile tones.
+/// Under the cards, the other apps ([AppsSection]) when [apps] and [sources] are given, then the connected
+/// agents.
+///
+/// Tiles: the cards and the apps use the `accent` tile, the agents the untinted one, so the screen has two
+/// tile tones.
 class StatusScreen extends StatelessWidget {
-  const StatusScreen({super.key, required this.status, required this.agents});
+  const StatusScreen({super.key, required this.status, required this.agents, this.apps, this.sources, this.onOpenApp});
 
   final StatusOut status;
   final AgentList agents;
+
+  /// Which apps are installed; null leaves out the apps.
+  final InstalledApps? apps;
+
+  /// The sources, for the contacts and calendars counts; null leaves out the apps.
+  final SourceList? sources;
+
+  /// Opens an installed app.
+  final ValueChanged<MyDataAppId>? onOpenApp;
 
   @override
   Widget build(BuildContext context) {
@@ -77,6 +91,8 @@ class StatusScreen extends StatelessWidget {
             ),
           ],
         ),
+        if (apps != null && sources != null)
+          AppsSection(apps: apps!, sources: sources!, onOpen: onOpenApp ?? (_) {}),
         _ConnectedAgents(agents),
       ],
     );

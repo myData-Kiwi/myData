@@ -19,6 +19,8 @@ Future<void> main(List<String> args) async {
       debugPrint('myData: no menu-bar icon: $e');
     }
   }
-  runApp(MyDataApp(controller: controller, openSetup: args.contains('--setup')));
+  // mydata://settings/sources, from myContacts and myCalendar: the runner forwards it (LinksAppDelegate.swift).
+  final links = IncomingLinks(app: MyDataAppId.mydata)..start();
+  runApp(MyDataApp(controller: controller, openSetup: args.contains('--setup'), links: links.links));
   unawaited(controller.connect());
 }

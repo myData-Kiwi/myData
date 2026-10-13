@@ -60,6 +60,7 @@ SourceOut macSource({
   String calendars = 'fullAccess',
   Set<String> leftOut = const {},
   String? lastError,
+  SyncCounts? counts,
 }) => SourceOut(
   id: 'mac',
   kind: SourceOutKindEnum.mac,
@@ -87,10 +88,11 @@ SourceOut macSource({
   readerRunning: enabled,
   lastUpdate: enabled ? '2026-10-13T09:12:00' : null,
   lastError: lastError,
+  counts: enabled ? (counts ?? SyncCounts(addressBooks: 2, contacts: 214, calendars: 3, events: 1240)) : null,
 );
 
 /// A followed iCloud account as GET /sources shows it.
-SourceOut icloudSource(String email, {String? lastError}) => SourceOut(
+SourceOut icloudSource(String email, {String? lastError, SyncCounts? counts}) => SourceOut(
   id: 'acct-${email.split('@').first}',
   kind: SourceOutKindEnum.icloud,
   enabled: true,
@@ -99,6 +101,7 @@ SourceOut icloudSource(String email, {String? lastError}) => SourceOut(
   state: lastError == null ? SourceOutStateEnum.idle : SourceOutStateEnum.error,
   lastUpdate: '2026-10-13T08:40:00',
   lastError: lastError,
+  counts: counts ?? SyncCounts(addressBooks: 1, contacts: 180, calendars: 4, events: 960),
 );
 
 /// The reader helper and System Settings, recorded.
@@ -329,4 +332,23 @@ Future<void> settle(WidgetTester tester) async {
   for (var i = 0; i < 12; i++) {
     await tester.pump(const Duration(milliseconds: 50));
   }
+}
+
+/// LaunchServices as a fake: the apps in [present] are installed. Counts the lookups.
+class FakeLaunchServices {
+  FakeLaunchServices([Set<MyDataAppId> present = const {}]) : present = {...present};
+  Set<MyDataAppId> present;
+  int lookups = 0;
+
+  Future<CommandResult> call(String executable, List<String> arguments) async {
+    lookups++;
+    final installed = present.any((a) => a.bundleId == arguments.last);
+    return CommandResult(0, installed ? '/Applications/${arguments.last}.app' : '');
+  }
+
+  /// The installed apps the Status screen asks about, looked up through this fake.
+  InstalledApps apps() => InstalledApps(
+    apps: const [MyDataAppId.mycontacts, MyDataAppId.mycalendar, MyDataAppId.myassistant],
+    links: AppLinks(run: call, macOS: true),
+  );
 }

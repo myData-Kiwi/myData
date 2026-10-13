@@ -13,13 +13,16 @@ import 'fixtures.dart';
 late ThemeCase current;
 
 /// The app on [host], in [t]'s theme (stored on the host) and mode (stored on this device).
-Widget app(FakeHost host, ThemeCase t) {
+Widget app(FakeHost host, ThemeCase t, {Set<MyDataAppId> installed = const {}, Stream<MyDataLink>? links}) {
   current = t;
   host.theme = t.themeId;
   return MyDataApp(
     controller: host.controller(),
     store: MemoryDeviceStore({'mode': t.brightness.name, 'lastTheme': t.themeId}),
     macSystem: FakeMacSystem(),
+    installedApps: FakeLaunchServices(installed).apps(),
+    openApp: (_) async => true,
+    links: links,
   );
 }
 
@@ -67,7 +70,23 @@ void main() {
     before: settle,
   );
 
-  screenMatrix('status', (t) => app(FakeHost(status: running, agents: agents), t), before: settle);
+  // This Mac on, myContacts and myAssistant installed, myCalendar not.
+  screenMatrix(
+    'status',
+    (t) => app(
+      FakeHost(
+        status: running
+          ..macAvailable = true
+          ..mode = StatusOutModeEnum.real
+          ..demoDate = false,
+        agents: agents,
+        mac: macSource(),
+      ),
+      t,
+      installed: {MyDataAppId.mycontacts, MyDataAppId.myassistant},
+    ),
+    before: settle,
+  );
 
   screenMatrix(
     'settings',
@@ -147,5 +166,21 @@ void main() {
       await tester.ensureVisible(find.text(SourcesSections.advancedHeading));
       await settle(tester);
     },
+  );
+
+  // Opened from myContacts or myCalendar with mydata://settings/sources: Settings, scrolled to Sources.
+  screenMatrix(
+    'sources_link',
+    (t) => app(
+      FakeHost(
+        status: running..macAvailable = true,
+        agents: agents,
+        mac: macSource(),
+        accounts: [icloudSource('sam@example.com')],
+      ),
+      t,
+      links: Stream.value(const OpenMyDataSources()),
+    ),
+    before: settle,
   );
 }

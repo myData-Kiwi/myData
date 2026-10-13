@@ -20,6 +20,9 @@ class MyDataApp extends StatefulWidget {
     this.appearance,
     this.store,
     this.macSystem,
+    this.links,
+    this.installedApps,
+    this.openApp,
   });
 
   final HostController controller;
@@ -36,6 +39,16 @@ class MyDataApp extends StatefulWidget {
 
   /// The reader helper's path and System Settings. Null is the real one ([macSystem]); tests pass a fake.
   final MacSystem? macSystem;
+
+  /// Links other apps opened myData with ([IncomingLinks.links]); `mydata://settings/sources` opens
+  /// Settings at Sources. Null: none arrive.
+  final Stream<MyDataLink>? links;
+
+  /// Which of the other apps are installed, for the Status screen; null looks them up on this Mac.
+  final InstalledApps? installedApps;
+
+  /// Opens an app from the Status screen; null uses [appLinks]. Tests pass a fake.
+  final Future<bool> Function(MyDataAppId app)? openApp;
 
   @override
   State<MyDataApp> createState() => _MyDataAppState();
@@ -74,20 +87,35 @@ class _MyDataAppState extends State<MyDataApp> {
           appearance: _appearance,
           openSetup: widget.openSetup,
           mac: widget.macSystem ?? macSystem,
+          links: widget.links,
+          installedApps: widget.installedApps,
+          openApp: widget.openApp,
         ),
       );
     },
   );
 }
 
-/// Setup until the person moves on from it, then the Status and Settings shell.
+/// Setup until the person moves on from it, then the Status and Settings shell. A link to Settings, Sources
+/// that arrives during setup waits until setup is done.
 class _Home extends StatefulWidget {
-  const _Home({required this.controller, required this.appearance, required this.openSetup, required this.mac});
+  const _Home({
+    required this.controller,
+    required this.appearance,
+    required this.openSetup,
+    required this.mac,
+    this.links,
+    this.installedApps,
+    this.openApp,
+  });
 
   final HostController controller;
   final AppearanceController appearance;
   final bool openSetup;
   final MacSystem mac;
+  final Stream<MyDataLink>? links;
+  final InstalledApps? installedApps;
+  final Future<bool> Function(MyDataAppId app)? openApp;
 
   @override
   State<_Home> createState() => _HomeState();
@@ -113,11 +141,16 @@ class _HomeState extends State<_Home> {
   num? _readerUptime;
   bool _reportingReader = false;
 
+  /// How many times a link asked for Settings, Sources ([HomeShell.sourcesAsked]).
+  int _sourcesAsked = 0;
+  StreamSubscription<MyDataLink>? _links;
+
   HostController get _c => widget.controller;
 
   @override
   void initState() {
     super.initState();
+    _links = widget.links?.listen(_onLink);
     _c.addListener(_onHost);
     _askAppearance();
     _askMac();
@@ -127,8 +160,13 @@ class _HomeState extends State<_Home> {
 
   @override
   void dispose() {
+    _links?.cancel();
     _c.removeListener(_onHost);
     super.dispose();
+  }
+
+  void _onLink(MyDataLink link) {
+    if (link is OpenMyDataSources) setState(() => _sourcesAsked++);
   }
 
   void _onHost() {
@@ -283,7 +321,16 @@ class _HomeState extends State<_Home> {
 
   @override
   Widget build(BuildContext context) {
-    if (_inSetup == false) return HomeShell(controller: _c, appearance: widget.appearance, macSystem: widget.mac);
+    if (_inSetup == false) {
+      return HomeShell(
+        controller: _c,
+        appearance: widget.appearance,
+        macSystem: widget.mac,
+        installedApps: widget.installedApps,
+        openApp: widget.openApp,
+        sourcesAsked: _sourcesAsked,
+      );
+    }
     // While the host's answers about the theme and This Mac are on their way, keep showing the host being
     // looked for, so the assistant panel does not flash up before those steps.
     final waiting = _c.phase == HostPhase.running && (_themeChosen == null || _macDecided == null);

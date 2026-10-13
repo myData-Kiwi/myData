@@ -432,6 +432,12 @@ class IcloudSection extends StatefulWidget {
       'For a host that is not a Mac. On this Mac, This Mac above already includes '
       'your iCloud account. ';
 
+  /// Under a followed account while This Mac is on: the same account usually comes in through This Mac
+  /// too. Plain words, not an error: both copies are listed and either can be hidden.
+  static const notNeededOnMac =
+      'Following this iCloud account is not needed on a Mac that has it in System Settings. Its calendars '
+      'appear twice; hide one copy in myCalendar.';
+
   @override
   State<IcloudSection> createState() => _IcloudSectionState();
 }
@@ -540,7 +546,12 @@ class _IcloudSectionState extends State<IcloudSection> {
   @override
   Widget build(BuildContext context) {
     final accounts = widget.sources.icloud;
-    return GroupedSection(heading: widget.heading, parts: [_form(context), for (final a in accounts) _row(a)]);
+    // This Mac is on, so a followed account is usually read twice: say so on a line of its own under it.
+    final twice = widget.onMacHost && (widget.sources.mac?.enabled ?? false);
+    return GroupedSection(
+      heading: widget.heading,
+      parts: [_form(context), for (final a in accounts) _row(a, twice: twice)],
+    );
   }
 
   Widget _form(BuildContext context) {
@@ -603,16 +614,17 @@ class _IcloudSectionState extends State<IcloudSection> {
     );
   }
 
-  Widget _row(SourceOut a) {
+  Widget _row(SourceOut a, {required bool twice}) {
     final busy = _busy.contains(a.id);
-    final String subtitle;
+    final String state;
     if (a.lastError != null && a.lastError!.isNotEmpty) {
-      subtitle = a.lastError!;
+      state = a.lastError!;
     } else if (a.lastUpdate != null) {
-      subtitle = 'Last synced ${formatWhen(a.lastUpdate!)}';
+      state = 'Last synced ${formatWhen(a.lastUpdate!)}';
     } else {
-      subtitle = 'Not synced yet';
+      state = 'Not synced yet';
     }
+    final subtitle = twice ? '$state\n${IcloudSection.notNeededOnMac}' : state;
     final badge = switch (a.state) {
       SourceOutStateEnum.syncing => const MyDataBadge('Syncing', tone: MyDataTone.info),
       SourceOutStateEnum.error => const MyDataBadge('Sync failed', tone: MyDataTone.danger),

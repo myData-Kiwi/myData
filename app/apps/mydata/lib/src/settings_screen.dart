@@ -18,6 +18,7 @@ class SettingsScreen extends StatelessWidget {
     required this.agents,
     required this.sources,
     this.macSystem,
+    this.sourcesKey,
   });
 
   final HostController controller;
@@ -28,13 +29,19 @@ class SettingsScreen extends StatelessWidget {
   /// Opens System Settings; null is the real one ([macSystem]).
   final MacSystem? macSystem;
 
+  /// On the Sources sections, so a `mydata://settings/sources` link can scroll to them.
+  final Key? sourcesKey;
+
   @override
   Widget build(BuildContext context) => PageScaffold(
     title: 'Settings',
     children: [
       AppearanceSection(appearance: appearance),
       _AssistantSwitch(controller: controller),
-      SourcesSections(controller: controller, sources: sources, system: macSystem),
+      KeyedSubtree(
+        key: sourcesKey,
+        child: SourcesSections(controller: controller, sources: sources, system: macSystem),
+      ),
       AgentTokensSection(controller: controller, agents: agents),
     ],
   );
