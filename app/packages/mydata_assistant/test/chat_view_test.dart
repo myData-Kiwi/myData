@@ -47,6 +47,7 @@ StatusOut status({bool enabled = true, String state = 'ready', Map<String, Objec
       'today': '2026-03-18',
       'demo_date': false,
       'theme': 'kiwi',
+      'mode': 'demo',
       'model': {
         'name': 'qwen3:14b',
         'state': state,

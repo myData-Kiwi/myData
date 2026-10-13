@@ -18,6 +18,7 @@ class StatusOut {
     required this.demoDate,
     this.lastError,
     required this.memory,
+    required this.mode,
     required this.model,
     required this.ready,
     required this.theme,
@@ -38,6 +39,9 @@ class StatusOut {
   ErrorOut? lastError;
 
   MemoryOut memory;
+
+  /// demo: no linked account, the tools serve fake data and the date is pinned; real: the tools serve the linked accounts' mirrored data, with the real date
+  StatusOutModeEnum mode;
 
   ModelOut model;
 
@@ -63,6 +67,7 @@ class StatusOut {
           other.demoDate == demoDate &&
           other.lastError == lastError &&
           other.memory == memory &&
+          other.mode == mode &&
           other.model == model &&
           other.ready == ready &&
           other.theme == theme &&
@@ -78,6 +83,7 @@ class StatusOut {
       (demoDate.hashCode) +
       (lastError == null ? 0 : lastError!.hashCode) +
       (memory.hashCode) +
+      (mode.hashCode) +
       (model.hashCode) +
       (ready.hashCode) +
       (theme.hashCode) +
@@ -87,7 +93,7 @@ class StatusOut {
 
   @override
   String toString() =>
-      'StatusOut[agentsConnected=$agentsConnected, assistantEnabled=$assistantEnabled, demoDate=$demoDate, lastError=$lastError, memory=$memory, model=$model, ready=$ready, theme=$theme, today=$today, uptimeSeconds=$uptimeSeconds, version=$version]';
+      'StatusOut[agentsConnected=$agentsConnected, assistantEnabled=$assistantEnabled, demoDate=$demoDate, lastError=$lastError, memory=$memory, mode=$mode, model=$model, ready=$ready, theme=$theme, today=$today, uptimeSeconds=$uptimeSeconds, version=$version]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
@@ -100,6 +106,7 @@ class StatusOut {
       json[r'last_error'] = null;
     }
     json[r'memory'] = this.memory;
+    json[r'mode'] = this.mode;
     json[r'model'] = this.model;
     json[r'ready'] = this.ready;
     json[r'theme'] = this.theme;
@@ -136,6 +143,10 @@ class StatusOut {
             'Required key "StatusOut[memory]" is missing from JSON.');
         assert(json[r'memory'] != null,
             'Required key "StatusOut[memory]" has a null value in JSON.');
+        assert(json.containsKey(r'mode'),
+            'Required key "StatusOut[mode]" is missing from JSON.');
+        assert(json[r'mode'] != null,
+            'Required key "StatusOut[mode]" has a null value in JSON.');
         assert(json.containsKey(r'model'),
             'Required key "StatusOut[model]" is missing from JSON.');
         assert(json[r'model'] != null,
@@ -169,6 +180,7 @@ class StatusOut {
         demoDate: mapValueOfType<bool>(json, r'demo_date')!,
         lastError: ErrorOut.fromJson(json[r'last_error']),
         memory: MemoryOut.fromJson(json[r'memory'])!,
+        mode: StatusOutModeEnum.fromJson(json[r'mode'])!,
         model: ModelOut.fromJson(json[r'model'])!,
         ready: mapValueOfType<bool>(json, r'ready')!,
         theme: mapValueOfType<String>(json, r'theme')!,
@@ -235,6 +247,7 @@ class StatusOut {
     'assistant_enabled',
     'demo_date',
     'memory',
+    'mode',
     'model',
     'ready',
     'theme',
@@ -242,4 +255,88 @@ class StatusOut {
     'uptime_seconds',
     'version',
   };
+}
+
+/// demo: no linked account, the tools serve fake data and the date is pinned; real: the tools serve the linked accounts' mirrored data, with the real date
+enum StatusOutModeEnum {
+  demo._(r'demo'),
+  real._(r'real'),
+  ;
+
+  /// Instantiate a new enum with the provided value.
+  const StatusOutModeEnum._(this._value);
+
+  /// The underlying value of this enum member.
+  final String _value;
+
+  @override
+  String toString() => _value;
+
+  /// Encodes this enum as a value suitable for JSON.
+  String toJson() => _value;
+
+  /// Returns the instance of [StatusOutModeEnum] that was successfully decoded
+  /// from the passed [value] on success, null otherwise.
+  static StatusOutModeEnum? fromJson(dynamic value) =>
+      StatusOutModeEnumTypeTransformer().decode(value);
+
+  /// Returns a [List] containing instances of [StatusOutModeEnum]
+  /// that were successfully decoded from the passed [JSON][json].
+  static List<StatusOutModeEnum> listFromJson(
+    dynamic json, {
+    bool growable = false,
+  }) {
+    final result = <StatusOutModeEnum>[];
+    if (json is List && json.isNotEmpty) {
+      for (final row in json) {
+        final value = StatusOutModeEnum.fromJson(row);
+        if (value != null) {
+          result.add(value);
+        }
+      }
+    }
+    return result.toList(growable: growable);
+  }
+}
+
+/// Transformation class that can [encode] an instance of [StatusOutModeEnum] to String,
+/// and [decode] dynamic data back to [StatusOutModeEnum].
+class StatusOutModeEnumTypeTransformer {
+  factory StatusOutModeEnumTypeTransformer() =>
+      _instance ??= const StatusOutModeEnumTypeTransformer._();
+
+  const StatusOutModeEnumTypeTransformer._();
+
+  String encode(StatusOutModeEnum data) => data._value;
+
+  /// Returns the instance of [StatusOutModeEnum] that was successfully decoded
+  /// from the passed [data] value on success, null otherwise.
+  ///
+  /// If [allowNull] is true and the [dynamic value][data] cannot be decoded successfully,
+  /// then null is returned. However, if [allowNull] is false and the [dynamic value][data]
+  /// cannot be decoded successfully, then an [UnimplementedError] is thrown.
+  ///
+  /// The [allowNull] is very handy when an API changes and a new enum value is added or removed,
+  /// and users are still using an old app with the old code.
+  StatusOutModeEnum? decode(dynamic data, {bool allowNull = true}) {
+    if (data is StatusOutModeEnum) {
+      return data;
+    }
+    if (data != null) {
+      switch (data) {
+        case r'demo':
+          return StatusOutModeEnum.demo;
+        case r'real':
+          return StatusOutModeEnum.real;
+        default:
+          if (!allowNull) {
+            throw ArgumentError('Unknown enum value to decode: $data');
+          }
+      }
+    }
+    return null;
+  }
+
+  /// The singleton instance of this transformer.
+  static StatusOutModeEnumTypeTransformer? _instance;
 }

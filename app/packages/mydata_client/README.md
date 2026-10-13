@@ -77,11 +77,23 @@ Class | Method | HTTP request | Description
 *HostApi* | [**retry**](doc//HostApi.md#retry) | **POST** /model/retry | Retry
 *HostApi* | [**shutdownHost**](doc//HostApi.md#shutdownhost) | **POST** /shutdown | Shutdown Host
 *HostApi* | [**status**](doc//HostApi.md#status) | **GET** /status | Status
+*SourcesApi* | [**accounts**](doc//SourcesApi.md#accounts) | **GET** /accounts | Accounts
+*SourcesApi* | [**addAccount**](doc//SourcesApi.md#addaccount) | **POST** /accounts | Add Account
+*SourcesApi* | [**calendars**](doc//SourcesApi.md#calendars) | **GET** /calendars | Calendars
+*SourcesApi* | [**contact**](doc//SourcesApi.md#contact) | **GET** /contacts/{contact_id} | Contact
+*SourcesApi* | [**contacts**](doc//SourcesApi.md#contacts) | **GET** /contacts | Contacts
+*SourcesApi* | [**events**](doc//SourcesApi.md#events) | **GET** /events | Events
+*SourcesApi* | [**removeAccount**](doc//SourcesApi.md#removeaccount) | **DELETE** /accounts/{account_id} | Remove Account
+*SourcesApi* | [**syncAccount**](doc//SourcesApi.md#syncaccount) | **POST** /accounts/{account_id}/sync | Sync Account
+*SourcesApi* | [**syncStatus**](doc//SourcesApi.md#syncstatus) | **GET** /sync | Sync Status
 *ToolsApi* | [**tools**](doc//ToolsApi.md#tools) | **GET** /tools | Tools
 
 
 ## Documentation For Models
 
+ - [AccountIn](doc//AccountIn.md)
+ - [AccountOut](doc//AccountOut.md)
+ - [AccountSyncOut](doc//AccountSyncOut.md)
  - [AgentCreated](doc//AgentCreated.md)
  - [AgentIn](doc//AgentIn.md)
  - [AgentOut](doc//AgentOut.md)
@@ -89,15 +101,23 @@ Class | Method | HTTP request | Description
  - [AppearanceOut](doc//AppearanceOut.md)
  - [ApprovalOut](doc//ApprovalOut.md)
  - [AssistantSettingsIn](doc//AssistantSettingsIn.md)
+ - [CalendarOut](doc//CalendarOut.md)
+ - [ContactDetailOut](doc//ContactDetailOut.md)
+ - [ContactOut](doc//ContactOut.md)
  - [DecisionIn](doc//DecisionIn.md)
  - [ErrorOut](doc//ErrorOut.md)
+ - [EventOut](doc//EventOut.md)
  - [GuardError](doc//GuardError.md)
  - [HTTPValidationError](doc//HTTPValidationError.md)
+ - [LabeledValue](doc//LabeledValue.md)
  - [MemoryOut](doc//MemoryOut.md)
  - [MessageIn](doc//MessageIn.md)
  - [ModelOut](doc//ModelOut.md)
+ - [PostalAddress](doc//PostalAddress.md)
  - [Progress](doc//Progress.md)
  - [StatusOut](doc//StatusOut.md)
+ - [SyncCounts](doc//SyncCounts.md)
+ - [SyncOut](doc//SyncOut.md)
  - [ThemeOut](doc//ThemeOut.md)
  - [ToolOut](doc//ToolOut.md)
  - [ValidationError](doc//ValidationError.md)

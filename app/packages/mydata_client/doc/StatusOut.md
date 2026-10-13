@@ -13,6 +13,7 @@ Name | Type | Description | Notes
 **demoDate** | **bool** | true while today is pinned to the demo data's date | 
 **lastError** | [**ErrorOut**](ErrorOut.md) |  | [optional] 
 **memory** | [**MemoryOut**](MemoryOut.md) |  | 
+**mode** | **String** | demo: no linked account, the tools serve fake data and the date is pinned; real: the tools serve the linked accounts' mirrored data, with the real date | 
 **model** | [**ModelOut**](ModelOut.md) |  | 
 **ready** | **bool** | true when the assistant can answer | 
 **theme** | **String** | the theme every app uses; mode is per device and not stored here | 

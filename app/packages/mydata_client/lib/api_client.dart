@@ -204,6 +204,12 @@ class ApiClient {
           return valueString == 'true' || valueString == '1';
         case 'DateTime':
           return value is DateTime ? value : DateTime.tryParse(value);
+        case 'AccountIn':
+          return AccountIn.fromJson(value);
+        case 'AccountOut':
+          return AccountOut.fromJson(value);
+        case 'AccountSyncOut':
+          return AccountSyncOut.fromJson(value);
         case 'AgentCreated':
           return AgentCreated.fromJson(value);
         case 'AgentIn':
@@ -218,24 +224,40 @@ class ApiClient {
           return ApprovalOut.fromJson(value);
         case 'AssistantSettingsIn':
           return AssistantSettingsIn.fromJson(value);
+        case 'CalendarOut':
+          return CalendarOut.fromJson(value);
+        case 'ContactDetailOut':
+          return ContactDetailOut.fromJson(value);
+        case 'ContactOut':
+          return ContactOut.fromJson(value);
         case 'DecisionIn':
           return DecisionIn.fromJson(value);
         case 'ErrorOut':
           return ErrorOut.fromJson(value);
+        case 'EventOut':
+          return EventOut.fromJson(value);
         case 'GuardError':
           return GuardError.fromJson(value);
         case 'HTTPValidationError':
           return HTTPValidationError.fromJson(value);
+        case 'LabeledValue':
+          return LabeledValue.fromJson(value);
         case 'MemoryOut':
           return MemoryOut.fromJson(value);
         case 'MessageIn':
           return MessageIn.fromJson(value);
         case 'ModelOut':
           return ModelOut.fromJson(value);
+        case 'PostalAddress':
+          return PostalAddress.fromJson(value);
         case 'Progress':
           return Progress.fromJson(value);
         case 'StatusOut':
           return StatusOut.fromJson(value);
+        case 'SyncCounts':
+          return SyncCounts.fromJson(value);
+        case 'SyncOut':
+          return SyncOut.fromJson(value);
         case 'ThemeOut':
           return ThemeOut.fromJson(value);
         case 'ToolOut':

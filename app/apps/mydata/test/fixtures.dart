@@ -28,6 +28,7 @@ StatusOut statusWith(
     progress: progress,
     error: error,
   ),
+  mode: StatusOutModeEnum.demo,
   ready: state == ModelOutStateEnum.ready,
   theme: 'kiwi',
   today: '2026-03-18',

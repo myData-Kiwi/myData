@@ -89,6 +89,7 @@ StatusOut hostStatus({
     ollamaReachable: true,
     ollamaStartedByHost: true,
   ),
+  mode: StatusOutModeEnum.demo,
   ready: state == ModelOutStateEnum.ready,
   theme: theme,
   today: '2026-03-18',
