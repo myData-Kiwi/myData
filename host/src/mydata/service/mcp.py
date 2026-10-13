@@ -5,6 +5,11 @@ Served as Streamable HTTP at /mcp on the host's localhost server, behind the sam
 - tools/call: Registry.invoke with caller "mcp". An irreversible tool comes back as
   {"status": "pending_approval", "approval_id": ...}: it has NOT run. Only the user, through the
   host's approval endpoint, can run it. There is no MCP tool for approving.
+
+Real data stays away from agents: in real mode (a linked account; see modes.py) a caller with an agent
+token gets no tools, and a call is refused, because the tools would return the user's mirrored contacts
+and events. Before accounts existed agents only ever saw the fake demo data, and letting them read real
+data is not something the owner has decided. App tokens (our own apps) are not affected.
 """
 
 from __future__ import annotations
@@ -30,6 +35,21 @@ _ERRORS = {"unknown_tool", "invalid_args", "bad_date", "error"}
 logger = logging.getLogger("mydata.mcp")
 
 
+REAL_DATA_REFUSED = ("This host holds the user's real contacts and calendars. Agents cannot read them; "
+                     "only the user's own myData apps can.")
+
+
+def _principal(ctx: ServerRequestContext[Any]):
+    return getattr(getattr(ctx.request, "state", None), "principal", None)
+
+
+def _shut_out(registry: Registry, principal) -> bool:
+    """True when this caller may not use the tools now: an agent (or an unknown caller) in real mode."""
+    if registry.mode == "demo":
+        return False
+    return principal is None or getattr(principal, "kind", None) != "app"
+
+
 def build_mcp(registry: Registry) -> StreamableHTTPSessionManager:
     def tool_list() -> list[types.Tool]:
         return [types.Tool.model_validate({
@@ -40,12 +60,19 @@ def build_mcp(registry: Registry) -> StreamableHTTPSessionManager:
 
     async def on_list_tools(ctx: ServerRequestContext[Any], params: types.PaginatedRequestParams | None
                             ) -> types.ListToolsResult:
+        if _shut_out(registry, _principal(ctx)):
+            return types.ListToolsResult(tools=[])
         return types.ListToolsResult(tools=tool_list())
 
     async def on_call_tool(ctx: ServerRequestContext[Any], params: types.CallToolRequestParams
                            ) -> types.CallToolResult:
-        principal = getattr(getattr(ctx.request, "state", None), "principal", None)
+        principal = _principal(ctx)
         caller = principal.label if principal else "mcp"
+        if _shut_out(registry, principal):
+            logger.info("tool call", extra={"fields": {"tool": params.name, "caller": caller,
+                                                       "status": "refused", "error": "real data"}})
+            return types.CallToolResult(content=[types.TextContent(text=json.dumps(
+                {"status": "refused", "error": REAL_DATA_REFUSED}))], is_error=True)
         try:
             inv = await anyio.to_thread.run_sync(
                 lambda: registry.invoke(params.name, params.arguments or {}, caller=caller))

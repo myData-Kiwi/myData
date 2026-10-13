@@ -82,6 +82,12 @@ class ReadyModels:
     def set_enabled(self, enabled):
         self.enabled = enabled
 
+    rewarms = 0
+
+    def rewarm(self):
+        """The host re-warms the model when it switches between demo and real mode."""
+        self.rewarms += 1
+
 
 SEND_TO_NISHA = [
     [call("find_contact", name="Nisha Patel")],
@@ -132,3 +138,38 @@ def parse_sse(text: str) -> list[tuple[str, dict]]:
         if "event" in lines:
             out.append((lines["event"], json.loads(lines.get("data", "{}"))))
     return out
+
+
+class Host:
+    """A host assembled exactly as mydatad assembles it (daemon.build), with the fake DAV server's
+    transport, an in-memory secret store, a scripted model and a fixed date for real mode."""
+
+    def __init__(self, tmp: Path, fake, scripts: list | None = None, real_today: date = TODAY):
+        from mydata.service.daemon import build
+        from mydata.service.sync import SyncService
+        from mydata.sources.accounts import Accounts
+        from mydata.sources.secrets import MemorySecretStore
+
+        self.home = tmp
+        self.secrets = MemorySecretStore()
+        self.sources = SyncService(tmp, Accounts(tmp, self.secrets), transport=fake.transport)
+        self.scripts = list(scripts or [])
+        self.tools_seen: list[list[str]] = []
+        self.models = ReadyModels()
+
+        def model():
+            host = self
+
+            class Seen(Scripted):
+                def chat(self, messages, tools):
+                    host.tools_seen.append([t["function"]["name"] for t in tools])
+                    return super().chat(messages, tools)
+
+            return Seen(self.scripts.pop(0) if self.scripts else [])
+
+        self.app, _, _ = build(Settings(home=tmp, pin_today=TODAY), self.sources, model_factory=model, models=self.models,
+                               real_today=lambda: real_today)
+        self.modes = self.sources.on_accounts_changed.__self__
+        self.assistant = self.modes.assistant
+        self.token = (tmp / "app-tokens" / "mydata").read_text().strip()
+        self.auth = {"Authorization": f"Bearer {self.token}"}

@@ -44,6 +44,9 @@ class ToolResult:
     ambiguous: list[dict] | None = None
     # Reversible writes return how to undo them.
     undo: dict | None = None
+    # What the app is shown when it differs from `data` (what the model and agents get): a long list is
+    # cut down for the model, and shown whole to the user. None: the app is shown `data`.
+    display: Any = None
 
 
 @dataclass(frozen=True)
@@ -101,9 +104,12 @@ class Invocation:
     approval: Approval | None = None
     options: list[dict] | None = None  # for "ambiguous"
     undo: dict | None = None
+    # ToolResult.display: for presenting to the app only; never sent to a model or an agent.
+    display: Any = field(default=None, repr=False, compare=False)
 
     def to_json(self) -> dict:
         out = asdict(self)
+        out.pop("display", None)
         out["approval"] = self.approval.to_json() if self.approval else None
         return out
 
@@ -121,13 +127,13 @@ def _now() -> str:
 
 
 class Registry:
-    def __init__(self, tools: Iterable[Tool], today: Callable[[], date] = date.today):
-        self._tools: dict[str, Tool] = {}
-        for t in tools:
-            if t.name in self._tools:
-                raise ValueError(f"duplicate tool {t.name!r}")
-            self._tools[t.name] = t
+    """mode names where the tools' data comes from: "demo" (the fake tools over canned data) or "real"
+    (the user's mirrored data). The feasibility harness refuses to write results from a "real" registry."""
+
+    def __init__(self, tools: Iterable[Tool], today: Callable[[], date] = date.today, *, mode: str = "demo"):
+        self._tools: dict[str, Tool] = _catalogue(tools)
         self._today = today
+        self.mode = mode
         self._lock = threading.Lock()
         self._approvals: dict[str, Approval] = {}
         # Pending calls keep their resolved dates, so approving later runs the dates the user saw.
@@ -135,6 +141,22 @@ class Registry:
         self.undo_log: list[dict] = []
 
     # ---------------------------------------------------------------- catalogue
+
+    def replace_tools(self, tools: Iterable[Tool], *, today: Callable[[], date] | None = None,
+                      mode: str | None = None) -> None:
+        """Swap the tool catalogue in place (the host switching between demo and real data). Everything
+        holding this registry (the assistant, the API, MCP) sees the new tools; approvals and the undo log
+        are kept. A held call whose tool is gone fails when approved instead of running."""
+        catalogue = _catalogue(tools)
+        with self._lock:
+            self._tools = catalogue
+            if today is not None:
+                self._today = today
+            if mode is not None:
+                self.mode = mode
+
+    def today(self) -> date:
+        return self._today()
 
     def names(self) -> list[str]:
         return list(self._tools)
@@ -231,6 +253,7 @@ class Registry:
             inv.result = {"error": "the tool failed"}
             return inv
         inv.result = result.data
+        inv.display = result.display
         if result.undo:
             inv.undo = result.undo
             with self._lock:
@@ -279,7 +302,12 @@ class Registry:
             self._audit(a)
             return copy.deepcopy(a)
 
-        tool = self._tools[a.tool]
+        tool = self._tools.get(a.tool)
+        if tool is None:  # the host switched to a mode without this tool after the call was held
+            with self._lock:
+                a.status, a.error = "failed", f"{a.tool} is not available any more; nothing was done"
+            self._audit(a)
+            return copy.deepcopy(a)
         if call_digest(a.tool, a.args) != a.digest:  # defensive: stored arguments must be untouched
             a.status, a.error = "failed", "stored call changed after it was held"
             return copy.deepcopy(a)
@@ -298,6 +326,15 @@ class Registry:
             "approval_id": a.id, "tool": a.tool, "caller": a.caller, "decided_by": a.decided_by,
             "status": a.status, "digest": a.digest, "error": a.error,
             "conversation_id": a.context.get("conversation_id")}})
+
+
+def _catalogue(tools: Iterable[Tool]) -> dict[str, Tool]:
+    out: dict[str, Tool] = {}
+    for t in tools:
+        if t.name in out:
+            raise ValueError(f"duplicate tool {t.name!r}")
+        out[t.name] = t
+    return out
 
 
 def summarize(tool: str, args: dict) -> str:

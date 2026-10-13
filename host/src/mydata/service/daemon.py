@@ -19,11 +19,13 @@ from .. import __version__
 from ..tools import default_registry
 from .api import create_app
 from .assistant import Assistant
-from .config import ConfigError, Settings, load_settings
+from .config import ConfigError, Settings, load_settings, private_dir
 from .logs import log, setup_logging
 from .model import ModelManager
+from .modes import ModeController
 from .state import HostState
 from .auth import AgentStore, Authenticator, ensure_app_tokens
+from .sync import SyncService
 
 logger = logging.getLogger("mydata.daemon")
 
@@ -44,7 +46,7 @@ def _lock(fd: int) -> bool:
 def acquire_pid_lock(settings: Settings) -> int | None:
     """Hold an exclusive lock on the pid file for the life of the process. The kernel releases it on any
     exit, including a crash, so a held lock always means a live mydatad. Returns the fd, or None if taken."""
-    settings.home.mkdir(parents=True, exist_ok=True)
+    private_dir(settings.home)  # also tightens a folder made before the host set 0700
     fd = os.open(settings.pid_path, os.O_RDWR | os.O_CREAT, 0o600)
     if not _lock(fd):
         os.close(fd)
@@ -75,7 +77,17 @@ def daemon_pid(settings: Settings) -> int | None:
         os.close(fd)
 
 
-def build(settings: Settings):
+def build_sources(settings: Settings, secrets=None, transport=None) -> SyncService:
+    """Linked accounts (passwords in the Keychain) and the service that mirrors them."""
+    from ..sources.accounts import Accounts
+    from ..sources.secrets import default_secret_store
+    return SyncService(settings.home, Accounts(settings.home, secrets or default_secret_store()), transport=transport)
+
+
+def build(settings: Settings, sources: SyncService | None = None, *, model_factory=None, models=None,
+          real_today=None):
+    """The app, plus the parts main() starts and stops: (app, models, sources). The keyword arguments are
+    for tests: a scripted model, a stand-in for the model manager, and a fixed date for real mode."""
     legacy = settings.home / "token"  # phase 1 had one shared token; it is replaced by per-app tokens
     if legacy.exists():
         legacy.unlink()
@@ -83,10 +95,16 @@ def build(settings: Settings):
     auth = Authenticator(ensure_app_tokens(settings.home), AgentStore(settings.home))
     registry = default_registry(today=settings.today)
     state = HostState(settings.home)
-    assistant = Assistant(settings, registry, today=settings.today)
-    models = ModelManager(settings, enabled=state.assistant_enabled, warm=assistant.warm)
+    assistant = Assistant(settings, registry, model_factory=model_factory, today=settings.today)
+    models = models or ModelManager(settings, enabled=state.assistant_enabled, warm=assistant.warm)
+    sources = sources or build_sources(settings)
+    # demo (no account: fake tools, pinned date) or real (the mirror, the real date); re-warm on a switch.
+    modes = ModeController(assistant, sources, on_change=lambda _mode: models.rewarm(), real_today=real_today)
+    sources.on_accounts_changed = modes.refresh
+    modes.refresh()
     stop = lambda: os.kill(os.getpid(), signal.SIGTERM)  # the same clean shutdown as `mydata stop`
-    return create_app(auth, registry, models, assistant, state=state, shutdown=stop), models
+    app = create_app(auth, registry, models, assistant, state=state, shutdown=stop, sources=sources)
+    return app, models, sources
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -103,14 +121,16 @@ def main(argv: list[str] | None = None) -> int:
         log(logger, logging.ERROR, "already running", pid=daemon_pid(settings))
         return 1
 
-    app, models = build(settings)
+    app, models, sources = build(settings)
+    mode = "real" if sources.accounts.list() else "demo"
     log(logger, logging.INFO, "starting", version=__version__, host=settings.host, port=settings.port,
-        home=str(settings.home), model=settings.model)
-    if settings.pin_today:
+        home=str(settings.home), model=settings.model, mode=mode)
+    if settings.pin_today and mode == "demo":
         log(logger, logging.WARNING, f"DEMO DATE: the host treats {settings.pin_today.isoformat()} as today, because the "
             "tools serve fake demo data. Set [dev] pin_today = false in config.toml to use the real date.",
             pin_today=settings.pin_today.isoformat())
     models.start()
+    sources.start()  # syncs every account now, then every 15 minutes
     # uvicorn shuts down gracefully on SIGTERM/SIGINT, then re-raises the signal to the handler that was
     # installed before it. With the default handler that kills the process before the cleanup below runs,
     # so install a harmless one: shutdown still happens, and Ollama and the pid file are cleaned up.
@@ -126,6 +146,7 @@ def main(argv: list[str] | None = None) -> int:
     except SystemExit as e:
         code = int(e.code or 1)
     finally:
+        sources.stop()
         models.stop()
         settings.pid_path.unlink(missing_ok=True)
         os.close(lock_fd)

@@ -78,6 +78,9 @@ class CallRecord:
     then: str | None = None
     # The resolved date objects (for presenting results); not part of the logged record.
     resolved_dates: dict = field(default_factory=dict, repr=False, compare=False)
+    # What the app is shown when it differs from `result` (ToolResult.display); not logged, never sent
+    # to the model.
+    display: Any = field(default=None, repr=False, compare=False)
 
 
 @dataclass
@@ -110,6 +113,7 @@ class Run:
         out = asdict(self)
         for c in out["calls"]:
             c.pop("resolved_dates", None)
+            c.pop("display", None)
         return out
 
 
@@ -235,7 +239,8 @@ class Engine:
                 step_calls.append(record)
                 emit({"type": "tool_result", "tool": record.tool, "status": record.status})
                 if record.status == "ok":
-                    shown_result = present(record.tool, record.args, record.resolved_dates, record.result)
+                    shown_result = present(record.tool, record.args, record.resolved_dates,
+                                           record.result if record.display is None else record.display)
                     if shown_result:
                         if run.seconds_to_result is None:
                             run.seconds_to_result = round(_time.perf_counter() - started, 3)
@@ -312,7 +317,7 @@ class Engine:
             rec.status, rec.approval_id = "gated", inv.approval.id
             return rec, None
         rec.status = inv.status
-        rec.result, rec.error = inv.result, inv.error
+        rec.result, rec.error, rec.display = inv.result, inv.error, inv.display
         if inv.undo:
             run.undo_log.append(inv.undo)
         if inv.status == "ambiguous":

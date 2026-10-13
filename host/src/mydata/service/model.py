@@ -72,6 +72,10 @@ class ModelManager:
         self._child: subprocess.Popen | None = None
         self._stopping = threading.Event()
         self.retry_every = 15.0
+        # A preparation in progress, and whether the prompt prefix changed while it ran (see rewarm).
+        self._warm_lock = threading.Lock()
+        self._preparing = False
+        self._stale = False
 
     # ---------------------------------------------------------------- public
 
@@ -132,10 +136,35 @@ class ModelManager:
         if not self._enabled:
             self._set(state="disabled", loaded=False, progress=None, error=None)
             return
-        if self._thread and self._thread.is_alive():
-            return
-        self._thread = threading.Thread(target=self._prepare, name="model-manager", daemon=True)
+        with self._warm_lock:
+            if self._preparing or (self._thread and self._thread.is_alive()):
+                return
+            self._preparing = True
+            self._thread = threading.Thread(target=self._prepare, name="model-manager", daemon=True)
         self._thread.start()
+
+    def rewarm(self) -> None:
+        """Re-run the warm-up in the background (the prompt prefix changed: the host switched between demo
+        and real mode). Only when the model is ready. A preparation in progress is told instead: if it has
+        already sent the old prefix (its loading step), it warms again with the new one before it reports
+        ready. A switched-off assistant loads nothing."""
+        if not self._enabled or self._warm is None:
+            return
+        with self._warm_lock:
+            if self._preparing:
+                self._stale = True
+                return
+        if self.status().state != "ready":
+            return
+
+        def run() -> None:
+            try:
+                self._warm()
+                log(logger, logging.INFO, "model re-warmed with the new prompt prefix")
+            except Exception:
+                logger.warning("re-warming the model failed; the next request loads the prefix", exc_info=True)
+
+        threading.Thread(target=run, name="model-rewarm", daemon=True).start()
 
     def _supervise(self) -> None:
         while not self._stopping.wait(self.retry_every):
@@ -197,17 +226,31 @@ class ModelManager:
             if self._cancel.is_set():
                 return
             self._set(state="loading", progress=None)
-            if self._warm:
-                self._warm()
-            else:
-                self._post("/api/chat", {"model": self.settings.model, "messages": [],
-                                         "options": {"num_ctx": self.settings.num_ctx}, "keep_alive": -1}, 600)
-            if self._cancel.is_set():
-                return
-            self._set(state="ready", loaded=True, error=None)
+            while True:
+                with self._warm_lock:
+                    self._stale = False  # the warm-up below reads the prefix as it is now
+                if self._warm:
+                    self._warm()
+                else:
+                    self._post("/api/chat", {"model": self.settings.model, "messages": [],
+                                             "options": {"num_ctx": self.settings.num_ctx}, "keep_alive": -1}, 600)
+                if self._cancel.is_set():
+                    return
+                with self._warm_lock:
+                    if self._stale and self._warm:  # the mode switched while loading: warm the new prefix
+                        log(logger, logging.INFO, "prompt prefix changed while loading; warming again")
+                        continue
+                    # Ready is set before the preparation ends, under the same lock rewarm checks, so a
+                    # switch from now on finds the model ready and re-warms it itself.
+                    self._set(state="ready", loaded=True, error=None)
+                    self._preparing = False
+                    break
         except Exception as e:  # any failure is a state the app can show, with a retry
             self._set(state="error", error=f"{type(e).__name__}: {e}")
             logger.exception("model preparation failed")
+        finally:
+            with self._warm_lock:
+                self._preparing = False
 
     def _start_ollama(self) -> bool:
         binary = shutil.which("ollama") or next((p for p in OLLAMA_CANDIDATES if Path(p).exists()), None)
@@ -217,8 +260,10 @@ class ModelManager:
         self._set(state="ollama_starting")
         host = self.settings.ollama_url.split("://", 1)[-1]
         env = {**os.environ, "OLLAMA_HOST": host}  # keep the model server on this machine
-        self.log_dir.mkdir(parents=True, exist_ok=True)
-        out = open(self.log_dir / "ollama.log", "ab")
+        from .config import private_dir
+        from .logs import open_private
+        private_dir(self.log_dir)
+        out = open_private(self.log_dir / "ollama.log", "ab")
         kwargs: dict = {"stdout": out, "stderr": subprocess.STDOUT, "stdin": subprocess.DEVNULL, "env": env}
         if sys.platform.startswith("win"):
             kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP

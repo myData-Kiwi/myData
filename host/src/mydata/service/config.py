@@ -10,6 +10,13 @@ Everything lives in one per-user folder (override with MYDATA_HOME):
   agents.json   agent tokens (hashes only), managed with `mydata agent ...`
   mydatad.pid   the running service's process id
   logs/         mydatad.log (structured), assistant.jsonl (every assistant request)
+  accounts.json linked accounts (no passwords: those are in the Keychain)
+  contacts.sqlite, calendar.sqlite   the read-only mirror of the linked accounts
+
+Once an account is linked these hold the user's real contacts and calendars, and the request log holds
+real requests and results. So the folder may never be inside the source checkout (load_settings and
+setup_logging refuse it), and .gitignore keeps these files out of git in any case. The folder and logs/
+are readable only by this user (0700), and so is every file the host writes in them (0600).
 """
 
 from __future__ import annotations
@@ -46,15 +53,61 @@ followup = "rule"
 level = "INFO"
 
 [dev]
-# The tools still serve fake demo data dated around 18 March 2026, so the host's "today" is pinned
-# to that date: "tomorrow" then means 19 March and finds the demo events. Set to false to use the
-# real date. Remove this setting when the tools serve real data.
+# Demo mode (no linked account): the tools serve fake data dated around 18 March 2026, so the host's
+# "today" is pinned to that date: "tomorrow" then means 19 March and finds the demo events. Set to
+# false to use the real date. Real mode (an account is linked) always uses the real date.
 pin_today = "2026-03-18"
 """
 
 
 class ConfigError(Exception):
     pass
+
+
+def source_checkout() -> Path | None:
+    """The git checkout this code runs from (development), or None (an installed host)."""
+    for parent in Path(__file__).resolve().parents:
+        if (parent / ".git").exists():
+            return parent
+    return None
+
+
+def inside_checkout(path: Path) -> bool:
+    checkout = source_checkout()
+    if checkout is None:
+        return False
+    try:
+        Path(path).resolve().relative_to(checkout)
+        return True
+    except ValueError:
+        return False
+
+
+def ensure_outside_checkout(path: Path, what: str) -> None:
+    """Personal data (the mirror, request logs) must never be written inside the repository."""
+    if inside_checkout(path):
+        raise ConfigError(f"{what} {path} is inside the source checkout {source_checkout()}; the host keeps "
+                          "personal data there, so it must live outside the repository (set MYDATA_HOME)")
+
+
+def private_dir(path: Path) -> Path:
+    """Create `path` (and its parents) if needed, and make it readable only by this user (0700), also
+    when it already existed with looser permissions. Returns it."""
+    path = Path(path)
+    path.mkdir(mode=0o700, parents=True, exist_ok=True)
+    if not sys.platform.startswith("win"):
+        os.chmod(path, 0o700)
+    return path
+
+
+def private_file(path: Path) -> Path:
+    """Make an existing file readable only by this user (0600); a missing one is left missing."""
+    if not sys.platform.startswith("win"):
+        try:
+            os.chmod(path, 0o600)
+        except FileNotFoundError:
+            pass
+    return Path(path)
 
 
 def home_dir() -> Path:
@@ -150,11 +203,12 @@ def _pin_today(dev: dict) -> date | None:
 def load_settings(home: Path | None = None, create: bool = True) -> Settings:
     """Read config.toml, writing the defaults first if it does not exist."""
     home = home or home_dir()
+    ensure_outside_checkout(home, "the host folder")
     path = home / "config.toml"
     if not path.exists():
         if not create:
             raise ConfigError(f"no config at {path}; start the host once to create it")
-        home.mkdir(parents=True, exist_ok=True)
+        private_dir(home)
         path.write_text(DEFAULT_CONFIG)
     try:
         raw = tomllib.loads(path.read_text())

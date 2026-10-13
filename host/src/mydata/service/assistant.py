@@ -1,7 +1,7 @@
 """Our own assistant, served by the host: conversations on top of the orchestrator.
 
-Conversations are kept in memory (phase 1: lost when the host restarts). A message runs the
-orchestrator in a worker thread and yields events as they happen:
+Conversations are kept in memory (lost when the host restarts, and ended when the host switches between
+demo and real mode). A message runs the orchestrator in a worker thread and yields events as they happen:
 
   conversation      {"conversation_id"}                     first event of every reply
   progress          {"tool", "label"}                       a tool is running ("Searching mail")
@@ -27,22 +27,25 @@ import threading
 import time
 from datetime import date
 from pathlib import Path
-from typing import Callable, Iterator
+from typing import Callable, Iterable, Iterator
 
-from ..orchestrator.engine import Engine, Run, request_prefix
+from ..orchestrator.engine import SYSTEM_PROMPT, Engine, Run, request_prefix
 from ..orchestrator.ollama import ChatModel, OllamaChat
-from ..tools import Approval, Registry
-from .config import Settings
-from .logs import log
+from ..tools import Approval, Registry, Tool
+from .config import Settings, private_dir
+from .logs import log, open_private
 
 logger = logging.getLogger("mydata.assistant")
 
 
 class Assistant:
     def __init__(self, settings: Settings, registry: Registry,
-                 model_factory: Callable[[], ChatModel] | None = None, today: Callable[[], date] = date.today):
+                 model_factory: Callable[[], ChatModel] | None = None, today: Callable[[], date] = date.today,
+                 system_prompt: str = SYSTEM_PROMPT):
         self.settings = settings
         self.registry = registry
+        # Fixed within a mode (demo or real; see modes.py), so the cached prompt prefix stays identical.
+        self.system_prompt = system_prompt
         # keep_alive -1: while the assistant is on, the model stays loaded (switching it off unloads it).
         self._model_factory = model_factory or (lambda: OllamaChat(
             settings.model, host=settings.ollama_url, think=settings.think, options={"num_ctx": settings.num_ctx},
@@ -57,7 +60,31 @@ class Assistant:
     def warm(self) -> None:
         """Load the model and cache the shared prompt prefix (see engine.request_prefix)."""
         model = self._model_factory()
-        model.warm(*request_prefix(self.registry, followup=self.settings.followup))
+        model.warm(*self.prefix())
+
+    def prefix(self) -> tuple[dict, list[dict]]:
+        """The system message and tool definitions every request in the current mode starts with."""
+        return request_prefix(self.registry, system_prompt=self.system_prompt, followup=self.settings.followup)
+
+    def apply_mode(self, mode: str, tools: Iterable[Tool], today: Callable[[], date], system_prompt: str) -> None:
+        """Switch to another mode's tools, date and system prompt (modes.py). Waits for a message being
+        answered to finish, so no request sees half of each.
+
+        A change of mode ends every conversation: their history holds the other mode's tool results. After
+        real -> demo (the last account removed) that is the removed account's contacts and events, which
+        must go with it; after demo -> real it is fake demo data that the model would take as real. A
+        message to an old conversation id starts afresh."""
+        with self._busy:
+            if mode != self.registry.mode:
+                with self._lock:
+                    dropped = len(self._conversations)
+                    self._conversations.clear()
+                if dropped:
+                    log(logger, logging.INFO, "conversations ended by a mode switch", count=dropped, mode=mode)
+            self.registry.replace_tools(tools, today=today, mode=mode)
+            self._today = today
+            self.today = today
+            self.system_prompt = system_prompt
 
     # ---------------------------------------------------------------- conversations
 
@@ -95,7 +122,8 @@ class Assistant:
                 with self._busy:
                     history = self.history(cid)
                     engine = Engine(self._model_factory(), self._today(), registry=self.registry,
-                                    caller="assistant", followup=self.settings.followup)
+                                    system_prompt=self.system_prompt, caller="assistant",
+                                    followup=self.settings.followup)
                     run = engine.run(text, history=history, on_event=emit, context={"conversation_id": cid})
                     final = self._settle(cid, len(history), run)
                     self._log(cid, run)
@@ -171,12 +199,43 @@ class Assistant:
     # ---------------------------------------------------------------- log
 
     def _log(self, cid: str, run: Run) -> None:
-        """Every request, with the tools called and the outcome: future test data."""
-        entry = {"ts": time.time(), "conversation_id": cid, **run.to_json()}
+        """Every request, with the tools called and the outcome: future test data.
+
+        Each entry says its mode. In real mode the tool results (the user's mirrored contacts and events)
+        are left out: each call keeps its tool, arguments and status, with only the size of its result, and
+        a reply written by code (the results' headers) is left out too. The request text and a reply the
+        model wrote are kept."""
+        mode = self.registry.mode
+        entry = {"ts": time.time(), "conversation_id": cid, "mode": mode, **run.to_json()}
         entry.pop("messages", None)
-        path: Path = self.settings.log_dir / "assistant.jsonl"
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with path.open("a", encoding="utf-8") as fh:
+        if mode != "demo":
+            entry = redact_results(entry)
+        path: Path = private_dir(self.settings.log_dir) / "assistant.jsonl"
+        with open_private(path) as fh:
             fh.write(json.dumps(entry, ensure_ascii=False, default=str) + "\n")
         log(logger, logging.INFO, "assistant request", conversation_id=cid, outcome=run.outcome,
             tools=[f"{c.tool}:{c.status}" for c in run.calls], seconds=run.seconds_total)
+
+
+def _result_size(result) -> dict | None:
+    """What a tool result is, without its contents: the length of each list, and the date span."""
+    if not isinstance(result, dict):
+        return None
+    out: dict = {k: len(v) for k, v in result.items() if isinstance(v, list)}
+    for key in ("from", "to", "count", "truncated", "status"):
+        if key in result and not isinstance(result[key], (list, dict)):
+            out[key] = result[key]
+    return out
+
+
+def redact_results(entry: dict) -> dict:
+    """A request-log entry without the data the tools returned (for real mode)."""
+    entry = dict(entry)
+    entry["calls"] = [{**c, "result": _result_size(c.get("result"))} for c in entry.get("calls", [])]
+    entry["results"] = [{"tool": r.get("tool"), "kind": r.get("kind"), "items": len(r.get("items") or [])}
+                        for r in entry.get("results", [])]
+    if entry.get("clarify_options") is not None:
+        entry["clarify_options"] = len(entry["clarify_options"])
+    if entry.get("reply_by") == "code":  # the reply is the results' headers ("Ava Fictional"): data too
+        entry["final_text"] = None
+    return entry
