@@ -26,7 +26,8 @@ from ..orchestrator import ollama as ollama_module
 from ..tools import builtin as tools_module
 from ..orchestrator.engine import SYSTEM_PROMPT, Engine
 from ..orchestrator.ollama import OllamaChat
-from ..tools import TOOLS
+from ..tools import TOOLS, Registry
+from .guard import demo_registry, ensure_demo
 from . import scoring as scoring_module
 from .scoring import outcome_score, score
 from .sets import DEFAULT_SET, CaseSet, load_set, use_data
@@ -68,8 +69,11 @@ def think_setting(model: str, on: bool = False) -> bool | str:
     return "low" if model.startswith("gpt-oss") else False
 
 
-def cmd_run(ns: argparse.Namespace) -> int:
+def cmd_run(ns: argparse.Namespace, registry: Registry | None = None) -> int:
+    """registry: for tests; the run always uses the checked demo registry (results/ never holds real data)."""
     case_set = load_set(ns.set)
+    registry = registry or demo_registry(lambda: case_set.today)
+    ensure_demo(registry)
     selected = [c for c in case_set.cases if not ns.only or c["id"] in ns.only]
     stamp = ns.stamp or datetime.now().strftime("%Y%m%d-%H%M%S")
     out_dir = Path(ns.out) / stamp
@@ -107,8 +111,8 @@ def cmd_run(ns: argparse.Namespace) -> int:
             print(f"loading {model_name}...", file=sys.stderr)
             model.load()
             # One untimed request (not one of the cases) to warm the shared prompt prefix.
-            Engine(model, case_set.today).run("Hello")
-            engine = Engine(model, case_set.today, followup=ns.followup)
+            Engine(model, case_set.today, registry=registry).run("Hello")
+            engine = Engine(model, case_set.today, registry=registry, followup=ns.followup)
             for case in selected:
                 for rep in range(1, ns.reps + 1):
                     run = engine.run(case["text"]).to_json()

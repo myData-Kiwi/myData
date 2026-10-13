@@ -20,7 +20,8 @@ from pathlib import Path
 from ..orchestrator import followup as fu
 from ..orchestrator.engine import SYSTEM_PROMPT, Engine, request_prefix
 from ..orchestrator.ollama import OllamaChat
-from ..tools import default_registry
+from ..tools import Registry
+from .guard import demo_registry, ensure_demo
 from .followup_probe import PROBES
 from .sets import load_set, use_data
 
@@ -34,14 +35,17 @@ def _model(name: str) -> OllamaChat:
 # ---------------------------------------------------------------- latency by mode
 
 
-def run_latency(set_name: str, model_name: str, reps: int, modes: list[str], out: Path) -> str:
+def run_latency(set_name: str, model_name: str, reps: int, modes: list[str], out: Path,
+                registry: Registry | None = None) -> str:
+    if registry is not None:
+        ensure_demo(registry)  # results/ never holds real data
     case_set = load_set(set_name)
     cases = [c for c in case_set.cases if c["type"] == "single"]
     model = _model(model_name)
     rows = []
     with use_data(case_set.data):
         for mode in modes:
-            registry = default_registry(today=lambda: case_set.today)
+            registry = registry or demo_registry(lambda: case_set.today)
             model.warm(*request_prefix(registry, followup=mode))  # same prefix as the runs, cached
             for case in cases:
                 for rep in range(1, reps + 1):
@@ -92,11 +96,13 @@ def render_latency(rows: list[dict], model: str, set_name: str, reps: int) -> st
 # ---------------------------------------------------------------- decision accuracy
 
 
-def run_decide(set_name: str, model_name: str, reps: int, out: Path) -> str:
+def run_decide(set_name: str, model_name: str, reps: int, out: Path, registry: Registry | None = None) -> str:
     """Score the code rule (no model) and the field (the tool-choice call only) on the labelled probes."""
+    if registry is not None:
+        ensure_demo(registry)
     case_set = load_set(set_name)
     model = _model(model_name)
-    registry = default_registry(today=lambda: case_set.today)
+    registry = registry or demo_registry(lambda: case_set.today)
     system, tools = request_prefix(registry, followup="field")
     rows = []
     with use_data(case_set.data):
@@ -209,10 +215,12 @@ def _probe(model: OllamaChat, system: dict, tools: list[dict], cached: bool, gen
             "gen_tok_s": round(ec / ed, 1) if ed else None, "load_s": round((body.get("load_duration") or 0) / NS, 2)}
 
 
-def run_speed(set_name: str, model_name: str, minutes: float, out: Path) -> str:
+def run_speed(set_name: str, model_name: str, minutes: float, out: Path, registry: Registry | None = None) -> str:
+    if registry is not None:
+        ensure_demo(registry)
     case_set = load_set(set_name)
     model = _model(model_name)
-    registry = default_registry(today=lambda: case_set.today)
+    registry = registry or demo_registry(lambda: case_set.today)
     system, tools = request_prefix(registry, followup="rule")
     singles = [c["text"] for c in case_set.cases if c["type"] == "single"]
     log: dict = {"model": model_name, "minutes": minutes, "phases": []}

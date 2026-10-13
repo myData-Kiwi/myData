@@ -2,3 +2,24 @@ __pycache__/
 *.pyc
 .venv/
 .pytest_cache/
+
+# The host's own files. Once an account is linked they hold the user's real contacts, calendars and
+# requests. They live in the host folder (MYDATA_HOME), never in this checkout (the host refuses a
+# folder inside it); these patterns keep them out of git even if something writes them here by mistake.
+# tests/test_privacy.py checks them.
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite-journal
+*.sqlite3
+accounts.json
+agents.json
+state.json
+app-tokens/
+app_config.json
+mydatad.pid
+mydatad.out
+mydatad.log*
+assistant.jsonl
+ollama.log
+logs/

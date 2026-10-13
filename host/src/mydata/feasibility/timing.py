@@ -28,7 +28,8 @@ from pathlib import Path
 
 from ..orchestrator.engine import SYSTEM_PROMPT, Engine
 from ..orchestrator.ollama import OllamaChat
-from ..tools import default_registry
+from ..tools import Registry
+from .guard import demo_registry, ensure_demo
 from .sets import load_set, use_data
 
 NS = 1e9
@@ -54,11 +55,13 @@ def _inputs(run: dict) -> list[list[dict]]:
     return [msgs[:i] for i, m in enumerate(msgs) if m["role"] == "assistant"]
 
 
-def run_timing(set_name: str, model_name: str, reps: int, out_dir: Path) -> dict:
+def run_timing(set_name: str, model_name: str, reps: int, out_dir: Path, registry: Registry | None = None) -> dict:
+    if registry is not None:
+        ensure_demo(registry)  # results/ never holds real data
     case_set = load_set(set_name)
     cases = [c for c in case_set.cases if c["type"] == "single"]
     model = OllamaChat(model_name, think=False, options={"num_ctx": 8192})
-    registry = default_registry(today=lambda: case_set.today)
+    registry = registry or demo_registry(lambda: case_set.today)
     tools = registry.definitions()
     rows = []
     with use_data(case_set.data):
@@ -109,7 +112,7 @@ def reprobe(out_dir: Path, model_name: str) -> str:
     case_set = load_set(meta["set"])
     model = OllamaChat(model_name, think=False, options={"num_ctx": 8192})
     with use_data(case_set.data):
-        meta["tag_cost_tokens"] = probe_cache(model, rows, default_registry(today=lambda: case_set.today).definitions())
+        meta["tag_cost_tokens"] = probe_cache(model, rows, demo_registry(lambda: case_set.today).definitions())
     with (out_dir / "timing.jsonl").open("w") as fh:
         for row in rows:
             fh.write(json.dumps(row) + "\n")
