@@ -132,7 +132,9 @@ class ModelManager:
 
     def retry(self) -> None:
         """Try again now (the app's retry button). Does nothing while an attempt is running or while the
-        assistant is switched off."""
+        assistant is switched off. Never after stop(): a supervisor mid-check must not start Ollama again."""
+        if self._stopping.is_set():
+            return
         if not self._enabled:
             self._set(state="disabled", loaded=False, progress=None, error=None)
             return
