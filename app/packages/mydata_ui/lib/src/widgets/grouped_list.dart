@@ -211,6 +211,10 @@ class GroupedRow extends StatelessWidget {
   /// shows nothing.
   static const selectedHoverInk = 0.08;
 
+  /// The corner shape of the row at [context] within its group: rounded at the group's ends, square
+  /// between, square outside a group. For a row subclass that draws its own hover fill and focus ring.
+  static BorderRadius shapeOf(BuildContext context) => GroupPartShape.of(context);
+
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
