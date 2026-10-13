@@ -15,7 +15,7 @@ Name | Type | Description | Notes
 **calendarsStatus** | **String** | This Mac: notDetermined, restricted, denied, fullAccess, writeOnly, or unknown (as contacts_status) | [optional] 
 **contactContainers** | [**List<MacContainerOut>**](MacContainerOut.md) |  | [optional] [default to const []]
 **contactsStatus** | **String** | This Mac: notDetermined, restricted, denied, authorized, or unknown (not reported yet, or a value this host does not know: not readable) | [optional] 
-**counts** | [**SyncCounts**](SyncCounts.md) |  | [optional] 
+**counts** | [**SyncCounts**](SyncCounts.md) | what the source holds now: for an iCloud account, as of its last sync; for This Mac while it is on | [optional] 
 **decided** | **bool** | This Mac: true once the user turned it on or off (the myData app's first-run step is then not shown) | [optional] 
 **email** | **String** | iCloud: the account's email | [optional] 
 **enabled** | **bool** |  | 

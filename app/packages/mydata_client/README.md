@@ -110,6 +110,8 @@ Class | Method | HTTP request | Description
  - [AssistantSettingsIn](doc//AssistantSettingsIn.md)
  - [CalendarOut](doc//CalendarOut.md)
  - [ContactDetailOut](doc//ContactDetailOut.md)
+ - [ContactField](doc//ContactField.md)
+ - [ContactFieldGroup](doc//ContactFieldGroup.md)
  - [ContactOut](doc//ContactOut.md)
  - [CoverageOut](doc//CoverageOut.md)
  - [DecisionIn](doc//DecisionIn.md)

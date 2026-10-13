@@ -144,6 +144,8 @@ class SourcesApi {
 
   /// Calendars
   ///
+  /// Every mirrored calendar, grouped by source: This Mac first, then each iCloud account. The same calendar seen through This Mac and through an iCloud account is listed twice, once per source.
+  ///
   /// Note: This method returns the HTTP [Response].
   Future<Response> calendarsWithHttpInfo({
     Future<void>? abortTrigger,
@@ -173,6 +175,8 @@ class SourcesApi {
   }
 
   /// Calendars
+  ///
+  /// Every mirrored calendar, grouped by source: This Mac first, then each iCloud account. The same calendar seen through This Mac and through an iCloud account is listed twice, once per source.
   Future<List<CalendarOut>?> calendars({
     Future<void>? abortTrigger,
   }) async {
@@ -266,6 +270,8 @@ class SourcesApi {
 
   /// Contact
   ///
+  /// One contact, for its page: the fields grouped by kind, the job title and where the card comes from.
+  ///
   /// Note: This method returns the HTTP [Response].
   ///
   /// Parameters:
@@ -309,6 +315,8 @@ class SourcesApi {
   }
 
   /// Contact
+  ///
+  /// One contact, for its page: the fields grouped by kind, the job title and where the card comes from.
   ///
   /// Parameters:
   ///

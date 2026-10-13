@@ -18,6 +18,8 @@ doc/AssistantApi.md
 doc/AssistantSettingsIn.md
 doc/CalendarOut.md
 doc/ContactDetailOut.md
+doc/ContactField.md
+doc/ContactFieldGroup.md
 doc/ContactOut.md
 doc/CoverageOut.md
 doc/DecisionIn.md
@@ -78,6 +80,8 @@ lib/model/approval_out.dart
 lib/model/assistant_settings_in.dart
 lib/model/calendar_out.dart
 lib/model/contact_detail_out.dart
+lib/model/contact_field.dart
+lib/model/contact_field_group.dart
 lib/model/contact_out.dart
 lib/model/coverage_out.dart
 lib/model/decision_in.dart
@@ -122,6 +126,8 @@ test/assistant_api_test.dart
 test/assistant_settings_in_test.dart
 test/calendar_out_test.dart
 test/contact_detail_out_test.dart
+test/contact_field_group_test.dart
+test/contact_field_test.dart
 test/contact_out_test.dart
 test/coverage_out_test.dart
 test/decision_in_test.dart

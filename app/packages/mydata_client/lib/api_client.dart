@@ -230,6 +230,10 @@ class ApiClient {
           return CalendarOut.fromJson(value);
         case 'ContactDetailOut':
           return ContactDetailOut.fromJson(value);
+        case 'ContactField':
+          return ContactField.fromJson(value);
+        case 'ContactFieldGroup':
+          return ContactFieldGroup.fromJson(value);
         case 'ContactOut':
           return ContactOut.fromJson(value);
         case 'CoverageOut':

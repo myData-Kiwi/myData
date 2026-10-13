@@ -17,15 +17,18 @@ class ContactDetailOut {
     required this.addressBookId,
     this.addresses = const [],
     this.birthday,
+    this.caption,
     required this.createdAt,
     this.deletedAt,
     required this.displayName,
     this.emails = const [],
     this.familyName = '',
+    this.fields = const [],
     this.fullName = '',
     this.givenName = '',
     this.hasPhoto = false,
     required this.id,
+    this.jobTitle = '',
     required this.modifiedAt,
     this.nickname = '',
     this.note = '',
@@ -33,7 +36,10 @@ class ContactDetailOut {
     this.organisation = '',
     this.phones = const [],
     this.rawVcard,
+    required this.sortLetter,
     required this.source_,
+    required this.sourceLabel,
+    this.urls = const [],
   });
 
   String accountId;
@@ -43,6 +49,9 @@ class ContactDetailOut {
   List<PostalAddress> addresses;
 
   String? birthday;
+
+  /// the line under the name in the contact list: the organisation, else the first email or phone that is not already the name; none when there is nothing else to say
+  String? caption;
 
   String createdAt;
 
@@ -55,6 +64,9 @@ class ContactDetailOut {
 
   String familyName;
 
+  /// the contact's values for its page, grouped by kind in this order: phone, email, address, birthday, url, note. A kind with no values is left out; note only when the source reads notes and the note is not empty (never for This Mac)
+  List<ContactFieldGroup> fields;
+
   String fullName;
 
   String givenName;
@@ -62,6 +74,8 @@ class ContactDetailOut {
   bool hasPhoto;
 
   String id;
+
+  String jobTitle;
 
   String modifiedAt;
 
@@ -79,8 +93,17 @@ class ContactDetailOut {
   /// the card as the server sent it; only with ?raw=1
   String? rawVcard;
 
+  /// the contact list's letter group: the first letter of display_name without accents, upper case; \"#\" when it does not start with a letter (digits, symbols, Chinese, Japanese kanji or Korean characters)
+  String sortLetter;
+
   /// where the contact comes from
   ContactDetailOutSource_Enum source_;
+
+  /// the source inside a sentence: \"this Mac\" or \"the iCloud account <email>\" (\"From this Mac. Change it in Contacts.\")
+  String sourceLabel;
+
+  /// web addresses as the source wrote them; never trusted to say what they open
+  List<LabeledValue> urls;
 
   @override
   bool operator ==(Object other) =>
@@ -90,15 +113,18 @@ class ContactDetailOut {
           other.addressBookId == addressBookId &&
           _deepEquality.equals(other.addresses, addresses) &&
           other.birthday == birthday &&
+          other.caption == caption &&
           other.createdAt == createdAt &&
           other.deletedAt == deletedAt &&
           other.displayName == displayName &&
           _deepEquality.equals(other.emails, emails) &&
           other.familyName == familyName &&
+          _deepEquality.equals(other.fields, fields) &&
           other.fullName == fullName &&
           other.givenName == givenName &&
           other.hasPhoto == hasPhoto &&
           other.id == id &&
+          other.jobTitle == jobTitle &&
           other.modifiedAt == modifiedAt &&
           other.nickname == nickname &&
           other.note == note &&
@@ -106,7 +132,10 @@ class ContactDetailOut {
           other.organisation == organisation &&
           _deepEquality.equals(other.phones, phones) &&
           other.rawVcard == rawVcard &&
-          other.source_ == source_;
+          other.sortLetter == sortLetter &&
+          other.source_ == source_ &&
+          other.sourceLabel == sourceLabel &&
+          _deepEquality.equals(other.urls, urls);
 
   @override
   int get hashCode =>
@@ -115,15 +144,18 @@ class ContactDetailOut {
       (addressBookId.hashCode) +
       (addresses.hashCode) +
       (birthday == null ? 0 : birthday!.hashCode) +
+      (caption == null ? 0 : caption!.hashCode) +
       (createdAt.hashCode) +
       (deletedAt == null ? 0 : deletedAt!.hashCode) +
       (displayName.hashCode) +
       (emails.hashCode) +
       (familyName.hashCode) +
+      (fields.hashCode) +
       (fullName.hashCode) +
       (givenName.hashCode) +
       (hasPhoto.hashCode) +
       (id.hashCode) +
+      (jobTitle.hashCode) +
       (modifiedAt.hashCode) +
       (nickname.hashCode) +
       (note.hashCode) +
@@ -131,11 +163,14 @@ class ContactDetailOut {
       (organisation.hashCode) +
       (phones.hashCode) +
       (rawVcard == null ? 0 : rawVcard!.hashCode) +
-      (source_.hashCode);
+      (sortLetter.hashCode) +
+      (source_.hashCode) +
+      (sourceLabel.hashCode) +
+      (urls.hashCode);
 
   @override
   String toString() =>
-      'ContactDetailOut[accountId=$accountId, addressBookId=$addressBookId, addresses=$addresses, birthday=$birthday, createdAt=$createdAt, deletedAt=$deletedAt, displayName=$displayName, emails=$emails, familyName=$familyName, fullName=$fullName, givenName=$givenName, hasPhoto=$hasPhoto, id=$id, modifiedAt=$modifiedAt, nickname=$nickname, note=$note, notesIncluded=$notesIncluded, organisation=$organisation, phones=$phones, rawVcard=$rawVcard, source_=$source_]';
+      'ContactDetailOut[accountId=$accountId, addressBookId=$addressBookId, addresses=$addresses, birthday=$birthday, caption=$caption, createdAt=$createdAt, deletedAt=$deletedAt, displayName=$displayName, emails=$emails, familyName=$familyName, fields=$fields, fullName=$fullName, givenName=$givenName, hasPhoto=$hasPhoto, id=$id, jobTitle=$jobTitle, modifiedAt=$modifiedAt, nickname=$nickname, note=$note, notesIncluded=$notesIncluded, organisation=$organisation, phones=$phones, rawVcard=$rawVcard, sortLetter=$sortLetter, source_=$source_, sourceLabel=$sourceLabel, urls=$urls]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
@@ -147,6 +182,11 @@ class ContactDetailOut {
     } else {
       json[r'birthday'] = null;
     }
+    if (this.caption != null) {
+      json[r'caption'] = this.caption;
+    } else {
+      json[r'caption'] = null;
+    }
     json[r'created_at'] = this.createdAt;
     if (this.deletedAt != null) {
       json[r'deleted_at'] = this.deletedAt;
@@ -156,10 +196,12 @@ class ContactDetailOut {
     json[r'display_name'] = this.displayName;
     json[r'emails'] = this.emails;
     json[r'family_name'] = this.familyName;
+    json[r'fields'] = this.fields;
     json[r'full_name'] = this.fullName;
     json[r'given_name'] = this.givenName;
     json[r'has_photo'] = this.hasPhoto;
     json[r'id'] = this.id;
+    json[r'job_title'] = this.jobTitle;
     json[r'modified_at'] = this.modifiedAt;
     json[r'nickname'] = this.nickname;
     json[r'note'] = this.note;
@@ -171,7 +213,10 @@ class ContactDetailOut {
     } else {
       json[r'raw_vcard'] = null;
     }
+    json[r'sort_letter'] = this.sortLetter;
     json[r'source'] = this.source_;
+    json[r'source_label'] = this.sourceLabel;
+    json[r'urls'] = this.urls;
     return json;
   }
 
@@ -202,6 +247,10 @@ class ContactDetailOut {
             'Required key "ContactDetailOut[display_name]" is missing from JSON.');
         assert(json[r'display_name'] != null,
             'Required key "ContactDetailOut[display_name]" has a null value in JSON.');
+        assert(json.containsKey(r'fields'),
+            'Required key "ContactDetailOut[fields]" is missing from JSON.');
+        assert(json[r'fields'] != null,
+            'Required key "ContactDetailOut[fields]" has a null value in JSON.');
         assert(json.containsKey(r'id'),
             'Required key "ContactDetailOut[id]" is missing from JSON.');
         assert(json[r'id'] != null,
@@ -210,10 +259,18 @@ class ContactDetailOut {
             'Required key "ContactDetailOut[modified_at]" is missing from JSON.');
         assert(json[r'modified_at'] != null,
             'Required key "ContactDetailOut[modified_at]" has a null value in JSON.');
+        assert(json.containsKey(r'sort_letter'),
+            'Required key "ContactDetailOut[sort_letter]" is missing from JSON.');
+        assert(json[r'sort_letter'] != null,
+            'Required key "ContactDetailOut[sort_letter]" has a null value in JSON.');
         assert(json.containsKey(r'source'),
             'Required key "ContactDetailOut[source]" is missing from JSON.');
         assert(json[r'source'] != null,
             'Required key "ContactDetailOut[source]" has a null value in JSON.');
+        assert(json.containsKey(r'source_label'),
+            'Required key "ContactDetailOut[source_label]" is missing from JSON.');
+        assert(json[r'source_label'] != null,
+            'Required key "ContactDetailOut[source_label]" has a null value in JSON.');
         return true;
       }());
 
@@ -222,15 +279,18 @@ class ContactDetailOut {
         addressBookId: mapValueOfType<String>(json, r'address_book_id')!,
         addresses: PostalAddress.listFromJson(json[r'addresses']),
         birthday: mapValueOfType<String>(json, r'birthday'),
+        caption: mapValueOfType<String>(json, r'caption'),
         createdAt: mapValueOfType<String>(json, r'created_at')!,
         deletedAt: mapValueOfType<String>(json, r'deleted_at'),
         displayName: mapValueOfType<String>(json, r'display_name')!,
         emails: LabeledValue.listFromJson(json[r'emails']),
         familyName: mapValueOfType<String>(json, r'family_name') ?? '',
+        fields: ContactFieldGroup.listFromJson(json[r'fields']),
         fullName: mapValueOfType<String>(json, r'full_name') ?? '',
         givenName: mapValueOfType<String>(json, r'given_name') ?? '',
         hasPhoto: mapValueOfType<bool>(json, r'has_photo') ?? false,
         id: mapValueOfType<String>(json, r'id')!,
+        jobTitle: mapValueOfType<String>(json, r'job_title') ?? '',
         modifiedAt: mapValueOfType<String>(json, r'modified_at')!,
         nickname: mapValueOfType<String>(json, r'nickname') ?? '',
         note: mapValueOfType<String>(json, r'note') ?? '',
@@ -238,7 +298,10 @@ class ContactDetailOut {
         organisation: mapValueOfType<String>(json, r'organisation') ?? '',
         phones: LabeledValue.listFromJson(json[r'phones']),
         rawVcard: mapValueOfType<String>(json, r'raw_vcard'),
+        sortLetter: mapValueOfType<String>(json, r'sort_letter')!,
         source_: ContactDetailOutSource_Enum.fromJson(json[r'source'])!,
+        sourceLabel: mapValueOfType<String>(json, r'source_label')!,
+        urls: LabeledValue.listFromJson(json[r'urls']),
       );
     }
     return null;
@@ -299,9 +362,12 @@ class ContactDetailOut {
     'address_book_id',
     'created_at',
     'display_name',
+    'fields',
     'id',
     'modified_at',
+    'sort_letter',
     'source',
+    'source_label',
   };
 }
 

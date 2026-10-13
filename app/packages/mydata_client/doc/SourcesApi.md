@@ -125,6 +125,8 @@ Name | Type | Description  | Notes
 
 Calendars
 
+Every mirrored calendar, grouped by source: This Mac first, then each iCloud account. The same calendar seen through This Mac and through an iCloud account is listed twice, once per source.
+
 ### Example
 ```dart
 import 'package:mydata_client/api.dart';
@@ -216,6 +218,8 @@ Name | Type | Description  | Notes
 > ContactDetailOut contact(contactId, raw)
 
 Contact
+
+One contact, for its page: the fields grouped by kind, the job title and where the card comes from.
 
 ### Example
 ```dart

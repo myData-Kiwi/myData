@@ -52,6 +52,7 @@ class SourceOut {
   /// This Mac: notDetermined, restricted, denied, authorized, or unknown (not reported yet, or a value this host does not know: not readable)
   String? contactsStatus;
 
+  /// what the source holds now: for an iCloud account, as of its last sync; for This Mac while it is on
   SyncCounts? counts;
 
   /// This Mac: true once the user turned it on or off (the myData app's first-run step is then not shown)
