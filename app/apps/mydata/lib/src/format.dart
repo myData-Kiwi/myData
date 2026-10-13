@@ -31,6 +31,19 @@ String formatUptime(num seconds) {
   return '${d.inSeconds} s';
 }
 
+/// Byte counts for people: "9.3 GB", "120 MB". Null (not known) is "Not known".
+String formatSize(int? bytes) {
+  if (bytes == null) return 'Not known';
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  var v = bytes.toDouble();
+  var i = 0;
+  while (v >= 1000 && i < units.length - 1) {
+    v /= 1000;
+    i++;
+  }
+  return '${v.toStringAsFixed(v >= 100 || i == 0 ? 0 : 1)} ${units[i]}';
+}
+
 /// The host's own words for a failed request (its JSON `detail`), or the error as text.
 String errorText(Object error) {
   if (error is! ApiException) return '$error';

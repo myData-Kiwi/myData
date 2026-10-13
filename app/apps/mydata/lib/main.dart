@@ -2,12 +2,14 @@ import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 import 'package:mydata_core/mydata_core.dart';
+import 'package:mydata_ui/mydata_ui.dart';
 
 import 'src/app.dart';
 import 'src/desktop_lifetime.dart';
 
 Future<void> main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
+  registerMyDataLicenses();
   final controller = HostController(app: 'mydata');
   if (DesktopLifetime.supported) {
     try {

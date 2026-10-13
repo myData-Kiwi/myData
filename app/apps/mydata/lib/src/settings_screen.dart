@@ -5,21 +5,105 @@ import 'package:mydata_ui/mydata_ui.dart';
 import 'agent_list.dart';
 import 'agent_tokens.dart';
 import 'host_action.dart';
-import 'page.dart';
+import 'parts.dart';
 
-/// The assistant switch and the agent tokens.
+/// Appearance (theme and mode), the assistant switch and the agent tokens.
 class SettingsScreen extends StatelessWidget {
-  const SettingsScreen({super.key, required this.controller, required this.agents});
+  const SettingsScreen({super.key, required this.controller, required this.appearance, required this.agents});
 
   final HostController controller;
+  final AppearanceController appearance;
   final AgentList agents;
 
   @override
-  Widget build(BuildContext context) => PageList(
+  Widget build(BuildContext context) => PageScaffold(
     title: 'Settings',
     children: [
+      AppearanceSection(appearance: appearance),
       _AssistantSwitch(controller: controller),
       AgentTokensSection(controller: controller, agents: agents),
+    ],
+  );
+}
+
+/// The theme (stored on the host, for every app) and the mode (this device), each applied at once with no
+/// Save button, and a sample of the chosen theme in the current mode (design/theming.md).
+class AppearanceSection extends StatelessWidget {
+  const AppearanceSection({super.key, required this.appearance});
+
+  final AppearanceController appearance;
+
+  static const heading = 'Appearance';
+  static const failed = 'Could not change the theme. Check that your host is running, then try again.';
+  static const modes = [(MyDataMode.light, 'Light'), (MyDataMode.dark, 'Dark'), (MyDataMode.system, 'Match system')];
+
+  Future<void> _setTheme(BuildContext context, String id) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await appearance.setTheme(id);
+    } on Object {
+      messenger.showSnackBar(const SnackBar(content: Text(failed)));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: appearance,
+    builder: (context, _) {
+      final themeId = appearance.themeId ?? MyDataThemes.fallback.id;
+      final theme = _Labelled(
+        label: 'Theme',
+        child: ThemePicker(selected: themeId, onChanged: (id) => _setTheme(context, id)),
+      );
+      final mode = _Labelled(
+        label: 'Mode',
+        child: SegmentedControl<MyDataMode>(
+          segments: modes,
+          selected: appearance.mode,
+          onChanged: appearance.setMode,
+          semanticLabel: 'Mode',
+        ),
+      );
+      // The swatches get the full width, so the six themes sit on one row. The mode goes beside the sample
+      // when there is room for both, and under the swatches, above the sample, when there is not.
+      return SettingsSection(
+        heading: heading,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(MyDataSpace.s5),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                theme,
+                const SizedBox(height: MyDataSpace.s5),
+                Wrap(
+                  spacing: MyDataSpace.s6,
+                  runSpacing: MyDataSpace.s5,
+                  children: [mode, ThemeSample(themeId: themeId)],
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+/// A control with its name above it, in the `label` style.
+class _Labelled extends StatelessWidget {
+  const _Labelled({required this.label, required this.child});
+  final String label;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      ExcludeSemantics(child: Text(label, style: MyDataType.label.copyWith(color: context.colors.ink))),
+      const SizedBox(height: MyDataSpace.s2),
+      child,
     ],
   );
 }
@@ -63,10 +147,17 @@ class _AssistantSwitchState extends State<_AssistantSwitch> {
         ? 'Off. myData works without it. Switching it on prepares its model, '
               'downloading it first (several gigabytes) if it is not on this computer yet.'
         : '${describeModel(status!.model)}. Switching it off unloads the model; the rest of myData keeps working.';
-    return SectionCard(
-      title: 'Assistant',
-      trailing: Switch(value: enabled, onChanged: _saving || status == null ? null : _set),
-      child: Text(text, style: Theme.of(context).textTheme.bodyMedium),
+    return GroupedList(
+      heading: 'Assistant',
+      rows: [
+        GroupedRow.toggle(
+          icon: Icons.auto_awesome_outlined,
+          title: 'Assistant',
+          subtitle: text,
+          value: enabled,
+          onChanged: _saving || status == null ? null : _set,
+        ),
+      ],
     );
   }
 }

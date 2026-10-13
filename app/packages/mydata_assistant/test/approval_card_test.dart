@@ -21,7 +21,7 @@ Future<void> show(
   addTearDown(tester.view.reset);
   return tester.pumpWidget(
     MaterialApp(
-      theme: legacyTheme(),
+      theme: MyDataTheme.data('kiwi', Brightness.light),
       home: Scaffold(
         body: SingleChildScrollView(
           child: AssistantApprovalCard(
@@ -37,54 +37,84 @@ Future<void> show(
   );
 }
 
-ButtonStyleButton button(WidgetTester tester, String label) => tester.widget<ButtonStyleButton>(
-  find.ancestor(of: find.text(label), matching: find.bySubtype<ButtonStyleButton>()),
-);
+Pressable button(WidgetTester tester, String label) =>
+    tester.widget<Pressable>(find.ancestor(of: find.text(label), matching: find.byType(Pressable)).first);
+
+ApprovalOut _otherTool() => ApprovalOut.fromJson({
+  ...approvalJson(),
+  'tool': 'create_event',
+  'args': {'title': 'Dentist', 'start_time': '2026-03-20T09:30', 'attendees': ['a@example.com', 'b@example.com']},
+  'summary': 'Create an event: Dentist on 2026-03-20T09:30',
+})!;
 
 void main() {
-  testWidgets('shows the tool, the summary, who asked and every argument in full', (tester) async {
+  testWidgets('renders the design-system card: the question, the summary, who asked and every argument in full',
+      (tester) async {
     await show(tester, approval());
-    expect(find.text('send_mail'), findsOneWidget);
+    expect(find.byType(ApprovalCard), findsOneWidget);
+    final card = tester.widget<ApprovalCard>(find.byType(ApprovalCard));
+    expect(card.state, ApprovalState.pending);
+    expect(card.onEdit, isNull, reason: 'the host has no way to edit a held call');
+    expect(find.text('Send this email?'), findsOneWidget);
+    expect(find.text(ApprovalCard.pendingLabel), findsOneWidget);
+    // The host's summary of the call, whole.
     expect(find.text('Send an email to rishita@example.com: Dentist on Friday'), findsOneWidget);
-    expect(find.text('assistant'), findsOneWidget);
-    for (final key in ['to', 'subject', 'body']) {
-      expect(find.text(key), findsOneWidget);
+    expect(find.text('Asked by assistant'), findsOneWidget);
+    for (final name in ['To', 'Subject', 'Body']) {
+      expect(find.text(name), findsOneWidget);
     }
-    expect(find.text('rishita@example.com'), findsOneWidget);
     expect(find.text('Dentist on Friday'), findsOneWidget);
-    // The whole multi-line body, character for character, in one unclipped text.
-    final full = find.byWidgetPredicate((w) => w is SelectableText && w.data == longBody);
-    expect(full, findsOneWidget);
-    final body = tester.widget<SelectableText>(full);
+    // The address is mono; the whole multi-line body, character for character, in one unclipped text.
+    final to = tester.widget<Text>(find.text('rishita@example.com'));
+    expect(to.style?.fontFamily, MyDataType.mono.fontFamily);
+    final body = tester.widget<Text>(find.text(longBody));
     expect(body.maxLines, isNull);
-    expect(body.style?.fontFamily, contains(LegacyFonts.mono));
+    expect(body.overflow, isNot(TextOverflow.ellipsis));
+    expect(find.text('Approve and send'), findsOneWidget);
+    expect(find.text(ApprovalCard.editLabel), findsNothing);
+  });
+
+  testWidgets('another tool: "Run <tool>?", its summary, "Approve and run", names in sentence case, values whole',
+      (tester) async {
+    await show(tester, _otherTool());
+    // The question names the tool (create_event) in plain words.
+    expect(find.text('Run create event?'), findsOneWidget);
+    expect(find.text('Create an event: Dentist on 2026-03-20T09:30'), findsOneWidget);
+    expect(find.text('Approve and run'), findsOneWidget);
+    expect(find.text('Title'), findsOneWidget);
+    expect(find.text('Start time'), findsOneWidget);
+    expect(find.text('2026-03-20T09:30'), findsOneWidget);
+    // A list is shown whole, as JSON.
+    expect(find.textContaining('"a@example.com"'), findsOneWidget);
+    expect(find.textContaining('"b@example.com"'), findsOneWidget);
   });
 
   testWidgets('Approve and Reject call their callbacks', (tester) async {
     var approved = 0, rejected = 0;
     await show(tester, approval(), onApprove: () => approved++, onReject: () => rejected++);
-    await tester.tap(find.text('Approve'));
+    await tester.tap(find.text('Approve and send'));
     await tester.tap(find.text('Reject'));
     expect((approved, rejected), (1, 1));
   });
 
-  testWidgets('buttons are disabled while deciding', (tester) async {
+  testWidgets('buttons are disabled while deciding, with a loader and the reason', (tester) async {
     var taps = 0;
     await show(tester, approval(), deciding: true, onApprove: () => taps++, onReject: () => taps++);
-    expect(button(tester, 'Approve').onPressed, isNull);
+    expect(button(tester, 'Approve and send').onPressed, isNull);
     expect(button(tester, 'Reject').onPressed, isNull);
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
-    await tester.tap(find.text('Approve'));
+    expect(find.byType(KiwiLoader), findsOneWidget);
+    expect(find.text(AssistantApprovalCard.sendingText), findsOneWidget);
+    await tester.tap(find.text('Approve and send'), warnIfMissed: false);
     expect(taps, 0);
   });
 
   testWidgets('a failed decision is shown and the call can be decided again', (tester) async {
     await show(tester, approval(), error: 'already decided');
     expect(find.textContaining('already decided'), findsOneWidget);
-    expect(button(tester, 'Approve').onPressed, isNotNull);
+    expect(button(tester, 'Approve and send').onPressed, isNotNull);
   });
 
-  testWidgets('approved: outcome, who decided, the result, and no buttons', (tester) async {
+  testWidgets('approved: "Sent", who decided, the result, the arguments, and no buttons', (tester) async {
     await show(
       tester,
       approval(
@@ -93,22 +123,31 @@ void main() {
         result: {'status': 'sent', 'to': 'rishita@example.com'},
       ),
     );
-    expect(find.text('Approved and sent'), findsOneWidget);
+    expect(tester.widget<ApprovalCard>(find.byType(ApprovalCard)).state, ApprovalState.approved);
+    expect(find.text('Sent'), findsOneWidget);
     expect(find.text('Decided by app:myassistant'), findsOneWidget);
     expect(find.textContaining('"status": "sent"'), findsOneWidget);
-    expect(find.text('Approve'), findsNothing);
+    expect(find.text('Approve and send'), findsNothing);
     expect(find.text('Reject'), findsNothing);
     expect(find.text(longBody), findsOneWidget);
   });
 
+  testWidgets('another tool approved: "Done"', (tester) async {
+    await show(tester, ApprovalOut.fromJson({...approvalJson(status: 'approved'), 'tool': 'create_event'})!);
+    expect(find.text('Done'), findsOneWidget);
+  });
+
   testWidgets('rejected and failed outcomes', (tester) async {
     await show(tester, approval(status: 'rejected', decidedBy: 'app:mydata'));
-    expect(find.text('Rejected. Nothing was done.'), findsOneWidget);
+    expect(tester.widget<ApprovalCard>(find.byType(ApprovalCard)).state, ApprovalState.rejected);
+    expect(find.text(ApprovalCard.rejectedLabel), findsOneWidget);
     expect(find.text('Decided by app:mydata'), findsOneWidget);
-    expect(find.text('Approve'), findsNothing);
+    expect(find.text('Approve and send'), findsNothing);
 
     await show(tester, approval(status: 'failed', decidedBy: 'app:myassistant', error: 'SMTP refused'));
-    expect(find.text('Failed: SMTP refused'), findsOneWidget);
-    expect(find.text('Approve'), findsNothing);
+    expect(tester.widget<ApprovalCard>(find.byType(ApprovalCard)).state, ApprovalState.failed);
+    expect(find.text(ApprovalCard.failedLabel), findsOneWidget);
+    expect(find.textContaining('SMTP refused'), findsOneWidget);
+    expect(find.text('Approve and send'), findsNothing);
   });
 }

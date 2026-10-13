@@ -17,17 +17,6 @@ const roots = [
 /// The one file allowed to contain literals.
 const generated = '../mydata_ui/lib/src/generated/tokens.g.dart';
 
-/// Files from before the design system, being restyled. Must end empty.
-const legacy = <String>{
-  '../mydata_ui/lib/src/legacy_colors.dart',
-  '../mydata_ui/lib/src/legacy_theme.dart',
-  '../mydata_ui/lib/src/legacy_widgets.dart',
-  '../../apps/mydata/lib/src/agent_tokens.dart',
-  '../mydata_assistant/lib/src/approval_card.dart',
-  '../mydata_assistant/lib/src/chat_view.dart',
-  '../mydata_assistant/lib/src/result_view.dart',
-};
-
 final rules = <String, RegExp>{
   'literal colour': RegExp(r'\bColor\(\s*0x|\bColor\.from(?:ARGB|RGBO)\(|\bColors\.(?!transparent\b)\w+|\bCupertinoColors\.'),
   'literal radius': RegExp(r'\b(?:Radius\.(?:circular|elliptical)|BorderRadius\.circular)\(\s*[\d.]'),
@@ -76,18 +65,12 @@ void main() {
     final found = <String>[];
     var scanned = 0;
     for (final f in sources()) {
-      if (f.path == generated || legacy.contains(f.path)) continue;
+      if (f.path == generated) continue;
       scanned++;
       found.addAll(violations(f));
     }
     expect(scanned, greaterThan(20), reason: 'the scan found too few files; are the roots right?');
     expect(found, isEmpty, reason: 'Use the tokens (context.colors, MyDataRadius, MyDataType) instead:\n${found.join('\n')}');
-  });
-
-  test('legacy files still exist (remove them from the list as they are restyled)', () {
-    for (final p in legacy) {
-      expect(File(p).existsSync(), isTrue, reason: '$p no longer exists: remove it from `legacy`');
-    }
   });
 
   test('the rules catch what they should', () {

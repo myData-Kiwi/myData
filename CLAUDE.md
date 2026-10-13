@@ -10,7 +10,9 @@ Early build. Done:
 - the marketing site;
 - two rounds of feasibility testing (see "Feasibility test result" and "Round 2 result");
 - **the host** (phase 1): `mydatad` with the tool layer and permission gate, HTTP API, MCP, app and agent tokens;
-- **the first two apps** (phase 2): myData (setup, status, settings) and myAssistant (chat), in Flutter, macOS first.
+- **the first two apps** (phase 2): myData (setup, status, settings) and myAssistant (chat), in Flutter, macOS first;
+- **answer latency** (Part A): results on screen in about 3.5 s instead of 13;
+- **the design system** (Part B): `design/` in Flutter (`mydata_ui`), six themes in light and dark, the theme stored on the host and followed by every app.
 
 The tools still serve fake demo data, and the host's today is pinned to its date (18 March 2026). **Next:** myContacts and myCalendar with real data (CardDAV, CalDAV), replacing the fake tools; see "Build order". Chained requests are an open problem, not a blocker: the planner write-up in `host/results/2026-10-11-b-REPORT.md` is the starting point. Answer latency is in "Answer latency" below.
 
@@ -39,7 +41,7 @@ Technical names: repo `mydata-kiwi/mydata`, command `mydata`, background service
 - GitHub org: `mydata-kiwi`.
 - Website repo: `mydata-kiwi/mydata-kiwi.github.io`. One `index.html`, deployed by GitHub Pages from `main`. Custom domain mydata.kiwi is verified and served over HTTPS from GitHub Pages.
 - Logo: hand-drawn outlined kiwi bird with a green wash. Colours: background `#E3EFBF`, wash `#A9CC4E`, ink `#2A2018`.
-- Website palette: `--bg #FCFDF7`, `--surface #FFFFFF`, `--band #E3EFBF`, `--fg #2A2018`, `--muted #655646`, `--line #D6E0BD`, `--kiwi #A9CC4E`, `--kiwi-deep #4C7814`, `--skin #6B4F35`, `--cream #FBF7EC`. Fonts: Bricolage Grotesque, Figtree, JetBrains Mono. Light theme only.
+- **Design system: `design/` is the source of truth** for how the apps look: `tokens.json` (the Kiwi theme's values), `themes.json` (six themes: Kiwi, Graphite, Dusk, Plum, Rose, Amber), the README, `theming.md`, `motion.md`, `platforms.md` and a spec with an HTML preview per component. Light and dark mode. The Flutter implementation is `app/packages/mydata_ui` (tokens generated from the JSON; see its README for the decisions taken where `design/` disagreed with itself). The website keeps its own styling and is not changed by `design/`.
 - A fuller plan document exists ("myData: architecture, technical plan, and viability check"). This file supersedes it where they differ.
 
 ## Architecture
@@ -93,6 +95,8 @@ No language model looks at photos. Search uses CLIP embeddings for descriptions,
 
 **Flutter**, one codebase for macOS, Windows, Linux, web, iOS and Android; macOS first. The Dart API client is generated from `host/openapi.json` (OpenAPI Generator) and never hand-written. Flutter has no official Liquid Glass components. The web build compiles but only explains that it needs the desktop app, until remote access exists.
 
+**Look:** everything comes from `design/` through `mydata_ui`. Tokens are generated from `design/tokens.json` and `themes.json` (`dart run tool/generate_tokens.dart` in `mydata_ui`; a test fails when they are stale). No app or widget may contain a literal colour, radius or font name; a test scans the source. The **theme** is stored on the host (`PUT /appearance`, reported in `/status`) and applies to every app; the **mode** (light, dark, match system) is per device. Both apps follow a change within one status poll, without a restart. Reduced motion and reduced transparency follow the system. Widget goldens and app screenshots are made in Kiwi and Graphite, light and dark.
+
 ### Repo layout
 
 ```
@@ -102,7 +106,8 @@ host/                 Python: mydatad, mydata command, tool layer, API, MCP, orc
 app/                  Dart workspace
   packages/mydata_client     generated API client
   packages/mydata_core       host lifecycle (find, start, wait, watch), app tokens, error states
-  packages/mydata_ui         design system: palette, fonts, logo, shared widgets
+  packages/mydata_ui         design system: tokens generated from design/, MyDataTheme, fonts, logo, widgets
+  packages/mydata_testing    test helpers: bundled fonts in tests, golden and screenshot matrices
   packages/mydata_assistant  chat, streamed replies, progress lines, approval card
   apps/mydata                the myData app
   apps/myassistant           the myAssistant app
@@ -232,12 +237,14 @@ Full report: `host/results/2026-10-12-a-REPORT.md`. Measured on battery, with BT
 
 1. ~~Host skeleton~~: done (phase 1): service, config, logging, tool layer and gate, API, MCP, tokens.
 2. ~~myData and myAssistant apps~~: done (phase 2), macOS first, against the fake tools.
-3. **Next:** myContacts and myCalendar (CardDAV, CalDAV), replacing the fake contact and calendar tools with real data. Smallest data; proves sync. Each is a new app in `app/apps`; switch off the demo date once real data is in.
-4. myMail (IMAP sync, FTS5 search), replacing the fake mail tools.
-5. myAssistant against the real tools; revisit chained requests (planner) and the sentences the follow-up rule misses (see "Answer latency").
-6. myPhotos (import, CLIP index, faces). The largest piece; expect 6 to 8 weekends.
-7. Phone clients and remote access (the host is localhost-only until then).
-8. Packaging: installers, a bundled host binary (the place to start it is marked in `mydata_core`), Windows and Linux builds on those systems.
+3. ~~Answer latency~~: done (Part A, 2026-10-12): results shown by code, the model kept warm. Open items are listed under "Answer latency".
+4. ~~Design system~~: done (Part B): `design/` implemented in `mydata_ui`, the theme stored on the host, both apps restyled.
+5. **Next:** myContacts and myCalendar (CardDAV, CalDAV), replacing the fake contact and calendar tools with real data. Smallest data; proves sync. Each is a new app in `app/apps`; switch off the demo date once real data is in.
+6. myMail (IMAP sync, FTS5 search), replacing the fake mail tools.
+7. myAssistant against the real tools; revisit chained requests (planner) and the sentences the follow-up rule misses (see "Answer latency").
+8. myPhotos (import, CLIP index, faces). The largest piece; expect 6 to 8 weekends.
+9. Phone clients and remote access (the host is localhost-only until then).
+10. Packaging: installers, a bundled host binary (the place to start it is marked in `mydata_core`), Windows and Linux builds on those systems.
 
 ## Open questions
 
@@ -251,5 +258,12 @@ Full report: `host/results/2026-10-12-a-REPORT.md`. Measured on battery, with BT
 
 - The website's header animation (kiwi walks in, pecks the "M" to lower case, jumps) and the pull-to-refresh kiwi-slice loader were never visually verified end to end. Expect to tune timing and positions.
 - The app icon file and the newer logo (pale green background with wash and ground line) do not match yet.
-- The myData and myAssistant apps still use Flutter's default app icons; the kiwi is only in their headers and the menu-bar icon.
+- The myData and myAssistant apps still use Flutter's default app icons; `design/assets/Logos/mydata-kiwi-app-icon.svg` exists but is not applied. Inside the apps the kiwi appears only on empty and loading screens and in the menu-bar icon, as `design/` says.
+- Design-system gaps found while restyling:
+  - `mydata_ui` has no GroupedList section that holds arbitrary content (a picker, a form) and no row trailing slot for buttons. `apps/mydata/lib/src/parts.dart` stands in and is marked temporary.
+  - The loading "kiwi slice" has not been drawn. `KiwiLoader` (the kiwi mark on a turning badge) is a placeholder.
+  - The icon set has not been drawn. The apps use Material outline icons.
+  - `theming.md` says each theme's dark accent has the same hue as its light one; by calculation Kiwi and Amber shift 8–10°. Values unchanged, flagged in `mydata_ui/README.md`.
+- myAssistant's "Open myData" (assistant off) can only bring myData forward. It cannot open it at Settings, because there is no way to send a running myData a command.
+- The phone layouts (floating tab bar, large title) are built and covered by goldens, but have not been run on a phone.
 - Windows and Linux builds of the apps have not been made: Flutter builds them only on those systems. Their code paths compile (`flutter analyze`).

@@ -4,10 +4,17 @@ import 'package:flutter/material.dart';
 import 'package:mydata_client/api.dart';
 import 'package:mydata_ui/mydata_ui.dart';
 
-/// A held call, shown exactly as the host stored it: the tool, its summary, every argument with its
-/// full value, and who asked. Nothing is shortened or hidden, because this is what runs if approved.
+/// A held call, shown with the design system's [ApprovalCard] exactly as the host stored it: a question
+/// naming the action, every argument with its full value (nothing shortened or hidden, because this is
+/// what runs if approved), and the decision once it is made.
 ///
-/// Pending: Approve and Reject (disabled while [deciding]). Decided: the outcome and who decided.
+/// Under the card, in `caption`: the host's own one-line summary of the call ([ApprovalOut.summary]), then
+/// who asked; while a decision is being sent, a small loader and
+/// "Sending your decision"; a decision that could not be sent, in `danger`; after the decision, who
+/// decided and what running it returned. The card has no slot for these, so they sit beneath it.
+///
+/// Pending: "Approve and send" (or "Approve and run") and Reject, both disabled while [deciding]. There is
+/// no Edit: the host has no way to change a held call.
 class AssistantApprovalCard extends StatelessWidget {
   const AssistantApprovalCard({
     super.key,
@@ -28,149 +35,107 @@ class AssistantApprovalCard extends StatelessWidget {
   /// Why the last decision could not be sent.
   final String? error;
 
+  static const sendingText = 'Sending your decision';
+
+  bool get _isMail => approval.tool == 'send_mail';
+
+  /// "Send this email?" for send_mail; otherwise "Run" and the tool's name in plain words ("Run delete
+  /// mail?").
+  static String questionFor(String tool) =>
+      tool == 'send_mail' ? 'Send this email?' : 'Run ${tool.replaceAll('_', ' ').trim()}?';
+
+  /// An argument name in sentence case: "to" is "To", "start_time" is "Start time".
+  static String nameFor(String key) {
+    final words = key.replaceAll('_', ' ').trim();
+    if (words.isEmpty) return key;
+    return '${words[0].toUpperCase()}${words.substring(1)}';
+  }
+
+  ApprovalState get _state => switch (approval.status) {
+    ApprovalOutStatusEnum.approved => ApprovalState.approved,
+    ApprovalOutStatusEnum.rejected => ApprovalState.rejected,
+    ApprovalOutStatusEnum.failed => ApprovalState.failed,
+    _ => ApprovalState.pending,
+  };
+
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
-    final pending = approval.status == ApprovalOutStatusEnum.pending;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.front_hand_outlined, size: 20, color: LegacyColors.skin),
-                const SizedBox(width: 8),
-                Expanded(child: Text('This needs your approval', style: t.titleMedium)),
-                _StatusBadge(approval.status),
-              ],
-            ),
-            const SizedBox(height: 10),
-            SelectableText(approval.summary, style: t.bodyLarge),
-            const SizedBox(height: 14),
-            _Field(label: 'Tool', value: approval.tool),
-            for (final MapEntry(:key, :value) in approval.args.entries) _Field(label: key, value: _show(value)),
-            _Field(label: 'Asked by', value: approval.caller),
-            const SizedBox(height: 6),
-            if (pending)
-              _Actions(deciding: deciding, error: error, onApprove: onApprove, onReject: onReject)
-            else
-              _Outcome(approval),
-          ],
+    final c = context.colors;
+    final caption = MyDataType.caption.copyWith(color: c.inkMuted);
+    final state = _state;
+    final pending = state == ApprovalState.pending;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ApprovalCard(
+          question: questionFor(approval.tool),
+          arguments: [for (final MapEntry(:key, :value) in approval.args.entries) (nameFor(key), _show(value))],
+          approveLabel: _isMail ? 'Approve and send' : 'Approve and run',
+          decidedLabel: _isMail ? 'Sent' : 'Done',
+          state: state,
+          onApprove: deciding ? null : onApprove,
+          onReject: deciding ? null : onReject,
+          error: state == ApprovalState.failed
+              ? 'Running it failed: ${_clause(approval.error ?? 'the host gave no reason')}. Ask again to try once more.'
+              : null,
         ),
-      ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(MyDataSpace.s5, MyDataSpace.s2, MyDataSpace.s5, 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (approval.summary.trim().isNotEmpty) Text(approval.summary, style: caption),
+              Text('Asked by ${approval.caller}', style: caption),
+              if (pending && deciding)
+                Padding(
+                  padding: const EdgeInsets.only(top: MyDataSpace.s1),
+                  child: Row(
+                    children: [
+                      const KiwiLoader(size: MyDataSize.icon, semanticLabel: sendingText),
+                      const SizedBox(width: MyDataSpace.s2),
+                      Flexible(
+                        child: ExcludeSemantics(child: Text(sendingText, style: caption)),
+                      ),
+                    ],
+                  ),
+                ),
+              if (pending && error != null)
+                Text(
+                  'Your decision was not recorded: ${_clause(error!)}. Try again.',
+                  style: MyDataType.caption.copyWith(color: c.danger),
+                ),
+              if (approval.decidedBy != null) Text('Decided by ${approval.decidedBy}', style: caption),
+              if (approval.result != null)
+                Text.rich(
+                  TextSpan(
+                    style: caption,
+                    children: [
+                      const TextSpan(text: 'Result: '),
+                      TextSpan(
+                        text: _show(approval.result),
+                        style: MyDataType.mono.copyWith(color: c.inkMuted),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
     );
   }
+}
+
+/// [text] without a closing full stop, to go inside a longer sentence.
+String _clause(String text) {
+  final t = text.trim();
+  return t.endsWith('.') ? t.substring(0, t.length - 1) : t;
 }
 
 /// Strings as they are; anything else as indented JSON, so nested values are shown whole.
 String _show(Object? value) {
   if (value is String) return value;
   return const JsonEncoder.withIndent('  ').convert(value);
-}
-
-class _Field extends StatelessWidget {
-  const _Field({required this.label, required this.value});
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 10),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: legacyMonoStyle(size: 12, color: LegacyColors.muted)),
-        const SizedBox(height: 4),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(color: LegacyColors.cream, borderRadius: BorderRadius.circular(8)),
-          child: SelectableText(value, style: legacyMonoStyle()),
-        ),
-      ],
-    ),
-  );
-}
-
-class _Actions extends StatelessWidget {
-  const _Actions({required this.deciding, required this.error, required this.onApprove, required this.onReject});
-  final bool deciding;
-  final String? error;
-  final VoidCallback onApprove;
-  final VoidCallback onReject;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (error != null) ...[
-          Text('Your decision was not recorded: $error', style: t.bodyMedium?.copyWith(color: LegacyColors.danger)),
-          const SizedBox(height: 10),
-        ],
-        Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            FilledButton(onPressed: deciding ? null : onApprove, child: const Text('Approve')),
-            OutlinedButton(onPressed: deciding ? null : onReject, child: const Text('Reject')),
-            if (deciding) ...[
-              const SizedBox.square(dimension: 18, child: CircularProgressIndicator(strokeWidth: 2)),
-              Text('Sending your decision', style: t.bodyMedium?.copyWith(color: LegacyColors.muted)),
-            ],
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class _Outcome extends StatelessWidget {
-  const _Outcome(this.approval);
-  final ApprovalOut approval;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
-    final (text, color) = switch (approval.status) {
-      ApprovalOutStatusEnum.approved => (
-        approval.tool == 'send_mail' ? 'Approved and sent' : 'Approved and done',
-        LegacyColors.kiwiDeep,
-      ),
-      ApprovalOutStatusEnum.rejected => ('Rejected. Nothing was done.', LegacyColors.fg),
-      ApprovalOutStatusEnum.failed => ('Failed: ${approval.error ?? 'no reason given'}', LegacyColors.danger),
-      _ => ('Waiting for a decision', LegacyColors.muted),
-    };
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SelectableText(text, style: t.titleSmall?.copyWith(color: color)),
-        if (approval.decidedBy != null) ...[
-          const SizedBox(height: 4),
-          Text('Decided by ${approval.decidedBy}', style: t.bodySmall),
-        ],
-        if (approval.result != null) ...[
-          const SizedBox(height: 10),
-          _Field(label: 'Result', value: _show(approval.result)),
-        ],
-      ],
-    );
-  }
-}
-
-class _StatusBadge extends StatelessWidget {
-  const _StatusBadge(this.status);
-  final ApprovalOutStatusEnum status;
-
-  @override
-  Widget build(BuildContext context) => switch (status) {
-    ApprovalOutStatusEnum.approved => const StatusPill(label: 'approved', tone: PillTone.good),
-    ApprovalOutStatusEnum.rejected => const StatusPill(label: 'rejected'),
-    ApprovalOutStatusEnum.failed => const StatusPill(label: 'failed', tone: PillTone.bad),
-    _ => const StatusPill(label: 'waiting', tone: PillTone.warn),
-  };
 }

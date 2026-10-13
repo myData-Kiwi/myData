@@ -58,13 +58,77 @@ void main() {
     expect(chat.items.whereType<AssistantReply>().single.text, 'No, you have training at 6:30.');
   });
 
+  Future<void> showCard(WidgetTester tester, String kind, String header, List<Map<String, Object?>> items) =>
+      tester.pumpWidget(MaterialApp(
+          theme: MyDataTheme.data('kiwi', Brightness.light),
+          home: Scaffold(body: SingleChildScrollView(child: ResultCard(kind: kind, header: header, items: items)))));
+
   testWidgets('the result card shows the header and every item', (tester) async {
-    await tester.pumpWidget(MaterialApp(
-        theme: legacyTheme(),
-        home: Scaffold(body: ResultCard(kind: _events.kind, header: _events.header, items: _events.items))));
+    await showCard(tester, _events.kind, _events.header, _events.items);
     expect(find.text('2 events on Thursday 19 March'), findsOneWidget);
     expect(find.text('Personal training'), findsOneWidget);
     expect(find.text('Call with mum'), findsOneWidget);
-    expect(find.text('Gym'), findsOneWidget);
+    expect(find.textContaining('Gym'), findsOneWidget);
+    expect(find.textContaining('06:30–07:30'), findsOneWidget);
+    expect(find.textContaining('20:00–20:30'), findsOneWidget);
+  });
+
+  testWidgets('the header is body-strong on the ground; the items are a grouped list with calendar tiles',
+      (tester) async {
+    await showCard(tester, _events.kind, _events.header, _events.items);
+    final header = tester.widget<Text>(find.text('2 events on Thursday 19 March'));
+    expect(header.style?.fontWeight, MyDataType.bodyStrong.fontWeight);
+    expect(header.style?.fontSize, MyDataType.bodyStrong.fontSize);
+    expect(find.ancestor(of: find.text('2 events on Thursday 19 March'), matching: find.byType(GroupedList)),
+        findsNothing);
+    expect(find.byType(GroupedList), findsOneWidget);
+    final tiles = tester.widgetList<IconTile>(find.byType(IconTile)).toList();
+    expect(tiles, hasLength(2));
+    expect(tiles.every((t) => t.icon == Icons.event_outlined && t.tone == MyDataTone.accent), isTrue);
+  });
+
+  testWidgets('mail: sender, subject, snippet and day', (tester) async {
+    await showCard(tester, 'mail', '1 email from Priya', [
+      {'from': 'Priya Nair', 'subject': 'Slides 4 to 9', 'day': '17 March', 'snippet': 'Here are the slides.'},
+    ]);
+    for (final t in ['Priya Nair', 'Slides 4 to 9', '17 March', 'Here are the slides.']) {
+      expect(find.text(t), findsOneWidget);
+    }
+  });
+
+  testWidgets('contacts: the name, and the address and phone in mono', (tester) async {
+    await showCard(tester, 'contacts', 'Priya Nair', [
+      {'name': 'Priya Nair', 'email': 'priya@example.com', 'phone': '+64 21 555 0101'},
+    ]);
+    expect(find.text('Priya Nair'), findsNWidgets(2)); // the header and the row
+    for (final t in ['priya@example.com', '+64 21 555 0101']) {
+      expect(tester.widget<Text>(find.text(t)).style?.fontFamily, MyDataType.mono.fontFamily);
+    }
+  });
+
+  testWidgets('photos: place, day and people', (tester) async {
+    await showCard(tester, 'photos', '1 photo from Goa', [
+      {'place': 'Goa', 'day': '24 December 2025', 'people': ['Asha', 'Ravi']},
+    ]);
+    expect(find.text('Goa'), findsOneWidget);
+    expect(find.text('24 December 2025 · Asha, Ravi'), findsOneWidget);
+  });
+
+  testWidgets('a created event is one row carrying the header; an empty result is the header alone', (tester) async {
+    await showCard(tester, 'event_created', 'Added Dentist on Friday 20 March at 09:30', [
+      {'title': 'Dentist'},
+    ]);
+    expect(find.text('Added Dentist on Friday 20 March at 09:30'), findsOneWidget);
+    expect(find.byType(GroupedList), findsOneWidget);
+    expect(find.text('Dentist'), findsNothing);
+
+    await showCard(tester, 'events', 'No events on Friday 20 March', const []);
+    expect(find.text('No events on Friday 20 March'), findsOneWidget);
+    expect(find.byType(GroupedList), findsNothing);
+  });
+
+  test('every kind of result uses one of at most three tile tones', () {
+    final tones = {for (final k in ['events', 'event_created', 'mail', 'contacts', 'photos', 'other']) ResultCard.toneFor(k)};
+    expect(tones.length, lessThanOrEqualTo(GroupedList.maxTileTones));
   });
 }
