@@ -1,8 +1,8 @@
 """Demo mode and real mode.
 
-- demo (no linked account): exactly the behaviour before accounts existed: the six fake tools over
+- demo (no source on: no linked account, and This Mac off or absent): exactly the behaviour before accounts existed: the six fake tools over
   canned data, the date pinned by [dev] pin_today, the original system prompt.
-- real (at least one linked account): the real date and the machine's time zone; only find_contact and
+- real (any source on: a linked account, or This Mac turned on): the real date and the machine's time zone; only find_contact and
   list_events, over the mirrored contacts and calendars (tools/mirror.py); a system prompt that says
   what the assistant cannot do yet.
 
@@ -74,12 +74,15 @@ class ModeController:
         return self._mode
 
     def wanted(self) -> Mode:
-        return "real" if self.sync.accounts.list() else "demo"
+        any_on = getattr(self.sync, "any_source_on", None)
+        on = any_on() if any_on is not None else bool(self.sync.accounts.list())
+        return "real" if on else "demo"
 
     def spec(self, mode: Mode) -> ModeSpec:
         if mode == "demo":
             return self._demo
-        tools = mirror_tools(self.sync.contacts, self.sync.calendar, tz=self._real_tz)
+        tools = mirror_tools(self.sync.contacts, self.sync.calendar, tz=self._real_tz,
+                             coverage=getattr(self.sync, "coverage", None))
         return ModeSpec("real", tuple(tools), self._real_today, REAL_SYSTEM_PROMPT)
 
     def refresh(self) -> Mode:

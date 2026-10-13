@@ -1,6 +1,7 @@
 """Real personal data stays out of the repository.
 
-- Test data (tests/fixtures, tests/fake_dav) holds only reserved example addresses and fictional phone numbers.
+- Test data (tests/fixtures, tests/fake_dav, tests/fake_mac) holds only reserved example addresses and fictional
+  phone numbers.
 - The host's data files (the mirror, accounts.json, logs) are ignored by git wherever they land in the checkout.
 - The host refuses a folder or log folder inside the checkout; access log lines leave out query strings.
 - The feasibility harness, whose results/ are committed, refuses to run on anything but demo data.
@@ -24,7 +25,12 @@ from mydata.tools import TOOLS, Registry, default_registry
 from mydata.tools.mirror import mirror_registry
 
 TESTS = Path(__file__).parent
-SCANNED = [TESTS / "fixtures", TESTS / "fake_dav"]
+SCANNED = [TESTS / "fixtures", TESTS / "fake_dav", TESTS / "fake_mac"]
+# The myData app's fake host and fixtures (This Mac, iCloud accounts) and its screenshots' data, when the app
+# is in this checkout.
+APP_TESTS = TESTS.parent.parent / "app" / "apps" / "mydata" / "test"
+if APP_TESTS.is_dir():
+    SCANNED.append(APP_TESTS)
 
 # ---------------------------------------------------------------- invented data only
 
@@ -85,6 +91,7 @@ def test_test_data_holds_no_real_looking_address_or_phone():
     problems = []
     files = list(_scanned_files())
     assert len(files) > 20  # the fixtures are really being read
+    assert {TESTS / "fake_mac" / "data.py", TESTS / "fake_mac" / "__init__.py"} <= set(files)
     for path in files:
         try:
             text = path.read_text(encoding="utf-8")

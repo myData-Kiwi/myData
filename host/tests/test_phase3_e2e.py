@@ -82,7 +82,11 @@ def test_link_sync_read_ask_and_remove(host):
         calendars = get("/calendars").json()
         assert sorted(x["name"] for x in calendars) == ["Holidays (example)", "Home", "Work"]
         work = next(x["id"] for x in calendars if x["name"] == "Work")
-        events = get("/events?start=2026-03-02&end=2026-03-31").json()
+        body = get("/events?start=2026-03-02&end=2026-03-31").json()
+        assert body["coverage"] == [{"source": "icloud", "account_id": account_id, "covered_start": None,
+                                     "covered_end": None, "complete": True, "reason": None}]
+        events = body["events"]
+        assert {e["source"] for e in events} == {"icloud"}
         assert [(e["title"], e["start"][:16]) for e in events] == [
             ("Team standup", "2026-03-02T09:30"),
             ("Team standup", "2026-03-09T09:30"),  # 16 March is an EXDATE
@@ -96,7 +100,7 @@ def test_link_sync_read_ask_and_remove(host):
         assert lake["all_day"] is True and lake["end"] == "2026-03-30"  # exclusive end
         moved = next(e for e in events if e["title"] == "Team standup (moved)")
         assert moved["recurrence_id"].startswith("2026-03-23T09:30") and moved["time_zone"] == "Pacific/Auckland"
-        only_work = get(f"/events?start=2026-03-02&end=2026-03-31&calendar={work}").json()
+        only_work = get(f"/events?start=2026-03-02&end=2026-03-31&calendar={work}").json()["events"]
         assert {e["calendar_id"] for e in only_work} == {work} and len(only_work) == 4
 
         # ---- the assistant, in real mode: an ambiguous name makes the code ask
@@ -129,8 +133,10 @@ def test_link_sync_read_ask_and_remove(host):
         r = c.delete(f"/accounts/{account_id}", headers=host.auth)
         assert r.status_code == 200 and r.json()["id"] == account_id
         assert get("/accounts").json() == [] and get("/contacts").json() == [] and get("/calendars").json() == []
-        assert get("/events?start=2026-03-01&end=2026-03-31").json() == []
+        assert get("/events?start=2026-03-01&end=2026-03-31").json() == {"events": [], "coverage": []}
         assert get("/sync").json() == {"mode": "demo", "accounts": []}
+        assert [s["kind"] for s in get("/sources").json()["sources"]] == (["mac"] if host.sources.mac_available
+                                                                          else [])
         status = get("/status").json()
         assert status["mode"] == "demo" and status["demo_date"] is True and status["today"] == "2026-03-18"
         assert [t["name"] for t in get("/tools").json()] == list(TOOLS)

@@ -25,6 +25,7 @@ ALLOWED = {
     "cli.py": {"urllib.request"},  # the host's own API on 127.0.0.1
     "feasibility/latency.py": {"urllib.request"},  # Ollama on localhost (measurement harness)
     "feasibility/timing.py": {"urllib.request"},  # Ollama on localhost (measurement harness)
+    "sources/mac/socket.py": {"socket"},  # the reader helper's Unix socket in the host folder (AF_UNIX only)
 }
 
 

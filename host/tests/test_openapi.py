@@ -21,13 +21,16 @@ def test_openapi_declares_bearer_auth_and_localhost_server():
                                  "/approvals/{approval_id}", "/tools", "/agents", "/agents/{agent_id}",
                                  "/assistant/settings", "/shutdown", "/appearance", "/accounts",
                                  "/accounts/{account_id}", "/accounts/{account_id}/sync", "/sync", "/contacts",
-                                 "/contacts/{contact_id}", "/calendars", "/events"}
+                                 "/contacts/{contact_id}", "/contacts/{contact_id}/photo", "/calendars", "/events",
+                                 "/sources", "/sources/mac", "/sources/mac/request-access", "/sources/mac/sync",
+                                 "/sources/mac/reader"}
 
 
 def test_source_routes_are_tagged_and_the_password_is_write_only():
     doc = openapi_document()
     for path in ("/accounts", "/accounts/{account_id}", "/accounts/{account_id}/sync", "/sync", "/contacts",
-                 "/contacts/{contact_id}", "/calendars", "/events"):
+                 "/contacts/{contact_id}", "/contacts/{contact_id}/photo", "/calendars", "/events", "/sources",
+                 "/sources/mac", "/sources/mac/request-access", "/sources/mac/sync", "/sources/mac/reader"):
         for op in doc["paths"][path].values():
             assert op["tags"] == ["sources"], path
     password = doc["components"]["schemas"]["AccountIn"]["properties"]["password"]

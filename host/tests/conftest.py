@@ -23,6 +23,18 @@ def _dav_read_only_audit():
 
 
 @pytest.fixture(autouse=True)
+def _never_start_the_real_reader(monkeypatch):
+    """No test may start the real myDataReader (it could show a permission prompt or read real data): the
+    launcher's /usr/bin/open is replaced by a refusal. Tests use the fake helper in tests/fake_mac."""
+    import mydata.sources.mac.launcher as launcher
+
+    def refuse(cmd, **_kw):
+        raise AssertionError(f"a test tried to start the real reader: {cmd[:2]}")
+
+    monkeypatch.setattr(launcher, "_open_run", refuse)
+
+
+@pytest.fixture(autouse=True)
 def _plain_engine(request, monkeypatch):
     if request.module.__name__.rsplit(".", 1)[-1] in SCORER_AGREEMENT_MODULES and hasattr(request.module, "Engine"):
         monkeypatch.setattr(request.module, "Engine", functools.partial(Engine, route=False, ground=False))

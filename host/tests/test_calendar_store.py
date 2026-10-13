@@ -223,8 +223,9 @@ def test_windows_zone_name_and_custom_vtimezone(store):
 def test_results_sorted_and_shaped(store):
     events = between(store, d(2026, 3, 19), d(2026, 3, 27))
     keys = {"event_id", "calendar_id", "uid", "recurrence_id", "title", "location", "notes", "start", "end",
-            "all_day", "time_zone"}
+            "all_day", "time_zone", "source"}
     assert all(set(e) == keys for e in events)
+    assert {e["source"] for e in events} == {"icloud"}
     starts = [datetime.fromisoformat(e["start"]).replace(tzinfo=None) if e["all_day"]
               else datetime.fromisoformat(e["start"]).astimezone(LONDON).replace(tzinfo=None) for e in events]
     assert starts == sorted(starts)

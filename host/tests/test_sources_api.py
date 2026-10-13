@@ -16,7 +16,9 @@ from service_helpers import Host, make_app
 
 SOURCE_ROUTES = [("GET", "/accounts"), ("POST", "/accounts"), ("DELETE", "/accounts/x"), ("POST", "/accounts/x/sync"),
                  ("GET", "/sync"), ("GET", "/contacts"), ("GET", "/contacts/x"), ("GET", "/calendars"),
-                 ("GET", "/events?start=2026-03-01&end=2026-03-02")]
+                 ("GET", "/events?start=2026-03-01&end=2026-03-02"), ("GET", "/contacts/x/photo"), ("GET", "/sources"),
+                 ("PUT", "/sources/mac"), ("POST", "/sources/mac/request-access"), ("POST", "/sources/mac/sync"),
+                 ("PUT", "/sources/mac/reader")]
 BODY = {"provider": "icloud", "email": fake_dav.USERNAME, "password": fake_dav.PASSWORD}
 
 
@@ -46,7 +48,9 @@ def test_a_rejected_password_is_a_plain_400_and_nothing_is_stored(host):
     with client(host) as c:
         r = c.post("/accounts", headers=host.auth, json={**BODY, "password": "wrong-invented-pw-zz"})
         assert r.status_code == 400
-        assert r.json() == {"detail": "iCloud did not accept this email and app-specific password."}
+        assert r.json() == {"detail": "Apple did not accept this sign-in. Use the email of your Apple Account, which "
+                                      "may differ from an address on your own domain, and an app-specific password "
+                                      "made at account.apple.com."}
         assert c.get("/accounts", headers=host.auth).json() == []
         assert c.get("/status", headers=host.auth).json()["mode"] == "demo"
     assert host.secrets.keys() == [] and not (host.home / "accounts.json").exists()
@@ -100,7 +104,8 @@ def test_not_found_and_bad_ranges(host):
         # An empty mirror answers with empty lists, in either mode.
         assert c.get("/contacts", headers=host.auth).json() == []
         assert c.get("/calendars", headers=host.auth).json() == []
-        assert c.get("/events?start=2026-03-01&end=2026-03-31", headers=host.auth).json() == []
+        assert c.get("/events?start=2026-03-01&end=2026-03-31", headers=host.auth).json() == {"events": [],
+                                                                                              "coverage": []}
         assert c.get("/sync", headers=host.auth).json() == {"mode": "demo", "accounts": []}
 
 

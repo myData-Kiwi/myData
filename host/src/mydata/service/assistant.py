@@ -222,7 +222,7 @@ def _result_size(result) -> dict | None:
     if not isinstance(result, dict):
         return None
     out: dict = {k: len(v) for k, v in result.items() if isinstance(v, list)}
-    for key in ("from", "to", "count", "truncated", "status"):
+    for key in ("from", "to", "count", "truncated", "status", "outside_window"):
         if key in result and not isinstance(result[key], (list, dict)):
             out[key] = result[key]
     return out

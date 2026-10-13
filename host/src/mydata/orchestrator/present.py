@@ -48,6 +48,48 @@ def _fmt_date(iso: str) -> str:
     return _day(date.fromisoformat(iso))
 
 
+def _short(iso: str) -> str:
+    d = date.fromisoformat(iso)
+    return f"{d.day} {d:%b %Y}"
+
+
+_SOURCE_NAMES = {"icloud": "iCloud"}
+
+
+def _events_header(args: dict, when: Resolved | None, result: dict) -> str:
+    """The header for list_events. When the asked days are not all held (This Mac keeps a window), it
+    never says "No events" for days it does not hold: it says which days the limited source holds, and
+    counts the events of the days held, or of the sources that hold every asked day ("in your iCloud
+    calendars"), never the rest."""
+    events = result.get("events", [])
+    about = f"matching “{args['query']}”" if args.get("query") else ""
+    if not result.get("outside_window"):
+        return _join(_count(len(events), "event", "events"), about, _span(when) if when else "coming up")
+    asked = when or Resolved(date.fromisoformat(result["from"]), date.fromisoformat(result["to"]))
+    covered = result.get("covered")
+    if not covered:
+        limit = ("myData cannot read the calendars on this Mac: access to them is not allowed"
+                 if result.get("reason") == "no_access" else "The calendars on this Mac have not been read yet")
+        first = last = None
+    else:
+        limit = f"Events on this Mac are kept from {_short(covered['start'])} to {_short(covered['end'])}"
+        first = max(asked.start, date.fromisoformat(covered["start"]))
+        last = min(asked.end, date.fromisoformat(covered["end"]))
+    others = result.get("complete_sources") or []
+    if others:
+        names = " and ".join(_SOURCE_NAMES.get(o, o) for o in others)
+        if first is not None and first <= last:  # partly held: every day for the others, some for this Mac
+            counted = _join(_count(len(events), "event", "events"), about, _span(asked))
+            return f"{counted}. {limit}; on other days only your {names} calendars are shown."
+        counted = _join(_count(len(events), "event", "events"), f"in your {names} calendars", about, _span(asked))
+        return f"{counted}. {limit}."
+    if not covered:
+        return f"{limit}."
+    if first > last:
+        return f"{limit}; {'that date is' if asked.start == asked.end else 'those dates are'} outside it."
+    return f"{_join(_count(len(events), 'event', 'events'), about, _span(Resolved(first, last)))}. {limit}."
+
+
 def present(tool: str, args: dict, resolved: dict[str, Resolved], result: Any) -> dict | None:
     """{"kind", "header", "items"} for a read or reversible tool's result; None if there is nothing to show."""
     if not isinstance(result, dict):
@@ -55,9 +97,7 @@ def present(tool: str, args: dict, resolved: dict[str, Resolved], result: Any) -
     when = resolved.get("date")
     if tool == "list_events":
         events = result.get("events", [])
-        span = _span(when) if when else "coming up"
-        about = f"matching “{args['query']}”" if args.get("query") else ""
-        header = _join(_count(len(events), "event", "events"), about, span)
+        header = _events_header(args, when, result)
         items = [{"title": e["title"], "date": e["date"], "day": _fmt_date(e["date"]), "start": e.get("start"),
                   "end": e.get("end"), "location": e.get("location") or None} for e in events]
         return {"kind": "events", "header": header, "items": items}

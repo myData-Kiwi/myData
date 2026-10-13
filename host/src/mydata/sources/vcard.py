@@ -311,3 +311,47 @@ def phone_search_forms(value: str) -> list[str]:
     forms = [digits]
     forms.extend(digits[i:] for i in range(1, len(digits) - 6))
     return forms
+
+
+# ---------------------------------------------------------------- photos
+
+# A photo larger than this is not served (the app shows initials instead).
+MAX_PHOTO_BYTES = 2 * 1024 * 1024
+
+
+def image_type(data: bytes) -> str | None:
+    """image/jpeg or image/png from the first bytes; None for anything else."""
+    if data[:3] == b"\xff\xd8\xff":
+        return "image/jpeg"
+    if data[:8] == b"\x89PNG\r\n\x1a\n":
+        return "image/png"
+    return None
+
+
+def photo(text: str) -> tuple[bytes, str] | None:
+    """The card's embedded photo as (bytes, media type), JPEG or PNG only; None when there is none, it is
+    a link (never fetched), or it cannot be read. vCard 3.0 (PHOTO;ENCODING=b) and 4.0 (a data: URI)."""
+    import base64
+    import binascii
+
+    for name, params, value in _properties(text):
+        if name != "PHOTO":
+            continue
+        value = value.strip()
+        encoded = None
+        if value.lower().startswith("data:"):
+            meta, _, rest = value[5:].partition(",")
+            if ";base64" in meta.lower():
+                encoded = rest
+        elif re.search(r"(?i)(?:^|;)\s*ENCODING\s*=\s*\"?(?:b|base64)\"?\s*(?:;|$)", params):
+            encoded = value
+        if not encoded:
+            continue
+        try:
+            data = base64.b64decode(re.sub(r"\s+", "", encoded), validate=True)
+        except (binascii.Error, ValueError):
+            continue
+        kind = image_type(data)
+        if kind is not None and len(data) <= MAX_PHOTO_BYTES:
+            return data, kind
+    return None

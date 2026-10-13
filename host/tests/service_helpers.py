@@ -144,7 +144,8 @@ class Host:
     """A host assembled exactly as mydatad assembles it (daemon.build), with the fake DAV server's
     transport, an in-memory secret store, a scripted model and a fixed date for real mode."""
 
-    def __init__(self, tmp: Path, fake, scripts: list | None = None, real_today: date = TODAY):
+    def __init__(self, tmp: Path, fake, scripts: list | None = None, real_today: date = TODAY, *, mac=None,
+                 platform: str | None = None, mac_options: dict | None = None):
         from mydata.service.daemon import build
         from mydata.service.sync import SyncService
         from mydata.sources.accounts import Accounts
@@ -152,7 +153,13 @@ class Host:
 
         self.home = tmp
         self.secrets = MemorySecretStore()
-        self.sources = SyncService(tmp, Accounts(tmp, self.secrets), transport=fake.transport)
+        # mac: a tests/fake_mac FakeMac; its fake helper then speaks to this host over the real socket.
+        extra = {} if platform is None and mac is None else {
+            "platform": platform or "darwin", "mac_launcher": mac.launcher if mac is not None else None,
+            "mac_today": lambda: real_today,
+            "mac_options": {"tick": 0.02, "relaunch": (0.05, 0.1), "connect_timeout": 3.0, "access_timeout": 5.0,
+                            **(mac_options or {})}}
+        self.sources = SyncService(tmp, Accounts(tmp, self.secrets), transport=fake.transport, **extra)
         self.scripts = list(scripts or [])
         self.tools_seen: list[list[str]] = []
         self.models = ReadyModels()

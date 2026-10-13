@@ -20,8 +20,14 @@
   GET  /sync                   the mode (demo or real) and every account's sync status
   GET  /contacts               mirrored contacts, listed or searched
   GET  /contacts/{id}          one contact (the raw vCard only with ?raw=1)
+  GET  /contacts/{id}/photo    the contact's photo (JPEG or PNG), or 404
   GET  /calendars              mirrored calendars
-  GET  /events                 events between two dates, recurring ones expanded
+  GET  /events                 events between two dates, recurring ones expanded, and what each source holds
+  GET  /sources                every source: This Mac (on a Mac host only) and the linked iCloud accounts
+  PUT  /sources/mac            turn This Mac on or off; choose its accounts and calendars
+  POST /sources/mac/request-access   show the system's permission prompt (the user pressed Allow)
+  POST /sources/mac/sync       read the Mac's contacts and calendars again now
+  PUT  /sources/mac/reader     where the myData app's reader helper is (sent by the myData app)
   /mcp                         MCP (Streamable HTTP) over the same registry and gate
 
 App tokens can use every route. Agent tokens can use only /mcp (security.GuardMiddleware).
@@ -42,7 +48,7 @@ import psutil
 
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse, Response, StreamingResponse
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel, Field, SecretStr
 from starlette.routing import Route
@@ -103,9 +109,11 @@ class StatusOut(BaseModel):
     today: str = Field(description="the date the host treats as today")
     demo_date: bool = Field(description="true while today is pinned to the demo data's date")
     theme: str = Field(description="the theme every app uses; mode is per device and not stored here")
-    mode: Literal["demo", "real"] = Field(description="demo: no linked account, the tools serve fake data and "
-                                                      "the date is pinned; real: the tools serve the linked "
-                                                      "accounts' mirrored data, with the real date")
+    mode: Literal["demo", "real"] = Field(description="demo: no source on, the tools serve fake data and the "
+                                                      "date is pinned; real: a source is on (an account is "
+                                                      "linked, or This Mac is turned on) and the tools serve the "
+                                                      "mirrored data, with the real date")
+    mac_available: bool = Field(default=False, description="true on a Mac host: the This Mac source exists")
 
 
 class MessageIn(BaseModel):
@@ -181,7 +189,9 @@ class ToolOut(BaseModel):
 
 class AccountIn(BaseModel):
     provider: Literal["icloud"]
-    email: str = Field(min_length=3, max_length=254, description="the account's email address (Apple Account)")
+    email: str = Field(min_length=3, max_length=254,
+                       description="the email of the Apple Account (the sign-in email, which may differ from an "
+                                   "address on the user's own domain)")
     password: SecretStr = Field(min_length=1, max_length=256,
                                 description="an app-specific password. Verified with the provider, then kept only "
                                             "in the Keychain; never returned, logged or written to a file")
@@ -248,6 +258,10 @@ class ContactOut(BaseModel):
     birthday: str | None = None
     note: str = ""
     has_photo: bool = False
+    # Required, not defaulted: OpenAPI Generator's Dart output cannot compile a defaulted enum.
+    source: Literal["mac", "icloud"] = Field(description="where the contact comes from")
+    notes_included: bool = Field(default=True, description="false when the source never reads notes (This Mac): "
+                                                           "show no Notes field")
     created_at: str
     modified_at: str
     deleted_at: str | None = None
@@ -276,6 +290,99 @@ class EventOut(BaseModel):
     end: str = Field(description="as start; an all-day event's end is the day after its last day (exclusive)")
     all_day: bool
     time_zone: str | None = Field(default=None, description="the event's own zone; none for all-day events")
+    source: Literal["mac", "icloud"] = Field(description="where the event comes from")
+
+
+class CoverageOut(BaseModel):
+    source: Literal["mac", "icloud"]
+    account_id: str
+    covered_start: str | None = Field(default=None, description="first day the source holds; none: no limit")
+    covered_end: str | None = Field(default=None, description="last day the source holds (included); none: no "
+                                                              "limit")
+    complete: bool = Field(description="true when the source holds every day asked for")
+    reason: Literal["no_access", "not_read_yet"] | None = Field(
+        default=None, description="when the source holds no days at all: why")
+
+
+class EventsOut(BaseModel):
+    events: list[EventOut]
+    coverage: list[CoverageOut] = Field(description="per source holding calendars, which days it holds. When a "
+                                                    "source is not complete, events on days outside its range are "
+                                                    "not known: do not show those days as empty")
+
+
+class WindowOut(BaseModel):
+    start: str
+    end: str
+
+
+class MacContainerOut(BaseModel):
+    id: str
+    name: str
+    kind: str = Field(description="cardDAV, exchange, local or unassigned")
+    included: bool
+
+
+class MacCalendarOut(BaseModel):
+    id: str
+    name: str
+    source_name: str = ""
+    color: str | None = None
+    included: bool
+
+
+class SourceOut(BaseModel):
+    id: str = Field(description="\"mac\" for This Mac; the account id for an iCloud account")
+    kind: Literal["mac", "icloud"]
+    available: bool = True
+    enabled: bool
+    decided: bool | None = Field(default=None, description="This Mac: true once the user turned it on or off "
+                                                           "(the myData app's first-run step is then not shown)")
+    email: str | None = Field(default=None, description="iCloud: the account's email")
+    contacts_status: str | None = Field(default=None, description="This Mac: notDetermined, restricted, denied, "
+                                                                  "authorized, or unknown (not reported yet, or a "
+                                                                  "value this host does not know: not readable)")
+    calendars_status: str | None = Field(default=None, description="This Mac: notDetermined, restricted, denied, "
+                                                                   "fullAccess, writeOnly, or unknown (as "
+                                                                   "contacts_status)")
+    contact_containers: list[MacContainerOut] = []
+    calendars: list[MacCalendarOut] = []
+    all_contact_containers: bool | None = Field(
+        default=None, description="This Mac: true when no choice was made (every account, including ones added "
+                                  "later); send contact_containers null to keep it so")
+    all_calendars: bool | None = Field(default=None, description="This Mac: as all_contact_containers, for calendars")
+    notes_included: bool = Field(description="false for This Mac: contact notes are never read")
+    window: WindowOut | None = Field(default=None, description="This Mac: the days of events it holds")
+    reader_running: bool | None = Field(default=None, description="This Mac: the reader helper is connected")
+    state: Literal["idle", "syncing", "error"] | None = None
+    last_update: str | None = None
+    last_error: str | None = Field(default=None, description="a short message for the user; never a secret")
+    counts: SyncCounts | None = None
+
+
+class SourcesOut(BaseModel):
+    sources: list[SourceOut]
+
+
+class MacSourceIn(BaseModel):
+    """Send all three fields (the generated client does): a field left out keeps its value, but null means
+    everything. To keep a choice, send it back as GET /sources shows it: null when all_contact_containers
+    (all_calendars) is true, else the ids marked included."""
+    enabled: bool | None = Field(default=None, description="null keeps it; false deletes everything This Mac "
+                                                           "mirrored and stops its reader")
+    contact_containers: list[str] | None = Field(default=None, description="container ids to include; null = all, "
+                                                                           "including accounts added later")
+    calendars: list[str] | None = Field(default=None, description="calendar ids to include; null = all, including "
+                                                                  "calendars added later")
+
+
+class AccessIn(BaseModel):
+    what: Literal["contacts", "calendars"]
+
+
+class ReaderIn(BaseModel):
+    path: str = Field(min_length=1, max_length=4096,
+                      description="absolute path of myData.app/Contents/Helpers/myDataReader.app")
 
 
 MAX_EVENT_DAYS = 400
@@ -337,7 +444,8 @@ def create_app(auth: Authenticator, registry: Registry, models: ModelManager, as
                          agents_connected=sum(a["connected"] for a in auth.agents.list()),
                          today=assistant.today().isoformat(),
                          demo_date=registry.mode == "demo" and assistant.settings.pin_today is not None,
-                         theme=current_theme(), mode=current_mode())
+                         theme=current_theme(), mode=current_mode(),
+                         mac_available=sources is not None and sources.mac_available)
 
     @app.post("/model/retry", tags=["host"], response_model=StatusOut)
     def retry() -> StatusOut:
@@ -540,25 +648,131 @@ def _routes_sources(app: FastAPI, need: Callable[[], SyncService], current_mode:
     def calendars() -> list[CalendarOut]:
         return [CalendarOut(**c) for c in need().calendar.calendars()]
 
-    @app.get("/events", tags=["sources"], response_model=list[EventOut],
+    @app.get("/contacts/{contact_id}/photo", tags=["sources"], response_class=Response,
+             responses={200: {"content": {"image/jpeg": {"schema": {"type": "string", "format": "binary"}},
+                                          "image/png": {"schema": {"type": "string", "format": "binary"}}},
+                              "description": "the photo"},
+                        404: {"description": "no such contact, or it has no photo (show initials)"}, **unavailable})
+    def contact_photo(contact_id: str) -> Response:
+        """The contact's photo, as JPEG or PNG. 404 when there is none: the app shows initials."""
+        found = need().contacts.photo(contact_id)
+        if found is None:
+            raise HTTPException(404, "no photo")
+        data, media_type = found
+        return Response(content=data, media_type=media_type, headers={"Cache-Control": "private, max-age=60"})
+
+    @app.get("/events", tags=["sources"], response_model=EventsOut,
              responses={400: {"description": "end is before start, or the range is too long"}, **unavailable})
     def events(start: date = Query(description="first day, YYYY-MM-DD"),
                end: date = Query(description="last day, YYYY-MM-DD (included)"),
                calendar: list[str] | None = Query(default=None, description="calendar ids; repeat for several. "
                                                                              "Omit for every calendar")
-               ) -> list[EventOut]:
+               ) -> EventsOut:
         """Events overlapping the days from start to end (both included), in the host's time zone, with
-        recurring events expanded into occurrences."""
+        recurring events expanded into occurrences; and, per source, which of those days it holds. This
+        Mac holds a window (one year back, two ahead): days outside it are unknown, not empty."""
         from ..sources.ical import local_timezone
         if end < start:
             raise HTTPException(400, "end is before start")
         if (end - start).days >= MAX_EVENT_DAYS:
             raise HTTPException(400, f"ask for at most {MAX_EVENT_DAYS} days at a time")
+        service = need()
         tz = local_timezone()
-        rows = need().calendar.events_between(datetime.combine(start, dtime.min, tzinfo=tz),
-                                              datetime.combine(end + timedelta(days=1), dtime.min, tzinfo=tz),
-                                              calendar_ids=calendar, tz=tz)
-        return [EventOut(**r) for r in rows]
+        rows = service.calendar.events_between(datetime.combine(start, dtime.min, tzinfo=tz),
+                                               datetime.combine(end + timedelta(days=1), dtime.min, tzinfo=tz),
+                                               calendar_ids=calendar, tz=tz)
+        return EventsOut(events=[EventOut(**r) for r in rows],
+                         coverage=[CoverageOut(**c) for c in service.coverage(start, end)])
+
+    _routes_mac(app, need)
+
+
+def _routes_mac(app: FastAPI, need: Callable[[], SyncService]) -> None:
+    """GET /sources and This Mac's settings. On a host that is not a Mac, the "mac" source is absent and its
+    routes answer 404."""
+    from ..sources.mac.source import MacNotEnabled, MacUnavailable
+    not_mac = {404: {"description": "this host is not a Mac: there is no This Mac source"},
+               503: {"description": "accounts are not available in this host"}}
+
+    def mac():
+        source = need().mac
+        if source is None or not source.available:
+            raise HTTPException(404, "This host is not a Mac, so there is no This Mac source.")
+        return source
+
+    def icloud_rows(service: SyncService) -> list[SourceOut]:
+        status = {r["account_id"]: r for r in service.status()}
+        out = []
+        for a in service.accounts.list():
+            st = status.get(a.id, {})
+            out.append(SourceOut(id=a.id, kind="icloud", enabled=True, email=a.email, notes_included=True,
+                                 state=st.get("state"), last_update=st.get("last_success"),
+                                 last_error=st.get("last_error"), counts=SyncCounts(**(st.get("counts") or {}))))
+        return out
+
+    @app.get("/sources", tags=["sources"], response_model=SourcesOut,
+             responses={503: {"description": "accounts are not available in this host"}})
+    def sources() -> SourcesOut:
+        """Every source: This Mac first (only on a Mac host), then each linked iCloud account."""
+        service = need()
+        rows = []
+        if service.mac is not None and service.mac.available:
+            rows.append(SourceOut(**service.mac.public()))
+        return SourcesOut(sources=[*rows, *icloud_rows(service)])
+
+    @app.put("/sources/mac", tags=["sources"], response_model=SourceOut,
+             responses={**not_mac, 400: {"description": "the body is not valid"}})
+    def configure_mac(body: MacSourceIn) -> SourceOut:
+        """Turn This Mac on or off, and choose which contact accounts and calendars it includes (null: all).
+        Fields left out keep their value. Turning it off stops its reader and deletes everything it mirrored;
+        leaving out an account or calendar deletes what was mirrored from it. With no source on, the host
+        is back in demo mode."""
+        source = mac()
+        given = body.model_fields_set
+        kwargs: dict = {}
+        if "contact_containers" in given:
+            kwargs["contact_containers"] = body.contact_containers
+        if "calendars" in given:
+            kwargs["calendars"] = body.calendars
+        try:
+            return SourceOut(**source.configure(enabled=body.enabled, **kwargs))
+        except MacUnavailable:
+            raise HTTPException(404, "This host is not a Mac, so there is no This Mac source.") from None
+
+    @app.post("/sources/mac/request-access", tags=["sources"], response_model=SourceOut,
+              responses={**not_mac, 409: {"description": "This Mac is turned off"},
+                         504: {"description": "the reader did not start"}})
+    def request_mac_access(body: AccessIn) -> SourceOut:
+        """Show the system's permission prompt for contacts or calendars. Only call this when the user pressed
+        Allow. Waits for the answer (up to a few minutes) and returns the source with the new status."""
+        source = mac()
+        try:
+            return SourceOut(**source.request_access(body.what))
+        except MacNotEnabled:
+            raise HTTPException(409, "Turn on This Mac first.") from None
+        except TimeoutError as e:
+            raise HTTPException(504, str(e)) from None
+
+    @app.post("/sources/mac/sync", tags=["sources"], response_model=SourceOut, status_code=202,
+              responses={**not_mac, 409: {"description": "This Mac is turned off"}})
+    def sync_mac() -> SourceOut:
+        """Read the Mac's contacts and calendars again now, in the background."""
+        try:
+            return SourceOut(**mac().sync_now())
+        except MacNotEnabled:
+            raise HTTPException(409, "Turn on This Mac first.") from None
+
+    @app.put("/sources/mac/reader", tags=["sources"], response_model=SourceOut,
+             responses={**not_mac, 400: {"description": "the path is not the reader"}})
+    def set_mac_reader(body: ReaderIn) -> SourceOut:
+        """Where the myData app's reader helper is (myData.app/Contents/Helpers/myDataReader.app). The myData
+        app sends this at start; the host checks it is the reader before using it."""
+        source = mac()
+        try:
+            source.set_reader_path(body.path)
+        except ValueError as e:
+            raise HTTPException(400, str(e)) from None
+        return SourceOut(**source.public())
 
 
 def _status_rows(need: Callable[[], SyncService]) -> list[dict]:

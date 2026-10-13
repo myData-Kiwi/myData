@@ -21,22 +21,30 @@ next attempt is at the usual interval. A rejected password (HTTP 401) stops the 
 Removing an account deletes its mirrored data under the same lock every write to the mirror takes,
 and a sync re-checks that its account still exists before each write, so a sync running at the time
 cannot bring the data back.
+
+Each account's last status (last_success, last_error, last_attempt, counts) is kept in state.json under
+"sync", so it survives a restart. On a Mac host the service also owns the "This Mac" source
+(sources/mac), which writes into the same stores under the same data lock; its rows (account_id "mac")
+are never taken for a removed account's leftovers.
 """
 
 from __future__ import annotations
 
 import logging
+import sys
 import threading
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Callable
 
 from ..sources.accounts import Account, Accounts
 from ..sources.calendar_store import CalendarStore
 from ..sources.contacts_store import ContactsStore
+from ..sources.mac import MAC_ID
 from .logs import log
+from .state import HostState
 
 logger = logging.getLogger("mydata.sync")
 
@@ -56,6 +64,16 @@ MSG_KEYCHAIN = "The Keychain could not be read. The host will try again."
 
 def _iso(ts: float | None) -> str | None:
     return datetime.fromtimestamp(ts, timezone.utc).isoformat(timespec="seconds") if ts is not None else None
+
+
+def _ts(iso) -> float | None:
+    try:
+        return datetime.fromisoformat(iso).timestamp() if isinstance(iso, str) else None
+    except ValueError:
+        return None
+
+
+SYNC_STATE_KEY = "sync"
 
 
 def user_message(exc: BaseException) -> str:
@@ -116,9 +134,12 @@ class PartialSync(Exception):
 
 class SyncService:
     def __init__(self, home: Path, accounts: Accounts, *, transport=None, interval: float = INTERVAL,
-                 backoff: tuple[float, ...] = BACKOFF, poll: float = POLL, clock: Callable[[], float] = time.time):
+                 backoff: tuple[float, ...] = BACKOFF, poll: float = POLL, clock: Callable[[], float] = time.time,
+                 platform: str = sys.platform, mac_launcher=None, mac_today: Callable[[], date] | None = None,
+                 mac_options: dict | None = None):
         self.home = Path(home)
         self.accounts = accounts
+        self.state = HostState(self.home)
         self._transport = transport  # an httpx transport, for tests; None = the network
         self.interval, self.backoff, self.poll, self.clock = interval, backoff, poll, clock
         # Called (with no arguments) whenever the set of accounts changes: the host switches mode.
@@ -135,9 +156,38 @@ class SyncService:
         self._wake = threading.Event()
         self._stopping = threading.Event()
         self._thread: threading.Thread | None = None
+        # This Mac: only on a Mac host. Elsewhere it does not exist (not listed, not broken).
+        self.mac = None
+        if platform == "darwin":
+            from ..sources.mac.source import MacSource
+            self.mac = MacSource(self.home, contacts=lambda: self.contacts, calendar=lambda: self.calendar,
+                                 existing_stores=self._existing_stores, state=self.state, launcher=mac_launcher,
+                                 platform=platform, today=mac_today or date.today, data_lock=self._data_lock,
+                                 on_enabled_changed=self._accounts_changed, **(mac_options or {}))
 
     def __repr__(self) -> str:
         return f"SyncService(home={str(self.home)!r})"
+
+    # ---------------------------------------------------------------- sources
+
+    @property
+    def mac_available(self) -> bool:
+        return self.mac is not None and self.mac.available
+
+    def any_source_on(self) -> bool:
+        """Real mode: an account is linked, or This Mac is turned on."""
+        return bool(self.accounts.list()) or (self.mac is not None and self.mac.enabled)
+
+    def coverage(self, start: date, end: date) -> list[dict]:
+        """Per source holding calendars: does it hold every day from start to end? (CalendarStore.coverage,
+        plus This Mac when it is on but the store holds no window for it yet: before its first events
+        snapshot, even when its calendars are already listed, and while calendars may not be read.)"""
+        out = self.calendar.coverage(start, end) if (self._calendar is not None
+                                                     or (self.home / CALENDAR_FILE).exists()) else []
+        note = self.mac.coverage_note() if self.mac is not None else None
+        if note is not None and not any(c["account_id"] == MAC_ID for c in out):
+            out.append(note)
+        return out
 
     # ---------------------------------------------------------------- stores (opened on first use)
 
@@ -187,6 +237,7 @@ class SyncService:
         account = self.accounts.remove(account_id, on_remove=self.delete_data)
         with self._status_lock:
             self._status.pop(account_id, None)
+        self._forget_status(account_id)
         log(logger, logging.INFO, "account removed", account_id=account_id)
         self._accounts_changed()
         return account
@@ -215,7 +266,7 @@ class SyncService:
             current = {a.id for a in self.accounts.list()}
             for store in self._existing_stores():
                 for account_id in store.account_ids():
-                    if account_id not in current:
+                    if account_id not in current and account_id != MAC_ID:
                         store.delete_account(account_id)
                         log(logger, logging.INFO, "deleted data of a removed account", account_id=account_id)
 
@@ -231,8 +282,36 @@ class SyncService:
         with self._status_lock:
             entry = self._status.get(account_id)
             if entry is None:
-                entry = self._status[account_id] = AccountSync(account_id, due=self.clock())
+                entry = self._status[account_id] = self._restored(account_id)
             return entry
+
+    def _restored(self, account_id: str) -> AccountSync:
+        """A status as the last run of the host left it (state.json), due now."""
+        saved = self.state.section(SYNC_STATE_KEY).get(account_id)
+        entry = AccountSync(account_id, due=self.clock())
+        if isinstance(saved, dict):
+            entry.last_success, entry.last_attempt = _ts(saved.get("last_success")), _ts(saved.get("last_attempt"))
+            entry.last_error = saved.get("last_error") if isinstance(saved.get("last_error"), str) else None
+            counts = saved.get("counts")
+            entry.counts = {k: v for k, v in counts.items() if isinstance(v, int)} if isinstance(counts, dict) else {}
+            entry.state = "error" if entry.last_error else "idle"
+        return entry
+
+    def _persist(self, entry: AccountSync) -> None:
+        if self.accounts.get(entry.account_id) is None:
+            return
+        try:
+            self.state.update_section(SYNC_STATE_KEY, **{entry.account_id: {
+                "last_success": _iso(entry.last_success), "last_error": entry.last_error,
+                "last_attempt": _iso(entry.last_attempt), "counts": dict(entry.counts)}})
+        except OSError:
+            logger.exception("could not save the sync status")
+
+    def _forget_status(self, account_id: str) -> None:
+        saved = self.state.section(SYNC_STATE_KEY)
+        if account_id in saved:
+            saved.pop(account_id)
+            self.state.replace_section(SYNC_STATE_KEY, saved)
 
     def status(self) -> list[dict]:
         """Every account's sync status, in the accounts' order."""
@@ -256,6 +335,11 @@ class SyncService:
         return entry.public()
 
     def start(self) -> None:
+        if self.mac is not None:
+            try:
+                self.mac.start()
+            except Exception:  # noqa: BLE001 - This Mac failing must not stop the accounts syncing
+                logger.exception("This Mac source failed to start")
         if self._thread and self._thread.is_alive():
             return
         self._stopping.clear()
@@ -265,6 +349,8 @@ class SyncService:
     def stop(self, timeout: float = 10) -> None:
         self._stopping.set()
         self._wake.set()
+        if self.mac is not None:
+            self.mac.stop()
         if self._thread and self._thread.is_alive():
             self._thread.join(timeout=timeout)
 
@@ -330,6 +416,7 @@ class SyncService:
                     entry.state, entry.last_error, entry.last_success = "idle", None, self.clock()
                 else:  # what could be synced is; the error stays visible until a sync has no failure
                     entry.state, entry.last_error = "error", user_message(partial.first)
+            self._persist(entry)
             if partial is None:
                 log(logger, logging.INFO, "sync finished", account_id=account_id,
                     seconds=round(self.clock() - started, 2), **changes, **counts)
@@ -345,6 +432,7 @@ class SyncService:
             entry.failures += 1
             entry.state, entry.last_error = "error", user_message(e)
             entry.due = self.clock() + backoff_delay(entry.failures, self.backoff)
+        self._persist(entry)
         log(logger, logging.WARNING, "sync failed", account_id=entry.account_id, error=type(e).__name__,
             status=getattr(e, "status", None), failures=entry.failures,
             retry_in_seconds=round(entry.due - self.clock()))

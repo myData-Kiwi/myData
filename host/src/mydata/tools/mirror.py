@@ -9,6 +9,15 @@ not offered at all.
 What goes back to the model is kept small: names, emails and phones for contacts; title, day, times
 and place for events. Event notes are left out: they are free text from other people and can carry
 instructions (see "Untrusted input" in CLAUDE.md).
+
+The window rule: a source may hold only some days (This Mac keeps one year back and two years ahead).
+It is decided per source, never by "some source holds it all": whenever a source does not hold every asked
+day, list_events never answers "nothing found" for the days it does not hold. Its result says which days
+that source holds ({"outside_window": true, "covered": {"start", "end"}}, or "covered": null with a
+"reason" when the Mac's calendars are not read at all), and which sources hold every asked day
+("complete_sources", for example ["icloud"]). With no such source it looks only at the days held; with
+one, it looks at every asked day, and the header says the other source's events are only for its days.
+present.py writes the header from that.
 """
 
 from __future__ import annotations
@@ -40,6 +49,44 @@ class ContactSource(Protocol):
 class EventSource(Protocol):
     def events_between(self, start: datetime, end: datetime, calendar_ids: list[str] | None = None,
                        tz: tzinfo | None = None) -> list[dict]: ...
+
+
+# coverage(start, end) -> [{"source", "account_id", "covered_start", "covered_end", "complete", "reason"?}]
+Coverage = Callable[[date, date], list[dict]]
+
+
+@dataclasses.dataclass(frozen=True)
+class Held:
+    """What the sources hold of an asked range [start, end] (held_range)."""
+
+    limit: dict | None  # the first source that does not hold every asked day; None when they all do
+    days: tuple[date, date] | None  # the part of the range `limit` holds (None: no day of it); the whole range
+    # when limit is None
+    complete: tuple[str, ...]  # the sources ("icloud", ...) holding every asked day, when limit is not None
+
+
+def held_range(coverage: list[dict], start: date, end: date) -> Held:
+    """Which part of [start, end] the sources hold, decided per source: one source holding everything never
+    hides another's limit."""
+    limits = [c for c in coverage if not c.get("complete")]
+    if not limits:
+        return Held(None, (start, end), ())
+    limit = next((c for c in limits if c.get("covered_start") and c.get("covered_end")), limits[0])
+    complete = tuple(sorted({c["source"] for c in coverage if c.get("complete")} - {limit["source"]}))
+    if not limit.get("covered_start"):
+        return Held(limit, None, complete)
+    first = max(start, date.fromisoformat(limit["covered_start"]))
+    last = min(end, date.fromisoformat(limit["covered_end"]))
+    return Held(limit, (first, last) if first <= last else None, complete)
+
+
+def _on_days(item: dict, days: tuple[date, date] | None) -> bool:
+    """Whether an event item (event_item) falls on any of `days`."""
+    if days is None:
+        return False
+    first = date.fromisoformat(item["date"])
+    last = date.fromisoformat(item.get("end_date") or item["date"])
+    return first <= days[1] and last >= days[0]
 
 
 def _local_zone() -> tzinfo:
@@ -79,9 +126,10 @@ def event_item(occ: dict) -> dict:
 
 
 def mirror_tools(contacts: ContactSource, calendar: EventSource, *,
-                 tz: Callable[[], tzinfo] = _local_zone) -> list[Tool]:
+                 tz: Callable[[], tzinfo] = _local_zone, coverage: Coverage | None = None) -> list[Tool]:
     """find_contact and list_events backed by the mirror. tz gives the zone events are shown in (the
-    machine's own, read on every call so a changed system zone applies at once)."""
+    machine's own, read on every call so a changed system zone applies at once). coverage says which
+    days the sources hold (None: every source holds everything)."""
 
     def find_contact(args: dict, dates: dict[str, Resolved], today: date) -> ToolResult:
         matches = [contact_match(r) for r in contacts.find_by_name(args["name"])]
@@ -92,11 +140,31 @@ def mirror_tools(contacts: ContactSource, calendar: EventSource, *,
     def list_events(args: dict, dates: dict[str, Resolved], today: date) -> ToolResult:
         zone = tz()
         window = dates.get("date") or Resolved(today, today + timedelta(days=UPCOMING_DAYS))
-        start = datetime.combine(window.start, time.min, tzinfo=zone)
-        end = datetime.combine(window.end + timedelta(days=1), time.min, tzinfo=zone)
-        events = [event_item(o) for o in calendar.events_between(start, end, tz=zone)
-                  if _matches_query(f"{o['title']} {o['location'] or ''}", args.get("query"))]
+        held = held_range(coverage(window.start, window.end) if coverage else [], window.start, window.end)
+        limit = held.limit
+        # With a source that holds every asked day, look at all of them; else only at the days held.
+        span = (window.start, window.end) if limit is not None and held.complete else held.days
+        events: list[dict] = []
+        if span is not None:
+            start = datetime.combine(span[0], time.min, tzinfo=zone)
+            end = datetime.combine(span[1] + timedelta(days=1), time.min, tzinfo=zone)
+            for o in calendar.events_between(start, end, tz=zone):
+                if not _matches_query(f"{o['title']} {o['location'] or ''}", args.get("query")):
+                    continue
+                item = event_item(o)
+                # The limited source's events count only on the days it holds.
+                if limit is not None and o.get("source") == limit["source"] and not _on_days(item, held.days):
+                    continue
+                events.append(item)
         full = {"from": window.start.isoformat(), "to": window.end.isoformat(), "events": events}
+        if limit is not None:
+            full["outside_window"] = True
+            full["covered"] = ({"start": limit["covered_start"], "end": limit["covered_end"]}
+                               if limit.get("covered_start") else None)
+            if full["covered"] is None:
+                full["reason"] = limit.get("reason") or "not_read_yet"
+            if held.complete:
+                full["complete_sources"] = list(held.complete)
         if len(events) <= MODEL_EVENT_LIMIT:
             return ToolResult(full)
         cut = {**full, "events": events[:MODEL_EVENT_LIMIT], "count": len(events), "truncated": True}
@@ -107,6 +175,7 @@ def mirror_tools(contacts: ContactSource, calendar: EventSource, *,
 
 
 def mirror_registry(contacts: ContactSource, calendar: EventSource, *, today: Callable[[], date] | None = None,
-                    tz: Callable[[], tzinfo] = _local_zone) -> Registry:
+                    tz: Callable[[], tzinfo] = _local_zone, coverage: Coverage | None = None) -> Registry:
     """A registry in real mode on its own (the host swaps tools into its one registry instead)."""
-    return Registry(mirror_tools(contacts, calendar, tz=tz), today=today or local_today(tz), mode="real")
+    return Registry(mirror_tools(contacts, calendar, tz=tz, coverage=coverage), today=today or local_today(tz),
+                    mode="real")

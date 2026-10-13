@@ -4,6 +4,10 @@ Read-only copies of the user's address books. Each vCard is one row, keyed by (a
 URL, href); the raw card is kept beside the parsed fields. Duplicates are kept as they are. A card
 deleted upstream gets the soft-delete marker; removing an account hard-deletes its rows. Sync state
 (sync token, ctag, etags) is stored per address book in the same file.
+
+The "This Mac" source (account_id "mac") is stored the same way: one synthetic address book per
+Contacts container (url mac://contacts/<container id>) and a vCard generated from what the helper read
+(sources/mac/cards.py), which holds no note.
 """
 
 from __future__ import annotations
@@ -18,7 +22,9 @@ from ._db import Database, new_id, now
 from ._mirror import load_state, retire_collections, soft_delete_missing, upsert_collection
 from .dav.discovery import Collection
 from .dav.sync import CollectionState, SyncResult
+from .mac import MAC_ID
 from .vcard import parse_vcard, phone_search_forms
+from .vcard import photo as card_photo
 
 _SEARCH_COLUMNS = (
     "display_name", "full_name", "given_name", "family_name", "nickname", "organisation", "search_emails",
@@ -122,6 +128,9 @@ def _row(row: sqlite3.Row, *, raw: bool = False) -> dict:
     out["phones"] = json.loads(row["phones"])
     out["addresses"] = json.loads(row["addresses"])
     out["has_photo"] = bool(row["has_photo"])
+    # Where the card came from, and whether its notes were read (never on a Mac: see sources/mac).
+    out["source"] = "mac" if row["account_id"] == MAC_ID else "icloud"
+    out["notes_included"] = row["account_id"] != MAC_ID
     if raw:
         out["raw_vcard"] = row["raw_vcard"]
     return out
@@ -229,6 +238,39 @@ class ContactsStore:
             db.execute("DELETE FROM address_books WHERE account_id = ?", (account_id,))
             db.execute("INSERT INTO contacts_fts (contacts_fts) VALUES ('optimize')")
         self.db.checkpoint()
+
+    def address_book_ids(self, account_id: str) -> dict[str, str]:
+        """{address book URL: id} for the account's address books (not soft-deleted)."""
+        with self.db.connect() as db:
+            rows = db.execute("SELECT id, url FROM address_books WHERE account_id = ? AND deleted_at IS NULL",
+                              (account_id,)).fetchall()
+        return {r["url"]: r["id"] for r in rows}
+
+    def delete_collections(self, account_id: str, urls: Iterable[str]) -> int:
+        """Hard-delete these address books of the account and their cards, as delete_account does for a
+        whole account (the full-text index is rewritten too). Returns how many address books went."""
+        urls = list(urls)
+        if not urls:
+            return 0
+        marks = ", ".join("?" * len(urls))
+        with self.db.transaction() as db:
+            gone = db.execute(f"SELECT COUNT(*) FROM address_books WHERE account_id = ? AND url IN ({marks})",
+                              [account_id, *urls]).fetchone()[0]
+            db.execute(f"DELETE FROM contacts WHERE account_id = ? AND collection_url IN ({marks})",
+                       [account_id, *urls])
+            db.execute(f"DELETE FROM address_books WHERE account_id = ? AND url IN ({marks})", [account_id, *urls])
+            db.execute("INSERT INTO contacts_fts (contacts_fts) VALUES ('optimize')")
+        self.db.checkpoint()
+        return gone
+
+    def photo(self, contact_id: str) -> tuple[bytes, str] | None:
+        """The contact's photo (bytes, media type), JPEG or PNG; None when it has none or is unknown."""
+        with self.db.connect() as db:
+            row = db.execute("SELECT raw_vcard, has_photo FROM contacts WHERE id = ? AND deleted_at IS NULL",
+                             (contact_id,)).fetchone()
+        if row is None or not row["has_photo"]:
+            return None
+        return card_photo(row["raw_vcard"])
 
     def account_ids(self) -> list[str]:
         """Every account with rows in this file (to find data left by an account that no longer exists)."""

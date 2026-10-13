@@ -122,7 +122,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     app, models, sources = build(settings)
-    mode = "real" if sources.accounts.list() else "demo"
+    mode = "real" if sources.any_source_on() else "demo"
     log(logger, logging.INFO, "starting", version=__version__, host=settings.host, port=settings.port,
         home=str(settings.home), model=settings.model, mode=mode)
     if settings.pin_today and mode == "demo":
@@ -130,7 +130,7 @@ def main(argv: list[str] | None = None) -> int:
             "tools serve fake demo data. Set [dev] pin_today = false in config.toml to use the real date.",
             pin_today=settings.pin_today.isoformat())
     models.start()
-    sources.start()  # syncs every account now, then every 15 minutes
+    sources.start()  # syncs every account now, then every 15 minutes; starts This Mac's reader if it is on
     # uvicorn shuts down gracefully on SIGTERM/SIGINT, then re-raises the signal to the handler that was
     # installed before it. With the default handler that kills the process before the cleanup below runs,
     # so install a harmless one: shutdown still happens, and Ollama and the pid file are cleaned up.
