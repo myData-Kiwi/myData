@@ -1,0 +1,17 @@
+One or two plain sentences above a list or grid that say what it cannot show, such as the dates myData reads from a source.
+
+- A `surface-sunken` well with `radius-md` and `space-3` padding down, `space-4` across. It sits on `bg`, as wide as the content it is about and `space-4` above it.
+- At its start, an outline icon at `icon` size: `info` for a limit on what is shown, `warning` when the user must act. The sentences follow in `body` and `ink`, `space-3` from the icon.
+- At its end, an optional plain button for the one next step. It names where it leads ("Open myData", "Open System Settings"), and the sentence before it says what to do there. It is never a filled button: the screen's main action stays the main one.
+- **Sources, not accounts.** A notice is about a source: the way myData reads calendars. This Mac reads every calendar macOS has, whatever account it belongs to (iCloud, Google, Exchange, calendars stored only on the Mac, subscriptions, Birthdays), so a This Mac notice covers all of them, including the iCloud calendars seen through the Mac. An iCloud account source reads that one account directly. The source's name is written the same way here, in the calendar list (DataColour) and in ContactHeader: "this Mac", "the iCloud account you@example.com".
+- **The window limit in myCalendar:** myData reads events from this Mac only within a range of dates; the events outside it are still on the Mac. The notice is shown whenever the days on screen fall wholly or partly outside the range read from a source. The days on screen are the month grid's six weeks, or the day or week in the list. One sentence names the source and the range, in the locale's long date form: "myData reads events from this Mac between 13 October 2025 and 13 October 2028." When none of the days on screen are in the range, a second sentence follows: "This month is outside that range." ("This week", "This day" in the list.)
+- The wording is about reading, never keeping or storing: "reads", "not shown", never "kept" or "not kept". Events outside the range were not deleted, and the words must not suggest they were.
+- A source that is read in full, such as an iCloud account, never shows a notice, and never hides another source's limit. Each source that needs a notice gets its own, `space-2` apart.
+- **A source with no days read at all** says why and what to do:
+  - Not read yet: "myData has not read the events from this Mac yet. They appear here when it has." (`info`, no button)
+  - Not allowed yet, because the user has not been asked: "myData is not allowed to read this Mac's calendars. Allow it in myData, under Settings, Sources." (`warning`, with "Open myData")
+  - Refused in macOS: "myData is not allowed to read this Mac's calendars. Turn on myData in System Settings, under Privacy & Security, Calendars." (`warning`, with "Open System Settings", which opens that pane). macOS's own setting names are quoted exactly as macOS writes them, so the user can find them.
+- It cannot be dismissed. It goes away when every day on screen is read.
+- Screen readers hear it politely when it appears. The icon is decoration: the words carry the meaning, and the tone is never the only signal.
+- Not for errors (a host that cannot be reached is the app frame's warning line) and not for screens with nothing to list yet (EmptyState).
+- You provide the sentences, the tone and the optional action.

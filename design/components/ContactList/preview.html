@@ -1,0 +1,111 @@
+<!-- @dsCard group="Contacts" height=760 -->
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700&family=Figtree:wght@400;600&family=JetBrains+Mono&display=swap">
+<style>
+body{margin:0;padding:24px;background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:22px}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.btn{height:44px;padding:0 22px;border-radius:var(--radius-control);font:600 15px/1 var(--font-body);border:0;cursor:pointer}
+.primary{background:var(--accent);color:var(--on-accent)}
+.tonal{background:var(--accent-soft);color:var(--accent)}
+.plain{background:transparent;color:var(--accent)}
+.danger{background:var(--danger);color:var(--on-danger)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.card{background:var(--surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-1)}
+.tile{width:36px;height:36px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;flex:none}
+.tile svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.t-accent{background:var(--accent-soft);color:var(--accent)}.t-ok{background:var(--success-soft);color:var(--success)}
+.t-warn{background:var(--warning-soft);color:var(--warning)}.t-info{background:var(--info-soft);color:var(--info)}
+.chipst{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:var(--radius-pill);font:600 13px/1 var(--font-body);white-space:nowrap}
+.cap{font-size:13px;line-height:18px;color:var(--ink-muted)}
+.g{max-width:560px;overflow:hidden}
+.av{width:36px;height:36px;border-radius:var(--radius-pill);background:var(--kiwi-wash);color:var(--ink);display:flex;align-items:center;justify-content:center;flex:none;overflow:hidden;font:600 15px/22px var(--font-body)}
+.av.xl{width:96px;height:96px;font:700 30px/36px var(--font-display);letter-spacing:-0.02em}
+.av svg{width:20px;height:20px;fill:none;stroke:var(--ink-muted);stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.av.xl svg{width:40px;height:40px}
+.av svg.photo{width:100%;height:100%;stroke:none}
+.photo .p-bg{fill:var(--cream)}.photo .p-fg{fill:var(--skin)}
+
+.lbl{font:600 13px/18px var(--font-body);color:var(--ink-muted);margin:0 0 8px 8px}
+.sec{margin-bottom:24px}
+.two{display:flex;gap:32px;align-items:flex-start;max-width:880px}
+.list{flex:0 1 340px;min-width:0}
+.pane{flex:1;min-width:0;padding-top:8px}
+.g{max-width:none}
+.r{display:flex;gap:12px;align-items:center;width:100%;min-height:56px;box-sizing:border-box;padding:8px 16px;border:0;border-top:1px solid var(--line);background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.g>:first-child{border-top:0}
+.r .txt{flex:1;min-width:0}.t{font-weight:600;display:block}
+.r .cap{display:block}
+.r:hover{background:var(--surface-sunken)}
+.r.sel,.r.sel:hover{background:var(--accent-soft);box-shadow:inset 0 0 0 2px var(--ink)}
+.r:focus-visible{outline-offset:-2px}
+.srch{position:relative;margin-bottom:16px}
+.srch svg{position:absolute;left:16px;top:12px;width:20px;height:20px;fill:none;stroke:var(--ink-muted);stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.srch input{width:100%;height:44px;box-sizing:border-box;padding:0 16px 0 44px;border:0;border-radius:var(--radius-pill);background:var(--surface-sunken);color:var(--ink);font:400 15px var(--font-body)}
+.srch input::placeholder{color:var(--ink-muted)}
+.ch{display:flex;align-items:center;gap:20px}
+.ch .tx{min-width:0}
+.ch h2{margin:0;font:700 30px/36px var(--font-display);letter-spacing:-0.02em;overflow-wrap:anywhere}
+.ch .job{margin:0;color:var(--ink-muted)}
+.ch .cap{margin:4px 0 0}
+.none{color:var(--ink-muted);margin:8px}
+@media (max-width:600px){.two{flex-direction:column}.list{flex:none;width:100%}.pane{display:none}}
+</style></head><body>
+<div class="two">
+<div class="list">
+<div class="srch"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M20 20l-4.2-4.2"></path></svg><input type="search" placeholder="Search contacts" aria-label="Search contacts"></div>
+<section class="sec" aria-labelledby="h-a">
+<h3 class="lbl" id="h-a">A</h3>
+<div class="card g">
+<button class="r" type="button" tabindex="-1" data-job="" data-src="From this Mac. Change it in Contacts."><span class="av" aria-hidden="true">AE</span><span class="txt"><span class="t">Aaron Example</span><span class="cap">+44 7700 900123</span></span></button>
+<button class="r sel" type="button" aria-current="true" tabindex="0" data-job="Head of research, Example Labs" data-src="From the iCloud account you@example.com. Change it in your iCloud account."><span class="av" aria-hidden="true"><svg class="photo" viewBox="0 0 96 96" aria-hidden="true"><rect class="p-bg" width="96" height="96"></rect><circle class="p-fg" cx="48" cy="38" r="17"></circle><path class="p-fg" d="M14 96c3-20 17-31 34-31s31 11 34 31z"></path></svg></span><span class="txt"><span class="t">Ava Fictional</span><span class="cap">Example Labs</span></span></button>
+</div>
+</section>
+<section class="sec" aria-labelledby="h-e">
+<h3 class="lbl" id="h-e">E</h3>
+<div class="card g">
+<button class="r" type="button" tabindex="-1" data-job="" data-src="From this Mac. Change it in Contacts."><span class="av" aria-hidden="true">EL</span><span class="txt"><span class="t">Example Labs</span><span class="cap">info@example.com</span></span></button>
+<button class="r" type="button" tabindex="-1" data-job="" data-src="From this Mac. Change it in Contacts."><span class="av" aria-hidden="true">ES</span><span class="txt"><span class="t">Eli Sample</span></span></button>
+</div>
+</section>
+<section class="sec" aria-labelledby="h-n">
+<h3 class="lbl" id="h-n">#</h3>
+<div class="card g">
+<button class="r" type="button" tabindex="-1" data-job="" data-src="From this Mac. Change it in Contacts."><span class="av" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4.5 20c1.4-3.4 4.2-5 7.5-5s6.1 1.6 7.5 5"></path></svg></span><span class="txt"><span class="t">+44 7700 900456</span></span></button>
+</div>
+</section>
+</div>
+<section class="pane" id="pane" aria-label="Contact">
+<header class="ch"><span class="av xl" aria-hidden="true"><svg class="photo" viewBox="0 0 96 96" aria-hidden="true"><rect class="p-bg" width="96" height="96"></rect><circle class="p-fg" cx="48" cy="38" r="17"></circle><path class="p-fg" d="M14 96c3-20 17-31 34-31s31 11 34 31z"></path></svg></span><div class="tx"><h2>Ava Fictional</h2><p class="job">Head of research, Example Labs</p><p class="cap">From the iCloud account you@example.com. Change it in your iCloud account.</p></div></header>
+</section>
+</div>
+<section aria-label="No matches" style="max-width:340px;margin-top:16px">
+<div class="srch"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M20 20l-4.2-4.2"></path></svg><input type="search" value="Zed" aria-label="Search contacts"></div>
+<p class="none">No contacts match “Zed”.</p>
+</section>
+<script>
+// ContactList: one tab stop; Up/Down/Home/End move the selection and the contact pane follows.
+(function () {
+  var rows = Array.prototype.slice.call(document.querySelectorAll('.list .r'));
+  var pane = document.getElementById('pane');
+  function pick(r) {
+    rows.forEach(function (x) { x.classList.remove('sel'); x.removeAttribute('aria-current'); x.tabIndex = -1; });
+    r.classList.add('sel'); r.setAttribute('aria-current', 'true'); r.tabIndex = 0; r.focus();
+    var av = r.querySelector('.av').cloneNode(true); av.classList.add('xl');
+    pane.querySelector('.av').replaceWith(av);
+    pane.querySelector('h2').textContent = r.querySelector('.t').textContent;
+    var job = pane.querySelector('.job'); job.textContent = r.dataset.job; job.hidden = !r.dataset.job;
+    pane.querySelector('.cap').textContent = r.dataset.src;
+  }
+  rows.forEach(function (r, i) {
+    r.addEventListener('click', function () { pick(r); });
+    r.addEventListener('keydown', function (e) {
+      var j = { ArrowDown: i + 1, ArrowUp: i - 1, Home: 0, End: rows.length - 1 }[e.key];
+      if (j === undefined) return;
+      e.preventDefault(); pick(rows[Math.max(0, Math.min(rows.length - 1, j))]);
+    });
+  });
+})();
+</script>
+</body></html>

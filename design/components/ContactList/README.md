@@ -1,0 +1,21 @@
+The list of the user's contacts, under a search field, from which one contact is opened.
+
+- **Where it sits.** From 600px it is the list pane, beside the contact pane (ContactHeader, then FieldRows). Under 600px it fills the screen, and pressing a contact pushes that contact's page in.
+- At the top, a search field (TextField, search variant) named "Search contacts", `space-4` above the first group.
+- **Groups:** one GroupedList per letter, headed in the `label` style by the first letter of the name as shown. Contacts are sorted in the locale's order. Names that do not start with a letter go in a last group headed "#".
+- **A row** is a GroupedList row: a 36px Avatar in the icon tile's place, the name in `body-strong`, and a `caption` line in `ink-muted` with the organisation, or else the first email or phone that is not already the name. With nothing else to say, there is no caption line. From 600px nothing sits at the right end. Under 600px a chevron in `ink-muted` sits there, because pressing pushes a page.
+- **One target.** The whole row is the target. It holds no buttons, switches or links, so there are never two targets in one place.
+- **Hover:** the GroupedList hover fill, as in any grouped list. It is never mistaken for selection, because selection has a ring.
+- **Pressing** a row selects it and opens the contact: in the contact pane from 600px, or as a pushed page under 600px.
+- **Selected (from 600px):** a 2px `ink` ring inside the row over the `accent-soft` fill, as MonthGrid marks its selected day. The ring is the signal: the fill alone never is (in some themes `accent-soft` is close to the hover fill). The row is also marked as the current one for screen readers, and the selected contact's name is the title of the contact pane beside it. Under 600px no row stays selected, because the open contact fills the screen.
+- **On opening** from 600px, the contact last opened on this device is selected if it is still there, otherwise the first contact in the list, so the contact pane is never empty while there are contacts.
+- **Keyboard.** The list is one tab stop, after the search field.
+  - From 600px, Up and Down move the selection one row at a time, across the letter groups, and the contact pane follows at once. Under 600px they move focus, and Return or Space opens the focused contact.
+  - Home and End go to the first and last contact. Page Up and Page Down move by a screenful.
+  - Typing letters while the list has focus moves to the first name that starts with them.
+  - Down in the search field moves into the list at the first result. Tab from the list moves into the contact pane.
+  - The focus ring (2px `focus`) is drawn inside the selection ring, as in MonthGrid, so both show. The selected or focused row is scrolled into view.
+- **Search** filters as the user types, across names, organisations, email addresses and phone numbers, ignoring case and accents. The letter groups stay, holding only the matches, and a group with no matches is left out. The open contact stays open while the user searches, even when it no longer matches. With no matches, one line in `body` and `ink-muted` takes the list's place: "No contacts match “Ava”." Escape clears the search.
+- **Screen readers** hear each row as a button named by the name and the caption ("Ava Fictional, Example Labs"); the Avatar is decoration. The letters are headings. The selected row is marked current (`aria-current` in the preview, `selected` in Flutter's semantics).
+- With no contacts at all (no source on, or nothing read yet), the screen shows an EmptyState instead of the list.
+- You provide the contacts in order, each with its name, its letter, its caption and its photo if there is one, the selected contact and the search text.

@@ -1,0 +1,83 @@
+<!-- @dsCard group="Content" height=620 -->
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700&family=Figtree:wght@400;600&family=JetBrains+Mono&display=swap">
+<style>
+body{margin:0;padding:24px;background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:22px}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.btn{height:44px;padding:0 22px;border-radius:var(--radius-control);font:600 15px/1 var(--font-body);border:0;cursor:pointer}
+.primary{background:var(--accent);color:var(--on-accent)}
+.tonal{background:var(--accent-soft);color:var(--accent)}
+.plain{background:transparent;color:var(--accent)}
+.danger{background:var(--danger);color:var(--on-danger)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.card{background:var(--surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-1)}
+.tile{width:36px;height:36px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;flex:none}
+.tile svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.t-accent{background:var(--accent-soft);color:var(--accent)}.t-ok{background:var(--success-soft);color:var(--success)}
+.t-warn{background:var(--warning-soft);color:var(--warning)}.t-info{background:var(--info-soft);color:var(--info)}
+.chipst{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:var(--radius-pill);font:600 13px/1 var(--font-body);white-space:nowrap}
+.cap{font-size:13px;line-height:18px;color:var(--ink-muted)}
+.g{max-width:560px;overflow:hidden}
+.lbl{font:600 13px/18px var(--font-body);color:var(--ink-muted);margin:0 0 8px 8px}
+.r{display:flex;gap:12px;align-items:center;min-height:56px;box-sizing:border-box;padding:8px 16px;border-top:1px solid var(--line)}
+.g>:first-child{border-top:0}
+.r .txt{flex:1;min-width:0}.t{font-weight:600;display:block}
+.sec{margin-bottom:24px}
+
+.g{max-width:560px}
+.k{display:block;font-size:13px;line-height:18px;color:var(--ink-muted)}
+.v{display:block;white-space:pre-line;overflow-wrap:anywhere}
+.v a{color:var(--accent);text-decoration:underline}
+.ib{width:44px;height:44px;border:0;border-radius:var(--radius-pill);background:transparent;color:var(--ink-muted);display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none}
+.ib:hover{background:var(--surface-sunken)}
+.ib svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.cols{display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start}.cols>div{flex:1 1 340px;max-width:560px}
+</style></head><body>
+<div class="cols"><div>
+<section class="sec" aria-labelledby="f-ph">
+<p class="lbl" id="f-ph">Phone</p>
+<div class="card g">
+<div class="r"><span class="txt"><span class="k">Mobile</span><span class="v">+44 7700 900123</span></span><button class="ib" type="button" aria-label="Copy mobile number" title="Copy mobile number"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8.5" y="8.5" width="11.5" height="11.5" rx="2.5"></rect><path d="M15.5 8.5V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7.5a2 2 0 0 0 2 2h2.5"></path></svg></button></div>
+<div class="r"><span class="txt"><span class="k">Work</span><span class="v">+1 555 0142</span></span><button class="ib" type="button" aria-label="Copy work number" title="Copied" aria-live="polite"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></button></div>
+</div>
+</section>
+<section class="sec" aria-labelledby="f-em">
+<p class="lbl" id="f-em">Email</p>
+<div class="card g">
+<div class="r"><span class="txt"><span class="k">Home</span><span class="v">ava.fictional@example.com</span></span><button class="ib" type="button" aria-label="Copy home email" title="Copy home email"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8.5" y="8.5" width="11.5" height="11.5" rx="2.5"></rect><path d="M15.5 8.5V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7.5a2 2 0 0 0 2 2h2.5"></path></svg></button></div>
+<div class="r"><span class="txt"><span class="k">Work</span><span class="v">ava@example.com</span></span><button class="ib" type="button" aria-label="Copy work email" title="Copy work email"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8.5" y="8.5" width="11.5" height="11.5" rx="2.5"></rect><path d="M15.5 8.5V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7.5a2 2 0 0 0 2 2h2.5"></path></svg></button></div>
+</div>
+</section>
+<section class="sec" aria-labelledby="f-ad">
+<p class="lbl" id="f-ad">Address</p>
+<div class="card g">
+<div class="r"><span class="txt"><span class="k">Home</span><span class="v">12 Sample Street
+Exampleton ZZ1 2AB
+United Kingdom</span></span><button class="ib" type="button" aria-label="Copy home address" title="Copy home address"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8.5" y="8.5" width="11.5" height="11.5" rx="2.5"></rect><path d="M15.5 8.5V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7.5a2 2 0 0 0 2 2h2.5"></path></svg></button></div>
+</div>
+</section>
+</div><div>
+<section class="sec" aria-labelledby="f-bd">
+<p class="lbl" id="f-bd">Birthday</p>
+<div class="card g">
+<div class="r"><span class="txt"><span class="v">12 May</span></span><button class="ib" type="button" aria-label="Copy birthday" title="Copy birthday"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8.5" y="8.5" width="11.5" height="11.5" rx="2.5"></rect><path d="M15.5 8.5V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7.5a2 2 0 0 0 2 2h2.5"></path></svg></button></div>
+</div>
+</section>
+<section class="sec" aria-labelledby="f-ln">
+<p class="lbl" id="f-ln">Links</p>
+<div class="card g">
+<div class="r"><span class="txt"><span class="k">Website</span><span class="v"><a href="https://example.com/ava" onclick="return false">example.com/ava</a></span></span><button class="ib" type="button" aria-label="Copy website" title="Copy website"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8.5" y="8.5" width="11.5" height="11.5" rx="2.5"></rect><path d="M15.5 8.5V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7.5a2 2 0 0 0 2 2h2.5"></path></svg></button></div>
+<div class="r"><span class="txt"><span class="k">Other</span><span class="v">x-example-app://open?id=ava</span></span><button class="ib" type="button" aria-label="Copy other link" title="Copy other link"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8.5" y="8.5" width="11.5" height="11.5" rx="2.5"></rect><path d="M15.5 8.5V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7.5a2 2 0 0 0 2 2h2.5"></path></svg></button></div>
+</div>
+</section>
+<section class="sec" aria-labelledby="f-nt">
+<p class="lbl" id="f-nt">Notes</p>
+<div class="card g">
+<div class="r"><span class="txt"><span class="v">Met at the example meetup.
+Prefers calls in the morning.</span></span><button class="ib" type="button" aria-label="Copy notes" title="Copy notes"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8.5" y="8.5" width="11.5" height="11.5" rx="2.5"></rect><path d="M15.5 8.5V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7.5a2 2 0 0 0 2 2h2.5"></path></svg></button></div>
+</div>
+</section>
+</div></div>
+</body></html>

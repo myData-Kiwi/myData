@@ -1,0 +1,46 @@
+<!-- @dsCard group="Contacts" height=380 -->
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700&family=Figtree:wght@400;600&family=JetBrains+Mono&display=swap">
+<style>
+body{margin:0;padding:24px;background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:22px}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.btn{height:44px;padding:0 22px;border-radius:var(--radius-control);font:600 15px/1 var(--font-body);border:0;cursor:pointer}
+.primary{background:var(--accent);color:var(--on-accent)}
+.tonal{background:var(--accent-soft);color:var(--accent)}
+.plain{background:transparent;color:var(--accent)}
+.danger{background:var(--danger);color:var(--on-danger)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.card{background:var(--surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-1)}
+.tile{width:36px;height:36px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;flex:none}
+.tile svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.t-accent{background:var(--accent-soft);color:var(--accent)}.t-ok{background:var(--success-soft);color:var(--success)}
+.t-warn{background:var(--warning-soft);color:var(--warning)}.t-info{background:var(--info-soft);color:var(--info)}
+.chipst{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:var(--radius-pill);font:600 13px/1 var(--font-body);white-space:nowrap}
+.cap{font-size:13px;line-height:18px;color:var(--ink-muted)}
+.g{max-width:560px;overflow:hidden}
+.av{width:36px;height:36px;border-radius:var(--radius-pill);background:var(--kiwi-wash);color:var(--ink);display:flex;align-items:center;justify-content:center;flex:none;overflow:hidden;font:600 15px/22px var(--font-body)}
+.av.xl{width:96px;height:96px;font:700 30px/36px var(--font-display);letter-spacing:-0.02em}
+.av svg{width:20px;height:20px;fill:none;stroke:var(--ink-muted);stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.av.xl svg{width:40px;height:40px}
+.av svg.photo{width:100%;height:100%;stroke:none}
+.photo .p-bg{fill:var(--cream)}.photo .p-fg{fill:var(--skin)}
+
+.ch{display:flex;align-items:center;gap:20px;max-width:880px}
+.ch .tx{min-width:0}
+.ch h2{margin:0;font:700 30px/36px var(--font-display);letter-spacing:-0.02em;overflow-wrap:anywhere}
+.ch .job{margin:0;color:var(--ink-muted)}
+.ch .cap{margin:4px 0 0}
+.ch.ph{flex-direction:column;text-align:center;max-width:358px;gap:16px;margin-top:40px}
+.cap a{color:var(--accent)}
+</style></head><body>
+<header class="ch">
+<span class="av xl" aria-hidden="true">AF</span>
+<div class="tx"><h2>Ava Fictional</h2><p class="job">Head of research, Example Labs</p><p class="cap">From the iCloud account you@example.com. Change it in your iCloud account.</p></div>
+</header>
+<header class="ch ph">
+<span class="av xl" aria-hidden="true">EL</span>
+<div class="tx"><h2>Example Labs</h2><p class="cap">From this Mac. Change it in Contacts.</p></div>
+</header>
+</body></html>

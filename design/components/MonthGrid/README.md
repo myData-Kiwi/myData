@@ -1,0 +1,27 @@
+A month as a grid of seven columns, with today marked, one day selected and each day's events.
+
+- Above the grid: the month and year in the `title` style, then a tonal "Today" button and plain previous and next buttons. The previous and next buttons are icons only, `control-height` square, and are named "Previous month" and "Next month".
+- The grid is one `surface` group with `radius-lg` and `shadow-1`, like a GroupedList, and takes the full width of the content area. Cells are separated by `line` dividers, as the rows of a grouped list are.
+- The weekday names head the columns, short form ("Mon"), in `caption` and `ink-muted`. The week starts on the locale's first day.
+- It always shows six weeks, so the grid keeps its height from month to month. Days from the months before and after fill the first and last weeks.
+- Days, today and the events on each day follow this device's time zone, as in EventRow. An all-day event keeps its dates.
+- **A cell:** `space-2` padding, the day number at its top start in `body`, and the day's events under it. On desktop, a cell is at least twice `row-height` tall.
+- **Events in a cell:** all-day events first, then by start time. Each is a DataColour bar and the title in `caption` and `ink`, on one line, cut short with an ellipsis. There are at most three lines. When a day has more than three events, the third line is "+n" in `caption` and `ink-muted`.
+- **Under 600px:** cells are `row-height` tall and show DataColour dots instead of titles. A day shows up to three dots, or two dots and "+n" when it has more.
+- **Calendar names are one step away.** A cell has no room for the calendar's name, so this is the one place where the colour stands without its name beside it (DataColour). The name is always reachable without the colour: the selected day's EventRows always show it in their caption, and each cell's accessible name names the calendars of its events.
+- **Today:** the day number sits on a 28px `accent` disc with `on-accent` text in `body-strong`.
+- **Selected:** a 2px `ink` ring inside the cell's edge, as ThemePicker marks its selected swatch, over an `accent-soft` fill. The ring is the signal: in some themes `accent-soft` is close to `surface-sunken` (Graphite in light mode), so selection is never shown by the fill alone. A selected day's number is `ink`, even when it is outside the month. The selected day's events are listed beside or under the grid, as EventRows.
+- **Days outside the month:** the number and the events are `ink-muted`.
+- **Days myData does not read:** when a day is outside the range read from every source with a shown calendar, its cell is `surface-sunken` with an `ink-muted` number and no events, and its accessible name says "events not shown". A Notice above the grid gives the range myData reads, so the fill is never the only signal. The events are still in the source; the grid only does not show them. A day that at least one source reads is drawn as usual, with what that source has.
+- **Hover:** a 1px `line-strong` edge inside the cell, with no fill, so a hovered day never looks selected or unread. It appears and goes with the `fast` duration.
+- **When states meet,** each keeps its own mark, drawn from the bottom up: the fill, the number, the selection ring, then the focus ring.
+  - Selected and today: the `accent-soft` fill, the `accent` disc, and the `ink` ring.
+  - Selected and not read: the `surface-sunken` fill and `ink-muted` number stay, and the `ink` ring is added. The day list beside the grid says "Events from this Mac are not shown for this day."
+  - Selected and outside the month: the `accent-soft` fill, an `ink` number and the ring.
+  - Hover and not read: the `surface-sunken` fill stays, and the `line-strong` edge is added.
+  - Hover and selected: the `ink` ring only; there is no hover edge on the selected day.
+  - Today and not read (a source not read yet): the `accent` disc on the `surface-sunken` fill.
+- Pressing a cell selects it. The grid is one tab stop: the arrow keys move the selection by a day or a week, Page Up and Page Down by a month, and Home and End to the start and end of the week. Selection follows focus, so the focused cell is the selected one. The focus ring (2px `focus`) is drawn inside the selection ring, so both show.
+- **Each cell's accessible name** is the full date, how many events it has and the calendars they are in, each named once in the order the events appear, joined as the locale joins a list: "Friday 16 October, 4 events in Work, Personal and Family". Today's adds "today" after the date. A day with no events says "no events", and a day myData does not read says "events not shown".
+- Changing the month swaps the days in place with a `fast` fade, with no slide.
+- You provide the month, today's date, the selected day, the first day of the week, each day's events with their calendar names and colours, and the days myData does not read.

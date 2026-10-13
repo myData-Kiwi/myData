@@ -1,0 +1,86 @@
+<!-- @dsCard group="Content" height=600 -->
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700&family=Figtree:wght@400;600&family=JetBrains+Mono&display=swap">
+<style>
+body{margin:0;padding:24px;background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:22px}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.btn{height:44px;padding:0 22px;border-radius:var(--radius-control);font:600 15px/1 var(--font-body);border:0;cursor:pointer}
+.primary{background:var(--accent);color:var(--on-accent)}
+.tonal{background:var(--accent-soft);color:var(--accent)}
+.plain{background:transparent;color:var(--accent)}
+.danger{background:var(--danger);color:var(--on-danger)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.card{background:var(--surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-1)}
+.tile{width:36px;height:36px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;flex:none}
+.tile svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.t-accent{background:var(--accent-soft);color:var(--accent)}.t-ok{background:var(--success-soft);color:var(--success)}
+.t-warn{background:var(--warning-soft);color:var(--warning)}.t-info{background:var(--info-soft);color:var(--info)}
+.chipst{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:var(--radius-pill);font:600 13px/1 var(--font-body);white-space:nowrap}
+.cap{font-size:13px;line-height:18px;color:var(--ink-muted)}
+.g{max-width:560px;overflow:hidden}
+.lbl{font:600 13px/18px var(--font-body);color:var(--ink-muted);margin:0 0 8px 8px}
+.r{display:flex;gap:12px;align-items:center;min-height:56px;box-sizing:border-box;padding:8px 16px;border-top:1px solid var(--line)}
+.g>:first-child{border-top:0}
+.r .txt{flex:1;min-width:0}.t{font-weight:600;display:block}
+.sec{margin-bottom:24px}
+
+.g{max-width:440px}
+.slot{width:36px;height:36px;display:flex;align-items:center;justify-content:center;flex:none}
+.dot{width:8px;height:8px;border-radius:var(--radius-pill);background:var(--c,var(--line-strong));flex:none}
+.sw{appearance:none;-webkit-appearance:none;width:50px;height:30px;border-radius:var(--radius-pill);background:var(--surface-sunken);border:1px solid var(--line-strong);position:relative;cursor:pointer;flex:none;margin:0}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:var(--radius-pill);background:var(--line-strong);transition:transform .12s}
+.sw:checked{background:var(--accent);border-color:var(--accent)}
+.sw:checked::after{transform:translateX(20px);background:var(--on-accent)}
+.cols{display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start}.cols>div{flex:1 1 320px;max-width:440px}
+.when{width:64px;flex:none;display:flex;flex-direction:column}
+.bar{width:4px;align-self:stretch;border-radius:var(--radius-pill);background:var(--c,var(--line-strong));flex:none}
+.edge{box-shadow:inset 0 0 0 1px var(--line-strong)}
+</style></head><body>
+<div class="cols"><div>
+<section class="sec" aria-labelledby="d-mac">
+<p class="lbl" id="d-mac">This Mac</p>
+<div class="card g">
+<label class="r"><span class="slot"><span class="dot" style="--c:#E5484D"></span></span><span class="txt"><span class="t">Family</span><span class="cap">iCloud</span></span><input class="sw" type="checkbox" checked aria-label="Show Family"></label>
+<label class="r"><span class="slot"><span class="dot" style="--c:#8E4EC6"></span></span><span class="txt"><span class="t">Personal</span><span class="cap">iCloud</span></span><input class="sw" type="checkbox" aria-label="Show Personal"></label>
+<label class="r"><span class="slot"><span class="dot" style="--c:#3E7BFA"></span></span><span class="txt"><span class="t">Work</span><span class="cap">Only on this Mac</span></span><input class="sw" type="checkbox" checked aria-label="Show Work"></label>
+<label class="r"><span class="slot"><span class="dot" style="--c:#8E8E93"></span></span><span class="txt"><span class="t">Birthdays</span><span class="cap">Birthdays from Contacts</span></span><input class="sw" type="checkbox" checked aria-label="Show Birthdays"></label>
+<label class="r"><span class="slot"><span class="dot"></span></span><span class="txt"><span class="t">Book club</span><span class="cap">Only on this Mac</span></span><input class="sw" type="checkbox" checked aria-label="Show Book club"></label>
+</div>
+</section>
+<section class="sec" aria-labelledby="d-ic">
+<p class="lbl" id="d-ic">iCloud account you@example.com</p>
+<div class="card g">
+<label class="r"><span class="slot"><span class="dot" style="--c:#F5D90A"></span></span><span class="txt"><span class="t">Garden club</span></span><input class="sw" type="checkbox" checked aria-label="Show Garden club"></label>
+<label class="r"><span class="slot"><span class="dot" style="--c:#1F1F1F"></span></span><span class="txt"><span class="t">Choir</span></span><input class="sw" type="checkbox" checked aria-label="Show Choir"></label>
+</div>
+</section>
+</div><div>
+<section class="sec" aria-labelledby="d-ev">
+<p class="lbl" id="d-ev">Tuesday 13 October</p>
+<div class="card g">
+<div class="r"><span class="when"><span>All day</span></span><span class="bar" style="--c:#F5D90A"></span><span class="txt"><span class="t">Seed swap</span><span class="cap">Garden club</span></span></div>
+<div class="r"><span class="when"><span>18:00</span><span class="cap">19:30</span></span><span class="bar" style="--c:#1F1F1F"></span><span class="txt"><span class="t">Choir practice</span><span class="cap">Example Hall · Choir</span></span></div>
+<div class="r"><span class="when"><span>20:00</span><span class="cap">21:00</span></span><span class="bar"></span><span class="txt"><span class="t">Book club</span><span class="cap">Book club</span></span></div>
+</div>
+</section>
+</div></div>
+<script>
+// DataColour: a swatch with less than 3:1 against the ground it sits on gets a 1px line-strong edge.
+(function () {
+  function rgb(s) { var m = s.match(/[\d.]+/g); return m ? m.map(Number) : null; }
+  function lum(c) { var a = c.slice(0, 3).map(function (v) { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * a[0] + 0.7152 * a[1] + 0.0722 * a[2]; }
+  function ground(el) { for (var p = el.parentElement; p; p = p.parentElement) { var c = rgb(getComputedStyle(p).backgroundColor); if (c && (c.length < 4 || c[3] > 0)) return c; } return [255, 255, 255]; }
+  function run() {
+    document.querySelectorAll('[style*="--c"]').forEach(function (el) {
+      var a = lum(rgb(getComputedStyle(el).backgroundColor)), b = lum(ground(el));
+      el.classList.toggle('edge', (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05) < 3);
+    });
+  }
+  run();
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', run);
+  new MutationObserver(run).observe(document.documentElement, { attributes: true });
+})();
+</script>
+</body></html>
