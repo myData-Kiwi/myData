@@ -48,6 +48,7 @@ StatusOut status({bool enabled = true, String state = 'ready', Map<String, Objec
       'demo_date': false,
       'theme': 'kiwi',
       'mode': 'demo',
+      'conversation_epoch': 0,
       'model': {
         'name': 'qwen3:14b',
         'state': state,
@@ -208,6 +209,25 @@ void main() {
     await tester.pumpAndSettle();
     await backend.replies.last.close();
     await tester.pumpAndSettle();
+  });
+
+  testWidgets('a switch of mode shows one centred caption line in ink-muted', (tester) async {
+    final chat = ChatController(ScriptedBackend());
+    await tester.pumpWidget(app(ChatView(controller: chat)));
+    chat
+      ..followHost(hostAt(epoch: 0))
+      ..followHost(hostAt(epoch: 1, real: true));
+    await tester.pumpAndSettle();
+    final line = find.text(ConversationNotice.realText);
+    expect(line, findsOneWidget);
+    final text = tester.widget<Text>(line);
+    final colors = tester.element(line).colors;
+    expect(text.style?.color, colors.inkMuted);
+    expect(text.style?.fontSize, MyDataType.caption.fontSize);
+    expect(text.style?.fontWeight, MyDataType.caption.fontWeight);
+    expect(text.textAlign, TextAlign.center);
+    final column = tester.getRect(find.byType(ListView));
+    expect(tester.getCenter(line).dx, moreOrLessEquals(column.center.dx, epsilon: 1));
   });
 
   testWidgets('a failed message shows the reason and Retry sends it again', (tester) async {

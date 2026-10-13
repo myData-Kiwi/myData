@@ -12,7 +12,9 @@ import 'result_view.dart';
 ///   page ([PageScaffold.paddingFor]). The user's messages are right-aligned on `accent-soft` with `ink`
 ///   text and `radius-lg`; the assistant's sentences are plain `body` text, with no bubble. Progress lines
 ///   are `caption` / `ink-muted` with a small turning kiwi while the tool runs (still with reduced motion)
-///   and a check once it is done. Results and approval cards are the only raised surfaces.
+///   and a check once it is done. Results and approval cards are the only raised surfaces. When the host
+///   switches between demo and real mode, one centred `caption` / `ink-muted` line says that a new
+///   conversation has started ([ConversationNotice]).
 /// - The input is a glass pill floating at the bottom ([FloatingBarSurface]; solid with reduced
 ///   transparency), holding a borderless field and a send button named "Send". The conversation scrolls
 ///   beneath it. Both are disabled while a reply is coming in; the field gets focus back afterwards.
@@ -259,6 +261,7 @@ class _ItemView extends StatelessWidget {
       onReject: () => chat.decide(a.approval.id, false),
     ),
     final ChatError e => _ErrorRow(error: e, onRetry: chat.busy ? null : () => chat.retry(e)),
+    final ConversationNotice n => _NoticeRow(n.text),
   };
 }
 
@@ -322,6 +325,25 @@ class _ProgressRow extends StatelessWidget {
       ],
     );
   }
+}
+
+/// A line from the app rather than either side of the conversation: centred, `caption` / `ink-muted`.
+/// Screen readers hear it when it appears.
+class _NoticeRow extends StatelessWidget {
+  const _NoticeRow(this.text);
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: Semantics(
+      liveRegion: true,
+      child: Text(
+        text,
+        textAlign: TextAlign.center,
+        style: MyDataType.caption.copyWith(color: context.colors.inkMuted),
+      ),
+    ),
+  );
 }
 
 /// A reply is on its way and nothing has arrived yet.

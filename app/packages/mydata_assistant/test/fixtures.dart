@@ -25,3 +25,25 @@ Map<String, dynamic> approvalJson({String status = 'pending', String? decidedBy,
 
 ApprovalOut approval({String status = 'pending', String? decidedBy, Object? result, String? error}) =>
     ApprovalOut.fromJson(approvalJson(status: status, decidedBy: decidedBy, result: result, error: error))!;
+
+/// The host's status with its conversation [epoch], in real mode or demo mode.
+StatusOut hostAt({required int epoch, bool real = false}) => StatusOut.fromJson({
+  'version': '0.1.0',
+  'ready': true,
+  'assistant_enabled': true,
+  'uptime_seconds': 1.0,
+  'memory': {'host_bytes': 1000},
+  'agents_connected': 0,
+  'today': real ? '2026-10-13' : '2026-03-18',
+  'demo_date': !real,
+  'theme': 'kiwi',
+  'mode': real ? 'real' : 'demo',
+  'conversation_epoch': epoch,
+  'model': {
+    'name': 'qwen3:14b',
+    'state': 'ready',
+    'loaded': true,
+    'ollama_reachable': true,
+    'ollama_started_by_host': false,
+  },
+})!;

@@ -12,6 +12,8 @@ A family of separate apps built from shared code. There is no combined app.
 
 **Design tokens.** `packages/mydata_ui/lib/src/generated/tokens.g.dart` is generated from `design/tokens.json` and `design/themes.json` by `dart run tool/generate_tokens.dart` (run in `packages/mydata_ui`), which also copies the logos from `design/assets/Logos`; never edit it by hand. `test/generated_tokens_test.dart` fails when it is stale. `test/no_literals_test.dart` fails when any app or package contains a literal colour, radius or font name outside that file: use `context.colors`, `MyDataSpace`, `MyDataRadius` and `MyDataType`.
 
+**Passwords are never printed.** `packages/mydata_ui/test/no_password_logging_test.dart` scans every app's and package's `lib/` (not the generated client) and fails on an `AccountIn` interpolated, turned into a string or logged (its generated `toString()` includes the password), and on anything named `*password*` passed to `print`, `debugPrint`, `log` or a logger. `apps/mydata/test/password_not_printed_test.dart` submits the iCloud form and checks that the password appears in nothing printed.
+
 **Goldens and screenshots.** Widget goldens are in `packages/mydata_ui/test/widgets/goldens`; whole-screen screenshots of each app are in `apps/<app>/test/screenshots` (`<screen>.<theme>-<mode>.png`). Both are checked by `flutter test`; after an intended visual change, run `flutter test --update-goldens` in that package or app and look at every changed image before keeping it.
 
 ```sh

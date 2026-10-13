@@ -102,6 +102,7 @@ Read-only mirrors in `contacts.sqlite` and `calendar.sqlite` (`host/src/mydata/s
   - **The window rule:** list_events and `/events` never answer "nothing found" for days a source does not hold. It is decided per source: an iCloud account holding every day never hides the Mac's limit.
   - Large snapshots arrive in parts of a few MB.
 - **iCloud account** (Advanced): CardDAV and CalDAV with an app-specific password and the Apple Account email, which may differ from an address on the user's own domain. It holds every date.
+- **Switching mode ends every conversation.** The host moves its conversation epoch on (`state.json`, `conversation_epoch` in `/status`); myAssistant then shows one line saying a new conversation has started, and a message to an older epoch's conversation gets a `reset` event.
 
 ### Assistant
 

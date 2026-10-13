@@ -62,6 +62,19 @@ final class ResultItem extends ChatItem {
   final List<Map<String, Object?>> items;
 }
 
+/// The host switched between demo and real mode, which ended the conversation; what follows is a new one.
+final class ConversationNotice extends ChatItem {
+  ConversationNotice({required this.realMode});
+
+  /// Whether the host now uses the user's own contacts and calendars (real mode) rather than example data.
+  final bool realMode;
+
+  static const realText = 'myAssistant now uses your contacts and calendars. A new conversation has started.';
+  static const demoText = 'myAssistant is back on example data. A new conversation has started.';
+
+  String get text => realMode ? realText : demoText;
+}
+
 /// A message that failed. [retryText] is the user's message, to send again.
 final class ChatError extends ChatItem {
   ChatError(this.message, {required this.retryText, this.statusCode});
@@ -72,6 +85,12 @@ final class ChatError extends ChatItem {
 
 /// The conversation with the host's assistant: sends messages, folds the streamed events into
 /// [items], and decides held calls.
+///
+/// The host ends every conversation when it switches between demo and real mode, and moves its conversation
+/// epoch on. The app passes each `/status` to [followHost]; when the epoch changes the controller ends the
+/// conversation (the next message starts a new one) and adds one [ConversationNotice]. A message sent before
+/// the poll noticed gets a [ResetEvent] from the host, which does the same; either way the notice appears once
+/// per switch.
 class ChatController extends ChangeNotifier {
   ChatController(this._backend);
 
@@ -85,11 +104,52 @@ class ChatController extends ChangeNotifier {
   AssistantReply? _reply;
   final List<ApprovalItem> _held = [];
 
+  /// The host's conversation epoch this conversation belongs to; null until the first status.
+  int? _epoch;
+
+  /// A switch seen in a status poll while a reply was coming in; applied once the reply is in.
+  ({int epoch, bool realMode})? _switchAfterReply;
+
   List<ChatItem> get items => List.unmodifiable(_items);
   String? get conversationId => _conversationId;
 
   /// A message is being answered; another cannot be sent until it is.
   bool get busy => _busy;
+
+  /// Follow the host's status (every poll). The first status only records the epoch: there is no
+  /// conversation to end yet.
+  void followHost(StatusOut status) {
+    final epoch = status.conversationEpoch;
+    final realMode = status.mode == StatusOutModeEnum.real;
+    if (_epoch == null) {
+      _epoch = epoch;
+      return;
+    }
+    if (epoch == _epoch) {
+      _switchAfterReply = null;
+      return;
+    }
+    if (_busy) {
+      // The reply under way belongs to the old conversation; the notice goes after it.
+      _switchAfterReply = (epoch: epoch, realMode: realMode);
+      return;
+    }
+    _newConversation(epoch, realMode: realMode, at: _items.length);
+    _notify();
+  }
+
+  /// Ends the conversation and shows why, at [at] in [items]. A notice right before it (two switches with
+  /// nothing said in between) is replaced, not repeated.
+  void _newConversation(int? epoch, {required bool realMode, required int at}) {
+    _epoch = epoch;
+    _conversationId = null;
+    final notice = ConversationNotice(realMode: realMode);
+    if (at > 0 && _items[at - 1] is ConversationNotice) {
+      _items[at - 1] = notice;
+    } else {
+      _items.insert(at, notice);
+    }
+  }
 
   /// Send a message. Ignored while [busy] or when [text] is blank.
   Future<void> send(String text) async {
@@ -145,13 +205,26 @@ class ChatController extends ChangeNotifier {
     _held.clear();
     _reply = null;
     _busy = false;
+    final pending = _switchAfterReply;
+    _switchAfterReply = null;
+    if (pending != null && pending.epoch != _epoch) {
+      _newConversation(pending.epoch, realMode: pending.realMode, at: _items.length);
+    }
     _notify();
   }
 
   /// Folds one event into the conversation. Returns true when the event ends the reply.
   bool _apply(AssistantEvent event, String text) {
-    if (event is! ConversationEvent && event is! StepEvent) _settleProgress();
+    if (event is! ConversationEvent && event is! StepEvent && event is! ResetEvent) _settleProgress();
     switch (event) {
+      case ResetEvent(:final epoch, :final realMode):
+        // The conversation this message was sent to had ended; the notice goes before the message, which
+        // opens the new one. Already shown if the status poll got there first.
+        if (epoch == null || epoch != _epoch) {
+          final message = _items.lastIndexWhere((i) => i is UserMessage);
+          _newConversation(epoch, realMode: realMode, at: message < 0 ? _items.length : message);
+        }
+        _conversationId = null;
       case ConversationEvent(:final conversationId):
         _conversationId = conversationId;
       case ProgressEvent(:final tool, :final label):

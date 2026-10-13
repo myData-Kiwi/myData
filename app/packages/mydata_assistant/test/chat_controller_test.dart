@@ -164,6 +164,113 @@ void main() {
     expect(chat.busy, isFalse);
   });
 
+  group('a switch between demo and real mode', () {
+    List<String> notices(ChatController chat) => [for (final n in chat.items.whereType<ConversationNotice>()) n.text];
+
+    test('the first status only records the epoch', () {
+      final chat = ChatController(FakeBackend([]));
+      chat.followHost(hostAt(epoch: 4, real: true));
+      chat.followHost(hostAt(epoch: 4, real: true));
+      expect(chat.items, isEmpty);
+    });
+
+    test('a new epoch ends the conversation and adds one line; the next message starts a new one', () async {
+      final backend = FakeBackend([
+        [const ConversationEvent('c1'), const MessageEvent(text: 'Hello.'), const DoneEvent()],
+        [const ConversationEvent('e1.new'), const MessageEvent(text: 'Hi again.'), const DoneEvent()],
+        [const ConversationEvent('e1.new'), const MessageEvent(text: 'Yes.'), const DoneEvent()],
+      ]);
+      final chat = ChatController(backend);
+      var notified = 0;
+      chat.addListener(() => notified++);
+      chat.followHost(hostAt(epoch: 0));
+      await chat.send('Hi');
+      expect(chat.conversationId, 'c1');
+
+      notified = 0;
+      chat.followHost(hostAt(epoch: 1, real: true));
+      expect(notified, 1);
+      expect(chat.conversationId, isNull);
+      expect(chat.items.last, isA<ConversationNotice>());
+      expect(notices(chat), [ConversationNotice.realText]);
+      expect(
+        ConversationNotice.realText,
+        'myAssistant now uses your contacts and calendars. A new conversation has started.',
+      );
+      // Later polls with the same epoch change nothing.
+      chat.followHost(hostAt(epoch: 1, real: true));
+      chat.followHost(hostAt(epoch: 1, real: true));
+      expect(notices(chat), hasLength(1));
+
+      await chat.send('Hi again');
+      expect(backend.sent[1].conversationId, isNull, reason: 'the message after a switch starts a new conversation');
+      await chat.send('And?');
+      expect(backend.sent[2].conversationId, 'e1.new');
+      expect(notices(chat), hasLength(1));
+
+      // Back to demo: one more line, in demo words.
+      chat.followHost(hostAt(epoch: 2));
+      expect(notices(chat), [ConversationNotice.realText, ConversationNotice.demoText]);
+      expect(ConversationNotice.demoText, 'myAssistant is back on example data. A new conversation has started.');
+    });
+
+    test('two switches with nothing said in between leave one line, for the latest', () {
+      final chat = ChatController(FakeBackend([]));
+      chat.followHost(hostAt(epoch: 0));
+      chat.followHost(hostAt(epoch: 1, real: true));
+      chat.followHost(hostAt(epoch: 2));
+      expect(notices(chat), [ConversationNotice.demoText]);
+    });
+
+    test('a switch seen while a reply comes in is shown after the reply', () async {
+      final events = StreamController<AssistantEvent>();
+      final chat = ChatController(_StreamBackend(events.stream));
+      chat.followHost(hostAt(epoch: 0));
+      final sending = chat.send('Hi');
+      events.add(const ConversationEvent('c1'));
+      await pumpEventQueue();
+      chat.followHost(hostAt(epoch: 1, real: true));
+      expect(notices(chat), isEmpty);
+      events
+        ..add(const MessageEvent(text: 'Hello.'))
+        ..add(const DoneEvent());
+      await events.close();
+      await sending;
+      expect(chat.items.map((i) => i.runtimeType), [UserMessage, AssistantReply, ConversationNotice]);
+      expect(chat.conversationId, isNull);
+    });
+
+    test("the host's reset event shows the line before the message, once, even when the poll comes after", () async {
+      final backend = FakeBackend([
+        [const ConversationEvent('c1'), const MessageEvent(text: 'Hello.'), const DoneEvent()],
+        [
+          const ResetEvent(realMode: true, epoch: 1),
+          const ConversationEvent('e1.new'),
+          const MessageEvent(text: 'Hi again.'),
+          const DoneEvent(),
+        ],
+        [const ConversationEvent('e1.new'), const MessageEvent(text: 'Yes.'), const DoneEvent()],
+      ]);
+      final chat = ChatController(backend);
+      chat.followHost(hostAt(epoch: 0));
+      await chat.send('Hi');
+      await chat.send('Hi again'); // sent before the poll saw the switch
+      expect(backend.sent[1].conversationId, 'c1');
+      expect(chat.conversationId, 'e1.new');
+      expect(chat.items.map((i) => i.runtimeType), [
+        UserMessage,
+        AssistantReply,
+        ConversationNotice,
+        UserMessage,
+        AssistantReply,
+      ]);
+      chat.followHost(hostAt(epoch: 1, real: true)); // the poll catches up: nothing new
+      expect(notices(chat), [ConversationNotice.realText]);
+      await chat.send('And?');
+      expect(backend.sent[2].conversationId, 'e1.new');
+    });
+  });
+
   test('blank messages and messages while busy are not sent', () async {
     final events = StreamController<AssistantEvent>();
     final backend = _StreamBackend(events.stream);

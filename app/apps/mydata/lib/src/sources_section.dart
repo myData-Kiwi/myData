@@ -404,7 +404,8 @@ class _IncludedSectionState extends State<IncludedSection> {
 /// that is not a Mac. The form, then each followed account with Sync now and Remove.
 ///
 /// The password is held only in its field and sent once, in the request; it is never logged or printed.
-/// Never call toString() on an [AccountIn]: the generated class prints the password.
+/// Never call toString() on an [AccountIn]: the generated class prints the password. Checked by
+/// packages/mydata_ui/test/no_password_logging_test.dart and test/password_not_printed_test.dart.
 class IcloudSection extends StatefulWidget {
   const IcloudSection({
     super.key,

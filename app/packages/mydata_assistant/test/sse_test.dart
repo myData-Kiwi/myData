@@ -74,6 +74,24 @@ void main() {
     expectWholeReply(await decodeAssistantEvents(chunked(reply, 1 << 20)).toList());
   });
 
+  test('a reset event says the mode and the epoch', () async {
+    final events = await decodeAssistantEvents(
+      chunked(
+        [
+          frame('reset', {'mode': 'real', 'epoch': 3}),
+          frame('reset', {'mode': 'demo'}),
+          frame('conversation', {'conversation_id': 'e3.x'}),
+        ].join(),
+        7,
+      ),
+    ).toList();
+    final real = events[0] as ResetEvent;
+    expect((real.realMode, real.epoch), (true, 3));
+    final demo = events[1] as ResetEvent;
+    expect((demo.realMode, demo.epoch), (false, null));
+    expect((events[2] as ConversationEvent).conversationId, 'e3.x');
+  });
+
   test('an approval that cannot be shown whole is an error, not a card', () {
     for (final approval in [
       null,

@@ -4,6 +4,7 @@ import 'package:mydata_assistant/mydata_assistant.dart';
 import 'package:mydata_core/mydata_core.dart';
 import 'package:mydata_ui/mydata_ui.dart';
 import 'package:myassistant/src/app.dart';
+import 'package:myassistant/src/home.dart';
 
 import 'fixtures.dart';
 
@@ -141,6 +142,57 @@ void main() {
     await tester.pumpAndSettle();
     expect(Theme.of(tester.element(find.byType(AppFrame))).brightness, Brightness.dark);
     expect(colorsOf(tester).bg, MyDataColors.dark.bg);
+  });
+
+  testWidgets('a switch between demo and real mode ends the conversation, with one line each time', (tester) async {
+    desktop(tester);
+    final backend = ScriptedBackend([
+      freeAtSixThirty(),
+      [
+        const ConversationEvent('e1.new'),
+        const MessageEvent(text: 'Hello.', outcome: 'answered'),
+        const DoneEvent(),
+      ],
+      [
+        const ConversationEvent('e1.new'),
+        const MessageEvent(text: 'Yes.', outcome: 'answered'),
+        const DoneEvent(),
+      ],
+    ]);
+    final host = FakeHost(phaseOnConnect: HostPhase.running, statusOnConnect: hostStatus());
+    await tester.pumpWidget(MyAssistantApp(host: host, store: MemoryDeviceStore(), backend: backend));
+    await tester.pumpAndSettle();
+
+    Future<void> say(String text) async {
+      await tester.enterText(find.byKey(ChatView.inputKey), text);
+      await tester.tap(find.byKey(ChatView.sendKey));
+      await tester.pumpAndSettle();
+    }
+
+    await say('Am I free at 6:30 tomorrow?');
+    expect(find.text(ConversationNotice.realText), findsNothing);
+
+    // The user turns on a source in myData: the next poll brings real mode and a new epoch.
+    host.push(hostStatus(real: true, epoch: 1));
+    await tester.pumpAndSettle();
+    expect(find.text('myAssistant now uses your contacts and calendars. A new conversation has started.'), findsOneWidget);
+    expect(find.text(AssistantHome.demoLabel), findsNothing);
+    // Every later poll is the same epoch: still one line.
+    host.push(hostStatus(real: true, epoch: 1));
+    await tester.pumpAndSettle();
+    expect(find.text(ConversationNotice.realText), findsOneWidget);
+
+    await say('Hello');
+    await say('Are you there?');
+    expect(backend.conversations, [null, null, 'e1.new'],
+        reason: 'the first message after the switch starts a new conversation, and the one after continues it');
+
+    // Back to example data.
+    host.push(hostStatus(epoch: 2));
+    await tester.pumpAndSettle();
+    expect(find.text('myAssistant is back on example data. A new conversation has started.'), findsOneWidget);
+    expect(find.text(ConversationNotice.realText), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('the app follows reduced transparency and reduced motion through its scope', (tester) async {

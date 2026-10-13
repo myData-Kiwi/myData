@@ -4,7 +4,8 @@ import 'package:mydata_core/mydata_core.dart';
 import 'package:mydata_ui/mydata_ui.dart';
 
 /// The one screen, in the app's frame: a panel for every state of the host and the assistant, and the chat
-/// once both are ready. The conversation lives here, so it survives the host going away and coming back.
+/// once both are ready. The conversation lives here, so it survives the host going away and coming back. It
+/// ends when the host switches between demo and real mode, and the chat says so.
 ///
 /// The frame's one section is Chat. At the bottom of the sidebar it says how the host is: starting,
 /// connected (with a link that opens myData), or unreachable (with Retry). The web build, which cannot reach
@@ -40,11 +41,19 @@ class _AssistantHomeState extends State<AssistantHome> {
   @override
   void initState() {
     super.initState();
+    _host.addListener(_followHost);
     _host.connect();
+  }
+
+  /// Every status poll goes to the chat: a switch between demo and real mode ends the conversation there.
+  void _followHost() {
+    final status = _host.status;
+    if (status != null) _chat.followHost(status);
   }
 
   @override
   void dispose() {
+    _host.removeListener(_followHost);
     _chat.dispose();
     _hostBackend?.close();
     _host.dispose();

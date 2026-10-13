@@ -19,6 +19,7 @@ StatusOut statusWith(
   agentsConnected: 0,
   macAvailable: macAvailable,
   assistantEnabled: enabled,
+  conversationEpoch: 0,
   demoDate: true,
   lastError: lastError,
   memory: MemoryOut(hostBytes: 120000000, modelBytes: modelBytes),

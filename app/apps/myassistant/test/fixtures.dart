@@ -71,16 +71,19 @@ class FakeHost extends HostController {
   }
 }
 
-/// A host status with the model ready (or [state]) in [theme].
+/// A host status with the model ready (or [state]) in [theme], in demo mode unless [real].
 StatusOut hostStatus({
   String theme = 'kiwi',
   bool enabled = true,
   ModelOutStateEnum state = ModelOutStateEnum.ready,
-  bool demoDate = true,
+  bool? demoDate,
+  bool real = false,
+  int epoch = 0,
 }) => StatusOut(
   agentsConnected: 0,
   assistantEnabled: enabled,
-  demoDate: demoDate,
+  conversationEpoch: epoch,
+  demoDate: demoDate ?? !real,
   memory: MemoryOut(hostBytes: 120000000),
   model: ModelOut(
     name: 'qwen3:14b',
@@ -89,7 +92,7 @@ StatusOut hostStatus({
     ollamaReachable: true,
     ollamaStartedByHost: true,
   ),
-  mode: StatusOutModeEnum.demo,
+  mode: real ? StatusOutModeEnum.real : StatusOutModeEnum.demo,
   ready: state == ModelOutStateEnum.ready,
   theme: theme,
   today: '2026-03-18',
@@ -103,9 +106,13 @@ class ScriptedBackend implements AssistantBackend {
   final List<List<AssistantEvent>> replies;
   final sent = <String>[];
 
+  /// The conversation id sent with each message.
+  final conversations = <String?>[];
+
   @override
   Stream<AssistantEvent> send(MessageIn message) {
     sent.add(message.text);
+    conversations.add(message.conversationId);
     return Stream.fromIterable(replies.isEmpty ? const [DoneEvent()] : replies.removeAt(0));
   }
 

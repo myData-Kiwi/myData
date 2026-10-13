@@ -18,6 +18,8 @@ sealed class AssistantEvent {
     }
     String text(String key) => json[key] is String ? json[key] as String : '';
     switch (event) {
+      case 'reset':
+        return ResetEvent(realMode: json['mode'] == 'real', epoch: json['epoch'] is int ? json['epoch'] as int : null);
       case 'conversation':
         return ConversationEvent(text('conversation_id'));
       case 'progress':
@@ -79,7 +81,16 @@ sealed class AssistantEvent {
   }
 }
 
-/// The first event of every reply: the id to send with the next message.
+/// The conversation the message named was ended by a switch between demo and real mode on the host; the
+/// message starts a new one, whose [ConversationEvent] follows. [epoch] is the host's conversation epoch (as
+/// in `/status`), null if the host did not send one.
+final class ResetEvent extends AssistantEvent {
+  const ResetEvent({required this.realMode, required this.epoch});
+  final bool realMode;
+  final int? epoch;
+}
+
+/// The first event of every reply (after a [ResetEvent]): the id to send with the next message.
 final class ConversationEvent extends AssistantEvent {
   const ConversationEvent(this.conversationId);
   final String conversationId;

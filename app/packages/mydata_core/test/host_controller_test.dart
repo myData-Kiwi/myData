@@ -28,6 +28,7 @@ class FakeHost {
             'demo_date': true,
             'theme': 'kiwi',
             'mode': 'demo',
+            'conversation_epoch': 0,
             'model': {
               'name': 'qwen3:14b',
               'state': 'ready',
