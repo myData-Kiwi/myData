@@ -72,6 +72,7 @@ One host per household, clients on every device.
 - **Apps.** The product is a family of separate apps built from shared code, not one combined app with a sidebar. Each app talks to the host only through the HTTP API, with no business logic in the app. The user opens an app and the host starts by itself.
   - Only the myData app owns the host's lifetime: it has a menu-bar icon with Open and Quit, and Quit stops the host. The host enforces this: `/shutdown` refuses other apps.
   - Other apps, such as myAssistant, can start the host but never stop it.
+  - One exception, for every app: on connect, a host the app cannot use as it is (another version or API version, its code changed on disk since it started, or it refuses the app's token) is replaced, once, with `mydata stop --unless-current --expect <the app's versions>` and a start. The stop does nothing when the host the start command would start is not the app's build either, or when the running host is already current, so an app never stops a host it could not use afterwards.
   - The assistant is optional: the apps work without a model.
 - **No app depends on the chat.** myPhotos talks to the host directly.
 - **Phones cannot host.** iOS and Android suspend background apps and lack the memory. No third-party wake word on iOS; no iMessage or phone-call control.
@@ -319,6 +320,9 @@ Full report: `host/results/2026-10-12-a-REPORT.md`. Measured on battery, with BT
 - The links between the apps, myAssistant's results opening in myContacts and myCalendar, and the Status rows' "Open" are tested with fakes only. None has been tried between built apps on a Mac, and myContacts and myCalendar have not been run against a real host. myCalendar's time zone channel has not been tried live.
 - The phone layouts (floating tab bar, large title) are built and covered by goldens, but have not been run on a phone.
 - Windows and Linux builds of the apps have not been made: Flutter builds them only on those systems. Their code paths compile (`flutter analyze`).
+- **The owner's Mac still builds ad hoc** (checked 2026-10-13): no Apple Development certificate is in the keychain, Xcode has no account, and there is no `Signing.local.xcconfig`. An ad hoc build's designated requirement is its code hash, so every rebuild is a new app to macOS and the Contacts and Calendars permission is asked again. The fix is the certificate (steps in `Signing.local.xcconfig.example`); a self-signed certificate does not work without trusting it, which needs an admin prompt.
+- The host runs as `mydatad` (argv[0]; `pgrep mydatad`, `ps`). On macOS the kernel name in `top` and Activity Monitor is still the Python binary. The Linux form (an absolute path beside the interpreter) has not been run on Linux.
+- An app replaces a host from another build only when it connects (the poll reports it and restarts nothing). A host-only code change shows up as `stale` in `/status`, so the next app to connect restarts the host, which ends in-memory conversations.
 - This Mac has not been verified:
   - across a reboot;
   - with the helper running for hours (it was watched for 5 minutes);
