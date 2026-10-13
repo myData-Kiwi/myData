@@ -2,3 +2,6 @@
 build/
 .flutter-plugins-dependencies
 *.iml
+
+# Golden-test failure images (flutter test writes them next to a failing golden test).
+failures/
