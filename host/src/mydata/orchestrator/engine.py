@@ -245,7 +245,9 @@ class Engine:
                         if run.seconds_to_result is None:
                             run.seconds_to_result = round(_time.perf_counter() - started, 3)
                         run.results.append({"tool": record.tool, **shown_result})
-                        emit({"type": "result", "tool": record.tool, **shown_result})
+                        # The mode says whether the items are the user's own (real) or sample data (demo):
+                        # an app opens a real item in its own app (myContacts, myCalendar), never a demo one.
+                        emit({"type": "result", "tool": record.tool, **shown_result, "mode": self.registry.mode})
                 if record.status in ("gated", "ambiguous"):
                     # Stop here, but record what else the model asked for in the same reply.
                     for rest in calls[i + 1:]:

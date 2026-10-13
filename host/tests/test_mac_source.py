@@ -751,3 +751,40 @@ def test_a_broken_run_folder_is_reported_not_retried_in_a_loop(make_host, home, 
         assert wait(lambda: "run folder" in (c.mac()["last_error"] or ""))
         assert mac.launches == []
     assert "source loop failed" not in caplog.text
+
+
+# ---------------------------------------------------------------- what the apps are shown
+
+
+def test_result_items_carry_what_opens_them_in_their_own_app(make_host):
+    """myAssistant opens a contact in myContacts by its id and an event's day in myCalendar: in real mode the
+    result event says so ("mode": "real"), a contact item carries the id GET /contacts gives, and an event item
+    its local day."""
+    mac = FakeMac("authorized", "fullAccess")
+    h = make_host(mac, scripts=[[[call("find_contact", name="Ava")]], [[call("list_events", date="March 24")]]])
+    with Client(h) as c:
+        on(c, mac)
+        assert wait(lambda: len(c.names()) == 4 and c.mac()["window"] == WINDOW)
+        ava_id = next(x["id"] for x in c.get("/contacts") if x["display_name"] == "Ava Q Fictional")
+
+        events = parse_sse(c.c.post("/assistant/messages", headers=h.auth, json={"text": "Ava's details"}).text)
+        result = dict(events)["result"]
+        assert result["mode"] == "real" and result["kind"] == "contacts"
+        assert [i["id"] for i in result["items"]] == [ava_id]
+        assert c.get(f"/contacts/{ava_id}")["display_name"] == "Ava Q Fictional"  # the id myContacts opens
+
+        events = parse_sse(c.c.post("/assistant/messages", headers=h.auth, json={"text": "What's on March 24?"}).text)
+        result = dict(events)["result"]
+        assert result["mode"] == "real" and [i["date"] for i in result["items"]] == ["2026-03-24"]
+
+
+def test_sources_report_what_this_mac_holds_while_it_is_on(make_host):
+    mac = FakeMac("authorized", "fullAccess")
+    h = make_host(mac)
+    with Client(h) as c:
+        assert c.mac()["counts"] is None  # off: it holds nothing
+        on(c, mac)
+        assert wait(lambda: len(c.names()) == 4 and c.mac()["window"] == WINDOW)
+        assert c.mac()["counts"] == {"address_books": 2, "contacts": 4, "calendars": 3, "events": 6}
+        c.put("/sources/mac", {"enabled": False})
+        assert c.mac()["counts"] is None

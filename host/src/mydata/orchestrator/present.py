@@ -1,7 +1,9 @@
 """Turn a tool's result into what the app shows, without a model: a kind, a one-line header, and items.
 
 The header is written here, in code ("3 events on Friday 20 March"), so a list request needs no second
-model call. Items carry only display fields; the app renders them as lists and cards.
+model call. Items carry display fields, plus what opens the item in its own app: a contact's id (myContacts)
+and an event's day, `date` (myCalendar). The engine adds the mode to the event; an app opens items only in
+real mode, where the ids and days are the user's own.
 """
 
 from __future__ import annotations
@@ -115,7 +117,8 @@ def present(tool: str, args: dict, resolved: dict[str, Resolved], result: Any) -
             header = f"{matches[0]['name']}"
         else:
             header = _join(_count(len(matches), "contact", "contacts"), f"named “{args.get('name', '')}”")
-        items = [{"name": c["name"], "email": c.get("email"), "phone": c.get("phone")} for c in matches]
+        items = [{"id": c.get("id"), "name": c["name"], "email": c.get("email"), "phone": c.get("phone")}
+                 for c in matches]
         return {"kind": "contacts", "header": header, "items": items}
     if tool == "search_photos":
         photos = result.get("photos", [])

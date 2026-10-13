@@ -110,3 +110,10 @@ def test_sentence_rule():
     for q in ["What's on my calendar tomorrow?", "Show me pictures of Rishita", "Find emails from Tom",
               "When is my vet appointment?", "Do I have anything on March 31?"]:
         assert not sentence_needed(q), q
+
+
+def test_a_demo_result_says_so_so_no_app_opens_its_sample_items():
+    _, _, events = run("rule", [[call("find_contact", name="Nisha")]], request="Nisha's number")
+    result = next(e for e in events if e["type"] == "result")
+    assert result["mode"] == "demo" and result["kind"] == "contacts"
+    assert [i["id"] for i in result["items"]] == ["c-nisha"]  # sample ids: never opened in myContacts
