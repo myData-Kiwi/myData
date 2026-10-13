@@ -39,9 +39,9 @@ Rules for adding a theme:
 - `on-accent` on `accent` at least 4.5:1 in both modes.
 - `accent` as text on `bg`, `surface` and `accent-soft` at least 4.5:1 in both modes.
 - `ink` on `accent-soft` at least 4.5:1 in both modes.
-- The light and dark values are the same hue. The dark value is lighter, not more saturated.
+- The light and dark values are the same colour family; the dark value is lighter.
 
-All six themes pass these rules by calculation in both modes. They have not been checked by eye on real devices.
+All six themes pass the contrast rules above by calculation in both modes. They have not been checked by eye on real devices.
 
 ## Choosing a theme
 

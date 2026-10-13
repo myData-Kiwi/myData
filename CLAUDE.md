@@ -263,7 +263,6 @@ Full report: `host/results/2026-10-12-a-REPORT.md`. Measured on battery, with BT
   - `mydata_ui` has no GroupedList section that holds arbitrary content (a picker, a form) and no row trailing slot for buttons. `apps/mydata/lib/src/parts.dart` stands in and is marked temporary.
   - The loading "kiwi slice" has not been drawn. `KiwiLoader` (the kiwi mark on a turning badge) is a placeholder.
   - The icon set has not been drawn. The apps use Material outline icons.
-  - `theming.md` says each theme's dark accent has the same hue as its light one; by calculation Kiwi and Amber shift 8–10°. Values unchanged, flagged in `mydata_ui/README.md`.
 - myAssistant's "Open myData" (assistant off) can only bring myData forward. It cannot open it at Settings, because there is no way to send a running myData a command.
 - The phone layouts (floating tab bar, large title) are built and covered by goldens, but have not been run on a phone.
 - Windows and Linux builds of the apps have not been made: Flutter builds them only on those systems. Their code paths compile (`flutter analyze`).

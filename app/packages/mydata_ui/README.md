@@ -27,4 +27,4 @@ The specs, previews and top-level docs were checked against each other; the owne
   - The assistant's input bar is a glass FloatingBar. The solid fallback is `surface` with `shadow-2` and no stroke.
   - Loading: the kiwi mark on a round `paper` badge, turning; still with reduced motion. A placeholder until the kiwi slice is drawn.
   - Appearance has theme and mode only; transparency and motion follow the system; density and text size are not built. Cover (a preview with no spec) is not built.
-- **Flagged, not changed:** `theming.md` says each theme's light and dark accents are the same hue with the dark one no more saturated; by calculation this fails for Kiwi and Amber (8–10° hue shift). The contrast rules all pass (`test/theme_test.dart`).
+- **Theme rule changed in `design/theming.md`:** a theme's light and dark accents were required to be "the same hue", which Kiwi and Amber miss by 8–10°; the rule is now "the same colour family; the dark value is lighter". The contrast rules all pass (`test/theme_test.dart`).
