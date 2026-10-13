@@ -57,7 +57,7 @@ from .. import __version__
 from ..tools import ApprovalError, Registry
 from .appearance import DEFAULT_THEME, THEME_IDS, THEMES
 from .assistant import Assistant
-from .auth import Authenticator
+from .auth import LIFETIME_APPS, Authenticator
 from .logs import LAST_ERROR
 from .state import HostState
 from .mcp import build_mcp
@@ -265,12 +265,44 @@ class ContactOut(BaseModel):
     source: Literal["mac", "icloud"] = Field(description="where the contact comes from")
     notes_included: bool = Field(default=True, description="false when the source never reads notes (This Mac): "
                                                            "show no Notes field")
+    sort_letter: str = Field(description="the contact list's letter group: the first letter of display_name "
+                                         "without accents, upper case; \"#\" when it does not start with a letter "
+                                         "(digits, symbols, Chinese, Japanese kanji or Korean characters)")
+    caption: str | None = Field(default=None, description="the line under the name in the contact list: the "
+                                                          "organisation, else the first email or phone that is not "
+                                                          "already the name; none when there is nothing else to say")
     created_at: str
     modified_at: str
     deleted_at: str | None = None
 
 
+class ContactField(BaseModel):
+    label: str = Field(default="", description="the source's label in sentence case (\"Mobile\", \"Home fax\"), "
+                                               "or a label the user typed, exactly as written; empty when none")
+    value: str = Field(description="as the source wrote it. Birthday: YYYY-MM-DD, or --MM-DD when the year is not "
+                                   "known. Address: plain lines (street, then locality, region and postal code, "
+                                   "then country); `address` has the parts")
+    address: PostalAddress | None = Field(default=None, description="an address's parts, to lay it out in the "
+                                                                    "locale's order; only for kind address")
+
+
+class ContactFieldGroup(BaseModel):
+    # Required, not defaulted: OpenAPI Generator's Dart output cannot compile a defaulted enum.
+    kind: Literal["phone", "email", "address", "birthday", "url", "note"]
+    title: str = Field(description="the group's heading: Phone, Email, Address, Birthday, Links or Notes")
+    items: list[ContactField]
+
+
 class ContactDetailOut(ContactOut):
+    source_label: str = Field(description="the source inside a sentence: \"this Mac\" or \"the iCloud account "
+                                          "<email>\" (\"From this Mac. Change it in Contacts.\")")
+    job_title: str = ""
+    urls: list[LabeledValue] = Field(default=[], description="web addresses as the source wrote them; never "
+                                                            "trusted to say what they open")
+    fields: list[ContactFieldGroup] = Field(description="the contact's values for its page, grouped by kind in this "
+                                                        "order: phone, email, address, birthday, url, note. A kind "
+                                                        "with no values is left out; note only when the source reads "
+                                                        "notes and the note is not empty (never for This Mac)")
     raw_vcard: str | None = Field(default=None, description="the card as the server sent it; only with ?raw=1")
 
 
@@ -278,7 +310,18 @@ class CalendarOut(BaseModel):
     id: str
     account_id: str
     name: str
-    color: str | None = None
+    color: str | None = Field(default=None, description="#RRGGBB as the source gives it (any alpha dropped); none "
+                                                        "when the calendar has no colour")
+    # Required, not defaulted: OpenAPI Generator's Dart output cannot compile a defaulted enum.
+    source: Literal["mac", "icloud"] = Field(description="the source the calendar is read through")
+    source_label: str = Field(description="the source as the calendar list heads its group: \"This Mac\" or "
+                                          "\"iCloud account <email>\"")
+    account_caption: str | None = Field(default=None, description="This Mac only: the account the calendar belongs "
+                                                                  "to on the Mac, as macOS names it (\"iCloud\", "
+                                                                  "\"Google\", \"Exchange\"), or \"Only on this "
+                                                                  "Mac\", \"Birthdays from Contacts\", \"Subscribed\"."
+                                                                  " None for an iCloud account's calendars, and when "
+                                                                  "the Mac names no account")
 
 
 class EventOut(BaseModel):
@@ -360,7 +403,8 @@ class SourceOut(BaseModel):
     state: Literal["idle", "syncing", "error"] | None = None
     last_update: str | None = None
     last_error: str | None = Field(default=None, description="a short message for the user; never a secret")
-    counts: SyncCounts | None = None
+    counts: SyncCounts | None = Field(default=None, description="what the source holds now: for an iCloud account, "
+                                                                 "as of its last sync; for This Mac while it is on")
 
 
 class SourcesOut(BaseModel):
@@ -392,10 +436,12 @@ MAX_EVENT_DAYS = 400
 
 
 SSE_DESCRIPTION = """Server-sent events, one JSON object per `data:` line, `event:` naming the type:
-`reset` {mode, epoch}, `conversation` {conversation_id}, `progress` {tool, label}, `result` {tool, kind, header, items}, `delta` {text},
-`step` {}, `pending_approval` {approval}, `clarify` {options, text}, `message` {text, outcome, by}, `error`
-{message}, `done` {}. A `result` is a tool's result, sent the moment the tool returns, with a header written by
-code; kind is events, mail, contacts, photos or event_created. `delta` text is provisional: on `step` discard
+`reset` {mode, epoch}, `conversation` {conversation_id}, `progress` {tool, label}, `result` {tool, kind, header, items,
+mode}, `delta` {text}, `step` {}, `pending_approval` {approval}, `clarify` {options, text}, `message` {text, outcome,
+by}, `error` {message}, `done` {}. A `result` is a tool's result, sent the moment the tool returns, with a header
+written by code; kind is events, mail, contacts, photos or event_created. Its mode is "real" when the items are
+the user's own data and "demo" for sample data; a contact item carries its id (as in GET /contacts) and an event
+item its day, `date` (YYYY-MM-DD), so a real item can be opened in myContacts or myCalendar. `delta` text is provisional: on `step` discard
 what has streamed so far; `message.text` is the reply, and `message.by` is "code" when the shown result was the
 answer (its text is then the result's header) or "model" for a sentence the model wrote. `reset` comes first when
 the named conversation was ended by a switch between demo and real mode (`epoch` is GET /status's
@@ -507,7 +553,8 @@ def create_app(auth: Authenticator, registry: Registry, models: ModelManager, as
     @app.post("/shutdown", tags=["host"], status_code=202, responses={403: {"description": "only the myData app can stop the host"}})
     def shutdown_host(request: Request) -> dict:
         """Stop the host. Only the myData app (which owns the host's lifetime) and the mydata command may."""
-        if request.state.principal.label not in ("app:mydata", "app:cli"):
+        principal = request.state.principal
+        if principal.kind != "app" or principal.id not in LIFETIME_APPS:
             raise HTTPException(403, "only the myData app can stop the host")
         if shutdown is not None:
             threading.Timer(0.2, shutdown).start()  # after this response is sent
@@ -638,22 +685,33 @@ def _routes_sources(app: FastAPI, need: Callable[[], SyncService], current_mode:
             rows = store.search(query, limit=limit + offset)[offset:]
         else:
             rows = store.list(limit=limit, offset=offset)
-        return [ContactOut(**r) for r in rows]
+        return [ContactOut(**_list_view(r)) for r in rows]
 
     @app.get("/contacts/{contact_id}", tags=["sources"], response_model=ContactDetailOut,
              responses={404: {"description": "no such contact"}, **unavailable})
     def contact(contact_id: str, raw: bool = Query(default=False, description="include the raw vCard")
                 ) -> ContactDetailOut:
-        row = need().contacts.get(contact_id)
+        """One contact, for its page: the fields grouped by kind, the job title and where the card comes from."""
+        from ..sources.vcard import parse_vcard
+        from ..sources.views import contact_fields, source_in_sentence
+        service = need()
+        row = service.contacts.get(contact_id)
         if row is None:
             raise HTTPException(404, "no such contact")
+        card = parse_vcard(row["raw_vcard"])
+        row = _list_view(row)
+        row.update(source_label=source_in_sentence(row["account_id"], service.account_emails().get(row["account_id"])),
+                   job_title=card.job_title, urls=card.urls,
+                   fields=contact_fields(row, urls=card.urls, notes_included=row["notes_included"]))
         if not raw:
             row.pop("raw_vcard", None)
         return ContactDetailOut(**row)
 
     @app.get("/calendars", tags=["sources"], response_model=list[CalendarOut], responses=unavailable)
     def calendars() -> list[CalendarOut]:
-        return [CalendarOut(**c) for c in need().calendar.calendars()]
+        """Every mirrored calendar, grouped by source: This Mac first, then each iCloud account. The same
+        calendar seen through This Mac and through an iCloud account is listed twice, once per source."""
+        return [CalendarOut(**c) for c in need().calendar_list()]
 
     @app.get("/contacts/{contact_id}/photo", tags=["sources"], response_class=Response,
              responses={200: {"content": {"image/jpeg": {"schema": {"type": "string", "format": "binary"}},
@@ -697,6 +755,7 @@ def _routes_sources(app: FastAPI, need: Callable[[], SyncService], current_mode:
 def _routes_mac(app: FastAPI, need: Callable[[], SyncService]) -> None:
     """GET /sources and This Mac's settings. On a host that is not a Mac, the "mac" source is absent and its
     routes answer 404."""
+    from ..sources.mac import MAC_ID
     from ..sources.mac.source import MacNotEnabled, MacUnavailable
     not_mac = {404: {"description": "this host is not a Mac: there is no This Mac source"},
                503: {"description": "accounts are not available in this host"}}
@@ -724,7 +783,10 @@ def _routes_mac(app: FastAPI, need: Callable[[], SyncService]) -> None:
         service = need()
         rows = []
         if service.mac is not None and service.mac.available:
-            rows.append(SourceOut(**service.mac.public()))
+            mac_row = service.mac.public()
+            if service.mac.enabled:  # what it mirrored now; a source that is off holds nothing
+                mac_row["counts"] = SyncCounts(**service.contacts.counts(MAC_ID), **service.calendar.counts(MAC_ID))
+            rows.append(SourceOut(**mac_row))
         return SourcesOut(sources=[*rows, *icloud_rows(service)])
 
     @app.put("/sources/mac", tags=["sources"], response_model=SourceOut,
@@ -780,6 +842,13 @@ def _routes_mac(app: FastAPI, need: Callable[[], SyncService]) -> None:
         except ValueError as e:
             raise HTTPException(400, str(e)) from None
         return SourceOut(**source.public())
+
+
+def _list_view(row: dict) -> dict:
+    """A mirrored contact with what the contact list shows: its letter group and caption."""
+    from ..sources.views import contact_caption, sort_letter
+    return {**row, "sort_letter": sort_letter(row["display_name"]),
+            "caption": contact_caption(row["display_name"], row["organisation"], row["emails"], row["phones"])}
 
 
 def _status_rows(need: Callable[[], SyncService]) -> list[dict]:

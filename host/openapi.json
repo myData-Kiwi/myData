@@ -438,6 +438,18 @@
       },
       "CalendarOut": {
         "properties": {
+          "account_caption": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "This Mac only: the account the calendar belongs to on the Mac, as macOS names it (\"iCloud\", \"Google\", \"Exchange\"), or \"Only on this Mac\", \"Birthdays from Contacts\", \"Subscribed\". None for an iCloud account's calendars, and when the Mac names no account",
+            "title": "Account Caption"
+          },
           "account_id": {
             "title": "Account Id",
             "type": "string"
@@ -451,6 +463,7 @@
                 "type": "null"
               }
             ],
+            "description": "#RRGGBB as the source gives it (any alpha dropped); none when the calendar has no colour",
             "title": "Color"
           },
           "id": {
@@ -460,12 +473,28 @@
           "name": {
             "title": "Name",
             "type": "string"
+          },
+          "source": {
+            "description": "the source the calendar is read through",
+            "enum": [
+              "mac",
+              "icloud"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
+          "source_label": {
+            "description": "the source as the calendar list heads its group: \"This Mac\" or \"iCloud account <email>\"",
+            "title": "Source Label",
+            "type": "string"
           }
         },
         "required": [
           "id",
           "account_id",
-          "name"
+          "name",
+          "source",
+          "source_label"
         ],
         "title": "CalendarOut",
         "type": "object"
@@ -498,6 +527,18 @@
               }
             ],
             "title": "Birthday"
+          },
+          "caption": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "the line under the name in the contact list: the organisation, else the first email or phone that is not already the name; none when there is nothing else to say",
+            "title": "Caption"
           },
           "created_at": {
             "title": "Created At",
@@ -532,6 +573,14 @@
             "title": "Family Name",
             "type": "string"
           },
+          "fields": {
+            "description": "the contact's values for its page, grouped by kind in this order: phone, email, address, birthday, url, note. A kind with no values is left out; note only when the source reads notes and the note is not empty (never for This Mac)",
+            "items": {
+              "$ref": "#/components/schemas/ContactFieldGroup"
+            },
+            "title": "Fields",
+            "type": "array"
+          },
           "full_name": {
             "default": "",
             "title": "Full Name",
@@ -549,6 +598,11 @@
           },
           "id": {
             "title": "Id",
+            "type": "string"
+          },
+          "job_title": {
+            "default": "",
+            "title": "Job Title",
             "type": "string"
           },
           "modified_at": {
@@ -596,6 +650,11 @@
             "description": "the card as the server sent it; only with ?raw=1",
             "title": "Raw Vcard"
           },
+          "sort_letter": {
+            "description": "the contact list's letter group: the first letter of display_name without accents, upper case; \"#\" when it does not start with a letter (digits, symbols, Chinese, Japanese kanji or Korean characters)",
+            "title": "Sort Letter",
+            "type": "string"
+          },
           "source": {
             "description": "where the contact comes from",
             "enum": [
@@ -604,6 +663,20 @@
             ],
             "title": "Source",
             "type": "string"
+          },
+          "source_label": {
+            "description": "the source inside a sentence: \"this Mac\" or \"the iCloud account <email>\" (\"From this Mac. Change it in Contacts.\")",
+            "title": "Source Label",
+            "type": "string"
+          },
+          "urls": {
+            "default": [],
+            "description": "web addresses as the source wrote them; never trusted to say what they open",
+            "items": {
+              "$ref": "#/components/schemas/LabeledValue"
+            },
+            "title": "Urls",
+            "type": "array"
           }
         },
         "required": [
@@ -612,10 +685,79 @@
           "address_book_id",
           "display_name",
           "source",
+          "sort_letter",
           "created_at",
-          "modified_at"
+          "modified_at",
+          "source_label",
+          "fields"
         ],
         "title": "ContactDetailOut",
+        "type": "object"
+      },
+      "ContactField": {
+        "properties": {
+          "address": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PostalAddress"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "an address's parts, to lay it out in the locale's order; only for kind address"
+          },
+          "label": {
+            "default": "",
+            "description": "the source's label in sentence case (\"Mobile\", \"Home fax\"), or a label the user typed, exactly as written; empty when none",
+            "title": "Label",
+            "type": "string"
+          },
+          "value": {
+            "description": "as the source wrote it. Birthday: YYYY-MM-DD, or --MM-DD when the year is not known. Address: plain lines (street, then locality, region and postal code, then country); `address` has the parts",
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "value"
+        ],
+        "title": "ContactField",
+        "type": "object"
+      },
+      "ContactFieldGroup": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ContactField"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "kind": {
+            "enum": [
+              "phone",
+              "email",
+              "address",
+              "birthday",
+              "url",
+              "note"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "title": {
+            "description": "the group's heading: Phone, Email, Address, Birthday, Links or Notes",
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "title",
+          "items"
+        ],
+        "title": "ContactFieldGroup",
         "type": "object"
       },
       "ContactOut": {
@@ -646,6 +788,18 @@
               }
             ],
             "title": "Birthday"
+          },
+          "caption": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "the line under the name in the contact list: the organisation, else the first email or phone that is not already the name; none when there is nothing else to say",
+            "title": "Caption"
           },
           "created_at": {
             "title": "Created At",
@@ -732,6 +886,11 @@
             "title": "Phones",
             "type": "array"
           },
+          "sort_letter": {
+            "description": "the contact list's letter group: the first letter of display_name without accents, upper case; \"#\" when it does not start with a letter (digits, symbols, Chinese, Japanese kanji or Korean characters)",
+            "title": "Sort Letter",
+            "type": "string"
+          },
           "source": {
             "description": "where the contact comes from",
             "enum": [
@@ -748,6 +907,7 @@
           "address_book_id",
           "display_name",
           "source",
+          "sort_letter",
           "created_at",
           "modified_at"
         ],
@@ -1411,7 +1571,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "what the source holds now: for an iCloud account, as of its last sync; for This Mac while it is on"
           },
           "decided": {
             "anyOf": [
@@ -2698,7 +2859,7 @@
                 }
               }
             },
-            "description": "Server-sent events, one JSON object per `data:` line, `event:` naming the type:\n`reset` {mode, epoch}, `conversation` {conversation_id}, `progress` {tool, label}, `result` {tool, kind, header, items}, `delta` {text},\n`step` {}, `pending_approval` {approval}, `clarify` {options, text}, `message` {text, outcome, by}, `error`\n{message}, `done` {}. A `result` is a tool's result, sent the moment the tool returns, with a header written by\ncode; kind is events, mail, contacts, photos or event_created. `delta` text is provisional: on `step` discard\nwhat has streamed so far; `message.text` is the reply, and `message.by` is \"code\" when the shown result was the\nanswer (its text is then the result's header) or \"model\" for a sentence the model wrote. `reset` comes first when\nthe named conversation was ended by a switch between demo and real mode (`epoch` is GET /status's\nconversation_epoch): the message starts a new conversation, whose id the `conversation` event that follows\ngives."
+            "description": "Server-sent events, one JSON object per `data:` line, `event:` naming the type:\n`reset` {mode, epoch}, `conversation` {conversation_id}, `progress` {tool, label}, `result` {tool, kind, header, items,\nmode}, `delta` {text}, `step` {}, `pending_approval` {approval}, `clarify` {options, text}, `message` {text, outcome,\nby}, `error` {message}, `done` {}. A `result` is a tool's result, sent the moment the tool returns, with a header\nwritten by code; kind is events, mail, contacts, photos or event_created. Its mode is \"real\" when the items are\nthe user's own data and \"demo\" for sample data; a contact item carries its id (as in GET /contacts) and an event\nitem its day, `date` (YYYY-MM-DD), so a real item can be opened in myContacts or myCalendar. `delta` text is provisional: on `step` discard\nwhat has streamed so far; `message.text` is the reply, and `message.by` is \"code\" when the shown result was the\nanswer (its text is then the result's header) or \"model\" for a sentence the model wrote. `reset` comes first when\nthe named conversation was ended by a switch between demo and real mode (`epoch` is GET /status's\nconversation_epoch): the message starts a new conversation, whose id the `conversation` event that follows\ngives."
           },
           "401": {
             "content": {
@@ -2824,6 +2985,7 @@
     },
     "/calendars": {
       "get": {
+        "description": "Every mirrored calendar, grouped by source: This Mac first, then each iCloud account. The same\ncalendar seen through This Mac and through an iCloud account is listed twice, once per source.",
         "operationId": "calendars",
         "responses": {
           "200": {
@@ -2995,6 +3157,7 @@
     },
     "/contacts/{contact_id}": {
       "get": {
+        "description": "One contact, for its page: the fields grouped by kind, the job title and where the card comes from.",
         "operationId": "contact",
         "parameters": [
           {

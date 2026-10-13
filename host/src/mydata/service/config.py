@@ -6,7 +6,7 @@ Everything lives in one per-user folder (override with MYDATA_HOME):
   Windows %APPDATA%\\myData
 
   config.toml   settings (written with defaults on first start)
-  app-tokens/   one token per app (mydata, myassistant, cli), each readable only by this user
+  app-tokens/   one token per app (mydata, myassistant, mycontacts, mycalendar, cli), each readable only by this user
   agents.json   agent tokens (hashes only), managed with `mydata agent ...`
   mydatad.pid   the running service's process id
   logs/         mydatad.log (structured), assistant.jsonl (every assistant request)

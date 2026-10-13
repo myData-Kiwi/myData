@@ -1,9 +1,12 @@
 """Who is calling: app tokens and agent tokens.
 
-- App tokens: one per app that acts for the user (the myData app, myAssistant, the mydata command).
-  The host creates them on start, each in its own file readable only by the user
-  (<home>/app-tokens/<app>). An app token can do everything, including approving held calls,
-  and approvals record which app decided.
+- App tokens: one per app that acts for the user (the myData app, myAssistant, myContacts, myCalendar,
+  the mydata command). The host creates them on start, each in its own file readable only by the user
+  (<home>/app-tokens/<app>). The myData app, myAssistant and the mydata command can do everything,
+  including approving held calls, and approvals record which app decided; only the myData app and the
+  mydata command may stop the host (POST /shutdown). myContacts and myCalendar only read: their tokens
+  get GET and nothing else (READ_ONLY_APPS), so they cannot approve, mint agent tokens, change
+  sources or settings, or use /mcp.
 - Agent tokens: for MCP agents. Created, listed and revoked with `mydata agent ...` or from the
   myData app. Only their SHA-256 hash is stored (<home>/agents.json). An agent token reaches
   /mcp and nothing else: no approvals, no assistant, no status.
@@ -26,7 +29,11 @@ from pathlib import Path
 
 from .security import ensure_token
 
-APPS = ("mydata", "myassistant", "cli")
+APPS = ("mydata", "myassistant", "mycontacts", "mycalendar", "cli")
+# The apps that own the host's lifetime: only they may stop it (POST /shutdown).
+LIFETIME_APPS = ("mydata", "cli")
+# The apps that only read: any request but GET from them is refused (security.GuardMiddleware).
+READ_ONLY_APPS = ("mycontacts", "mycalendar")
 AGENT_PREFIX = "mda_"
 # An agent counts as connected if it made a request this recently.
 CONNECTED_WITHIN = 300.0
@@ -41,6 +48,11 @@ class Principal:
     @property
     def label(self) -> str:
         return f"{self.kind}:{self.name}"
+
+    @property
+    def read_only(self) -> bool:
+        """An app that may only read (myContacts, myCalendar)."""
+        return self.kind == "app" and self.id in READ_ONLY_APPS
 
 
 def app_token_path(home: Path, app: str) -> Path:

@@ -3,8 +3,8 @@
 The raw card is always kept beside these fields, so anything not parsed here (photos, custom fields)
 is still on the host. FN, NICKNAME and NOTE are read from the card's own text rather than from vobject,
 which cuts text values at the first comma: NICKNAME is a comma-separated list (RFC 2426/6350) and is
-kept whole, and so is an FN or NOTE with an unescaped comma. Parsing never raises: a card vobject cannot read comes back with only what a
-line scan finds (UID, FN, N, ORG, EMAIL, TEL), so one broken card cannot stop a sync.
+kept whole, and so is an FN, TITLE or NOTE with an unescaped comma. Parsing never raises: a card vobject cannot read comes back with only what a
+line scan finds (UID, FN, N, ORG, TITLE, EMAIL, TEL, URL), so one broken card cannot stop a sync.
 """
 
 from __future__ import annotations
@@ -40,10 +40,12 @@ class ParsedContact:
     family_name: str = ""
     nickname: str = ""
     organisation: str = ""
+    job_title: str = ""
     emails: list[dict] = field(default_factory=list)
     phones: list[dict] = field(default_factory=list)
     addresses: list[dict] = field(default_factory=list)
     birthday: str | None = None
+    urls: list[dict] = field(default_factory=list)
     note: str = ""
     has_photo: bool = False
 
@@ -196,9 +198,10 @@ def _split_list(value: str) -> list[str]:
 
 
 def _text_props(text: str, out: ParsedContact) -> None:
-    """Set full_name, nickname and note from the card's text (see the module docstring). A
+    """Set full_name, job_title, nickname and note from the card's text (see the module docstring). A
     quoted-printable value (vCard 2.1) is left to vobject, which decodes it."""
     full_name: str | None = None
+    job_title: str | None = None
     nicknames: list[str] = []
     note: str | None = None
     for name, params, value in _properties(text):
@@ -206,12 +209,16 @@ def _text_props(text: str, out: ParsedContact) -> None:
             continue
         if name == "FN" and full_name is None and value.strip():
             full_name = _unescape(value).strip()
+        elif name == "TITLE" and job_title is None and value.strip():
+            job_title = _unescape(value).strip()
         elif name == "NICKNAME":
             nicknames.extend(n for n in _split_list(value) if n not in nicknames)
         elif name == "NOTE" and note is None and value.strip():
             note = _unescape(value).strip()
     if full_name is not None:
         out.full_name = full_name
+    if job_title is not None:
+        out.job_title = job_title
     if nicknames:
         out.nickname = ", ".join(nicknames)
     if note is not None:
@@ -240,6 +247,8 @@ def _from_vobject(card) -> ParsedContact:
             out.nickname = out.nickname or _text(line.value)
         elif name == "ORG":
             out.organisation = out.organisation or _text(line.value)
+        elif name == "TITLE":
+            out.job_title = out.job_title or _text(line.value)
         elif name == "EMAIL":
             value = _text(line.value)
             if value:
@@ -262,6 +271,10 @@ def _from_vobject(card) -> ParsedContact:
                 out.addresses.append(address)
         elif name == "BDAY":
             out.birthday = out.birthday or _birthday(line)
+        elif name == "URL":
+            value = _text(line.value)
+            if value:
+                out.urls.append({"value": value, "label": _label(line, group_labels)})
         elif name == "NOTE":
             out.note = out.note or _text(line.value)
         elif name == "PHOTO":
@@ -292,6 +305,10 @@ def _scan(text: str) -> ParsedContact:
             out.given_name = parts[1].strip() if len(parts) > 1 else ""
         elif prop == "ORG":
             out.organisation = out.organisation or value.split(";")[0].strip()
+        elif prop == "TITLE":
+            out.job_title = out.job_title or value
+        elif prop == "URL" and value:
+            out.urls.append({"value": value, "label": ""})
         elif prop == "EMAIL" and value:
             out.emails.append({"value": value, "label": ""})
         elif prop == "TEL" and value:

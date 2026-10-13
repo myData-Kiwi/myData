@@ -96,12 +96,17 @@ def _host_ok(host_header: str) -> bool:
     return _LOCAL_HOST.fullmatch(host_header.strip().lower()) is not None
 
 
+_READ_METHODS = ("GET",)
+
+
 class GuardMiddleware:
     """Pure ASGI middleware (does not buffer streamed responses) in front of every route, /mcp included.
 
     - Host header must name this machine (421 otherwise).
     - `Authorization: Bearer <token>` must be an app token or a live agent token (401 otherwise).
     - Agent tokens reach /mcp only (403 anywhere else).
+    - Read-only app tokens (myContacts, myCalendar) may only GET (403 for anything else, /mcp
+      included).
     The caller is passed on as scope["state"]["principal"] (auth.Principal), for the routes to record."""
 
     def __init__(self, app, authenticate):
@@ -122,6 +127,8 @@ class GuardMiddleware:
             return await _reject(send, 401, "missing or wrong token", {"www-authenticate": "Bearer"})
         if principal.kind == "agent" and scope.get("path") != "/mcp":
             return await _reject(send, 403, "agent tokens can only use /mcp")
+        if principal.read_only and scope.get("method") not in _READ_METHODS:
+            return await _reject(send, 403, f"the {principal.name} app can only read")
         scope.setdefault("state", {})["principal"] = principal
         return await self.app(scope, receive, send)
 

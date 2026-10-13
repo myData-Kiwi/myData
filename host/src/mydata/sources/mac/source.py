@@ -233,6 +233,12 @@ class MacSource:
             "last_update": s.get("last_update"), "last_error": s.get("last_error"),
         }
 
+    def calendar_accounts(self) -> dict[str, dict]:
+        """{calendar id: {"source_name", "source_kind"}} for the calendars the helper last listed: the account
+        each belongs to on the Mac, as macOS names and classifies it."""
+        return {c["id"]: {"source_name": c.get("source_name", "") or "", "source_kind": c.get("source_kind", "")}
+                for c in self._known("known_calendars")}
+
     def coverage_note(self) -> dict | None:
         """This Mac as a coverage entry with no range, for when the calendar store holds no window for it:
         why ("no_access" or "not_read_yet"). None when it is off. The sync service adds it only when the

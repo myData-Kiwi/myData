@@ -25,6 +25,7 @@ from .dav.sync import CollectionState, SyncResult
 from .mac import MAC_ID
 from .vcard import parse_vcard, phone_search_forms
 from .vcard import photo as card_photo
+from .views import compare_names
 
 _SEARCH_COLUMNS = (
     "display_name", "full_name", "given_name", "family_name", "nickname", "organisation", "search_emails",
@@ -299,11 +300,14 @@ class ContactsStore:
         return [dict(r) for r in rows]
 
     def list(self, limit: int = 500, offset: int = 0) -> list[dict]:
+        """Contacts by name, ignoring case and accents (views.sort_key), so a letter group is never split by
+        an accented name: SQLite's NOCASE folds ASCII only and would put "Émile" after "Zed"."""
         limit, offset = _bounded(limit), max(int(offset), 0)
         with self.db.connect() as db:
+            db.create_collation("MYDATA_NAME", compare_names)
             rows = db.execute(
                 "SELECT * FROM contacts WHERE deleted_at IS NULL "
-                "ORDER BY display_name COLLATE NOCASE, id LIMIT ? OFFSET ?",
+                "ORDER BY display_name COLLATE MYDATA_NAME, id LIMIT ? OFFSET ?",
                 (limit, offset),
             ).fetchall()
         return [_row(r) for r in rows]

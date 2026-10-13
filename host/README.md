@@ -12,7 +12,7 @@ uv run pytest -q         # all tests; no model needed
 ```
 
 **Tokens.** Every request needs `Authorization: Bearer <token>`.
-- **App tokens**, one per app (`app-tokens/mydata`, `myassistant`, `cli`), each readable only by you. They can use every route, including approving held calls. Each approval records which app decided.
+- **App tokens**, one per app (`app-tokens/mydata`, `myassistant`, `mycontacts`, `mycalendar`, `cli`), each readable only by you. `mydata`, `myassistant` and `cli` can use every route, including approving held calls; only `mydata` and `cli` may stop the host (`/shutdown`). Each approval records which app decided. `mycontacts` and `mycalendar` only read: any request but GET from them gets 403, `/mcp` included.
 - **Agent tokens**, for MCP agents (`uv run mydata agent create|list|revoke`, or from the myData app). They reach `/mcp` only, and only their hash is stored (`agents.json`).
 
 **Accounts** (read-only mirrors). `uv run mydata account add icloud [--email EMAIL]` asks for an app-specific password (made at account.apple.com), checks it by running discovery, and only then stores it, in the macOS Keychain (service `mydata`, item `account:<id>`). `accounts.json` holds id, provider, email and date, never the password. `mydata account list`; `mydata account remove ID [--yes]` deletes the account's mirrored contacts and calendars and its Keychain item. The apps do the same through `/accounts`. While the host runs, it syncs every account at start, every 15 minutes and on "Sync now", one account at a time, backing off on errors (15 min, 30 min, 1 h, 2 h, then every 4 h). Only `PROPFIND`, `REPORT`, `OPTIONS` and `GET` are ever sent (`sources/dav/client.py`).
@@ -21,7 +21,7 @@ uv run pytest -q         # all tests; no model needed
 
 **What it serves.** Only `127.0.0.1`, port 47821 by default.
 - `GET /status`: version, model state and download progress.
-- `POST /assistant/messages`: one message, with the reply streamed as server-sent events.
+- `POST /assistant/messages`: one message, with the reply streamed as server-sent events. A `result` event says its `mode` ("real" or "demo"); a contact item carries its `id` and an event item its day (`date`), so myAssistant can open a real one in myContacts or myCalendar.
 - `GET /approvals`, `GET /approvals/{id}`, `POST /approvals/{id}`: approvals.
 - `GET /tools`: the tool registry.
 - `/mcp`: MCP over Streamable HTTP, on the same tool registry and the same gate.
@@ -29,7 +29,8 @@ uv run pytest -q         # all tests; no model needed
 - `POST /model/retry`: try again to get the model ready.
 - `GET /accounts`, `POST /accounts`, `DELETE /accounts/{id}`, `POST /accounts/{id}/sync`: linked accounts. The password is accepted when adding, verified first, and never returned.
 - `GET /sync`: the mode and each account's sync status.
-- `GET /contacts?query=&limit=&offset=`, `GET /contacts/{id}` (`?raw=1` adds the vCard), `GET /calendars`, `GET /events?start=&end=&calendar=`: the mirror, with recurring events expanded.
+- `GET /sources`: This Mac (on a Mac host) and each followed iCloud account, with `counts` of what each holds (This Mac's while it is on; an iCloud account's as of its last sync).
+- `GET /contacts?query=&limit=&offset=`, `GET /contacts/{id}` (`?raw=1` adds the vCard), `GET /calendars`, `GET /events?start=&end=&calendar=`: the mirror, with recurring events expanded. What the apps show is worked out here, once (`sources/views.py`, following `design/components`): each contact's `sort_letter` and `caption` for the list; on a contact, `source_label` ("this Mac", "the iCloud account …"), `job_title`, `urls` and `fields` grouped by kind (phone, email, address, birthday, url, note; notes never for This Mac) with labels in sentence case; each calendar's `source`, `source_label` ("This Mac", "iCloud account …") and, under This Mac, `account_caption` (the Mac's account name, or "Only on this Mac", "Birthdays from Contacts", "Subscribed").
 
 `openapi.json` is generated from the app (`uv run mydata openapi --out openapi.json`). A test fails if it goes stale.
 

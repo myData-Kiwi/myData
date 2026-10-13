@@ -189,6 +189,36 @@ class SyncService:
             out.append(note)
         return out
 
+    def account_emails(self) -> dict[str, str]:
+        """{account id: email} for the linked iCloud accounts, to name a source to the user."""
+        return {a.id: a.email for a in self.accounts.list()}
+
+    def calendar_list(self) -> list[dict]:
+        """Every mirrored calendar for GET /calendars, grouped by source: This Mac first, then each iCloud
+        account by email; by name within a source. Each has its source, the source's name as a heading
+        and, for This Mac, the account it belongs to on the Mac (views.account_caption)."""
+        from ..sources.calendar_store import source_of
+        from ..sources.mac.source import CALENDARS_URL
+        from ..sources.views import account_caption, data_colour, source_heading
+
+        emails = self.account_emails()
+        on_mac = self.mac.calendar_accounts() if self.mac is not None else {}
+        out = []
+        for c in self.calendar.calendars():
+            account_id = c["account_id"]
+            caption = None
+            if account_id == MAC_ID:
+                mac_id = c["url"][len(CALENDARS_URL):] if c["url"].startswith(CALENDARS_URL) else ""
+                info = on_mac.get(mac_id)
+                caption = account_caption(info["source_kind"], info["source_name"]) if info else None
+            out.append({"id": c["id"], "account_id": account_id, "name": c["name"], "color": data_colour(c["color"]),
+                        "source": source_of(account_id),
+                        "source_label": source_heading(account_id, emails.get(account_id)),
+                        "account_caption": caption})
+        out.sort(key=lambda c: (c["source"] != "mac", c["source_label"].casefold(), c["account_id"],
+                                c["name"].casefold()))
+        return out
+
     # ---------------------------------------------------------------- stores (opened on first use)
 
     @property
