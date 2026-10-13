@@ -205,7 +205,8 @@ def cmd_account(settings: Settings, ns: argparse.Namespace) -> int:
     if ns.action == "add":
         name = PROVIDER_NAMES[ns.provider]
         try:
-            email = (ns.email or input(f"{name} email: ")).strip()
+            email = (ns.email or input("Apple Account email (may differ from an address on your own domain): ")
+                     ).strip()
             print(APP_PASSWORD_HELP)
             password = getpass.getpass("App-specific password: ").strip()
         except (EOFError, KeyboardInterrupt):

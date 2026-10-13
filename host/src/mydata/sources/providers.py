@@ -11,8 +11,14 @@ ICLOUD = {"contacts": "https://contacts.icloud.com", "calendar": "https://caldav
 
 PROVIDERS = {"icloud": ICLOUD}
 PROVIDER_NAMES = {"icloud": "iCloud"}
-APP_PASSWORD_HELP = ("Use an app-specific password, not your Apple Account password. Make one at "
-                     "https://account.apple.com (Sign-In and Security > App-Specific Passwords).")
+APP_PASSWORD_HELP = ("Use the email of your Apple Account (the one you sign in to Apple with, which may differ "
+                     "from an address on your own domain) and an app-specific password, not your Apple Account "
+                     "password. Make one at https://account.apple.com (Sign-In and Security > App-Specific "
+                     "Passwords).")
+# The sign-in was refused (HTTP 401 or 403). A common cause: an iCloud+ custom-domain address, which is
+# not the Apple Account's sign-in email.
+REJECTED = ("Apple did not accept this sign-in. Use the email of your Apple Account, which may differ from an "
+            "address on your own domain, and an app-specific password made at account.apple.com.")
 
 
 class VerificationError(Exception):
@@ -38,8 +44,7 @@ def verify_icloud(email: str, password: str, *, transport=None) -> None:
             except DavError as e:
                 status = getattr(e, "status", None)
                 if status in (401, 403):
-                    raise VerificationError(
-                        "iCloud did not accept this email and app-specific password.") from None
+                    raise VerificationError(REJECTED) from None
                 if status is None:  # a network failure: nothing was answered
                     raise VerificationError(f"Could not reach iCloud {kind}. Check the connection and try "
                                             "again.") from None
