@@ -11,3 +11,5 @@ workspace:
   - packages/mydata_testing
   - apps/mydata
   - apps/myassistant
+  - apps/mycontacts
+  - apps/mycalendar
