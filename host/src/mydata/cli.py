@@ -9,11 +9,15 @@
     mydata agent list          list agent tokens
     mydata agent revoke ID     revoke an agent token (by id or name)
     mydata dev-setup           tell the apps how to start this development host (writes app_config.json)
+    mydata account add icloud [--email EMAIL]   link an iCloud account (read-only mirror of contacts and calendars)
+    mydata account list                         list linked accounts
+    mydata account remove ID [--yes]            unlink an account and delete its mirrored data
 """
 
 from __future__ import annotations
 
 import argparse
+import getpass
 import json
 import os
 import signal
@@ -57,9 +61,13 @@ def cmd_start(settings: Settings) -> int:
         status = _get_status(settings)
         print(_describe(status) if status else f"mydatad is already running (pid {pid})")
         return 0
-    settings.log_dir.mkdir(parents=True, exist_ok=True)
+    from .service.config import private_dir, private_file
+    private_dir(settings.home)
+    private_dir(settings.log_dir)
     # Only what is printed before logging starts (config errors, crashes) lands here; kept per start.
-    out = open(settings.log_dir / "mydatad.out", "wb")
+    out_path = settings.log_dir / "mydatad.out"
+    out = os.fdopen(os.open(out_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "wb")
+    private_file(out_path)
     kwargs: dict = {"stdout": out, "stderr": subprocess.STDOUT, "stdin": subprocess.DEVNULL,
                     "env": {**os.environ, "MYDATA_DETACHED": "1"}}
     if sys.platform.startswith("win"):
@@ -154,10 +162,100 @@ def cmd_agent(settings: Settings, ns: argparse.Namespace) -> int:
     return 0
 
 
+def _secret_store():
+    from .sources.secrets import default_secret_store
+    return default_secret_store()
+
+
+def _verify(provider: str, email: str, password: str) -> None:
+    """Discovery against the provider; raises VerificationError (never containing the password)."""
+    from .sources.providers import VERIFIERS
+    VERIFIERS[provider](email, password)
+
+
+def _remove_account_data(settings: Settings, account) -> None:
+    """Hard-delete the account's mirrored contacts and calendars. Files that do not exist are left alone."""
+    from .sources.calendar_store import CalendarStore
+    from .sources.contacts_store import ContactsStore
+    for cls, name in ((ContactsStore, "contacts.sqlite"), (CalendarStore, "calendar.sqlite")):
+        path = settings.home / name
+        if not path.exists():
+            continue
+        store = cls(path)
+        try:
+            store.delete_account(account.id)
+        finally:
+            close = getattr(store, "close", None)
+            if close:
+                close()
+
+
+def cmd_account(settings: Settings, ns: argparse.Namespace) -> int:
+    from .sources.accounts import Accounts
+    from .sources.providers import APP_PASSWORD_HELP, PROVIDER_NAMES, VerificationError
+    from .sources.secrets import SecretStoreError
+    accounts = Accounts(settings.home, _secret_store())
+    if ns.action == "list":
+        rows = accounts.list()
+        if not rows:
+            print("No accounts.")
+        for a in rows:
+            print(f"{a.id}  {PROVIDER_NAMES.get(a.provider, a.provider):7}  {a.email:32}  created {a.created_at}")
+        return 0
+    if ns.action == "add":
+        name = PROVIDER_NAMES[ns.provider]
+        try:
+            email = (ns.email or input(f"{name} email: ")).strip()
+            print(APP_PASSWORD_HELP)
+            password = getpass.getpass("App-specific password: ").strip()
+        except (EOFError, KeyboardInterrupt):
+            print("\nmydata: cancelled", file=sys.stderr)
+            return 1
+        print(f"Checking with {name}...")
+        try:
+            account = accounts.add(ns.provider, email, password,
+                                   verify=lambda e, p: _verify(ns.provider, e, p))
+        except ValueError as e:
+            print(f"mydata: {e}", file=sys.stderr)
+            return 2
+        except (VerificationError, SecretStoreError) as e:
+            print(f"mydata: {e} Nothing was stored.", file=sys.stderr)
+            return 1
+        finally:
+            password = ""
+        print(f"Added {name} account {account.email} (id {account.id}). Read-only: nothing is ever changed in {name}.")
+        print("The running host notices it within seconds and syncs it." if daemon_pid(settings)
+              else "The host syncs it when it runs (mydata start).")
+        return 0
+    account = accounts.get(ns.ref)
+    if account is None:
+        print(f"mydata: no account with id {ns.ref!r} (see mydata account list)", file=sys.stderr)
+        return 1
+    name = PROVIDER_NAMES.get(account.provider, account.provider)
+    if not ns.yes:
+        try:
+            answer = input(f"Remove {name} account {account.email} and delete its mirrored contacts and "
+                           f"calendars from this host? Nothing changes in {name}. [y/N] ")
+        except (EOFError, KeyboardInterrupt):
+            answer = ""
+        if answer.strip().lower() not in ("y", "yes"):
+            print("Not removed.")
+            return 1
+    try:
+        accounts.remove(account.id, on_remove=lambda a: _remove_account_data(settings, a))
+    except SecretStoreError as e:
+        print(f"mydata: {e}", file=sys.stderr)
+        return 1
+    print(f"Removed {name} account {account.email} (id {account.id}): its mirrored data and its Keychain "
+          f"item are deleted.")
+    return 0
+
+
 def cmd_dev_setup(settings: Settings) -> int:
     """The apps start the host with the command in <home>/app_config.json. In development that is this
     checkout's Python running `mydata start`; a packaged install will start a bundled host binary instead."""
-    settings.home.mkdir(parents=True, exist_ok=True)
+    from .service.config import private_dir
+    private_dir(settings.home)
     config = {
         "host_command": [sys.executable, "-m", "mydata.cli", "start"],
         "note": "Development: written by `mydata dev-setup`. The apps run this to start the host.",
@@ -180,6 +278,15 @@ def main(argv: list[str] | None = None) -> int:
     agsub.add_parser("create").add_argument("name")
     agsub.add_parser("list")
     agsub.add_parser("revoke").add_argument("ref", metavar="ID")
+    ac = sub.add_parser("account", help="link accounts to mirror (read-only)")
+    acsub = ac.add_subparsers(dest="action", required=True)
+    add = acsub.add_parser("add", help="link an account; asks for an app-specific password")
+    add.add_argument("provider", choices=["icloud"])
+    add.add_argument("--email")
+    acsub.add_parser("list")
+    rm = acsub.add_parser("remove", help="unlink an account and delete its mirrored data")
+    rm.add_argument("ref", metavar="ID")
+    rm.add_argument("--yes", action="store_true", help="do not ask to confirm")
     ns = ap.parse_args(argv)
     if ns.cmd == "openapi":
         return cmd_openapi(ns.out)
@@ -193,6 +300,8 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     if ns.cmd == "agent":
         return cmd_agent(settings, ns)
+    if ns.cmd == "account":
+        return cmd_account(settings, ns)
     if ns.cmd == "dev-setup":
         return cmd_dev_setup(settings)
     return {"start": cmd_start, "stop": cmd_stop, "status": cmd_status}[ns.cmd](settings)
