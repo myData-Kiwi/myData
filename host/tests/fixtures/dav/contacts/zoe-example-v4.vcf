@@ -1,0 +1,11 @@
+BEGIN:VCARD
+VERSION:4.0
+UID:urn:uuid:00000000-0000-4000-8000-00000000a002
+FN:Zoë Exämple
+N:Exämple;Zoë;;;
+EMAIL;TYPE=work;PREF=1:zoe@example.org
+EMAIL;TYPE=home:zoe.home@example.net
+TEL;VALUE=uri;TYPE="voice,cell":tel:+44-20-7946-0123
+BDAY:19900401
+PHOTO:data:image/png;base64,iVBORw0KGgo=
+END:VCARD

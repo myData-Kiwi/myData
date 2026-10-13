@@ -1,0 +1,7 @@
+BEGIN:VCARD
+VERSION:3.0
+N:Sample;Sam;;;
+FN:Sam Sample
+EMAIL;type=INTERNET:sam.sample@example.com
+UID:00000000-0000-4000-8000-00000000a007
+END:VCARD

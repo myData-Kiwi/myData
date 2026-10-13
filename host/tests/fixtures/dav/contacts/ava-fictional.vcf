@@ -1,0 +1,25 @@
+BEGIN:VCARD
+VERSION:3.0
+PRODID:-//Apple Inc.//iPhone OS 17.0//EN
+N:Fictional;Ava;;;
+FN:Ava Fictional
+NICKNAME:Avi
+ORG:Example Widgets;Research
+item1.EMAIL;type=INTERNET;type=pref:ava@example.com
+item1.X-ABLabel:_$!<Work>!$_
+EMAIL;type=INTERNET;type=HOME:ava.home@example.net
+item2.EMAIL;type=INTERNET:ava.club@example.org
+item2.X-ABLabel:Chess club
+TEL;type=CELL;type=VOICE;type=pref:+1 (555) 010-0100
+TEL;type=HOME;type=VOICE:+44 20 7946 0000
+item3.TEL:+1 555 0199
+item3.X-ABLabel:Gym locker
+item4.ADR;type=HOME;type=pref:;;1 Example Street;Springfield;;12345;Exampleland
+item4.X-ABADR:us
+BDAY;X-APPLE-OMIT-YEAR=1604:1604-04-15
+NOTE:Met at the invented conference\, row two.\nBrings biscuits.
+PHOTO;ENCODING=b;TYPE=JPEG:/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDAsMDQ0MDQ4P
+ DxAQEBEREhITExMUFBQVFRUWFhYXFxcYGBgZGRka
+UID:3F1C0F0E-0000-4000-8000-00000000A001
+X-ABUID:3F1C0F0E-0000-4000-8000-00000000A001:ABPerson
+END:VCARD
