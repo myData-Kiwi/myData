@@ -1559,6 +1559,12 @@
             "title": "Assistant Enabled",
             "type": "boolean"
           },
+          "conversation_epoch": {
+            "description": "moves on by one at every switch between demo and real mode, which ends every conversation: an app that sees it change starts a new conversation and says why",
+            "minimum": 0.0,
+            "title": "Conversation Epoch",
+            "type": "integer"
+          },
           "demo_date": {
             "description": "true while today is pinned to the demo data's date",
             "title": "Demo Date",
@@ -1630,7 +1636,8 @@
           "today",
           "demo_date",
           "theme",
-          "mode"
+          "mode",
+          "conversation_epoch"
         ],
         "title": "StatusOut",
         "type": "object"
@@ -2691,7 +2698,7 @@
                 }
               }
             },
-            "description": "Server-sent events, one JSON object per `data:` line, `event:` naming the type:\n`conversation` {conversation_id}, `progress` {tool, label}, `result` {tool, kind, header, items}, `delta` {text},\n`step` {}, `pending_approval` {approval}, `clarify` {options, text}, `message` {text, outcome, by}, `error`\n{message}, `done` {}. A `result` is a tool's result, sent the moment the tool returns, with a header written by\ncode; kind is events, mail, contacts, photos or event_created. `delta` text is provisional: on `step` discard\nwhat has streamed so far; `message.text` is the reply, and `message.by` is \"code\" when the shown result was the\nanswer (its text is then the result's header) or \"model\" for a sentence the model wrote."
+            "description": "Server-sent events, one JSON object per `data:` line, `event:` naming the type:\n`reset` {mode, epoch}, `conversation` {conversation_id}, `progress` {tool, label}, `result` {tool, kind, header, items}, `delta` {text},\n`step` {}, `pending_approval` {approval}, `clarify` {options, text}, `message` {text, outcome, by}, `error`\n{message}, `done` {}. A `result` is a tool's result, sent the moment the tool returns, with a header written by\ncode; kind is events, mail, contacts, photos or event_created. `delta` text is provisional: on `step` discard\nwhat has streamed so far; `message.text` is the reply, and `message.by` is \"code\" when the shown result was the\nanswer (its text is then the result's header) or \"model\" for a sentence the model wrote. `reset` comes first when\nthe named conversation was ended by a switch between demo and real mode (`epoch` is GET /status's\nconversation_epoch): the message starts a new conversation, whose id the `conversation` event that follows\ngives."
           },
           "401": {
             "content": {

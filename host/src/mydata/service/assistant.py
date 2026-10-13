@@ -1,9 +1,14 @@
 """Our own assistant, served by the host: conversations on top of the orchestrator.
 
 Conversations are kept in memory (lost when the host restarts, and ended when the host switches between
-demo and real mode). A message runs the orchestrator in a worker thread and yields events as they happen:
+demo and real mode). Each switch moves the conversation epoch on (modes.py); a conversation belongs to the
+epoch it started in, and a message to one from another epoch starts a new conversation instead. A message
+runs the orchestrator in a worker thread and yields events as they happen:
 
-  conversation      {"conversation_id"}                     first event of every reply
+  reset             {"mode", "epoch"}                       the conversation named in the request was ended by
+                                                            a switch of mode; a new one starts (its
+                                                            conversation event follows)
+  conversation      {"conversation_id"}                     first event of every reply (after a reset)
   progress          {"tool", "label"}                       a tool is running ("Searching mail")
   result            {"tool", "kind", "header", "items"}     a tool's result, shown at once (kind: events, mail,
                                                             contacts, photos, event_created); header by code
@@ -22,6 +27,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import secrets
 import threading
 import time
@@ -36,6 +42,10 @@ from .config import Settings, private_dir
 from .logs import log, open_private
 
 logger = logging.getLogger("mydata.assistant")
+
+# Conversation ids the host makes carry their epoch ("e3.<random>"), so one from before a restart is still
+# known to be from an older epoch.
+_EPOCH_ID = re.compile(r"^e(\d+)\.")
 
 
 class Assistant:
@@ -53,6 +63,10 @@ class Assistant:
         self._today = today
         self.today = today
         self._conversations: dict[str, list[dict]] = {}
+        # The epoch each conversation id seen since the host started belongs to (ended ones included).
+        self._epoch_of: dict[str, int] = {}
+        # Moved on by every switch between demo and real mode (modes.py); reported in GET /status.
+        self.conversation_epoch = 0
         self._lock = threading.Lock()
         # One model on one machine: answer one message at a time.
         self._busy = threading.Lock()
@@ -66,31 +80,73 @@ class Assistant:
         """The system message and tool definitions every request in the current mode starts with."""
         return request_prefix(self.registry, system_prompt=self.system_prompt, followup=self.settings.followup)
 
-    def apply_mode(self, mode: str, tools: Iterable[Tool], today: Callable[[], date], system_prompt: str) -> None:
+    def apply_mode(self, mode: str, tools: Iterable[Tool], today: Callable[[], date], system_prompt: str,
+                   epoch: int | None = None) -> None:
         """Switch to another mode's tools, date and system prompt (modes.py). Waits for a message being
         answered to finish, so no request sees half of each.
 
         A change of mode ends every conversation: their history holds the other mode's tool results. After
         real -> demo (the last account removed) that is the removed account's contacts and events, which
         must go with it; after demo -> real it is fake demo data that the model would take as real. A
-        message to an old conversation id starts afresh."""
+        message to an old conversation id starts a new conversation, after a `reset` event.
+
+        `epoch` is the conversation epoch from now on (the controller keeps it in state.json); without one, a
+        change of mode moves it on by one."""
         with self._busy:
-            if mode != self.registry.mode:
-                with self._lock:
-                    dropped = len(self._conversations)
-                    self._conversations.clear()
-                if dropped:
-                    log(logger, logging.INFO, "conversations ended by a mode switch", count=dropped, mode=mode)
+            if epoch is None:
+                epoch = self.conversation_epoch + (1 if mode != self.registry.mode else 0)
+            if mode != self.registry.mode or epoch != self.conversation_epoch:
+                self._end_conversations(epoch, mode)
             self.registry.replace_tools(tools, today=today, mode=mode)
             self._today = today
             self.today = today
             self.system_prompt = system_prompt
+
+    def end_conversations(self, epoch: int) -> None:
+        """End every conversation and move to `epoch`, keeping the mode (the mode changed while the host was
+        stopped, so state.json already had the next epoch)."""
+        with self._busy:
+            self._end_conversations(epoch, self.registry.mode)
+
+    def _end_conversations(self, epoch: int, mode: str) -> None:
+        with self._lock:
+            dropped = len(self._conversations)
+            self._conversations.clear()
+            self.conversation_epoch = epoch
+        log(logger, logging.INFO, "conversations ended by a mode switch", count=dropped, mode=mode, epoch=epoch)
 
     # ---------------------------------------------------------------- conversations
 
     def history(self, conversation_id: str) -> list[dict]:
         with self._lock:
             return list(self._conversations.get(conversation_id, []))
+
+    def _new_id(self) -> str:
+        """A new conversation id in the current epoch. Call with self._lock held."""
+        cid = f"e{self.conversation_epoch}.{secrets.token_urlsafe(12)}"
+        self._epoch_of[cid] = self.conversation_epoch
+        return cid
+
+    def _current(self, conversation_id: str | None) -> tuple[str, dict | None]:
+        """The conversation a message goes to: the one named, or a new one when none is named or the named
+        one is from another epoch. In the second case, also the `reset` event that says so."""
+        with self._lock:
+            epoch = self.conversation_epoch
+            if conversation_id is None:
+                return self._new_id(), None
+            began = self._epoch_of.get(conversation_id)
+            if began is None:
+                stamp = _EPOCH_ID.match(conversation_id)
+                # An id the host has not seen, without a stamp (made by a client), joins the current epoch.
+                began = self._epoch_of[conversation_id] = int(stamp.group(1)) if stamp else epoch
+            if began == epoch:
+                return conversation_id, None
+            return self._new_id(), {"type": "reset", "mode": self.registry.mode, "epoch": epoch}
+
+    def _live(self, conversation_id: str) -> bool:
+        """Whether the conversation belongs to the current epoch."""
+        with self._lock:
+            return self._epoch_of.get(conversation_id, self.conversation_epoch) == self.conversation_epoch
 
     def _append(self, conversation_id: str, messages: list[dict]) -> None:
         with self._lock:
@@ -100,7 +156,9 @@ class Assistant:
 
     def reply(self, text: str, conversation_id: str | None = None) -> Iterator[dict]:
         """Run one user message; yields events (see module docstring). Blocking: run in a thread."""
-        cid = conversation_id or secrets.token_urlsafe(12)
+        cid, reset = self._current(conversation_id)
+        if reset is not None:
+            yield reset
         yield {"type": "conversation", "conversation_id": cid}
         events: list[dict] = []
         cond = threading.Condition()
@@ -116,10 +174,18 @@ class Assistant:
                 cond.notify()
 
         def work() -> None:
+            nonlocal cid
             try:
                 # Read the history, run, and save the turn under one lock, so a second message to the same
                 # conversation always sees this one.
                 with self._busy:
+                    if not self._live(cid):  # a switch of mode ended it while this message waited its turn
+                        cid, reset = self._current(cid)
+                        for e in (reset, {"type": "conversation", "conversation_id": cid}):
+                            if e is not None:
+                                with cond:
+                                    events.append(e)
+                                    cond.notify()
                     history = self.history(cid)
                     engine = Engine(self._model_factory(), self._today(), registry=self.registry,
                                     system_prompt=self.system_prompt, caller="assistant",
@@ -186,7 +252,7 @@ class Assistant:
     def note_decision(self, approval: Approval) -> None:
         """Tell the conversation that held a call what the user decided."""
         cid = approval.context.get("conversation_id")
-        if not cid:
+        if not cid or not self._live(cid):  # a conversation ended by a switch of mode stays ended
             return
         if approval.status == "approved":
             text = f"(The user approved: {approval.summary}. Done.)"

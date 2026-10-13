@@ -99,7 +99,8 @@ def build(settings: Settings, sources: SyncService | None = None, *, model_facto
     models = models or ModelManager(settings, enabled=state.assistant_enabled, warm=assistant.warm)
     sources = sources or build_sources(settings)
     # demo (no account: fake tools, pinned date) or real (the mirror, the real date); re-warm on a switch.
-    modes = ModeController(assistant, sources, on_change=lambda _mode: models.rewarm(), real_today=real_today)
+    modes = ModeController(assistant, sources, on_change=lambda _mode: models.rewarm(), real_today=real_today,
+                           state=state)
     sources.on_accounts_changed = modes.refresh
     modes.refresh()
     stop = lambda: os.kill(os.getpid(), signal.SIGTERM)  # the same clean shutdown as `mydata stop`

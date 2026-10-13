@@ -1,6 +1,7 @@
 """Small host settings the user changes from the apps (state.json), as opposed to config.toml,
 which the user edits by hand: whether the assistant is switched on, the theme every app uses, the
-"This Mac" source's settings and status, and each source's last sync status (so it survives a restart).
+"This Mac" source's settings and status, each source's last sync status (so it survives a restart), and the
+conversation epoch (bumped on every switch between demo and real mode; see modes.py).
 
 Several parts of the host each hold a HostState for the same file; they share one lock per file, so a
 read-modify-write by one never loses another's change.
@@ -28,6 +29,11 @@ def _lock_for(path: Path) -> threading.RLock:
         if lock is None:
             lock = _LOCKS[key] = threading.RLock()
         return lock
+
+
+def _epoch(value) -> int:
+    """A stored epoch; anything that is not a non-negative integer (a hand-edited file) reads as 0."""
+    return value if isinstance(value, int) and not isinstance(value, bool) and value >= 0 else 0
 
 
 class HostState:
@@ -64,6 +70,25 @@ class HostState:
         if theme not in THEME_IDS:
             raise ValueError(f"unknown theme {theme!r}; valid themes: {', '.join(THEME_IDS)}")
         self._update(theme=theme)
+
+    # ---------------------------------------------------------------- conversation epoch
+
+    @property
+    def conversation_epoch(self) -> int:
+        """How many times conversations have been ended by a switch between demo and real mode (0 at first)."""
+        return _epoch(self._read().get("conversation_epoch"))
+
+    def conversation_epoch_for(self, mode: str) -> int:
+        """The conversation epoch for `mode`: the recorded one while the mode is the one it was recorded for,
+        one more (recorded with the new mode) when the mode differs, i.e. on a switch. A file with no record
+        counts as demo mode, epoch 0."""
+        with self._lock:
+            data = self._read()
+            epoch = _epoch(data.get("conversation_epoch"))
+            if data.get("conversation_mode", "demo") == mode:
+                return epoch
+            self._write({**data, "conversation_epoch": epoch + 1, "conversation_mode": mode})
+            return epoch + 1
 
     # ---------------------------------------------------------------- sections (dicts under one key)
 

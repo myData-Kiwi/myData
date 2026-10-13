@@ -114,6 +114,9 @@ class StatusOut(BaseModel):
                                                       "linked, or This Mac is turned on) and the tools serve the "
                                                       "mirrored data, with the real date")
     mac_available: bool = Field(default=False, description="true on a Mac host: the This Mac source exists")
+    conversation_epoch: int = Field(ge=0, description="moves on by one at every switch between demo and real "
+                                                      "mode, which ends every conversation: an app that sees it "
+                                                      "change starts a new conversation and says why")
 
 
 class MessageIn(BaseModel):
@@ -389,12 +392,15 @@ MAX_EVENT_DAYS = 400
 
 
 SSE_DESCRIPTION = """Server-sent events, one JSON object per `data:` line, `event:` naming the type:
-`conversation` {conversation_id}, `progress` {tool, label}, `result` {tool, kind, header, items}, `delta` {text},
+`reset` {mode, epoch}, `conversation` {conversation_id}, `progress` {tool, label}, `result` {tool, kind, header, items}, `delta` {text},
 `step` {}, `pending_approval` {approval}, `clarify` {options, text}, `message` {text, outcome, by}, `error`
 {message}, `done` {}. A `result` is a tool's result, sent the moment the tool returns, with a header written by
 code; kind is events, mail, contacts, photos or event_created. `delta` text is provisional: on `step` discard
 what has streamed so far; `message.text` is the reply, and `message.by` is "code" when the shown result was the
-answer (its text is then the result's header) or "model" for a sentence the model wrote."""
+answer (its text is then the result's header) or "model" for a sentence the model wrote. `reset` comes first when
+the named conversation was ended by a switch between demo and real mode (`epoch` is GET /status's
+conversation_epoch): the message starts a new conversation, whose id the `conversation` event that follows
+gives."""
 
 
 # ---------------------------------------------------------------- app
@@ -445,6 +451,7 @@ def create_app(auth: Authenticator, registry: Registry, models: ModelManager, as
                          today=assistant.today().isoformat(),
                          demo_date=registry.mode == "demo" and assistant.settings.pin_today is not None,
                          theme=current_theme(), mode=current_mode(),
+                         conversation_epoch=assistant.conversation_epoch,
                          mac_available=sources is not None and sources.mac_available)
 
     @app.post("/model/retry", tags=["host"], response_model=StatusOut)

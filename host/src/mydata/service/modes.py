@@ -11,6 +11,11 @@ byte-identical (tests/test_prompt_prefix.py). Switching mode (an account added o
 tools in the host's one registry, ends every conversation (their history holds the other mode's data:
 see Assistant.apply_mode), and re-warms the model with the new prefix. MCP agents get no tools in real
 mode (mcp.py).
+
+Every switch also moves the conversation epoch on by one. It is kept in state.json with the mode it belongs
+to, so a restart in the same mode keeps it, and it is reported in GET /status: an app that sees it change
+knows its conversation was ended and says so (a message to a conversation from an older epoch also gets a
+`reset` event; see assistant.py).
 """
 
 from __future__ import annotations
@@ -56,10 +61,14 @@ class ModeController:
     and the machine's zone."""
 
     def __init__(self, assistant, sync, *, on_change: Callable[[Mode], None] | None = None,
-                 real_today: Callable[[], date] | None = None, real_tz: Callable[[], tzinfo] | None = None):
+                 real_today: Callable[[], date] | None = None, real_tz: Callable[[], tzinfo] | None = None,
+                 state=None):
         self.assistant = assistant
         self.sync = sync
         self.on_change = on_change
+        # Where the conversation epoch is kept (a HostState); without one (tests), in memory.
+        self._epochs = state if state is not None else _MemoryEpochs()
+        assistant.conversation_epoch = self._epochs.conversation_epoch
         self._real_tz = real_tz or _local_zone
         self._real_today = real_today or local_today(self._real_tz)
         registry = assistant.registry
@@ -93,16 +102,36 @@ class ModeController:
             except Exception:  # an unreadable accounts.json keeps the current mode
                 logger.exception("could not read the accounts; the mode is unchanged")
                 return self._mode
+            try:
+                epoch = self._epochs.conversation_epoch_for(want)
+            except OSError:  # an unwritable state.json must not stop the switch
+                logger.exception("could not record the conversation epoch")
+                epoch = self.assistant.conversation_epoch + (want != self.assistant.registry.mode)
             if want == self._mode and self.assistant.registry.mode == want:
+                if epoch != self.assistant.conversation_epoch:  # the mode changed while the host was stopped
+                    self.assistant.end_conversations(epoch)
                 return want
             spec = self.spec(want)
-            self.assistant.apply_mode(spec.name, spec.tools, spec.today, spec.system_prompt)
+            self.assistant.apply_mode(spec.name, spec.tools, spec.today, spec.system_prompt, epoch=epoch)
             previous, self._mode = self._mode, want
             log(logger, logging.INFO, "mode switched", previous=previous, mode=want,
-                tools=[t.name for t in spec.tools])
+                tools=[t.name for t in spec.tools], conversation_epoch=epoch)
         if self.on_change is not None:
             try:
                 self.on_change(want)
             except Exception:
                 logger.exception("after switching mode")
         return want
+
+
+class _MemoryEpochs:
+    """HostState's conversation epoch, in memory only (for a controller built without a state file)."""
+
+    def __init__(self):
+        self.conversation_epoch = 0
+        self._mode = "demo"
+
+    def conversation_epoch_for(self, mode: str) -> int:
+        if mode != self._mode:
+            self.conversation_epoch, self._mode = self.conversation_epoch + 1, mode
+        return self.conversation_epoch
