@@ -271,3 +271,22 @@ def test_thread_syncs_at_start_and_on_demand(tmp_path):
     finally:
         sources.stop()
     assert not sources._thread.is_alive()
+
+
+def test_last_sync_status_survives_a_host_restart(tmp_path):
+    sources, fake, secrets = make(tmp_path)
+    account = add(sources)
+    first = sources.sync_account(account.id)
+    assert first["last_success"] and first["last_error"] is None
+    # A restarted host: a new service on the same folder, nothing synced yet in this run.
+    again = SyncService(tmp_path, Accounts(tmp_path, secrets), transport=fake.transport)
+    status = again.account_status(account.id)
+    assert status["last_success"] == first["last_success"]
+    assert status["last_error"] is None
+    # A failure after the restart is kept the same way.
+    fake.username = "someone-else@example.net"  # the fake now rejects the stored credentials
+    failed = again.sync_account(account.id)
+    assert failed["last_error"]
+    third = SyncService(tmp_path, Accounts(tmp_path, secrets), transport=fake.transport)
+    kept = third.account_status(account.id)
+    assert kept["last_error"] == failed["last_error"] and kept["last_success"] == first["last_success"]
