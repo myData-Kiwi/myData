@@ -1715,6 +1715,11 @@
             "title": "Agents Connected",
             "type": "integer"
           },
+          "api_version": {
+            "description": "a hash of this host's API (its routes and schemas); an app built against another API version replaces the host",
+            "title": "Api Version",
+            "type": "string"
+          },
           "assistant_enabled": {
             "description": "false when the user switched the assistant off",
             "title": "Assistant Enabled",
@@ -1767,6 +1772,12 @@
             "title": "Ready",
             "type": "boolean"
           },
+          "stale": {
+            "default": false,
+            "description": "true when the host's code on disk changed since it started; an app replaces it when the code on disk is the API it was built against",
+            "title": "Stale",
+            "type": "boolean"
+          },
           "theme": {
             "description": "the theme every app uses; mode is per device and not stored here",
             "title": "Theme",
@@ -1788,6 +1799,7 @@
         },
         "required": [
           "version",
+          "api_version",
           "ready",
           "assistant_enabled",
           "memory",

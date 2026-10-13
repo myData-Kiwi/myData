@@ -97,5 +97,7 @@ def test_dev_setup_writes_the_host_command(tmp_path):
     r = subprocess.run([sys.executable, "-m", "mydata.cli", "dev-setup"], env={**os.environ, "MYDATA_HOME": str(tmp_path)},
                        capture_output=True, text=True, timeout=30)
     assert r.returncode == 0
-    cmd = json.loads((tmp_path / "app_config.json").read_text())["host_command"]
+    config = json.loads((tmp_path / "app_config.json").read_text())
+    cmd = config["host_command"]
     assert cmd[0] == sys.executable and cmd[-1] == "start"
+    assert config["stop_command"] == [*cmd[:-1], "stop"]  # the apps stop a host built from another version

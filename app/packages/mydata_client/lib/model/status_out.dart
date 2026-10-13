@@ -14,6 +14,7 @@ class StatusOut {
   /// Returns a new [StatusOut] instance.
   StatusOut({
     required this.agentsConnected,
+    required this.apiVersion,
     required this.assistantEnabled,
     required this.conversationEpoch,
     required this.demoDate,
@@ -23,6 +24,7 @@ class StatusOut {
     required this.mode,
     required this.model,
     required this.ready,
+    this.stale = false,
     required this.theme,
     required this.today,
     required this.uptimeSeconds,
@@ -31,6 +33,9 @@ class StatusOut {
 
   /// agent tokens used in the last five minutes
   int agentsConnected;
+
+  /// a hash of this host's API (its routes and schemas); an app built against another API version replaces the host
+  String apiVersion;
 
   /// false when the user switched the assistant off
   bool assistantEnabled;
@@ -58,6 +63,9 @@ class StatusOut {
   /// true when the assistant can answer
   bool ready;
 
+  /// true when the host's code on disk changed since it started; an app replaces it when the code on disk is the API it was built against
+  bool stale;
+
   /// the theme every app uses; mode is per device and not stored here
   String theme;
 
@@ -73,6 +81,7 @@ class StatusOut {
       identical(this, other) ||
       other is StatusOut &&
           other.agentsConnected == agentsConnected &&
+          other.apiVersion == apiVersion &&
           other.assistantEnabled == assistantEnabled &&
           other.conversationEpoch == conversationEpoch &&
           other.demoDate == demoDate &&
@@ -82,6 +91,7 @@ class StatusOut {
           other.mode == mode &&
           other.model == model &&
           other.ready == ready &&
+          other.stale == stale &&
           other.theme == theme &&
           other.today == today &&
           other.uptimeSeconds == uptimeSeconds &&
@@ -91,6 +101,7 @@ class StatusOut {
   int get hashCode =>
       // ignore: unnecessary_parenthesis
       (agentsConnected.hashCode) +
+      (apiVersion.hashCode) +
       (assistantEnabled.hashCode) +
       (conversationEpoch.hashCode) +
       (demoDate.hashCode) +
@@ -100,6 +111,7 @@ class StatusOut {
       (mode.hashCode) +
       (model.hashCode) +
       (ready.hashCode) +
+      (stale.hashCode) +
       (theme.hashCode) +
       (today.hashCode) +
       (uptimeSeconds.hashCode) +
@@ -107,11 +119,12 @@ class StatusOut {
 
   @override
   String toString() =>
-      'StatusOut[agentsConnected=$agentsConnected, assistantEnabled=$assistantEnabled, conversationEpoch=$conversationEpoch, demoDate=$demoDate, lastError=$lastError, macAvailable=$macAvailable, memory=$memory, mode=$mode, model=$model, ready=$ready, theme=$theme, today=$today, uptimeSeconds=$uptimeSeconds, version=$version]';
+      'StatusOut[agentsConnected=$agentsConnected, apiVersion=$apiVersion, assistantEnabled=$assistantEnabled, conversationEpoch=$conversationEpoch, demoDate=$demoDate, lastError=$lastError, macAvailable=$macAvailable, memory=$memory, mode=$mode, model=$model, ready=$ready, stale=$stale, theme=$theme, today=$today, uptimeSeconds=$uptimeSeconds, version=$version]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
     json[r'agents_connected'] = this.agentsConnected;
+    json[r'api_version'] = this.apiVersion;
     json[r'assistant_enabled'] = this.assistantEnabled;
     json[r'conversation_epoch'] = this.conversationEpoch;
     json[r'demo_date'] = this.demoDate;
@@ -125,6 +138,7 @@ class StatusOut {
     json[r'mode'] = this.mode;
     json[r'model'] = this.model;
     json[r'ready'] = this.ready;
+    json[r'stale'] = this.stale;
     json[r'theme'] = this.theme;
     json[r'today'] = this.today;
     json[r'uptime_seconds'] = this.uptimeSeconds;
@@ -147,6 +161,10 @@ class StatusOut {
             'Required key "StatusOut[agents_connected]" is missing from JSON.');
         assert(json[r'agents_connected'] != null,
             'Required key "StatusOut[agents_connected]" has a null value in JSON.');
+        assert(json.containsKey(r'api_version'),
+            'Required key "StatusOut[api_version]" is missing from JSON.');
+        assert(json[r'api_version'] != null,
+            'Required key "StatusOut[api_version]" has a null value in JSON.');
         assert(json.containsKey(r'assistant_enabled'),
             'Required key "StatusOut[assistant_enabled]" is missing from JSON.');
         assert(json[r'assistant_enabled'] != null,
@@ -196,6 +214,7 @@ class StatusOut {
 
       return StatusOut(
         agentsConnected: mapValueOfType<int>(json, r'agents_connected')!,
+        apiVersion: mapValueOfType<String>(json, r'api_version')!,
         assistantEnabled: mapValueOfType<bool>(json, r'assistant_enabled')!,
         conversationEpoch: mapValueOfType<int>(json, r'conversation_epoch')!,
         demoDate: mapValueOfType<bool>(json, r'demo_date')!,
@@ -205,6 +224,7 @@ class StatusOut {
         mode: StatusOutModeEnum.fromJson(json[r'mode'])!,
         model: ModelOut.fromJson(json[r'model'])!,
         ready: mapValueOfType<bool>(json, r'ready')!,
+        stale: mapValueOfType<bool>(json, r'stale') ?? false,
         theme: mapValueOfType<String>(json, r'theme')!,
         today: mapValueOfType<String>(json, r'today')!,
         uptimeSeconds: num.parse('${json[r'uptime_seconds']}'),
@@ -266,6 +286,7 @@ class StatusOut {
   /// The list of required keys that must be present in a JSON.
   static const requiredKeys = <String>{
     'agents_connected',
+    'api_version',
     'assistant_enabled',
     'conversation_epoch',
     'demo_date',

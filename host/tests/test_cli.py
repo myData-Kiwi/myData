@@ -2,12 +2,14 @@
 
 import json
 import os
+import signal
 import subprocess
 import sys
 import time
 import urllib.request
 
-from mydata.service.config import DEFAULT_CONFIG
+from mydata.service.config import DEFAULT_CONFIG, Settings
+from mydata.service.daemon import daemon_pid
 
 from service_helpers import free_port
 
@@ -15,6 +17,17 @@ from service_helpers import free_port
 def _mydata(home, *args, timeout=60):
     return subprocess.run([sys.executable, "-m", "mydata.cli", *args], env={**os.environ, "MYDATA_HOME": str(home)},
                           capture_output=True, text=True, timeout=timeout)
+
+
+def _stop_daemon(home) -> None:
+    """`mydata stop` on this temp home, then SIGKILL on a daemon that still holds its pid file's lock."""
+    try:
+        _mydata(home, "stop")
+    except subprocess.TimeoutExpired:
+        pass
+    pid = daemon_pid(Settings(home=home))
+    if pid:
+        os.kill(pid, signal.SIGKILL)
 
 
 def test_start_status_stop(tmp_path):
@@ -70,6 +83,7 @@ def test_stale_pid_of_another_process_is_never_touched(tmp_path):
         assert other.poll() is None
     finally:
         other.kill()
+        _stop_daemon(tmp_path)  # also when start failed or timed out, which leaves its daemon running
 
 
 def test_detached_daemon_logs_each_line_once(tmp_path):
@@ -81,7 +95,7 @@ def test_detached_daemon_logs_each_line_once(tmp_path):
     try:
         assert _mydata(tmp_path, "start").returncode == 0
     finally:
-        _mydata(tmp_path, "stop")
+        _stop_daemon(tmp_path)
     assert (tmp_path / "logs" / "mydatad.log").read_text().count('"msg": "starting"') == 1
     assert "DEMO DATE" in (tmp_path / "logs" / "mydatad.log").read_text()
     assert '"msg"' not in (tmp_path / "logs" / "mydatad.out").read_text()

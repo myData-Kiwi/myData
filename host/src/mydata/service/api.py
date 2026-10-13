@@ -1,6 +1,6 @@
 """The host's HTTP API. Bound to localhost; every request needs the token (security.GuardMiddleware).
 
-  GET  /status                 host version, model state and download progress
+  GET  /status                 host version and API version, model state and download progress
   POST /assistant/messages     one user message; the reply streams as server-sent events
   GET  /approvals              approvals, optionally filtered by status
   GET  /approvals/{id}         one approval
@@ -64,6 +64,7 @@ from .mcp import build_mcp
 from .model import ModelManager
 from .security import GuardMiddleware
 from .sync import SyncService
+from .version import code_changed
 
 # ---------------------------------------------------------------- schemas
 
@@ -99,6 +100,11 @@ class ErrorOut(BaseModel):
 
 class StatusOut(BaseModel):
     version: str
+    api_version: str = Field(description="a hash of this host's API (its routes and schemas); an app built "
+                                         "against another API version replaces the host")
+    stale: bool = Field(default=False, description="true when the host's code on disk changed since it started; "
+                                                   "an app replaces it when the code on disk is the API it was "
+                                                   "built against")
     ready: bool = Field(description="true when the assistant can answer")
     assistant_enabled: bool = Field(description="false when the user switched the assistant off")
     memory: MemoryOut
@@ -486,8 +492,10 @@ def create_app(auth: Authenticator, registry: Registry, models: ModelManager, as
 
     @app.get("/status", tags=["host"], response_model=StatusOut)
     def status() -> StatusOut:
+        from .openapi import api_version  # here, not at the top: openapi.py builds the app from this module
         m = models.status()
-        return StatusOut(version=__version__, ready=m.state == "ready", assistant_enabled=models.enabled,
+        return StatusOut(version=__version__, api_version=api_version(), stale=code_changed(),
+                         ready=m.state == "ready", assistant_enabled=models.enabled,
                          memory=MemoryOut(host_bytes=psutil.Process(os.getpid()).memory_info().rss,
                                           model_bytes=models.model_bytes() if m.state == "ready" else None),
                          last_error=ErrorOut(**LAST_ERROR.last) if LAST_ERROR.last else None,

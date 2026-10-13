@@ -1,10 +1,14 @@
 """mydata: control the host service.
 
-    mydata start     start mydatad in the background and wait until it answers
-    mydata stop      stop it (SIGTERM, then SIGKILL after 15 s)
+    mydata start     start mydatad in the background and wait until it answers (exit 4: started, not answering yet)
+    mydata stop      stop it (SIGTERM, then SIGKILL after 15 s), also one started by an older build
+    mydata stop --unless-current [--expect VERSION API_VERSION]
+                     what an app runs to replace a host from another build: leave a host that is already this
+                     checkout's code; with --expect, stop nothing (exit 5) unless this checkout's host is that
+                     version and API version
     mydata status    show what the host reports (exit 0 running, 3 not running)
     mydata run       run mydatad in the foreground (development)
-    mydata openapi   print the OpenAPI document (or write it with --out)
+    mydata openapi   print the OpenAPI document (or write it, and the apps' host_version.g.dart, with --out)
     mydata agent create NAME   create a token for an MCP agent (shown once)
     mydata agent list          list agent tokens
     mydata agent revoke ID     revoke an agent token (by id or name)
@@ -30,6 +34,9 @@ import urllib.request
 from .service.config import ConfigError, Settings, load_settings
 from .service.daemon import daemon_pid
 from .service.security import TokenError, read_token
+
+EXIT_STILL_STARTING = 4  # start: the daemon is running but did not answer in time; it may yet
+EXIT_WOULD_NOT_MATCH = 5  # stop --expect: a host started from here would be another build too; nothing stopped
 
 
 def _get_status(settings: Settings, timeout: float = 2) -> dict | None:
@@ -74,7 +81,14 @@ def cmd_start(settings: Settings) -> int:
         kwargs["creationflags"] = subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
     else:
         kwargs["start_new_session"] = True  # survives the terminal or app that started it
-    proc = subprocess.Popen([sys.executable, "-m", "mydata.service.daemon"], **kwargs)
+    # argv[0] names the process (ps, pgrep, Activity Monitor); executable keeps this interpreter. macOS shows the
+    # first 16 characters of argv[0] as its name and finds the venv from the real executable, so a bare
+    # "mydatad". Elsewhere Python finds its venv from argv[0] (a bare name is looked up on PATH, which may hold
+    # another venv or none), so an absolute path beside the interpreter. Hosts started by older builds run as
+    # `python -m mydata.service.daemon`; the pid file's lock, not the command line, is what marks a running
+    # daemon, so `mydata stop` stops both.
+    name = "mydatad" if sys.platform == "darwin" else os.path.join(os.path.dirname(sys.executable), "mydatad")
+    proc = subprocess.Popen([name, "-m", "mydata.service.daemon"], executable=sys.executable, **kwargs)
     deadline = time.time() + 20
     while time.time() < deadline:
         if proc.poll() is not None:
@@ -90,15 +104,55 @@ def cmd_start(settings: Settings) -> int:
             print(_describe(status))
             return 0
         time.sleep(0.3)
-    print(f"mydatad did not answer within 20 seconds; see {settings.log_dir / 'mydatad.log'}", file=sys.stderr)
-    return 1
+    # Still running: not a failed start. An app keeps waiting for it (a hot machine, a slow first start).
+    print(f"mydatad started but did not answer within 20 seconds; see {settings.log_dir / 'mydatad.log'}",
+          file=sys.stderr)
+    return EXIT_STILL_STARTING
 
 
-def cmd_stop(settings: Settings) -> int:
+def _this_build() -> tuple[str, str]:
+    """The version and API version of the host this checkout starts."""
+    from . import __version__
+    from .service.openapi import api_version
+    return __version__, api_version()
+
+
+def _is_current(status: dict) -> bool:
+    """The running host is this checkout's code: the same versions, and its code unchanged since it started."""
+    return (status.get("version"), status.get("api_version")) == _this_build() and not status.get("stale", False)
+
+
+def _status_of_running(settings: Settings, wait: float) -> dict | None:
+    """/status of the running daemon, giving one that is still starting up to `wait` seconds to answer."""
+    deadline = time.time() + wait
+    while True:
+        status = _get_status(settings, timeout=1)
+        if status or time.time() >= deadline or not daemon_pid(settings):
+            return status
+        time.sleep(0.3)
+
+
+def cmd_stop(settings: Settings, unless_current: bool = False, expect: list[str] | None = None,
+             wait: float = 10) -> int:
     pid = daemon_pid(settings)
     if not pid:
         print("mydatad is not running")
         return 0
+    if expect is not None and tuple(expect) != _this_build():
+        version, api = _this_build()
+        print(f"mydatad was not stopped: a host started from here is version {version} (API {api}), not "
+              f"{expect[0]} (API {expect[1]}), so replacing it would not help", file=sys.stderr)
+        return EXIT_WOULD_NOT_MATCH
+    if unless_current:
+        # Another app may have just replaced it with this checkout's host: never stop that one.
+        status = _status_of_running(settings, wait)
+        if status and _is_current(status):
+            print(f"mydatad was not stopped: it is already this build ({_describe(status)})")
+            return 0
+        pid = daemon_pid(settings)
+        if not pid:
+            print("mydatad is not running")
+            return 0
     os.kill(pid, signal.SIGTERM)
     deadline = time.time() + 15
     while time.time() < deadline:
@@ -122,13 +176,21 @@ def cmd_status(settings: Settings) -> int:
 
 
 def cmd_openapi(out: str | None) -> int:
-    from .service.openapi import openapi_document
-    text = json.dumps(openapi_document(), indent=2, sort_keys=True) + "\n"
-    if out:
-        with open(out, "w") as fh:
-            fh.write(text)
-    else:
+    from .service.openapi import HOST_VERSION_DART, host_version_dart, openapi_document
+    doc = openapi_document()
+    text = json.dumps(doc, indent=2, sort_keys=True) + "\n"
+    if not out:
         sys.stdout.write(text)
+        return 0
+    with open(out, "w") as fh:
+        fh.write(text)
+    # The versions the apps compare with /status, so an app replaces a host built from another version.
+    if HOST_VERSION_DART.parent.is_dir():
+        HOST_VERSION_DART.write_text(host_version_dart(doc))
+        print(f"Wrote {out} and {HOST_VERSION_DART}")
+    else:
+        print(f"Wrote {out}; {HOST_VERSION_DART.parent} does not exist, so host_version.g.dart was not written",
+              file=sys.stderr)
     return 0
 
 
@@ -253,25 +315,33 @@ def cmd_account(settings: Settings, ns: argparse.Namespace) -> int:
 
 
 def cmd_dev_setup(settings: Settings) -> int:
-    """The apps start the host with the command in <home>/app_config.json. In development that is this
-    checkout's Python running `mydata start`; a packaged install will start a bundled host binary instead."""
+    """The apps start the host with the command in <home>/app_config.json, and stop it with its stop command
+    (to replace a host built from another version). In development that is this checkout's Python running
+    `mydata start` and `mydata stop`; a packaged install will run a bundled host binary instead."""
     from .service.config import private_dir
     private_dir(settings.home)
     config = {
         "host_command": [sys.executable, "-m", "mydata.cli", "start"],
+        "stop_command": [sys.executable, "-m", "mydata.cli", "stop"],
         "note": "Development: written by `mydata dev-setup`. The apps run this to start the host.",
     }
     path = settings.home / "app_config.json"
     path.write_text(json.dumps(config, indent=2) + "\n")
-    print(f"Wrote {path}:\n  host command: {' '.join(config['host_command'])}")
+    print(f"Wrote {path}:\n  host command: {' '.join(config['host_command'])}\n"
+          f"  stop command: {' '.join(config['stop_command'])}")
     return 0
 
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="mydata", description="Control the myData host.")
     sub = ap.add_subparsers(dest="cmd", required=True)
-    for name in ("start", "stop", "status", "run", "dev-setup"):
+    for name in ("start", "status", "run", "dev-setup"):
         sub.add_parser(name)
+    st = sub.add_parser("stop")
+    st.add_argument("--unless-current", action="store_true",
+                    help="leave a host that already runs this checkout's code")
+    st.add_argument("--expect", nargs=2, metavar=("VERSION", "API_VERSION"),
+                    help="stop nothing (exit 5) unless a host started from here is this version and API version")
     o = sub.add_parser("openapi")
     o.add_argument("--out")
     ag = sub.add_parser("agent", help="manage MCP agent tokens")
@@ -305,7 +375,9 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_account(settings, ns)
     if ns.cmd == "dev-setup":
         return cmd_dev_setup(settings)
-    return {"start": cmd_start, "stop": cmd_stop, "status": cmd_status}[ns.cmd](settings)
+    if ns.cmd == "stop":
+        return cmd_stop(settings, unless_current=ns.unless_current, expect=ns.expect)
+    return {"start": cmd_start, "status": cmd_status}[ns.cmd](settings)
 
 
 if __name__ == "__main__":

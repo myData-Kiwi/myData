@@ -1,12 +1,18 @@
 """The committed OpenAPI document (host/openapi.json), generated from the app itself.
 
 Regenerate with `uv run mydata openapi --out openapi.json`; tests/test_openapi.py fails if it is stale.
-The Dart client in app/ is generated from this file.
+The Dart client in app/ is generated from this file, and so is the version the apps compare with /status
+(app/packages/mydata_core/lib/src/host_version.g.dart, written by the same command).
 """
 
 from __future__ import annotations
 
+import functools
+import hashlib
+import json
 from pathlib import Path
+
+from .. import __version__
 
 from ..tools import default_registry
 from .api import create_app
@@ -40,3 +46,30 @@ def openapi_document() -> dict:
     if loc:
         loc["items"] = {}
     return doc
+
+
+def api_version_of(doc: dict) -> str:
+    """A short hash of the API's routes and schemas: it changes whenever the API changes, so an app can tell
+    that a running host was built from another version of the API (and replace it)."""
+    canonical = json.dumps({"paths": doc["paths"], "components": doc["components"]}, sort_keys=True,
+                           separators=(",", ":"))
+    return hashlib.sha256(canonical.encode()).hexdigest()[:12]
+
+
+@functools.cache
+def api_version() -> str:
+    """This host's API version (/status), worked out once from its own OpenAPI document."""
+    return api_version_of(openapi_document())
+
+
+# host/../app/...: next to the host in this checkout. An installed host has no app folder beside it.
+HOST_VERSION_DART = Path(__file__).resolve().parents[3].parent / "app/packages/mydata_core/lib/src/host_version.g.dart"
+
+
+def host_version_dart(doc: dict) -> str:
+    """host_version.g.dart: the host version and API version the apps are built against."""
+    return ("// GENERATED from host/openapi.json and host/src/mydata/__init__.py by "
+            "`uv run mydata openapi --out openapi.json`. Do not edit.\n"
+            "/// The host version and API version this app was built against.\n"
+            f"const expectedHostVersion = '{__version__}';\n"
+            f"const expectedHostApiVersion = '{api_version_of(doc)}';\n")
