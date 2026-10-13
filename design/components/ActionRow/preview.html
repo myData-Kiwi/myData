@@ -1,0 +1,50 @@
+<!-- @dsCard group="Content" height=330 -->
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700&family=Figtree:wght@400;600&family=JetBrains+Mono&display=swap">
+<style>
+body{margin:0;padding:24px;background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:22px}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.btn{height:44px;padding:0 22px;border-radius:var(--radius-control);font:600 15px/1 var(--font-body);border:0;cursor:pointer}
+.primary{background:var(--accent);color:var(--on-accent)}
+.tonal{background:var(--accent-soft);color:var(--accent)}
+.plain{background:transparent;color:var(--accent)}
+.danger{background:var(--danger);color:var(--on-danger)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.card{background:var(--surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-1)}
+.tile{width:36px;height:36px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;flex:none}
+.tile svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.t-accent{background:var(--accent-soft);color:var(--accent)}.t-ok{background:var(--success-soft);color:var(--success)}
+.t-warn{background:var(--warning-soft);color:var(--warning)}.t-info{background:var(--info-soft);color:var(--info)}
+.chipst{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:var(--radius-pill);font:600 13px/1 var(--font-body);white-space:nowrap}
+.cap{font-size:13px;line-height:18px;color:var(--ink-muted)}
+.g{max-width:560px;overflow:hidden}
+.g{max-width:640px;overflow:hidden}
+.lbl{font:600 13px/18px var(--font-body);color:var(--ink-muted);margin:0 0 8px 8px}
+.r{display:flex;gap:12px;align-items:center;min-height:56px;box-sizing:border-box;padding:8px 16px;border-top:1px solid var(--line)}
+.part{padding:20px;border-top:1px solid var(--line)}
+.g>:first-child{border-top:0}
+.r .txt{flex:1;min-width:0}.t{font-weight:600;display:block}
+.end{display:flex;align-items:center;gap:8px;flex:none}
+.name{font:600 13px/18px var(--font-body);color:var(--ink);margin:0 0 8px}
+.note{color:var(--ink-muted);margin:0 0 16px}
+input{height:44px;box-sizing:border-box;width:100%;max-width:420px;padding:0 14px;border:1px solid var(--line-strong);border-radius:var(--radius-md);background:var(--surface);color:var(--ink);font:400 15px var(--font-body)}
+.help{font-size:13px;line-height:18px;color:var(--ink-muted);margin:4px 0 16px}
+.sec{margin-bottom:24px}
+.tile.n{background:var(--surface-sunken);color:var(--ink-muted)}
+.narrow{max-width:340px;margin-top:24px}
+.narrow .r{flex-wrap:wrap}.narrow .r .txt{flex:1 1 200px}.narrow .end{margin-left:48px}
+.dz{color:var(--danger)}
+</style></head><body>
+<p class="lbl">Agents</p>
+<div class="card g">
+<div class="r"><span class="tile n"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="15" r="4"></circle><path d="M11 12l9-9M17 6l3 3M14 9l2 2"></path></svg></span><span class="txt"><span class="t">Claude on my laptop</span><span class="cap">Created 1 Oct, last seen today</span></span><span class="end"><span class="chipst" style="background:var(--success-soft);color:var(--success)">Connected</span><button class="btn plain dz" type="button">Revoke</button></span></div>
+<div class="r"><span class="tile n"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="15" r="4"></circle><path d="M11 12l9-9M17 6l3 3M14 9l2 2"></path></svg></span><span class="txt"><span class="t">Notes sync script</span><span class="cap">Created 1 Oct, last seen 9 Oct</span></span><span class="end"><span class="chipst" style="background:var(--surface-sunken);color:var(--ink-muted)">Not connected</span><button class="btn plain dz" type="button">Revoke</button></span></div>
+<div class="r"><span class="tile n"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="15" r="4"></circle><path d="M11 12l9-9M17 6l3 3M14 9l2 2"></path></svg></span><span class="txt"><span class="t">Old test agent</span><span class="cap">Created 1 Oct, never used</span></span><span class="end"><span class="chipst" style="background:var(--surface-sunken);color:var(--ink-muted)">Revoked</span></span></div>
+<div class="r"><span class="txt"><span class="t">The agent list could not be read</span><span class="cap">The host did not answer. Check that it is running, then try again.</span></span><span class="end"><button class="btn tonal" type="button">Retry</button></span></div>
+</div>
+<div class="card g narrow">
+<div class="r"><span class="tile n"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="15" r="4"></circle><path d="M11 12l9-9M17 6l3 3M14 9l2 2"></path></svg></span><span class="txt"><span class="t">Claude on my laptop</span><span class="cap">Created 1 Oct, last seen today</span></span><span class="end"><span class="chipst" style="background:var(--success-soft);color:var(--success)">Connected</span><button class="btn plain dz" type="button">Revoke</button></span></div>
+</div>
+</body></html>

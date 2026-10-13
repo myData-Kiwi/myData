@@ -1,0 +1,81 @@
+<!-- @dsCard group="Content" height=720 -->
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700&family=Figtree:wght@400;600&family=JetBrains+Mono&display=swap">
+<style>
+body{margin:0;padding:24px;background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:22px}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.btn{height:44px;padding:0 22px;border-radius:var(--radius-control);font:600 15px/1 var(--font-body);border:0;cursor:pointer}
+.primary{background:var(--accent);color:var(--on-accent)}
+.tonal{background:var(--accent-soft);color:var(--accent)}
+.plain{background:transparent;color:var(--accent)}
+.danger{background:var(--danger);color:var(--on-danger)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.card{background:var(--surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-1)}
+.tile{width:36px;height:36px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;flex:none}
+.tile svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.t-accent{background:var(--accent-soft);color:var(--accent)}.t-ok{background:var(--success-soft);color:var(--success)}
+.t-warn{background:var(--warning-soft);color:var(--warning)}.t-info{background:var(--info-soft);color:var(--info)}
+.chipst{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:var(--radius-pill);font:600 13px/1 var(--font-body);white-space:nowrap}
+.cap{font-size:13px;line-height:18px;color:var(--ink-muted)}
+.g{max-width:560px;overflow:hidden}
+.g{max-width:700px;overflow:hidden}
+.lbl{font:600 13px/18px var(--font-body);color:var(--ink-muted);margin:0 0 8px 8px}
+.r{display:flex;gap:12px;align-items:center;min-height:56px;box-sizing:border-box;padding:8px 16px;border-top:1px solid var(--line)}
+.part{padding:20px;border-top:1px solid var(--line)}
+.g>:first-child{border-top:0}
+.r .txt{flex:1;min-width:0}.t{font-weight:600;display:block}
+.end{display:flex;align-items:center;gap:8px;flex:none}
+.name{font:600 13px/18px var(--font-body);color:var(--ink);margin:0 0 8px}
+.note{color:var(--ink-muted);margin:0 0 16px}
+input{height:44px;box-sizing:border-box;width:100%;max-width:420px;padding:0 14px;border:1px solid var(--line-strong);border-radius:var(--radius-md);background:var(--surface);color:var(--ink);font:400 15px var(--font-body)}
+.help{font-size:13px;line-height:18px;color:var(--ink-muted);margin:4px 0 16px}
+.sec{margin-bottom:24px}
+.stack{display:flex;flex-direction:column;align-items:flex-start;gap:20px}
+.seg{display:inline-flex;padding:4px;gap:2px;border-radius:var(--radius-pill);background:var(--surface-sunken)}
+.seg button{height:36px;padding:0 16px;border:0;border-radius:var(--radius-pill);background:transparent;color:var(--ink-muted);font:400 15px/1 var(--font-body)}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:var(--shadow-1)}
+.sample{width:360px;max-width:100%;height:150px;border-radius:var(--radius-md);background:var(--bg);display:flex;align-items:center;justify-content:center;color:var(--ink-muted);font-size:13px}
+.sw{appearance:none;-webkit-appearance:none;width:50px;height:30px;border-radius:999px;background:var(--accent);border:1px solid var(--accent);position:relative;flex:none;margin:0}
+.sw::after{content:"";position:absolute;top:3px;left:23px;width:22px;height:22px;border-radius:50%;background:var(--on-accent)}
+.dz{color:var(--danger)}
+.tile.n{background:var(--surface-sunken);color:var(--ink-muted)}
+:root{color-scheme:light dark}
+.t-kiwi{--d:var(--accent);--od:var(--on-accent)}
+.t-graphite{--d:light-dark(#232323,#E6E6E4)}.t-dusk{--d:light-dark(#3D5AA9,#9DB4F2)}.t-plum{--d:light-dark(#7A3E8E,#D2A6E0)}
+.t-rose{--d:light-dark(#A63A5B,#EFA3B8)}.t-amber{--d:light-dark(#8A5100,#F0B45A)}
+.sws{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}
+.swt{display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 16px 0 11px;border-radius:var(--radius-pill);border:0;background:var(--surface);box-shadow:var(--shadow-1);color:var(--ink);font:600 15px/1 var(--font-body);cursor:pointer}
+.swt[aria-checked=true]{box-shadow:0 0 0 2px var(--ink)}
+.disc{width:22px;height:22px;border-radius:50%;background:var(--d);display:grid;place-items:center;flex:none}
+.disc svg{width:12px;height:12px;fill:none;stroke:var(--od);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+</style></head><body>
+<section class="sec" aria-labelledby="h-app">
+<p class="lbl" id="h-app">Appearance</p>
+<div class="card g">
+<div class="part">
+<p class="name">Theme</p>
+<div class="sws" role="radiogroup" aria-label="Theme"><button class="swt t-kiwi" role="radio" aria-checked="true" type="button"><span class="disc"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span>Kiwi</button><button class="swt t-graphite" role="radio" aria-checked="false" type="button"><span class="disc"></span>Graphite</button><button class="swt t-dusk" role="radio" aria-checked="false" type="button"><span class="disc"></span>Dusk</button><button class="swt t-plum" role="radio" aria-checked="false" type="button"><span class="disc"></span>Plum</button><button class="swt t-rose" role="radio" aria-checked="false" type="button"><span class="disc"></span>Rose</button><button class="swt t-amber" role="radio" aria-checked="false" type="button"><span class="disc"></span>Amber</button></div>
+<div class="stack">
+<div class="ctl"><p class="name">Mode</p><div class="seg" role="group" aria-label="Mode"><button type="button" aria-pressed="false">Light</button><button type="button" aria-pressed="false">Dark</button><button type="button" aria-pressed="true">Match system</button></div></div>
+<div class="sample" aria-label="Sample of the chosen theme">Sample of the chosen theme</div>
+</div>
+</div>
+<div class="r"><span class="tile t-accent"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M6 18l2.5-2.5M15.5 8.5L18 6"></path></svg></span><span class="txt"><span class="t">Assistant</span><span class="cap">Ready. Switching it off unloads the model.</span></span><span class="end"><input class="sw" type="checkbox" checked aria-label="Assistant"></span></div>
+</div>
+</section>
+<section aria-labelledby="h-ag">
+<p class="lbl" id="h-ag">Agents</p>
+<div class="card g">
+<div class="part">
+<p class="note">An agent reaches myData's tools with a token of its own.</p>
+<label class="name" for="ag-name" style="display:block">Name</label>
+<input id="ag-name" type="text" placeholder="For example, Claude on my laptop">
+<div class="help">Name it after the agent and the computer it runs on.</div>
+<button class="btn primary" type="button">Create an agent token</button>
+</div>
+<div class="r"><span class="tile n"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="15" r="4"></circle><path d="M11 12l9-9M17 6l3 3M14 9l2 2"></path></svg></span><span class="txt"><span class="t">Claude on my laptop</span><span class="cap">Created 1 Oct, last seen today</span></span><span class="end"><span class="chipst" style="background:var(--success-soft);color:var(--success)">Connected</span><button class="btn plain dz" type="button">Revoke</button></span></div>
+</div>
+</section>
+</body></html>
