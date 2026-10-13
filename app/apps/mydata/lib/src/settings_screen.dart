@@ -5,14 +5,28 @@ import 'package:mydata_ui/mydata_ui.dart';
 import 'agent_list.dart';
 import 'agent_tokens.dart';
 import 'host_action.dart';
+import 'source_list.dart';
+import 'sources_section.dart';
 
-/// Appearance (theme and mode), the assistant switch and the agent tokens.
+/// Appearance (theme and mode), the assistant switch, the sources of contacts and calendars, and the agent
+/// tokens.
 class SettingsScreen extends StatelessWidget {
-  const SettingsScreen({super.key, required this.controller, required this.appearance, required this.agents});
+  const SettingsScreen({
+    super.key,
+    required this.controller,
+    required this.appearance,
+    required this.agents,
+    required this.sources,
+    this.macSystem,
+  });
 
   final HostController controller;
   final AppearanceController appearance;
   final AgentList agents;
+  final SourceList sources;
+
+  /// Opens System Settings; null is the real one ([macSystem]).
+  final MacSystem? macSystem;
 
   @override
   Widget build(BuildContext context) => PageScaffold(
@@ -20,6 +34,7 @@ class SettingsScreen extends StatelessWidget {
     children: [
       AppearanceSection(appearance: appearance),
       _AssistantSwitch(controller: controller),
+      SourcesSections(controller: controller, sources: sources, system: macSystem),
       AgentTokensSection(controller: controller, agents: agents),
     ],
   );

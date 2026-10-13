@@ -42,6 +42,10 @@ class HostConnection {
   late final agents = AgentsApi(client);
   late final tools = ToolsApi(client);
   late final appearance = AppearanceApi(client);
+
+  /// Sources (This Mac, iCloud accounts). POST /sources/mac/request-access waits while the person answers
+  /// the system prompt, up to 180 s: package:http sets no timeout of its own, so do not add a shorter one.
+  late final sources = SourcesApi(client);
 }
 
 /// Finds the host, starts it if needed (as a separate process that outlives this app), waits for it,

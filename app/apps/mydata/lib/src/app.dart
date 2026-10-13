@@ -4,14 +4,23 @@ import 'package:flutter/material.dart';
 import 'package:mydata_core/mydata_core.dart';
 import 'package:mydata_ui/mydata_ui.dart';
 
+import 'format.dart';
 import 'host_action.dart';
 import 'setup_screen.dart';
+import 'source_list.dart';
 import 'shell.dart';
 
 /// The myData app: draws in the theme stored on the host and the mode stored on this device, and follows
 /// both as they change (a theme picked in myAssistant arrives with the next status poll).
 class MyDataApp extends StatefulWidget {
-  const MyDataApp({super.key, required this.controller, this.openSetup = false, this.appearance, this.store});
+  const MyDataApp({
+    super.key,
+    required this.controller,
+    this.openSetup = false,
+    this.appearance,
+    this.store,
+    this.macSystem,
+  });
 
   final HostController controller;
 
@@ -24,6 +33,9 @@ class MyDataApp extends StatefulWidget {
   /// Where this device's mode is kept, for the [AppearanceController] the app builds. Null is the shared
   /// device file every myData app reads ([deviceStore]); tests pass a MemoryDeviceStore.
   final DeviceStore? store;
+
+  /// The reader helper's path and System Settings. Null is the real one ([macSystem]); tests pass a fake.
+  final MacSystem? macSystem;
 
   @override
   State<MyDataApp> createState() => _MyDataAppState();
@@ -57,7 +69,12 @@ class _MyDataAppState extends State<MyDataApp> {
         themeMode: theme.themeMode,
         debugShowCheckedModeBanner: false,
         builder: (context, child) => MyDataAccessibilityScope(child: child ?? const SizedBox.shrink()),
-        home: _Home(controller: widget.controller, appearance: _appearance, openSetup: widget.openSetup),
+        home: _Home(
+          controller: widget.controller,
+          appearance: _appearance,
+          openSetup: widget.openSetup,
+          mac: widget.macSystem ?? macSystem,
+        ),
       );
     },
   );
@@ -65,11 +82,12 @@ class _MyDataAppState extends State<MyDataApp> {
 
 /// Setup until the person moves on from it, then the Status and Settings shell.
 class _Home extends StatefulWidget {
-  const _Home({required this.controller, required this.appearance, required this.openSetup});
+  const _Home({required this.controller, required this.appearance, required this.openSetup, required this.mac});
 
   final HostController controller;
   final AppearanceController appearance;
   final bool openSetup;
+  final MacSystem mac;
 
   @override
   State<_Home> createState() => _HomeState();
@@ -84,6 +102,17 @@ class _HomeState extends State<_Home> {
   bool? _themeChosen;
   bool _askedAppearance = false;
 
+  /// Whether This Mac was ever turned on or off (GET /sources `decided`), so its first-run step is not
+  /// needed. Null until known; true on a host that is not a Mac, and when the host could not say, so the
+  /// step never blocks setup.
+  bool? _macDecided;
+  bool _askedMac = false;
+
+  /// The host's uptime at the last poll after the reader helper's path was reported; null until a report
+  /// has succeeded (and again after one failed, so the next poll tries again).
+  num? _readerUptime;
+  bool _reportingReader = false;
+
   HostController get _c => widget.controller;
 
   @override
@@ -91,6 +120,8 @@ class _HomeState extends State<_Home> {
     super.initState();
     _c.addListener(_onHost);
     _askAppearance();
+    _askMac();
+    _reportReader();
     _decide();
   }
 
@@ -102,7 +133,67 @@ class _HomeState extends State<_Home> {
 
   void _onHost() {
     _askAppearance();
+    _askMac();
+    _reportReader();
     setState(_decide);
+  }
+
+  /// Once the host runs, ask it once whether This Mac's first-run question was answered.
+  void _askMac() {
+    final connection = _c.connection;
+    final s = _c.status;
+    if (_askedMac || _c.phase != HostPhase.running || connection == null || s == null) return;
+    _askedMac = true;
+    if (!s.macAvailable) {
+      _macDecided = true;
+      return;
+    }
+    unawaited(() async {
+      bool decided;
+      try {
+        final out = await connection.sources.sources().timeout(const Duration(seconds: 5));
+        final mac = out?.sources.where((x) => x.kind == SourceOutKindEnum.mac).firstOrNull;
+        decided = mac == null || (mac.decided ?? true);
+      } on Object {
+        decided = true;
+      }
+      if (!mounted) return;
+      setState(() {
+        _macDecided = decided;
+        _decide();
+      });
+    }());
+  }
+
+  /// On a Mac host, tell the host where this app's reader helper is (PUT /sources/mac/reader) at this
+  /// app's start and again whenever the host restarts (its uptime goes back): the host starts the helper
+  /// from there. Nothing to say when this is not macOS, or this build has no helper (one made before it
+  /// existed).
+  void _reportReader() {
+    final connection = _c.connection;
+    final s = _c.status;
+    if (_c.phase != HostPhase.running || connection == null || s == null || !s.macAvailable) return;
+    if (_reportingReader) return;
+    final last = _readerUptime;
+    if (last != null && s.uptimeSeconds >= last) {
+      _readerUptime = s.uptimeSeconds; // the same host run: already told
+      return;
+    }
+    final path = widget.mac.readerHelperPath();
+    if (path == null) return;
+    _reportingReader = true;
+    final uptime = s.uptimeSeconds;
+    unawaited(() async {
+      try {
+        await connection.sources.setMacReader(ReaderIn(path: path));
+        _readerUptime = uptime;
+      } on Object catch (e) {
+        _readerUptime = null; // try again at the next poll
+        debugPrint('myData: the host did not take the reader path: ${errorText(e)}');
+      } finally {
+        _reportingReader = false;
+      }
+    }());
   }
 
   /// Once the host runs, ask it once whether a theme was ever chosen.
@@ -131,8 +222,12 @@ class _HomeState extends State<_Home> {
   void _decide() {
     final s = _c.status;
     if (_inSetup != null || _c.phase != HostPhase.running || s == null || _themeChosen == null) return;
+    if (_macDecided == null) return;
     final a = assistantAvailability(s);
-    _inSetup = _themeChosen == false || (a != AssistantAvailability.ready && a != AssistantAvailability.off);
+    _inSetup =
+        _themeChosen == false ||
+        _macDecided == false ||
+        (a != AssistantAvailability.ready && a != AssistantAvailability.off);
   }
 
   void _leaveSetup() => setState(() => _inSetup = false);
@@ -140,6 +235,31 @@ class _HomeState extends State<_Home> {
   Future<void> _chooseTheme(String id) async {
     await widget.appearance.setTheme(id);
     if (mounted) setState(() => _themeChosen = true);
+  }
+
+  /// This Mac's first-run Allow: turn it on with everything included, then ask for contacts, then
+  /// calendars. Each request-access waits while the person answers the system's prompt. Moves on when both
+  /// may be read; otherwise returns what is missing, and the step says so.
+  Future<MacAccessShortfall?> _allowMac() async {
+    final c = _c.connection;
+    if (c == null) throw StateError('The host is not connected.');
+    await c.sources.configureMac(MacChoice.turn(on: true));
+    await c.sources.requestMacAccess(AccessIn(what: AccessInWhatEnum.contacts));
+    final out = await c.sources.requestMacAccess(AccessIn(what: AccessInWhatEnum.calendars));
+    final short = ThisMacStep.shortfall(out?.contactsStatus, out?.calendarsStatus);
+    if (short == null && mounted) setState(() => _macDecided = true);
+    return short;
+  }
+
+  /// This Mac's first-run Skip: leave it off, which records the choice on the host.
+  Future<void> _skipMac() async {
+    try {
+      await _c.connection?.sources.configureMac(MacChoice.turn(on: false));
+    } on Object catch (e) {
+      // Setup moves on regardless; the question comes back at the next start.
+      debugPrint('myData: could not record skipping This Mac: ${errorText(e)}');
+    }
+    if (mounted) setState(() => _macDecided = true);
   }
 
   Future<void> _skip() async {
@@ -163,10 +283,10 @@ class _HomeState extends State<_Home> {
 
   @override
   Widget build(BuildContext context) {
-    if (_inSetup == false) return HomeShell(controller: _c, appearance: widget.appearance);
-    // While the host's answer about the theme is on its way, keep showing the host being looked for, so
-    // the assistant panel does not flash up before the theme step.
-    final waiting = _c.phase == HostPhase.running && _themeChosen == null;
+    if (_inSetup == false) return HomeShell(controller: _c, appearance: widget.appearance, macSystem: widget.mac);
+    // While the host's answers about the theme and This Mac are on their way, keep showing the host being
+    // looked for, so the assistant panel does not flash up before those steps.
+    final waiting = _c.phase == HostPhase.running && (_themeChosen == null || _macDecided == null);
     return SetupScreen(
       phase: waiting ? HostPhase.checking : _c.phase,
       status: _c.status,
@@ -179,6 +299,11 @@ class _HomeState extends State<_Home> {
       onSwitchOn: _switchOn,
       themeChosen: _themeChosen ?? true,
       onChooseTheme: _chooseTheme,
+      macStep: _macDecided == false,
+      onAllowMac: _allowMac,
+      onSkipMac: _skipMac,
+      onMacDone: () => setState(() => _macDecided = true),
+      onOpenMacSettings: (pane) => widget.mac.open(pane),
     );
   }
 }

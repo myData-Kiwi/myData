@@ -59,3 +59,21 @@ class MemoryDeviceStore implements DeviceStore {
   @override
   Future<void> write(Map<String, Object?> values) async => _values = {...values};
 }
+
+/// What the myData app needs from macOS for the This Mac source. Elsewhere it has nothing to report or
+/// open. Swapped for a fake in tests.
+abstract class MacSystem {
+  /// The reader helper inside this app's bundle (`myData.app/Contents/Helpers/myDataReader.app`), or null:
+  /// not macOS, or a development build made before the helper existed.
+  String? readerHelperPath();
+
+  /// Opens [url] with the system: a System Settings pane (`x-apple.systempreferences:...`). Returns false
+  /// where it could not.
+  Future<bool> open(String url);
+}
+
+/// The System Settings panes where access to contacts and calendars is turned back on.
+abstract final class PrivacyPane {
+  static const contacts = 'x-apple.systempreferences:com.apple.preference.security?Privacy_Contacts';
+  static const calendars = 'x-apple.systempreferences:com.apple.preference.security?Privacy_Calendars';
+}

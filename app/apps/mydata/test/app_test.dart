@@ -242,7 +242,7 @@ void main() {
       final create = find.ancestor(of: find.text(AgentTokensSection.createLabel), matching: find.byType(Button));
       await tester.ensureVisible(create);
       expect(tester.widget<Button>(create).onPressed, isNull, reason: 'a token needs a name');
-      await tester.enterText(find.byType(MyDataTextField), 'Claude on my laptop');
+      await tester.enterText(find.widgetWithText(MyDataTextField, 'Name'), 'Claude on my laptop');
       await tester.pump();
       await tester.tap(create);
       await settle(tester);

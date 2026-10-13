@@ -8,4 +8,14 @@ export 'src/availability.dart';
 export 'src/host_controller.dart';
 export 'src/appearance.dart';
 export 'src/platform.dart'
-    show DeviceStore, HostEnvironment, HostPlatform, LaunchResult, MemoryDeviceStore, deviceStore, hostPlatform;
+    show
+        DeviceStore,
+        HostEnvironment,
+        HostPlatform,
+        LaunchResult,
+        MacSystem,
+        MemoryDeviceStore,
+        PrivacyPane,
+        deviceStore,
+        hostPlatform,
+        macSystem;

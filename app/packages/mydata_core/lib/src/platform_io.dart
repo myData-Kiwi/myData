@@ -146,3 +146,27 @@ class _FileDeviceStore implements DeviceStore {
 }
 
 DeviceStore deviceStore = _FileDeviceStore();
+
+/// macOS: the helper next to this app's executable, and `open` for System Settings.
+class _IoMacSystem implements MacSystem {
+  @override
+  String? readerHelperPath() {
+    if (!Platform.isMacOS) return null;
+    // .../myData.app/Contents/MacOS/myData -> .../myData.app/Contents/Helpers/myDataReader.app
+    final contents = File(Platform.resolvedExecutable).parent.parent;
+    final helper = Directory('${contents.path}/Helpers/myDataReader.app');
+    return helper.existsSync() ? helper.path : null;
+  }
+
+  @override
+  Future<bool> open(String url) async {
+    if (!Platform.isMacOS) return false;
+    try {
+      return (await Process.run('open', [url])).exitCode == 0;
+    } on ProcessException {
+      return false;
+    }
+  }
+}
+
+MacSystem macSystem = _IoMacSystem();

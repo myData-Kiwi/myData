@@ -5,8 +5,9 @@ import 'package:mydata_ui/mydata_ui.dart';
 import 'format.dart';
 import 'host_phase_panel.dart';
 
-/// Shown until the host is ready: the host starting, on first run the theme, then the assistant's model
-/// being prepared. The assistant can be skipped at any point; myData works without it.
+/// Shown until the host is ready: the host starting, on first run the theme and (on a Mac host) whether to
+/// use the contacts and calendars on this Mac, then the assistant's model being prepared. The assistant can
+/// be skipped at any point; myData works without it.
 ///
 /// It takes plain inputs (no controller) so it can be tested without a host.
 class SetupScreen extends StatelessWidget {
@@ -23,6 +24,11 @@ class SetupScreen extends StatelessWidget {
     required this.onSwitchOn,
     this.themeChosen = true,
     this.onChooseTheme,
+    this.macStep = false,
+    this.onAllowMac,
+    this.onSkipMac,
+    this.onMacDone,
+    this.onOpenMacSettings,
   });
 
   final HostPhase phase;
@@ -55,6 +61,25 @@ class SetupScreen extends StatelessWidget {
   /// not be stored; the step then says so and stays.
   final Future<void> Function(String themeId)? onChooseTheme;
 
+  /// Show the This Mac step (after the theme): a Mac host whose This Mac source was never turned on or
+  /// off.
+  final bool macStep;
+
+  /// Turns This Mac on and asks for access to contacts, then calendars (the system's prompts appear).
+  /// Returns null when both may be read (the step is then done), or what is missing, which the step shows.
+  /// Throws when that failed; the step then says so.
+  final Future<MacAccessShortfall?> Function()? onAllowMac;
+
+  /// Leaves This Mac off, recording the choice, and moves on.
+  final Future<void> Function()? onSkipMac;
+
+  /// Moves on after Allow failed part-way, or without waiting for the answer (the choice can be finished in
+  /// Settings).
+  final VoidCallback? onMacDone;
+
+  /// Opens System Settings at a privacy pane ([PrivacyPane]).
+  final Future<void> Function(String pane)? onOpenMacSettings;
+
   @override
   Widget build(BuildContext context) {
     final s = status;
@@ -62,6 +87,13 @@ class SetupScreen extends StatelessWidget {
     final Widget body;
     if (running && !themeChosen && onChooseTheme != null) {
       body = ThemeStep(onChoose: onChooseTheme!);
+    } else if (running && macStep && onAllowMac != null && onSkipMac != null) {
+      body = ThisMacStep(
+        onAllow: onAllowMac!,
+        onSkip: onSkipMac!,
+        onDone: onMacDone ?? () {},
+        onOpenSettings: onOpenMacSettings,
+      );
     } else if (running) {
       body = _assistantPanel(s);
     } else {
@@ -181,52 +213,221 @@ class _ThemeStepState extends State<ThemeStep> {
     final brightness = Theme.of(context).brightness;
     return Theme(
       data: MyDataTheme.data(_selected, brightness),
-      child: Builder(builder: (context) {
-        final c = context.colors;
-        return Material(
-          color: c.bg,
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(MyDataSpace.s8),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: ThemeStep.maxWidth),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Semantics(
-                      header: true,
-                      child: Text(ThemeStep.title, style: MyDataType.displayLg.copyWith(color: c.ink)),
-                    ),
-                    const SizedBox(height: MyDataSpace.s2),
-                    Text(ThemeStep.sentence, style: MyDataType.body.copyWith(color: c.inkMuted)),
-                    const SizedBox(height: MyDataSpace.s6),
-                    ThemePicker(
-                      selected: _selected,
-                      onChanged: _saving ? null : (id) => setState(() => _selected = id),
-                    ),
-                    const SizedBox(height: MyDataSpace.s6),
-                    ThemeSample(themeId: _selected),
-                    const SizedBox(height: MyDataSpace.s6),
-                    Button(
-                      label: ThemeStep.useLabel,
-                      variant: ButtonVariant.filled,
-                      onPressed: _saving ? null : _use,
-                    ),
-                    if (_error != null) ...[
-                      const SizedBox(height: MyDataSpace.s3),
+      child: Builder(
+        builder: (context) {
+          final c = context.colors;
+          return Material(
+            color: c.bg,
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(MyDataSpace.s8),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: ThemeStep.maxWidth),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Semantics(
-                        liveRegion: true,
-                        child: Text(_error!, style: MyDataType.caption.copyWith(color: c.danger)),
+                        header: true,
+                        child: Text(ThemeStep.title, style: MyDataType.displayLg.copyWith(color: c.ink)),
                       ),
+                      const SizedBox(height: MyDataSpace.s2),
+                      Text(ThemeStep.sentence, style: MyDataType.body.copyWith(color: c.inkMuted)),
+                      const SizedBox(height: MyDataSpace.s6),
+                      ThemePicker(
+                        selected: _selected,
+                        onChanged: _saving ? null : (id) => setState(() => _selected = id),
+                      ),
+                      const SizedBox(height: MyDataSpace.s6),
+                      ThemeSample(themeId: _selected),
+                      const SizedBox(height: MyDataSpace.s6),
+                      Button(
+                        label: ThemeStep.useLabel,
+                        variant: ButtonVariant.filled,
+                        onPressed: _saving ? null : _use,
+                      ),
+                      if (_error != null) ...[
+                        const SizedBox(height: MyDataSpace.s3),
+                        Semantics(
+                          liveRegion: true,
+                          child: Text(_error!, style: MyDataType.caption.copyWith(color: c.danger)),
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
             ),
-          ),
-        );
-      }),
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// What Allow ended with when myData may not read both contacts and calendars: a sentence for people, and
+/// the System Settings pane that changes it, when there is one.
+class MacAccessShortfall {
+  const MacAccessShortfall(this.message, {this.pane});
+
+  final String message;
+
+  /// A [PrivacyPane], or null when System Settings cannot help (a restriction, or no answer yet).
+  final String? pane;
+}
+
+/// First run on a Mac host: use the contacts and calendars on this Mac? Allow turns This Mac on and asks
+/// macOS for access to contacts, then calendars; Skip leaves it off. Either way the question is not asked
+/// again (the host records it), and Settings, Sources changes it later. When the person did not allow both,
+/// the step stays and says what myData can and cannot read.
+class ThisMacStep extends StatefulWidget {
+  const ThisMacStep({
+    super.key,
+    required this.onAllow,
+    required this.onSkip,
+    required this.onDone,
+    this.onOpenSettings,
+  });
+
+  /// Returns null when both may be read, else what is missing. Throws when it could not finish.
+  final Future<MacAccessShortfall?> Function() onAllow;
+  final Future<void> Function() onSkip;
+
+  /// Moves on: after a failure, after a partial answer, or without waiting for the answer.
+  final VoidCallback onDone;
+
+  /// Opens System Settings at a [PrivacyPane].
+  final Future<void> Function(String pane)? onOpenSettings;
+
+  static const title = 'Use the contacts and calendars on this Mac';
+  static const sentence =
+      'myData reads them from this Mac, from every account you have set up here. Nothing is sent anywhere, '
+      'and myData never changes them.';
+  static const allowLabel = 'Allow';
+  static const skipLabel = 'Skip';
+  static const waitingTitle = 'Waiting for your answer';
+  static const waitingMessage =
+      'macOS asks whether myData may read your contacts, then your calendars. Answer in its window. If you '
+      'cannot see it, continue and finish this later in Settings, Sources.';
+  static const continueWithoutWaiting = 'Continue without waiting';
+  static const failedTitle = 'Access was not set up';
+  static const failedMessage = 'You can finish this later in Settings, Sources, or try again now.';
+  static const shortTitle = 'Not everything can be read';
+  static const continueLabel = 'Continue';
+  static const openSettingsLabel = 'Open System Settings';
+
+  /// What is missing after Allow, from the statuses the host reports; null when both may be read.
+  static MacAccessShortfall? shortfall(String? contacts, String? calendars) {
+    final contactsOk = contacts == 'authorized';
+    final calendarsOk = calendars == 'fullAccess';
+    if (contactsOk && calendarsOk) return null;
+    final what = contactsOk
+        ? 'myData can read your contacts but not your calendars.'
+        : calendarsOk
+        ? 'myData can read your calendars but not your contacts.'
+        : 'myData cannot read your contacts or your calendars.';
+    final missing = [if (!contactsOk) ('contacts', contacts), if (!calendarsOk) ('calendars', calendars)];
+    final turnedOff = [
+      for (final (kind, status) in missing)
+        if (status == 'denied' || status == 'writeOnly') kind,
+    ];
+    if (turnedOff.isNotEmpty) {
+      final panes = turnedOff.map((k) => k == 'contacts' ? 'Contacts' : 'Calendars').join(' and ');
+      return MacAccessShortfall(
+        '$what You can turn access on later in System Settings, Privacy & Security, $panes.',
+        pane: turnedOff.first == 'contacts' ? PrivacyPane.contacts : PrivacyPane.calendars,
+      );
+    }
+    if (missing.any((m) => m.$2 == 'restricted')) {
+      return MacAccessShortfall(
+        '$what A restriction set on this Mac, such as Screen Time or a profile, does not allow it.',
+      );
+    }
+    return MacAccessShortfall('$what You can allow it later in Settings, Sources.');
+  }
+
+  @override
+  State<ThisMacStep> createState() => _ThisMacStepState();
+}
+
+class _ThisMacStepState extends State<ThisMacStep> {
+  bool _working = false;
+  bool _skipping = false;
+  String? _error;
+  MacAccessShortfall? _short;
+
+  Future<void> _allow() async {
+    setState(() {
+      _working = true;
+      _error = null;
+      _short = null;
+    });
+    try {
+      final short = await widget.onAllow();
+      if (mounted) setState(() => _short = short);
+    } on Object catch (e) {
+      if (mounted) setState(() => _error = errorText(e));
+    } finally {
+      if (mounted) setState(() => _working = false);
+    }
+  }
+
+  Future<void> _skip() async {
+    setState(() => _skipping = true);
+    try {
+      await widget.onSkip();
+    } finally {
+      if (mounted) setState(() => _skipping = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_working) {
+      return StatusPanel(
+        kind: StatusPanelKind.working,
+        title: ThisMacStep.waitingTitle,
+        message: ThisMacStep.waitingMessage,
+        actions: [
+          Button(label: ThisMacStep.continueWithoutWaiting, onPressed: widget.onDone, variant: ButtonVariant.plain),
+        ],
+      );
+    }
+    if (_error != null) {
+      return StatusPanel(
+        kind: StatusPanelKind.error,
+        title: ThisMacStep.failedTitle,
+        message: ThisMacStep.failedMessage,
+        detail: _error,
+        actions: [
+          Button(label: 'Try again', onPressed: _allow, variant: ButtonVariant.filled),
+          Button(label: ThisMacStep.continueLabel, onPressed: widget.onDone, variant: ButtonVariant.plain),
+        ],
+      );
+    }
+    final short = _short;
+    if (short != null) {
+      final pane = short.pane;
+      final open = widget.onOpenSettings;
+      return StatusPanel(
+        kind: StatusPanelKind.info,
+        title: ThisMacStep.shortTitle,
+        message: short.message,
+        actions: [
+          Button(label: ThisMacStep.continueLabel, onPressed: widget.onDone, variant: ButtonVariant.filled),
+          if (pane != null && open != null)
+            Button(label: ThisMacStep.openSettingsLabel, onPressed: () => open(pane), variant: ButtonVariant.plain),
+        ],
+      );
+    }
+    return StatusPanel(
+      kind: StatusPanelKind.info,
+      title: ThisMacStep.title,
+      message: ThisMacStep.sentence,
+      actions: [
+        Button(label: ThisMacStep.allowLabel, onPressed: _skipping ? null : _allow, variant: ButtonVariant.filled),
+        Button(label: ThisMacStep.skipLabel, onPressed: _skipping ? null : _skip, variant: ButtonVariant.plain),
+      ],
     );
   }
 }

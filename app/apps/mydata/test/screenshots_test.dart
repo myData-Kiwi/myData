@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mydata/src/app.dart';
+import 'package:mydata/src/sources_section.dart';
 import 'package:mydata_core/mydata_core.dart';
 import 'package:mydata_testing/mydata_testing.dart';
 
@@ -18,6 +19,7 @@ Widget app(FakeHost host, ThemeCase t) {
   return MyDataApp(
     controller: host.controller(),
     store: MemoryDeviceStore({'mode': t.brightness.name, 'lastTheme': t.themeId}),
+    macSystem: FakeMacSystem(),
   );
 }
 
@@ -86,6 +88,63 @@ void main() {
       await tester.tap(find.text('Settings'));
       await settle(tester);
       await tester.ensureVisible(find.text('Old test agent'));
+      await settle(tester);
+    },
+  );
+
+  // First run on a Mac host, after the theme: use the contacts and calendars on this Mac?
+  screenMatrix(
+    'setup_this_mac',
+    (t) => app(FakeHost(mac: macSource(enabled: false, decided: false)), t),
+    before: settle,
+  );
+
+  // Settings, Sources on a Mac: This Mac on, contacts allowed, calendars turned off in System Settings.
+  screenMatrix(
+    'settings_sources',
+    (t) => app(
+      FakeHost(
+        status: running..macAvailable = true,
+        agents: agents,
+        mac: macSource(calendars: 'denied'),
+      ),
+      t,
+    ),
+    before: (tester) async {
+      await settle(tester);
+      await tester.tap(find.text('Settings'));
+      await settle(tester);
+      await tester.ensureVisible(find.text(SourcesSections.heading));
+      await settle(tester);
+    },
+  );
+
+  // Settings, Advanced on a Mac: following an iCloud account, with one account synced and one failing.
+  screenMatrix(
+    'settings_sources_advanced',
+    (t) => app(
+      FakeHost(
+        status: running..macAvailable = true,
+        agents: agents,
+        mac: macSource(),
+        accounts: [
+          icloudSource('sam@example.com'),
+          icloudSource(
+            'ava@example.org',
+            lastError:
+                'Apple did not accept this sign-in. Use the email of your Apple Account, which may '
+                'differ from an address on your own domain, and an app-specific password made at '
+                'account.apple.com.',
+          ),
+        ],
+      ),
+      t,
+    ),
+    before: (tester) async {
+      await settle(tester);
+      await tester.tap(find.text('Settings'));
+      await settle(tester);
+      await tester.ensureVisible(find.text(SourcesSections.advancedHeading));
       await settle(tester);
     },
   );

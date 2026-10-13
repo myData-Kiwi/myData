@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -13,8 +14,10 @@ StatusOut statusWith(
   bool enabled = true,
   int? modelBytes,
   ErrorOut? lastError,
+  bool macAvailable = false,
 }) => StatusOut(
   agentsConnected: 0,
+  macAvailable: macAvailable,
   assistantEnabled: enabled,
   demoDate: true,
   lastError: lastError,
@@ -47,6 +50,76 @@ AgentOut agentWith(String name, {bool connected = false, bool revoked = false, S
   lastSeenAt: lastSeenAt,
 );
 
+/// This Mac as GET /sources shows it, with invented accounts and calendars. [contacts] and [calendars] are
+/// the system's access statuses; [enabled] false clears what it read, as the host does.
+SourceOut macSource({
+  bool enabled = true,
+  bool decided = true,
+  String contacts = 'authorized',
+  String calendars = 'fullAccess',
+  Set<String> leftOut = const {},
+  String? lastError,
+}) => SourceOut(
+  id: 'mac',
+  kind: SourceOutKindEnum.mac,
+  available: true,
+  enabled: enabled,
+  decided: decided,
+  contactsStatus: enabled ? contacts : 'unknown',
+  calendarsStatus: enabled ? calendars : 'unknown',
+  contactContainers: !enabled || contacts != 'authorized'
+      ? []
+      : [
+          MacContainerOut(id: 'c-online', name: 'iCloud', kind: 'cardDAV', included: !leftOut.contains('c-online')),
+          MacContainerOut(id: 'c-local', name: 'On My Mac', kind: 'local', included: !leftOut.contains('c-local')),
+        ],
+  calendars: !enabled || calendars != 'fullAccess'
+      ? []
+      : [
+          for (final (id, name) in [('k-home', 'Home'), ('k-work', 'Work'), ('k-club', 'Example Book Club')])
+            MacCalendarOut(id: id, name: name, sourceName: 'iCloud', included: !leftOut.contains(id)),
+        ],
+  allContactContainers: !leftOut.any((id) => id.startsWith('c-')),
+  allCalendars: !leftOut.any((id) => id.startsWith('k-')),
+  notesIncluded: false,
+  window: enabled ? WindowOut(start: '2025-10-13', end: '2028-10-13') : null,
+  readerRunning: enabled,
+  lastUpdate: enabled ? '2026-10-13T09:12:00' : null,
+  lastError: lastError,
+);
+
+/// A followed iCloud account as GET /sources shows it.
+SourceOut icloudSource(String email, {String? lastError}) => SourceOut(
+  id: 'acct-${email.split('@').first}',
+  kind: SourceOutKindEnum.icloud,
+  enabled: true,
+  email: email,
+  notesIncluded: true,
+  state: lastError == null ? SourceOutStateEnum.idle : SourceOutStateEnum.error,
+  lastUpdate: '2026-10-13T08:40:00',
+  lastError: lastError,
+);
+
+/// The reader helper and System Settings, recorded.
+class FakeMacSystem implements MacSystem {
+  FakeMacSystem({this.helper = '/Applications/myData.app/Contents/Helpers/myDataReader.app'});
+
+  /// What [readerHelperPath] returns: null for a build with no helper.
+  final String? helper;
+
+  /// The URLs opened.
+  final opened = <String>[];
+
+  @override
+  String? readerHelperPath() => helper;
+
+  @override
+  Future<bool> open(String url) async {
+    opened.add(url);
+    return true;
+  }
+}
+
 /// A platform whose host is always there; the [FakeHost] answers its requests.
 class _FakePlatform implements HostPlatform {
   @override
@@ -66,9 +139,16 @@ class _FakePlatform implements HostPlatform {
 /// A running host in memory: the API the apps use, answered from fields a test can set and read, with
 /// every request recorded ("PUT /appearance {"theme":"dusk"}").
 class FakeHost {
-  FakeHost({StatusOut? status, this.theme = 'kiwi', this.chosen = true, List<AgentOut>? agents})
-    : status = status ?? statusWith(ModelOutStateEnum.ready),
-      agents = agents ?? [];
+  FakeHost({
+    StatusOut? status,
+    this.theme = 'kiwi',
+    this.chosen = true,
+    List<AgentOut>? agents,
+    this.mac,
+    List<SourceOut>? accounts,
+  }) : status = status ?? statusWith(ModelOutStateEnum.ready, macAvailable: mac != null),
+       agents = agents ?? [],
+       accounts = accounts ?? [];
 
   static const token = 'test-token';
   static const environment = HostEnvironment(home: '/tmp/mydata-test', baseUrl: 'http://127.0.0.1:47821', hostCommand: null);
@@ -79,6 +159,25 @@ class FakeHost {
   String theme;
   bool chosen;
   List<AgentOut> agents;
+
+  /// This Mac, or null on a host that is not a Mac (GET /sources leaves it out; its routes answer 404).
+  SourceOut? mac;
+
+  /// The followed iCloud accounts.
+  List<SourceOut> accounts;
+
+  /// What the system's prompt answers, per kind, when the app asks for access.
+  Map<String, String> accessAnswers = {'contacts': 'authorized', 'calendars': 'fullAccess'};
+
+  /// POST /accounts answers 400 with this, as the host does when Apple refuses the sign-in.
+  String? rejectAccount;
+
+  /// How many of the next PUT /sources/mac/reader answer with a server error.
+  int failReader = 0;
+
+  /// While set, POST /sources/mac/request-access waits for it, as the host waits for the person to answer
+  /// the system's prompt.
+  Completer<void>? accessGate;
 
   /// GET and PUT /appearance answer with a server error.
   bool failAppearance = false;
@@ -139,6 +238,76 @@ class FakeHost {
             revoked: false,
             createdAt: a.createdAt,
             token: 'mdt_secret_for_$name',
+          ).toJson(),
+        );
+      case ('GET', '/sources'):
+        return _json(SourcesOut(sources: [?mac, ...accounts]).toJson());
+      case (_, final p) when p.startsWith('/sources/mac') && mac == null:
+        return _json({'detail': 'This host is not a Mac, so there is no This Mac source.'}, 404);
+      case ('PUT', '/sources/mac'):
+        final m = mac!;
+        final on = body!['enabled'] as bool?;
+        final containers = (body['contact_containers'] as List?)?.cast<String>();
+        final calendars = (body['calendars'] as List?)?.cast<String>();
+        final leftOut = {
+          if (containers != null) ...m.contactContainers.map((c) => c.id).where((id) => !containers.contains(id)),
+          if (calendars != null) ...m.calendars.map((c) => c.id).where((id) => !calendars.contains(id)),
+        };
+        final enabled = on ?? m.enabled;
+        mac = macSource(
+          enabled: enabled,
+          contacts: enabled && m.enabled ? m.contactsStatus! : 'notDetermined',
+          calendars: enabled && m.enabled ? m.calendarsStatus! : 'notDetermined',
+          leftOut: leftOut,
+        );
+        return _json(mac!.toJson());
+      case ('POST', '/sources/mac/request-access'):
+        await accessGate?.future;
+        final what = body!['what']! as String;
+        final m = mac!;
+        mac = macSource(
+          contacts: what == 'contacts' ? accessAnswers['contacts']! : m.contactsStatus!,
+          calendars: what == 'calendars' ? accessAnswers['calendars']! : m.calendarsStatus!,
+        );
+        return _json(mac!.toJson());
+      case ('PUT', '/sources/mac/reader'):
+        if (failReader > 0) {
+          failReader--;
+          return _json({'detail': 'the host is busy'}, 500);
+        }
+        return _json(mac!.toJson());
+      case ('POST', '/accounts'):
+        if (rejectAccount != null) return _json({'detail': rejectAccount}, 400);
+        final email = body!['email']! as String;
+        final a = icloudSource(email);
+        accounts = [...accounts, a];
+        return _json(
+          AccountOut(
+            id: a.id,
+            provider: 'icloud',
+            email: email,
+            createdAt: '2026-10-13T09:00:00',
+            label: email,
+          ).toJson(),
+          201,
+        );
+      case ('POST', final p) when p.startsWith('/accounts/') && p.endsWith('/sync'):
+        final id = p.split('/')[2];
+        return _json(
+          AccountSyncOut(accountId: id, state: AccountSyncOutStateEnum.syncing, counts: SyncCounts()).toJson(),
+          202,
+        );
+      case ('DELETE', final p) when p.startsWith('/accounts/'):
+        final id = p.substring('/accounts/'.length);
+        final a = accounts.firstWhere((a) => a.id == id);
+        accounts = [...accounts]..remove(a);
+        return _json(
+          AccountOut(
+            id: id,
+            provider: 'icloud',
+            email: a.email!,
+            createdAt: '2026-10-13T09:00:00',
+            label: a.email!,
           ).toJson(),
         );
       case ('DELETE', final p) when p.startsWith('/agents/'):

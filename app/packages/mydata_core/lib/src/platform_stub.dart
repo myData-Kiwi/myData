@@ -29,3 +29,14 @@ class _UnsupportedPlatform implements HostPlatform {
 HostPlatform hostPlatform = _UnsupportedPlatform();
 
 DeviceStore deviceStore = MemoryDeviceStore();
+
+/// The web build: no helper, nothing to open.
+class _NoMacSystem implements MacSystem {
+  @override
+  String? readerHelperPath() => null;
+
+  @override
+  Future<bool> open(String url) async => false;
+}
+
+MacSystem macSystem = _NoMacSystem();
