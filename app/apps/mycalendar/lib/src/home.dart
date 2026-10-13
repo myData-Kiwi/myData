@@ -221,9 +221,14 @@ class _CalendarHomeState extends State<CalendarHome> {
   );
 
   AppConnection? _connection() => switch (_host.phase) {
-    HostPhase.checking || HostPhase.starting => const AppConnection.starting(),
+    HostPhase.checking || HostPhase.starting || HostPhase.restarting => const AppConnection.starting(),
     HostPhase.running => AppConnection.connected(onOpenMyData: _openMyData),
-    HostPhase.notConfigured || HostPhase.failedToStart || HostPhase.lost => AppConnection.unreachable(
+    HostPhase.notConfigured ||
+    HostPhase.failedToStart ||
+    HostPhase.unreachable ||
+    HostPhase.refused ||
+    HostPhase.incompatible ||
+    HostPhase.lost => AppConnection.unreachable(
       onRetry: _host.retry,
       lastUpdated: _keepsShowing ? _lastUpdated() : null,
     ),
@@ -232,8 +237,12 @@ class _CalendarHomeState extends State<CalendarHome> {
 
   /// The host cannot be reached, and what was read before stays on screen.
   bool get _keepsShowing => switch (_host.phase) {
-    HostPhase.notConfigured || HostPhase.failedToStart || HostPhase.lost =>
-      _data.ready && _selected != null && _month != null,
+    HostPhase.notConfigured ||
+    HostPhase.failedToStart ||
+    HostPhase.unreachable ||
+    HostPhase.refused ||
+    HostPhase.incompatible ||
+    HostPhase.lost => _data.ready && _selected != null && _month != null,
     _ => false,
   };
 
@@ -258,8 +267,16 @@ class _CalendarHomeState extends State<CalendarHome> {
         title: 'Starting the myData host',
         message: 'This can take a few seconds.',
       ),
+      HostPhase.restarting => const StatusPanel(
+        kind: StatusPanelKind.working,
+        title: HostController.restartingTitle,
+        message: HostController.restartingMessage,
+      ),
       HostPhase.notConfigured => _failure('The myData host is not set up'),
       HostPhase.failedToStart => _failure('The myData host did not start'),
+      HostPhase.unreachable => _failure('The myData host is not answering'),
+      HostPhase.refused => _failure('The myData host refused this app'),
+      HostPhase.incompatible => _failure('The myData host is from another build'),
       HostPhase.lost => _failure('The myData host stopped'),
       HostPhase.unsupported => StatusPanel(
         kind: StatusPanelKind.info,

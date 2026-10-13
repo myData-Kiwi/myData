@@ -35,6 +35,9 @@ class NoHostPlatform implements HostPlatform {
   Future<LaunchResult> startHost(HostEnvironment env) async => const LaunchResult(false, '');
 
   @override
+  Future<LaunchResult> stopHost(HostEnvironment env) async => const LaunchResult(false, '');
+
+  @override
   Future<bool> openMyDataApp({bool setup = true}) async {
     openCalls.add(setup);
     return opens;
@@ -77,6 +80,7 @@ class FakeHost extends HostController {
 /// A host status in [theme], in real mode unless [real] is false.
 StatusOut hostStatus({String theme = 'kiwi', bool real = true}) => StatusOut(
   agentsConnected: 0,
+  apiVersion: expectedHostApiVersion,
   assistantEnabled: false,
   conversationEpoch: 0,
   demoDate: !real,

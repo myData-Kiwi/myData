@@ -7,6 +7,7 @@ export 'package:mydata_client/api.dart';
 
 export 'src/availability.dart';
 export 'src/host_controller.dart';
+export 'src/host_version.g.dart';
 export 'src/appearance.dart';
 export 'src/calendar_visibility.dart';
 export 'src/incoming_links.dart';
@@ -18,11 +19,14 @@ export 'src/platform.dart'
         CommandRunner,
         DeviceStore,
         HostEnvironment,
+        HostExit,
         HostPlatform,
         LaunchResult,
         MacSystem,
         MemoryDeviceStore,
         PrivacyPane,
         deviceStore,
+        hostCommandsFrom,
         hostPlatform,
-        macSystem;
+        macSystem,
+        replaceHostArguments;

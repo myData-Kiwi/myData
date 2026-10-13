@@ -23,6 +23,9 @@ class _UnsupportedPlatform implements HostPlatform {
   Future<LaunchResult> startHost(HostEnvironment env) async => LaunchResult(false, unsupportedReason);
 
   @override
+  Future<LaunchResult> stopHost(HostEnvironment env) async => LaunchResult(false, unsupportedReason);
+
+  @override
   Future<bool> openMyDataApp({bool setup = true}) async => false;
 }
 

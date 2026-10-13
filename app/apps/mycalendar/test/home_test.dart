@@ -280,6 +280,14 @@ void main() {
     expect(find.text(AppConnection.unreachableText), findsOneWidget);
   });
 
+  testWidgets('a host from another build that is still there offers Retry, and does not say "did not start"',
+      (tester) async {
+    await start(tester, harness: Harness(phase: HostPhase.incompatible));
+    expect(find.text('The myData host is from another build'), findsOneWidget);
+    expect(find.textContaining('did not start'), findsNothing);
+    expect(find.text(AppConnection.unreachableText), findsOneWidget);
+  });
+
   testWidgets('when the host stops, the month and the calendars stay, with the time they were read', (tester) async {
     final h = await start(tester);
     expect(inDayList('Dentist'), findsOneWidget);

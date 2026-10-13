@@ -50,28 +50,33 @@ class _IoPlatform implements HostPlatform {
       }
     }
     final hostPart = host.contains(':') ? '[$host]' : host;
-    return HostEnvironment(home: home, baseUrl: 'http://$hostPart:$port', hostCommand: await _hostCommand(home));
+    final commands = await _hostCommands(home);
+    return HostEnvironment(
+      home: home,
+      baseUrl: 'http://$hostPart:$port',
+      hostCommand: commands.start,
+      stopCommand: commands.stop,
+    );
   }
 
   /// ┌────────────────────────────────────────────────────────────────────────────────────────┐
   /// │ HOW THE HOST IS STARTED                                                                │
-  /// │ Development: the command in `<home>/app_config.json`, written by `uv run mydata        │
-  /// │ dev-setup` in host/ (this checkout's Python running `mydata start`).                   │
+  /// │ Development: the commands in `<home>/app_config.json`, written by `uv run mydata       │
+  /// │ dev-setup` in host/ (this checkout's Python running `mydata start` and `mydata stop`). │
   /// │ BUNDLED HOST (later): when the apps ship with a packaged host binary, return its path  │
   /// │ here (e.g. inside the app bundle) and keep app_config.json as a development override.  │
   /// └────────────────────────────────────────────────────────────────────────────────────────┘
-  Future<List<String>?> _hostCommand(String home) async {
+  Future<({List<String>? start, List<String>? stop})> _hostCommands(String home) async {
     final file = File('$home/app_config.json');
     if (await file.exists()) {
       try {
-        final cmd = (jsonDecode(await file.readAsString()) as Map)['host_command'];
-        if (cmd is List && cmd.isNotEmpty) return cmd.cast<String>();
+        return hostCommandsFrom(jsonDecode(await file.readAsString()));
       } on Object {
-        return null;
+        return (start: null, stop: null);
       }
     }
     // TODO(bundled host): return the bundled host binary's path and arguments here.
-    return null;
+    return (start: null, stop: null);
   }
 
   @override
@@ -83,17 +88,24 @@ class _IoPlatform implements HostPlatform {
   }
 
   @override
-  Future<LaunchResult> startHost(HostEnvironment env) async {
-    final cmd = env.hostCommand!;
+  Future<LaunchResult> startHost(HostEnvironment env) =>
+      // `mydata start` runs the host detached and returns once it answers (or fails, or gives up waiting).
+      _run(env.hostCommand!, env, const Duration(seconds: 90));
+
+  @override
+  Future<LaunchResult> stopHost(HostEnvironment env) async {
+    final cmd = env.stopCommand;
+    if (cmd == null) return const LaunchResult(false, 'There is no command to stop the myData host with.');
+    // `mydata stop` gives a host that is starting up to 10 s to answer, then returns once it has stopped; it
+    // kills one that takes more than 15 s.
+    return _run([...cmd, ...replaceHostArguments()], env, const Duration(seconds: 45));
+  }
+
+  Future<LaunchResult> _run(List<String> cmd, HostEnvironment env, Duration timeout) async {
     try {
-      // `mydata start` runs the host detached and returns once it answers (or fails).
-      final r = await Process.run(
-        cmd.first,
-        cmd.sublist(1),
-        environment: {'MYDATA_HOME': env.home},
-      ).timeout(const Duration(seconds: 90));
+      final r = await Process.run(cmd.first, cmd.sublist(1), environment: {'MYDATA_HOME': env.home}).timeout(timeout);
       final out = '${r.stdout}${r.stderr}'.trim();
-      return LaunchResult(r.exitCode == 0, out);
+      return LaunchResult(r.exitCode == 0, out, exitCode: r.exitCode);
     } on Object catch (e) {
       return LaunchResult(false, 'Could not run ${cmd.join(' ')}: $e');
     }

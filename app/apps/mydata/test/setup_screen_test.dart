@@ -113,6 +113,38 @@ void main() {
     expect(calls.names, ['retryHost']);
   });
 
+  testWidgets('replacing a host from another build says so, with nothing to press', (tester) async {
+    await pumpSetup(tester, phase: HostPhase.restarting);
+    expect(find.text('Restarting the myData host'), findsOneWidget);
+    expect(find.text('Retry'), findsNothing);
+  });
+
+  testWidgets('a host from another build that is still there names both versions', (tester) async {
+    final calls = await pumpSetup(
+      tester,
+      phase: HostPhase.incompatible,
+      error: 'This app and the myData host are from different builds.',
+      detail: 'The host is version 0.0.9 (API 000000000000); this app expects version 0.1.0 (API 984fcb90ce8f).',
+    );
+    expect(find.text('This app and the myData host are from different builds.'), findsOneWidget);
+    expect(find.textContaining('API 000000000000'), findsOneWidget);
+    expect(find.textContaining('did not start'), findsNothing);
+    await tester.tap(find.text('Retry'));
+    expect(calls.names, ['retryHost']);
+  });
+
+  testWidgets('a host that started but does not answer does not say it did not start', (tester) async {
+    await pumpSetup(
+      tester,
+      phase: HostPhase.unreachable,
+      error: 'The myData host started but is not answering.',
+      detail: 'running; model ready\nNo answer within 60 seconds.',
+    );
+    expect(find.text('The myData host started but is not answering.'), findsOneWidget);
+    expect(find.textContaining('did not start'), findsNothing);
+    expect(find.text('Retry'), findsOneWidget);
+  });
+
   testWidgets('a host that is not configured tells the developer what to run', (tester) async {
     await pumpSetup(
       tester,
@@ -132,7 +164,15 @@ void main() {
         status: phase == HostPhase.running ? statusWith(ModelOutStateEnum.ready) : null,
       );
       expect(find.byType(StatusPanel), findsOneWidget, reason: '$phase');
-      const failures = {HostPhase.notConfigured, HostPhase.failedToStart, HostPhase.lost, HostPhase.unsupported};
+      const failures = {
+        HostPhase.notConfigured,
+        HostPhase.failedToStart,
+        HostPhase.unreachable,
+        HostPhase.refused,
+        HostPhase.incompatible,
+        HostPhase.lost,
+        HostPhase.unsupported,
+      };
       if (failures.contains(phase)) expect(find.text('Retry'), findsOneWidget, reason: '$phase');
     }
     for (final state in ModelOutStateEnum.values) {

@@ -132,10 +132,13 @@ class _AssistantHomeState extends State<AssistantHome> {
 
   /// How the frame shows the host; null when this build cannot have one ([HostPhase.unsupported]).
   AppConnection? _connection() => switch (_host.phase) {
-    HostPhase.checking || HostPhase.starting => const AppConnection.starting(),
+    HostPhase.checking || HostPhase.starting || HostPhase.restarting => const AppConnection.starting(),
     HostPhase.running => AppConnection.connected(onOpenMyData: _openMyData),
     HostPhase.notConfigured ||
     HostPhase.failedToStart ||
+    HostPhase.unreachable ||
+    HostPhase.refused ||
+    HostPhase.incompatible ||
     HostPhase.lost => AppConnection.unreachable(onRetry: _host.retry),
     HostPhase.unsupported => null,
   };
@@ -151,8 +154,16 @@ class _AssistantHomeState extends State<AssistantHome> {
       title: 'Starting the myData host',
       message: 'This can take a few seconds.',
     ),
+    HostPhase.restarting => const StatusPanel(
+      kind: StatusPanelKind.working,
+      title: HostController.restartingTitle,
+      message: HostController.restartingMessage,
+    ),
     HostPhase.notConfigured => _failure('The myData host is not set up'),
     HostPhase.failedToStart => _failure('The myData host did not start'),
+    HostPhase.unreachable => _failure('The myData host is not answering'),
+    HostPhase.refused => _failure('The myData host refused this app'),
+    HostPhase.incompatible => _failure('The myData host is from another build'),
     HostPhase.lost => _failure(
       'The myData host stopped',
       extra: _chat.items.isEmpty ? null : 'Your conversation is kept; it continues once the host is back.',

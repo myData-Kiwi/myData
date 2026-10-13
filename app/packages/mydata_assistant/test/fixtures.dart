@@ -1,4 +1,5 @@
 import 'package:mydata_client/api.dart';
+import 'package:mydata_core/mydata_core.dart' show expectedHostApiVersion;
 
 const longBody =
     'Hi Rishita,\n\n'
@@ -29,6 +30,7 @@ ApprovalOut approval({String status = 'pending', String? decidedBy, Object? resu
 /// The host's status with its conversation [epoch], in real mode or demo mode.
 StatusOut hostAt({required int epoch, bool real = false}) => StatusOut.fromJson({
   'version': '0.1.0',
+  'api_version': expectedHostApiVersion,
   'ready': true,
   'assistant_enabled': true,
   'uptime_seconds': 1.0,

@@ -49,7 +49,15 @@ void main() {
     await tester.pumpWidget(MyDataApp(controller: controller));
     unawaited(controller.connect());
 
-    const settled = {HostPhase.running, HostPhase.failedToStart, HostPhase.notConfigured, HostPhase.unsupported};
+    const settled = {
+      HostPhase.running,
+      HostPhase.failedToStart,
+      HostPhase.unreachable,
+      HostPhase.refused,
+      HostPhase.incompatible,
+      HostPhase.notConfigured,
+      HostPhase.unsupported,
+    };
     await pumpUntil(tester, () => settled.contains(controller.phase), 'the host');
     expect(controller.phase, HostPhase.running, reason: '${controller.error}\n${controller.detail}');
 

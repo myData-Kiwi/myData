@@ -102,6 +102,15 @@ void main() {
     expect(h.backend.sourceCalls, 0, reason: 'nothing is asked of a host that is not running');
   });
 
+  testWidgets('restarting a host from another build: the panel and the frame say so', (tester) async {
+    desktop(tester);
+    final h = Harness(phase: HostPhase.restarting);
+    await tester.pumpWidget(h.app);
+    await tester.pump();
+    expect(find.text('Restarting the myData host'), findsOneWidget);
+    expect(find.text(AppConnection.startingText), findsOneWidget);
+  });
+
   group('no contacts', () {
     testWidgets('no source on: the empty state, whose button opens myData at Settings, Sources', (tester) async {
       desktop(tester);

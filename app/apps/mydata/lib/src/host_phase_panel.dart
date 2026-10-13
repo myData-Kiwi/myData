@@ -30,6 +30,11 @@ class HostPhasePanel extends StatelessWidget {
     final (kind, title, message) = switch (phase) {
       HostPhase.checking => (StatusPanelKind.working, 'Looking for the myData host', 'Checking whether it is running.'),
       HostPhase.starting => (StatusPanelKind.working, 'Starting the myData host', 'This takes a few seconds.'),
+      HostPhase.restarting => (
+        StatusPanelKind.working,
+        HostController.restartingTitle,
+        HostController.restartingMessage,
+      ),
       HostPhase.running => (StatusPanelKind.info, 'Connected', 'The myData host is running.'),
       HostPhase.notConfigured => (
         StatusPanelKind.error,
@@ -40,6 +45,21 @@ class HostPhasePanel extends StatelessWidget {
         StatusPanelKind.error,
         'The host did not start',
         error ?? 'The myData host did not start.',
+      ),
+      HostPhase.unreachable => (
+        StatusPanelKind.error,
+        'The host is not answering',
+        error ?? 'The myData host is not answering.',
+      ),
+      HostPhase.refused => (
+        StatusPanelKind.error,
+        'The host refused myData',
+        error ?? "The myData host did not accept this app's token.",
+      ),
+      HostPhase.incompatible => (
+        StatusPanelKind.error,
+        'The host is from another build',
+        error ?? 'This app and the myData host are from different builds.',
       ),
       HostPhase.lost => (StatusPanelKind.error, 'The host stopped', error ?? 'The myData host stopped answering.'),
       HostPhase.unsupported => (

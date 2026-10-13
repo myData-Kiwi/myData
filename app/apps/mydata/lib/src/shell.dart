@@ -53,9 +53,12 @@ class HomeShell extends StatefulWidget {
   /// What the frame says about the host in [phase]. This is myData, so there is no "Open myData" link.
   static AppConnection connectionFor(HostPhase phase, VoidCallback onRetry) => switch (phase) {
     HostPhase.running => const AppConnection.connected(),
-    HostPhase.checking || HostPhase.starting => const AppConnection.starting(),
+    HostPhase.checking || HostPhase.starting || HostPhase.restarting => const AppConnection.starting(),
     HostPhase.lost ||
     HostPhase.failedToStart ||
+    HostPhase.unreachable ||
+    HostPhase.refused ||
+    HostPhase.incompatible ||
     HostPhase.notConfigured ||
     HostPhase.unsupported => AppConnection.unreachable(onRetry: onRetry),
   };

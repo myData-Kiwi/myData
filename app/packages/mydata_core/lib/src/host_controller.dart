@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:mydata_client/api.dart';
 
+import 'host_version.g.dart';
 import 'platform.dart';
 
 /// Where the app is with the host. Every phase has something to show; there is no blank state.
@@ -13,14 +15,33 @@ enum HostPhase {
   /// Not running: starting it and waiting for /status.
   starting,
 
+  /// A host this app cannot use as it is was running (from another build, its code changed since it started, or
+  /// it refused this app's token): replacing it with the current one ([HostController.restartingTitle]).
+  restarting,
+
   /// Answering /status; [HostController.status] is fresh.
   running,
 
   /// No command to start the host with (development: `uv run mydata dev-setup` was not run).
   notConfigured,
 
-  /// The start command failed or the host did not answer in time.
+  /// The start command failed: the host process exited, or the command could not be run. The only phase that
+  /// says the host "did not start". Not a host that is still starting ([HostExit.stillStarting]), and not a
+  /// failed stop when replacing a host.
   failedToStart,
+
+  /// No answer: the start command succeeded but /status never answered in time, the host is not running and
+  /// this app may not start it, or the request failed.
+  unreachable,
+
+  /// The host answered but refused this app's token (401), or this app has no token while a host answers, and
+  /// replacing it did not help or was not possible.
+  refused,
+
+  /// The host is from another build than this app and could not be replaced (the start command would start
+  /// another build too, the host could not be stopped, or there is no command), another build replaced it
+  /// while the app was open, or its status cannot be read.
+  incompatible,
 
   /// It was running and stopped answering while the app was open.
   lost,
@@ -48,8 +69,41 @@ class HostConnection {
   late final sources = SourcesApi(client);
 }
 
+/// GET /status as the host sent it: [json] is decoded by hand, so a host from another build still says
+/// which version it is. [refused] when it answered 401 to this app's token, or, with [noToken], to a request
+/// without one because this app has no token yet.
+class _Answer {
+  const _Answer(HostConnection this.connection, this.json) : refused = false, noToken = false;
+  const _Answer.refused(this.connection, {this.noToken = false}) : json = const {}, refused = true;
+  final HostConnection? connection;
+  final Map<String, Object?> json;
+  final bool refused;
+  final bool noToken;
+}
+
+/// Why a host that answered cannot be used as it is.
+enum _Mismatch {
+  /// It refused this app's token, or this app has none: often a host from before this app existed.
+  refused,
+
+  /// Its version or API version is not this app's.
+  otherBuild,
+
+  /// It is this app's build, but its code on disk changed since it started (`stale` in /status).
+  codeChanged,
+}
+
 /// Finds the host, starts it if needed (as a separate process that outlives this app), waits for it,
-/// and keeps watching it. Both apps use one; only the myData app ever calls [stopHost].
+/// and keeps watching it. Every app uses one; only the myData app ever calls [stopHost].
+///
+/// A host this app cannot use as it is (its version or API version differs from [expectedHostVersion] and
+/// [expectedHostApiVersion], its code changed on disk since it started, or it refuses this app's token) is
+/// replaced on connect: `mydata stop --unless-current --expect <this app's versions>`, then a start. Any app
+/// may do this; it is not the myData app's Quit, since a host is started again at once. The stop does
+/// nothing when it cannot help: when the host the start command starts is another build than this app's as
+/// well (a stale app, or a checkout that moved on), and when the running host is already current (another app
+/// just replaced it). So an app never stops a host it could not use after, and Retry does not stop it again.
+/// It happens at most once per [connect], never from the poll.
 class HostController extends ChangeNotifier {
   HostController({
     required this.app,
@@ -63,6 +117,10 @@ class HostController extends ChangeNotifier {
   final HostPlatform platform;
   final Duration pollInterval;
   final Duration startTimeout;
+
+  /// What the apps show in [HostPhase.restarting].
+  static const restartingTitle = 'Restarting the myData host';
+  static const restartingMessage = 'The host that was running is from another build of myData.';
 
   HostPhase phase = HostPhase.checking;
 
@@ -85,7 +143,7 @@ class HostController extends ChangeNotifier {
     if (!_disposed) notifyListeners();
   }
 
-  /// Connect to the host, starting it if it is not running.
+  /// Connect to the host, starting it if it is not running, and replacing it if it is from another build.
   Future<void> connect({bool startIfNeeded = true}) async {
     if (_busy) return;
     _busy = true;
@@ -97,9 +155,10 @@ class HostController extends ChangeNotifier {
       }
       _go(HostPhase.checking);
       final env = environment = await platform.environment();
-      if (await _tryStatus(env)) return _running();
+      final found = await _ask(env);
+      if (found != null) return await _use(env, found, restarted: false);
       if (!startIfNeeded) {
-        _go(HostPhase.failedToStart, error: 'The myData host is not running.');
+        _go(HostPhase.unreachable, error: 'The myData host is not running.');
         return;
       }
       if (env.hostCommand == null) {
@@ -111,19 +170,9 @@ class HostController extends ChangeNotifier {
         return;
       }
       _go(HostPhase.starting);
-      final launch = await platform.startHost(env);
-      final deadline = DateTime.now().add(startTimeout);
-      while (DateTime.now().isBefore(deadline)) {
-        if (await _tryStatus(env)) return _running();
-        await Future<void>.delayed(const Duration(milliseconds: 500));
-      }
-      _go(
-        HostPhase.failedToStart,
-        error: 'The myData host did not start.',
-        detail: launch.output.isEmpty ? 'No answer within ${startTimeout.inSeconds} seconds.' : launch.output,
-      );
+      await _startAndWait(env, restarted: false);
     } on Object catch (e) {
-      _go(HostPhase.failedToStart, error: 'The myData host could not be reached.', detail: '$e');
+      _go(HostPhase.unreachable, error: 'The myData host could not be reached.', detail: '$e');
     } finally {
       _busy = false;
     }
@@ -131,20 +180,150 @@ class HostController extends ChangeNotifier {
 
   Future<void> retry() => connect();
 
-  /// Ask the host for its status with this app's token. A token is re-read every time, so a token the
-  /// host replaced (it does so if the file was exposed) is picked up.
-  Future<bool> _tryStatus(HostEnvironment env) async {
+  /// Run the start command and wait for /status. "Did not start" only when the command itself failed; a host
+  /// that is running but did not answer within the command's own wait is waited for up to [startTimeout].
+  Future<void> _startAndWait(HostEnvironment env, {required bool restarted}) async {
+    final launch = await platform.startHost(env);
+    if (!launch.ok && launch.exitCode != HostExit.stillStarting) {
+      // The command failed, but a host may be up anyway (another app's start won the race).
+      final found = await _ask(env);
+      if (found != null) return _use(env, found, restarted: restarted);
+      _go(
+        HostPhase.failedToStart,
+        error: 'The myData host did not start.',
+        detail: launch.output.isEmpty ? null : launch.output,
+      );
+      return;
+    }
+    final deadline = DateTime.now().add(startTimeout);
+    while (DateTime.now().isBefore(deadline)) {
+      final found = await _ask(env);
+      if (found != null) return _use(env, found, restarted: restarted);
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+    }
+    final waited = 'No answer within ${startTimeout.inSeconds} seconds.';
+    _go(
+      HostPhase.unreachable,
+      error: 'The myData host started but is not answering.',
+      detail: launch.output.isEmpty ? waited : '${launch.output}\n$waited',
+    );
+  }
+
+  /// Use a host that answered: replace it once if this app cannot use it as it is, else settle on it.
+  Future<void> _use(HostEnvironment env, _Answer found, {required bool restarted}) async {
+    final why = _mismatchOf(found);
+    // Without both commands a stopped host could not be started again: leave it running.
+    if (why != null && !restarted && env.hostCommand != null && env.stopCommand != null) {
+      return _restart(env, found, why);
+    }
+    _settle(env, found, why);
+  }
+
+  static _Mismatch? _mismatchOf(_Answer found) {
+    if (found.refused) return _Mismatch.refused;
+    if (found.json['version'] != expectedHostVersion || found.json['api_version'] != expectedHostApiVersion) {
+      return _Mismatch.otherBuild;
+    }
+    return found.json['stale'] == true ? _Mismatch.codeChanged : null;
+  }
+
+  /// Replace the host with the current one: stop it, then start. Called at most once per [connect].
+  Future<void> _restart(HostEnvironment env, _Answer found, _Mismatch why) async {
+    _go(HostPhase.restarting);
+    final stop = await platform.stopHost(env);
+    // The host the start command starts is another build too: nothing was stopped, and replacing would not help.
+    if (stop.exitCode == HostExit.wouldNotMatch) return _settle(env, found, why, note: stop.output);
+    // A failed stop matters only if the old host is still there (`mydata stop` kills one that does not stop).
+    if (!stop.ok) {
+      final still = await _ask(env);
+      if (still != null) {
+        final output = stop.output.isEmpty ? '' : ':\n${stop.output}';
+        return _settle(env, still, _mismatchOf(still), note: 'It could not be stopped$output');
+      }
+    }
+    await _startAndWait(env, restarted: true);
+  }
+
+  /// Settle on a host that is not (or no longer) being replaced. One whose code changed on disk is still this
+  /// app's build, so it is used. [note] says why it was not replaced.
+  void _settle(HostEnvironment env, _Answer found, _Mismatch? why, {String? note}) {
+    final version = found.json['version'];
+    final apiVersion = found.json['api_version'];
+    switch (why) {
+      case _Mismatch.refused:
+        _go(
+          HostPhase.refused,
+          error: found.noToken
+              ? 'The myData host that is running has no token for this app.'
+              : "The myData host did not accept this app's token.",
+          detail: [
+            'Token file: ${env.home}/app-tokens/$app',
+            'The host makes and reads its tokens when it starts, so a host started before this app existed, or a '
+                'token changed since then, is refused until it starts again.',
+            ?note,
+          ].join('\n'),
+        );
+      case _Mismatch.otherBuild:
+        _incompatible(version, apiVersion, note: note);
+      case _Mismatch.codeChanged || null:
+        final s = _typed(found.json);
+        if (s == null) return _incompatible(version, apiVersion, why: 'Its status could not be read.');
+        connection = found.connection;
+        status = s;
+        _running();
+    }
+  }
+
+  void _incompatible(Object? version, Object? apiVersion, {String? why, String? note}) => _go(
+    HostPhase.incompatible,
+    error: 'This app and the myData host are from different builds.',
+    detail: [
+      ?why,
+      'The host is version ${version ?? 'unknown'} (API ${apiVersion ?? 'unknown'}); this app expects version '
+          '$expectedHostVersion (API $expectedHostApiVersion).',
+      ?note,
+      'Development: build the app and the host from the same checkout. Rebuild this app, or run '
+          '`uv run mydata dev-setup` in host/ of the checkout it was built from, so the apps start that host.',
+    ].join('\n'),
+  );
+
+  /// GET /status with this app's token, decoded by hand; null when nothing answered (not running, no token
+  /// yet, an error). A token is re-read every time, so a token the host replaced (it does so if the file was
+  /// exposed) is picked up.
+  Future<_Answer?> _ask(HostEnvironment env) async {
     final token = await platform.readAppToken(env, app);
-    if (token == null) return false;
+    if (token == null) return _askWithoutToken(env);
     final conn = connection?.token == token ? connection! : HostConnection(env.baseUrl, token);
     try {
-      final s = await conn.host.status().timeout(const Duration(seconds: 3));
-      if (s == null) return false;
-      connection = conn;
-      status = s;
-      return true;
+      final r = await conn.host.statusWithHttpInfo().timeout(const Duration(seconds: 3));
+      if (r.statusCode == 401) return _Answer.refused(conn);
+      if (r.statusCode != 200) return null;
+      final json = jsonDecode(utf8.decode(r.bodyBytes));
+      return json is Map ? _Answer(conn, json.cast<String, Object?>()) : null;
     } on Object {
-      return false;
+      return null;
+    }
+  }
+
+  /// No token yet: a host that answers 401 is running but never made one for this app (one started before this
+  /// app existed). Null when nothing answers, so the host is started and makes the token.
+  Future<_Answer?> _askWithoutToken(HostEnvironment env) async {
+    try {
+      final r = await HostApi(ApiClient(basePath: env.baseUrl))
+          .statusWithHttpInfo()
+          .timeout(const Duration(seconds: 3));
+      return r.statusCode == 401 ? const _Answer.refused(null, noToken: true) : null;
+    } on Object {
+      return null;
+    }
+  }
+
+  /// The status as the generated client reads it, or null if it does not match this build's [StatusOut].
+  static StatusOut? _typed(Map<String, Object?> json) {
+    try {
+      return StatusOut.fromJson(json);
+    } on Object {
+      return null; // a missing field: an assertion in debug builds, a null check in release
     }
   }
 
@@ -160,7 +339,21 @@ class HostController extends ChangeNotifier {
   Future<bool> refresh() async {
     final env = environment;
     if (env == null || phase != HostPhase.running) return false;
-    if (await _tryStatus(env)) {
+    final found = await _ask(env);
+    if (found != null && !found.refused && _mismatchOf(found) == _Mismatch.otherBuild) {
+      // Another app replaced the host with another build's. Never replaced from the poll; Retry connects again.
+      _poll?.cancel();
+      _incompatible(
+        found.json['version'],
+        found.json['api_version'],
+        why: 'The host was replaced by one from another build while this app was open.',
+      );
+      return false;
+    }
+    final s = found == null || found.refused ? null : _typed(found.json);
+    if (s != null) {
+      connection = found!.connection;
+      status = s;
       _missed = 0;
       if (!_disposed) notifyListeners();
       return true;
@@ -185,7 +378,8 @@ class HostController extends ChangeNotifier {
     if (!_disposed) notifyListeners();
   }
 
-  /// Stop the host. Only the myData app owns the host's lifetime; the host refuses this from others.
+  /// Stop the host (its Quit). Only the myData app owns the host's lifetime; the host refuses this from others.
+  /// Replacing a host from another build on connect is different: [HostPlatform.stopHost], then a start.
   Future<bool> stopHost() async {
     final conn = connection;
     if (conn == null) return false;

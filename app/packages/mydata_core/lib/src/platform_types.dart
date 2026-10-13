@@ -1,6 +1,8 @@
-/// Where the host keeps its files, how to reach it, and how to start it.
+import 'host_version.g.dart';
+
+/// Where the host keeps its files, how to reach it, and how to start and stop it.
 class HostEnvironment {
-  const HostEnvironment({required this.home, required this.baseUrl, required this.hostCommand});
+  const HostEnvironment({required this.home, required this.baseUrl, required this.hostCommand, this.stopCommand});
 
   /// The host's folder (config.toml, app-tokens/, app_config.json, logs/).
   final String home;
@@ -10,14 +12,47 @@ class HostEnvironment {
 
   /// The command that starts the host, or null if none is configured.
   final List<String>? hostCommand;
+
+  /// The command that stops it (`mydata stop`), used to replace a host from another build; null if none.
+  final List<String>? stopCommand;
 }
 
-/// Result of running the host-start command.
+/// The start and stop commands in a decoded `<home>/app_config.json`, written by `uv run mydata dev-setup`.
+/// A file written before it had `stop_command` gets the start command with its final "start" made "stop".
+({List<String>? start, List<String>? stop}) hostCommandsFrom(Object? appConfig) {
+  List<String>? command(Object? v) =>
+      v is List && v.isNotEmpty && v.every((e) => e is String) ? List<String>.unmodifiable(v) : null;
+  if (appConfig is! Map) return (start: null, stop: null);
+  final start = command(appConfig['host_command']);
+  final stop =
+      command(appConfig['stop_command']) ??
+      (start != null && start.last == 'start' ? [...start.sublist(0, start.length - 1), 'stop'] : null);
+  return (start: start, stop: stop);
+}
+
+/// Result of running the host-start (or stop) command.
 class LaunchResult {
-  const LaunchResult(this.ok, this.output);
+  const LaunchResult(this.ok, this.output, {this.exitCode});
   final bool ok;
   final String output;
+
+  /// The command's exit code, when it ran; see [HostExit].
+  final int? exitCode;
 }
+
+/// Exit codes of `mydata start` and `mydata stop` (host/src/mydata/cli.py) that are not plain failures.
+abstract final class HostExit {
+  /// `mydata start`: the host is running but did not answer within the command's own wait. It may still.
+  static const stillStarting = 4;
+
+  /// `mydata stop --expect`: a host started by this command would be another build than this app's as well,
+  /// so nothing was stopped.
+  static const wouldNotMatch = 5;
+}
+
+/// What [HostPlatform.stopHost] adds to the stop command: leave a host that already runs the current code (another
+/// app may have just replaced it), and stop nothing unless the host this command starts is this app's build.
+List<String> replaceHostArguments() => ['--unless-current', '--expect', expectedHostVersion, expectedHostApiVersion];
 
 /// Everything platform-specific the controller needs. Swapped for a fake in tests.
 abstract class HostPlatform {
@@ -33,6 +68,11 @@ abstract class HostPlatform {
   Future<String?> readAppToken(HostEnvironment env, String app);
 
   Future<LaunchResult> startHost(HostEnvironment env);
+
+  /// Run [HostEnvironment.stopCommand] with [replaceHostArguments] (`mydata stop --unless-current --expect ...`),
+  /// which returns once the host has stopped, or at once with [HostExit.wouldNotMatch]. Used only to replace a
+  /// host from another build, which is then started again; not the myData app's Quit.
+  Future<LaunchResult> stopHost(HostEnvironment env);
 
   /// Bring up the myData app (on its Setup screen). Returns false where this is not possible.
   Future<bool> openMyDataApp({bool setup = true});

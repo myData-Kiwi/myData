@@ -26,6 +26,8 @@ class _NoHostPlatform implements HostPlatform {
   @override
   Future<LaunchResult> startHost(HostEnvironment env) async => const LaunchResult(false, '');
   @override
+  Future<LaunchResult> stopHost(HostEnvironment env) async => const LaunchResult(false, '');
+  @override
   Future<bool> openMyDataApp({bool setup = true}) async => false;
 }
 

@@ -34,6 +34,9 @@ class NoHostPlatform implements HostPlatform {
   Future<LaunchResult> startHost(HostEnvironment env) async => const LaunchResult(false, '');
 
   @override
+  Future<LaunchResult> stopHost(HostEnvironment env) async => const LaunchResult(false, '');
+
+  @override
   Future<bool> openMyDataApp({bool setup = true}) async {
     openCalls.add(setup);
     return opens;
@@ -81,6 +84,7 @@ StatusOut hostStatus({
   int epoch = 0,
 }) => StatusOut(
   agentsConnected: 0,
+  apiVersion: expectedHostApiVersion,
   assistantEnabled: enabled,
   conversationEpoch: epoch,
   demoDate: demoDate ?? !real,

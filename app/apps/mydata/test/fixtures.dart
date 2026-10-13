@@ -17,6 +17,7 @@ StatusOut statusWith(
   bool macAvailable = false,
 }) => StatusOut(
   agentsConnected: 0,
+  apiVersion: expectedHostApiVersion,
   macAvailable: macAvailable,
   assistantEnabled: enabled,
   conversationEpoch: 0,
@@ -136,6 +137,8 @@ class _FakePlatform implements HostPlatform {
   Future<String?> readAppToken(HostEnvironment env, String app) async => FakeHost.token;
   @override
   Future<LaunchResult> startHost(HostEnvironment env) async => const LaunchResult(true, '');
+  @override
+  Future<LaunchResult> stopHost(HostEnvironment env) async => const LaunchResult(true, '');
   @override
   Future<bool> openMyDataApp({bool setup = true}) async => false;
 }

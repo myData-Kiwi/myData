@@ -68,6 +68,15 @@ void main() {
     expect(find.text(AppConnection.startingText), findsOneWidget);
   });
 
+  testWidgets('restarting a host from another build: the panel and the frame say so', (tester) async {
+    desktop(tester);
+    final host = FakeHost(phaseOnConnect: HostPhase.restarting);
+    await tester.pumpWidget(MyAssistantApp(host: host, store: MemoryDeviceStore()));
+    await tester.pump();
+    expect(find.text('Restarting the myData host'), findsOneWidget);
+    expect(find.text(AppConnection.startingText), findsOneWidget);
+  });
+
   testWidgets('ready: the chat in the frame, "Connected to your host", and Open myData', (tester) async {
     desktop(tester);
     final platform = NoHostPlatform(supported: true);

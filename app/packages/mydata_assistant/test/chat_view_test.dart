@@ -39,6 +39,7 @@ Pressable sendButton(WidgetTester tester) => tester.widget<Pressable>(find.byKey
 StatusOut status({bool enabled = true, String state = 'ready', Map<String, Object>? progress, String? error}) =>
     StatusOut.fromJson({
       'version': '0.1.0',
+      'api_version': expectedHostApiVersion,
       'ready': true,
       'assistant_enabled': enabled,
       'uptime_seconds': 1.0,
