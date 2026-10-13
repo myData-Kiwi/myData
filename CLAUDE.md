@@ -260,7 +260,6 @@ Full report: `host/results/2026-10-12-a-REPORT.md`. Measured on battery, with BT
 - The app icon file and the newer logo (pale green background with wash and ground line) do not match yet.
 - The myData and myAssistant apps still use Flutter's default app icons; `design/assets/Logos/mydata-kiwi-app-icon.svg` exists but is not applied. Inside the apps the kiwi appears only on empty and loading screens and in the menu-bar icon, as `design/` says.
 - Design-system gaps found while restyling:
-  - `mydata_ui` has no GroupedList section that holds arbitrary content (a picker, a form) and no row trailing slot for buttons. `apps/mydata/lib/src/parts.dart` stands in and is marked temporary.
   - The loading "kiwi slice" has not been drawn. `KiwiLoader` (the kiwi mark on a turning badge) is a placeholder.
   - The icon set has not been drawn. The apps use Material outline icons.
 - myAssistant's "Open myData" (assistant off) can only bring myData forward. It cannot open it at Settings, because there is no way to send a running myData a command.

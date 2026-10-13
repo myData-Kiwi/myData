@@ -5,7 +5,6 @@ import 'package:mydata_ui/mydata_ui.dart';
 import 'agent_list.dart';
 import 'agent_tokens.dart';
 import 'format.dart';
-import 'parts.dart';
 
 /// The host at a glance. Rebuilt on every status poll.
 ///
@@ -72,7 +71,7 @@ class StatusScreen extends StatelessWidget {
                       children: [
                         _Facts([Fact('When', Text(formatWhen(error.at)))]),
                         const SizedBox(height: MyDataSpace.s3),
-                        MonoWell(text: error.message),
+                        MonoWell(value: error.message),
                       ],
                     ),
             ),

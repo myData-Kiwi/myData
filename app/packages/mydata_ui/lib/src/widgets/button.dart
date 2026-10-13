@@ -4,7 +4,7 @@ import '../generated/tokens.g.dart';
 import '../theme.dart';
 import 'pressable.dart';
 
-/// The four kinds of [Button] (design/components/Button/README.md).
+/// The five kinds of [Button] (design/components/Button/README.md).
 enum ButtonVariant {
   /// `accent` with `on-accent` text. The one main action on a screen or card.
   filled,
@@ -16,14 +16,20 @@ enum ButtonVariant {
   plain,
 
   /// `danger` with `on-danger` text, for destructive actions only.
-  danger;
+  danger,
 
-  /// The fill behind the label; null for [plain], which has none.
+  /// `danger` text with no fill, for a destructive action on one item in a row (an ActionRow's "Revoke").
+  /// Pressed, focused and disabled exactly as [plain]. It always opens a confirmation dialog first, and that
+  /// dialog confirms with a [danger] button.
+  plainDanger;
+
+  /// The fill behind the label; null for [plain] and [plainDanger], which have none.
   Color? fill(MyDataColors c) => switch (this) {
         filled => c.accent,
         tonal => c.accentSoft,
         plain => null,
         danger => c.danger,
+        plainDanger => null,
       };
 
   /// The colour of the label and the icon.
@@ -32,6 +38,7 @@ enum ButtonVariant {
         tonal => c.accent,
         plain => c.accent,
         danger => c.onDanger,
+        plainDanger => c.danger,
       };
 }
 

@@ -5,7 +5,7 @@ import '../theme.dart';
 import 'button.dart';
 import 'icon_tile.dart';
 import 'kiwi.dart';
-import 'pressable.dart' show MyDataRadii;
+import 'mono_well.dart';
 import 'progress_bar.dart';
 import 'status.dart';
 
@@ -33,8 +33,8 @@ enum StatusPanelKind {
 /// - **Info:** an `accent-soft` [IconTile]. **Error:** a `danger-soft` tile with an error icon.
 /// - The [title] is in the `title` style; the [message], in `body` / `ink-muted`, says what went wrong and
 ///   the next step, never a code alone.
-/// - [detail] (an error text, a path) sits in a `surface-sunken` well in `mono`, selectable so it can be
-///   copied.
+/// - [detail] (an error text, a path) sits in a [MonoWell]: `mono` on `surface-sunken`, selectable so it can
+///   be copied.
 /// - [actions] are buttons in a [ButtonRow]: at most one filled, the rest tonal or plain.
 class StatusPanel extends StatelessWidget {
   const StatusPanel({
@@ -118,11 +118,7 @@ class StatusPanel extends StatelessWidget {
           ],
           if (hasDetail) ...[
             const SizedBox(height: sectionGap),
-            Container(
-              padding: const EdgeInsets.all(MyDataSpace.s3),
-              decoration: BoxDecoration(color: c.surfaceSunken, borderRadius: MyDataRadii.md),
-              child: SelectableText(detail!, style: MyDataType.mono.copyWith(color: c.ink)),
-            ),
+            MonoWell(value: detail!),
           ],
           if (actions.isNotEmpty) ...[
             const SizedBox(height: sectionGap),

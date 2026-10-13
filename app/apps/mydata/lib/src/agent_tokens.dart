@@ -1,14 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:mydata_core/mydata_core.dart';
 import 'package:mydata_ui/mydata_ui.dart';
 
 import 'agent_list.dart';
 import 'format.dart';
 import 'host_action.dart';
-import 'parts.dart';
 
 /// Tokens for MCP agents: list, create (the token is shown once) and revoke.
 class AgentTokensSection extends StatefulWidget {
@@ -72,7 +70,8 @@ class _AgentTokensSectionState extends State<AgentTokensSection> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Revoke ${agent.name}?'),
-        content: const Text('Agents using this token lose access to myData at once. This cannot be undone.'),
+        // Names what will stop working (design/components/ActionRow).
+        content: Text(RevokeLabels.body(agent.name)),
         actions: [
           ButtonRow(
             alignment: WrapAlignment.end,
@@ -105,14 +104,15 @@ class _AgentTokensSectionState extends State<AgentTokensSection> {
       if (_agents.error != null) {
         return AgentListProblem(heading: AgentTokensSection.heading, error: _agents.error!, onRetry: _agents.load);
       }
-      return SettingsSection(heading: AgentTokensSection.heading, children: [_form(context), ..._rows()]);
+      return GroupedSection(heading: AgentTokensSection.heading, parts: [_form(context), ..._rows()]);
     },
   );
 
   Widget _form(BuildContext context) {
     final c = context.colors;
-    return Padding(
-      padding: const EdgeInsets.all(MyDataSpace.s5),
+    // A short form, as design/components/GroupedSection says: a note, the field, and the section's one
+    // filled button.
+    return GroupedContentPart(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -148,9 +148,9 @@ class _AgentTokensSectionState extends State<AgentTokensSection> {
 
   List<Widget> _rows() {
     final list = _agents.agents;
-    if (list == null) return const [SectionRow(title: 'Loading the tokens')];
+    if (list == null) return const [GroupedRow(title: 'Loading the tokens')];
     if (list.isEmpty) {
-      return const [SectionRow(title: 'No agent tokens yet', subtitle: 'Tokens you create are listed here.')];
+      return const [GroupedRow(title: 'No agent tokens yet', subtitle: 'Tokens you create are listed here.')];
     }
     return [for (final a in list) AgentTokenRow(key: ValueKey(a.id), agent: a, onRevoke: () => _revoke(a))];
   }
@@ -158,14 +158,19 @@ class _AgentTokensSectionState extends State<AgentTokensSection> {
 
 /// The words of revoking a token.
 abstract final class RevokeLabels {
-  /// The row's plain button, which asks first.
+  /// The row's plain danger button, which asks first.
   static const ask = 'Revoke';
 
   /// The dialog's danger button, which revokes.
   static const confirm = 'Revoke token';
+
+  /// The dialog's text: what stops working once the token named [name] is revoked.
+  static String body(String name) =>
+      '$name will no longer reach your data. Any agent using this token stops working at once.';
 }
 
-/// One agent token: name, when it was created and last used, and whether it is connected or revoked.
+/// One agent token: name, when it was created and last used, and whether it is connected or revoked; an
+/// [ActionRow] whose Revoke asks first. A revoked token keeps its row and its inactive chip.
 class AgentTokenRow extends StatelessWidget {
   const AgentTokenRow({super.key, required this.agent, required this.onRevoke});
 
@@ -175,9 +180,10 @@ class AgentTokenRow extends StatelessWidget {
   /// The name field's width: room for a long name, not the whole settings column.
   static const fieldMaxWidth = 420.0;
 
-  /// The chip for [agent]: revoked, connected, or not connected.
+  /// The chip for [agent]: revoked, connected, or not connected. Revoked is the inactive chip, not red:
+  /// red is for errors (design/components/ActionRow).
   static (String, MyDataTone) state(AgentOut a) => a.revoked
-      ? ('Revoked', MyDataTone.danger)
+      ? ('Revoked', MyDataTone.neutral)
       : a.connected
       ? ('Connected', MyDataTone.success)
       : ('Not connected', MyDataTone.neutral);
@@ -187,13 +193,13 @@ class AgentTokenRow extends StatelessWidget {
     final a = agent;
     final lastSeen = a.lastSeenAt == null ? 'never used' : 'last seen ${formatWhen(a.lastSeenAt!)}';
     final (label, tone) = state(a);
-    return SectionRow(
+    return ActionRow(
       icon: Icons.key_outlined,
       title: a.name,
       subtitle: 'Created ${formatWhen(a.createdAt)} · $lastSeen',
-      trailing: [
-        MyDataBadge(label, tone: tone),
-        if (!a.revoked) Button(label: RevokeLabels.ask, variant: ButtonVariant.plain, onPressed: onRevoke),
+      badge: MyDataBadge(label, tone: tone),
+      actions: [
+        if (!a.revoked) Button(label: RevokeLabels.ask, variant: ButtonVariant.plainDanger, onPressed: onRevoke),
       ],
     );
   }
@@ -208,13 +214,13 @@ class AgentListProblem extends StatelessWidget {
   final VoidCallback onRetry;
 
   @override
-  Widget build(BuildContext context) => SettingsSection(
+  Widget build(BuildContext context) => GroupedSection(
     heading: heading,
-    children: [
-      SectionRow(
+    parts: [
+      ActionRow(
         title: 'The agent list could not be read',
         subtitle: error,
-        trailing: [Button(label: 'Retry', onPressed: onRetry)],
+        actions: [Button(label: 'Retry', variant: ButtonVariant.tonal, onPressed: onRetry)],
       ),
     ],
   );
@@ -240,9 +246,9 @@ class NewTokenDialog extends StatelessWidget {
           children: [
             Text('Copy it now. It will not be shown again.', style: MyDataType.bodyStrong.copyWith(color: c.danger)),
             const SizedBox(height: MyDataSpace.s4),
-            _Copyable(label: 'Token', value: agent.token, copyLabel: 'Copy token'),
+            MonoWell(label: 'Token', value: agent.token, copyLabel: 'Copy token'),
             const SizedBox(height: MyDataSpace.s4),
-            _Copyable(label: 'MCP URL', value: mcpUrl, copyLabel: 'Copy URL'),
+            MonoWell(label: 'MCP URL', value: mcpUrl, copyLabel: 'Copy URL'),
             const SizedBox(height: MyDataSpace.s4),
             Text(
               'Give the agent the MCP URL, with the token as a bearer token.',
@@ -254,39 +260,4 @@ class NewTokenDialog extends StatelessWidget {
       actions: [Button(label: 'Done', variant: ButtonVariant.filled, onPressed: () => Navigator.pop(context))],
     );
   }
-}
-
-class _Copyable extends StatefulWidget {
-  const _Copyable({required this.label, required this.value, required this.copyLabel});
-  final String label;
-  final String value;
-  final String copyLabel;
-
-  @override
-  State<_Copyable> createState() => _CopyableState();
-}
-
-class _CopyableState extends State<_Copyable> {
-  bool _copied = false;
-
-  Future<void> _copy() async {
-    await Clipboard.setData(ClipboardData(text: widget.value));
-    if (mounted) setState(() => _copied = true);
-  }
-
-  @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      Text(widget.label, style: MyDataType.label.copyWith(color: context.colors.ink)),
-      const SizedBox(height: MyDataSpace.s2),
-      Row(
-        children: [
-          Expanded(child: MonoWell(text: widget.value)),
-          const SizedBox(width: MyDataSpace.s2),
-          Button(label: _copied ? 'Copied' : widget.copyLabel, onPressed: _copy),
-        ],
-      ),
-    ],
-  );
 }

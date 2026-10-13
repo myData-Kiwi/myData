@@ -7,6 +7,7 @@ import 'package:flutter/widgets.dart';
 import '../generated/tokens.g.dart';
 import '../theme.dart';
 import 'badge.dart';
+import 'group_frame.dart';
 import 'icon_tile.dart';
 import 'pressable.dart';
 import 'status.dart';
@@ -42,66 +43,13 @@ class GroupedList extends StatelessWidget {
   static const maxTileTones = 3;
 
   /// Preview: `.r{border-top:1px solid var(--line)}`.
-  static const dividerWidth = 1.0;
+  static const dividerWidth = GroupFrame.dividerWidth;
 
   /// Preview: `.lbl{margin:0 0 8px 6px}`: `space-2` below; 6px in, snapped to `space-2`.
-  static const headingPadding = EdgeInsets.only(left: MyDataSpace.s2, bottom: MyDataSpace.s2);
+  static const headingPadding = GroupFrame.headingPadding;
 
   @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    const top = BorderRadius.vertical(top: Radius.circular(MyDataRadius.lg));
-    const bottom = BorderRadius.vertical(bottom: Radius.circular(MyDataRadius.lg));
-    BorderRadius shapeOf(int i) {
-      if (rows.length == 1) return MyDataRadii.lg;
-      if (i == 0) return top;
-      if (i == rows.length - 1) return bottom;
-      return BorderRadius.zero;
-    }
-
-    // Not clipped: each row takes the group's corners itself, so the selected fill and hover fill follow
-    // them and the focus ring, drawn 2px outside the row, is not cut off at the group's edge.
-    final group = DecoratedBox(
-      decoration: BoxDecoration(color: c.surface, borderRadius: MyDataRadii.lg, boxShadow: context.shadows.shadow1),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          for (var i = 0; i < rows.length; i++) ...[
-            if (i > 0) Container(height: dividerWidth, color: c.line),
-            _RowShape(borderRadius: shapeOf(i), child: rows[i]),
-          ],
-        ],
-      ),
-    );
-    if (heading == null) return group;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(
-          padding: headingPadding,
-          child: Semantics(
-            header: true,
-            child: Text(heading!, style: MyDataType.label.copyWith(color: c.inkMuted)),
-          ),
-        ),
-        group,
-      ],
-    );
-  }
-}
-
-/// Passes a row its corner shape within the group (square in the middle, rounded at the ends).
-class _RowShape extends InheritedWidget {
-  const _RowShape({required this.borderRadius, required super.child});
-  final BorderRadius borderRadius;
-
-  static BorderRadius of(BuildContext context) =>
-      context.dependOnInheritedWidgetOfExactType<_RowShape>()?.borderRadius ?? BorderRadius.zero;
-
-  @override
-  bool updateShouldNotify(_RowShape old) => old.borderRadius != borderRadius;
+  Widget build(BuildContext context) => GroupFrame(heading: heading, parts: rows);
 }
 
 /// What sits at the right end of a [GroupedRow]: a status chip, a value, a chevron, or a value and a
@@ -266,7 +214,7 @@ class GroupedRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final shape = _RowShape.of(context);
+    final shape = GroupPartShape.of(context);
     final interactive = isSwitch || onPressed != null;
     final VoidCallback? activate = isSwitch
         ? (onSwitchChanged == null ? null : () => onSwitchChanged!(!switchValue!))

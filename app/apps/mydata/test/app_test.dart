@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mydata/src/agent_list.dart';
 import 'package:mydata/src/agent_tokens.dart';
@@ -7,6 +8,7 @@ import 'package:mydata/src/settings_screen.dart';
 import 'package:mydata/src/setup_screen.dart';
 import 'package:mydata/src/status_screen.dart';
 import 'package:mydata_core/mydata_core.dart';
+import 'package:mydata_testing/mydata_testing.dart';
 import 'package:mydata_ui/mydata_ui.dart';
 
 import 'fixtures.dart';
@@ -40,6 +42,17 @@ Future<HostController> pumpApp(WidgetTester tester, FakeHost host, {DeviceStore?
 Future<void> openSettings(WidgetTester tester) async {
   await tester.tap(find.text('Settings'));
   await settle(tester);
+}
+
+/// Appearance stacks its parts (design/components/GroupedSection): the mode under the theme picker, the
+/// sample under the mode, and nothing beside the mode control, so no empty patch opens up under it.
+void expectStacked(WidgetTester tester) {
+  final picker = tester.getRect(find.byType(ThemePicker));
+  final mode = tester.getRect(find.byType(SegmentedControl<MyDataMode>));
+  final sample = tester.getRect(find.byType(ThemeSample));
+  expect(mode.top, greaterThan(picker.bottom), reason: 'the mode is under the theme picker');
+  expect(sample.top, greaterThan(mode.bottom), reason: 'the sample is under the mode, not beside it');
+  expect(sample.left, mode.left, reason: 'the sample starts where the controls start');
 }
 
 void main() {
@@ -238,16 +251,52 @@ void main() {
       expect(find.text('Copy it now. It will not be shown again.'), findsOneWidget);
       expect(find.text('mdt_secret_for_Claude on my laptop'), findsOneWidget);
       expect(find.text('http://127.0.0.1:47821/mcp'), findsOneWidget);
+      expect(find.byType(MonoWell), findsNWidgets(2));
+      final copy = find.widgetWithText(Button, 'Copy token');
+      final copyWidth = tester.getSize(copy).width;
+      String? clipboard;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+        if (call.method == 'Clipboard.setData') clipboard = (call.arguments as Map)['text'] as String?;
+        return null;
+      });
+      addTearDown(() => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, null));
+      await tester.tap(copy);
+      await settle(tester);
+      expect(clipboard, 'mdt_secret_for_Claude on my laptop');
+      final copied = find.widgetWithText(Button, MonoWell.copiedLabel);
+      expect(copied, findsOneWidget);
+      expect(tester.getSize(copied).width, copyWidth, reason: 'the button keeps its width when it says Copied');
       await tester.tap(find.text('Done'));
       await settle(tester);
 
       final row = find.ancestor(of: find.text('Claude on my laptop'), matching: find.byType(AgentTokenRow));
       expect(find.descendant(of: row, matching: find.text('Not connected')), findsOneWidget);
+      expect(
+        tester.widget<ActionRow>(find.descendant(of: row, matching: find.byType(ActionRow))).tone,
+        MyDataTone.neutral,
+        reason: 'a token row has the untinted tile',
+      );
       final revoke = find.descendant(of: row, matching: find.text(RevokeLabels.ask));
+      expect(
+        tester.widget<Button>(find.ancestor(of: revoke, matching: find.byType(Button))).variant,
+        ButtonVariant.plainDanger,
+        reason: 'a destructive row action is plain danger (design/components/ActionRow)',
+      );
       await tester.ensureVisible(revoke);
       await tester.tap(revoke);
       await settle(tester);
       expect(find.text('Revoke Claude on my laptop?'), findsOneWidget);
+      expect(
+        find.text('Claude on my laptop will no longer reach your data. Any agent using this token stops working at once.'),
+        findsOneWidget,
+        reason: 'the confirmation names what will stop working',
+      );
+      expect(find.widgetWithText(Button, 'Cancel'), findsOneWidget);
+      expect(
+        tester.widget<Button>(find.widgetWithText(Button, RevokeLabels.confirm)).variant,
+        ButtonVariant.danger,
+        reason: 'the dialog confirms with a danger button',
+      );
       await tester.tap(find.text('Cancel'));
       await settle(tester);
       expect(host.requests.where((r) => r.startsWith('DELETE')), isEmpty);
@@ -259,7 +308,39 @@ void main() {
       expect(host.requests, contains('DELETE /agents/id-claude-on-my-laptop'));
       expect(find.descendant(of: row, matching: find.text('Revoked')), findsOneWidget);
       expect(find.descendant(of: row, matching: find.text(RevokeLabels.ask)), findsNothing);
+      expect(
+        tester.widget<MyDataBadge>(find.descendant(of: row, matching: find.byType(MyDataBadge))).tone,
+        MyDataTone.neutral,
+        reason: 'a revoked token has the inactive chip: red is for errors',
+      );
     });
+  });
+
+  test('a token is connected (success), not connected or revoked (both the inactive chip)', () {
+    expect(AgentTokenRow.state(agentWith('a', connected: true)), ('Connected', MyDataTone.success));
+    expect(AgentTokenRow.state(agentWith('b')), ('Not connected', MyDataTone.neutral));
+    expect(
+      AgentTokenRow.state(agentWith('c', revoked: true)),
+      ('Revoked', MyDataTone.neutral),
+      reason: 'red is for errors, and a revoked token is not one',
+    );
+  });
+
+  testWidgets('an agent list that could not be read is a row with a tonal Retry', (tester) async {
+    var retried = 0;
+    await tester.pumpWidget(
+      themedFrame(
+        themeMatrix.first,
+        AgentListProblem(heading: AgentTokensSection.heading, error: 'the host did not answer', onRetry: () => retried++),
+      ),
+    );
+    expect(find.byType(ActionRow), findsOneWidget);
+    expect(find.text('The agent list could not be read'), findsOneWidget);
+    expect(find.text('the host did not answer'), findsOneWidget);
+    final retry = find.widgetWithText(Button, 'Retry');
+    expect(tester.widget<Button>(retry).variant, ButtonVariant.tonal);
+    await tester.tap(retry);
+    expect(retried, 1);
   });
 
   testWidgets('a host that stops shows its panel and the frame says it cannot be reached', (tester) async {
@@ -309,16 +390,22 @@ void main() {
       expectOneRow(tester);
     });
 
-    testWidgets('in Settings, with the mode beside the sample', (tester) async {
+    testWidgets('in Settings, with the mode and the sample stacked under them', (tester) async {
       bigWindow(tester);
       await pumpApp(tester, FakeHost());
       await openSettings(tester);
       expectOneRow(tester);
-      final mode = tester.getRect(find.byType(SegmentedControl<MyDataMode>));
-      final sample = tester.getRect(find.byType(ThemeSample));
-      expect(mode.right, lessThan(sample.left), reason: 'the mode is beside the sample');
-      expect(mode.top, lessThan(sample.bottom));
+      expectStacked(tester);
     });
+  });
+
+  testWidgets('the Appearance parts stay stacked in a phone-width window', (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await pumpApp(tester, FakeHost());
+    await openSettings(tester);
+    expectStacked(tester);
   });
 
   testWidgets('Status, Settings and the theme step fit a phone-width window', (tester) async {

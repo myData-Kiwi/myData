@@ -10,13 +10,14 @@ void _noop() {}
 /// Focused by keyboard in the golden.
 FocusNode? _focusedNode;
 
-/// Rows: the four variants; with a leading icon; disabled; keyboard focus ring and pressed.
+/// Rows: the five variants; with a leading icon; disabled; keyboard focus ring and pressed.
 Widget _allStates() => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       const ButtonRow(children: [
         Button(label: 'Approve and send', variant: ButtonVariant.filled, onPressed: _noop),
         Button(label: 'Edit', onPressed: _noop),
         Button(label: 'Cancel', variant: ButtonVariant.plain, onPressed: _noop),
         Button(label: 'Delete 12 photos', variant: ButtonVariant.danger, onPressed: _noop),
+        Button(label: 'Revoke', variant: ButtonVariant.plainDanger, onPressed: _noop),
       ]),
       const SizedBox(height: MyDataSpace.s4),
       const ButtonRow(children: [
@@ -24,6 +25,7 @@ Widget _allStates() => Column(crossAxisAlignment: CrossAxisAlignment.start, chil
         Button(label: 'Open in myData', icon: Icons.open_in_new_rounded, onPressed: _noop),
         Button(label: 'Retry', variant: ButtonVariant.plain, icon: Icons.refresh_rounded, onPressed: _noop),
         Button(label: 'Delete', variant: ButtonVariant.danger, icon: Icons.delete_outline_rounded, onPressed: _noop),
+        Button(label: 'Remove', variant: ButtonVariant.plainDanger, icon: Icons.link_off_rounded, onPressed: _noop),
       ]),
       const SizedBox(height: MyDataSpace.s4),
       const ButtonRow(children: [
@@ -31,6 +33,7 @@ Widget _allStates() => Column(crossAxisAlignment: CrossAxisAlignment.start, chil
         Button(label: 'Edit', onPressed: null),
         Button(label: 'Cancel', variant: ButtonVariant.plain, onPressed: null),
         Button(label: 'Delete 12 photos', variant: ButtonVariant.danger, onPressed: null),
+        Button(label: 'Revoke', variant: ButtonVariant.plainDanger, onPressed: null),
       ]),
       const SizedBox(height: MyDataSpace.s4),
       ButtonRow(children: [
@@ -44,7 +47,7 @@ Widget _allStates() => Column(crossAxisAlignment: CrossAxisAlignment.start, chil
     ]);
 
 void main() {
-  goldenMatrix('button', _allStates, size: const Size(640, 272), before: (tester) async {
+  goldenMatrix('button', _allStates, size: const Size(840, 272), before: (tester) async {
     // A Tab press puts focus highlighting in keyboard mode; then focus the fourth row's filled button and
     // hold a press on its tonal one.
     await tester.sendKeyEvent(LogicalKeyboardKey.tab);
@@ -143,6 +146,26 @@ void main() {
     expect(labelOf('plain'), c.accent);
     expect(fillOf('danger'), c.danger);
     expect(labelOf('danger'), c.onDanger);
+    expect(fillOf('plainDanger'), isNull);
+    expect(labelOf('plainDanger'), c.danger);
+  });
+
+  testWidgets('plain danger presses, focuses and disables exactly as plain', (tester) async {
+    var revoked = 0;
+    await tester.pumpWidget(themedFrame(themeMatrix.first, ButtonRow(children: [
+      Button(label: 'Revoke', variant: ButtonVariant.plainDanger, onPressed: () => revoked++),
+      const Button(label: 'Remove', variant: ButtonVariant.plainDanger, onPressed: null),
+    ])));
+    await tester.tap(find.text('Revoke'));
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pump();
+    expect(revoked, 2);
+    await tester.tap(find.text('Remove'), warnIfMissed: false);
+    final disabled = tester.widget<AnimatedOpacity>(
+        find.descendant(of: find.byType(Button).last, matching: find.byType(AnimatedOpacity)));
+    expect(disabled.opacity, Pressable.disabledOpacity);
+    expect(tester.getSize(find.byType(Button).first).height, MyDataSize.controlHeight);
   });
 
   testWidgets('press scales to 97% at once; with reduced motion it only dims', (tester) async {

@@ -5,7 +5,6 @@ import 'package:mydata_ui/mydata_ui.dart';
 import 'agent_list.dart';
 import 'agent_tokens.dart';
 import 'host_action.dart';
-import 'parts.dart';
 
 /// Appearance (theme and mode), the assistant switch and the agent tokens.
 class SettingsScreen extends StatelessWidget {
@@ -51,60 +50,34 @@ class AppearanceSection extends StatelessWidget {
     listenable: appearance,
     builder: (context, _) {
       final themeId = appearance.themeId ?? MyDataThemes.fallback.id;
-      final theme = _Labelled(
-        label: 'Theme',
-        child: ThemePicker(selected: themeId, onChanged: (id) => _setTheme(context, id)),
-      );
-      final mode = _Labelled(
-        label: 'Mode',
-        child: SegmentedControl<MyDataMode>(
-          segments: modes,
-          selected: appearance.mode,
-          onChanged: appearance.setMode,
-          semanticLabel: 'Mode',
-        ),
-      );
-      // The swatches get the full width, so the six themes sit on one row. The mode goes beside the sample
-      // when there is room for both, and under the swatches, above the sample, when there is not.
-      return SettingsSection(
+      // Stacked, as design/components/GroupedSection says: the theme, the mode under it, and the sample of
+      // what they change under both, at its own width. The swatches get the full width: six on one row.
+      return GroupedSection(
         heading: heading,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(MyDataSpace.s5),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+        parts: [
+          GroupedContentPart(
+            child: GroupedStack(
               children: [
-                theme,
-                const SizedBox(height: MyDataSpace.s5),
-                Wrap(
-                  spacing: MyDataSpace.s6,
-                  runSpacing: MyDataSpace.s5,
-                  children: [mode, ThemeSample(themeId: themeId)],
+                GroupedControl(
+                  label: 'Theme',
+                  child: ThemePicker(selected: themeId, onChanged: (id) => _setTheme(context, id)),
                 ),
+                GroupedControl(
+                  label: 'Mode',
+                  child: SegmentedControl<MyDataMode>(
+                    segments: modes,
+                    selected: appearance.mode,
+                    onChanged: appearance.setMode,
+                    semanticLabel: 'Mode',
+                  ),
+                ),
+                ThemeSample(themeId: themeId),
               ],
             ),
           ),
         ],
       );
     },
-  );
-}
-
-/// A control with its name above it, in the `label` style.
-class _Labelled extends StatelessWidget {
-  const _Labelled({required this.label, required this.child});
-  final String label;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      ExcludeSemantics(child: Text(label, style: MyDataType.label.copyWith(color: context.colors.ink))),
-      const SizedBox(height: MyDataSpace.s2),
-      child,
-    ],
   );
 }
 

@@ -93,16 +93,20 @@ void main() {
       (tester) async {
     await _pump(tester, _info());
     expect(tester.widget<IconTile>(find.byType(IconTile)).tone, MyDataTone.accent);
-    expect(find.byType(SelectableText), findsNothing);
+    expect(find.byType(MonoWell), findsNothing);
 
     await _pump(tester, _error());
     final c = tester.element(find.byType(StatusPanel)).colors;
     expect(tester.widget<IconTile>(find.byType(IconTile)).tone, MyDataTone.danger);
-    final detail = tester.widget<SelectableText>(find.byType(SelectableText));
-    expect(detail.data, _detail);
-    expect(detail.style!.fontFamily, MyDataType.mono.fontFamily);
-    final well = tester.widget<Container>(find.ancestor(of: find.byType(SelectableText), matching: find.byType(Container)).first);
-    final box = well.decoration! as BoxDecoration;
+    final well = tester.widget<MonoWell>(find.byType(MonoWell));
+    expect(well.value, _detail);
+    expect(well.copyLabel, isNull);
+    final text = tester.widget<SelectableText>(find.descendant(of: find.byType(MonoWell), matching: find.byType(SelectableText)));
+    expect(text.data, _detail);
+    expect(text.style!.fontFamily, MyDataType.mono.fontFamily);
+    final box = tester
+        .widget<DecoratedBox>(find.descendant(of: find.byType(MonoWell), matching: find.byType(DecoratedBox)).first)
+        .decoration as BoxDecoration;
     expect(box.color, c.surfaceSunken);
     expect(box.border, isNull);
   });
