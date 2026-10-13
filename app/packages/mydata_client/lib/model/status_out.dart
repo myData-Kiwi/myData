@@ -15,6 +15,7 @@ class StatusOut {
   StatusOut({
     required this.agentsConnected,
     required this.assistantEnabled,
+    required this.conversationEpoch,
     required this.demoDate,
     this.lastError,
     this.macAvailable = false,
@@ -33,6 +34,11 @@ class StatusOut {
 
   /// false when the user switched the assistant off
   bool assistantEnabled;
+
+  /// moves on by one at every switch between demo and real mode, which ends every conversation: an app that sees it change starts a new conversation and says why
+  ///
+  /// Minimum value: 0
+  int conversationEpoch;
 
   /// true while today is pinned to the demo data's date
   bool demoDate;
@@ -68,6 +74,7 @@ class StatusOut {
       other is StatusOut &&
           other.agentsConnected == agentsConnected &&
           other.assistantEnabled == assistantEnabled &&
+          other.conversationEpoch == conversationEpoch &&
           other.demoDate == demoDate &&
           other.lastError == lastError &&
           other.macAvailable == macAvailable &&
@@ -85,6 +92,7 @@ class StatusOut {
       // ignore: unnecessary_parenthesis
       (agentsConnected.hashCode) +
       (assistantEnabled.hashCode) +
+      (conversationEpoch.hashCode) +
       (demoDate.hashCode) +
       (lastError == null ? 0 : lastError!.hashCode) +
       (macAvailable.hashCode) +
@@ -99,12 +107,13 @@ class StatusOut {
 
   @override
   String toString() =>
-      'StatusOut[agentsConnected=$agentsConnected, assistantEnabled=$assistantEnabled, demoDate=$demoDate, lastError=$lastError, macAvailable=$macAvailable, memory=$memory, mode=$mode, model=$model, ready=$ready, theme=$theme, today=$today, uptimeSeconds=$uptimeSeconds, version=$version]';
+      'StatusOut[agentsConnected=$agentsConnected, assistantEnabled=$assistantEnabled, conversationEpoch=$conversationEpoch, demoDate=$demoDate, lastError=$lastError, macAvailable=$macAvailable, memory=$memory, mode=$mode, model=$model, ready=$ready, theme=$theme, today=$today, uptimeSeconds=$uptimeSeconds, version=$version]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
     json[r'agents_connected'] = this.agentsConnected;
     json[r'assistant_enabled'] = this.assistantEnabled;
+    json[r'conversation_epoch'] = this.conversationEpoch;
     json[r'demo_date'] = this.demoDate;
     if (this.lastError != null) {
       json[r'last_error'] = this.lastError;
@@ -142,6 +151,10 @@ class StatusOut {
             'Required key "StatusOut[assistant_enabled]" is missing from JSON.');
         assert(json[r'assistant_enabled'] != null,
             'Required key "StatusOut[assistant_enabled]" has a null value in JSON.');
+        assert(json.containsKey(r'conversation_epoch'),
+            'Required key "StatusOut[conversation_epoch]" is missing from JSON.');
+        assert(json[r'conversation_epoch'] != null,
+            'Required key "StatusOut[conversation_epoch]" has a null value in JSON.');
         assert(json.containsKey(r'demo_date'),
             'Required key "StatusOut[demo_date]" is missing from JSON.');
         assert(json[r'demo_date'] != null,
@@ -184,6 +197,7 @@ class StatusOut {
       return StatusOut(
         agentsConnected: mapValueOfType<int>(json, r'agents_connected')!,
         assistantEnabled: mapValueOfType<bool>(json, r'assistant_enabled')!,
+        conversationEpoch: mapValueOfType<int>(json, r'conversation_epoch')!,
         demoDate: mapValueOfType<bool>(json, r'demo_date')!,
         lastError: ErrorOut.fromJson(json[r'last_error']),
         macAvailable: mapValueOfType<bool>(json, r'mac_available') ?? false,
@@ -253,6 +267,7 @@ class StatusOut {
   static const requiredKeys = <String>{
     'agents_connected',
     'assistant_enabled',
+    'conversation_epoch',
     'demo_date',
     'memory',
     'mode',
