@@ -204,6 +204,8 @@ class ApiClient {
           return valueString == 'true' || valueString == '1';
         case 'DateTime':
           return value is DateTime ? value : DateTime.tryParse(value);
+        case 'AccessIn':
+          return AccessIn.fromJson(value);
         case 'AccountIn':
           return AccountIn.fromJson(value);
         case 'AccountOut':
@@ -230,18 +232,28 @@ class ApiClient {
           return ContactDetailOut.fromJson(value);
         case 'ContactOut':
           return ContactOut.fromJson(value);
+        case 'CoverageOut':
+          return CoverageOut.fromJson(value);
         case 'DecisionIn':
           return DecisionIn.fromJson(value);
         case 'ErrorOut':
           return ErrorOut.fromJson(value);
         case 'EventOut':
           return EventOut.fromJson(value);
+        case 'EventsOut':
+          return EventsOut.fromJson(value);
         case 'GuardError':
           return GuardError.fromJson(value);
         case 'HTTPValidationError':
           return HTTPValidationError.fromJson(value);
         case 'LabeledValue':
           return LabeledValue.fromJson(value);
+        case 'MacCalendarOut':
+          return MacCalendarOut.fromJson(value);
+        case 'MacContainerOut':
+          return MacContainerOut.fromJson(value);
+        case 'MacSourceIn':
+          return MacSourceIn.fromJson(value);
         case 'MemoryOut':
           return MemoryOut.fromJson(value);
         case 'MessageIn':
@@ -252,6 +264,12 @@ class ApiClient {
           return PostalAddress.fromJson(value);
         case 'Progress':
           return Progress.fromJson(value);
+        case 'ReaderIn':
+          return ReaderIn.fromJson(value);
+        case 'SourceOut':
+          return SourceOut.fromJson(value);
+        case 'SourcesOut':
+          return SourcesOut.fromJson(value);
         case 'StatusOut':
           return StatusOut.fromJson(value);
         case 'SyncCounts':
@@ -264,6 +282,8 @@ class ApiClient {
           return ToolOut.fromJson(value);
         case 'ValidationError':
           return ValidationError.fromJson(value);
+        case 'WindowOut':
+          return WindowOut.fromJson(value);
         default:
           dynamic match;
           if (value is List &&

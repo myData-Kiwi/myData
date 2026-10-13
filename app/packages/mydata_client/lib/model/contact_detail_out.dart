@@ -29,9 +29,11 @@ class ContactDetailOut {
     required this.modifiedAt,
     this.nickname = '',
     this.note = '',
+    this.notesIncluded = true,
     this.organisation = '',
     this.phones = const [],
     this.rawVcard,
+    required this.source_,
   });
 
   String accountId;
@@ -67,12 +69,18 @@ class ContactDetailOut {
 
   String note;
 
+  /// false when the source never reads notes (This Mac): show no Notes field
+  bool notesIncluded;
+
   String organisation;
 
   List<LabeledValue> phones;
 
   /// the card as the server sent it; only with ?raw=1
   String? rawVcard;
+
+  /// where the contact comes from
+  ContactDetailOutSource_Enum source_;
 
   @override
   bool operator ==(Object other) =>
@@ -94,9 +102,11 @@ class ContactDetailOut {
           other.modifiedAt == modifiedAt &&
           other.nickname == nickname &&
           other.note == note &&
+          other.notesIncluded == notesIncluded &&
           other.organisation == organisation &&
           _deepEquality.equals(other.phones, phones) &&
-          other.rawVcard == rawVcard;
+          other.rawVcard == rawVcard &&
+          other.source_ == source_;
 
   @override
   int get hashCode =>
@@ -117,13 +127,15 @@ class ContactDetailOut {
       (modifiedAt.hashCode) +
       (nickname.hashCode) +
       (note.hashCode) +
+      (notesIncluded.hashCode) +
       (organisation.hashCode) +
       (phones.hashCode) +
-      (rawVcard == null ? 0 : rawVcard!.hashCode);
+      (rawVcard == null ? 0 : rawVcard!.hashCode) +
+      (source_.hashCode);
 
   @override
   String toString() =>
-      'ContactDetailOut[accountId=$accountId, addressBookId=$addressBookId, addresses=$addresses, birthday=$birthday, createdAt=$createdAt, deletedAt=$deletedAt, displayName=$displayName, emails=$emails, familyName=$familyName, fullName=$fullName, givenName=$givenName, hasPhoto=$hasPhoto, id=$id, modifiedAt=$modifiedAt, nickname=$nickname, note=$note, organisation=$organisation, phones=$phones, rawVcard=$rawVcard]';
+      'ContactDetailOut[accountId=$accountId, addressBookId=$addressBookId, addresses=$addresses, birthday=$birthday, createdAt=$createdAt, deletedAt=$deletedAt, displayName=$displayName, emails=$emails, familyName=$familyName, fullName=$fullName, givenName=$givenName, hasPhoto=$hasPhoto, id=$id, modifiedAt=$modifiedAt, nickname=$nickname, note=$note, notesIncluded=$notesIncluded, organisation=$organisation, phones=$phones, rawVcard=$rawVcard, source_=$source_]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
@@ -151,6 +163,7 @@ class ContactDetailOut {
     json[r'modified_at'] = this.modifiedAt;
     json[r'nickname'] = this.nickname;
     json[r'note'] = this.note;
+    json[r'notes_included'] = this.notesIncluded;
     json[r'organisation'] = this.organisation;
     json[r'phones'] = this.phones;
     if (this.rawVcard != null) {
@@ -158,6 +171,7 @@ class ContactDetailOut {
     } else {
       json[r'raw_vcard'] = null;
     }
+    json[r'source'] = this.source_;
     return json;
   }
 
@@ -196,6 +210,10 @@ class ContactDetailOut {
             'Required key "ContactDetailOut[modified_at]" is missing from JSON.');
         assert(json[r'modified_at'] != null,
             'Required key "ContactDetailOut[modified_at]" has a null value in JSON.');
+        assert(json.containsKey(r'source'),
+            'Required key "ContactDetailOut[source]" is missing from JSON.');
+        assert(json[r'source'] != null,
+            'Required key "ContactDetailOut[source]" has a null value in JSON.');
         return true;
       }());
 
@@ -216,9 +234,11 @@ class ContactDetailOut {
         modifiedAt: mapValueOfType<String>(json, r'modified_at')!,
         nickname: mapValueOfType<String>(json, r'nickname') ?? '',
         note: mapValueOfType<String>(json, r'note') ?? '',
+        notesIncluded: mapValueOfType<bool>(json, r'notes_included') ?? true,
         organisation: mapValueOfType<String>(json, r'organisation') ?? '',
         phones: LabeledValue.listFromJson(json[r'phones']),
         rawVcard: mapValueOfType<String>(json, r'raw_vcard'),
+        source_: ContactDetailOutSource_Enum.fromJson(json[r'source'])!,
       );
     }
     return null;
@@ -281,5 +301,90 @@ class ContactDetailOut {
     'display_name',
     'id',
     'modified_at',
+    'source',
   };
+}
+
+/// where the contact comes from
+enum ContactDetailOutSource_Enum {
+  mac._(r'mac'),
+  icloud._(r'icloud'),
+  ;
+
+  /// Instantiate a new enum with the provided value.
+  const ContactDetailOutSource_Enum._(this._value);
+
+  /// The underlying value of this enum member.
+  final String _value;
+
+  @override
+  String toString() => _value;
+
+  /// Encodes this enum as a value suitable for JSON.
+  String toJson() => _value;
+
+  /// Returns the instance of [ContactDetailOutSource_Enum] that was successfully decoded
+  /// from the passed [value] on success, null otherwise.
+  static ContactDetailOutSource_Enum? fromJson(dynamic value) =>
+      ContactDetailOutSource_EnumTypeTransformer().decode(value);
+
+  /// Returns a [List] containing instances of [ContactDetailOutSource_Enum]
+  /// that were successfully decoded from the passed [JSON][json].
+  static List<ContactDetailOutSource_Enum> listFromJson(
+    dynamic json, {
+    bool growable = false,
+  }) {
+    final result = <ContactDetailOutSource_Enum>[];
+    if (json is List && json.isNotEmpty) {
+      for (final row in json) {
+        final value = ContactDetailOutSource_Enum.fromJson(row);
+        if (value != null) {
+          result.add(value);
+        }
+      }
+    }
+    return result.toList(growable: growable);
+  }
+}
+
+/// Transformation class that can [encode] an instance of [ContactDetailOutSource_Enum] to String,
+/// and [decode] dynamic data back to [ContactDetailOutSource_Enum].
+class ContactDetailOutSource_EnumTypeTransformer {
+  factory ContactDetailOutSource_EnumTypeTransformer() =>
+      _instance ??= const ContactDetailOutSource_EnumTypeTransformer._();
+
+  const ContactDetailOutSource_EnumTypeTransformer._();
+
+  String encode(ContactDetailOutSource_Enum data) => data._value;
+
+  /// Returns the instance of [ContactDetailOutSource_Enum] that was successfully decoded
+  /// from the passed [data] value on success, null otherwise.
+  ///
+  /// If [allowNull] is true and the [dynamic value][data] cannot be decoded successfully,
+  /// then null is returned. However, if [allowNull] is false and the [dynamic value][data]
+  /// cannot be decoded successfully, then an [UnimplementedError] is thrown.
+  ///
+  /// The [allowNull] is very handy when an API changes and a new enum value is added or removed,
+  /// and users are still using an old app with the old code.
+  ContactDetailOutSource_Enum? decode(dynamic data, {bool allowNull = true}) {
+    if (data is ContactDetailOutSource_Enum) {
+      return data;
+    }
+    if (data != null) {
+      switch (data) {
+        case r'mac':
+          return ContactDetailOutSource_Enum.mac;
+        case r'icloud':
+          return ContactDetailOutSource_Enum.icloud;
+        default:
+          if (!allowNull) {
+            throw ArgumentError('Unknown enum value to decode: $data');
+          }
+      }
+    }
+    return null;
+  }
+
+  /// The singleton instance of this transformer.
+  static ContactDetailOutSource_EnumTypeTransformer? _instance;
 }

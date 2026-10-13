@@ -12,8 +12,9 @@ Name | Type | Description | Notes
 **assistantEnabled** | **bool** | false when the user switched the assistant off | 
 **demoDate** | **bool** | true while today is pinned to the demo data's date | 
 **lastError** | [**ErrorOut**](ErrorOut.md) |  | [optional] 
+**macAvailable** | **bool** | true on a Mac host: the This Mac source exists | [optional] [default to false]
 **memory** | [**MemoryOut**](MemoryOut.md) |  | 
-**mode** | **String** | demo: no linked account, the tools serve fake data and the date is pinned; real: the tools serve the linked accounts' mirrored data, with the real date | 
+**mode** | **String** | demo: no source on, the tools serve fake data and the date is pinned; real: a source is on (an account is linked, or This Mac is turned on) and the tools serve the mirrored data, with the real date | 
 **model** | [**ModelOut**](ModelOut.md) |  | 
 **ready** | **bool** | true when the assistant can answer | 
 **theme** | **String** | the theme every app uses; mode is per device and not stored here | 

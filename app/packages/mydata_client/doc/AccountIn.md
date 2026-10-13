@@ -8,7 +8,7 @@ import 'package:mydata_client/api.dart';
 ## Properties
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**email** | **String** | the account's email address (Apple Account) | 
+**email** | **String** | the email of the Apple Account (the sign-in email, which may differ from an address on the user's own domain) | 
 **password** | **String** | an app-specific password. Verified with the provider, then kept only in the Keychain; never returned, logged or written to a file | 
 **provider** | **String** |  | 
 

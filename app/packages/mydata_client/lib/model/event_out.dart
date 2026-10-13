@@ -20,6 +20,7 @@ class EventOut {
     this.location = '',
     this.notes = '',
     this.recurrenceId,
+    required this.source_,
     required this.start,
     this.timeZone,
     required this.title,
@@ -40,6 +41,9 @@ class EventOut {
   String notes;
 
   String? recurrenceId;
+
+  /// where the event comes from
+  EventOutSource_Enum source_;
 
   /// ISO date-time in the host's time zone, or YYYY-MM-DD for an all-day event
   String start;
@@ -62,6 +66,7 @@ class EventOut {
           other.location == location &&
           other.notes == notes &&
           other.recurrenceId == recurrenceId &&
+          other.source_ == source_ &&
           other.start == start &&
           other.timeZone == timeZone &&
           other.title == title &&
@@ -77,6 +82,7 @@ class EventOut {
       (location.hashCode) +
       (notes.hashCode) +
       (recurrenceId == null ? 0 : recurrenceId!.hashCode) +
+      (source_.hashCode) +
       (start.hashCode) +
       (timeZone == null ? 0 : timeZone!.hashCode) +
       (title.hashCode) +
@@ -84,7 +90,7 @@ class EventOut {
 
   @override
   String toString() =>
-      'EventOut[allDay=$allDay, calendarId=$calendarId, end=$end, eventId=$eventId, location=$location, notes=$notes, recurrenceId=$recurrenceId, start=$start, timeZone=$timeZone, title=$title, uid=$uid]';
+      'EventOut[allDay=$allDay, calendarId=$calendarId, end=$end, eventId=$eventId, location=$location, notes=$notes, recurrenceId=$recurrenceId, source_=$source_, start=$start, timeZone=$timeZone, title=$title, uid=$uid]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
@@ -99,6 +105,7 @@ class EventOut {
     } else {
       json[r'recurrence_id'] = null;
     }
+    json[r'source'] = this.source_;
     json[r'start'] = this.start;
     if (this.timeZone != null) {
       json[r'time_zone'] = this.timeZone;
@@ -137,6 +144,10 @@ class EventOut {
             'Required key "EventOut[event_id]" is missing from JSON.');
         assert(json[r'event_id'] != null,
             'Required key "EventOut[event_id]" has a null value in JSON.');
+        assert(json.containsKey(r'source'),
+            'Required key "EventOut[source]" is missing from JSON.');
+        assert(json[r'source'] != null,
+            'Required key "EventOut[source]" has a null value in JSON.');
         assert(json.containsKey(r'start'),
             'Required key "EventOut[start]" is missing from JSON.');
         assert(json[r'start'] != null,
@@ -160,6 +171,7 @@ class EventOut {
         location: mapValueOfType<String>(json, r'location') ?? '',
         notes: mapValueOfType<String>(json, r'notes') ?? '',
         recurrenceId: mapValueOfType<String>(json, r'recurrence_id'),
+        source_: EventOutSource_Enum.fromJson(json[r'source'])!,
         start: mapValueOfType<String>(json, r'start')!,
         timeZone: mapValueOfType<String>(json, r'time_zone'),
         title: mapValueOfType<String>(json, r'title')!,
@@ -224,8 +236,93 @@ class EventOut {
     'calendar_id',
     'end',
     'event_id',
+    'source',
     'start',
     'title',
     'uid',
   };
+}
+
+/// where the event comes from
+enum EventOutSource_Enum {
+  mac._(r'mac'),
+  icloud._(r'icloud'),
+  ;
+
+  /// Instantiate a new enum with the provided value.
+  const EventOutSource_Enum._(this._value);
+
+  /// The underlying value of this enum member.
+  final String _value;
+
+  @override
+  String toString() => _value;
+
+  /// Encodes this enum as a value suitable for JSON.
+  String toJson() => _value;
+
+  /// Returns the instance of [EventOutSource_Enum] that was successfully decoded
+  /// from the passed [value] on success, null otherwise.
+  static EventOutSource_Enum? fromJson(dynamic value) =>
+      EventOutSource_EnumTypeTransformer().decode(value);
+
+  /// Returns a [List] containing instances of [EventOutSource_Enum]
+  /// that were successfully decoded from the passed [JSON][json].
+  static List<EventOutSource_Enum> listFromJson(
+    dynamic json, {
+    bool growable = false,
+  }) {
+    final result = <EventOutSource_Enum>[];
+    if (json is List && json.isNotEmpty) {
+      for (final row in json) {
+        final value = EventOutSource_Enum.fromJson(row);
+        if (value != null) {
+          result.add(value);
+        }
+      }
+    }
+    return result.toList(growable: growable);
+  }
+}
+
+/// Transformation class that can [encode] an instance of [EventOutSource_Enum] to String,
+/// and [decode] dynamic data back to [EventOutSource_Enum].
+class EventOutSource_EnumTypeTransformer {
+  factory EventOutSource_EnumTypeTransformer() =>
+      _instance ??= const EventOutSource_EnumTypeTransformer._();
+
+  const EventOutSource_EnumTypeTransformer._();
+
+  String encode(EventOutSource_Enum data) => data._value;
+
+  /// Returns the instance of [EventOutSource_Enum] that was successfully decoded
+  /// from the passed [data] value on success, null otherwise.
+  ///
+  /// If [allowNull] is true and the [dynamic value][data] cannot be decoded successfully,
+  /// then null is returned. However, if [allowNull] is false and the [dynamic value][data]
+  /// cannot be decoded successfully, then an [UnimplementedError] is thrown.
+  ///
+  /// The [allowNull] is very handy when an API changes and a new enum value is added or removed,
+  /// and users are still using an old app with the old code.
+  EventOutSource_Enum? decode(dynamic data, {bool allowNull = true}) {
+    if (data is EventOutSource_Enum) {
+      return data;
+    }
+    if (data != null) {
+      switch (data) {
+        case r'mac':
+          return EventOutSource_Enum.mac;
+        case r'icloud':
+          return EventOutSource_Enum.icloud;
+        default:
+          if (!allowNull) {
+            throw ArgumentError('Unknown enum value to decode: $data');
+          }
+      }
+    }
+    return null;
+  }
+
+  /// The singleton instance of this transformer.
+  static EventOutSource_EnumTypeTransformer? _instance;
 }

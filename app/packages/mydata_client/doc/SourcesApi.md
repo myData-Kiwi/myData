@@ -12,11 +12,17 @@ Method | HTTP request | Description
 [**accounts**](SourcesApi.md#accounts) | **GET** /accounts | Accounts
 [**addAccount**](SourcesApi.md#addaccount) | **POST** /accounts | Add Account
 [**calendars**](SourcesApi.md#calendars) | **GET** /calendars | Calendars
+[**configureMac**](SourcesApi.md#configuremac) | **PUT** /sources/mac | Configure Mac
 [**contact**](SourcesApi.md#contact) | **GET** /contacts/{contact_id} | Contact
+[**contactPhoto**](SourcesApi.md#contactphoto) | **GET** /contacts/{contact_id}/photo | Contact Photo
 [**contacts**](SourcesApi.md#contacts) | **GET** /contacts | Contacts
 [**events**](SourcesApi.md#events) | **GET** /events | Events
 [**removeAccount**](SourcesApi.md#removeaccount) | **DELETE** /accounts/{account_id} | Remove Account
+[**requestMacAccess**](SourcesApi.md#requestmacaccess) | **POST** /sources/mac/request-access | Request Mac Access
+[**setMacReader**](SourcesApi.md#setmacreader) | **PUT** /sources/mac/reader | Set Mac Reader
+[**sources**](SourcesApi.md#sources) | **GET** /sources | Sources
 [**syncAccount**](SourcesApi.md#syncaccount) | **POST** /accounts/{account_id}/sync | Sync Account
+[**syncMac**](SourcesApi.md#syncmac) | **POST** /sources/mac/sync | Sync Mac
 [**syncStatus**](SourcesApi.md#syncstatus) | **GET** /sync | Sync Status
 
 
@@ -157,6 +163,55 @@ This endpoint does not need any parameter.
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **configureMac**
+> SourceOut configureMac(macSourceIn)
+
+Configure Mac
+
+Turn This Mac on or off, and choose which contact accounts and calendars it includes (null: all). Fields left out keep their value. Turning it off stops its reader and deletes everything it mirrored; leaving out an account or calendar deletes what was mirrored from it. With no source on, the host is back in demo mode.
+
+### Example
+```dart
+import 'package:mydata_client/api.dart';
+// TODO Configure HTTP Bearer authorization: bearer
+// Case 1. Use String Token
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearer').setAccessToken('YOUR_ACCESS_TOKEN');
+// Case 2. Use Function which generate token.
+// String yourTokenGeneratorFunction() { ... }
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearer').setAccessToken(yourTokenGeneratorFunction);
+
+final api_instance = SourcesApi();
+final macSourceIn = MacSourceIn(); // MacSourceIn | 
+
+try {
+    final result = api_instance.configureMac(macSourceIn);
+    print(result);
+} catch (e) {
+    print('Exception when calling SourcesApi->configureMac: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **macSourceIn** | [**MacSourceIn**](MacSourceIn.md)|  | 
+
+### Return type
+
+[**SourceOut**](SourceOut.md)
+
+### Authorization
+
+[bearer](../README.md#bearer)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **contact**
 > ContactDetailOut contact(contactId, raw)
 
@@ -203,6 +258,55 @@ Name | Type | Description  | Notes
 
  - **Content-Type**: Not defined
  - **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **contactPhoto**
+> MultipartFile contactPhoto(contactId)
+
+Contact Photo
+
+The contact's photo, as JPEG or PNG. 404 when there is none: the app shows initials.
+
+### Example
+```dart
+import 'package:mydata_client/api.dart';
+// TODO Configure HTTP Bearer authorization: bearer
+// Case 1. Use String Token
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearer').setAccessToken('YOUR_ACCESS_TOKEN');
+// Case 2. Use Function which generate token.
+// String yourTokenGeneratorFunction() { ... }
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearer').setAccessToken(yourTokenGeneratorFunction);
+
+final api_instance = SourcesApi();
+final contactId = contactId_example; // String | 
+
+try {
+    final result = api_instance.contactPhoto(contactId);
+    print(result);
+} catch (e) {
+    print('Exception when calling SourcesApi->contactPhoto: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **contactId** | **String**|  | 
+
+### Return type
+
+[**MultipartFile**](MultipartFile.md)
+
+### Authorization
+
+[bearer](../README.md#bearer)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: image/jpeg, image/png, application/json
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
@@ -260,11 +364,11 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **events**
-> List<EventOut> events(start, end, calendar)
+> EventsOut events(start, end, calendar)
 
 Events
 
-Events overlapping the days from start to end (both included), in the host's time zone, with recurring events expanded into occurrences.
+Events overlapping the days from start to end (both included), in the host's time zone, with recurring events expanded into occurrences; and, per source, which of those days it holds. This Mac holds a window (one year back, two ahead): days outside it are unknown, not empty.
 
 ### Example
 ```dart
@@ -299,7 +403,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-[**List<EventOut>**](EventOut.md)
+[**EventsOut**](EventsOut.md)
 
 ### Authorization
 
@@ -361,6 +465,149 @@ Name | Type | Description  | Notes
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **requestMacAccess**
+> SourceOut requestMacAccess(accessIn)
+
+Request Mac Access
+
+Show the system's permission prompt for contacts or calendars. Only call this when the user pressed Allow. Waits for the answer (up to a few minutes) and returns the source with the new status.
+
+### Example
+```dart
+import 'package:mydata_client/api.dart';
+// TODO Configure HTTP Bearer authorization: bearer
+// Case 1. Use String Token
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearer').setAccessToken('YOUR_ACCESS_TOKEN');
+// Case 2. Use Function which generate token.
+// String yourTokenGeneratorFunction() { ... }
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearer').setAccessToken(yourTokenGeneratorFunction);
+
+final api_instance = SourcesApi();
+final accessIn = AccessIn(); // AccessIn | 
+
+try {
+    final result = api_instance.requestMacAccess(accessIn);
+    print(result);
+} catch (e) {
+    print('Exception when calling SourcesApi->requestMacAccess: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **accessIn** | [**AccessIn**](AccessIn.md)|  | 
+
+### Return type
+
+[**SourceOut**](SourceOut.md)
+
+### Authorization
+
+[bearer](../README.md#bearer)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **setMacReader**
+> SourceOut setMacReader(readerIn)
+
+Set Mac Reader
+
+Where the myData app's reader helper is (myData.app/Contents/Helpers/myDataReader.app). The myData app sends this at start; the host checks it is the reader before using it.
+
+### Example
+```dart
+import 'package:mydata_client/api.dart';
+// TODO Configure HTTP Bearer authorization: bearer
+// Case 1. Use String Token
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearer').setAccessToken('YOUR_ACCESS_TOKEN');
+// Case 2. Use Function which generate token.
+// String yourTokenGeneratorFunction() { ... }
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearer').setAccessToken(yourTokenGeneratorFunction);
+
+final api_instance = SourcesApi();
+final readerIn = ReaderIn(); // ReaderIn | 
+
+try {
+    final result = api_instance.setMacReader(readerIn);
+    print(result);
+} catch (e) {
+    print('Exception when calling SourcesApi->setMacReader: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **readerIn** | [**ReaderIn**](ReaderIn.md)|  | 
+
+### Return type
+
+[**SourceOut**](SourceOut.md)
+
+### Authorization
+
+[bearer](../README.md#bearer)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **sources**
+> SourcesOut sources()
+
+Sources
+
+Every source: This Mac first (only on a Mac host), then each linked iCloud account.
+
+### Example
+```dart
+import 'package:mydata_client/api.dart';
+// TODO Configure HTTP Bearer authorization: bearer
+// Case 1. Use String Token
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearer').setAccessToken('YOUR_ACCESS_TOKEN');
+// Case 2. Use Function which generate token.
+// String yourTokenGeneratorFunction() { ... }
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearer').setAccessToken(yourTokenGeneratorFunction);
+
+final api_instance = SourcesApi();
+
+try {
+    final result = api_instance.sources();
+    print(result);
+} catch (e) {
+    print('Exception when calling SourcesApi->sources: $e\n');
+}
+```
+
+### Parameters
+This endpoint does not need any parameter.
+
+### Return type
+
+[**SourcesOut**](SourcesOut.md)
+
+### Authorization
+
+[bearer](../README.md#bearer)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **syncAccount**
 > AccountSyncOut syncAccount(accountId)
 
@@ -398,6 +645,51 @@ Name | Type | Description  | Notes
 ### Return type
 
 [**AccountSyncOut**](AccountSyncOut.md)
+
+### Authorization
+
+[bearer](../README.md#bearer)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **syncMac**
+> SourceOut syncMac()
+
+Sync Mac
+
+Read the Mac's contacts and calendars again now, in the background.
+
+### Example
+```dart
+import 'package:mydata_client/api.dart';
+// TODO Configure HTTP Bearer authorization: bearer
+// Case 1. Use String Token
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearer').setAccessToken('YOUR_ACCESS_TOKEN');
+// Case 2. Use Function which generate token.
+// String yourTokenGeneratorFunction() { ... }
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearer').setAccessToken(yourTokenGeneratorFunction);
+
+final api_instance = SourcesApi();
+
+try {
+    final result = api_instance.syncMac();
+    print(result);
+} catch (e) {
+    print('Exception when calling SourcesApi->syncMac: $e\n');
+}
+```
+
+### Parameters
+This endpoint does not need any parameter.
+
+### Return type
+
+[**SourceOut**](SourceOut.md)
 
 ### Authorization
 

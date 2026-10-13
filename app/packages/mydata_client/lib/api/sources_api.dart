@@ -196,6 +196,74 @@ class SourcesApi {
     return null;
   }
 
+  /// Configure Mac
+  ///
+  /// Turn This Mac on or off, and choose which contact accounts and calendars it includes (null: all). Fields left out keep their value. Turning it off stops its reader and deletes everything it mirrored; leaving out an account or calendar deletes what was mirrored from it. With no source on, the host is back in demo mode.
+  ///
+  /// Note: This method returns the HTTP [Response].
+  ///
+  /// Parameters:
+  ///
+  /// * [MacSourceIn] macSourceIn (required):
+  Future<Response> configureMacWithHttpInfo(
+    MacSourceIn macSourceIn, {
+    Future<void>? abortTrigger,
+  }) async {
+    // ignore: prefer_const_declarations
+    final path = r'/sources/mac';
+
+    // ignore: prefer_final_locals
+    Object? postBody = macSourceIn;
+
+    final queryParams = <QueryParam>[];
+    final headerParams = <String, String>{};
+    final formParams = <String, String>{};
+
+    const contentTypes = <String>['application/json'];
+
+    return apiClient.invokeAPI(
+      path,
+      'PUT',
+      queryParams,
+      postBody,
+      headerParams,
+      formParams,
+      contentTypes.isEmpty ? null : contentTypes.first,
+      abortTrigger: abortTrigger,
+    );
+  }
+
+  /// Configure Mac
+  ///
+  /// Turn This Mac on or off, and choose which contact accounts and calendars it includes (null: all). Fields left out keep their value. Turning it off stops its reader and deletes everything it mirrored; leaving out an account or calendar deletes what was mirrored from it. With no source on, the host is back in demo mode.
+  ///
+  /// Parameters:
+  ///
+  /// * [MacSourceIn] macSourceIn (required):
+  Future<SourceOut?> configureMac(
+    MacSourceIn macSourceIn, {
+    Future<void>? abortTrigger,
+  }) async {
+    final response = await configureMacWithHttpInfo(
+      macSourceIn,
+      abortTrigger: abortTrigger,
+    );
+    if (response.statusCode >= HttpStatus.badRequest) {
+      throw ApiException(response.statusCode, await _decodeBodyBytes(response));
+    }
+    // When a remote server returns no body with a status of 204, we shall not decode it.
+    // At the time of writing this, `dart:convert` will throw an "Unexpected end of input"
+    // FormatException when trying to decode an empty string.
+    if (response.body.isNotEmpty &&
+        response.statusCode != HttpStatus.noContent) {
+      return await apiClient.deserializeAsync(
+        await _decodeBodyBytes(response),
+        'SourceOut',
+      ) as SourceOut;
+    }
+    return null;
+  }
+
   /// Contact
   ///
   /// Note: This method returns the HTTP [Response].
@@ -270,6 +338,75 @@ class SourcesApi {
         await _decodeBodyBytes(response),
         'ContactDetailOut',
       ) as ContactDetailOut;
+    }
+    return null;
+  }
+
+  /// Contact Photo
+  ///
+  /// The contact's photo, as JPEG or PNG. 404 when there is none: the app shows initials.
+  ///
+  /// Note: This method returns the HTTP [Response].
+  ///
+  /// Parameters:
+  ///
+  /// * [String] contactId (required):
+  Future<Response> contactPhotoWithHttpInfo(
+    String contactId, {
+    Future<void>? abortTrigger,
+  }) async {
+    // ignore: prefer_const_declarations
+    final path =
+        r'/contacts/{contact_id}/photo'.replaceAll('{contact_id}', contactId);
+
+    // ignore: prefer_final_locals
+    Object? postBody;
+
+    final queryParams = <QueryParam>[];
+    final headerParams = <String, String>{};
+    final formParams = <String, String>{};
+
+    const contentTypes = <String>[];
+
+    return apiClient.invokeAPI(
+      path,
+      'GET',
+      queryParams,
+      postBody,
+      headerParams,
+      formParams,
+      contentTypes.isEmpty ? null : contentTypes.first,
+      abortTrigger: abortTrigger,
+    );
+  }
+
+  /// Contact Photo
+  ///
+  /// The contact's photo, as JPEG or PNG. 404 when there is none: the app shows initials.
+  ///
+  /// Parameters:
+  ///
+  /// * [String] contactId (required):
+  Future<MultipartFile?> contactPhoto(
+    String contactId, {
+    Future<void>? abortTrigger,
+  }) async {
+    final response = await contactPhotoWithHttpInfo(
+      contactId,
+      abortTrigger: abortTrigger,
+    );
+    if (response.statusCode >= HttpStatus.badRequest) {
+      throw ApiException(response.statusCode, await _decodeBodyBytes(response));
+    }
+    // When a remote server returns no body with a status of 204, we shall not decode it.
+    // At the time of writing this, `dart:convert` will throw an "Unexpected end of input"
+    // FormatException when trying to decode an empty string.
+    if (response.body.isNotEmpty &&
+        response.statusCode != HttpStatus.noContent) {
+      return await apiClient.deserializeAsync(
+        await _decodeBodyBytes(response),
+        'MultipartFile',
+      ) as MultipartFile;
     }
     return null;
   }
@@ -371,7 +508,7 @@ class SourcesApi {
 
   /// Events
   ///
-  /// Events overlapping the days from start to end (both included), in the host's time zone, with recurring events expanded into occurrences.
+  /// Events overlapping the days from start to end (both included), in the host's time zone, with recurring events expanded into occurrences; and, per source, which of those days it holds. This Mac holds a window (one year back, two ahead): days outside it are unknown, not empty.
   ///
   /// Note: This method returns the HTTP [Response].
   ///
@@ -423,7 +560,7 @@ class SourcesApi {
 
   /// Events
   ///
-  /// Events overlapping the days from start to end (both included), in the host's time zone, with recurring events expanded into occurrences.
+  /// Events overlapping the days from start to end (both included), in the host's time zone, with recurring events expanded into occurrences; and, per source, which of those days it holds. This Mac holds a window (one year back, two ahead): days outside it are unknown, not empty.
   ///
   /// Parameters:
   ///
@@ -435,7 +572,7 @@ class SourcesApi {
   ///
   /// * [List<String>] calendar:
   ///   calendar ids; repeat for several. Omit for every calendar
-  Future<List<EventOut>?> events(
+  Future<EventsOut?> events(
     DateTime start,
     DateTime end, {
     List<String>? calendar,
@@ -455,11 +592,10 @@ class SourcesApi {
     // FormatException when trying to decode an empty string.
     if (response.body.isNotEmpty &&
         response.statusCode != HttpStatus.noContent) {
-      final responseBody = await _decodeBodyBytes(response);
-      return (await apiClient.deserializeAsync(responseBody, 'List<EventOut>')
-              as List)
-          .cast<EventOut>()
-          .toList(growable: false);
+      return await apiClient.deserializeAsync(
+        await _decodeBodyBytes(response),
+        'EventsOut',
+      ) as EventsOut;
     }
     return null;
   }
@@ -533,6 +669,199 @@ class SourcesApi {
     return null;
   }
 
+  /// Request Mac Access
+  ///
+  /// Show the system's permission prompt for contacts or calendars. Only call this when the user pressed Allow. Waits for the answer (up to a few minutes) and returns the source with the new status.
+  ///
+  /// Note: This method returns the HTTP [Response].
+  ///
+  /// Parameters:
+  ///
+  /// * [AccessIn] accessIn (required):
+  Future<Response> requestMacAccessWithHttpInfo(
+    AccessIn accessIn, {
+    Future<void>? abortTrigger,
+  }) async {
+    // ignore: prefer_const_declarations
+    final path = r'/sources/mac/request-access';
+
+    // ignore: prefer_final_locals
+    Object? postBody = accessIn;
+
+    final queryParams = <QueryParam>[];
+    final headerParams = <String, String>{};
+    final formParams = <String, String>{};
+
+    const contentTypes = <String>['application/json'];
+
+    return apiClient.invokeAPI(
+      path,
+      'POST',
+      queryParams,
+      postBody,
+      headerParams,
+      formParams,
+      contentTypes.isEmpty ? null : contentTypes.first,
+      abortTrigger: abortTrigger,
+    );
+  }
+
+  /// Request Mac Access
+  ///
+  /// Show the system's permission prompt for contacts or calendars. Only call this when the user pressed Allow. Waits for the answer (up to a few minutes) and returns the source with the new status.
+  ///
+  /// Parameters:
+  ///
+  /// * [AccessIn] accessIn (required):
+  Future<SourceOut?> requestMacAccess(
+    AccessIn accessIn, {
+    Future<void>? abortTrigger,
+  }) async {
+    final response = await requestMacAccessWithHttpInfo(
+      accessIn,
+      abortTrigger: abortTrigger,
+    );
+    if (response.statusCode >= HttpStatus.badRequest) {
+      throw ApiException(response.statusCode, await _decodeBodyBytes(response));
+    }
+    // When a remote server returns no body with a status of 204, we shall not decode it.
+    // At the time of writing this, `dart:convert` will throw an "Unexpected end of input"
+    // FormatException when trying to decode an empty string.
+    if (response.body.isNotEmpty &&
+        response.statusCode != HttpStatus.noContent) {
+      return await apiClient.deserializeAsync(
+        await _decodeBodyBytes(response),
+        'SourceOut',
+      ) as SourceOut;
+    }
+    return null;
+  }
+
+  /// Set Mac Reader
+  ///
+  /// Where the myData app's reader helper is (myData.app/Contents/Helpers/myDataReader.app). The myData app sends this at start; the host checks it is the reader before using it.
+  ///
+  /// Note: This method returns the HTTP [Response].
+  ///
+  /// Parameters:
+  ///
+  /// * [ReaderIn] readerIn (required):
+  Future<Response> setMacReaderWithHttpInfo(
+    ReaderIn readerIn, {
+    Future<void>? abortTrigger,
+  }) async {
+    // ignore: prefer_const_declarations
+    final path = r'/sources/mac/reader';
+
+    // ignore: prefer_final_locals
+    Object? postBody = readerIn;
+
+    final queryParams = <QueryParam>[];
+    final headerParams = <String, String>{};
+    final formParams = <String, String>{};
+
+    const contentTypes = <String>['application/json'];
+
+    return apiClient.invokeAPI(
+      path,
+      'PUT',
+      queryParams,
+      postBody,
+      headerParams,
+      formParams,
+      contentTypes.isEmpty ? null : contentTypes.first,
+      abortTrigger: abortTrigger,
+    );
+  }
+
+  /// Set Mac Reader
+  ///
+  /// Where the myData app's reader helper is (myData.app/Contents/Helpers/myDataReader.app). The myData app sends this at start; the host checks it is the reader before using it.
+  ///
+  /// Parameters:
+  ///
+  /// * [ReaderIn] readerIn (required):
+  Future<SourceOut?> setMacReader(
+    ReaderIn readerIn, {
+    Future<void>? abortTrigger,
+  }) async {
+    final response = await setMacReaderWithHttpInfo(
+      readerIn,
+      abortTrigger: abortTrigger,
+    );
+    if (response.statusCode >= HttpStatus.badRequest) {
+      throw ApiException(response.statusCode, await _decodeBodyBytes(response));
+    }
+    // When a remote server returns no body with a status of 204, we shall not decode it.
+    // At the time of writing this, `dart:convert` will throw an "Unexpected end of input"
+    // FormatException when trying to decode an empty string.
+    if (response.body.isNotEmpty &&
+        response.statusCode != HttpStatus.noContent) {
+      return await apiClient.deserializeAsync(
+        await _decodeBodyBytes(response),
+        'SourceOut',
+      ) as SourceOut;
+    }
+    return null;
+  }
+
+  /// Sources
+  ///
+  /// Every source: This Mac first (only on a Mac host), then each linked iCloud account.
+  ///
+  /// Note: This method returns the HTTP [Response].
+  Future<Response> sourcesWithHttpInfo({
+    Future<void>? abortTrigger,
+  }) async {
+    // ignore: prefer_const_declarations
+    final path = r'/sources';
+
+    // ignore: prefer_final_locals
+    Object? postBody;
+
+    final queryParams = <QueryParam>[];
+    final headerParams = <String, String>{};
+    final formParams = <String, String>{};
+
+    const contentTypes = <String>[];
+
+    return apiClient.invokeAPI(
+      path,
+      'GET',
+      queryParams,
+      postBody,
+      headerParams,
+      formParams,
+      contentTypes.isEmpty ? null : contentTypes.first,
+      abortTrigger: abortTrigger,
+    );
+  }
+
+  /// Sources
+  ///
+  /// Every source: This Mac first (only on a Mac host), then each linked iCloud account.
+  Future<SourcesOut?> sources({
+    Future<void>? abortTrigger,
+  }) async {
+    final response = await sourcesWithHttpInfo(
+      abortTrigger: abortTrigger,
+    );
+    if (response.statusCode >= HttpStatus.badRequest) {
+      throw ApiException(response.statusCode, await _decodeBodyBytes(response));
+    }
+    // When a remote server returns no body with a status of 204, we shall not decode it.
+    // At the time of writing this, `dart:convert` will throw an "Unexpected end of input"
+    // FormatException when trying to decode an empty string.
+    if (response.body.isNotEmpty &&
+        response.statusCode != HttpStatus.noContent) {
+      return await apiClient.deserializeAsync(
+        await _decodeBodyBytes(response),
+        'SourcesOut',
+      ) as SourcesOut;
+    }
+    return null;
+  }
+
   /// Sync Account
   ///
   /// Sync now: the account is synced next, in the background. Follow it with GET /sync.
@@ -598,6 +927,63 @@ class SourcesApi {
         await _decodeBodyBytes(response),
         'AccountSyncOut',
       ) as AccountSyncOut;
+    }
+    return null;
+  }
+
+  /// Sync Mac
+  ///
+  /// Read the Mac's contacts and calendars again now, in the background.
+  ///
+  /// Note: This method returns the HTTP [Response].
+  Future<Response> syncMacWithHttpInfo({
+    Future<void>? abortTrigger,
+  }) async {
+    // ignore: prefer_const_declarations
+    final path = r'/sources/mac/sync';
+
+    // ignore: prefer_final_locals
+    Object? postBody;
+
+    final queryParams = <QueryParam>[];
+    final headerParams = <String, String>{};
+    final formParams = <String, String>{};
+
+    const contentTypes = <String>[];
+
+    return apiClient.invokeAPI(
+      path,
+      'POST',
+      queryParams,
+      postBody,
+      headerParams,
+      formParams,
+      contentTypes.isEmpty ? null : contentTypes.first,
+      abortTrigger: abortTrigger,
+    );
+  }
+
+  /// Sync Mac
+  ///
+  /// Read the Mac's contacts and calendars again now, in the background.
+  Future<SourceOut?> syncMac({
+    Future<void>? abortTrigger,
+  }) async {
+    final response = await syncMacWithHttpInfo(
+      abortTrigger: abortTrigger,
+    );
+    if (response.statusCode >= HttpStatus.badRequest) {
+      throw ApiException(response.statusCode, await _decodeBodyBytes(response));
+    }
+    // When a remote server returns no body with a status of 204, we shall not decode it.
+    // At the time of writing this, `dart:convert` will throw an "Unexpected end of input"
+    // FormatException when trying to decode an empty string.
+    if (response.body.isNotEmpty &&
+        response.statusCode != HttpStatus.noContent) {
+      return await apiClient.deserializeAsync(
+        await _decodeBodyBytes(response),
+        'SourceOut',
+      ) as SourceOut;
     }
     return null;
   }

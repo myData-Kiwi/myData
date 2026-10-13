@@ -80,17 +80,24 @@ Class | Method | HTTP request | Description
 *SourcesApi* | [**accounts**](doc//SourcesApi.md#accounts) | **GET** /accounts | Accounts
 *SourcesApi* | [**addAccount**](doc//SourcesApi.md#addaccount) | **POST** /accounts | Add Account
 *SourcesApi* | [**calendars**](doc//SourcesApi.md#calendars) | **GET** /calendars | Calendars
+*SourcesApi* | [**configureMac**](doc//SourcesApi.md#configuremac) | **PUT** /sources/mac | Configure Mac
 *SourcesApi* | [**contact**](doc//SourcesApi.md#contact) | **GET** /contacts/{contact_id} | Contact
+*SourcesApi* | [**contactPhoto**](doc//SourcesApi.md#contactphoto) | **GET** /contacts/{contact_id}/photo | Contact Photo
 *SourcesApi* | [**contacts**](doc//SourcesApi.md#contacts) | **GET** /contacts | Contacts
 *SourcesApi* | [**events**](doc//SourcesApi.md#events) | **GET** /events | Events
 *SourcesApi* | [**removeAccount**](doc//SourcesApi.md#removeaccount) | **DELETE** /accounts/{account_id} | Remove Account
+*SourcesApi* | [**requestMacAccess**](doc//SourcesApi.md#requestmacaccess) | **POST** /sources/mac/request-access | Request Mac Access
+*SourcesApi* | [**setMacReader**](doc//SourcesApi.md#setmacreader) | **PUT** /sources/mac/reader | Set Mac Reader
+*SourcesApi* | [**sources**](doc//SourcesApi.md#sources) | **GET** /sources | Sources
 *SourcesApi* | [**syncAccount**](doc//SourcesApi.md#syncaccount) | **POST** /accounts/{account_id}/sync | Sync Account
+*SourcesApi* | [**syncMac**](doc//SourcesApi.md#syncmac) | **POST** /sources/mac/sync | Sync Mac
 *SourcesApi* | [**syncStatus**](doc//SourcesApi.md#syncstatus) | **GET** /sync | Sync Status
 *ToolsApi* | [**tools**](doc//ToolsApi.md#tools) | **GET** /tools | Tools
 
 
 ## Documentation For Models
 
+ - [AccessIn](doc//AccessIn.md)
  - [AccountIn](doc//AccountIn.md)
  - [AccountOut](doc//AccountOut.md)
  - [AccountSyncOut](doc//AccountSyncOut.md)
@@ -104,23 +111,32 @@ Class | Method | HTTP request | Description
  - [CalendarOut](doc//CalendarOut.md)
  - [ContactDetailOut](doc//ContactDetailOut.md)
  - [ContactOut](doc//ContactOut.md)
+ - [CoverageOut](doc//CoverageOut.md)
  - [DecisionIn](doc//DecisionIn.md)
  - [ErrorOut](doc//ErrorOut.md)
  - [EventOut](doc//EventOut.md)
+ - [EventsOut](doc//EventsOut.md)
  - [GuardError](doc//GuardError.md)
  - [HTTPValidationError](doc//HTTPValidationError.md)
  - [LabeledValue](doc//LabeledValue.md)
+ - [MacCalendarOut](doc//MacCalendarOut.md)
+ - [MacContainerOut](doc//MacContainerOut.md)
+ - [MacSourceIn](doc//MacSourceIn.md)
  - [MemoryOut](doc//MemoryOut.md)
  - [MessageIn](doc//MessageIn.md)
  - [ModelOut](doc//ModelOut.md)
  - [PostalAddress](doc//PostalAddress.md)
  - [Progress](doc//Progress.md)
+ - [ReaderIn](doc//ReaderIn.md)
+ - [SourceOut](doc//SourceOut.md)
+ - [SourcesOut](doc//SourcesOut.md)
  - [StatusOut](doc//StatusOut.md)
  - [SyncCounts](doc//SyncCounts.md)
  - [SyncOut](doc//SyncOut.md)
  - [ThemeOut](doc//ThemeOut.md)
  - [ToolOut](doc//ToolOut.md)
  - [ValidationError](doc//ValidationError.md)
+ - [WindowOut](doc//WindowOut.md)
 
 
 ## Documentation For Authorization

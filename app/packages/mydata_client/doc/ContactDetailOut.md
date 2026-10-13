@@ -24,9 +24,11 @@ Name | Type | Description | Notes
 **modifiedAt** | **String** |  | 
 **nickname** | **String** |  | [optional] [default to '']
 **note** | **String** |  | [optional] [default to '']
+**notesIncluded** | **bool** | false when the source never reads notes (This Mac): show no Notes field | [optional] [default to true]
 **organisation** | **String** |  | [optional] [default to '']
 **phones** | [**List<LabeledValue>**](LabeledValue.md) |  | [optional] [default to const []]
 **rawVcard** | **String** | the card as the server sent it; only with ?raw=1 | [optional] 
+**source_** | **String** | where the contact comes from | 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

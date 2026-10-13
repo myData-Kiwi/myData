@@ -15,6 +15,7 @@ Name | Type | Description | Notes
 **location** | **String** |  | [optional] [default to '']
 **notes** | **String** |  | [optional] [default to '']
 **recurrenceId** | **String** |  | [optional] 
+**source_** | **String** | where the event comes from | 
 **start** | **String** | ISO date-time in the host's time zone, or YYYY-MM-DD for an all-day event | 
 **timeZone** | **String** | the event's own zone; none for all-day events | [optional] 
 **title** | **String** |  | 

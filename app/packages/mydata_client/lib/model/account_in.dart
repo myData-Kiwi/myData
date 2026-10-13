@@ -18,7 +18,7 @@ class AccountIn {
     required this.provider,
   });
 
-  /// the account's email address (Apple Account)
+  /// the email of the Apple Account (the sign-in email, which may differ from an address on the user's own domain)
   String email;
 
   /// an app-specific password. Verified with the provider, then kept only in the Keychain; never returned, logged or written to a file

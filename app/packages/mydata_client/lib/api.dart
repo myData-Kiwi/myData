@@ -36,6 +36,7 @@ part 'api/host_api.dart';
 part 'api/sources_api.dart';
 part 'api/tools_api.dart';
 
+part 'model/access_in.dart';
 part 'model/account_in.dart';
 part 'model/account_out.dart';
 part 'model/account_sync_out.dart';
@@ -49,23 +50,32 @@ part 'model/assistant_settings_in.dart';
 part 'model/calendar_out.dart';
 part 'model/contact_detail_out.dart';
 part 'model/contact_out.dart';
+part 'model/coverage_out.dart';
 part 'model/decision_in.dart';
 part 'model/error_out.dart';
 part 'model/event_out.dart';
+part 'model/events_out.dart';
 part 'model/guard_error.dart';
 part 'model/http_validation_error.dart';
 part 'model/labeled_value.dart';
+part 'model/mac_calendar_out.dart';
+part 'model/mac_container_out.dart';
+part 'model/mac_source_in.dart';
 part 'model/memory_out.dart';
 part 'model/message_in.dart';
 part 'model/model_out.dart';
 part 'model/postal_address.dart';
 part 'model/progress.dart';
+part 'model/reader_in.dart';
+part 'model/source_out.dart';
+part 'model/sources_out.dart';
 part 'model/status_out.dart';
 part 'model/sync_counts.dart';
 part 'model/sync_out.dart';
 part 'model/theme_out.dart';
 part 'model/tool_out.dart';
 part 'model/validation_error.dart';
+part 'model/window_out.dart';
 
 /// An [ApiClient] instance that uses the default values obtained from
 /// the OpenAPI specification file.

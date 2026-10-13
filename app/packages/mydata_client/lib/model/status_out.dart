@@ -17,6 +17,7 @@ class StatusOut {
     required this.assistantEnabled,
     required this.demoDate,
     this.lastError,
+    this.macAvailable = false,
     required this.memory,
     required this.mode,
     required this.model,
@@ -38,9 +39,12 @@ class StatusOut {
 
   ErrorOut? lastError;
 
+  /// true on a Mac host: the This Mac source exists
+  bool macAvailable;
+
   MemoryOut memory;
 
-  /// demo: no linked account, the tools serve fake data and the date is pinned; real: the tools serve the linked accounts' mirrored data, with the real date
+  /// demo: no source on, the tools serve fake data and the date is pinned; real: a source is on (an account is linked, or This Mac is turned on) and the tools serve the mirrored data, with the real date
   StatusOutModeEnum mode;
 
   ModelOut model;
@@ -66,6 +70,7 @@ class StatusOut {
           other.assistantEnabled == assistantEnabled &&
           other.demoDate == demoDate &&
           other.lastError == lastError &&
+          other.macAvailable == macAvailable &&
           other.memory == memory &&
           other.mode == mode &&
           other.model == model &&
@@ -82,6 +87,7 @@ class StatusOut {
       (assistantEnabled.hashCode) +
       (demoDate.hashCode) +
       (lastError == null ? 0 : lastError!.hashCode) +
+      (macAvailable.hashCode) +
       (memory.hashCode) +
       (mode.hashCode) +
       (model.hashCode) +
@@ -93,7 +99,7 @@ class StatusOut {
 
   @override
   String toString() =>
-      'StatusOut[agentsConnected=$agentsConnected, assistantEnabled=$assistantEnabled, demoDate=$demoDate, lastError=$lastError, memory=$memory, mode=$mode, model=$model, ready=$ready, theme=$theme, today=$today, uptimeSeconds=$uptimeSeconds, version=$version]';
+      'StatusOut[agentsConnected=$agentsConnected, assistantEnabled=$assistantEnabled, demoDate=$demoDate, lastError=$lastError, macAvailable=$macAvailable, memory=$memory, mode=$mode, model=$model, ready=$ready, theme=$theme, today=$today, uptimeSeconds=$uptimeSeconds, version=$version]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
@@ -105,6 +111,7 @@ class StatusOut {
     } else {
       json[r'last_error'] = null;
     }
+    json[r'mac_available'] = this.macAvailable;
     json[r'memory'] = this.memory;
     json[r'mode'] = this.mode;
     json[r'model'] = this.model;
@@ -179,6 +186,7 @@ class StatusOut {
         assistantEnabled: mapValueOfType<bool>(json, r'assistant_enabled')!,
         demoDate: mapValueOfType<bool>(json, r'demo_date')!,
         lastError: ErrorOut.fromJson(json[r'last_error']),
+        macAvailable: mapValueOfType<bool>(json, r'mac_available') ?? false,
         memory: MemoryOut.fromJson(json[r'memory'])!,
         mode: StatusOutModeEnum.fromJson(json[r'mode'])!,
         model: ModelOut.fromJson(json[r'model'])!,
@@ -257,7 +265,7 @@ class StatusOut {
   };
 }
 
-/// demo: no linked account, the tools serve fake data and the date is pinned; real: the tools serve the linked accounts' mirrored data, with the real date
+/// demo: no source on, the tools serve fake data and the date is pinned; real: a source is on (an account is linked, or This Mac is turned on) and the tools serve the mirrored data, with the real date
 enum StatusOutModeEnum {
   demo._(r'demo'),
   real._(r'real'),
