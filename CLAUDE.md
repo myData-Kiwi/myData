@@ -12,9 +12,10 @@ Early build. Done:
 - **the host** (phase 1): `mydatad` with the tool layer and permission gate, HTTP API, MCP, app and agent tokens;
 - **the first two apps** (phase 2): myData (setup, status, settings) and myAssistant (chat), in Flutter, macOS first;
 - **answer latency** (Part A): results on screen in about 3.5 s instead of 13;
-- **the design system** (Part B): `design/` in Flutter (`mydata_ui`), six themes in light and dark, the theme stored on the host and followed by every app.
+- **the design system** (Part B): `design/` in Flutter (`mydata_ui`), six themes in light and dark, the theme stored on the host and followed by every app;
+- **real contacts and calendars on the host** (phase 3): a read-only mirror from **This Mac** (macOS Contacts and EventKit, the main path on a Mac host) or from a followed iCloud account (CardDAV, CalDAV; under Advanced, for hosts that are not Macs). See "Contacts and calendars sources".
 
-The tools still serve fake demo data, and the host's today is pinned to its date (18 March 2026). **Next:** myContacts and myCalendar with real data (CardDAV, CalDAV), replacing the fake tools; see "Build order". Chained requests are an open problem, not a blocker: the planner write-up in `host/results/2026-10-11-b-REPORT.md` is the starting point. Answer latency is in "Answer latency" below.
+With no source on, the tools serve fake demo data and the host's today is pinned to its date (18 March 2026). With any source on (real mode), `find_contact` and `list_events` read the mirror and use the real date. **Next:** the myContacts and myCalendar apps on the mirrored data; see "Build order". Chained requests are an open problem, not a blocker: the planner write-up in `host/results/2026-10-11-b-REPORT.md` is the starting point. Answer latency is in "Answer latency" below.
 
 ## Ground rules
 
@@ -83,6 +84,24 @@ One host per household, clients on every device.
 - Search: SQLite FTS5 for text, sqlite-vec for embeddings. Index the data; do not train on it.
 - PostgreSQL with pgvector only if multi-user support is ever needed.
 - Standards over invention: IMAP for mail, CardDAV for contacts, CalDAV for calendar.
+
+### Contacts and calendars sources
+
+Read-only mirrors in `contacts.sqlite` and `calendar.sqlite` (`host/src/mydata/sources/`). The user turns each source on or off in the myData app (Settings, Sources); turning one off deletes what it mirrored.
+
+- **Read-only for now.** No source ever writes back: the iCloud client sends only PROPFIND, REPORT, OPTIONS and GET, and the Mac helper has no write calls. Writing back (and the host as a CardDAV/CalDAV server) is a later decision.
+- **Why This Mac is the default on a Mac host:** it uses the normal system permission prompt, so no password reaches myData, and it covers every account on the Mac (iCloud, Google, Exchange). Asking for an app-specific password is not acceptable as the main path, and Apple rejects sign-ins that use an address other than the Apple Account email (for example a custom domain).
+
+- **This Mac** (Mac host only; absent, not broken, elsewhere): a Swift helper, `myDataReader.app` (`app/apps/mydata/macos/Reader`), inside `myData.app/Contents/Helpers`. macOS attributes it to myData, so the permission prompt names myData and the grant belongs to `kiwi.mydata.mydata`. No password or account detail reaches myData, and every account set up on the Mac is covered.
+  - The host starts it with `open` (LaunchServices), never by running the binary, and only from a path inside a validly signed myData app with the same signing identity. It talks JSON lines over `<home>/run/reader.sock` (folder 0700, socket 0600, one connection at a time).
+  - **Read-only:** all framework access is behind one Swift protocol with no write method; a host test scans the helper's sources for write calls.
+  - **Permission** is asked only when the user presses Allow in the myData app, never at login.
+  - The user chooses which contact accounts and calendars are included (all by default).
+  - **Contact notes are never read** (they need an entitlement Apple grants on request); the API says `notes_included: false`. Photos are read when allowed, otherwise the apps show initials.
+  - **Events:** EventKit gives only expanded occurrences, so the Mac source keeps a rolling window, one year back and two years ahead, read in pieces of at most 4 years. An occurrence is keyed by (calendar, external id, occurrence date), so one event in two calendars is two rows.
+  - **The window rule:** list_events and `/events` never answer "nothing found" for days a source does not hold. It is decided per source: an iCloud account holding every day never hides the Mac's limit.
+  - Large snapshots arrive in parts of a few MB.
+- **iCloud account** (Advanced): CardDAV and CalDAV with an app-specific password and the Apple Account email, which may differ from an address on the user's own domain. It holds every date.
 
 ### Assistant
 
@@ -252,7 +271,7 @@ Full report: `host/results/2026-10-12-a-REPORT.md`. Measured on battery, with BT
 2. ~~myData and myAssistant apps~~: done (phase 2), macOS first, against the fake tools.
 3. ~~Answer latency~~: done (Part A, 2026-10-12): results shown by code, the model kept warm. Open items are listed under "Answer latency".
 4. ~~Design system~~: done (Part B): `design/` implemented in `mydata_ui`, the theme stored on the host, both apps restyled.
-5. **Next:** myContacts and myCalendar (CardDAV, CalDAV), replacing the fake contact and calendar tools with real data. Smallest data; proves sync. Each is a new app in `app/apps`; switch off the demo date once real data is in.
+5. myContacts and myCalendar. **Done:** the host side, with This Mac (Contacts, EventKit) as the main source on a Mac and iCloud (CardDAV, CalDAV) under Advanced, replacing the fake contact and calendar tools in real mode. **Next:** the two apps, each a new app in `app/apps`. myCalendar must show the window limit that `/events` reports.
 6. myMail (IMAP sync, FTS5 search), replacing the fake mail tools.
 7. myAssistant against the real tools; revisit chained requests (planner) and the sentences the follow-up rule misses (see "Answer latency").
 8. myPhotos (import, CLIP index, faces). The largest piece; expect 6 to 8 weekends.
@@ -265,6 +284,13 @@ Full report: `host/results/2026-10-12-a-REPORT.md`. Measured on battery, with BT
 - Whether to reuse existing servers (for example Radicale for CardDAV and CalDAV) or write them.
 - Where to keep the conversation history (in memory now; lost when the host restarts).
 - Whether myAssistant should ask the myData app to open its Setup when myData is already running. Today `--setup` only works on a cold start of myData.
+- **Releasing on macOS** (not needed for development). It needs the paid Apple Developer Program, for:
+  - a Developer ID Application certificate for the myData app and its helper;
+  - the hardened runtime;
+  - notarization;
+  - the two entitlements on `myDataReader.app`: `com.apple.security.personal-information.addressbook` and `com.apple.security.personal-information.calendars`. `Reader.entitlements` has them, and `build_reader.sh` applies them when `ENABLE_HARDENED_RUNTIME=YES`.
+
+  Development builds are signed ad hoc, or with a free Apple Development certificate through the git-ignored `Runner/Configs/Signing.local.xcconfig`. With a Developer ID, the host's check of the helper could also pin the team id; today it only requires the same identity as the myData app around it.
 - Website: may move to a static-site generator. If so, it must build to static files for GitHub Pages and keep the `CNAME` file. Not a priority.
 
 ## Known rough edges
@@ -278,3 +304,10 @@ Full report: `host/results/2026-10-12-a-REPORT.md`. Measured on battery, with BT
 - myAssistant's "Open myData" (assistant off) can only bring myData forward. It cannot open it at Settings, because there is no way to send a running myData a command.
 - The phone layouts (floating tab bar, large title) are built and covered by goldens, but have not been run on a phone.
 - Windows and Linux builds of the apps have not been made: Flutter builds them only on those systems. Their code paths compile (`flutter analyze`).
+- This Mac has not been verified:
+  - across a reboot;
+  - with the helper running for hours (it was watched for 5 minutes);
+  - with Google or Exchange accounts (the test Mac had only iCloud, On My Mac, a subscribed calendar and Birthdays);
+  - on macOS versions other than 26.7;
+  - with signed and notarized builds;
+  - starting the host at login through Apple's login-item mechanism (a plain login agent was used).
