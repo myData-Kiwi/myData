@@ -8,6 +8,10 @@ import pytest
 
 from mydata.orchestrator.engine import Engine
 
+# No test leaves an Ollama server running (the stand-in or the real one); see tests/ollama_guard.py.
+from ollama_guard import (_ollama_guard, fake_ollama, pytest_configure, pytest_sessionfinish,  # noqa: F401
+                          pytest_sessionstart, pytest_unconfigure)
+
 SCORER_AGREEMENT_MODULES = {"test_oracle", "test_outcome_score", "test_oracle_b", "test_review_regressions", "test_report",
                             "test_hand_review_rule"}
 

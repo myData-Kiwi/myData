@@ -5,7 +5,6 @@ import os
 import subprocess
 import sys
 import time
-from pathlib import Path
 
 import pytest
 from starlette.testclient import TestClient
@@ -18,8 +17,6 @@ from mydata.service.model import ModelManager
 from mydata.service.state import HostState
 
 from service_helpers import ASSISTANT_TOKEN, CLI_TOKEN, TOKEN, ReadyModels, free_port, spied_registry
-
-FAKE = Path(__file__).parent / "fake_ollama"
 
 
 def _app(tmp_path, models=None):
@@ -69,21 +66,21 @@ def test_status_reports_memory_and_last_error(tmp_path):
     assert st["last_error"]["message"] == "boom"
 
 
-def test_switching_off_cancels_a_download_and_downloads_nothing(tmp_path, monkeypatch):
-    monkeypatch.setenv("PATH", f"{FAKE}{os.pathsep}{os.environ['PATH']}")
-    monkeypatch.setenv("FAKE_OLLAMA_PIDFILE", str(tmp_path / "fake.pid"))
+def test_switching_off_cancels_a_download_and_downloads_nothing(tmp_path, fake_ollama):
     mm = ModelManager(Settings(home=tmp_path, ollama_url=f"http://127.0.0.1:{free_port()}", model="tiny:1b"))
-    mm.start()
-    deadline = time.time() + 20
-    while mm.status().state != "pulling" and time.time() < deadline:
-        time.sleep(0.02)
-    mm.set_enabled(False)
-    assert mm.status().state == "disabled" and not mm.status().loaded
-    time.sleep(1)
-    assert mm.status().state == "disabled"  # the cancelled pull did not finish into "ready"
-    mm.retry()
-    assert mm.status().state == "disabled"  # retry does nothing while off
-    mm.stop()
+    try:
+        mm.start()
+        deadline = time.time() + 20
+        while mm.status().state != "pulling" and time.time() < deadline:
+            time.sleep(0.02)
+        mm.set_enabled(False)
+        assert mm.status().state == "disabled" and not mm.status().loaded
+        time.sleep(1)
+        assert mm.status().state == "disabled"  # the cancelled pull did not finish into "ready"
+        mm.retry()
+        assert mm.status().state == "disabled"  # retry does nothing while off
+    finally:
+        mm.stop()
 
 
 def test_disabled_from_the_start_never_contacts_ollama(tmp_path):
