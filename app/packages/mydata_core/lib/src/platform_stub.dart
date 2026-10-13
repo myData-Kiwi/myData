@@ -40,3 +40,10 @@ class _NoMacSystem implements MacSystem {
 }
 
 MacSystem macSystem = _NoMacSystem();
+
+/// The web build is never macOS for the purposes of links between apps.
+bool get platformIsMacOS => false;
+
+/// The web build cannot run programs.
+Future<CommandResult> runCommand(String executable, List<String> arguments) =>
+    throw UnsupportedError('The web build cannot run $executable.');

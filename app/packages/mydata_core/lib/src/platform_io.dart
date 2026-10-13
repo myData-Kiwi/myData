@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:toml/toml.dart';
 
+import 'file_device_store.dart';
 import 'platform_types.dart';
 
 export 'platform_types.dart';
@@ -119,33 +120,8 @@ class _IoPlatform implements HostPlatform {
 
 HostPlatform hostPlatform = _IoPlatform();
 
-/// `device/settings.json` in the myData folder: this device's own settings (mode), shared by every myData
-/// app on it. Not host data: a later remote host never sees it.
-class _FileDeviceStore implements DeviceStore {
-  File get _file => File('${_myDataHome()}/device/settings.json');
-
-  @override
-  Future<Map<String, Object?>> read() async {
-    try {
-      final v = jsonDecode(await _file.readAsString());
-      return v is Map<String, Object?> ? v : {};
-    } on Object {
-      return {};
-    }
-  }
-
-  @override
-  Future<void> write(Map<String, Object?> values) async {
-    final f = _file;
-    await f.parent.create(recursive: true);
-    // Write then rename, so the other app never reads half a file.
-    final tmp = File('${f.path}.tmp');
-    await tmp.writeAsString(jsonEncode(values));
-    await tmp.rename(f.path);
-  }
-}
-
-DeviceStore deviceStore = _FileDeviceStore();
+/// `device/settings.json` in the myData folder: this device's own settings, shared by every myData app on it.
+DeviceStore deviceStore = FileDeviceStore(() => '${_myDataHome()}/device/settings.json');
 
 /// macOS: the helper next to this app's executable, and `open` for System Settings.
 class _IoMacSystem implements MacSystem {
@@ -170,3 +146,12 @@ class _IoMacSystem implements MacSystem {
 }
 
 MacSystem macSystem = _IoMacSystem();
+
+/// True on macOS, the only platform where the myData apps open each other (for now).
+bool get platformIsMacOS => Platform.isMacOS;
+
+/// Runs [executable] with [arguments], without a shell.
+Future<CommandResult> runCommand(String executable, List<String> arguments) async {
+  final r = await Process.run(executable, arguments);
+  return CommandResult(r.exitCode, '${r.stdout}', '${r.stderr}');
+}

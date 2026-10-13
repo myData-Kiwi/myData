@@ -77,3 +77,14 @@ abstract final class PrivacyPane {
   static const contacts = 'x-apple.systempreferences:com.apple.preference.security?Privacy_Contacts';
   static const calendars = 'x-apple.systempreferences:com.apple.preference.security?Privacy_Calendars';
 }
+
+/// What a command printed and how it ended.
+class CommandResult {
+  const CommandResult(this.exitCode, this.stdout, [this.stderr = '']);
+  final int exitCode;
+  final String stdout;
+  final String stderr;
+}
+
+/// Runs a program (no shell) and waits for it. The real one is [runCommand]; tests pass a fake.
+typedef CommandRunner = Future<CommandResult> Function(String executable, List<String> arguments);
