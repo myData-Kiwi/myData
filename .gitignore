@@ -23,3 +23,7 @@ mydatad.log*
 assistant.jsonl
 ollama.log
 logs/
+
+# A developer's own code-signing settings for the macOS apps (team ID, certificate). See
+# app/apps/mydata/macos/Runner/Configs/Signing.local.xcconfig.example.
+Signing.local.xcconfig

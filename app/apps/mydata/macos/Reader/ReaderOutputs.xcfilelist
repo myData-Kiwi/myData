@@ -1,0 +1,2 @@
+$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Helpers/myDataReader.app/Contents/Info.plist
+$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Helpers/myDataReader.app/Contents/MacOS/myDataReader

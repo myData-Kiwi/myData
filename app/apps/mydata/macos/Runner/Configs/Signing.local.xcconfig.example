@@ -1,0 +1,21 @@
+// Sign development builds with your own certificate.
+//
+// Ad hoc builds (the default) get a new code identity on every rebuild, so macOS forgets that you allowed
+// myData to read Contacts and Calendars and asks again. A build signed with an Apple Development certificate
+// keeps one identity (your team and kiwi.mydata.mydata), so you allow it once.
+//
+// 1. Xcode > Settings > Accounts: add your Apple Account (a free one is enough). Select the team
+//    "<Your Name> (Personal Team)", click Manage Certificates, then + > Apple Development.
+// 2. Find your team ID (10 characters):
+//      security find-certificate -c "Apple Development" -p | openssl x509 -noout -subject
+//    It is the OU= value.
+// 3. Copy this file to Signing.local.xcconfig in the same folder (git ignores it) and fill in the ID.
+// 4. Rebuild: flutter build macos --debug (or flutter run -d macos). The first codesign may ask for your
+//    login keychain password; choose Always Allow.
+// 5. Open myData once and allow Contacts and Calendars again. From then on rebuilds keep the permission.
+//
+// Releasing to other people needs a Developer ID Application certificate, the hardened runtime and
+// notarisation, which need the paid Apple Developer Program. A free team cannot do that.
+
+DEVELOPMENT_TEAM = ABCDE12345
+CODE_SIGN_IDENTITY = Apple Development

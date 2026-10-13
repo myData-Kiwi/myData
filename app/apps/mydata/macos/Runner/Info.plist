@@ -22,6 +22,12 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
+	<key>NSContactsUsageDescription</key>
+	<string>myData shows your contacts in myContacts and uses them to answer your questions. They stay on this Mac.</string>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>myData shows your events in myCalendar and uses them to answer your questions. They stay on this Mac.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>myData shows your events in myCalendar and uses them to answer your questions. They stay on this Mac.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>$(PRODUCT_COPYRIGHT)</string>
 	<key>NSMainNibFile</key>

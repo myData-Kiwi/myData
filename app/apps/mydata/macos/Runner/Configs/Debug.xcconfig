@@ -1,2 +1,7 @@
 #include "../../Flutter/Flutter-Debug.xcconfig"
 #include "Warnings.xcconfig"
+
+// Ad hoc signing unless Signing.local.xcconfig (git-ignored) names a certificate. See
+// Signing.local.xcconfig.example. The myData Reader helper is signed with the same identity.
+CODE_SIGN_IDENTITY = -
+#include? "Signing.local.xcconfig"

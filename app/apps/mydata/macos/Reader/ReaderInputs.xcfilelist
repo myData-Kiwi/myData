@@ -1,0 +1,8 @@
+$(SRCROOT)/Reader/build_reader.sh
+$(SRCROOT)/Reader/Info.plist
+$(SRCROOT)/Reader/Reader.entitlements
+$(SRCROOT)/Reader/Sources/Formats.swift
+$(SRCROOT)/Reader/Sources/main.swift
+$(SRCROOT)/Reader/Sources/Protocol.swift
+$(SRCROOT)/Reader/Sources/Session.swift
+$(SRCROOT)/Reader/Sources/SystemReader.swift
