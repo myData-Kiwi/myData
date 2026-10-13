@@ -1,6 +1,143 @@
 {
   "components": {
     "schemas": {
+      "AccountIn": {
+        "properties": {
+          "email": {
+            "description": "the account's email address (Apple Account)",
+            "maxLength": 254,
+            "minLength": 3,
+            "title": "Email",
+            "type": "string"
+          },
+          "password": {
+            "description": "an app-specific password. Verified with the provider, then kept only in the Keychain; never returned, logged or written to a file",
+            "format": "password",
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Password",
+            "type": "string",
+            "writeOnly": true
+          },
+          "provider": {
+            "const": "icloud",
+            "title": "Provider",
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "email",
+          "password"
+        ],
+        "title": "AccountIn",
+        "type": "object"
+      },
+      "AccountOut": {
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "provider",
+          "email",
+          "created_at",
+          "label"
+        ],
+        "title": "AccountOut",
+        "type": "object"
+      },
+      "AccountSyncOut": {
+        "properties": {
+          "account_id": {
+            "title": "Account Id",
+            "type": "string"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/SyncCounts"
+          },
+          "last_attempt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Attempt"
+          },
+          "last_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "a short message for the user; never a secret",
+            "title": "Last Error"
+          },
+          "last_success": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Success"
+          },
+          "next_attempt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Attempt"
+          },
+          "state": {
+            "enum": [
+              "idle",
+              "syncing",
+              "error"
+            ],
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "account_id",
+          "state",
+          "counts"
+        ],
+        "title": "AccountSyncOut",
+        "type": "object"
+      },
       "AgentCreated": {
         "properties": {
           "connected": {
@@ -282,6 +419,292 @@
         "title": "AssistantSettingsIn",
         "type": "object"
       },
+      "CalendarOut": {
+        "properties": {
+          "account_id": {
+            "title": "Account Id",
+            "type": "string"
+          },
+          "color": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Color"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "account_id",
+          "name"
+        ],
+        "title": "CalendarOut",
+        "type": "object"
+      },
+      "ContactDetailOut": {
+        "properties": {
+          "account_id": {
+            "title": "Account Id",
+            "type": "string"
+          },
+          "address_book_id": {
+            "title": "Address Book Id",
+            "type": "string"
+          },
+          "addresses": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/PostalAddress"
+            },
+            "title": "Addresses",
+            "type": "array"
+          },
+          "birthday": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Birthday"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "deleted_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deleted At"
+          },
+          "display_name": {
+            "description": "the name to show: never empty (organisation, email or phone when the card has no name)",
+            "title": "Display Name",
+            "type": "string"
+          },
+          "emails": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/LabeledValue"
+            },
+            "title": "Emails",
+            "type": "array"
+          },
+          "family_name": {
+            "default": "",
+            "title": "Family Name",
+            "type": "string"
+          },
+          "full_name": {
+            "default": "",
+            "title": "Full Name",
+            "type": "string"
+          },
+          "given_name": {
+            "default": "",
+            "title": "Given Name",
+            "type": "string"
+          },
+          "has_photo": {
+            "default": false,
+            "title": "Has Photo",
+            "type": "boolean"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "modified_at": {
+            "title": "Modified At",
+            "type": "string"
+          },
+          "nickname": {
+            "default": "",
+            "title": "Nickname",
+            "type": "string"
+          },
+          "note": {
+            "default": "",
+            "title": "Note",
+            "type": "string"
+          },
+          "organisation": {
+            "default": "",
+            "title": "Organisation",
+            "type": "string"
+          },
+          "phones": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/LabeledValue"
+            },
+            "title": "Phones",
+            "type": "array"
+          },
+          "raw_vcard": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "the card as the server sent it; only with ?raw=1",
+            "title": "Raw Vcard"
+          }
+        },
+        "required": [
+          "id",
+          "account_id",
+          "address_book_id",
+          "display_name",
+          "created_at",
+          "modified_at"
+        ],
+        "title": "ContactDetailOut",
+        "type": "object"
+      },
+      "ContactOut": {
+        "properties": {
+          "account_id": {
+            "title": "Account Id",
+            "type": "string"
+          },
+          "address_book_id": {
+            "title": "Address Book Id",
+            "type": "string"
+          },
+          "addresses": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/PostalAddress"
+            },
+            "title": "Addresses",
+            "type": "array"
+          },
+          "birthday": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Birthday"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "deleted_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deleted At"
+          },
+          "display_name": {
+            "description": "the name to show: never empty (organisation, email or phone when the card has no name)",
+            "title": "Display Name",
+            "type": "string"
+          },
+          "emails": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/LabeledValue"
+            },
+            "title": "Emails",
+            "type": "array"
+          },
+          "family_name": {
+            "default": "",
+            "title": "Family Name",
+            "type": "string"
+          },
+          "full_name": {
+            "default": "",
+            "title": "Full Name",
+            "type": "string"
+          },
+          "given_name": {
+            "default": "",
+            "title": "Given Name",
+            "type": "string"
+          },
+          "has_photo": {
+            "default": false,
+            "title": "Has Photo",
+            "type": "boolean"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "modified_at": {
+            "title": "Modified At",
+            "type": "string"
+          },
+          "nickname": {
+            "default": "",
+            "title": "Nickname",
+            "type": "string"
+          },
+          "note": {
+            "default": "",
+            "title": "Note",
+            "type": "string"
+          },
+          "organisation": {
+            "default": "",
+            "title": "Organisation",
+            "type": "string"
+          },
+          "phones": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/LabeledValue"
+            },
+            "title": "Phones",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "account_id",
+          "address_book_id",
+          "display_name",
+          "created_at",
+          "modified_at"
+        ],
+        "title": "ContactOut",
+        "type": "object"
+      },
       "DecisionIn": {
         "properties": {
           "decision": {
@@ -322,6 +745,84 @@
         "title": "ErrorOut",
         "type": "object"
       },
+      "EventOut": {
+        "properties": {
+          "all_day": {
+            "title": "All Day",
+            "type": "boolean"
+          },
+          "calendar_id": {
+            "title": "Calendar Id",
+            "type": "string"
+          },
+          "end": {
+            "description": "as start; an all-day event's end is the day after its last day (exclusive)",
+            "title": "End",
+            "type": "string"
+          },
+          "event_id": {
+            "title": "Event Id",
+            "type": "string"
+          },
+          "location": {
+            "default": "",
+            "title": "Location",
+            "type": "string"
+          },
+          "notes": {
+            "default": "",
+            "title": "Notes",
+            "type": "string"
+          },
+          "recurrence_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recurrence Id"
+          },
+          "start": {
+            "description": "ISO date-time in the host's time zone, or YYYY-MM-DD for an all-day event",
+            "title": "Start",
+            "type": "string"
+          },
+          "time_zone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "the event's own zone; none for all-day events",
+            "title": "Time Zone"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "uid": {
+            "title": "Uid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "event_id",
+          "calendar_id",
+          "uid",
+          "title",
+          "start",
+          "end",
+          "all_day"
+        ],
+        "title": "EventOut",
+        "type": "object"
+      },
       "GuardError": {
         "properties": {
           "detail": {
@@ -345,6 +846,24 @@
           }
         },
         "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "LabeledValue": {
+        "properties": {
+          "label": {
+            "default": "",
+            "title": "Label",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "value"
+        ],
+        "title": "LabeledValue",
         "type": "object"
       },
       "MemoryOut": {
@@ -464,6 +983,42 @@
         "title": "ModelOut",
         "type": "object"
       },
+      "PostalAddress": {
+        "properties": {
+          "country": {
+            "default": "",
+            "title": "Country",
+            "type": "string"
+          },
+          "label": {
+            "default": "",
+            "title": "Label",
+            "type": "string"
+          },
+          "locality": {
+            "default": "",
+            "title": "Locality",
+            "type": "string"
+          },
+          "postal_code": {
+            "default": "",
+            "title": "Postal Code",
+            "type": "string"
+          },
+          "region": {
+            "default": "",
+            "title": "Region",
+            "type": "string"
+          },
+          "street": {
+            "default": "",
+            "title": "Street",
+            "type": "string"
+          }
+        },
+        "title": "PostalAddress",
+        "type": "object"
+      },
       "Progress": {
         "properties": {
           "completed": {
@@ -522,6 +1077,15 @@
           "memory": {
             "$ref": "#/components/schemas/MemoryOut"
           },
+          "mode": {
+            "description": "demo: no linked account, the tools serve fake data and the date is pinned; real: the tools serve the linked accounts' mirrored data, with the real date",
+            "enum": [
+              "demo",
+              "real"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
           "model": {
             "$ref": "#/components/schemas/ModelOut"
           },
@@ -559,9 +1123,61 @@
           "agents_connected",
           "today",
           "demo_date",
-          "theme"
+          "theme",
+          "mode"
         ],
         "title": "StatusOut",
+        "type": "object"
+      },
+      "SyncCounts": {
+        "properties": {
+          "address_books": {
+            "default": 0,
+            "title": "Address Books",
+            "type": "integer"
+          },
+          "calendars": {
+            "default": 0,
+            "title": "Calendars",
+            "type": "integer"
+          },
+          "contacts": {
+            "default": 0,
+            "title": "Contacts",
+            "type": "integer"
+          },
+          "events": {
+            "default": 0,
+            "title": "Events",
+            "type": "integer"
+          }
+        },
+        "title": "SyncCounts",
+        "type": "object"
+      },
+      "SyncOut": {
+        "properties": {
+          "accounts": {
+            "items": {
+              "$ref": "#/components/schemas/AccountSyncOut"
+            },
+            "title": "Accounts",
+            "type": "array"
+          },
+          "mode": {
+            "enum": [
+              "demo",
+              "real"
+            ],
+            "title": "Mode",
+            "type": "string"
+          }
+        },
+        "required": [
+          "mode",
+          "accounts"
+        ],
+        "title": "SyncOut",
         "type": "object"
       },
       "ThemeOut": {
@@ -662,6 +1278,299 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/accounts": {
+      "get": {
+        "description": "Linked accounts. Passwords are never returned.",
+        "operationId": "accounts",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AccountOut"
+                  },
+                  "title": "Response Accounts",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "missing or wrong token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "agent tokens can only use /mcp"
+          },
+          "421": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "the Host header is not this machine"
+          },
+          "503": {
+            "description": "accounts are not available in this host"
+          }
+        },
+        "summary": "Accounts",
+        "tags": [
+          "sources"
+        ]
+      },
+      "post": {
+        "description": "Link an account. The provider checks the email and password first (discovery); nothing is stored\nunless that succeeds. Then the host mirrors its contacts and calendars, read-only, and switches to\nreal mode.",
+        "operationId": "add_account",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "description": "the provider did not accept the details, or the account is already linked; the message says which"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "missing or wrong token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "agent tokens can only use /mcp"
+          },
+          "421": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "the Host header is not this machine"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "503": {
+            "description": "accounts are not available in this host"
+          }
+        },
+        "summary": "Add Account",
+        "tags": [
+          "sources"
+        ]
+      }
+    },
+    "/accounts/{account_id}": {
+      "delete": {
+        "description": "Unlink an account: its mirrored contacts and calendars and its Keychain item are deleted. Nothing\nchanges at the provider. With no account left the host returns to demo mode.",
+        "operationId": "remove_account",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "account_id",
+            "required": true,
+            "schema": {
+              "title": "Account Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "missing or wrong token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "agent tokens can only use /mcp"
+          },
+          "404": {
+            "description": "no such account"
+          },
+          "421": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "the Host header is not this machine"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "503": {
+            "description": "accounts are not available in this host"
+          }
+        },
+        "summary": "Remove Account",
+        "tags": [
+          "sources"
+        ]
+      }
+    },
+    "/accounts/{account_id}/sync": {
+      "post": {
+        "description": "Sync now: the account is synced next, in the background. Follow it with GET /sync.",
+        "operationId": "sync_account",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "account_id",
+            "required": true,
+            "schema": {
+              "title": "Account Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountSyncOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "missing or wrong token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "agent tokens can only use /mcp"
+          },
+          "404": {
+            "description": "no such account"
+          },
+          "421": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "the Host header is not this machine"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "503": {
+            "description": "accounts are not available in this host"
+          }
+        },
+        "summary": "Sync Account",
+        "tags": [
+          "sources"
+        ]
+      }
+    },
     "/agents": {
       "get": {
         "operationId": "agents",
@@ -1382,6 +2291,386 @@
         ]
       }
     },
+    "/calendars": {
+      "get": {
+        "operationId": "calendars",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CalendarOut"
+                  },
+                  "title": "Response Calendars",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "missing or wrong token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "agent tokens can only use /mcp"
+          },
+          "421": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "the Host header is not this machine"
+          },
+          "503": {
+            "description": "accounts are not available in this host"
+          }
+        },
+        "summary": "Calendars",
+        "tags": [
+          "sources"
+        ]
+      }
+    },
+    "/contacts": {
+      "get": {
+        "description": "Mirrored contacts by name, or the ones matching `query` (every word, as a prefix).",
+        "operationId": "contacts",
+        "parameters": [
+          {
+            "description": "search names, organisation, emails and phones",
+            "in": "query",
+            "name": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "search names, organisation, emails and phones",
+              "title": "Query"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 1000,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ContactOut"
+                  },
+                  "title": "Response Contacts",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "missing or wrong token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "agent tokens can only use /mcp"
+          },
+          "421": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "the Host header is not this machine"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "503": {
+            "description": "accounts are not available in this host"
+          }
+        },
+        "summary": "Contacts",
+        "tags": [
+          "sources"
+        ]
+      }
+    },
+    "/contacts/{contact_id}": {
+      "get": {
+        "operationId": "contact",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "contact_id",
+            "required": true,
+            "schema": {
+              "title": "Contact Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "include the raw vCard",
+            "in": "query",
+            "name": "raw",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "include the raw vCard",
+              "title": "Raw",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactDetailOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "missing or wrong token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "agent tokens can only use /mcp"
+          },
+          "404": {
+            "description": "no such contact"
+          },
+          "421": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "the Host header is not this machine"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "503": {
+            "description": "accounts are not available in this host"
+          }
+        },
+        "summary": "Contact",
+        "tags": [
+          "sources"
+        ]
+      }
+    },
+    "/events": {
+      "get": {
+        "description": "Events overlapping the days from start to end (both included), in the host's time zone, with\nrecurring events expanded into occurrences.",
+        "operationId": "events",
+        "parameters": [
+          {
+            "description": "first day, YYYY-MM-DD",
+            "in": "query",
+            "name": "start",
+            "required": true,
+            "schema": {
+              "description": "first day, YYYY-MM-DD",
+              "format": "date",
+              "title": "Start",
+              "type": "string"
+            }
+          },
+          {
+            "description": "last day, YYYY-MM-DD (included)",
+            "in": "query",
+            "name": "end",
+            "required": true,
+            "schema": {
+              "description": "last day, YYYY-MM-DD (included)",
+              "format": "date",
+              "title": "End",
+              "type": "string"
+            }
+          },
+          {
+            "description": "calendar ids; repeat for several. Omit for every calendar",
+            "in": "query",
+            "name": "calendar",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "calendar ids; repeat for several. Omit for every calendar",
+              "title": "Calendar"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/EventOut"
+                  },
+                  "title": "Response Events",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "description": "end is before start, or the range is too long"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "missing or wrong token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "agent tokens can only use /mcp"
+          },
+          "421": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "the Host header is not this machine"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "503": {
+            "description": "accounts are not available in this host"
+          }
+        },
+        "summary": "Events",
+        "tags": [
+          "sources"
+        ]
+      }
+    },
     "/model/retry": {
       "post": {
         "description": "Try again to get the model ready (after an error, or once Ollama is installed).",
@@ -1529,6 +2818,58 @@
         "summary": "Status",
         "tags": [
           "host"
+        ]
+      }
+    },
+    "/sync": {
+      "get": {
+        "description": "The mode, and each account's sync status.",
+        "operationId": "sync_status",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "missing or wrong token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "agent tokens can only use /mcp"
+          },
+          "421": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "the Host header is not this machine"
+          }
+        },
+        "summary": "Sync Status",
+        "tags": [
+          "sources"
         ]
       }
     },

@@ -19,4 +19,20 @@ def test_openapi_declares_bearer_auth_and_localhost_server():
     assert doc["servers"][0]["url"].startswith("http://127.0.0.1:")
     assert set(doc["paths"]) == {"/status", "/model/retry", "/assistant/messages", "/approvals",
                                  "/approvals/{approval_id}", "/tools", "/agents", "/agents/{agent_id}",
-                                 "/assistant/settings", "/shutdown", "/appearance"}
+                                 "/assistant/settings", "/shutdown", "/appearance", "/accounts",
+                                 "/accounts/{account_id}", "/accounts/{account_id}/sync", "/sync", "/contacts",
+                                 "/contacts/{contact_id}", "/calendars", "/events"}
+
+
+def test_source_routes_are_tagged_and_the_password_is_write_only():
+    doc = openapi_document()
+    for path in ("/accounts", "/accounts/{account_id}", "/accounts/{account_id}/sync", "/sync", "/contacts",
+                 "/contacts/{contact_id}", "/calendars", "/events"):
+        for op in doc["paths"][path].values():
+            assert op["tags"] == ["sources"], path
+    password = doc["components"]["schemas"]["AccountIn"]["properties"]["password"]
+    assert password.get("writeOnly") is True and password.get("format") == "password"
+    for name, schema in doc["components"]["schemas"].items():
+        if name != "AccountIn":
+            assert "password" not in schema.get("properties", {}), f"{name} exposes a password field"
+    assert "mode" in doc["components"]["schemas"]["StatusOut"]["required"]
