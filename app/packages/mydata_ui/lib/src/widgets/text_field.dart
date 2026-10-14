@@ -15,7 +15,8 @@ import 'pressable.dart';
 /// - **Error:** with [error] set, the border is 2px `danger` and [error] replaces [help], in `danger`. Say what
 ///   is wrong and what a correct value looks like: "That address is incomplete. It looks like 192.168.1.20."
 /// - Focus draws the 2px `focus` ring whenever the field holds focus (a text input always matches
-///   `:focus-visible` in the preview, however it was focused).
+///   `:focus-visible` in the preview, however it was focused). In error the ring is `ink`, so it cannot merge
+///   with the red border (design/README.md "Focus and danger").
 /// - Disabled: 45% opacity, not focusable.
 ///
 /// The field fills the width it is given; put it in an [Expanded] or a sized box inside a [Row].
@@ -133,6 +134,7 @@ class _MyDataTextFieldState extends State<MyDataTextField> {
         border: Border.all(color: hasError ? c.danger : c.lineStrong, width: borderWidth),
       ),
       borderRadius: MyDataRadii.md,
+      danger: hasError,
     );
 
     field = Semantics(
@@ -270,6 +272,7 @@ class _Field extends StatelessWidget {
     required this.borderRadius,
     this.readPlaceholder = true,
     this.leading,
+    this.danger = false,
   });
 
   final TextEditingController controller;
@@ -297,6 +300,9 @@ class _Field extends StatelessWidget {
   /// hint fades out of the semantics tree once the field holds text).
   final bool readPlaceholder;
   final Widget? leading;
+
+  /// In error, with its 2px `danger` border: the focus ring is `ink` (design/README.md "Focus and danger").
+  final bool danger;
 
   @override
   Widget build(BuildContext context) {
@@ -339,6 +345,7 @@ class _Field extends StatelessWidget {
     return FocusRing(
       visible: enabled && focusNode.hasFocus,
       borderRadius: borderRadius,
+      danger: danger,
       child: Container(
         height: MyDataSize.controlHeight,
         decoration: decoration,

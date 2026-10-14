@@ -32,6 +32,9 @@ enum ButtonVariant {
         plainDanger => null,
       };
 
+  /// Drawn in `danger`: the focus ring is then `ink`, not the red `focus` (design/README.md "Focus and danger").
+  bool get isRed => this == danger || this == plainDanger;
+
   /// The colour of the label and the icon.
   Color foreground(MyDataColors c) => switch (this) {
         filled => c.onAccent,
@@ -45,6 +48,8 @@ enum ButtonVariant {
 /// A pill-shaped control that states the result of pressing it (design/components/Button).
 ///
 /// - Shape `radius-control`, height `control-height`, label `body-strong`; no border on any variant.
+/// - Keyboard focus draws the 2px `focus` ring 2px outside the pill; on [ButtonVariant.danger] and
+///   [ButtonVariant.plainDanger] it is `ink` (design/README.md "Focus and danger").
 /// - Pressing dims to 85% and scales to 97% at once and returns over `fast` ([Pressable]); with reduced
 ///   motion it only dims.
 /// - [onPressed] null disables it: 45% opacity, not focusable, announced as disabled.
@@ -103,6 +108,7 @@ class Button extends StatelessWidget {
       focusNode: focusNode,
       autofocus: autofocus,
       semanticLabel: label,
+      danger: variant.isRed,
       child: ExcludeSemantics(
         child: Container(
           height: MyDataSize.controlHeight,

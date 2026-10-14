@@ -46,6 +46,15 @@ Widget _allStates() => Column(crossAxisAlignment: CrossAxisAlignment.start, chil
       ]),
     ]);
 
+/// The colour of the focus ring drawn inside [of], or null when none is drawn.
+Color? _ringColour(WidgetTester tester, Finder of) {
+  final painters = tester
+      .widgetList<CustomPaint>(find.descendant(of: of, matching: find.byType(CustomPaint)))
+      .map((p) => p.foregroundPainter)
+      .where((p) => p.runtimeType.toString() == '_FocusRingPainter');
+  return painters.isEmpty ? null : (painters.single as dynamic).color as Color;
+}
+
 void main() {
   goldenMatrix('button', _allStates, size: const Size(840, 272), before: (tester) async {
     // A Tab press puts focus highlighting in keyboard mode; then focus the fourth row's filled button and
@@ -59,6 +68,50 @@ void main() {
         kind: PointerDeviceKind.mouse);
     addTearDown(press.up);
     await tester.pump(kPressTimeout);
+  });
+
+  // design/README.md "Focus and danger": the ring on a Danger button is `ink`, not the red `focus`.
+  FocusNode? dangerNode;
+  goldenMatrix(
+      'button_focus_danger',
+      () => ButtonRow(children: [
+            const Button(label: 'Keep contact', variant: ButtonVariant.plain, onPressed: _noop),
+            Button(
+                label: 'Delete contact',
+                variant: ButtonVariant.danger,
+                focusNode: dangerNode = FocusNode(),
+                onPressed: _noop),
+          ]),
+      size: const Size(360, 96), before: (tester) async {
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    dangerNode!.requestFocus();
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('keyboard focus rings: `ink` on Danger and Plain danger, `focus` on the rest', (tester) async {
+    for (final theme in themeMatrix) {
+      final c = theme.data.extension<MyDataColors>()!;
+      for (final variant in ButtonVariant.values) {
+        final node = FocusNode();
+        addTearDown(node.dispose);
+        await tester.pumpWidget(themedFrame(
+            theme,
+            Button(
+                key: ValueKey('${theme.label} $variant'),
+                label: 'Act',
+                variant: variant,
+                focusNode: node,
+                onPressed: _noop)));
+        await tester.pumpAndSettle(); // MaterialApp animates a theme change.
+        expect(_ringColour(tester, find.byType(Button)), isNull);
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        node.requestFocus();
+        await tester.pump();
+        final red = variant == ButtonVariant.danger || variant == ButtonVariant.plainDanger;
+        expect(variant.isRed, red);
+        expect(_ringColour(tester, find.byType(Button)), red ? c.ink : c.focus, reason: '${theme.label} $variant');
+      }
+    }
   });
 
   testWidgets('tap, Enter and Space call onPressed; disabled ignores taps and focus', (tester) async {

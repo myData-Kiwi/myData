@@ -900,7 +900,7 @@ class _CellState extends State<_Cell> {
               selected: widget.selected,
               ringColour: c.ink,
               focused: widget.selected && widget.showFocus,
-              focusColour: c.focus,
+              focusColour: FocusRing.colourOf(c),
             ),
             child: child,
           ),

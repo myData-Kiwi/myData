@@ -11,7 +11,8 @@ import '../theme.dart';
 ///
 /// - pressing dims to 85% and scales to 97% at once, and returns over `fast` (no scale with reduced motion);
 /// - Enter and Space activate it; it is reachable with Tab;
-/// - keyboard focus draws a 2px `focus` ring 2px outside the shape given by [borderRadius];
+/// - keyboard focus draws a 2px `focus` ring 2px outside the shape given by [borderRadius], in `ink` instead
+///   when [danger] says the control is already red (design/README.md "Focus and danger");
 /// - [hoverFill], when given, fills the shape while hovered or pressed (rows); controls leave it null;
 /// - disabled: 45% opacity, no focus, no cursor change (the previews' disabled state).
 class Pressable extends StatefulWidget {
@@ -29,6 +30,7 @@ class Pressable extends StatefulWidget {
     this.selected,
     this.toggled,
     this.tooltip,
+    this.danger = false,
   });
 
   /// Null disables the control.
@@ -46,6 +48,10 @@ class Pressable extends StatefulWidget {
   final bool? selected;
   final bool? toggled;
   final String? tooltip;
+
+  /// The control is drawn in `danger` or `danger-soft` right now (a Danger button, a destructive menu item):
+  /// its focus ring is then `ink`, so it cannot be told apart from the red ([FocusRing.colourOf]).
+  final bool danger;
 
   /// Opacity of a disabled control.
   static const disabledOpacity = 0.45;
@@ -105,7 +111,9 @@ class _PressableState extends State<Pressable> {
           : body,
     );
     body = CustomPaint(
-      foregroundPainter: _focused && _enabled ? _FocusRingPainter(c.focus, widget.borderRadius) : null,
+      foregroundPainter: _focused && _enabled
+          ? _FocusRingPainter(FocusRing.colourOf(c, danger: widget.danger), widget.borderRadius)
+          : null,
       child: body,
     );
     body = FocusableActionDetector(
@@ -173,14 +181,25 @@ class _FocusRingPainter extends CustomPainter {
 
 /// Draws the focus ring around a non-[Pressable] focusable thing (a text field), when [visible].
 class FocusRing extends StatelessWidget {
-  const FocusRing({super.key, required this.visible, required this.borderRadius, required this.child});
+  const FocusRing(
+      {super.key, required this.visible, required this.borderRadius, required this.child, this.danger = false});
   final bool visible;
   final BorderRadius borderRadius;
   final Widget child;
 
+  /// The thing is in its red state (a field in error): the ring is `ink` ([colourOf]).
+  final bool danger;
+
+  /// The colour of every keyboard focus ring, chosen here only (design/README.md "Focus and danger"): `focus`
+  /// (red) everywhere, `ink` on something already red ([danger]: drawn in `danger` or `danger-soft`), where a
+  /// red ring could not be told apart. No widget picks `focus` or `ink` for a ring by itself.
+  static Color colourOf(MyDataColors c, {bool danger = false}) => danger ? c.ink : c.focus;
+
   @override
   Widget build(BuildContext context) => CustomPaint(
-      foregroundPainter: visible ? _FocusRingPainter(context.colors.focus, borderRadius) : null, child: child);
+      foregroundPainter:
+          visible ? _FocusRingPainter(colourOf(context.colors, danger: danger), borderRadius) : null,
+      child: child);
 }
 
 /// Radii as BorderRadius, for the shapes the tokens name.

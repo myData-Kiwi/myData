@@ -56,6 +56,47 @@ void main() {
     },
   );
 
+  // design/README.md "Focus and danger": a field in error keeps its red border, and its ring is `ink`.
+  late FocusNode errorNode;
+  goldenMatrix(
+    'text_field_error_focus',
+    () {
+      errorNode = FocusNode();
+      return SizedBox(
+          width: 260,
+          child: MyDataTextField(
+              label: 'Host address',
+              controller: _c('192.168.1'),
+              mono: true,
+              focusNode: errorNode,
+              error: 'That address is incomplete. It looks like 192.168.1.20.'));
+    },
+    size: const Size(308, 180),
+    before: (tester) async {
+      errorNode.requestFocus();
+      await tester.pump();
+      tester.state<EditableTextState>(find.byWidgetPredicate((w) => w is EditableText && w.focusNode == errorNode))
+          .hideToolbar();
+      await tester.pump();
+    },
+  );
+
+  testWidgets('focus ring: `focus` normally, `ink` while the field is in error', (tester) async {
+    for (final error in [null, 'That address is incomplete.']) {
+      final node = FocusNode();
+      addTearDown(node.dispose);
+      await tester.pumpWidget(themedFrame(themeMatrix.first,
+          SizedBox(width: 300, child: MyDataTextField(label: 'Host', controller: _c(), focusNode: node, error: error))));
+      node.requestFocus();
+      await tester.pump();
+      final ring = tester.widget<FocusRing>(find.byType(FocusRing));
+      expect(ring.visible, isTrue);
+      expect(ring.danger, error != null);
+      final c = themeMatrix.first.data.extension<MyDataColors>()!;
+      expect(FocusRing.colourOf(c, danger: ring.danger), error == null ? c.focus : c.ink);
+    }
+  });
+
   testWidgets('typing reaches the controller and onChanged; Enter calls onSubmitted', (tester) async {
     final controller = _c();
     final changes = <String>[];
