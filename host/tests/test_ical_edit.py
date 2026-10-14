@@ -534,7 +534,30 @@ def test_moving_the_time_of_any_series_keeps_its_days_and_exceptions(case, minut
     assert ("EXDATE" in out) == ("EXDATE" in text)
 
 
-# ---------------------------------------------------------------- large series
+# ---------------------------------------------------------------- what an edit does not change, it writes as it came
+
+@pytest.mark.parametrize("line", ["PRIORITY:high", "GEO:abc", "CREATED:2026-01-01", "DTSTAMP:garbage",
+                                  "X-FOO;VALUE=DATE:notadate", "SEQUENCE:1.5"])
+def test_a_property_icalendar_cannot_read_is_kept_or_refused_without_its_value(line):
+    text = load("auckland-weekly.ics").replace("LOCATION:Room 1\n", f"LOCATION:Room 1\n{line}\n", 1)
+    rid = datetime(2026, 3, 9, 9, tzinfo=NZ)
+    try:
+        out = ie.delete_this(text, rid, now=NOW)
+    except IcsError as exc:
+        assert line.split(":", 1)[1] not in str(exc) and line.split(":")[0].split(";")[0] in str(exc)
+        return
+    assert len(occ(out)) == len(occ(text)) - 1
+    if not line.startswith("DTSTAMP"):  # the edit sets DTSTAMP
+        assert line + "\r\n" in out
+
+
+def test_a_repeated_dtstart_is_refused():
+    text = load("auckland-weekly.ics").replace("DTSTART;TZID=Pacific/Auckland:20260302T090000\n",
+                                               "DTSTART;TZID=Pacific/Auckland:20260302T090000\n"
+                                               "DTSTART;TZID=Pacific/Auckland:20260302T100000\n")
+    with pytest.raises(IcsError, match="more than one DTSTART"):
+        ie.delete_this(text, datetime(2026, 3, 9, 9, tzinfo=NZ), now=NOW)
+
 
 def test_moving_every_event_of_a_series_with_500_overrides_takes_well_under_a_few_seconds():
     berlin = ZoneInfo("Europe/Berlin")

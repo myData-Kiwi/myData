@@ -49,7 +49,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import icalendar
 from dateutil import rrule as du
-from icalendar.prop import vDDDLists, vDDDTypes
+from icalendar.prop import vBroken, vCategory, vDDDLists, vDDDTypes
 
 from .vcard_edit import parse_line, split_unescaped, unescape_text
 
@@ -134,13 +134,14 @@ def _object_tree(component, root: _Node | None = None) -> _Node:
             continue
         values = value if isinstance(value, list) else [value]
         for v in values:
-            if hasattr(v, "dts"):
+            # by type, never hasattr: a property icalendar could not read (vBroken) raises on any attribute
+            if isinstance(v, vDDDLists):
                 n = len(v.dts)
-            elif hasattr(v, "cats"):
+            elif isinstance(v, vCategory):
                 n = len(v.cats)
             else:
                 n = 1
-            text = v.to_ical() if hasattr(v, "to_ical") else str(v)
+            text = v.to_ical() if hasattr(type(v), "to_ical") else str(v)
             text = text.decode("utf-8") if isinstance(text, bytes) else str(text)
             params = [p.upper() for p in getattr(v, "params", {}).keys()]
             node.props.append((name.upper(), params, text, n if name.upper() in _MULTI else 1, (), None))
@@ -205,6 +206,11 @@ def _describe(entry: tuple) -> str:
 
 # ---------------------------------------------------------------- one edit, checked before it is written
 
+# What the writer reads from a component: icalendar must have read these, and an event holds one of each.
+_READ = ("DTSTART", "DTEND", "DUE", "DURATION", "RECURRENCE-ID", "EXDATE", "RDATE", "RRULE", "SEQUENCE", "UID")
+_ONE = ("DTSTART", "DTEND", "DUE", "DURATION", "RECURRENCE-ID", "UID", "SEQUENCE")
+
+
 class _Edit:
     """One edit of one resource. Components are known by their key in the input (computed once, kept by
     identity), so allow() is cheap and a component whose key changes (an override moved with its series) is
@@ -221,6 +227,15 @@ class _Edit:
             raise IcsError("not a readable iCalendar resource") from exc
         if not isinstance(self.cal, icalendar.Calendar):
             raise IcsError("not a VCALENDAR")
+        for component in self.cal.walk():
+            if component.name not in _IDENTIFIED:
+                continue
+            for name in _READ:
+                values = component.get(name)
+                if isinstance(values, list) and name in _ONE:
+                    raise IcsError(f"the event has more than one {name}")
+                if any(isinstance(v, vBroken) for v in _as_list(values)):
+                    raise IcsError(f"the event has a {name} that cannot be read")
         root = _Node("")
         _object_tree(self.cal, root)
         self._keys: dict[int, tuple] = {}
