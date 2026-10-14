@@ -528,8 +528,11 @@ def _as_list(value) -> list:
 # ---------------------------------------------------------------- the occurrences of a master
 
 def _rule_text(rule, dtstart) -> str:
-    """The RRULE as dateutil reads it, with UNTIL made to agree with DTSTART's kind (RFC 5545 wants that;
-    some writers do not)."""
+    """The RRULE as dateutil reads it, with an UNTIL that does not match DTSTART's kind (RFC 5545 wants it
+    to; some writers do not) read as recurring-ical-events, the calendar store's reader, reads it: for a zoned
+    or UTC start, a date is that day at 00:00 UTC and a floating time is UTC; for a floating start, a UTC time
+    is the wall time written and a date is that day at 00:00; for an all-day start, the date written. Never in
+    the host's own zone."""
     rule = copy.deepcopy(rule)
     until = rule.get("UNTIL")
     if until:
@@ -538,14 +541,12 @@ def _rule_text(rule, dtstart) -> str:
             u = u.date() if _is_dt(u) else u
         elif dtstart.tzinfo is not None:
             if not _is_dt(u):
-                u = datetime.combine(u, time(23, 59, 59), tzinfo=dtstart.tzinfo)
+                u = datetime.combine(u, time.min, tzinfo=timezone.utc)
             elif u.tzinfo is None:
-                u = u.replace(tzinfo=dtstart.tzinfo)
+                u = u.replace(tzinfo=timezone.utc)
             u = u.astimezone(timezone.utc)
         else:
-            u = (u.replace(tzinfo=None) if _is_dt(u) and u.tzinfo is not None and not _is_utc(u) else
-                 u.astimezone(dtstart.tzinfo).replace(tzinfo=None) if _is_dt(u) and u.tzinfo is not None else
-                 datetime.combine(u, time(23, 59, 59)) if not _is_dt(u) else u)
+            u = datetime.combine(u, time.min) if not _is_dt(u) else u.replace(tzinfo=None)
         rule["UNTIL"] = [u]
     return rule.to_ical().decode("ascii")
 

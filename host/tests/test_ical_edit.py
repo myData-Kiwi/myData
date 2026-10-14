@@ -629,3 +629,38 @@ def test_moving_every_event_of_a_series_with_500_overrides_takes_well_under_a_fe
     assert time.monotonic() - started < 5
     assert out.count("BEGIN:VEVENT") == 501 and "SUMMARY:Changed 499\r\n" in out
     assert event(out, datetime(2026, 1, 3, 10, tzinfo=berlin))["DTSTART"].dt.hour == 10
+
+
+# ---------------------------------------------------------------- the writer reads a series as the reader does
+
+_UNTILS = [("DTSTART:20261001T090000", u) for u in ("20261004T000000Z", "20261004", "20261004T090000",
+                                                     "20261004T085959Z", "20261004T090000Z")] + \
+          [("DTSTART;TZID=America/New_York:20261001T090000", u) for u in ("20261008", "20261008T130000",
+                                                                          "20261008T130000Z", "20261008T125959Z")] + \
+          [("DTSTART;VALUE=DATE:20261001", u) for u in ("20261004", "20261004T000000Z", "20261003T235959Z")] + \
+          [("DTSTART:20261001T090000Z", u) for u in ("20261004", "20261004T090000", "20261004T090000Z")]
+
+
+@pytest.fixture(params=["Pacific/Auckland", "UTC"])
+def host_zone(request, monkeypatch):
+    """The host's own time zone, which must not matter."""
+    monkeypatch.setenv("TZ", request.param)
+    time.tzset()
+    yield request.param
+    monkeypatch.undo()
+    time.tzset()
+
+
+@pytest.mark.parametrize("start, until", _UNTILS)
+def test_an_until_of_another_kind_ends_the_series_where_the_reader_ends_it(start, until, host_zone):
+    text = (f"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Example Corp//Until//EN\r\nBEGIN:VEVENT\r\n"
+            f"UID:until@example.org\r\nDTSTAMP:20260101T000000Z\r\n{start}\r\nRRULE:FREQ=DAILY;UNTIL={until}\r\n"
+            "SUMMARY:Daily\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n")
+    master = event(text)
+    first = master["DTSTART"].dt
+    writer = ie._starts_between(master, first - timedelta(days=5), first + timedelta(days=30))
+    reader = [o["DTSTART"].dt for o in recurring_ical_events.of(icalendar.Calendar.from_ical(text)).between(*WINDOW)]
+    assert sorted(writer, key=_start_key) == sorted(reader, key=_start_key)
+    after_last = (max(reader, key=_start_key) + timedelta(days=1))
+    with pytest.raises(IcsError, match="not an occurrence"):
+        ie.edit_this(text, after_last, {"SUMMARY": "Extra"}, now=NOW)
