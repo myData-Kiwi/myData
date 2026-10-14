@@ -749,12 +749,19 @@ def _same_value(a, b) -> bool:
 
 
 def _apply(edit: _Edit, component, changes: Mapping[str, object]) -> None:
+    """Make the changes. A new DTEND replaces a DURATION the component had, and a new DURATION its DTEND: RFC
+    5545 never allows both."""
+    names = {name.upper() for name in changes}
     for name, value in changes.items():
         name = name.upper()
         if name in ("UID", "RECURRENCE-ID", "BEGIN", "END"):
             raise IcsError(f"{name} cannot be changed")
         edit.allow(component, name)
         _set(component, name, _value(component, name, value))
+        other = {"DTEND": "DURATION", "DURATION": "DTEND"}.get(name)
+        if other and value is not None and other not in names and component.get(other) is not None:
+            edit.allow(component, other)
+            _set(component, other, None)
 
 
 def _now(now: datetime | None) -> datetime:

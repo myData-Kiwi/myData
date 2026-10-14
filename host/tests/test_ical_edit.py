@@ -800,3 +800,16 @@ def test_a_moved_start_keeps_the_end_in_its_own_zone():
     assert "DTEND;TZID=Europe/London:20261110T070000\r\n" in this
     every = ie.edit_all(flight, {"DTSTART": datetime(2026, 11, 2, 17, tzinfo=ny)}, now=NOW)
     assert "DTEND;TZID=Europe/London:20261103T050000\r\n" in every
+
+
+def test_a_new_end_replaces_a_duration_and_a_new_duration_an_end():
+    text = load("auckland-weekly.ics").replace("DTEND;TZID=Pacific/Auckland:20260302T093000\n", "DURATION:PT1H\n")
+    out = ie.edit_all(text, {"DTEND": datetime(2026, 3, 2, 11, tzinfo=NZ)}, now=NOW)
+    master = event(out)
+    assert master.get("DURATION") is None and master["DTEND"].dt == datetime(2026, 3, 2, 11, tzinfo=NZ)
+    this = ie.edit_this(text, datetime(2026, 3, 9, 9, tzinfo=NZ), {"DTEND": datetime(2026, 3, 9, 9, 45, tzinfo=NZ)},
+                        now=NOW)
+    override = event(this, datetime(2026, 3, 9, 9, tzinfo=NZ))
+    assert override.get("DURATION") is None and event(this).get("DURATION") is not None
+    out = ie.edit_all(load("auckland-weekly.ics"), {"DURATION": timedelta(hours=2)}, now=NOW)
+    assert event(out).get("DTEND") is None and "DURATION:PT2H" in out
