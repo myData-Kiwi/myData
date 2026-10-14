@@ -304,6 +304,17 @@ def test_mark_collections_gone(store):
     assert titles(between(store, d(2026, 3, 20), d(2026, 3, 21))) == ["Call with Example GmbH"]
 
 
+def test_raw_hash_and_rev_follow_the_raw_resource(store):
+    import hashlib
+    with store.db.connect() as db:
+        row = lambda: db.execute("SELECT rev, raw_sha256, raw_ics, href FROM events "  # noqa: E731
+                                 "WHERE href LIKE '%floating.ics'").fetchone()
+        assert row()["rev"] == 1 and row()["raw_sha256"] == hashlib.sha256(row()["raw_ics"].encode()).hexdigest()
+        changed = ics("floating.ics").replace("Floating lunch", "Floating supper")
+        store.apply("acc-1", HOME, result([Item(href=row()["href"], etag='"2"', data=changed)]))
+        assert row()["rev"] == 2 and row()["raw_sha256"] == hashlib.sha256(changed.encode()).hexdigest()
+
+
 def test_wrong_kind_rejected(tmp_path):
     book = Collection(url="https://contacts.example.com/card/", kind="contacts", display_name="Card")
     with pytest.raises(ValueError):

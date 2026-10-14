@@ -319,6 +319,24 @@ def _scan(text: str) -> ParsedContact:
     return out
 
 
+def card_kind(text: str) -> str:
+    """What the card describes: "group" (KIND:group in 4.0, or Apple's X-ADDRESSBOOKSERVER-KIND:group, the
+    way iCloud sends a group in 3.0), "org" (KIND:org), else "individual" (also for KIND:location and
+    values this host does not know: shown as a contact, as before kinds were read)."""
+    kinds = {_unescape(value).strip().lower() for name, _params, value in _properties(text)
+             if name in ("KIND", "X-ADDRESSBOOKSERVER-KIND")}
+    if "group" in kinds:
+        return "group"
+    if kinds & {"org", "organization"}:
+        return "org"
+    return "individual"
+
+
+def card_version(text: str) -> str:
+    """The card's VERSION as received ("3.0", "4.0", "2.1"); "" when it has none."""
+    return next((value.strip() for name, _params, value in _properties(text) if name == "VERSION"), "")
+
+
 def phone_search_forms(value: str) -> list[str]:
     """Extra search tokens for a phone number: its digits, and their tails of 7 or more digits, so
     "5550100" finds "+1 (555) 010-0". The number as written is indexed too, split at punctuation."""

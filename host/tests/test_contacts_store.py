@@ -144,6 +144,20 @@ def test_upsert_keeps_id_and_created_at_and_updates_fields(store):
     assert store.search("samantha")[0]["id"] == before["id"]
 
 
+def test_raw_hash_and_rev_follow_the_raw_card(store):
+    import hashlib
+    before = by_file(store, "sam-sample-1.vcf")
+    with store.db.connect() as db:
+        row = lambda: db.execute("SELECT rev, raw_sha256, raw_vcard FROM contacts WHERE id = ?",  # noqa: E731
+                                 (before["id"],)).fetchone()
+        assert row()["rev"] == 1 and row()["raw_sha256"] == hashlib.sha256(row()["raw_vcard"].encode()).hexdigest()
+        store.apply("acc-1", BOOK, result([Item(href=before["href"], etag='"2"', data=card("sam-sample-1.vcf"))]))
+        assert row()["rev"] == 1  # a new ETag for the same text is not a new version
+        changed = card("sam-sample-1.vcf").replace("FN:Sam Sample", "FN:Sam Changed")
+        store.apply("acc-1", BOOK, result([Item(href=before["href"], etag='"3"', data=changed)]))
+        assert row()["rev"] == 2 and row()["raw_sha256"] == hashlib.sha256(changed.encode()).hexdigest()
+
+
 def test_same_href_in_two_books_or_accounts_are_separate(tmp_path):
     s = ContactsStore(tmp_path / "c.sqlite")
     href = "/shared/same.vcf"
@@ -215,12 +229,12 @@ def test_database_file_is_private_and_versioned(tmp_path):
     ContactsStore(path)
     assert os.stat(path).st_mode & 0o777 == 0o600
     db = sqlite3.connect(path)
-    assert db.execute("SELECT MAX(version) FROM schema_version").fetchone()[0] == 1
+    assert db.execute("SELECT MAX(version) FROM schema_version").fetchone()[0] == max(ContactsStore.MIGRATIONS)
     assert db.execute("PRAGMA journal_mode").fetchone()[0] == "wal"
     db.close()
     ContactsStore(path)  # reopening does not re-run migrations
     db = sqlite3.connect(path)
-    assert db.execute("SELECT COUNT(*) FROM schema_version").fetchone()[0] == 1
+    assert db.execute("SELECT COUNT(*) FROM schema_version").fetchone()[0] == len(ContactsStore.MIGRATIONS)
 
 
 def test_wrong_kind_rejected(tmp_path):

@@ -72,6 +72,9 @@ class Database:
             db.execute("PRAGMA foreign_keys=ON")
             # Deleted rows are overwritten, so removing an account leaves no readable remains in the file.
             db.execute("PRAGMA secure_delete=ON")
+            # A row an INSERT OR REPLACE removes fires the delete triggers too, so it cannot slip past the
+            # ones that keep owned data (sources/owned.py).
+            db.execute("PRAGMA recursive_triggers=ON")
             db.execute("PRAGMA busy_timeout=30000")
             yield db
         finally:

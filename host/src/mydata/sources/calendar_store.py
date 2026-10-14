@@ -15,6 +15,10 @@ occurrence date). The calendar is part of the key: the same event in two calenda
 snapshot replaces the source's occurrences; an occurrence that is gone is deleted outright (they are
 expansions of a rolling window, not records the user made). `coverage` holds each such source's window:
 the days it holds. A CalDAV account holds everything, so it has no coverage row.
+
+Every calendar is followed (a copy of a source) or owned (the host holds the only copy; see
+sources/owned.py, whose triggers keep it from being deleted). Each resource records a sha256 of its raw text (`raw_sha256`;
+`etag` stays the source's ETag) and `rev`, which goes up by one whenever its raw text changes.
 """
 
 from __future__ import annotations
@@ -24,6 +28,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from datetime import date, datetime, time, timedelta, timezone, tzinfo
 from pathlib import Path
 
+from . import owned
 from ._db import Database, new_id, now
 from ._mirror import load_state, retire_collections, soft_delete_missing, upsert_collection
 from .dav.discovery import Collection
@@ -105,6 +110,18 @@ _MIGRATIONS = {
             modified_at TEXT NOT NULL
         )""",
     ],
+    # Owned and followed calendars, and what resources gain with them (sources/owned.py). Additive only.
+    3: [
+        owned.mode_column("calendars"),
+        "ALTER TABLE events ADD COLUMN rev INTEGER NOT NULL DEFAULT 1",
+        "ALTER TABLE events ADD COLUMN raw_sha256 TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE events ADD COLUMN purge_after TEXT",
+        lambda db: db.executemany(
+            "UPDATE events SET raw_sha256 = ? WHERE seq = ?",
+            [(owned.raw_hash(raw), seq) for seq, raw in db.execute("SELECT seq, raw_ics FROM events").fetchall()]),
+        *owned.shared_tables(),
+        *owned.protection(*owned.CALENDAR, also=[owned.OCCURRENCES]),
+    ],
 }
 
 _OCC_FIELDS = ("title", "location", "notes", "start", "end", "all_day", "time_zone", "detached", "recurring",
@@ -174,6 +191,7 @@ class CalendarStore:
             "uid": parsed.uid,
             "title": parsed.title,
             "raw_ics": data,
+            "raw_sha256": owned.raw_hash(data),
             "range_start": parsed.range_start,
             "range_end": parsed.range_end,
         }
@@ -190,8 +208,9 @@ class CalendarStore:
             return
         assignments = ", ".join(f"{k} = ?" for k in fields)
         db.execute(
-            f"UPDATE events SET {assignments}, calendar_id = ?, modified_at = ?, deleted_at = NULL WHERE id = ?",
-            [*fields.values(), calendar_id, stamp, existing["id"]],
+            f"UPDATE events SET {assignments}, rev = rev + (raw_ics IS NOT ?), calendar_id = ?, modified_at = ?, "
+            "deleted_at = NULL WHERE id = ?",
+            [*fields.values(), data, calendar_id, stamp, existing["id"]],
         )
 
     def collection_state(self, account_id: str, collection_url: str) -> CollectionState:
@@ -212,6 +231,15 @@ class CalendarStore:
             db.execute("DELETE FROM events WHERE account_id = ?", (account_id,))
             db.execute("DELETE FROM calendars WHERE account_id = ?", (account_id,))
         self.db.checkpoint()
+
+    def purge(self, *, calendar_ids: Iterable[str] = (), event_ids: Iterable[str] = ()) -> dict[str, int]:
+        """Hard-delete resources, and calendars with everything in them, owned ones included (owned.purge).
+        Only for the trash expiry and "Forget", which do not exist yet."""
+        with self.db.transaction() as db:
+            gone = owned.purge(db, owned.CALENDAR, collection_ids=calendar_ids, row_ids=event_ids,
+                               also=[owned.OCCURRENCES])
+        self.db.checkpoint()
+        return gone
 
     def account_ids(self) -> list[str]:
         """Every account with rows in this file (to find data left by an account that no longer exists)."""

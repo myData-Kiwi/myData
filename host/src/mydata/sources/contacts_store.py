@@ -5,6 +5,11 @@ URL, href); the raw card is kept beside the parsed fields. Duplicates are kept a
 deleted upstream gets the soft-delete marker; removing an account hard-deletes its rows. Sync state
 (sync token, ctag, etags) is stored per address book in the same file.
 
+Every address book is followed (a copy of a source) or owned (the host holds the only copy; see
+sources/owned.py, whose triggers keep it from being deleted). Each card records its kind (`kind`:
+individual, group or org), its vCard version as received, a sha256 of its raw text (`raw_sha256`;
+`etag` stays the source's ETag) and `rev`, which goes up by one whenever its raw text changes.
+
 The "This Mac" source (account_id "mac") is stored the same way: one synthetic address book per
 Contacts container (url mac://contacts/<container id>) and a vCard generated from what the helper read
 (sources/mac/cards.py), which holds no note.
@@ -18,12 +23,13 @@ import sqlite3
 from collections.abc import Iterable
 from pathlib import Path
 
+from . import owned
 from ._db import Database, new_id, now
 from ._mirror import load_state, retire_collections, soft_delete_missing, upsert_collection
 from .dav.discovery import Collection
 from .dav.sync import CollectionState, SyncResult
 from .mac import MAC_ID
-from .vcard import parse_vcard, phone_search_forms
+from .vcard import card_kind, card_version, parse_vcard, phone_search_forms
 from .vcard import photo as card_photo
 from .views import compare_names
 
@@ -101,6 +107,23 @@ _MIGRATIONS = {
             INSERT INTO contacts_fts (rowid, {", ".join(_SEARCH_COLUMNS)})
             VALUES (new.seq, {", ".join("new." + c for c in _SEARCH_COLUMNS)});
         END""",
+    ],
+    # Owned and followed address books, and what cards gain with them (sources/owned.py). Additive only.
+    2: [
+        owned.mode_column("address_books"),
+        "ALTER TABLE contacts ADD COLUMN rev INTEGER NOT NULL DEFAULT 1",
+        "ALTER TABLE contacts ADD COLUMN raw_sha256 TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE contacts ADD COLUMN purge_after TEXT",
+        # No CHECK on kind: vCard 4.0 lets KIND take values this host does not know yet, and a CHECK could
+        # only be widened by rebuilding the table.
+        "ALTER TABLE contacts ADD COLUMN kind TEXT NOT NULL DEFAULT 'individual'",
+        "ALTER TABLE contacts ADD COLUMN version TEXT NOT NULL DEFAULT ''",
+        lambda db: db.executemany(
+            "UPDATE contacts SET raw_sha256 = ?, kind = ?, version = ? WHERE seq = ?",
+            [(owned.raw_hash(raw), card_kind(raw), card_version(raw), seq)
+             for seq, raw in db.execute("SELECT seq, raw_vcard FROM contacts").fetchall()]),
+        *owned.shared_tables(),
+        *owned.protection(*owned.CONTACTS),
     ],
 }
 
@@ -196,6 +219,9 @@ class ContactsStore:
             "note": card.note,
             "has_photo": int(card.has_photo),
             "raw_vcard": data,
+            "raw_sha256": owned.raw_hash(data),
+            "kind": card_kind(data),
+            "version": card_version(data),
             "search_emails": " ".join(e["value"] for e in card.emails),
             "search_phones": " ".join(
                 [p["value"] for p in card.phones] + [f for p in card.phones for f in phone_search_forms(p["value"])]
@@ -218,8 +244,9 @@ class ContactsStore:
             return
         assignments = ", ".join(f"{k} = ?" for k in fields)
         db.execute(
-            f"UPDATE contacts SET {assignments}, address_book_id = ?, modified_at = ?, deleted_at = NULL WHERE id = ?",
-            [*fields.values(), book_id, stamp, existing["id"]],
+            f"UPDATE contacts SET {assignments}, rev = rev + (raw_vcard IS NOT ?), address_book_id = ?, "
+            "modified_at = ?, deleted_at = NULL WHERE id = ?",
+            [*fields.values(), data, book_id, stamp, existing["id"]],
         )
 
     def collection_state(self, account_id: str, collection_url: str) -> CollectionState:
@@ -241,6 +268,16 @@ class ContactsStore:
             db.execute("DELETE FROM address_books WHERE account_id = ?", (account_id,))
             db.execute("INSERT INTO contacts_fts (contacts_fts) VALUES ('optimize')")
         self.db.checkpoint()
+
+    def purge(self, *, address_book_ids: Iterable[str] = (), contact_ids: Iterable[str] = ()) -> dict[str, int]:
+        """Hard-delete cards, and address books with every card in them, owned ones included (owned.purge).
+        Only for the trash expiry and "Forget", which do not exist yet. Leaves no readable trace, as
+        delete_account does."""
+        with self.db.transaction() as db:
+            gone = owned.purge(db, owned.CONTACTS, collection_ids=address_book_ids, row_ids=contact_ids)
+            db.execute("INSERT INTO contacts_fts (contacts_fts) VALUES ('optimize')")
+        self.db.checkpoint()
+        return gone
 
     def address_book_ids(self, account_id: str) -> dict[str, str]:
         """{address book URL: id} for the account's address books (not soft-deleted)."""

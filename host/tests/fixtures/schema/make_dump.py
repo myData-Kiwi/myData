@@ -4,7 +4,8 @@ Run it (from host/: .venv/bin/python tests/fixtures/schema/make_dump.py) at the 
 schema, and commit the files it writes; never edit a released dump. test_schema_migration.py loads each
 dump into a file built by the released migrations up to N, migrates it with today's code and compares every
 field of every row. The data is invented only: the DAV fixtures in tests/fixtures/dav, the fake This Mac
-data (tests/fake_mac) and a few extra cards (groups, an organisation, a soft-deleted card).
+data (tests/fake_mac), a few extra cards (groups, an organisation, a soft-deleted card) and, from the schema
+that has them on, owned collections (tests/owned_data.py).
 
 A dump holds INSERT statements for the stores' own tables, never the schema, schema_version or a search
 index (the migrations build those, and the insert triggers fill the index). A text value holding a carriage
@@ -71,6 +72,10 @@ def populate(home: Path) -> None:
     calendar.replace_occurrences("mac", (date(2025, 3, 18), date(2028, 3, 18)), by_calendar)
     with calendar.db.transaction() as db:  # one soft-deleted resource
         db.execute("UPDATE events SET deleted_at = modified_at WHERE href LIKE '%custom-tz.ics'")
+        modes = "mode" in {r[1] for r in db.execute("PRAGMA table_info(calendars)")}
+    if modes:
+        import owned_data
+        owned_data.add_owned(home)
 
 
 def literal(value, hexed: bool = False) -> str:

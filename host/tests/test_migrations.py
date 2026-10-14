@@ -143,8 +143,8 @@ def _rebuild(path, table: str) -> tuple[list[str], list[str], list[str]]:
 
 def test_rebuilding_the_address_books_keeps_the_contacts_and_their_search_index(tmp_path):
     """The real contacts schema: a future migration that rebuilds address_books (the parent) keeps every
-    contact, and searching still finds them. Dropping a table drops its triggers, so a rebuild makes them
-    again."""
+    contact, and searching still finds them. Dropping the table drops its triggers, so the rebuild makes them
+    again (without them the runner rolls it back: next test)."""
     from test_contacts_store import ALL, BOOK, item, result
 
     path = tmp_path / "contacts.sqlite"
@@ -152,6 +152,9 @@ def test_rebuilding_the_address_books_keeps_the_contacts_and_their_search_index(
     with sqlite3.connect(path) as c:
         before = c.execute("SELECT COUNT(*) FROM contacts").fetchone()[0]
     drop, rebuild, again = _rebuild(path, "address_books")
+    assert "address_books_keep_owned" in " ".join(again)  # the owned-data guards (sources/owned.py)
+    with pytest.raises(MigrationError, match="the trigger address_books_keep_owned is gone"):
+        Database(path, {**ContactsStore.MIGRATIONS, max(ContactsStore.MIGRATIONS) + 1: drop + rebuild})
     Database(path, {**ContactsStore.MIGRATIONS, max(ContactsStore.MIGRATIONS) + 1: drop + rebuild + again})
     with sqlite3.connect(path) as c:
         assert before == len(ALL)

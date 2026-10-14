@@ -57,7 +57,9 @@ def test_a_snapshot_copies_every_database_with_a_manifest(home):
     by_file = {f["file"]: f for f in m["files"]}
     contacts = by_file["contacts.sqlite"]
     assert contacts["schema_version"] == max(ContactsStore.MIGRATIONS)
-    assert contacts["row_counts"] == {"address_books": 1, "contacts": count(home / "contacts.sqlite", "contacts")}
+    assert contacts["row_counts"] == {"address_books": 1, "contacts": count(home / "contacts.sqlite", "contacts"),
+                                      **{t: 0 for t in ("changes", "imports", "meta", "origins", "purge_permits",
+                                                        "revisions")}}
     assert by_file["calendar.sqlite"]["row_counts"]["events"] == count(home / "calendar.sqlite", "events") == 6
     for f in m["files"]:
         copy = snap.path / f["file"]
@@ -170,8 +172,8 @@ def test_a_migration_is_refused_when_its_own_file_cannot_be_copied(home):
     with sqlite3.connect(home / "contacts.sqlite") as db:
         pages = [r[0] for r in db.execute("SELECT pageno FROM dbstat WHERE name = 'contacts'")]
     _garble(home / "contacts.sqlite", pages)
-    with sqlite3.connect(home / "contacts.sqlite") as db:  # still reads as version 1, so it would migrate
-        assert db.execute("SELECT MAX(version) FROM schema_version").fetchone()[0] == 1
+    with sqlite3.connect(home / "contacts.sqlite") as db:  # still reads its version, so it would migrate
+        assert db.execute("SELECT MAX(version) FROM schema_version").fetchone()[0] == max(ContactsStore.MIGRATIONS)
     with pytest.raises(MigrationRefused, match="contacts.sqlite"):
         open_store(NextContactsStore, home, "contacts.sqlite")
     assert list_snapshots(home) == [] and not list((home / "backups").glob(".partial-*"))
@@ -254,7 +256,7 @@ def test_prune_removes_what_retention_drops(home):
 
 class NextContactsStore(ContactsStore):
     """The contacts store as a later build would have it: one more (additive) migration."""
-    MIGRATIONS = {**ContactsStore.MIGRATIONS, max(ContactsStore.MIGRATIONS) + 1: ["CREATE TABLE meta (k TEXT, v TEXT)"]}
+    MIGRATIONS = {**ContactsStore.MIGRATIONS, max(ContactsStore.MIGRATIONS) + 1: ["CREATE TABLE next_build (k TEXT, v TEXT)"]}
 
 
 def test_a_snapshot_is_taken_before_a_migration(home):
@@ -302,10 +304,13 @@ def test_the_sync_service_opens_its_stores_through_the_snapshot_hook(home, monke
     assert [s.manifest["reason"] for s in list_snapshots(home)] == ["pre-migration"]
 
 
+CURRENT = max(ContactsStore.MIGRATIONS)
+
+
 class BrokenNextContactsStore(ContactsStore):
     """A later build whose migration fails (NOT NULL without a default, on a table with rows)."""
     MIGRATIONS = {**ContactsStore.MIGRATIONS,
-                  max(ContactsStore.MIGRATIONS) + 1: ["ALTER TABLE contacts ADD COLUMN kind TEXT",
+                  max(ContactsStore.MIGRATIONS) + 1: ["ALTER TABLE contacts ADD COLUMN next_build TEXT",
                                                       "UPDATE contacts SET display_name = NULL"]}
 
 
@@ -318,12 +323,13 @@ def test_a_failing_migration_takes_one_snapshot_however_often_it_is_tried(home):
                 open_store(BrokenNextContactsStore, home, "contacts.sqlite")
         [snap] = list_snapshots(home)
         message = LAST_ERROR.last["message"]
-        assert message.startswith(f"contacts.sqlite could not be updated from schema version 1 to 2 (IntegrityError")
+        assert message.startswith(f"contacts.sqlite could not be updated from schema version {CURRENT} to "
+                                  f"{CURRENT + 1} (IntegrityError")
         assert f"rolled back and the file is as it was; snapshot {snap.name} holds it" in message
     finally:
         logging.getLogger().removeHandler(LAST_ERROR)
-    assert snap.manifest["migration"] == {"file": "contacts.sqlite", "from": 1, "to": 2}
-    assert count(home / "contacts.sqlite", "schema_version") == 1
+    assert snap.manifest["migration"] == {"file": "contacts.sqlite", "from": CURRENT, "to": CURRENT + 1}
+    assert count(home / "contacts.sqlite", "schema_version") == len(ContactsStore.MIGRATIONS)
     # The file changed meanwhile: the old snapshot no longer holds it, so a new one is taken.
     with ContactsStore(home / "contacts.sqlite").db.transaction() as db:
         db.execute("UPDATE address_books SET name = 'Renamed'")
