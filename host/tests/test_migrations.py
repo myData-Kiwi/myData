@@ -2,6 +2,7 @@
 parent table never cascades into its children, and the checks afterwards roll back a migration that
 leaves the file broken."""
 
+import re
 import sqlite3
 
 import pytest
@@ -80,6 +81,34 @@ def test_a_failing_statement_rolls_the_whole_migration_back(tmp_path):
     assert _version(db) == 1 and _count(db, "cards") == 5
 
 
+def test_a_function_step_backfills_what_sql_cannot_compute(tmp_path):
+    import hashlib
+
+    path = tmp_path / "t.sqlite"
+    _seed(path)
+    backfill = lambda c: c.executemany(  # noqa: E731
+        "UPDATE cards SET digest = ? WHERE id = ?",
+        [(hashlib.sha256(i.encode()).hexdigest(), i) for (i,) in c.execute("SELECT id FROM cards").fetchall()])
+    db = Database(path, {**V1, 2: ["ALTER TABLE cards ADD COLUMN digest TEXT NOT NULL DEFAULT ''", backfill]})
+    with db.connect() as c:
+        rows = c.execute("SELECT id, digest FROM cards").fetchall()
+    assert len(rows) == 5 and all(d == hashlib.sha256(i.encode()).hexdigest() for i, d in rows)
+
+
+def test_a_migration_that_drops_a_trigger_is_rolled_back(tmp_path):
+    """Dropping a table drops its triggers, and nothing else would notice: a rebuild must make them again."""
+    path = tmp_path / "t.sqlite"
+    guard = ("CREATE TRIGGER books_guard BEFORE DELETE ON books WHEN OLD.name = 'Kept' "
+             "BEGIN SELECT RAISE(ABORT, 'kept'); END")
+    db = _seed(path)
+    Database(path, {**V1, 2: [guard]})
+    with pytest.raises(MigrationError, match="the trigger books_guard is gone"):
+        Database(path, {**V1, 2: [guard], 3: REBUILD_BOOKS})
+    assert _version(db) == 2
+    db = Database(path, {**V1, 2: [guard], 3: [*REBUILD_BOOKS, guard]})
+    assert _version(db) == 3 and _count(db, "cards") == 5
+
+
 def test_a_newer_file_is_refused(tmp_path):
     path = tmp_path / "t.sqlite"
     Database(path, {**V1, 2: ["CREATE TABLE extra (x)"]})
@@ -98,19 +127,32 @@ def test_pending_reports_the_versions_of_an_existing_file(tmp_path):
     assert not (tmp_path / "missing.sqlite").exists()  # never creates the file
 
 
+def _rebuild(path, table: str) -> tuple[list[str], list[str], list[str]]:
+    """The steps of rebuilding `table` as it is in the file: dropping the triggers that name it (a rename
+    fails while a trigger names a missing table), the rebuild itself, and creating those triggers again."""
+    with sqlite3.connect(path) as c:
+        [create] = c.execute("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = ?", (table,)).fetchone()
+        triggers = [(n, q) for n, q in c.execute("SELECT name, sql FROM sqlite_master WHERE type = 'trigger'")
+                    if re.search(rf"\b{table}\b", q)]
+    create = create.replace(f"CREATE TABLE {table}", f"CREATE TABLE {table}_new", 1)
+    return ([f"DROP TRIGGER {n}" for n, _ in triggers],
+            [create, f"INSERT INTO {table}_new SELECT * FROM {table}", f"DROP TABLE {table}",
+             f"ALTER TABLE {table}_new RENAME TO {table}"],
+            [q for _, q in triggers])
+
+
 def test_rebuilding_the_address_books_keeps_the_contacts_and_their_search_index(tmp_path):
     """The real contacts schema: a future migration that rebuilds address_books (the parent) keeps every
-    contact, and searching still finds them."""
+    contact, and searching still finds them. Dropping a table drops its triggers, so a rebuild makes them
+    again."""
     from test_contacts_store import ALL, BOOK, item, result
 
     path = tmp_path / "contacts.sqlite"
     ContactsStore(path).apply("acc-1", BOOK, result([item(n) for n in ALL], full=True))
     with sqlite3.connect(path) as c:
         before = c.execute("SELECT COUNT(*) FROM contacts").fetchone()[0]
-    create = ContactsStore.MIGRATIONS[1][0].replace("CREATE TABLE address_books", "CREATE TABLE address_books_new")
-    rebuild = [create, "INSERT INTO address_books_new SELECT * FROM address_books", "DROP TABLE address_books",
-               "ALTER TABLE address_books_new RENAME TO address_books"]
-    Database(path, {**ContactsStore.MIGRATIONS, max(ContactsStore.MIGRATIONS) + 1: rebuild})
+    drop, rebuild, again = _rebuild(path, "address_books")
+    Database(path, {**ContactsStore.MIGRATIONS, max(ContactsStore.MIGRATIONS) + 1: drop + rebuild + again})
     with sqlite3.connect(path) as c:
         assert before == len(ALL)
         assert c.execute("SELECT COUNT(*) FROM contacts").fetchone()[0] == before
@@ -149,10 +191,9 @@ def test_a_migration_that_loses_rows_is_rolled_back(tmp_path):
 
     path = tmp_path / "contacts.sqlite"
     ContactsStore(path).apply("acc-1", BOOK, result([item(n) for n in ALL], full=True))
-    create = ContactsStore.MIGRATIONS[1][1].replace("CREATE TABLE contacts", "CREATE TABLE contacts_new")
-    assert "contacts_new" in create
-    lossy = [create, "INSERT INTO contacts_new SELECT * FROM contacts WHERE seq % 2 = 0", "DROP TABLE contacts",
-             "ALTER TABLE contacts_new RENAME TO contacts"]
+    drop, rebuild, again = _rebuild(path, "contacts")
+    rebuild[1] += " WHERE seq % 2 = 0"
+    lossy = drop + rebuild + again
     with pytest.raises(MigrationError, match=f"contacts has {len(ALL) // 2} rows, it had {len(ALL)} before"):
         Database(path, {**ContactsStore.MIGRATIONS, max(ContactsStore.MIGRATIONS) + 1: lossy})
     with sqlite3.connect(path) as c:

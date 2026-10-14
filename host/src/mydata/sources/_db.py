@@ -4,10 +4,12 @@ a schema_version table and numbered migrations, files readable only by the user.
 Migrations run on a connection of their own with foreign keys off, set before BEGIN (inside a
 transaction the pragma does nothing). With them on, rebuilding a parent table (create, copy, drop,
 rename) deletes every child row through ON DELETE CASCADE. Afterwards no table that still exists may
-hold fewer rows than before (unless the migration declares it may: `may_shrink`), and foreign_key_check
-and integrity_check must pass, or the whole migration is rolled back. A search index that does not match
-its table is rebuilt, but only when no table lost rows: a lossy rebuild must not be hidden by repairing
-the index that would show it. Every other connection (connect()) has foreign keys on.
+hold fewer rows than before (unless the migration declares it may: `may_shrink`), every trigger must still
+exist (dropping a table drops its triggers, and nothing else would notice: a rebuild must create them
+again), and foreign_key_check and integrity_check must pass, or the whole migration is rolled back. A
+search index that does not match its table is rebuilt, but only when no table lost rows: a lossy rebuild
+must not be hidden by repairing the index that would show it. Every other connection (connect()) has
+foreign keys on.
 
 Callers that hold data take a snapshot first (service/backup.py, open_store); pending() says whether a
 file has a migration to run."""
@@ -18,14 +20,16 @@ import os
 import sqlite3
 import sys
 import uuid
-from collections.abc import Iterable, Iterator, Mapping, Sequence
+from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 
-# A migration is a list of SQL statements, applied in one transaction. Never edit a released one:
-# add the next number.
-Migrations = dict[int, Sequence[str]]
+# A migration is a list of steps applied in one transaction: SQL statements, or functions given the
+# migration's connection, for a backfill SQL cannot compute (a hash of each row's text, a value parsed from
+# it). Never edit a released one: add the next number.
+Step = str | Callable[[sqlite3.Connection], None]
+Migrations = dict[int, Sequence[Step]]
 
 _SHADOW = ("_data", "_idx", "_content", "_docsize", "_config")  # FTS5's own tables
 
@@ -124,15 +128,20 @@ class Database:
                     )
                 todo = sorted(v for v in migrations if v > current)
                 before = table_counts(db) if todo else {}
+                triggers = _triggers(db) if todo else set()
                 for version in todo:
-                    for statement in migrations[version]:
-                        db.execute(statement)
+                    for step in migrations[version]:
+                        if isinstance(step, str):
+                            db.execute(step)
+                        else:
+                            step(db)
                     db.execute("INSERT INTO schema_version (version) VALUES (?)", (version,))
                 if todo:
                     allowed = {t for v in todo for t in may_shrink.get(v, ())}
                     after = table_counts(db)
                     problems = [f"{t} has {after[t]} rows, it had {n} before" for t, n in sorted(before.items())
                                 if t in after and after[t] < n and t not in allowed]
+                    problems += [f"the trigger {t} is gone" for t in sorted(triggers - _triggers(db))]
                     problems += check(db, repair_fts=not problems)
                     if problems:
                         raise MigrationError(f"migrating {self.path.name} to version {newest} was rolled back: "
@@ -149,6 +158,10 @@ class Database:
         """Fold the WAL back into the file and truncate it (used after hard deletes)."""
         with self.connect() as db:
             db.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+
+
+def _triggers(db: sqlite3.Connection) -> set[str]:
+    return {r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type = 'trigger'")}
 
 
 def fts_tables(db: sqlite3.Connection) -> list[str]:
