@@ -1355,7 +1355,7 @@
                 "type": "null"
               }
             ],
-            "description": "null keeps it; false deletes everything This Mac mirrored and stops its reader",
+            "description": "null keeps it; false deletes everything This Mac mirrored (snapshots keep copies until they expire) and stops its reader",
             "title": "Enabled"
           }
         },
@@ -2197,7 +2197,7 @@
     },
     "/accounts/{account_id}": {
       "delete": {
-        "description": "Unlink an account: its mirrored contacts and calendars and its Keychain item are deleted. Nothing\nchanges at the provider. With no account left the host returns to demo mode.",
+        "description": "Unlink an account: its mirrored contacts and calendars and its Keychain item are deleted. Copies\nin the host's snapshots stay until they expire (within 12 months while the host runs). Nothing\nchanges at the provider. With no account left the host returns to demo mode.",
         "operationId": "remove_account",
         "parameters": [
           {
@@ -3693,7 +3693,7 @@
     },
     "/sources/mac": {
       "put": {
-        "description": "Turn This Mac on or off, and choose which contact accounts and calendars it includes (null: all).\nFields left out keep their value. Turning it off stops its reader and deletes everything it mirrored;\nleaving out an account or calendar deletes what was mirrored from it. With no source on, the host\nis back in demo mode.",
+        "description": "Turn This Mac on or off, and choose which contact accounts and calendars it includes (null: all).\nFields left out keep their value. Turning it off stops its reader and deletes everything it mirrored;\nleaving out an account or calendar deletes what was mirrored from it. Copies in the host's snapshots\nstay until they expire (within 12 months while the host runs). With no source on, the host is back\nin demo mode.",
         "operationId": "configure_mac",
         "requestBody": {
           "content": {

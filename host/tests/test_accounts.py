@@ -242,6 +242,7 @@ def test_cli_add_list_remove(cli_env, capsys):
     assert cli.main(["account", "remove", a.id]) == 0
     out, _ = _no_leak(env, capsys)
     assert "Removed" in out
+    assert "Copies of that data in the host's snapshots" in out and "stay until they expire: by 1 " in out
     assert env["removed"] == [a.id]
     assert env["store"].keys() == []
     assert Accounts(env["home"], env["store"]).list() == []

@@ -24,7 +24,7 @@ class MacSourceIn {
   /// container ids to include; null = all, including accounts added later
   List<String>? contactContainers;
 
-  /// null keeps it; false deletes everything This Mac mirrored and stops its reader
+  /// null keeps it; false deletes everything This Mac mirrored (snapshots keep copies until they expire) and stops its reader
   bool? enabled;
 
   @override

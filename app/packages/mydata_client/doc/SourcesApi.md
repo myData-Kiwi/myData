@@ -170,7 +170,7 @@ This endpoint does not need any parameter.
 
 Configure Mac
 
-Turn This Mac on or off, and choose which contact accounts and calendars it includes (null: all). Fields left out keep their value. Turning it off stops its reader and deletes everything it mirrored; leaving out an account or calendar deletes what was mirrored from it. With no source on, the host is back in demo mode.
+Turn This Mac on or off, and choose which contact accounts and calendars it includes (null: all). Fields left out keep their value. Turning it off stops its reader and deletes everything it mirrored; leaving out an account or calendar deletes what was mirrored from it. Copies in the host's snapshots stay until they expire (within 12 months while the host runs). With no source on, the host is back in demo mode.
 
 ### Example
 ```dart
@@ -425,7 +425,7 @@ Name | Type | Description  | Notes
 
 Remove Account
 
-Unlink an account: its mirrored contacts and calendars and its Keychain item are deleted. Nothing changes at the provider. With no account left the host returns to demo mode.
+Unlink an account: its mirrored contacts and calendars and its Keychain item are deleted. Copies in the host's snapshots stay until they expire (within 12 months while the host runs). Nothing changes at the provider. With no account left the host returns to demo mode.
 
 ### Example
 ```dart

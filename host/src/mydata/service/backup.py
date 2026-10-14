@@ -47,7 +47,7 @@ import sys
 import threading
 import time
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Callable, Iterable
 
@@ -376,6 +376,16 @@ def retention(snapshots: Iterable[tuple], now: datetime, *, hourly: int = HOURLY
                 continue
         keep.add(name)
     return keep
+
+
+def kept_until(now: datetime | None = None) -> date:
+    """The day by which every snapshot copy of data deleted now has expired, while the host keeps running:
+    the newest snapshot of this month may still hold it, and stays this month's monthly snapshot until
+    MONTHLY newer months have one (UTC). Everything else that may hold it goes sooner (90 days at most).
+    A host that is not running takes no newer snapshots, so the copies then last longer."""
+    at = _utc(now)
+    years, month = divmod(at.month - 1 + MONTHLY, 12)
+    return date(at.year + years, month + 1, 1)
 
 
 def prune(home: Path, now: datetime | None = None) -> list[str]:

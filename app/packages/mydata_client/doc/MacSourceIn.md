@@ -10,7 +10,7 @@ Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **calendars** | **List<String>** | calendar ids to include; null = all, including calendars added later | [optional] [default to const []]
 **contactContainers** | **List<String>** | container ids to include; null = all, including accounts added later | [optional] [default to const []]
-**enabled** | **bool** | null keeps it; false deletes everything This Mac mirrored and stops its reader | [optional] 
+**enabled** | **bool** | null keeps it; false deletes everything This Mac mirrored (snapshots keep copies until they expire) and stops its reader | [optional] 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

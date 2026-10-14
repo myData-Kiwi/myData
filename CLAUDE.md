@@ -97,7 +97,7 @@ One host per household, clients on every device.
 
 ### Contacts and calendars sources
 
-Read-only mirrors in `contacts.sqlite` and `calendar.sqlite` (`host/src/mydata/sources/`). The user turns each source on or off in the myData app (Settings, Sources); turning one off deletes what it mirrored.
+Read-only mirrors in `contacts.sqlite` and `calendar.sqlite` (`host/src/mydata/sources/`). The user turns each source on or off in the myData app (Settings, Sources); turning one off deletes what it mirrored from the mirror. **Copies stay in the host's snapshots until they expire:** by the first day of the same month next year (`backup.kept_until`), while the host keeps running. The CLI and the API docs say so; the myData app's turn-off and remove dialogs do not yet.
 
 - **Read-only for now.** No source ever writes back: the iCloud client sends only PROPFIND, REPORT, OPTIONS and GET, and the Mac helper has no write calls. Writing back (and the host as a CardDAV/CalDAV server) is a later decision.
 - **Why This Mac is the default on a Mac host:** it uses the normal system permission prompt, so no password reaches myData, and it covers every account on the Mac (iCloud, Google, Exchange). Asking for an app-specific password is not acceptable as the main path, and Apple rejects sign-ins that use an address other than the Apple Account email (for example a custom domain).

@@ -16,6 +16,7 @@
   GET  /accounts               linked accounts (never a password)
   POST /accounts               link an account; the password is verified with the provider first
   DELETE /accounts/{id}        unlink an account; its mirrored data and its Keychain item are deleted
+                               (snapshots keep copies until they expire: backup.kept_until)
   POST /accounts/{id}/sync     sync the account now
   GET  /sync                   the mode (demo or real) and every account's sync status
   GET  /contacts               mirrored contacts, listed or searched
@@ -439,7 +440,8 @@ class MacSourceIn(BaseModel):
     everything. To keep a choice, send it back as GET /sources shows it: null when all_contact_containers
     (all_calendars) is true, else the ids marked included."""
     enabled: bool | None = Field(default=None, description="null keeps it; false deletes everything This Mac "
-                                                           "mirrored and stops its reader")
+                                                           "mirrored (snapshots keep copies until they expire) and "
+                                                           "stops its reader")
     contact_containers: list[str] | None = Field(default=None, description="container ids to include; null = all, "
                                                                            "including accounts added later")
     calendars: list[str] | None = Field(default=None, description="calendar ids to include; null = all, including "
@@ -684,7 +686,8 @@ def _routes_sources(app: FastAPI, need: Callable[[], SyncService], current_mode:
     @app.delete("/accounts/{account_id}", tags=["sources"], response_model=AccountOut,
                 responses={404: {"description": "no such account"}, **unavailable})
     def remove_account(account_id: str) -> AccountOut:
-        """Unlink an account: its mirrored contacts and calendars and its Keychain item are deleted. Nothing
+        """Unlink an account: its mirrored contacts and calendars and its Keychain item are deleted. Copies
+        in the host's snapshots stay until they expire (within 12 months while the host runs). Nothing
         changes at the provider. With no account left the host returns to demo mode."""
         service = need()
         try:
@@ -829,8 +832,9 @@ def _routes_mac(app: FastAPI, need: Callable[[], SyncService]) -> None:
     def configure_mac(body: MacSourceIn) -> SourceOut:
         """Turn This Mac on or off, and choose which contact accounts and calendars it includes (null: all).
         Fields left out keep their value. Turning it off stops its reader and deletes everything it mirrored;
-        leaving out an account or calendar deletes what was mirrored from it. With no source on, the host
-        is back in demo mode."""
+        leaving out an account or calendar deletes what was mirrored from it. Copies in the host's snapshots
+        stay until they expire (within 12 months while the host runs). With no source on, the host is back
+        in demo mode."""
         source = mac()
         given = body.model_fields_set
         kwargs: dict = {}

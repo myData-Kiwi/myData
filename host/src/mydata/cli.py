@@ -309,20 +309,24 @@ def cmd_account(settings: Settings, ns: argparse.Namespace) -> int:
     if not ns.yes:
         try:
             answer = input(f"Remove {name} account {account.email} and delete its mirrored contacts and "
-                           f"calendars from this host? Nothing changes in {name}. [y/N] ")
+                           f"calendars from this host (its snapshots keep copies until they expire)? Nothing "
+                           f"changes in {name}. [y/N] ")
         except (EOFError, KeyboardInterrupt):
             answer = ""
         if answer.strip().lower() not in ("y", "yes"):
             print("Not removed.")
             return 1
-    from .service.backup import BackupError
+    from .service.backup import BackupError, kept_until
+    from .sources._db import MigrationError
     try:
         accounts.remove(account.id, on_remove=lambda a: _remove_account_data(settings, a))
-    except (SecretStoreError, BackupError) as e:  # BackupError: a store needed migrating, and its snapshot failed
+    except (SecretStoreError, BackupError, MigrationError) as e:  # a store needed migrating, and that failed
         print(f"mydata: {e}", file=sys.stderr)
         return 1
+    until = kept_until()
     print(f"Removed {name} account {account.email} (id {account.id}): its mirrored data and its Keychain "
-          f"item are deleted.")
+          f"item are deleted. Copies of that data in the host's snapshots ({settings.home / 'backups'}) stay "
+          f"until they expire: by {until.day} {until:%B %Y} if the host keeps running.")
     return 0
 
 

@@ -214,6 +214,28 @@ def test_snapshots_before_a_migration_or_restore_are_kept_90_days():
     assert keep == {"hourly-new", "migration", "manual"}
 
 
+@pytest.mark.parametrize("now,expected", [("2026-10-13T12:00:00", "2027-10-01"), ("2026-12-31T23:59:59", "2027-12-01"),
+                                          ("2026-01-01T00:00:00", "2027-01-01")])
+def test_deleted_data_leaves_the_snapshots_within_12_months(now, expected):
+    at = datetime.fromisoformat(now).replace(tzinfo=timezone.utc)
+    until = backup.kept_until(at)
+    assert until.isoformat() == expected
+    # Simulated: hourly snapshots from a month before the deletion (holding the data) to a year after it.
+    snaps, t = [], at - timedelta(days=31)
+    while t <= at + timedelta(days=400):
+        snaps.append((t.strftime("%Y%m%dT%H%M%SZ"), t, "hourly"))
+        t += timedelta(hours=6)
+    holding = {name for name, t, _ in snaps if t <= at}
+
+    def held_on(day):
+        moment = datetime(day.year, day.month, day.day, 6, tzinfo=timezone.utc)
+        return bool(retention([s for s in snaps if s[1] <= moment], moment) & holding)
+
+    assert not held_on(until)
+    if at.day == 31:  # deleted at the very end of a month: that month's snapshot holds it, so the bound is exact
+        assert held_on(until - timedelta(days=1))
+
+
 def test_prune_removes_what_retention_drops(home):
     for h in range(30):
         take_snapshot(home, "hourly", now=NOW - timedelta(hours=h))
