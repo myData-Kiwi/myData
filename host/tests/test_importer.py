@@ -157,6 +157,37 @@ def test_a_card_decoded_by_a_guess_keeps_its_bytes_as_received(store):
     assert [r["display_name"] for r in owned_rows(store)] == ["René Sample", "Ava Fictional"]
 
 
+ZED = "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Zed Nouid\r\nN:Nouid;Zed;;;\r\nNOTE:v1\r\nEND:VCARD\r\n"
+PAT = "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Pat Placeholder\r\nEMAIL:pat@example.org\r\nNOTE:v1\r\nEND:VCARD\r\n"
+
+
+def test_a_card_without_uid_changed_on_the_phone_updates_its_copy(store):
+    commit(store, FILE_SOURCE, file_with(ZED, PAT))
+    zed, pat = owned_rows(store)
+    edited = file_with(ZED.replace("NOTE:v1", "NOTE:v2"), PAT.replace("NOTE:v1", "NOTE:v2"))
+    plan = preview(store, FILE_SOURCE, edited)
+    assert [(i.status, i.action, i.target) for i in plan.items] == [("update", "update", zed["id"]),
+                                                                     ("update", "update", pat["id"])]
+    assert [m.signals for m in plan.items[0].matches] == [["changed"]] and plan.missing == []
+    done = commit(store, FILE_SOURCE, edited)
+    assert done.counts["created"] == 0 and done.counts["updated"] == 2
+    assert [r["note"] for r in owned_rows(store)] == ["v2", "v2"] and len(owned_rows(store)) == 2
+    # The same file again: unchanged; and once edited on the host, a change on the phone is a conflict.
+    assert {i.status for i in preview(store, FILE_SOURCE, edited).items} == {"unchanged"}
+    cw.update(store, zed["id"], {"nickname": "Z"}, if_match=store.get(zed["id"])["http_etag"], actor="mycontacts")
+    plan = preview(store, FILE_SOURCE, file_with(ZED.replace("NOTE:v1", "NOTE:v3")))
+    assert [(i.status, i.reason) for i in plan.items] == [("conflict", "edited")]
+    assert [m["display_name"] for m in plan.missing] == ["Pat Placeholder"]
+
+
+def test_a_new_card_without_uid_is_not_paired_with_someone_else(store):
+    commit(store, FILE_SOURCE, file_with(ZED, PAT.replace("Pat Placeholder", "Pat Two").replace("pat@", "p2@")))
+    other = ZED.replace("Zed Nouid", "Yan Other").replace("Nouid;Zed", "Other;Yan")
+    plan = preview(store, FILE_SOURCE, file_with(other))
+    assert [(i.status, i.action) for i in plan.items] == [("new", "import")]
+    assert sorted(m["display_name"] for m in plan.missing) == ["Pat Two", "Zed Nouid"]
+
+
 def test_duplicates_of_owned_contacts_are_skipped_by_default_and_never_merged(store):
     cw.create(store, {"given_name": "Ava", "family_name": "Fictional",
                       "emails": [{"value": "AVA@example.org"}]}, actor="mycontacts")

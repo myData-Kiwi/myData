@@ -2122,7 +2122,7 @@
             "title": "Item Index"
           },
           "signals": {
-            "description": "origin, uid, identical, email, phone, name",
+            "description": "origin, changed (a card with no UID that changed since it was imported), uid, identical, email, phone, name",
             "items": {
               "type": "string"
             },

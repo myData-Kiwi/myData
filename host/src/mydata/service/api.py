@@ -541,7 +541,8 @@ class ImportMatchOut(BaseModel):
     strength: str = Field(description="same_origin (imported from this card before), strong (same email or phone, "
                                       "and the same name or none), suggestion (the same name only, or an email or "
                                       "phone shared under another name: never acted on)")
-    signals: list[str] = Field(description="origin, uid, identical, email, phone, name")
+    signals: list[str] = Field(description="origin, changed (a card with no UID that changed since it was "
+                                           "imported), uid, identical, email, phone, name")
     contact_id: str | None = None
     account_id: str | None = None
     item_index: int | None = Field(default=None, description="for source file: the earlier card's index")

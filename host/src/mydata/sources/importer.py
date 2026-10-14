@@ -16,7 +16,8 @@ notes and only part of each card, so the copy would not be faithful (the owned-d
   landline, a switchboard) is only a suggestion: the card stays new.
 - in_file: a card with the same UID (or, without a UID, the same content) came earlier in the input. Skip only.
 - unchanged / update / conflict / deleted: the card was imported before (an origin with the same source and
-  UID, or content key when it has none). Unchanged: nothing to do. Update: the card changed and nobody edited
+  UID, or content key when it has none; a card with no UID that changed since has a new content key, and is paired
+  with the one contact from that source, no longer in the input, with its name, email or phone: signal "changed"). Unchanged: nothing to do. Update: the card changed and nobody edited
   the owned copy since it was imported (its rev is still imported_rev); default update. Conflict: it changed and
   so did the owned copy (or it was merged, or it is a contact the user kept instead of a followed copy):
   reported, never written. Deleted: the owned copy is in Recently deleted; default skip, may be imported again.
@@ -208,10 +209,12 @@ def _existing(db: sqlite3.Connection, region: str | None) -> list[tuple[sqlite3.
 
 
 def _origins(db: sqlite3.Connection, source: ImportSource) -> dict[str, sqlite3.Row]:
-    """The newest live origin per source UID for this source, with the owned row it points to (if any)."""
+    """The newest live origin per source UID for this source, with the owned row it points to (if any) and the
+    label of the import that wrote it."""
     rows = db.execute(
         "SELECT o.rowid AS origin_rowid, o.*, c.id AS cid, c.rev AS crev, c.deleted_at AS cdeleted, "
-        "c.merged_into AS cmerged, c.display_name AS cname FROM origins o "
+        "c.merged_into AS cmerged, c.display_name AS cname, c.emails AS cemails, c.phones AS cphones, "
+        "i.label AS ilabel FROM origins o JOIN imports i ON i.id = o.import_id "
         "LEFT JOIN contacts c ON c.id = COALESCE(o.held_by, o.object_id) "
         "WHERE o.source_kind = ? AND o.source_account = ? AND o.undone_at IS NULL ORDER BY o.rowid",
         (source.kind, source.account)).fetchall()
@@ -219,6 +222,36 @@ def _origins(db: sqlite3.Connection, source: ImportSource) -> dict[str, sqlite3.
     for r in rows:
         out[r["source_uid"]] = r
     return out
+
+
+def _unpaired(origins: dict[str, sqlite3.Row], source: ImportSource, present: set[str],
+              region: str | None) -> list[tuple[sqlite3.Row, _Keys]]:
+    """Contacts an earlier import made from a card with no UID (keyed by its content) that the input no longer
+    holds by that key: a card without a UID that changed (a Google or Samsung export edited on the phone) gets a
+    new key, and may be one of these (_pair). Only live, unmerged contacts from this source (for a file: a file
+    of the same name) whose newest origin is such a key and none of whose origins the input holds."""
+    by_object: dict[str, list[sqlite3.Row]] = {}
+    for o in origins.values():
+        if o["cid"] is not None and o["action"] != "link":
+            by_object.setdefault(o["cid"], []).append(o)
+    out = []
+    for rows in by_object.values():
+        newest = max(rows, key=lambda o: o["origin_rowid"])
+        if (any(o["source_uid"] in present for o in rows) or not newest["source_uid"].startswith("sha256:")
+                or newest["cdeleted"] is not None or newest["held_by"] is not None
+                or (source.kind == FILE and newest["ilabel"] != source.label)):
+            continue
+        out.append((newest, _keys(newest["cname"] or "", [e["value"] for e in json.loads(newest["cemails"])],
+                                  [p["value"] for p in json.loads(newest["cphones"])], region)))
+    return out
+
+
+def _pair(keys: _Keys, candidates: list[tuple[sqlite3.Row, _Keys]], claimed: set[str]) -> sqlite3.Row | None:
+    """The one unpaired contact (_unpaired) a card without a UID is a changed copy of: the only candidate with the
+    same name, or the same email or phone. None when there is none, or more than one."""
+    found = [o for o, other in candidates if o["cid"] not in claimed
+             and ((keys.name and keys.name == other.name) or keys.emails & other.emails or keys.phones & other.phones)]
+    return found[0] if len(found) == 1 else None
 
 
 def _signals(a: _Keys, b: _Keys) -> list[str]:
@@ -248,6 +281,9 @@ def analyse(db: sqlite3.Connection, source: ImportSource, read: ReadResult, *,
         if keys.name:
             by_name.setdefault(keys.name, []).append(n)
     origins = _origins(db, source)
+    present = {c.source_uid for c in read.cards}
+    candidates = _unpaired(origins, source, present, region)
+    claimed: set[str] = set()  # contacts a card without a UID was paired with
     seen_uid: dict[str, int] = {}
     earlier: list[tuple[int, str, _Keys]] = []  # (index, name, keys) of contact cards earlier in the input
     linked: dict[str, list[Item]] = {}  # owned contact: the cards that could be linked to it
@@ -264,9 +300,15 @@ def analyse(db: sqlite3.Connection, source: ImportSource, read: ReadResult, *,
             continue
         seen_uid[card.source_uid] = card.index
         origin = origins.get(card.source_uid)
+        signals = ["origin"]
+        if origin is None and not card.uid and card.kind != "group":
+            origin = _pair(keys, candidates, claimed)  # a card without a UID that changed since it was imported
+            if origin is not None:
+                claimed.add(origin["cid"])
+                signals = ["changed"]
         if origin is not None and origin["cid"] is not None:
             item.origin, item.target = origin, origin["cid"]
-            item.matches.append(Match(origin["cname"] or "", "mydata", "same_origin", ["origin"],
+            item.matches.append(Match(origin["cname"] or "", "mydata", "same_origin", signals,
                                       contact_id=origin["cid"]))
             if origin["source_hash"] == card.source_hash:
                 item.status, item.action, item.choices = "unchanged", "skip", ("skip",)
@@ -329,27 +371,29 @@ def analyse(db: sqlite3.Connection, source: ImportSource, read: ReadResult, *,
         items.append(Item(index=skipped.index if skipped.index is not None else -1, kind="", display_name="",
                           status="skipped", action="skip", choices=("skip",), reason=skipped.reason))
     items.sort(key=lambda i: i.index)
-    missing = _missing(db, source, {c.source_uid for c in read.cards})
+    missing = _missing(db, source, present | {i.origin["source_uid"] for i in items if i.origin is not None})
     losses, changes = _report(read)
     return Plan(source, items, losses, changes, missing, _counts(items, missing, read.notes.get("too_many", 0)))
 
 
 def _missing(db: sqlite3.Connection, source: ImportSource, present: set[str]) -> list[dict]:
     """Contacts earlier imports from this source brought in (for a file: from a file of the same name) that the
-    input no longer has, and that are still on the host. Reported only."""
-    sql = ("SELECT o.source_uid, o.rowid AS rid, o.action, c.id, c.display_name, c.deleted_at, c.kind "
+    input no longer has (by none of the keys they were imported under), and that are still on the host. Reported
+    only."""
+    sql = ("SELECT o.source_uid, c.id, c.display_name, c.deleted_at, c.kind "
            "FROM origins o JOIN imports i ON i.id = o.import_id "
            "JOIN contacts c ON c.id = COALESCE(o.held_by, o.object_id) "
-           "WHERE o.source_kind = ? AND o.source_account = ? AND o.undone_at IS NULL")
+           "WHERE o.source_kind = ? AND o.source_account = ? AND o.undone_at IS NULL AND o.action != 'link'")
     params: list = [source.kind, source.account]
     if source.kind == FILE:
         sql += " AND i.label = ?"
         params.append(source.label)
-    latest: dict[str, sqlite3.Row] = {}
+    by_object: dict[str, list[sqlite3.Row]] = {}
     for r in db.execute(sql + " ORDER BY o.rowid", params):
-        latest[r["source_uid"]] = r
-    return [{"contact_id": r["id"], "display_name": r["display_name"]} for uid, r in latest.items()
-            if uid not in present and r["deleted_at"] is None and r["kind"] != "group" and r["action"] != "link"]
+        by_object.setdefault(r["id"], []).append(r)
+    return [{"contact_id": rows[0]["id"], "display_name": rows[0]["display_name"]} for rows in by_object.values()
+            if not any(r["source_uid"] in present for r in rows) and rows[0]["deleted_at"] is None
+            and rows[0]["kind"] != "group"]
 
 
 _LOSS_NOTES = {
