@@ -406,6 +406,30 @@ void main() {
       await outlastToast(tester);
     });
 
+    testWidgets('deleting another row from its Menu keeps the open contact open', (tester) async {
+      desktop(tester);
+      // Quinn, then Rae, then Pip: the row after Quinn is Rae, not the open contact.
+      final backend = ownedBackend(more: [
+        ownedCard('c-quinn', ContactIn(givenName: 'Quinn', familyName: 'Owned')),
+        ownedCard('c-rae', ContactIn(givenName: 'Rae', familyName: 'Owned')),
+      ]);
+      await tester.pumpWidget(app(backend));
+      await tester.pumpAndSettle();
+      expect(headerName('Pip Owned'), findsOneWidget);
+      await tester.ensureVisible(row('Quinn Owned'));
+      await tester.pumpAndSettle();
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse, buttons: kSecondaryMouseButton);
+      await mouse.down(tester.getCenter(row('Quinn Owned')));
+      await mouse.up();
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Delete contact'));
+      await tester.pumpAndSettle();
+      expect(backend.writes, ['delete c-quinn']);
+      expect(row('Quinn Owned'), findsNothing);
+      expect(headerName('Pip Owned'), findsOneWidget, reason: 'the open contact stays');
+      await outlastToast(tester);
+    });
+
     testWidgets('Undo refused after a later change: the toast says so', (tester) async {
       desktop(tester);
       final backend = ownedBackend();

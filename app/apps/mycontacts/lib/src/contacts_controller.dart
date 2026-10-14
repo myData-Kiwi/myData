@@ -623,9 +623,12 @@ class ContactsController extends ChangeNotifier {
     return (await backend.contact(id))?.etag;
   }
 
-  /// [gone] left the list: open the row now in the first one's place, and read the list again.
+  /// [gone] left the list: read the list again, and when the open contact or a selected row was among them,
+  /// open the row now in the first one's place. Deleting another row (from its Menu) leaves the open contact
+  /// open.
   void _afterRemoving(List<String> gone, List<String> order) {
     final goneSet = gone.toSet();
+    final moves = goneSet.contains(selectedId) || selection.selected.any(goneSet.contains);
     final first = order.indexWhere(goneSet.contains);
     final left = [for (final id in order) if (!goneSet.contains(id)) id];
     String? next;
@@ -639,7 +642,9 @@ class ContactsController extends ChangeNotifier {
     }
     contacts = [for (final c in contacts ?? const <ContactOut>[]) if (!goneSet.contains(c.id)) c];
     entries = [for (final e in entries) if (!goneSet.contains(e.id)) e];
-    if (next != null) {
+    if (!moves) {
+      // The open contact stays.
+    } else if (next != null) {
       open(next);
     } else {
       selectedId = null;
