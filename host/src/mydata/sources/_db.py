@@ -33,6 +33,25 @@ Step = str | Callable[[sqlite3.Connection], None]
 Migrations = dict[int, Sequence[Step]]
 
 _SHADOW = ("_data", "_idx", "_content", "_docsize", "_config")  # FTS5's own tables
+BACKFILL_BATCH = 500
+
+
+def backfill(table: str, column: str, update: str, values: Callable[[str], tuple],
+             size: int = BACKFILL_BATCH) -> Step:
+    """A migration step that runs `update` once per row of `table`, with values(the row's `column`) followed by
+    its seq. Rows are read `size` at a time in seq order: raw text keeps embedded photos, and a whole table
+    read at once would sit in memory just as the host starts."""
+    def step(db: sqlite3.Connection) -> None:
+        last = None
+        while True:
+            rows = (db.execute(f"SELECT seq, {column} FROM {table} ORDER BY seq LIMIT ?", (size,)) if last is None
+                    else db.execute(f"SELECT seq, {column} FROM {table} WHERE seq > ? ORDER BY seq LIMIT ?",
+                                    (last, size))).fetchall()
+            if not rows:
+                return
+            db.executemany(update, [(*values(text), seq) for seq, text in rows])
+            last = rows[-1][0]
+    return step
 
 
 class MigrationError(RuntimeError):

@@ -25,7 +25,7 @@ from collections.abc import Iterable
 from pathlib import Path
 
 from . import owned
-from ._db import Database, new_id, now
+from ._db import Database, backfill, new_id, now
 from ._mirror import load_state, retire_collections, soft_delete_missing, upsert_collection
 from .dav.discovery import Collection
 from .dav.sync import CollectionState, SyncResult
@@ -119,10 +119,8 @@ _MIGRATIONS = {
         # only be widened by rebuilding the table.
         "ALTER TABLE contacts ADD COLUMN kind TEXT NOT NULL DEFAULT 'individual'",
         "ALTER TABLE contacts ADD COLUMN version TEXT NOT NULL DEFAULT ''",
-        lambda db: db.executemany(
-            "UPDATE contacts SET raw_sha256 = ?, kind = ?, version = ? WHERE seq = ?",
-            [(owned.raw_hash(raw), card_kind(raw), card_version(raw), seq)
-             for seq, raw in db.execute("SELECT seq, raw_vcard FROM contacts").fetchall()]),
+        backfill("contacts", "raw_vcard", "UPDATE contacts SET raw_sha256 = ?, kind = ?, version = ? WHERE seq = ?",
+                 lambda raw: (owned.raw_hash(raw), card_kind(raw), card_version(raw))),
         *owned.shared_tables(),
         *owned.protection(*owned.CONTACTS),
     ],

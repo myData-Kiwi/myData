@@ -30,7 +30,7 @@ from datetime import date, datetime, time, timedelta, timezone, tzinfo
 from pathlib import Path
 
 from . import owned
-from ._db import Database, new_id, now
+from ._db import Database, backfill, new_id, now
 from ._mirror import load_state, retire_collections, soft_delete_missing, upsert_collection
 from .dav.discovery import Collection
 from .dav.sync import CollectionState, SyncResult
@@ -117,9 +117,8 @@ _MIGRATIONS = {
         "ALTER TABLE events ADD COLUMN rev INTEGER NOT NULL DEFAULT 1",
         "ALTER TABLE events ADD COLUMN raw_sha256 TEXT NOT NULL DEFAULT ''",
         "ALTER TABLE events ADD COLUMN purge_after TEXT",
-        lambda db: db.executemany(
-            "UPDATE events SET raw_sha256 = ? WHERE seq = ?",
-            [(owned.raw_hash(raw), seq) for seq, raw in db.execute("SELECT seq, raw_ics FROM events").fetchall()]),
+        backfill("events", "raw_ics", "UPDATE events SET raw_sha256 = ? WHERE seq = ?",
+                 lambda raw: (owned.raw_hash(raw),)),
         *owned.shared_tables(),
         *owned.protection(*owned.CALENDAR, also=[owned.OCCURRENCES]),
     ],

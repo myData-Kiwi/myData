@@ -7,7 +7,7 @@ import sqlite3
 
 import pytest
 
-from mydata.sources._db import Database, MigrationError, check
+from mydata.sources._db import Database, MigrationError, backfill, check
 from mydata.sources.contacts_store import ContactsStore
 
 V1 = {1: ["CREATE TABLE books (id TEXT PRIMARY KEY, name TEXT)",
@@ -93,6 +93,23 @@ def test_a_function_step_backfills_what_sql_cannot_compute(tmp_path):
     with db.connect() as c:
         rows = c.execute("SELECT id, digest FROM cards").fetchall()
     assert len(rows) == 5 and all(d == hashlib.sha256(i.encode()).hexdigest() for i, d in rows)
+
+
+@pytest.mark.parametrize("rows", [0, 1, 3, 7])
+def test_backfill_reads_a_batch_at_a_time_and_reaches_every_row(tmp_path, rows):
+    """Gaps in seq (deleted rows) and a last batch that is short, full or empty all end with every row set."""
+    path = tmp_path / "t.sqlite"
+    db = Database(path, {1: ["CREATE TABLE items (seq INTEGER PRIMARY KEY, raw TEXT NOT NULL)"]})
+    with db.transaction() as c:
+        c.executemany("INSERT INTO items (seq, raw) VALUES (?, ?)", [(i * 2 + 5, f"r{i}") for i in range(rows)])
+    seen = []
+    step = backfill("items", "raw", "UPDATE items SET up = ? WHERE seq = ?",
+                    lambda raw: (seen.append(raw) or raw.upper(),), size=3)
+    db = Database(path, {1: [], 2: ["ALTER TABLE items ADD COLUMN up TEXT NOT NULL DEFAULT ''", step]})
+    with db.connect() as c:
+        assert [tuple(r) for r in c.execute("SELECT raw, up FROM items ORDER BY seq")] == [
+            (f"r{i}", f"R{i}") for i in range(rows)]
+    assert seen == [f"r{i}" for i in range(rows)]  # each row once
 
 
 def test_a_migration_that_drops_a_trigger_is_rolled_back(tmp_path):
