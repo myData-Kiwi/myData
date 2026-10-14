@@ -54,7 +54,7 @@ abstract final class PhoneType {
 /// One of an app's own top-level sections ("Library", "Albums"), as the frame lists it.
 @immutable
 class AppSection {
-  const AppSection({required this.icon, required this.label, this.count});
+  const AppSection({required this.icon, required this.label, this.count, this.countMore = false});
 
   /// Drawn at `icon` size. The icon set is not drawn yet; pass a Material outlined or rounded icon.
   final IconData icon;
@@ -67,8 +67,14 @@ class AppSection {
   /// count"). Null or 0 shows none. Screen readers hear "Review, 4".
   final int? count;
 
-  /// The label with its count, as screen readers hear it: "Review, 4".
-  String get spoken => (count ?? 0) > 0 ? '$label, $count' : label;
+  /// There may be more than [count] (the host answered with as many as it gives at once): "500+".
+  final bool countMore;
+
+  /// [count] as shown: "4", or "500+" when [countMore].
+  String get countText => countMore ? '$count+' : '$count';
+
+  /// The label with its count, as screen readers hear it: "Review, 4", "Review, 500 or more".
+  String get spoken => (count ?? 0) > 0 ? '$label, $count${countMore ? ' or more' : ''}' : label;
 }
 
 /// The three states of the app's link to the host, shown at the bottom of the sidebar.
@@ -410,7 +416,7 @@ class _SidebarRow extends StatelessWidget {
               ),
               if ((section.count ?? 0) > 0) ...[
                 const SizedBox(width: MyDataSpace.s2),
-                Text('${section.count}', style: MyDataType.caption.copyWith(color: c.inkMuted)),
+                Text(section.countText, style: MyDataType.caption.copyWith(color: c.inkMuted)),
               ],
             ]),
           ),
