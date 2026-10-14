@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mydata_core/mydata_core.dart';
 import 'package:mydata_ui/mydata_ui.dart';
 
+import 'contact_actions.dart';
 import 'contacts_controller.dart';
 
 /// Opens a web address from a contact's Links in the default browser, never inside the app.
@@ -11,17 +12,44 @@ typedef WebOpener = void Function(Uri url);
 void openInBrowser(Uri url) => macSystem.open(url.toString());
 
 /// One contact's page: [ContactHeader], then the contact's fields grouped Phone, Email, Address, Birthday,
-/// Links and Notes ([FieldGroups]), `space-6` below it. Read-only: the header says where to change the card.
+/// Links and Notes ([FieldGroups]), `space-6` below it.
+///
+/// - **A contact the host owns** (made in myContacts): its source line is "On myData only, not on your phone
+///   yet.", and Edit (Tonal) and "More actions" sit beside the header from 600px ([showActions]; a phone's
+///   pushed page has them in its top row).
+/// - **A followed contact** (This Mac, an iCloud account) is read-only: no Edit or Delete, and the source
+///   line says where to change it.
 ///
 /// Until the page is read from the host, the header shows what the list already knows (the name, the
 /// organisation and the photo) and no fields. A contact the host no longer has, or a page that cannot be
 /// read, is one plain line in place of the fields.
 class ContactPage extends StatelessWidget {
-  const ContactPage({super.key, required this.controller, required this.id, required this.onOpenLink});
+  const ContactPage({
+    super.key,
+    required this.controller,
+    required this.id,
+    required this.onOpenLink,
+    this.actions,
+    this.showActions = true,
+  });
 
   final ContactsController controller;
   final String id;
   final WebOpener onOpenLink;
+
+  /// Edit and Delete; null shows the page read-only.
+  final ContactActions? actions;
+
+  /// Edit and "More actions" beside the header (from 600px); false where the screen shows them elsewhere.
+  final bool showActions;
+
+  /// The source line of a contact the host owns.
+  static const ownedLine = 'On myData only, not on your phone yet.';
+
+  /// The source line for [d]: where it comes from, and where to change it unless it is the host's own.
+  static String sourceLineOf(ContactDetailOut d) => d.source_ == ContactDetailOutSource_Enum.mydata
+      ? ownedLine
+      : ContactHeader.sourceLineFor(d.sourceLabel, thisMac: d.source_ == ContactDetailOutSource_Enum.mac);
 
   /// The fields' widest (preview: `.g{max-width:560px}`).
   static const fieldsMaxWidth = 560.0;
@@ -45,7 +73,7 @@ class ContactPage extends StatelessWidget {
         name: d.displayName,
         jobTitle: d.jobTitle,
         organisation: d.organisation,
-        sourceLine: ContactHeader.sourceLineFor(d.sourceLabel, thisMac: d.source_ == ContactDetailOutSource_Enum.mac),
+        sourceLine: sourceLineOf(d),
         avatar: Avatar(
           name: d.displayName,
           givenName: d.givenName,
@@ -85,10 +113,30 @@ class ContactPage extends StatelessWidget {
       ),
     };
 
+    final actions = this.actions;
+    final editable = detail is DetailReady && detail.contact.editable;
+    final error = controller.paneErrorId == id ? controller.paneError : null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        header,
+        if (error != null) ...[
+          Semantics(
+            liveRegion: true,
+            child: Text(error, style: MyDataType.body.copyWith(color: c.danger)),
+          ),
+          const SizedBox(height: MyDataSpace.s4),
+        ],
+        if (actions != null && editable && showActions)
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: header),
+              const SizedBox(width: MyDataSpace.s4),
+              ContactPageActions(actions: actions, contact: detail.contact),
+            ],
+          )
+        else
+          header,
         if (below != null) ...[
           const SizedBox(height: ContactHeader.fieldsGap),
           Align(
@@ -102,6 +150,27 @@ class ContactPage extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Edit (Tonal) and "More actions" for a contact the host owns, `space-2` apart: beside the header from
+/// 600px, at the end of a phone page's top row.
+class ContactPageActions extends StatelessWidget {
+  const ContactPageActions({super.key, required this.actions, required this.contact});
+
+  final ContactActions actions;
+  final ContactDetailOut contact;
+
+  static const moreLabel = 'More actions';
+
+  @override
+  Widget build(BuildContext context) => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Button(label: ContactActions.editButton, onPressed: () => actions.edit(contact.id)),
+          const SizedBox(width: MyDataSpace.s2),
+          MoreActionsButton(entries: () => actions.menuFor(contact.id)),
+        ],
+      );
 }
 
 /// The [FieldRow]s of contact [c], from the host's groups (`fields`), in the host's order. A birthday is

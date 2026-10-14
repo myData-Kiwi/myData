@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:mydata_ui/mydata_ui.dart';
 
+import 'contact_actions.dart';
 import 'contact_page.dart';
 import 'contacts_controller.dart';
 
@@ -15,11 +16,23 @@ import 'contacts_controller.dart';
 ///   button. A link that opens a contact pushes its page too.
 /// - A link to a contact the host does not have is one plain line: in the contact pane from 600px, above
 ///   the list under 600px.
+/// - **Editing** (from 600px): the inspector takes the contact pane's place, at its width, and the list
+///   stays beside it and usable (design/components/Inspector). Choosing another contact while it has changes
+///   asks "Discard changes?" first. A toast then sits over the list, beside the inspector.
+/// - **Several selected** (from 600px): the contact pane shows the count, up to three names, and "Delete 3
+///   contacts" (design/components/MultiSelect); followed contacts are counted out, with the reason.
+/// - "New contact" sits beside the search field from 600px; on a phone it is in the large title.
 class ContactsView extends StatefulWidget {
-  const ContactsView({super.key, required this.controller, required this.onOpenLink});
+  const ContactsView({super.key, required this.controller, required this.onOpenLink, required this.actions});
 
   final ContactsController controller;
   final WebOpener onOpenLink;
+  final ContactActions actions;
+
+  static const newContactLabel = ContactActions.newLabel;
+
+  /// "3 contacts selected".
+  static String selectedTitle(int n) => '$n contacts selected';
 
   /// The list's content width at its widest (preview: `.list{flex:0 1 340px}`).
   static const listMaxWidth = 340.0;
@@ -48,20 +61,38 @@ class ContactsView extends StatefulWidget {
 class _ContactsViewState extends State<ContactsView> {
   StreamSubscription<String>? _links;
   final _paneScroll = ScrollController();
+  final _listFocus = FocusNode(debugLabel: 'Contacts list');
+  bool _wasEditing = false;
 
   ContactsController get _controller => widget.controller;
+  ContactActions get _actions => widget.actions;
 
   @override
   void initState() {
     super.initState();
     _links = _controller.linkOpened.listen(_linkOpened);
+    _controller.addListener(_followEditing);
+    _wasEditing = _controller.editing != null;
   }
 
   @override
   void dispose() {
+    _controller.removeListener(_followEditing);
     _links?.cancel();
     _paneScroll.dispose();
+    _listFocus.dispose();
     super.dispose();
+  }
+
+  /// The inspector closed: focus goes to the record's row in the list (the new row after creating one).
+  void _followEditing() {
+    final editing = _controller.editing != null;
+    if (_wasEditing && !editing && !_phone && mounted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _listFocus.canRequestFocus) _listFocus.requestFocus();
+      });
+    }
+    _wasEditing = editing;
   }
 
   bool get _phone => AppLayout.of(context) == AppLayout.phone;
@@ -77,7 +108,16 @@ class _ContactsViewState extends State<ContactsView> {
     }
   }
 
-  void _open(String id) {
+  Future<void> _open(String id) async {
+    final editing = _controller.editing;
+    if (editing != null && editing.id != id) {
+      // Choosing another contact leaves the inspector, asking first when it has changes.
+      if (!await _actions.leaveEditor()) {
+        if (editing.id != null) _controller.open(editing.id!);
+        return;
+      }
+      if (!mounted) return;
+    }
     final changed = _controller.selectedId != id;
     _controller.open(id);
     if (_phone) {
@@ -88,7 +128,8 @@ class _ContactsViewState extends State<ContactsView> {
   }
 
   void _push(String id) {
-    Widget page(BuildContext _) => _PushedContactPage(controller: _controller, id: id, onOpenLink: widget.onOpenLink);
+    Widget page(BuildContext _) =>
+        _PushedContactPage(controller: _controller, id: id, onOpenLink: widget.onOpenLink, actions: _actions);
     Navigator.of(context).push(
       // With reduced motion the page simply appears.
       MyDataMotion.reduced(context)
@@ -123,7 +164,8 @@ class _ContactsViewState extends State<ContactsView> {
               child: ContactList(
                 contacts: _controller.entries,
                 selectedId: _controller.selectedId,
-                onOpen: _open,
+                onOpen: (id) => unawaited(_open(id)),
+                menuFor: _actions.menuFor,
                 padding: EdgeInsets.fromLTRB(
                   pad + insets.left,
                   (missing ? MyDataSpace.s4 : pad) + (missing ? 0 : insets.top),
@@ -143,20 +185,39 @@ class _ContactsViewState extends State<ContactsView> {
             ContactsView.listMinWidth,
             ContactsView.listMaxWidth,
           );
-          final selected = _controller.selectedId;
-          return Row(
+          final selection = _controller.selection;
+          final several = selection.count > 1;
+          final selected = several ? null : _controller.selectedId;
+          final edit = _controller.editing;
+          final listPane = listWidth + pad + half + insets.left;
+          final row = Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               SizedBox(
-                width: listWidth + pad + half + insets.left,
+                width: listPane,
                 child: ContactList(
                   contacts: _controller.entries,
                   selectedId: selected,
-                  onOpen: _open,
+                  selection: selection,
+                  focusNode: _listFocus,
+                  onOpen: (id) => unawaited(_open(id)),
+                  menuFor: _actions.menuFor,
+                  onReturn: (id) => unawaited(_actions.edit(id)),
+                  onDelete: () => unawaited(_actions.deleteSelected()),
+                  searchTrailing: MyDataIconButton(
+                    icon: Icons.add_rounded,
+                    label: ContactsView.newContactLabel,
+                    shortcut: AppMenuBar.newShortcut.activator(Theme.of(context).platform),
+                    onPressed: () => unawaited(_actions.newContact()),
+                  ),
                   padding: EdgeInsets.fromLTRB(pad + insets.left, pad + insets.top, half, pad + insets.bottom),
                 ),
               ),
-              Expanded(
+              if (edit != null)
+                // The inspector in the contact pane's place, at its width; the list stays beside it.
+                Expanded(child: _actions.editor(edit))
+              else
+                Expanded(
                 child: Semantics(
                   container: true,
                   explicitChildNodes: true,
@@ -169,6 +230,8 @@ class _ContactsViewState extends State<ContactsView> {
                         constraints: const BoxConstraints(maxWidth: MyDataSize.contentMax),
                         child: missing
                             ? const _PlainLine(ContactsView.missingLinkText)
+                            : several
+                            ? _Selection(controller: _controller, actions: _actions)
                             : selected == null
                             ? const SizedBox.shrink()
                             : ContactPage(
@@ -176,6 +239,7 @@ class _ContactsViewState extends State<ContactsView> {
                                 controller: _controller,
                                 id: selected,
                                 onOpenLink: widget.onOpenLink,
+                                actions: _actions,
                               ),
                       ),
                     ),
@@ -184,10 +248,62 @@ class _ContactsViewState extends State<ContactsView> {
               ),
             ],
           );
+          if (edit == null) return row;
+          // A toast centres on the list, beside the inspector, never over it.
+          return Stack(children: [
+            Positioned.fill(child: row),
+            PositionedDirectional(start: 0, top: 0, bottom: 0, width: listPane, child: const ToastArea()),
+          ]);
         },
       );
     },
   );
+}
+
+/// The contact pane while several contacts are selected (design/components/MultiSelect): the count, up to
+/// three names, and Delete for the ones the host owns; the others are counted out with the reason.
+class _Selection extends StatelessWidget {
+  const _Selection({required this.controller, required this.actions});
+
+  final ContactsController controller;
+  final ContactActions actions;
+
+  @override
+  Widget build(BuildContext context) {
+    final ids = controller.selection.selected;
+    final deletable = actions.deletable(ids);
+    final leftOut = leftOutReason(controller, ids, deletable.length);
+    final n = deletable.length;
+    return MultiSelectSummary(
+      title: ContactsView.selectedTitle(ids.length),
+      names: summariseNames([for (final id in ids) controller.nameOf(id)]),
+      leftOut: leftOut,
+      actions: [
+        Button(
+          label: n <= 1 ? 'Delete contact' : 'Delete $n contacts',
+          variant: ButtonVariant.plainDanger,
+          onPressed: n == 0 ? null : () => unawaited(actions.delete(ids)),
+        ),
+      ],
+    );
+  }
+}
+
+/// Why some of [ids] are left out of the selection's actions (followed contacts), or null when none is:
+/// "1 of them is from this Mac and is changed in Contacts."
+String? leftOutReason(ContactsController controller, List<String> ids, int actionable) {
+  final out = [for (final id in ids) if (!controller.isEditable(id)) id];
+  if (out.isEmpty) return null;
+  final n = out.length;
+  final mac = out.where(controller.isFromThisMac).length;
+  final one = n == 1;
+  final where = mac == n
+      ? 'from this Mac and ${one ? 'is' : 'are'} changed in Contacts'
+      : mac == 0
+          ? 'from ${one ? 'an iCloud account' : 'iCloud accounts'} and ${one ? 'is' : 'are'} changed there'
+          : 'from sources and are changed there';
+  if (actionable == 0) return 'None of them can be deleted here. ${one ? 'It is' : 'They are'} $where.';
+  return '$n of them ${one ? 'is' : 'are'} $where.';
 }
 
 /// One sentence in `body` and `ink-muted`.
@@ -201,15 +317,52 @@ class _PlainLine extends StatelessWidget {
 
 /// A contact's page pushed over the list under 600px, with a back button to the list. If the window
 /// grows past 600px while it is open, it closes: the two panes then show the same contact.
-class _PushedContactPage extends StatelessWidget {
-  const _PushedContactPage({required this.controller, required this.id, required this.onOpenLink});
+class _PushedContactPage extends StatefulWidget {
+  const _PushedContactPage({
+    required this.controller,
+    required this.id,
+    required this.onOpenLink,
+    required this.actions,
+  });
 
   final ContactsController controller;
   final String id;
   final WebOpener onOpenLink;
+  final ContactActions actions;
+
+  @override
+  State<_PushedContactPage> createState() => _PushedContactPageState();
+}
+
+class _PushedContactPageState extends State<_PushedContactPage> {
+  /// The contact was in the list when its page opened: once it leaves the list (deleted here), the page
+  /// goes back to the list.
+  late final bool _listed = widget.controller.entryFor(widget.id) != null;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_follow);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_follow);
+    super.dispose();
+  }
+
+  void _follow() {
+    if (_listed && widget.controller.entryFor(widget.id) == null && mounted) {
+      final route = ModalRoute.of(context);
+      if (route != null && route.isActive) Navigator.of(context).removeRoute(route);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final controller = widget.controller;
+    final id = widget.id;
+    final onOpenLink = widget.onOpenLink;
     final layout = AppLayout.of(context);
     if (layout != AppLayout.phone) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -227,17 +380,25 @@ class _PushedContactPage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Align(
-                alignment: AlignmentDirectional.centerStart,
-                child: Button(
+              Row(children: [
+                Button(
                   label: ContactsView.backLabel,
                   icon: Icons.arrow_back_ios_new_rounded,
                   variant: ButtonVariant.plain,
                   onPressed: () => Navigator.of(context).maybePop(),
                 ),
-              ),
+                const Spacer(),
+                if (controller.detailOf(id) case DetailReady(:final contact) when contact.editable)
+                  ContactPageActions(actions: widget.actions, contact: contact),
+              ]),
               const SizedBox(height: MyDataSpace.s4),
-              ContactPage(controller: controller, id: id, onOpenLink: onOpenLink),
+              ContactPage(
+                controller: controller,
+                id: id,
+                onOpenLink: onOpenLink,
+                actions: widget.actions,
+                showActions: false,
+              ),
             ],
           ),
         ),

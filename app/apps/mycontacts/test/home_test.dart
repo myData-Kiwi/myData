@@ -38,20 +38,8 @@ class Harness {
   final FakeHost host;
   final links = FakeLinks();
   final opened = <Uri>[];
-  var sourcesOpened = 0;
-  var sourcesOpen = true;
 
-  Widget get app => MyContactsApp(
-    host: host,
-    store: store,
-    backend: backend,
-    links: links.stream,
-    openMyDataSources: () async {
-      sourcesOpened++;
-      return sourcesOpen;
-    },
-    onOpenLink: opened.add,
-  );
+  Widget get app => MyContactsApp(host: host, store: store, backend: backend, links: links.stream, onOpenLink: opened.add);
 }
 
 /// The contact pane's title: the name in the header (the list's row has the name too).
@@ -112,7 +100,7 @@ void main() {
   });
 
   group('no contacts', () {
-    testWidgets('no source on: the empty state, whose button opens myData at Settings, Sources', (tester) async {
+    testWidgets('no source on and no contacts of its own: the empty state, whose button adds one', (tester) async {
       desktop(tester);
       final h = Harness(backend: FakeBackend(anyOn: false));
       await tester.pumpWidget(h.app);
@@ -120,22 +108,22 @@ void main() {
       expect(find.byType(EmptyState), findsOneWidget);
       expect(find.text(ContactsHome.noSourceSentence), findsOneWidget);
       expect(find.byType(ContactList), findsNothing);
-      expect(h.backend.contactCalls, 0);
+      expect(h.backend.contactCalls, 1, reason: 'the host may own contacts whatever the sources say');
 
-      await tester.tap(find.widgetWithText(Button, ContactsHome.openMyDataLabel));
+      await tester.tap(find.widgetWithText(Button, ContactsHome.newContactLabel));
       await tester.pumpAndSettle();
-      expect(h.sourcesOpened, 1);
-      expect(find.text(ContactsHome.openFailedText), findsNothing);
+      expect(find.text('New contact'), findsWidgets);
+      expect(find.byType(Inspector), findsOneWidget);
     });
 
-    testWidgets('when myData cannot be opened, a line says where to go', (tester) async {
+    testWidgets('no source on: the contacts the host owns are listed', (tester) async {
       desktop(tester);
-      final h = Harness(backend: FakeBackend(anyOn: false))..sourcesOpen = false;
+      final h = Harness(backend: FakeBackend(anyOn: false, cards: [...sampleCards(), pipOwned()]));
       await tester.pumpWidget(h.app);
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(Button, ContactsHome.openMyDataLabel));
-      await tester.pumpAndSettle();
-      expect(find.text(ContactsHome.openFailedText), findsOneWidget);
+      expect(find.byType(EmptyState), findsNothing);
+      expect(row('Pip Owned'), findsOneWidget);
+      expect(row('Ava Fictional'), findsNothing);
     });
 
     testWidgets('a source on that has read nothing yet says so', (tester) async {

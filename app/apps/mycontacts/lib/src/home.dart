@@ -5,20 +5,23 @@ import 'package:mydata_core/mydata_core.dart';
 import 'package:mydata_ui/mydata_ui.dart';
 
 import 'backend.dart';
+import 'contact_actions.dart';
 import 'contact_page.dart';
 import 'contacts_controller.dart';
 import 'contacts_view.dart';
 
-/// Opens the myData app at Settings, Sources; true when it came up.
-typedef OpenMyData = Future<bool> Function();
-
-/// The one screen, in the app's frame: a panel for every state of the host, an EmptyState while no source
-/// is on or no contact has been read, and the contacts once there are some.
+/// The app's screen, in its frame: a panel for every state of the host, an EmptyState while there are no
+/// contacts, and the contacts once there are some.
 ///
-/// The frame's one section is Contacts. At the bottom of the sidebar it says how the host is: starting,
-/// connected (with a link that opens myData), or unreachable (with Retry). Contacts already read stay on
-/// screen while the host cannot be reached, with the time they were read. The web build, which cannot
-/// reach a host, shows only its panel, without the frame.
+/// The frame's one section is Contacts. At the bottom of the sidebar it says how the host
+/// is: starting, connected (with a link that opens myData), or unreachable (with Retry). Contacts already
+/// read stay on screen while the host cannot be reached, with the time they were read. The web build, which
+/// cannot reach a host, shows only its panel, without the frame.
+///
+/// The menu bar (macOS; the same keys with Control on Windows and Linux) has New Contact ⌘N, Save ⌘S, Undo
+/// and Redo named from the action, Edit Contact ⌘E, Delete Contact ⌘⌫ ("Delete 3 Contacts…") and the section
+/// ⌘1 (design/platforms.md). A phone has "New contact" and "More actions" (Undo) in its large
+/// title instead. Toasts sit at the bottom of the content area.
 class ContactsHome extends StatefulWidget {
   const ContactsHome({
     super.key,
@@ -26,11 +29,14 @@ class ContactsHome extends StatefulWidget {
     this.backend,
     this.store,
     this.links,
-    this.openMyDataSources,
     this.onOpenLink,
+    this.menuPlatform,
   });
 
   final HostController host;
+
+  /// The platform the menu bar is built for; null is the one the app runs on. Tests pass one.
+  final TargetPlatform? menuPlatform;
 
   /// The way to the host's contacts; null uses the host's API through [host]'s connection.
   final ContactsBackend? backend;
@@ -41,25 +47,23 @@ class ContactsHome extends StatefulWidget {
   /// Links macOS opened this app with; null listens on the runner's channel ([IncomingLinks]).
   final Stream<MyDataLink>? links;
 
-  /// Opens myData at Settings, Sources; null uses mydata_core's [openMyDataSources].
-  final OpenMyData? openMyDataSources;
-
   /// Opens a contact's web address; null uses the system's browser ([openInBrowser]).
   final WebOpener? onOpenLink;
 
   static const appName = 'myContacts';
-  static const sections = [AppSection(icon: Icons.contacts_outlined, label: 'Contacts')];
+  static const sections = [
+    AppSection(icon: Icons.contacts_outlined, label: 'Contacts'),
+  ];
 
   static const noSourceTitle = 'No contacts yet';
   static const noSourceSentence =
-      'Turn on a source in myData, under Settings, Sources, and your contacts '
-      'appear here.';
+      'Add a contact here, or turn on a source in myData, under Settings, Sources, to see the contacts you '
+      'already have.';
   static const nothingReadTitle = 'No contacts yet';
-  static const nothingReadSentence = 'myData has not read any contacts yet. They appear here when it has.';
-  static const openMyDataLabel = 'Open myData';
-  static const openFailedText =
-      'myContacts could not open myData. Open the myData app yourself, under '
-      'Settings, Sources.';
+  static const nothingReadSentence =
+      'myData has not read any contacts from your sources yet. They appear here when it has; you can add one '
+      'now.';
+  static const newContactLabel = ContactActions.newLabel;
 
   @override
   State<ContactsHome> createState() => _ContactsHomeState();
@@ -70,6 +74,11 @@ class _ContactsHomeState extends State<ContactsHome> {
     backend: widget.backend ?? HostContactsBackend(() => widget.host.connection),
     store: widget.store,
   );
+  final _toasts = ToastController();
+  late final _actions = ContactActions(controller: _contacts, toasts: _toasts, context: () => context);
+
+  /// 0: Contacts; 1: Recently deleted.
+  int _section = 0;
   IncomingLinks? _incoming;
   StreamSubscription<MyDataLink>? _links;
 
@@ -97,16 +106,80 @@ class _ContactsHomeState extends State<ContactsHome> {
     _links?.cancel();
     _incoming?.dispose();
     _contacts.dispose();
+    _toasts.dispose();
     _host.dispose();
     super.dispose();
   }
 
-  Future<void> _openSources() async {
-    final open = widget.openMyDataSources ?? openMyDataSources;
-    final opened = await open().catchError((Object _) => false);
-    if (!mounted || opened) return;
-    ScaffoldMessenger.maybeOf(context)?.showSnackBar(const SnackBar(content: Text(ContactsHome.openFailedText)));
+  /// Changing section leaves an open inspector first, asking when it has changes.
+  Future<void> _select(int section) async {
+    if (section == _section) return;
+    if (!await _actions.leaveEditor()) return;
+    if (mounted) setState(() => _section = section);
   }
+
+  Future<void> _newContact() async {
+    if (_section != 0) await _select(0);
+    if (_section == 0) await _actions.newContact();
+  }
+
+  bool get _isRunning => _host.phase == HostPhase.running;
+
+  /// The menu bar's items (design/platforms.md "The menu bar on macOS"), in its title case.
+  Widget _menuBar(Widget child) {
+    final contacts = _section == 0 && _isRunning;
+    final ids = contacts ? _contacts.selectedIds : const <String>[];
+    final deletable = _actions.deletable(ids);
+    final one = ids.length == 1 ? ids.single : null;
+    final canEdit = contacts && _contacts.editing == null && one != null && _contacts.isEditable(one);
+    return AppMenuBar(
+      appName: ContactsHome.appName,
+      platform: widget.menuPlatform,
+      file: [
+        AppMenuItem(
+          title: menuTitleCase(ContactActions.newLabel),
+          shortcut: AppMenuBar.newShortcut,
+          onSelected: _isRunning ? () => unawaited(_newContact()) : null,
+        ),
+        // Enabled while an inspector is open: it claims Save.
+        const AppMenuItem(title: 'Save', shortcut: AppMenuBar.saveShortcut),
+      ],
+      edit: [
+        AppMenuItem(
+          title: menuTitleCase(ContactActions.editLabel),
+          shortcut: AppMenuBar.editShortcut,
+          onSelected: canEdit ? () => unawaited(_actions.edit(one)) : null,
+        ),
+        AppMenuItem.delete(
+          title: menuTitleCase(_actions.deleteLabelFor(ids)),
+          onSelected: deletable.isEmpty ? null : () => unawaited(_actions.delete(ids)),
+        ),
+      ],
+      view: [
+        for (var i = 0; i < ContactsHome.sections.length; i++)
+          AppMenuItem(
+            title: 'Contacts',
+            shortcut: AppMenuBar.sectionShortcut(i + 1),
+            onSelected: () => unawaited(_select(i)),
+          ),
+      ],
+      undoAction: _isRunning ? _actions.undoTitle : null,
+      onUndo: () => unawaited(_actions.undoLast()),
+      child: child,
+    );
+  }
+
+  /// A phone's large title: "New contact" and "More actions" (Undo), since a phone has no menu bar.
+  List<Widget> _phoneTitleActions() => !_isRunning
+      ? const []
+      : [
+          MyDataIconButton(
+            icon: Icons.add_rounded,
+            label: ContactActions.newLabel,
+            onPressed: () => unawaited(_newContact()),
+          ),
+          MoreActionsButton(entries: () => [_actions.undoMenuItem()]),
+        ];
 
   /// The frame's "Open myData" link.
   Future<void> _openMyData() async {
@@ -119,23 +192,36 @@ class _ContactsHomeState extends State<ContactsHome> {
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
-    listenable: Listenable.merge([_host, _contacts]),
-    builder: (context, _) => Scaffold(
-      backgroundColor: context.colors.bg,
-      body: switch (_connection()) {
-        // No host to connect to (the web build): the panel alone, without a frame whose connection line
-        // would offer a Retry that cannot help.
-        null => _body(),
-        final connection => AppFrame(
-          appName: ContactsHome.appName,
-          sections: ContactsHome.sections,
-          current: 0,
-          onSelect: (_) {},
-          connection: connection,
-          child: _body(),
-        ),
-      },
+    listenable: Listenable.merge([_host, _contacts, _contacts.selection]),
+    builder: (context, _) => _menuBar(
+      Scaffold(
+        backgroundColor: context.colors.bg,
+        body: switch (_connection()) {
+          // No host to connect to (the web build): the panel alone, without a frame whose connection line
+          // would offer a Retry that cannot help.
+          null => _body(),
+          final connection => AppFrame(
+            appName: ContactsHome.appName,
+            sections: ContactsHome.sections,
+            current: _section,
+            onSelect: (i) => unawaited(_select(i)),
+            connection: connection,
+            phoneTitleActions: _phoneTitleActions(),
+            child: ToastHost(
+              controller: _toasts,
+              aboveFloatingBar: AppLayout.isPhone(context) && ContactsHome.sections.length > 1,
+              child: _body(),
+            ),
+          ),
+        },
+      ),
     ),
+  );
+
+  Widget _view() => ContactsView(
+    controller: _contacts,
+    onOpenLink: widget.onOpenLink ?? openInBrowser,
+    actions: _actions,
   );
 
   /// How the frame shows the host; null when this build cannot have one ([HostPhase.unsupported]).
@@ -167,7 +253,7 @@ class _ContactsHomeState extends State<ContactsHome> {
   Widget _body() {
     final phase = _host.phase;
     if (phase != HostPhase.unsupported && phase != HostPhase.running && _showingContacts) {
-      return ContactsView(controller: _contacts, onOpenLink: widget.onOpenLink ?? openInBrowser);
+      return _view();
     }
     return switch (phase) {
       HostPhase.checking => const StatusPanel(
@@ -202,6 +288,8 @@ class _ContactsHomeState extends State<ContactsHome> {
 
   Widget _running() {
     final contacts = _contacts;
+    // A new contact's inspector, even while there are no contacts yet.
+    if (contacts.editing != null && !AppLayout.isPhone(context)) return _view();
     if (contacts.loadFailed) {
       return StatusPanel(
         kind: StatusPanelKind.error,
@@ -210,30 +298,23 @@ class _ContactsHomeState extends State<ContactsHome> {
         actions: [Button(label: AppConnection.retryText, variant: ButtonVariant.filled, onPressed: contacts.reload)],
       );
     }
-    if (contacts.anySourceOn == null || (contacts.anySourceOn! && contacts.contacts == null)) {
+    if (contacts.anySourceOn == null || contacts.contacts == null) {
       return const StatusPanel(
         kind: StatusPanelKind.working,
         title: 'Reading your contacts',
         message: 'Getting them from the host.',
       );
     }
-    if (!contacts.anySourceOn!) {
-      return EmptyState(
-        title: ContactsHome.noSourceTitle,
-        sentence: ContactsHome.noSourceSentence,
-        actionLabel: ContactsHome.openMyDataLabel,
-        onAction: _openSources,
-      );
-    }
     if (contacts.entries.isEmpty) {
+      final noSource = !contacts.anySourceOn!;
       return EmptyState(
-        title: ContactsHome.nothingReadTitle,
-        sentence: ContactsHome.nothingReadSentence,
-        actionLabel: ContactsHome.openMyDataLabel,
-        onAction: _openSources,
+        title: noSource ? ContactsHome.noSourceTitle : ContactsHome.nothingReadTitle,
+        sentence: noSource ? ContactsHome.noSourceSentence : ContactsHome.nothingReadSentence,
+        actionLabel: ContactsHome.newContactLabel,
+        onAction: () => unawaited(_newContact()),
       );
     }
-    return ContactsView(controller: contacts, onOpenLink: widget.onOpenLink ?? openInBrowser);
+    return _view();
   }
 
   Widget _failure(String title) => StatusPanel(

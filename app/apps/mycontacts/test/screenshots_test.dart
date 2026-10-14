@@ -1,11 +1,13 @@
 // Whole-app screenshots in Kiwi and Graphite, light and dark: test/screenshots/<name>.<theme>-<mode>.png.
 // Refresh with `flutter test --update-goldens test/screenshots_test.dart`.
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mycontacts/src/app.dart';
+import 'package:mycontacts/src/contact_actions.dart';
 import 'package:mycontacts/src/contacts_controller.dart';
+import 'package:mydata_ui/mydata_ui.dart';
 import 'package:mydata_core/mydata_core.dart';
 import 'package:mydata_testing/mydata_testing.dart';
 
@@ -20,6 +22,7 @@ Widget app(
   bool anyOn = true,
   HostPhase phase = HostPhase.running,
   Stream<MyDataLink> links = const Stream.empty(),
+  FakeBackend? backend,
 }) => MyContactsApp(
   host: FakeHost(
     phaseOnConnect: phase,
@@ -30,9 +33,8 @@ Widget app(
     'lastTheme': t.themeId,
     ContactsController.lastOpenedKey: ?lastOpened,
   }),
-  backend: FakeBackend(anyOn: anyOn, photos: {'c-ava': portrait}),
+  backend: backend ?? FakeBackend(anyOn: anyOn, photos: {'c-ava': portrait}),
   links: links,
-  openMyDataSources: () async => true,
   onOpenLink: (_) {},
 );
 
@@ -47,8 +49,73 @@ Future<void> settle(WidgetTester tester) async {
   }
 }
 
+/// The sample contacts with Pip and Quinn, whom the host owns, after Omar Sample.
+FakeBackend owned() {
+  final cards = sampleCards();
+  cards.insertAll(cards.indexWhere((c) => c.id == 'c-sam'), [
+    ownedCard('c-quinn', ContactIn(givenName: 'Quinn', familyName: 'Owned', emails: [
+      LabeledValueIn(label: 'Home', value: 'quinn@example.org'),
+    ])),
+    pipOwned(),
+  ]);
+  return FakeBackend(cards: cards, photos: {'c-ava': portrait});
+}
+
+Finder _iconButton(String label) => find.byWidgetPredicate((w) => w is MyDataIconButton && w.label == label);
+
 void main() {
   setUpAll(() async => portrait = await portraitPng());
+  setUp(() => EditableText.debugDeterministicCursor = true);
+  tearDown(() => EditableText.debugDeterministicCursor = false);
+
+  // A contact the host owns, selected: Edit and More actions beside the header, "On myData only".
+  screenMatrix('owned_contact', (t) => app(t, lastOpened: 'c-pip', backend: owned()), before: settle);
+
+  // New contact: the inspector in the contact pane's place, a name typed and a phone row added.
+  screenMatrix('inspector_new', (t) => app(t, lastOpened: 'c-pip', backend: owned()), before: (tester) async {
+    await settle(tester);
+    await tester.tap(_iconButton(ContactActions.newLabel));
+    await settle(tester);
+    await tester.enterText(find.byWidgetPredicate((w) => w is MyDataTextField && w.label == 'First name'), 'Nia');
+    await tester.enterText(find.byWidgetPredicate((w) => w is MyDataTextField && w.label == 'Last name'), 'Newcomb');
+    await tester.tap(find.text('Add phone'));
+    await settle(tester);
+    await tester.enterText(
+        find.byWidgetPredicate((w) => w is MyDataTextField && w.label == 'Mobile, phone number'), '+1 555 0177');
+    await settle(tester);
+  });
+
+  // Editing Pip: an email that is incomplete, shown after Save, which sent nothing.
+  screenMatrix('inspector_field_error', (t) => app(t, lastOpened: 'c-pip', backend: owned()), before: (tester) async {
+    await settle(tester);
+    await tester.tap(find.widgetWithText(Button, ContactActions.editButton));
+    await settle(tester);
+    await tester.enterText(find.byWidgetPredicate((w) => w is MyDataTextField && w.label == 'Work, email address'),
+        'pip@example');
+    await settle(tester);
+    await tester.tap(find.text('Save'));
+    await settle(tester);
+  });
+
+  // Two of the host's contacts and one from This Mac selected: the count and Delete in the pane.
+  screenMatrix('several_selected', (t) => app(t, lastOpened: 'c-pip', backend: owned()), before: (tester) async {
+    await settle(tester);
+    for (final name in ['Quinn Owned', 'Omar Sample']) {
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.tap(find.descendant(of: find.byType(ContactList), matching: find.text(name)));
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await settle(tester);
+    }
+  });
+
+  // Pip deleted with the Delete key: the toast with Undo, the next contact open.
+  screenMatrix('undo_toast', (t) => app(t, lastOpened: 'c-pip', backend: owned()), before: (tester) async {
+    await settle(tester);
+    await tester.tap(find.descendant(of: find.byType(ContactList), matching: find.text('Pip Owned')));
+    await settle(tester);
+    await tester.sendKeyEvent(LogicalKeyboardKey.delete);
+    await settle(tester);
+  });
 
   // The list with a contact selected in the middle of it; its page beside it.
   screenMatrix('contacts_list', (t) => app(t, lastOpened: 'c-jun'), before: settle);

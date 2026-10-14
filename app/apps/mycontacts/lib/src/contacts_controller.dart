@@ -1,7 +1,8 @@
 import 'dart:async';
 
-import 'package:flutter/painting.dart' show ImageProvider;
 import 'package:flutter/foundation.dart';
+import 'package:flutter/painting.dart' show ImageProvider;
+import 'package:flutter/widgets.dart' show GlobalKey;
 import 'package:mydata_core/mydata_core.dart';
 import 'package:mydata_ui/mydata_ui.dart';
 
@@ -31,9 +32,52 @@ class DetailFailed extends ContactDetail {
   const DetailFailed();
 }
 
-/// Everything myContacts shows, read from the host: whether a source is on, every contact, the one open,
-/// and each opened contact's page. Nothing here writes to the host: the app only reads.
+/// One change this app made on the host that Undo takes back (design/platforms.md "Undo and Redo name the
+/// action"). Several ids when one action wrote several contacts ("Delete 3 contacts").
+class UndoEntry {
+  UndoEntry({required this.action, required this.undoIds, required this.names, required this.undone});
+
+  /// The action's verb and object in sentence case: "Delete contact", "Delete 3 contacts", "Edit contact",
+  /// "Add contact", "Restore contact". The menu bar writes it in title case ("Undo Delete Contact").
+  final String action;
+  final List<String> undoIds;
+
+  /// The contacts' names, for "Not undone. Ava Fictional was changed after that."
+  final List<String> names;
+
+  /// What the toast says once it is undone: "Contact restored", "Changes undone".
+  final String undone;
+}
+
+/// The contact the inspector is open on: [original] null for a new contact. Each opening has its own
+/// [serial], so a new opening (or a reload) gets a fresh form and a fresh inspector.
+class ContactEdit {
+  ContactEdit(this.original, this.serial);
+  final ContactDetailOut? original;
+  final int serial;
+
+  /// The inspector, for leaving with the check for changes ([InspectorState.requestClose]).
+  final inspector = GlobalKey<InspectorState>();
+
+  String? get id => original?.id;
+}
+
+/// What a delete, restore or purge of several contacts came to: the ids it acted on before any [failure].
+class BulkResult {
+  const BulkResult(this.done, this.failure, this.entry);
+  final List<String> done;
+  final WriteFailure? failure;
+
+  /// What Undo takes back; null when nothing was done or it cannot be undone (a purge).
+  final UndoEntry? entry;
+}
+
+/// Everything myContacts shows, read from the host: whether a source is on, every contact, the one open (or
+/// the several selected), each opened contact's page, Recently deleted, the inspector's record, and what
+/// Undo takes back. It writes only contacts the host owns (`editable`); followed ones are never written.
 ///
+/// - The contacts are read whatever the sources say, since the host owns contacts made here; a source
+///   turned on or off, or a write of this app's, reads them again.
 /// - The sources are checked when the host is first reached and then at most every [checkInterval] while
 ///   the host is polled; the contacts are read again whenever a source is turned on or off or reads its
 ///   contacts again ([SourcesState.revision]).
@@ -46,7 +90,9 @@ class DetailFailed extends ContactDetail {
 class ContactsController extends ChangeNotifier {
   ContactsController({required this.backend, DeviceStore? store, this.checkInterval = const Duration(seconds: 5)})
     : store = store ?? deviceStore,
-      photos = PhotoCache(backend);
+      photos = PhotoCache(backend) {
+    selection.addListener(_selectionChanged);
+  }
 
   final ContactsBackend backend;
   final DeviceStore store;
@@ -76,6 +122,27 @@ class ContactsController extends ChangeNotifier {
 
   /// A link asked for a contact the host does not have.
   String? missingLinkId;
+
+  /// The rows selected in the list (from 600px): one is the contact open; several show the count.
+  final selection = MultiSelectController<String>();
+
+  /// The inspector's record, or null while none is open.
+  ContactEdit? editing;
+  int _editSerial = 0;
+
+  /// What Undo takes back, newest last: this app's changes in this session.
+  final undoStack = <UndoEntry>[];
+
+  /// Recently deleted, newest first; null until read.
+  List<TrashItemOut>? trash;
+  bool trashFailed = false;
+
+  /// A failure to say in the contact pane for [paneErrorId] ("… could not be deleted"), until the next
+  /// action or another contact.
+  String? paneError;
+  String? paneErrorId;
+
+  final _byId = <String, ContactOut>{};
 
   /// Each link that opened a contact, so a phone layout can push its page.
   Stream<String> get linkOpened => _linkOpened.stream;
@@ -136,11 +203,7 @@ class ContactsController extends ChangeNotifier {
         return;
       }
       anySourceOn = state.anyOn;
-      if (!state.anyOn) {
-        _revision = state.revision;
-        _setContacts(const []);
-        return;
-      }
+      // The host's own contacts are listed whatever the sources say.
       if (state.revision == _revision && contacts != null) return;
       final List<ContactOut> read;
       try {
@@ -180,16 +243,28 @@ class ContactsController extends ChangeNotifier {
     loadFailed = false;
     updatedAt = DateTime.now();
     entries = [for (final c in read) _entry(c)];
+    _byId
+      ..clear()
+      ..addEntries(read.map((c) => MapEntry(c.id, c)));
     final ids = {for (final c in read) c.id};
     if (_unlisted != null && ids.contains(_unlisted)) _unlisted = null;
     final pending = _pendingLink ?? (missingLinkId != null && ids.contains(missingLinkId) ? missingLinkId : null);
     if (pending != null) {
       _pendingLink = null;
       _openLink(pending, ids);
+    } else if (_wanted != null && ids.contains(_wanted)) {
+      // A contact this app just made or brought back: open it.
+      selectedId = _wanted;
+      _wanted = null;
     } else if (selectedId == null || (!ids.contains(selectedId) && selectedId != _unlisted)) {
       selectedId = initialContactSelection(entries, _lastOpened);
     }
     final selected = selectedId;
+    if (selected != null && selection.count <= 1 && !(selection.count == 1 && selection.isSelected(selected))) {
+      _selecting = true;
+      selection.select(selected);
+      _selecting = false;
+    }
     if (changed) {
       // What changed on the host may have changed any page: forget them, and read the open one again while
       // it stays on screen, so it does not blink.
@@ -234,11 +309,59 @@ class ContactsController extends ChangeNotifier {
     _openTicket++;
     _unlisted = null;
     missingLinkId = null;
+    if (paneErrorId != id) paneError = paneErrorId = null;
     if (selectedId != id) selectedId = id;
+    if (selection.count != 1 || !selection.isSelected(id)) {
+      _selecting = true;
+      selection.select(id);
+      _selecting = false;
+    }
     ensureDetail(id);
     _remember(id);
     _notify();
   }
+
+  bool _selecting = false;
+
+  /// The list changed the selection (a click, ⌘-click, ⇧-click or a key): one row is the contact open.
+  void _selectionChanged() {
+    if (_selecting || _disposed) return;
+    if (selection.count == 1) {
+      final id = selection.selected.first;
+      if (id != selectedId) {
+        _openTicket++;
+        missingLinkId = null;
+        selectedId = id;
+        ensureDetail(id);
+        _remember(id);
+      }
+    }
+    if (paneErrorId != null && !(selection.count == 1 && selection.isSelected(paneErrorId!))) {
+      paneError = paneErrorId = null;
+    }
+    _notify();
+  }
+
+  /// The contacts the selection's actions apply to: every selected row, or the open contact.
+  List<String> get selectedIds {
+    if (selection.count > 1) return selection.selected;
+    final id = selectedId;
+    return id == null ? const [] : [id];
+  }
+
+  /// Whether the host lets this app change and delete [id] (it owns it).
+  bool isEditable(String id) {
+    final listed = _byId[id];
+    if (listed != null) return listed.editable;
+    final d = _details[id];
+    return d is DetailReady && d.contact.editable;
+  }
+
+  /// The name the list shows for [id].
+  String nameOf(String id) => _byId[id]?.displayName ?? entryFor(id)?.name ?? 'This contact';
+
+  /// [id] comes from This Mac (else from an iCloud account), for the reason it cannot be changed here.
+  bool isFromThisMac(String id) => _byId[id]?.source_ == ContactOutSource_Enum.mac;
 
   /// A link asked for [link]'s contact. It opens once the list is read; an unknown id is reported.
   void openLink(OpenContact link) {
@@ -264,6 +387,9 @@ class ContactsController extends ChangeNotifier {
   void _showLinked(String id) {
     missingLinkId = null;
     selectedId = id;
+    _selecting = true;
+    selection.select(id);
+    _selecting = false;
     ensureDetail(id);
     _remember(id);
     _linkOpened.add(id);
@@ -323,6 +449,291 @@ class ContactsController extends ChangeNotifier {
     _notify();
   }
 
+  // ------------------------------------------------------------------------------------------------------
+  // Editing: the inspector's record, saving, deleting, Recently deleted and Undo.
+  // ------------------------------------------------------------------------------------------------------
+
+  /// Opens the inspector on a new contact.
+  void startNew() {
+    editing = ContactEdit(null, ++_editSerial);
+    _notify();
+  }
+
+  /// Opens the inspector on [contact], which the host owns.
+  void startEdit(ContactDetailOut contact) {
+    if (!contact.editable) return;
+    editing = ContactEdit(contact, ++_editSerial);
+    _notify();
+  }
+
+  /// The inspector closed.
+  void endEdit() {
+    if (editing == null) return;
+    editing = null;
+    _notify();
+  }
+
+  /// "Reload" after the host refused a save because the contact changed elsewhere: the inspector opens again
+  /// on the host's version, dropping the user's changes. False when it could not be read (gone, or no
+  /// answer); the inspector then stays as it is.
+  Future<bool> reloadEdit() async {
+    final id = editing?.id;
+    if (id == null) return false;
+    ContactDetailOut? fresh;
+    try {
+      fresh = await backend.contact(id);
+    } on Object {
+      fresh = null;
+    }
+    if (_disposed || fresh == null || editing?.id != id) return false;
+    _details[id] = DetailReady(fresh);
+    editing = ContactEdit(fresh, ++_editSerial);
+    _readListAgain();
+    _notify();
+    return true;
+  }
+
+  /// Saves the inspector's [form]: a new contact, or a change to [edit]'s from the version it opened on.
+  /// Null when the host has it (the contact is then open and Undo can take it back), else why not.
+  Future<WriteFailure?> save(ContactEdit edit, ContactIn form) async {
+    final original = edit.original;
+    final Written written;
+    try {
+      written = original == null
+          ? await backend.create(form)
+          : await backend.update(original.id, original.etag, form);
+    } on WriteFailure catch (f) {
+      return f;
+    } on Object {
+      return const NoAnswer();
+    }
+    if (_disposed) return null;
+    final c = written.contact;
+    _details[c.id] = DetailReady(c);
+    if (written.undoId != null) {
+      undoStack.add(UndoEntry(
+        action: original == null ? addAction : editAction,
+        undoIds: [written.undoId!],
+        names: [c.displayName],
+        undone: original == null ? addUndone : editUndone,
+      ));
+    }
+    lastSaved = written.undoId == null ? null : undoStack.last;
+    _wanted = c.id;
+    open(c.id);
+    _readListAgain();
+    _notify();
+    return null;
+  }
+
+  /// What the last save can undo, for its toast; null when it changed nothing.
+  UndoEntry? lastSaved;
+
+  /// A contact to open once the list has it.
+  String? _wanted;
+
+  static const addAction = 'Add contact';
+  static const editAction = 'Edit contact';
+  static const addUndone = 'Contact moved to Recently deleted';
+  static const editUndone = 'Changes undone';
+
+  /// Moves [ids] to Recently deleted, one by one, stopping at the first failure. The selection then moves to
+  /// the row now in the first deleted row's place ([rowsInOrder]: the list's order).
+  ///
+  /// The change goes on [undoStack] unless [remember] is false (the caller then adds one entry for several
+  /// calls with [remember]).
+  Future<BulkResult> delete(List<String> ids, {List<String>? rowsInOrder, bool remember = true}) async {
+    final order = rowsInOrder ?? [for (final e in entries) e.id];
+    final done = <String>[];
+    final undoIds = <String>[];
+    final names = <String>[];
+    WriteFailure? failure;
+    for (final id in ids) {
+      final d = _details[id];
+      try {
+        final w = await backend.delete(id, etag: d is DetailReady ? d.contact.etag : null);
+        done.add(id);
+        names.add(w.contact.displayName);
+        if (w.undoId != null) undoIds.add(w.undoId!);
+      } on WriteFailure catch (f) {
+        failure = f;
+        break;
+      } on Object {
+        failure = const NoAnswer();
+        break;
+      }
+    }
+    if (_disposed) return BulkResult(done, failure, null);
+    UndoEntry? entry;
+    if (done.isNotEmpty) {
+      final n = done.length;
+      entry = UndoEntry(
+        action: n == 1 ? 'Delete contact' : 'Delete $n contacts',
+        undoIds: undoIds,
+        names: names,
+        undone: n == 1 ? 'Contact restored' : '$n contacts restored',
+      );
+      if (undoIds.isNotEmpty && remember) undoStack.add(entry);
+      _afterRemoving(done, order);
+    }
+    _notify();
+    return BulkResult(done, failure, entry);
+  }
+
+  /// [gone] left the list: open the row now in the first one's place, and read the list again.
+  void _afterRemoving(List<String> gone, List<String> order) {
+    final goneSet = gone.toSet();
+    final first = order.indexWhere(goneSet.contains);
+    final left = [for (final id in order) if (!goneSet.contains(id)) id];
+    String? next;
+    if (left.isNotEmpty) {
+      final at = first < 0 ? 0 : first.clamp(0, left.length - 1);
+      // The row that followed the first deleted one, else the one before it.
+      next = order.skip(first < 0 ? 0 : first).firstWhere((id) => !goneSet.contains(id), orElse: () => left[at]);
+    }
+    for (final id in gone) {
+      _details.remove(id);
+    }
+    contacts = [for (final c in contacts ?? const <ContactOut>[]) if (!goneSet.contains(c.id)) c];
+    entries = [for (final e in entries) if (!goneSet.contains(e.id)) e];
+    if (next != null) {
+      open(next);
+    } else {
+      selectedId = null;
+      _selecting = true;
+      selection.clear();
+      _selecting = false;
+    }
+    _readListAgain();
+    if (trash != null) unawaited(loadTrash());
+  }
+
+  /// Puts [entry] on [undoStack] (for changes made in several calls).
+  void remember(UndoEntry entry) {
+    undoStack.add(entry);
+    _notify();
+  }
+
+  /// Takes back [entry]. Completes with what the toast then says: what came back, or why it did not.
+  Future<String> undo(UndoEntry entry) async {
+    final refused = <String>[];
+    var undone = 0;
+    String? lastId;
+    for (var i = 0; i < entry.undoIds.length; i++) {
+      try {
+        final c = await backend.undo(entry.undoIds[i]);
+        undone++;
+        lastId = c.id;
+        _details[c.id] = DetailReady(c);
+      } on Refused {
+        refused.add(i < entry.names.length ? entry.names[i] : 'This contact');
+      } on Gone {
+        refused.add(i < entry.names.length ? entry.names[i] : 'This contact');
+      } on Object {
+        if (undone == 0 && refused.isEmpty) return undoNoAnswer;
+        break;
+      }
+    }
+    undoStack.remove(entry);
+    if (undone > 0) {
+      // A deleted contact that came back, or an edit taken back: open it.
+      if (lastId != null && (entry.action.startsWith('Delete') || entry.action == editAction)) _wanted = lastId;
+      _readListAgain();
+      if (trash != null) unawaited(loadTrash());
+    }
+    _notify();
+    if (refused.isEmpty) return entry.undone;
+    if (refused.length == 1 && entry.undoIds.length == 1) return 'Not undone. ${refused.first} was changed after that.';
+    if (undone == 0) return 'Not undone. ${refused.length} contacts were changed after that.';
+    return 'Not all undone. ${refused.length} of the contacts were changed after that.';
+  }
+
+  static const undoNoAnswer = 'Not undone. The host did not answer; try Undo again in a moment.';
+
+  /// Reads Recently deleted.
+  Future<void> loadTrash() async {
+    try {
+      final read = await backend.trash();
+      if (_disposed) return;
+      trash = read;
+      trashFailed = false;
+    } on Object {
+      if (_disposed) return;
+      trashFailed = trash == null;
+    }
+    _notify();
+  }
+
+  /// Brings [ids] back from Recently deleted, stopping at the first failure.
+  Future<BulkResult> restore(List<String> ids) async {
+    final done = <String>[];
+    final undoIds = <String>[];
+    final names = <String>[];
+    WriteFailure? failure;
+    for (final id in ids) {
+      try {
+        final w = await backend.restore(id);
+        done.add(id);
+        names.add(w.contact.displayName);
+        if (w.undoId != null) undoIds.add(w.undoId!);
+      } on WriteFailure catch (f) {
+        failure = f;
+        break;
+      } on Object {
+        failure = const NoAnswer();
+        break;
+      }
+    }
+    if (_disposed) return BulkResult(done, failure, null);
+    UndoEntry? entry;
+    if (done.isNotEmpty) {
+      final n = done.length;
+      entry = UndoEntry(
+        action: n == 1 ? 'Restore contact' : 'Restore $n contacts',
+        undoIds: undoIds,
+        names: names,
+        undone: n == 1 ? 'Contact moved back to Recently deleted' : '$n contacts moved back to Recently deleted',
+      );
+      if (undoIds.isNotEmpty) undoStack.add(entry);
+      _readListAgain();
+      await loadTrash();
+    }
+    _notify();
+    return BulkResult(done, failure, entry);
+  }
+
+  /// Deletes [ids], which are in Recently deleted, for good, stopping at the first failure. It cannot be
+  /// undone.
+  Future<BulkResult> purge(List<String> ids) async {
+    final done = <String>[];
+    WriteFailure? failure;
+    for (final id in ids) {
+      try {
+        await backend.purge(id);
+        done.add(id);
+      } on Gone {
+        done.add(id); // Already gone: what the user asked for.
+      } on WriteFailure catch (f) {
+        failure = f;
+        break;
+      } on Object {
+        failure = const NoAnswer();
+        break;
+      }
+    }
+    if (_disposed) return BulkResult(done, failure, null);
+    if (done.isNotEmpty) await loadTrash();
+    _notify();
+    return BulkResult(done, failure, null);
+  }
+
+  /// Says in the contact pane that [id] could not be deleted.
+  void showPaneError(String id, String message) {
+    paneErrorId = id;
+    paneError = message;
+    _notify();
+  }
+
   Future<void> _readLastOpened() async {
     try {
       final v = (await store.read())[lastOpenedKey];
@@ -354,6 +765,8 @@ class ContactsController extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    selection.removeListener(_selectionChanged);
+    selection.dispose();
     unawaited(_linkOpened.close());
     super.dispose();
   }

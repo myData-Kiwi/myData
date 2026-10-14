@@ -115,6 +115,28 @@ class FakeBackend implements ContactsBackend {
   bool failContacts = false;
   bool failDetails = false;
 
+  /// The next writes fail as the host would: no answer, a field error, or a change made elsewhere.
+  bool failWrites = false;
+  Map<String, String>? nextFieldErrors;
+
+  /// Recently deleted, newest first.
+  final trashed = <ContactDetailOut>[];
+
+  /// What each undo id takes back.
+  final undoLog = <String, FakeUndo>{};
+  final undone = <String>{};
+
+  /// Every write, in order: "create c-new-1", "update c-new-1", "delete c-ava", "undo u-1".
+  final writes = <String>[];
+
+  /// The forms sent, in order.
+  final forms = <ContactIn>[];
+  final etagsSent = <String?>[];
+  int _ids = 0;
+
+  /// The day backups keep a copy of what is deleted for good now.
+  String backupsKeptUntil = '2027-10-01';
+
   int sourceCalls = 0;
   int contactCalls = 0;
   final detailCalls = <String>[];
@@ -131,7 +153,8 @@ class FakeBackend implements ContactsBackend {
   Future<List<ContactOut>> contacts() async {
     contactCalls++;
     if (failContacts) throw StateError('no answer');
-    return [for (final c in cards) listView(c)];
+    // With no source on, the host lists only the contacts it owns.
+    return [for (final c in cards) if (anyOn || c.editable) listView(c)];
   }
 
   @override
@@ -149,7 +172,290 @@ class FakeBackend implements ContactsBackend {
     photoCalls.add(id);
     return photos[id];
   }
+
+  int _revOf(ContactDetailOut c) => int.tryParse(c.etag.replaceAll('"', '').split('-').first) ?? 1;
+
+  void _checkWrite() {
+    if (failWrites) throw const NoAnswer();
+    final errors = nextFieldErrors;
+    if (errors != null) {
+      nextFieldErrors = null;
+      throw FieldErrors(errors);
+    }
+  }
+
+  String _undoId(FakeUndo u) {
+    final id = 'u-${undoLog.length + 1}';
+    undoLog[id] = u;
+    return id;
+  }
+
+  ContactDetailOut? _find(String id) => cards.where((c) => c.id == id).firstOrNull;
+
+  @override
+  Future<Written> create(ContactIn form) async {
+    forms.add(form);
+    _checkWrite();
+    final c = ownedCard('c-new-${++_ids}', form, rev: 1);
+    cards = [...cards, c]..sort((a, b) => a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase()));
+    writes.add('create ${c.id}');
+    return Written(c, _undoId(FakeUndo('create', c.id, 1, null)));
+  }
+
+  @override
+  Future<Written> update(String id, String etag, ContactIn form) async {
+    forms.add(form);
+    etagsSent.add(etag);
+    _checkWrite();
+    final old = _find(id);
+    if (old == null) throw const Gone();
+    if (!old.editable) throw const Refused('This contact is followed from another source.');
+    if (old.etag != etag) throw const ChangedElsewhere();
+    final rev = _revOf(old) + 1;
+    final c = ownedCard(id, form, rev: rev, created: old.createdAt);
+    cards = [for (final x in cards) x.id == id ? c : x];
+    writes.add('update $id');
+    return Written(c, _undoId(FakeUndo('update', id, rev, old)));
+  }
+
+  @override
+  Future<Written> delete(String id, {String? etag}) async {
+    etagsSent.add(etag);
+    _checkWrite();
+    final old = _find(id);
+    if (old == null) throw const Gone();
+    if (!old.editable) throw const Refused('This contact is followed from another source.');
+    if (etag != null && etag != old.etag) throw const ChangedElsewhere();
+    final rev = _revOf(old) + 1;
+    final gone = _withRev(old, rev, deleted: true);
+    cards = [for (final x in cards) if (x.id != id) x];
+    trashed.insert(0, gone);
+    writes.add('delete $id');
+    return Written(gone, _undoId(FakeUndo('delete', id, rev, null)));
+  }
+
+  @override
+  Future<List<TrashItemOut>> trash() async => [
+        for (final c in trashed)
+          TrashItemOut(
+            id: c.id,
+            kind: TrashItemOutKindEnum.contact,
+            title: c.displayName,
+            deletedAt: c.deletedAt!,
+            purgeAfter: c.purgeAfter!,
+            backupsKeptUntil: backupsKeptUntil,
+            contact: listView(c),
+          ),
+      ];
+
+  @override
+  Future<Written> restore(String id) async {
+    _checkWrite();
+    final old = trashed.where((c) => c.id == id).firstOrNull;
+    if (old == null) throw const Gone();
+    final rev = _revOf(old) + 1;
+    final back = _withRev(old, rev, deleted: false);
+    trashed.remove(old);
+    cards = [...cards, back]..sort((a, b) => a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase()));
+    writes.add('restore $id');
+    return Written(back, _undoId(FakeUndo('restore', id, rev, null)));
+  }
+
+  @override
+  Future<void> purge(String id) async {
+    _checkWrite();
+    final old = trashed.where((c) => c.id == id).firstOrNull;
+    if (old == null) throw const Gone();
+    trashed.remove(old);
+    writes.add('purge $id');
+  }
+
+  @override
+  Future<ContactDetailOut> undo(String undoId) async {
+    if (failWrites) throw const NoAnswer();
+    final u = undoLog[undoId];
+    if (u == null) throw const Gone();
+    if (undone.contains(undoId)) throw const Refused('This was already undone.');
+    final now = _find(u.id) ?? trashed.where((c) => c.id == u.id).firstOrNull;
+    if (now == null) throw const Refused('This contact was deleted for good.');
+    if (_revOf(now) != u.rev) throw const Refused('This contact changed since.');
+    undone.add(undoId);
+    writes.add('undo $undoId');
+    final rev = u.rev + 1;
+    switch (u.op) {
+      case 'update':
+        final back = _withRev(u.prior!, rev, deleted: false);
+        cards = [for (final x in cards) x.id == u.id ? back : x];
+        return back;
+      case 'delete':
+        final back = _withRev(now, rev, deleted: false);
+        trashed.remove(now);
+        cards = [...cards, back]..sort((a, b) => a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase()));
+        return back;
+      default: // create, restore: to Recently deleted
+        final gone = _withRev(now, rev, deleted: true);
+        cards = [for (final x in cards) if (x.id != u.id) x];
+        trashed.insert(0, gone);
+        return gone;
+    }
+  }
+
+  /// A change made elsewhere (another app): the etag moves on.
+  void changeElsewhere(String id, {String? jobTitle}) {
+    final old = _find(id)!;
+    final c = _withRev(old, _revOf(old) + 1, deleted: false);
+    if (jobTitle != null) c.jobTitle = jobTitle;
+    cards = [for (final x in cards) x.id == id ? c : x];
+  }
+
+  static ContactDetailOut _withRev(ContactDetailOut c, int rev, {required bool deleted}) {
+    final json = c.toJson();
+    final copy = ContactDetailOut.fromJson(json)!;
+    copy.etag = '"$rev-${c.id}"';
+    copy.deletedAt = deleted ? '2026-10-14T09:30:00+00:00' : null;
+    copy.purgeAfter = deleted ? '2026-11-13T09:30:00+00:00' : null;
+    return copy;
+  }
 }
+
+/// One entry of [FakeBackend.undoLog].
+class FakeUndo {
+  FakeUndo(this.op, this.id, this.rev, this.prior);
+  final String op;
+  final String id;
+  final int rev;
+  final ContactDetailOut? prior;
+}
+
+/// A contact the host owns, as the host gives it after a write of [form].
+ContactDetailOut ownedCard(String id, ContactIn form, {int rev = 1, String created = '2026-10-14T09:00:00+00:00'}) {
+  String t(String? v) => (v ?? '').trim();
+  List<LabeledValue> values(List<LabeledValueIn>? l) => [
+        for (final v in l ?? const <LabeledValueIn>[])
+          if (t(v.value).isNotEmpty) LabeledValue(label: t(v.label), value: t(v.value)),
+      ];
+  final phones = values(form.phones);
+  final emails = values(form.emails);
+  final urls = values(form.urls);
+  final addresses = [
+    for (final a in form.addresses ?? const <PostalAddressIn>[])
+      if ([a.street, a.locality, a.region, a.postalCode, a.country].any((p) => t(p).isNotEmpty))
+        PostalAddress(
+          label: t(a.label),
+          street: t(a.street),
+          locality: t(a.locality),
+          region: t(a.region),
+          postalCode: t(a.postalCode),
+          country: t(a.country),
+        ),
+  ];
+  final name = [t(form.givenName), t(form.familyName)].where((p) => p.isNotEmpty).join(' ');
+  final company = t(form.company);
+  final shown = name.isNotEmpty
+      ? name
+      : company.isNotEmpty
+          ? company
+          : (emails.isNotEmpty ? emails.first.value : (phones.isNotEmpty ? phones.first.value : 'No name'));
+  final first = shown[0].toUpperCase();
+  final birthday = t(form.birthday).isEmpty ? null : t(form.birthday);
+  final note = t(form.note);
+  String? caption;
+  if (company.isNotEmpty && company != shown) {
+    caption = company;
+  } else {
+    for (final v in [...emails.map((e) => e.value), ...phones.map((p) => p.value)]) {
+      if (v != shown) {
+        caption = v;
+        break;
+      }
+    }
+  }
+  return ContactDetailOut(
+    accountId: 'local',
+    addressBookId: 'book-mydata',
+    addresses: addresses,
+    birthday: birthday,
+    caption: caption,
+    company: company,
+    createdAt: created,
+    department: t(form.department),
+    displayName: shown,
+    editable: true,
+    emails: emails,
+    etag: '"$rev-$id"',
+    familyName: t(form.familyName),
+    givenName: t(form.givenName),
+    fullName: name,
+    id: id,
+    jobTitle: t(form.jobTitle),
+    middleName: t(form.middleName),
+    modifiedAt: '2026-10-14T09:00:0${rev % 10}+00:00',
+    namePrefix: t(form.namePrefix),
+    nameSuffix: t(form.nameSuffix),
+    nickname: t(form.nickname),
+    note: note,
+    notesIncluded: true,
+    onPhone: false,
+    organisation: company,
+    phones: phones,
+    sortLetter: RegExp('[A-Z]').hasMatch(first) ? first : '#',
+    source_: ContactDetailOutSource_Enum.mydata,
+    sourceLabel: 'myData',
+    urls: urls,
+    fields: [
+      if (phones.isNotEmpty)
+        ContactFieldGroup(kind: ContactFieldGroupKindEnum.phone, title: 'Phone', items: [
+          for (final p in phones) ContactField(label: p.label, value: p.value),
+        ]),
+      if (emails.isNotEmpty)
+        ContactFieldGroup(kind: ContactFieldGroupKindEnum.email, title: 'Email', items: [
+          for (final e in emails) ContactField(label: e.label, value: e.value),
+        ]),
+      if (addresses.isNotEmpty)
+        ContactFieldGroup(kind: ContactFieldGroupKindEnum.address, title: 'Address', items: [
+          for (final a in addresses)
+            ContactField(
+              label: a.label,
+              value: [a.street, [a.locality, a.region, a.postalCode].where((p) => p.isNotEmpty).join(' '), a.country]
+                  .where((p) => p.isNotEmpty)
+                  .join('\n'),
+              address: a,
+            ),
+        ]),
+      if (birthday != null)
+        ContactFieldGroup(kind: ContactFieldGroupKindEnum.birthday, title: 'Birthday', items: [ContactField(value: birthday)]),
+      if (urls.isNotEmpty)
+        ContactFieldGroup(kind: ContactFieldGroupKindEnum.url, title: 'Links', items: [
+          for (final u in urls) ContactField(label: u.label, value: u.value),
+        ]),
+      if (note.isNotEmpty)
+        ContactFieldGroup(kind: ContactFieldGroupKindEnum.note, title: 'Notes', items: [ContactField(value: note)]),
+    ],
+  );
+}
+
+/// Pip Owned: a contact the host owns (made in myContacts), with a phone, an email, an address, a birthday
+/// without a year, a link and notes.
+ContactDetailOut pipOwned() => ownedCard(
+      'c-pip',
+      ContactIn(
+        givenName: 'Pip',
+        familyName: 'Owned',
+        company: 'Example Library',
+        jobTitle: 'Archivist',
+        middleName: 'Quinn',
+        nickname: 'Pipster',
+        phones: [LabeledValueIn(label: 'Mobile', value: '555-0142')],
+        emails: [LabeledValueIn(label: 'Work', value: 'pip@example.org')],
+        addresses: [
+          PostalAddressIn(label: 'Home', street: '1 Example Street', locality: 'Sampleton', postalCode: 'ZZ1 1AA', country: 'United Kingdom'),
+        ],
+        birthday: '--03-09',
+        urls: [LabeledValueIn(label: 'Home page', value: 'example.org/pip')],
+        note: 'Keeps the invented archive.',
+      ),
+      rev: 3,
+    );
 
 /// The list's view of a card, as `GET /contacts` gives it.
 ContactOut listView(ContactDetailOut c) => ContactOut(
