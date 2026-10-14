@@ -279,6 +279,84 @@ def test_the_sync_service_opens_its_stores_through_the_snapshot_hook(home, monke
     assert [s.manifest["reason"] for s in list_snapshots(home)] == ["pre-migration"]
 
 
+class BrokenNextContactsStore(ContactsStore):
+    """A later build whose migration fails (NOT NULL without a default, on a table with rows)."""
+    MIGRATIONS = {**ContactsStore.MIGRATIONS,
+                  max(ContactsStore.MIGRATIONS) + 1: ["ALTER TABLE contacts ADD COLUMN kind TEXT",
+                                                      "UPDATE contacts SET display_name = NULL"]}
+
+
+def test_a_failing_migration_takes_one_snapshot_however_often_it_is_tried(home):
+    LAST_ERROR.last = None
+    logging.getLogger().addHandler(LAST_ERROR)
+    try:
+        for _ in range(5):
+            with pytest.raises(sqlite3.IntegrityError):
+                open_store(BrokenNextContactsStore, home, "contacts.sqlite")
+        [snap] = list_snapshots(home)
+        message = LAST_ERROR.last["message"]
+        assert message.startswith(f"contacts.sqlite could not be updated from schema version 1 to 2 (IntegrityError")
+        assert f"rolled back and the file is as it was; snapshot {snap.name} holds it" in message
+    finally:
+        logging.getLogger().removeHandler(LAST_ERROR)
+    assert snap.manifest["migration"] == {"file": "contacts.sqlite", "from": 1, "to": 2}
+    assert count(home / "contacts.sqlite", "schema_version") == 1
+    # The file changed meanwhile: the old snapshot no longer holds it, so a new one is taken.
+    with ContactsStore(home / "contacts.sqlite").db.transaction() as db:
+        db.execute("UPDATE address_books SET name = 'Renamed'")
+    with pytest.raises(sqlite3.IntegrityError):
+        open_store(BrokenNextContactsStore, home, "contacts.sqlite")
+    assert len(list_snapshots(home)) == 2
+
+
+def test_a_snapshot_too_old_to_be_kept_long_is_not_used_again(home, monkeypatch):
+    with pytest.raises(sqlite3.IntegrityError):
+        open_store(BrokenNextContactsStore, home, "contacts.sqlite")
+    monkeypatch.setattr(backup, "_utc", lambda now=None: datetime.now(timezone.utc) + backup.REUSE_FOR)
+    with pytest.raises(sqlite3.IntegrityError):
+        open_store(BrokenNextContactsStore, home, "contacts.sqlite")
+    assert len(list_snapshots(home)) == 2
+
+
+def test_the_sync_service_does_not_retry_a_failed_store_on_every_access(home, monkeypatch):
+    import mydata.service.sync as sync
+    monkeypatch.setattr(sync, "ContactsStore", BrokenNextContactsStore)
+    calls = []
+    real = sync.open_store
+    monkeypatch.setattr(sync, "open_store", lambda *a: (a[2] == "contacts.sqlite" and calls.append(a)) or real(*a))
+    clock = [1000.0]
+    sources = SyncService(home, Accounts(home, MemorySecretStore()), platform="linux", clock=lambda: clock[0])
+    for _ in range(10):
+        with pytest.raises(sqlite3.IntegrityError):
+            sources.contacts
+    assert len(calls) == 1 and len(list_snapshots(home)) == 1
+    assert sources.calendar.calendars()  # the other store is not affected
+    clock[0] += sync.STORE_RETRY
+    monkeypatch.setattr(sync, "ContactsStore", NextContactsStore)  # e.g. a fixed build
+    assert sources.contacts.list() and len(calls) == 2
+    assert len(list_snapshots(home)) == 1  # the file had not changed: the same snapshot protects it
+
+
+def test_only_the_newest_snapshots_before_each_migration_are_kept_90_days():
+    one, other = ("contacts.sqlite", 1, 2), ("calendar.sqlite", 1, 2)
+    snaps = [(f"m{i}", NOW - timedelta(hours=i + 1), "pre-migration", one) for i in range(6)]
+    snaps += [("c0", NOW - timedelta(hours=2), "pre-migration", other), ("old", NOW - timedelta(days=2), "pre-migration")]
+    snaps += [(f"manual{i}", NOW - timedelta(hours=i + 1), "manual") for i in range(5)]
+    keep = retention(snaps, NOW, hourly=0, daily=0, monthly=0)
+    assert keep == {"m0", "m1", "m2", "c0", "old"} | {f"manual{i}" for i in range(5)}
+
+
+def test_prune_keeps_three_snapshots_per_migration(home):
+    day = NOW - timedelta(days=40)  # only the newest is that day's and that month's
+    names = [take_snapshot(home, "pre-migration", now=day + timedelta(hours=h),
+                           extra={"migration": {"file": "contacts.sqlite", "from": 1, "to": 2}}).name
+             for h in range(5)]
+    for h in range(24):  # fill the hourly window
+        take_snapshot(home, "hourly", now=NOW - timedelta(hours=h))
+    assert sorted(prune(home, NOW)) == names[:2]
+    assert sorted(s.name for s in list_snapshots(home))[:3] == names[2:]
+
+
 # ---------------------------------------------------------------- the restore drill
 
 

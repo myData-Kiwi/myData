@@ -52,6 +52,7 @@ logger = logging.getLogger("mydata.sync")
 INTERVAL = 15 * 60.0
 BACKOFF = (15 * 60.0, 30 * 60.0, 60 * 60.0, 2 * 60 * 60.0, 4 * 60 * 60.0)
 POLL = 5.0  # how often the loop looks for accounts the mydata command added or removed
+STORE_RETRY = 15 * 60.0  # how long a store that could not be opened is left before trying again
 
 CONTACTS_FILE = "contacts.sqlite"
 CALENDAR_FILE = "calendar.sqlite"
@@ -137,7 +138,7 @@ class SyncService:
     def __init__(self, home: Path, accounts: Accounts, *, transport=None, interval: float = INTERVAL,
                  backoff: tuple[float, ...] = BACKOFF, poll: float = POLL, clock: Callable[[], float] = time.time,
                  platform: str = sys.platform, mac_launcher=None, mac_today: Callable[[], date] | None = None,
-                 mac_options: dict | None = None):
+                 mac_options: dict | None = None, store_retry: float = STORE_RETRY):
         self.home = Path(home)
         self.accounts = accounts
         self.state = HostState(self.home)
@@ -148,6 +149,8 @@ class SyncService:
         self._contacts: ContactsStore | None = None
         self._calendar: CalendarStore | None = None
         self._store_lock = threading.Lock()
+        self.store_retry = store_retry
+        self._store_failed: dict[str, tuple[float, Exception]] = {}  # file: (try again after, error)
         self._data_lock = threading.RLock()  # every write to the mirror, and every account deletion
         self._run_lock = threading.Lock()  # one account syncs at a time
         self._status_lock = threading.Lock()
@@ -222,21 +225,34 @@ class SyncService:
 
     # ---------------------------------------------------------------- stores (opened on first use)
     # Through backup.open_store: a store whose file needs migrating is snapshotted first, and not opened
-    # (MigrationRefused) if that fails.
+    # (MigrationRefused) if that fails. A store that could not be opened is not tried again for
+    # STORE_RETRY seconds: every access meanwhile raises the same error, so a sync, a reader write or an
+    # app's poll never repeats a failing migration (or its snapshot) on every request.
 
     @property
     def contacts(self) -> ContactsStore:
-        with self._store_lock:
-            if self._contacts is None:
-                self._contacts = open_store(ContactsStore, self.home, CONTACTS_FILE)
-            return self._contacts
+        return self._store("_contacts", ContactsStore, CONTACTS_FILE)
 
     @property
     def calendar(self) -> CalendarStore:
+        return self._store("_calendar", CalendarStore, CALENDAR_FILE)
+
+    def _store(self, attr: str, cls: type, filename: str):
         with self._store_lock:
-            if self._calendar is None:
-                self._calendar = open_store(CalendarStore, self.home, CALENDAR_FILE)
-            return self._calendar
+            store = getattr(self, attr)
+            if store is not None:
+                return store
+            failed = self._store_failed.get(filename)
+            if failed is not None and self.clock() < failed[0]:
+                raise failed[1].with_traceback(None)
+            try:
+                store = open_store(cls, self.home, filename)
+            except Exception as e:
+                self._store_failed[filename] = (self.clock() + self.store_retry, e)
+                raise
+            self._store_failed.pop(filename, None)
+            setattr(self, attr, store)
+            return store
 
     def _existing_stores(self) -> list:
         """The stores whose files exist; deleting data never creates an empty file."""

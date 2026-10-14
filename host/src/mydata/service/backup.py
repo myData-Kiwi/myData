@@ -19,7 +19,7 @@ When snapshots are taken:
 
 Retention (retention(), pure): the newest snapshot of each of the 24 most recent hours, 30 most recent days
 and 12 most recent months that have one (UTC), and every snapshot not taken by the hourly timer for at
-least 90 days.
+least 90 days, except that of those taken before a migration only the newest 3 per migration are.
 
 The restore drill (verify()) copies a snapshot into a temporary folder inside backups/, opens each
 database with this code (running its migrations there), runs the checks, compares row counts with the
@@ -64,6 +64,8 @@ LAST_VERIFY = "last_verify.json"
 FORMAT = 1
 HOURLY, DAILY, MONTHLY = 24, 30, 12
 KEEP_OTHER = timedelta(days=90)  # snapshots taken before a migration or restore, or by hand
+PER_MIGRATION = 3  # of those taken before a migration, at most this many per file and version
+REUSE_FOR = timedelta(days=30)  # a snapshot before a migration is used again for a retry while this young
 INTERVAL = 60 * 60.0
 
 _NAME = re.compile(r"^(\d{8}T\d{6}Z)(?:-(\d+))?$")
@@ -233,7 +235,8 @@ def _describe(path: Path) -> dict:
 
 
 def take_snapshot(home: Path, reason: str, *, only_if_changed: bool = False, now: datetime | None = None,
-                  require: Iterable[str] = (), keep_damaged: bool = False) -> Snapshot | None:
+                  require: Iterable[str] = (), keep_damaged: bool = False,
+                  extra: dict | None = None) -> Snapshot | None:
     """Copy every database in the host folder into a new snapshot. None when there is nothing to copy, or
     (only_if_changed) when no database changed since the newest snapshot.
 
@@ -242,7 +245,7 @@ def take_snapshot(home: Path, reason: str, *, only_if_changed: bool = False, now
     keep_damaged (before a restore, which must not be blocked by the damage it is there to repair), such a
     file is kept as it is, with its -wal, -shm and -journal, in the snapshot's damaged/ folder ("kept").
     Raises BackupError, leaving nothing behind, when a file named in `require` failed, when nothing at all
-    was kept, or on any other failure."""
+    was kept, or on any other failure. `extra` is added to the manifest."""
     home = Path(home)
     required = set(require)
     with _take_lock:
@@ -284,7 +287,7 @@ def take_snapshot(home: Path, reason: str, *, only_if_changed: bool = False, now
             if not entries and not any(f.get("kept") for f in failed):
                 raise BackupError("; ".join(f["reason"] for f in failed))
             manifest = {"format": FORMAT, "created_at": _iso(at), "reason": reason, "host_version": __version__,
-                        "files": entries, "sources": sources}
+                        "files": entries, "sources": sources, **(extra or {})}
             if failed:
                 manifest["failed"] = failed
             if (work / DAMAGED).exists() and not any((work / DAMAGED).iterdir()):
@@ -341,16 +344,20 @@ def _place(work: Path, root: Path, at: datetime) -> Path:
     raise BackupError("too many snapshots in one second")
 
 
-def retention(snapshots: Iterable[tuple[str, datetime, str]], now: datetime, *, hourly: int = HOURLY,
-              daily: int = DAILY, monthly: int = MONTHLY, keep_other: timedelta = KEEP_OTHER) -> set[str]:
-    """Which snapshots to keep, given (name, taken at, reason) for each: the newest in each of the `hourly`
-    most recent hours that have one, the `daily` most recent days and the `monthly` most recent months
-    (UTC), plus every snapshot not taken by the hourly timer that is younger than `keep_other`."""
-    items = sorted(snapshots, key=lambda s: (s[1], _suffix(s[0])), reverse=True)
+def retention(snapshots: Iterable[tuple], now: datetime, *, hourly: int = HOURLY, daily: int = DAILY,
+              monthly: int = MONTHLY, keep_other: timedelta = KEEP_OTHER,
+              per_migration: int = PER_MIGRATION) -> set[str]:
+    """Which snapshots to keep, given (name, taken at, reason[, migration]) for each: the newest in each of
+    the `hourly` most recent hours that have one, the `daily` most recent days and the `monthly` most recent
+    months (UTC), plus every snapshot not taken by the hourly timer that is younger than `keep_other`; of
+    those taken before a migration, only the newest `per_migration` for each migration (its file and
+    versions), so a migration that keeps failing cannot fill the disk."""
+    items = [(s[0], s[1], s[2], s[3] if len(s) > 3 else None) for s in snapshots]
+    items.sort(key=lambda s: (s[1], _suffix(s[0])), reverse=True)
     keep: set[str] = set()
     for count, bucket in ((hourly, "%Y-%m-%dT%H"), (daily, "%Y-%m-%d"), (monthly, "%Y-%m")):
         seen: set[str] = set()
-        for name, at, _reason in items:
+        for name, at, _reason, _migration in items:
             key = at.astimezone(timezone.utc).strftime(bucket)
             if key in seen:
                 continue
@@ -358,7 +365,15 @@ def retention(snapshots: Iterable[tuple[str, datetime, str]], now: datetime, *, 
                 break
             seen.add(key)
             keep.add(name)
-    keep |= {name for name, at, reason in items if reason != "hourly" and now - at < keep_other}
+    per: dict = {}
+    for name, at, reason, migration in items:
+        if reason == "hourly" or now - at >= keep_other:
+            continue
+        if reason == "pre-migration":
+            per[migration] = per.get(migration, 0) + 1
+            if per[migration] > per_migration:
+                continue
+        keep.add(name)
     return keep
 
 
@@ -370,10 +385,13 @@ def prune(home: Path, now: datetime | None = None) -> list[str]:
     described = []
     for s in snaps:
         try:
-            reason = s.manifest.get("reason", "hourly")
-        except (OSError, ValueError):
-            reason = "hourly"
-        described.append((s.name, s.created_at, reason))
+            m = s.manifest
+            reason = m.get("reason", "hourly")
+            migration = m.get("migration")
+            migration = tuple(migration.get(k) for k in ("file", "from", "to")) if isinstance(migration, dict) else None
+        except (OSError, ValueError, AttributeError):
+            reason, migration = "hourly", None
+        described.append((s.name, s.created_at, reason, migration))
     keep = retention(described, now)
     removed = []
     for s in snaps:
@@ -395,13 +413,21 @@ def prune(home: Path, now: datetime | None = None) -> list[str]:
 def open_store(cls, home: Path, filename: str):
     """Open a store (ContactsStore, CalendarStore) from the host folder. When its file holds data at an
     older schema version, so opening it migrates it, take a snapshot first; if that fails, refuse
-    (MigrationRefused, logged as an error, so /status shows it) rather than migrate unprotected."""
+    (MigrationRefused, logged as an error, so /status shows it) rather than migrate unprotected.
+
+    A migration that fails is rolled back, logged as an error naming the snapshot taken before it, and
+    raised. Trying again later takes no second snapshot while the file is unchanged and the newest snapshot
+    taken before a migration, younger than REUSE_FOR, still holds it exactly."""
     path = Path(home) / filename
     pending = Database.pending(path, cls.MIGRATIONS)
-    if pending is not None:
-        current, target = pending
+    if pending is None:
+        return cls(path)
+    current, target = pending
+    snap = _holding(home, filename, current)
+    if snap is None:
         try:
-            snap = take_snapshot(home, "pre-migration", require=[filename])
+            snap = take_snapshot(home, "pre-migration", require=[filename],
+                                 extra={"migration": {"file": filename, "from": current, "to": target}})
             if snap is None:
                 raise BackupError(f"{filename} was not found to copy")
         except Exception as e:
@@ -413,7 +439,32 @@ def open_store(cls, home: Path, filename: str):
             raise MigrationRefused(message) from None
         log(logger, logging.INFO, "snapshot taken before a migration", file=filename, snapshot=snap.name,
             from_version=current, to_version=target)
-    return cls(path)
+    try:
+        return cls(path)
+    except Exception as e:
+        log(logger, logging.ERROR, f"{filename} could not be updated from schema version {current} to {target} "
+            f"({type(e).__name__}: {e}). The update was rolled back and the file is as it was; snapshot "
+            f"{snap.name} holds it as it was before.", file=filename, snapshot=snap.name)
+        raise
+
+
+def _holding(home: Path, filename: str, version: int) -> Snapshot | None:
+    """The newest snapshot taken before a migration, if it holds `filename` exactly as it is now (same
+    size and modification times, same schema version) and is young enough to be kept a while longer."""
+    for s in list_snapshots(home):
+        if _utc() - s.created_at >= REUSE_FOR:
+            return None
+        try:
+            m = s.manifest
+            if m.get("reason") != "pre-migration":
+                continue
+            entry = next((f for f in m.get("files", []) if f.get("file") == filename), None)
+            same = (m.get("sources", {}).get(filename) == _fingerprint(Path(home) / filename)
+                    and entry is not None and entry.get("schema_version") == version)
+        except (OSError, ValueError, AttributeError):
+            return None
+        return s if same else None
+    return None
 
 
 # ---------------------------------------------------------------- the restore drill
