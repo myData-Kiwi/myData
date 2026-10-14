@@ -24,6 +24,7 @@ mydatad = "mydata.service.daemon:main"
 [dependency-groups]
 dev = [
     "httpx>=0.28.1",
+    "hypothesis>=6.169.1",
     "pytest>=8",
 ]
 

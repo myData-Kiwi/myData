@@ -29,3 +29,6 @@ backups/
 # A developer's own code-signing settings for the macOS apps (team ID, certificate). See
 # app/apps/mydata/macos/Runner/Configs/Signing.local.xcconfig.example.
 Signing.local.xcconfig
+
+# Hypothesis keeps its example database here (tests in host/tests).
+.hypothesis/
