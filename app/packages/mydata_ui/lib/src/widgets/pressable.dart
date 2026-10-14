@@ -185,6 +185,7 @@ class FocusRing extends StatelessWidget {
 
 /// Radii as BorderRadius, for the shapes the tokens name.
 abstract final class MyDataRadii {
+  static const xs = BorderRadius.all(Radius.circular(MyDataRadius.xs));
   static const sm = BorderRadius.all(Radius.circular(MyDataRadius.sm));
   static const md = BorderRadius.all(Radius.circular(MyDataRadius.md));
   static const lg = BorderRadius.all(Radius.circular(MyDataRadius.lg));

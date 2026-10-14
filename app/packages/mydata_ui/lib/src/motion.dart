@@ -14,6 +14,9 @@ abstract final class MyDataMotion {
   /// Sheets, dialogs and screen transitions.
   static const slow = Duration(milliseconds: 380);
 
+  /// How long a Toast stays before it leaves; paused on hover, touch and focus (motion.md `toast-duration`).
+  static const toastDuration = Duration(seconds: 8);
+
   /// Movement within the screen: cubic-bezier(0.2, 0, 0, 1).
   static const standard = Cubic(0.2, 0, 0, 1);
 

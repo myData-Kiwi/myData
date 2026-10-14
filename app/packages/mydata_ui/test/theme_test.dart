@@ -91,6 +91,49 @@ void main() {
     expect(failures, isEmpty);
   });
 
+  test('surface-hover shows on every ground, and text on it stays readable (tokens.json)', () {
+    final failures = <String>[];
+    for (final c in [MyDataColors.light, MyDataColors.dark]) {
+      void rule(String what, Color fg, Color bg, double min) {
+        if (contrast(fg, bg) < min) failures.add('$what ${contrast(fg, bg).toStringAsFixed(2)}');
+      }
+
+      for (final g in [c.bg, c.surface, c.surfaceRaised]) {
+        rule('surface-hover on its ground', c.surfaceHover, g, 1.3);
+      }
+      rule('ink on surface-hover', c.ink, c.surfaceHover, 4.5);
+      rule('ink-muted on surface-hover', c.inkMuted, c.surfaceHover, 4.5);
+    }
+    expect(failures, isEmpty);
+  });
+
+  test('the ink focus ring for red things shows on every ground (README "Focus and danger")', () {
+    for (final c in [MyDataColors.light, MyDataColors.dark]) {
+      for (final g in [c.bg, c.surface, c.surfaceRaised, c.surfaceSunken, c.dangerSoft]) {
+        expect(contrast(c.ink, g), greaterThanOrEqualTo(3));
+      }
+    }
+  });
+
+  test('the calendar palette is one value in both modes, and all but yellow reach 3:1 on the surfaces', () {
+    List<Color> palette(MyDataColors c) =>
+        [c.dataRed, c.dataOrange, c.dataYellow, c.dataGreen, c.dataBlue, c.dataPurple, c.dataBrown, c.dataGrey];
+    final light = palette(MyDataColors.light);
+    final dark = palette(MyDataColors.dark);
+    expect(light, dark);
+    expect(light.toSet(), hasLength(8));
+    for (final c in [MyDataColors.light, MyDataColors.dark]) {
+      for (final colour in palette(c)) {
+        if (colour == c.dataYellow) continue;
+        for (final g in [c.surface, c.surfaceRaised]) {
+          expect(contrast(colour, g), greaterThanOrEqualTo(3), reason: '$colour on $g');
+        }
+      }
+    }
+    // Yellow is the one that relies on DataColour's edge on light grounds.
+    expect(dataColourNeedsEdge(MyDataColors.light.dataYellow, MyDataColors.light.surface), isTrue);
+  });
+
   test('type styles use the bundled families and tokens.json sizes', () {
     expect(MyDataType.displayXl.fontSize, 40);
     expect(MyDataType.displayXl.fontWeight, FontWeight.w700);

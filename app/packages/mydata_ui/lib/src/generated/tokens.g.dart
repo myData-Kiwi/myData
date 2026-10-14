@@ -1,4 +1,4 @@
-// GENERATED from design/tokens.json (version 4) and design/themes.json
+// GENERATED from design/tokens.json (version 5) and design/themes.json
 // by tool/generate_tokens.dart. Do not edit: change the JSON and run
 //   (cd app/packages/mydata_ui && dart run tool/generate_tokens.dart)
 // This is the only file in the apps that may contain literal colours, radii and font names.
@@ -15,6 +15,7 @@ class MyDataColors extends ThemeExtension<MyDataColors> {
     required this.surface,
     required this.surfaceRaised,
     required this.surfaceSunken,
+    required this.surfaceHover,
     required this.line,
     required this.lineStrong,
     required this.ink,
@@ -40,6 +41,14 @@ class MyDataColors extends ThemeExtension<MyDataColors> {
     required this.glassFill,
     required this.glassStroke,
     required this.scrim,
+    required this.dataRed,
+    required this.dataOrange,
+    required this.dataYellow,
+    required this.dataGreen,
+    required this.dataBlue,
+    required this.dataPurple,
+    required this.dataBrown,
+    required this.dataGrey,
   });
 
   /// Window background: a soft neutral grey with no tint, so every theme sits on it. Cards sit on it. Text uses ink or ink-muted.
@@ -50,6 +59,8 @@ class MyDataColors extends ThemeExtension<MyDataColors> {
   final Color surfaceRaised;
   /// Track of a segmented control, wells, icon tiles with no tint.
   final Color surfaceSunken;
+  /// Neutral hover and highlight fill: a hovered IconButton, Select field or list row, the pointer's highlight in a Menu or a Select's list. At least 1.3:1 on bg, surface and surface-raised in both modes. Never selection, never the only signal.
+  final Color surfaceHover;
   /// Dividers inside grouped lists. Decorative; cards themselves have no border.
   final Color line;
   /// Borders of inputs and unchecked switches. Meets 3:1 on bg and surface.
@@ -100,6 +111,22 @@ class MyDataColors extends ThemeExtension<MyDataColors> {
   final Color glassStroke;
   /// Dimming layer behind sheets and dialogs.
   final Color scrim;
+  /// Red in the palette for calendars myData owns (ColourPicker). A data colour: one value in both modes, drawn as given with DataColour's edge rule, never a control colour or a fill behind text. Not replaced by a theme.
+  final Color dataRed;
+  /// Orange in the palette for calendars myData owns (ColourPicker). A data colour: one value in both modes, drawn as given with DataColour's edge rule, never a control colour or a fill behind text. Not replaced by a theme.
+  final Color dataOrange;
+  /// Yellow in the palette for calendars myData owns (ColourPicker). A data colour: one value in both modes, drawn as given with DataColour's edge rule, never a control colour or a fill behind text. Not replaced by a theme.
+  final Color dataYellow;
+  /// Green in the palette for calendars myData owns (ColourPicker). A data colour: one value in both modes, drawn as given with DataColour's edge rule, never a control colour or a fill behind text. Not replaced by a theme.
+  final Color dataGreen;
+  /// Blue in the palette for calendars myData owns (ColourPicker). A data colour: one value in both modes, drawn as given with DataColour's edge rule, never a control colour or a fill behind text. Not replaced by a theme.
+  final Color dataBlue;
+  /// Purple in the palette for calendars myData owns (ColourPicker). A data colour: one value in both modes, drawn as given with DataColour's edge rule, never a control colour or a fill behind text. Not replaced by a theme.
+  final Color dataPurple;
+  /// Brown in the palette for calendars myData owns (ColourPicker). A data colour: one value in both modes, drawn as given with DataColour's edge rule, never a control colour or a fill behind text. Not replaced by a theme.
+  final Color dataBrown;
+  /// Grey in the palette for calendars myData owns (ColourPicker). A data colour: one value in both modes, drawn as given with DataColour's edge rule, never a control colour or a fill behind text. Not replaced by a theme.
+  final Color dataGrey;
 
   /// The Kiwi theme, light mode.
   static const light = MyDataColors(
@@ -107,6 +134,7 @@ class MyDataColors extends ThemeExtension<MyDataColors> {
     surface: Color(0xFFFFFFFF),
     surfaceRaised: Color(0xFFFFFFFF),
     surfaceSunken: Color(0xFFEDEDEB),
+    surfaceHover: Color(0xFFD9D9D6),
     line: Color(0xFFE3E3E0),
     lineStrong: Color(0xFF83837E),
     ink: Color(0xFF1A1A19),
@@ -132,6 +160,14 @@ class MyDataColors extends ThemeExtension<MyDataColors> {
     glassFill: Color(0xB8FFFFFF),
     glassStroke: Color(0xCCFFFFFF),
     scrim: Color(0x59141414),
+    dataRed: Color(0xFFD34730),
+    dataOrange: Color(0xFFEA700F),
+    dataYellow: Color(0xFFE7BD1B),
+    dataGreen: Color(0xFF36A462),
+    dataBlue: Color(0xFF159CE2),
+    dataPurple: Color(0xFF8B51E1),
+    dataBrown: Color(0xFF8A6859),
+    dataGrey: Color(0xFF939393),
   );
 
   /// The Kiwi theme, dark mode.
@@ -140,6 +176,7 @@ class MyDataColors extends ThemeExtension<MyDataColors> {
     surface: Color(0xFF1A1A1A),
     surfaceRaised: Color(0xFF232323),
     surfaceSunken: Color(0xFF0B0B0B),
+    surfaceHover: Color(0xFF383838),
     line: Color(0xFF2E2E2E),
     lineStrong: Color(0xFF7C7C7C),
     ink: Color(0xFFEDEDEB),
@@ -165,6 +202,14 @@ class MyDataColors extends ThemeExtension<MyDataColors> {
     glassFill: Color(0xB81A1A1A),
     glassStroke: Color(0x1FFFFFFF),
     scrim: Color(0x99000000),
+    dataRed: Color(0xFFD34730),
+    dataOrange: Color(0xFFEA700F),
+    dataYellow: Color(0xFFE7BD1B),
+    dataGreen: Color(0xFF36A462),
+    dataBlue: Color(0xFF159CE2),
+    dataPurple: Color(0xFF8B51E1),
+    dataBrown: Color(0xFF8A6859),
+    dataGrey: Color(0xFF939393),
   );
 
   /// These colours with [theme]'s accent, on-accent and accent-soft for [brightness].
@@ -183,6 +228,7 @@ class MyDataColors extends ThemeExtension<MyDataColors> {
     Color? surface,
     Color? surfaceRaised,
     Color? surfaceSunken,
+    Color? surfaceHover,
     Color? line,
     Color? lineStrong,
     Color? ink,
@@ -208,12 +254,21 @@ class MyDataColors extends ThemeExtension<MyDataColors> {
     Color? glassFill,
     Color? glassStroke,
     Color? scrim,
+    Color? dataRed,
+    Color? dataOrange,
+    Color? dataYellow,
+    Color? dataGreen,
+    Color? dataBlue,
+    Color? dataPurple,
+    Color? dataBrown,
+    Color? dataGrey,
   }) =>
       MyDataColors(
         bg: bg ?? this.bg,
         surface: surface ?? this.surface,
         surfaceRaised: surfaceRaised ?? this.surfaceRaised,
         surfaceSunken: surfaceSunken ?? this.surfaceSunken,
+        surfaceHover: surfaceHover ?? this.surfaceHover,
         line: line ?? this.line,
         lineStrong: lineStrong ?? this.lineStrong,
         ink: ink ?? this.ink,
@@ -239,6 +294,14 @@ class MyDataColors extends ThemeExtension<MyDataColors> {
         glassFill: glassFill ?? this.glassFill,
         glassStroke: glassStroke ?? this.glassStroke,
         scrim: scrim ?? this.scrim,
+        dataRed: dataRed ?? this.dataRed,
+        dataOrange: dataOrange ?? this.dataOrange,
+        dataYellow: dataYellow ?? this.dataYellow,
+        dataGreen: dataGreen ?? this.dataGreen,
+        dataBlue: dataBlue ?? this.dataBlue,
+        dataPurple: dataPurple ?? this.dataPurple,
+        dataBrown: dataBrown ?? this.dataBrown,
+        dataGrey: dataGrey ?? this.dataGrey,
       );
 
   @override
@@ -249,6 +312,7 @@ class MyDataColors extends ThemeExtension<MyDataColors> {
       surface: Color.lerp(surface, other.surface, t)!,
       surfaceRaised: Color.lerp(surfaceRaised, other.surfaceRaised, t)!,
       surfaceSunken: Color.lerp(surfaceSunken, other.surfaceSunken, t)!,
+      surfaceHover: Color.lerp(surfaceHover, other.surfaceHover, t)!,
       line: Color.lerp(line, other.line, t)!,
       lineStrong: Color.lerp(lineStrong, other.lineStrong, t)!,
       ink: Color.lerp(ink, other.ink, t)!,
@@ -274,6 +338,14 @@ class MyDataColors extends ThemeExtension<MyDataColors> {
       glassFill: Color.lerp(glassFill, other.glassFill, t)!,
       glassStroke: Color.lerp(glassStroke, other.glassStroke, t)!,
       scrim: Color.lerp(scrim, other.scrim, t)!,
+      dataRed: Color.lerp(dataRed, other.dataRed, t)!,
+      dataOrange: Color.lerp(dataOrange, other.dataOrange, t)!,
+      dataYellow: Color.lerp(dataYellow, other.dataYellow, t)!,
+      dataGreen: Color.lerp(dataGreen, other.dataGreen, t)!,
+      dataBlue: Color.lerp(dataBlue, other.dataBlue, t)!,
+      dataPurple: Color.lerp(dataPurple, other.dataPurple, t)!,
+      dataBrown: Color.lerp(dataBrown, other.dataBrown, t)!,
+      dataGrey: Color.lerp(dataGrey, other.dataGrey, t)!,
     );
   }
 }
@@ -437,6 +509,8 @@ abstract final class MyDataSpace {
 
 /// Corner radii (tokens.json "radius").
 abstract final class MyDataRadius {
+  /// The checkbox's box.
+  static const double xs = 6;
   /// Photo tiles, icon tiles, small wells.
   static const double sm = 10;
   /// Inputs.
@@ -467,6 +541,10 @@ abstract final class MyDataSize {
   static const double sidebarWidth = 248;
   /// Maximum width of reading and settings columns.
   static const double contentMax = 880;
+  /// Width of a Dialog's panel, or the window less space-8 on each side when that is narrower.
+  static const double dialogWidth = 520;
+  /// Width of an Inspector at the end edge of the window.
+  static const double inspectorWidth = 440;
 }
 
 /// Blur radii in logical pixels (tokens.json "blur").
