@@ -227,6 +227,28 @@ void main() {
       }
     });
 
+    testWidgets('under 600px the title actions sit at the end of the large title; not from 600px', (tester) async {
+      Widget frame(double width) => SizedBox(
+            width: width,
+            height: 600,
+            child: AppFrame(
+              appName: 'myContacts',
+              sections: _sections,
+              current: 0,
+              onSelect: (_) {},
+              phoneTitleActions: [MyDataIconButton(icon: Icons.add_rounded, label: 'New contact', onPressed: () {})],
+              child: const SizedBox.expand(),
+            ),
+          );
+      await _pumpFrame(tester, frame(375), view: const Size(375, 600));
+      final button = find.byType(MyDataIconButton);
+      expect(button, findsOneWidget);
+      expect(tester.getCenter(button).dy, closeTo(tester.getCenter(find.text('myContacts')).dy, 1));
+      expect(tester.getTopRight(button).dx, closeTo(375 - MyDataSpace.s4, 1));
+      await _pumpFrame(tester, frame(1100), view: const Size(1100, 600));
+      expect(find.byType(MyDataIconButton), findsNothing);
+    });
+
     testWidgets('a phone app with one section gets no tab bar', (tester) async {
       await _pumpFrame(tester, _frame(375, 700, sections: const [AppSection(icon: Icons.chat_outlined, label: 'Chat')]),
           view: const Size(375, 700));

@@ -301,6 +301,36 @@ void main() {
       expect(_panel, findsOneWidget);
     });
 
+    testWidgets('a failure the user can act on: its button under the line, inert while saving', (tester) async {
+      var reloads = 0;
+      final key = GlobalKey<InspectorState>();
+      await _pumpWide(
+          tester,
+          InspectorLayout(
+            content: const SizedBox.expand(),
+            inspector: Inspector(
+              key: key,
+              title: 'Edit contact',
+              form: MyDataTextField(label: 'Name', controller: TextEditingController(text: 'Ava')),
+              changed: true,
+              discardMessage: 'Your changes to Ava Fictional are not saved.',
+              savingAnnouncement: 'Saving Ava Fictional',
+              onSave: () async => 'Ava Fictional changed since you opened it.',
+              failureAction: InspectorFailureAction(label: 'Reload', onPressed: () => reloads++),
+              onClosed: (_) {},
+            ),
+          ));
+      await tester.pumpAndSettle();
+      expect(find.text('Reload'), findsNothing, reason: 'only with the failure line');
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+      final line = tester.getBottomLeft(find.text('Ava Fictional changed since you opened it.'));
+      expect(tester.getTopLeft(find.text('Reload')).dy, greaterThan(line.dy));
+      expect(tester.getTopLeft(find.text('Reload')).dy, lessThan(tester.getTopLeft(find.text('Save')).dy));
+      await tester.tap(find.text('Reload'));
+      expect(reloads, 1);
+    });
+
     testWidgets('a wrong field: nothing is sent and focus moves to it', (tester) async {
       final firstNode = FocusNode();
       addTearDown(firstNode.dispose);

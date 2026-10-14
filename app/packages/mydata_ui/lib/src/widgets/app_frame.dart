@@ -149,10 +149,16 @@ class AppFrame extends StatelessWidget {
     required this.onSelect,
     required this.child,
     this.connection = const AppConnection.connected(),
+    this.phoneTitleActions = const [],
   });
 
   /// Written exactly: "myPhotos", "myAssistant".
   final String appName;
+
+  /// Under 600px, at the end of the large title, `space-1` apart: the screen's IconButtons ("New contact",
+  /// "More actions"), since a phone has no menu bar (design/platforms.md "Phones have no menu bar"). Not
+  /// shown from 600px, where the menu bar and the content hold those actions.
+  final List<Widget> phoneTitleActions;
 
   /// The app's own sections only; no app lists the other apps.
   final List<AppSection> sections;
@@ -476,11 +482,19 @@ class _Phone extends StatelessWidget {
           // The page's own phone padding at the sides, so the title lines up with the content.
           padding: const EdgeInsets.fromLTRB(MyDataSpace.s4, MyDataSpace.s4, MyDataSpace.s4, 0),
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
-            Semantics(
-              header: true,
-              child: Text(f.appName,
-                  maxLines: 1, overflow: TextOverflow.ellipsis, style: MyDataType.displayXl.copyWith(color: c.ink)),
-            ),
+            Row(children: [
+              Expanded(
+                child: Semantics(
+                  header: true,
+                  child: Text(f.appName,
+                      maxLines: 1, overflow: TextOverflow.ellipsis, style: MyDataType.displayXl.copyWith(color: c.ink)),
+                ),
+              ),
+              for (var i = 0; i < f.phoneTitleActions.length; i++) ...[
+                if (i > 0) const SizedBox(width: MyDataSpace.s1),
+                f.phoneTitleActions[i],
+              ],
+            ]),
             if (f.connection.state != AppConnectionState.connected) ...[
               const SizedBox(height: MyDataSpace.s2),
               _ConnectionLine(connection: f.connection, inline: true),

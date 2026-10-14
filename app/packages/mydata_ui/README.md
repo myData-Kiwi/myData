@@ -56,3 +56,10 @@ The specs, previews and top-level docs were checked against each other; the owne
 - **Body at 16px on phones:** `PhoneType` and `AppLayout.isPhone` are the one size and the one breakpoint (600px). TextField (both kinds), Select's closed field, the form Switch, Checkbox, CheckboxList rows, TokenField and the pickers use them. Goldens at 560px and below are phone layouts and show 16px. The search field, ContactList and other phase 1 components are unchanged for now.
 - **Form group headings** start where the fields start on a panel and on a phone; only on a page's `bg` (desktop) are they inset `space-2`, as GroupedSection's. FormGroup, InspectorGroupHeading and the event editor's "When" share `FormGroupHeading`.
 
+
+## Editing contacts (phase 3, 2026-10-14)
+
+- **ContactList takes a `MultiSelectController`** (design/components/MultiSelect) from 600px: ⌘-click, ⇧-click, ⌘A, ⇧ and Option with the arrows, Space and Escape, as the controller does; a run of adjacent selected rows in one letter group shares one ring and its divider takes the selection's fill. Runs do not join across letter groups, whose cards are apart. Phones have no select mode yet.
+- **A row's Menu** (`menuFor`): right-click, Control-click, long-press, Shift-F10 and the context menu key on the row the keyboard is on; the items are the row's custom semantics actions. `onReturn` (Return edits the open row) and `onDelete` (the list's delete key, `AppMenuBar.listDeleteActivator`) belong to the app.
+- **`AppFrame.phoneTitleActions`**: IconButtons at the end of a phone's large title ("New contact", "More actions"), since a phone has no menu bar.
+- **`Inspector.failureAction`**: a Tonal button under the failure line, for a failure the user can act on from the inspector ("Reload" when the record changed elsewhere). The Inspector spec left "Changed elsewhere" to phase 3.

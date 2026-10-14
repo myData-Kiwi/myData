@@ -61,6 +61,7 @@ class Inspector extends StatefulWidget {
     required this.discardMessage,
     required this.savingAnnouncement,
     this.check,
+    this.failureAction,
   });
 
   /// What is done to what kind of record: "New contact", "Edit contact", "New event".
@@ -88,6 +89,11 @@ class Inspector extends StatefulWidget {
   final String savingAnnouncement;
 
   final FormCheck? check;
+
+  /// A button under the failure line, while one shows, for a failure the user can act on from here: "Reload"
+  /// when the record changed elsewhere since the inspector opened (the host refused the save). It is a
+  /// Tonal button `space-2` under the line. Null: the line alone.
+  final InspectorFailureAction? failureAction;
 
   static const cancelLabel = 'Cancel';
   static const saveLabel = 'Save';
@@ -312,9 +318,16 @@ class InspectorState extends State<Inspector> {
       focusNode: _saveNode,
       onPressed: _saving ? _inert : () => unawaited(save()),
     );
+    final action = widget.failureAction;
     final failure = _failure == null
         ? null
-        : Text(_failure!, style: MyDataType.body.copyWith(color: c.danger));
+        : action == null
+            ? Text(_failure!, style: MyDataType.body.copyWith(color: c.danger))
+            : Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+                Text(_failure!, style: MyDataType.body.copyWith(color: c.danger)),
+                const SizedBox(height: MyDataSpace.s2),
+                Button(label: action.label, onPressed: _saving ? _inert : action.onPressed),
+              ]);
     final form = FormBusy(
       busy: _saving,
       child: Focus(focusNode: _bodyNode, child: FormCommit(scope: _commits, child: widget.form)),
@@ -421,6 +434,16 @@ class InspectorState extends State<Inspector> {
     const SingleActivator(LogicalKeyboardKey.numpadEnter, meta: true): const _SaveIntent(),
     const SingleActivator(LogicalKeyboardKey.numpadEnter, control: true): const _SaveIntent(),
   };
+}
+
+/// The button under an [Inspector]'s failure line ([Inspector.failureAction]).
+@immutable
+class InspectorFailureAction {
+  const InspectorFailureAction({required this.label, required this.onPressed});
+
+  /// A verb, in sentence case: "Reload".
+  final String label;
+  final VoidCallback onPressed;
 }
 
 class _SaveIntent extends Intent {

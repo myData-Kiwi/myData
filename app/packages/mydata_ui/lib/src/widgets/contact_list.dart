@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, listEquals;
 import 'package:flutter/material.dart' show Icons;
+import 'package:flutter/semantics.dart' show CustomSemanticsAction;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
@@ -9,11 +11,15 @@ import '../generated/tokens.g.dart';
 import '../motion.dart';
 import '../theme.dart';
 import 'app_frame.dart' show AppLayout;
+import 'app_menu_bar.dart' show AppMenuBar;
 import 'avatar.dart';
 import 'group_frame.dart';
 import 'grouped_list.dart' show GroupedRow;
+import 'menu.dart';
+import 'multi_select.dart' show MultiSelectController;
 import 'pressable.dart' show FocusRing;
 import 'text_field.dart' show MyDataSearchField;
+import 'toggle_target.dart' show InsetRingPainter;
 
 /// One contact as a [ContactList] shows it. The host gives these values; the list only reads them.
 @immutable
@@ -111,6 +117,20 @@ class ContactListEntry {
 /// - With no contacts at all (no source on, or nothing read yet), show an EmptyState instead of this list.
 /// - From 600px, choose what is selected when the screen opens with [initialContactSelection], so the
 ///   contact pane is never empty while there are contacts.
+/// - **Several selected** ([selection], from 600px; design/components/MultiSelect): a click selects that one
+///   row and opens it; ⌘-click (Ctrl-click on Windows and Linux) adds or removes a row; ⇧-click selects the
+///   range from the anchor, across the letter groups; ⌘A selects every row shown; ⇧-Up and ⇧-Down (⇧-Home,
+///   ⇧-End) extend the range; Option-Up and Option-Down move the focus ring only, and Space adds or removes
+///   the focused row; Escape goes back to one row before it clears the search. Adjacent selected rows of a
+///   group share one ring, with no divider between them. Rows a search hides leave the selection. [onOpen]
+///   is called whenever one row becomes the selection by a plain click or a plain key; listen to [selection]
+///   for the rest.
+/// - **A row's Menu** ([menuFor]): a right-click, a Control-click on macOS or a long-press on a row, or
+///   Shift-F10 and the context menu key on the row the keyboard is on (under it). The row keeps its hover
+///   fill while its menu is open. Each enabled item is also a custom action of the row for screen readers.
+/// - [onReturn]: Return on the row the keyboard is on from 600px, where that row is already open (it edits
+///   it: design/platforms.md "Edit"). [onDelete]: the key that deletes the selected records while the list
+///   has focus ([AppMenuBar.listDeleteActivator]: the Delete key on Windows and Linux, ⌘⌫ on macOS).
 class ContactList extends StatefulWidget {
   const ContactList({
     super.key,
@@ -121,6 +141,10 @@ class ContactList extends StatefulWidget {
     this.focusNode,
     this.searchFocusNode,
     this.padding = EdgeInsets.zero,
+    this.selection,
+    this.menuFor,
+    this.onReturn,
+    this.onDelete,
   });
 
   /// Every contact, in the locale's order. The list filters them itself as the search text changes.
@@ -146,6 +170,19 @@ class ContactList extends StatefulWidget {
   /// so give the screen's padding here rather than around the list: the groups' shadows are then not cut off
   /// at the sides, and the last group can scroll clear of a phone's tab bar.
   final EdgeInsets padding;
+
+  /// The rows selected, from 600px, when several can be (design/components/MultiSelect). Null: one row at a
+  /// time, [selectedId]. With it, keep [selectedId] the one row open (null while several are selected).
+  final MultiSelectController<String>? selection;
+
+  /// The Menu of the row [id] (design/components/Menu): "Edit contact", "Delete contact". Null: no menu.
+  final List<MenuEntry> Function(String id)? menuFor;
+
+  /// Return on the open row from 600px; null: Return opens the row, as it does under 600px.
+  final ValueChanged<String>? onReturn;
+
+  /// The delete key while the list has focus; null: the key does nothing here.
+  final VoidCallback? onDelete;
 
   /// The search field's placeholder, which is also its accessible name.
   static const searchPlaceholder = 'Search contacts';
@@ -472,6 +509,7 @@ class _ContactListState extends State<ContactList> {
     super.initState();
     _query = _search.text;
     _search.addListener(_searchChanged);
+    widget.selection?.addListener(_selectionChanged);
     _cursorId = widget.selectedId;
     FocusManager.instance.addHighlightModeListener(_highlightChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -489,7 +527,11 @@ class _ContactListState extends State<ContactList> {
       _search.addListener(_searchChanged);
       _searchChanged();
     }
-    if (old.selectedId != widget.selectedId) {
+    if (old.selection != widget.selection) {
+      old.selection?.removeListener(_selectionChanged);
+      widget.selection?.addListener(_selectionChanged);
+    }
+    if (old.selectedId != widget.selectedId && widget.selectedId != null) {
       _cursorId = widget.selectedId;
       final i = _modelFor(widget.contacts, _query).indexOf(widget.selectedId);
       if (i != null && !_phone) _reveal(i);
@@ -498,6 +540,7 @@ class _ContactListState extends State<ContactList> {
 
   @override
   void dispose() {
+    widget.selection?.removeListener(_selectionChanged);
     _search.removeListener(_searchChanged);
     FocusManager.instance.removeHighlightModeListener(_highlightChanged);
     _typedTimer?.cancel();
@@ -506,6 +549,17 @@ class _ContactListState extends State<ContactList> {
     _ownSearchFocus?.dispose();
     _scroll.dispose();
     super.dispose();
+  }
+
+  /// Several rows can be selected here: [ContactList.selection], from 600px.
+  MultiSelectController<String>? get _multi => _phone ? null : widget.selection;
+
+  void _selectionChanged() {
+    if (!mounted) return;
+    final focused = widget.selection?.focused;
+    setState(() {
+      if (focused != null && !_phone) _cursorId = focused;
+    });
   }
 
   void _highlightChanged(FocusHighlightMode mode) {
@@ -526,8 +580,21 @@ class _ContactListState extends State<ContactList> {
       _modelContacts = contacts;
       _modelQuery = query;
       _model = _Model(filterContacts(contacts, query));
+      _syncSelectionRows();
     }
     return _model;
+  }
+
+  /// The selection holds only the rows on screen: a row a search hides leaves it (MultiSelect). Done after
+  /// this build, since the selection's listeners include this list.
+  void _syncSelectionRows() {
+    final selection = widget.selection;
+    if (selection == null) return;
+    final ids = [for (final r in _model.rows) r.id];
+    if (listEquals(ids, selection.rows)) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && identical(widget.selection, selection)) selection.rows = ids;
+    });
   }
 
   /// Every row's height is known before it is built: one line of name, one optional line of caption.
@@ -584,6 +651,8 @@ class _ContactListState extends State<ContactList> {
       _cursorId = id;
       _pointerFocus = false;
     });
+    final multi = _multi;
+    if (multi != null && (multi.count != 1 || !multi.isSelected(id))) multi.select(id);
     if (!_phone && id != widget.selectedId) widget.onOpen(id);
     _reveal(row);
   }
@@ -591,6 +660,8 @@ class _ContactListState extends State<ContactList> {
   void _open(int row) {
     final id = _model.rows[row].id;
     setState(() => _cursorId = id);
+    final multi = _multi;
+    if (multi != null && (multi.count != 1 || !multi.isSelected(id))) multi.select(id);
     widget.onOpen(id);
   }
 
@@ -599,7 +670,54 @@ class _ContactListState extends State<ContactList> {
       _pointerFocus = true;
       _focus.requestFocus();
     }
+    final multi = _multi;
+    if (multi != null) {
+      final k = HardwareKeyboard.instance;
+      final id = _model.rows[row].id;
+      if (MultiSelectController.commandPressed(k)) {
+        setState(() => _cursorId = id);
+        multi.toggle(id);
+        _openSingle(multi);
+        return;
+      }
+      if (k.isShiftPressed) {
+        setState(() => _cursorId = id);
+        multi.extendTo(id);
+        _openSingle(multi);
+        return;
+      }
+    }
     _open(row);
+  }
+
+  /// After a change to [multi] that leaves one row selected, that row is the one open.
+  void _openSingle(MultiSelectController<String> multi) {
+    if (multi.count != 1) return;
+    final id = multi.selected.first;
+    if (id != widget.selectedId) widget.onOpen(id);
+  }
+
+  /// The row [row]'s rectangle on screen, from the heights known before building (the row may be off
+  /// screen); null before the first layout.
+  Rect? _rowRect(int row) {
+    final box = _focus.context?.findRenderObject();
+    if (box is! RenderBox || !box.hasSize || !_scroll.hasClients) return null;
+    final item = _model.itemOfRow[row];
+    final top = _tops[item] - _scroll.position.pixels;
+    return box.localToGlobal(Offset(widget.padding.left, top)) &
+        Size(box.size.width - widget.padding.horizontal, _extents[item]);
+  }
+
+  /// Shift-F10 or the context menu key: the Menu of the row the keyboard is on, under it.
+  void _menuFromKeyboard(int row) {
+    final menuFor = widget.menuFor;
+    final rect = _rowRect(row);
+    if (menuFor == null || rect == null) return;
+    final ltr = Directionality.of(context) == TextDirection.ltr;
+    unawaited(Menu.showAt(context,
+        position: ltr ? rect.bottomLeft : rect.bottomRight,
+        entries: menuFor(_model.rows[row].id),
+        fromKeyboard: true));
   }
 
   /// Scrolls [row] into view after this frame's layout; a group's first row brings its heading with it.
@@ -662,13 +780,60 @@ class _ContactListState extends State<ContactList> {
   KeyEventResult _onListKey(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent && event is! KeyRepeatEvent) return KeyEventResult.ignored;
     final key = event.logicalKey;
+    final keyboard = HardwareKeyboard.instance;
+    final multi = _multi;
     if (key == LogicalKeyboardKey.escape) {
+      // Several selected: back to one first (MultiSelect), then the search.
+      if (multi != null && event is KeyDownEvent && multi.clearToFocused()) {
+        _openSingle(multi);
+        return KeyEventResult.handled;
+      }
       if (_search.text.isEmpty) return KeyEventResult.ignored;
       _search.clear();
       return KeyEventResult.handled;
     }
     final cursor = _cursor;
-    if (cursor == null || _modifier) return KeyEventResult.ignored;
+    if (cursor == null) return KeyEventResult.ignored;
+    if (event is KeyDownEvent && widget.menuFor != null &&
+        (const SingleActivator(LogicalKeyboardKey.f10, shift: true).accepts(event, keyboard) ||
+            key == LogicalKeyboardKey.contextMenu)) {
+      _menuFromKeyboard(cursor);
+      return KeyEventResult.handled;
+    }
+    if (event is KeyDownEvent &&
+        widget.onDelete != null &&
+        AppMenuBar.listDeleteActivator(defaultTargetPlatform).accepts(event, keyboard)) {
+      widget.onDelete!();
+      return KeyEventResult.handled;
+    }
+    if (multi != null) {
+      final typingSpace = key == LogicalKeyboardKey.space && _typed.isNotEmpty;
+      final enter = key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.numpadEnter;
+      if (!typingSpace && !enter) {
+        final view = _scroll.hasClients ? _scroll.position.viewportDimension : 0.0;
+        final page = math.max(1, (view / MyDataSize.rowHeight).floor());
+        if (multi.focused == null || !multi.rows.contains(multi.focused)) {
+          final id = _model.rows[cursor].id;
+          if (multi.isSelected(id)) {
+            multi.focusOnly(id);
+          }
+        }
+        final before = multi.focused;
+        final handled = multi.handleKey(event, page: page);
+        if (handled == KeyEventResult.handled) {
+          final focused = multi.focused;
+          setState(() {
+            _pointerFocus = false;
+            if (focused != null) _cursorId = focused;
+          });
+          _openSingle(multi);
+          final row = _model.indexOf(focused ?? before);
+          if (row != null) _reveal(row);
+          return KeyEventResult.handled;
+        }
+      }
+    }
+    if (_modifier) return KeyEventResult.ignored;
     final last = _model.rows.length - 1;
     int? to;
     if (key == LogicalKeyboardKey.arrowDown) {
@@ -689,9 +854,12 @@ class _ContactListState extends State<ContactList> {
       return KeyEventResult.handled;
     }
     final typing = _typed.isNotEmpty;
-    if (key == LogicalKeyboardKey.enter ||
-        key == LogicalKeyboardKey.numpadEnter ||
-        (key == LogicalKeyboardKey.space && !typing)) {
+    final enter = key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.numpadEnter;
+    if (enter && !_phone && widget.onReturn != null) {
+      widget.onReturn!(_model.rows[cursor].id);
+      return KeyEventResult.handled;
+    }
+    if (enter || (key == LogicalKeyboardKey.space && !typing)) {
       _open(cursor);
       return KeyEventResult.handled;
     }
@@ -727,6 +895,13 @@ class _ContactListState extends State<ContactList> {
       _typed = '';
       _pointerFocus = false;
     }
+  }
+
+  /// From 600px: the row is selected, by [ContactList.selection] or else [ContactList.selectedId].
+  bool _isSelected(String id) {
+    if (_phone) return false;
+    final multi = widget.selection;
+    return multi != null && multi.count > 0 ? multi.isSelected(id) : id == widget.selectedId;
   }
 
   @override
@@ -783,10 +958,13 @@ class _ContactListState extends State<ContactList> {
               first: first,
               last: last,
               phone: _phone,
-              selected: !_phone && entry.id == widget.selectedId,
+              selected: _isSelected(entry.id),
+              joinsUp: !first && _isSelected(entry.id) && _isSelected(model.rows[row - 1].id),
+              joinsDown: !last && _isSelected(entry.id) && _isSelected(model.rows[row + 1].id),
               focusRing: ring && row == cursor,
               cursor: row == cursor,
               focused: _focused && row == cursor,
+              menu: widget.menuFor == null ? null : () => widget.menuFor!(entry.id),
               onPressed: () => _press(row),
             ),
           ),
@@ -851,10 +1029,13 @@ class _ContactRow extends StatefulWidget {
     required this.last,
     required this.phone,
     required this.selected,
+    this.joinsUp = false,
+    this.joinsDown = false,
     required this.focusRing,
     required this.cursor,
     required this.focused,
     required this.onPressed,
+    this.menu,
   });
 
   final ContactListEntry entry;
@@ -862,6 +1043,13 @@ class _ContactRow extends StatefulWidget {
   final bool last;
   final bool phone;
   final bool selected;
+
+  /// The row above (or below) is selected too: one ring around the run, no divider between them.
+  final bool joinsUp;
+  final bool joinsDown;
+
+  /// The row's Menu entries; null for none.
+  final List<MenuEntry> Function()? menu;
 
   /// The focus ring is drawn: keyboard focus is on this row.
   final bool focusRing;
@@ -882,6 +1070,9 @@ class _ContactRow extends StatefulWidget {
 class _ContactRowState extends State<_ContactRow> {
   bool _hovered = false;
   bool _pressed = false;
+
+  /// Its Menu is open: it keeps its hover fill (design/components/Menu).
+  bool _menuOpen = false;
 
   @override
   Widget build(BuildContext context) {
@@ -932,7 +1123,7 @@ class _ContactRowState extends State<_ContactRow> {
     );
 
     // Hover and press fill, under the content; a selected row keeps accent-soft.
-    final lit = (_hovered || _pressed) && !widget.selected;
+    final lit = (_hovered || _pressed || _menuOpen) && !widget.selected;
     content = AnimatedContainer(
       duration: MyDataMotion.fast,
       curve: MyDataMotion.standard,
@@ -960,7 +1151,8 @@ class _ContactRowState extends State<_ContactRow> {
           position: DecorationPosition.background,
           child: content,
         ),
-        if (widget.selected)
+        // A row selected on its own: its own ring. A run's ring is drawn over the whole pieces (below).
+        if (widget.selected && !widget.joinsUp && !widget.joinsDown)
           Positioned.fill(
             child: IgnorePointer(
               child: DecoratedBox(
@@ -997,6 +1189,14 @@ class _ContactRowState extends State<_ContactRow> {
         child: content,
       ),
     );
+    final menu = widget.menu;
+    if (menu != null) {
+      content = ContextMenuRegion(
+        entries: menu,
+        onOpenChanged: (open) => setState(() => _menuOpen = open),
+        child: content,
+      );
+    }
 
     content = Semantics(
       container: true,
@@ -1006,17 +1206,37 @@ class _ContactRowState extends State<_ContactRow> {
       focused: widget.cursor ? widget.focused : null,
       label: caption == null ? e.name : '${e.name}, $caption',
       onTap: widget.onPressed,
+      // The Menu's items, for VoiceOver's Actions rotor and TalkBack's actions (design/components/Menu).
+      customSemanticsActions: menu == null
+          ? null
+          : {
+              for (final item in menu())
+                if (item is MenuItem && item.enabled) CustomSemanticsAction(label: item.label): item.onSelected,
+            },
       child: ExcludeSemantics(child: content),
     );
 
     return CustomPaint(
       painter: _CardPieceShadow(context.shadows.shadow1, first: widget.first, last: widget.last),
+      // A run of selected rows: one ring over the whole piece (its divider too), open where it joins the
+      // next row, so the run's sides have no gap.
+      foregroundPainter: widget.selected && (widget.joinsUp || widget.joinsDown)
+          ? InsetRingPainter(
+              color: c.ink,
+              width: ContactList.selectionRingWidth,
+              borderRadius: shape,
+              top: !widget.joinsUp,
+              bottom: !widget.joinsDown,
+            )
+          : null,
       child: DecoratedBox(
         decoration: BoxDecoration(color: c.surface, borderRadius: shape),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (!widget.first) Container(height: GroupFrame.dividerWidth, color: c.line),
+            // No divider inside a run of selected rows: the run reads as one block.
+            if (!widget.first)
+              Container(height: GroupFrame.dividerWidth, color: widget.joinsUp ? c.accentSoft : c.line),
             Expanded(child: content),
           ],
         ),
