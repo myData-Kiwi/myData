@@ -45,22 +45,24 @@ def _lock(fd: int) -> bool:
         return False
 
 
-def acquire_pid_lock(settings: Settings) -> int | None:
+def acquire_pid_lock(settings: Settings, *, marker: str | None = None) -> int | None:
     """Hold an exclusive lock on the pid file for the life of the process. The kernel releases it on any
-    exit, including a crash, so a held lock always means a live mydatad. Returns the fd, or None if taken."""
+    exit, including a crash, so a held lock always means a live mydatad (or a restore: it writes `marker`
+    instead of its pid, so daemon_pid finds no host to stop). Returns the fd, or None if taken."""
     private_dir(settings.home)  # also tightens a folder made before the host set 0700
     fd = os.open(settings.pid_path, os.O_RDWR | os.O_CREAT, 0o600)
     if not _lock(fd):
         os.close(fd)
         return None
     os.ftruncate(fd, 0)
-    os.write(fd, str(os.getpid()).encode())
+    os.write(fd, (marker or str(os.getpid())).encode())
     return fd
 
 
 def daemon_pid(settings: Settings) -> int | None:
     """The pid of the running mydatad, or None. A pid file nobody holds the lock on is stale and removed,
-    so a leftover pid can never point the mydata command at an unrelated process."""
+    so a leftover pid can never point the mydata command at an unrelated process. None too while a restore
+    holds the lock (the file then holds no pid)."""
     if not settings.pid_path.exists():
         return None
     try:

@@ -40,6 +40,7 @@ import os
 import re
 import secrets
 import shutil
+import signal
 import sqlite3
 import subprocess
 import sys
@@ -549,6 +550,35 @@ class HostRunning(BackupError):
     pass
 
 
+RESTORING = "restoring"  # in the pid file while a restore holds the host's lock
+
+
+def _ignore_signals() -> dict:
+    """SIGTERM and SIGINT are ignored while a restore swaps files (main thread only: elsewhere Python
+    cannot change handlers). Returns the handlers to put back."""
+    if threading.current_thread() is not threading.main_thread():
+        return {}
+    saved = {}
+    for sig in (signal.SIGTERM, signal.SIGINT):
+        saved[sig] = signal.signal(sig, signal.SIG_IGN)
+    return saved
+
+
+def _restore_signals(saved: dict) -> None:
+    for sig, handler in saved.items():
+        signal.signal(sig, handler)
+
+
+def remove_leftovers(home: Path) -> list[str]:
+    """Delete the staged copies (.<file>.restoring) a killed restore left in the host folder. Call only
+    while holding the host's lock (a restore, or the running host): then nobody is writing them."""
+    removed = []
+    for p in Path(home).glob(".*.restoring"):
+        p.unlink(missing_ok=True)
+        removed.append(p.name)
+    return removed
+
+
 def restore(home: Path, name: str, *, now: datetime | None = None) -> dict:
     """Put a snapshot's databases back in the host folder. The host must be stopped: its pid lock is held
     throughout, so it cannot start meanwhile (HostRunning if it is running). The current state is
@@ -561,23 +591,36 @@ def restore(home: Path, name: str, *, now: datetime | None = None) -> dict:
     home = Path(home)
     snap = find_snapshot(home, name)
     settings = Settings(home=home)
-    fd = acquire_pid_lock(settings)
+    # The lock without this process's pid in the file: `mydata stop`, or an app replacing the host, must
+    # find no host to stop, rather than kill the restore halfway.
+    fd = acquire_pid_lock(settings, marker=RESTORING)
     if fd is None:
         raise HostRunning("the host is running; stop it first (mydata stop, or Quit in the myData app)")
+    signals = _ignore_signals()
     try:
+        remove_leftovers(home)  # under the lock: any found are from a restore that was killed
         manifest = snap.manifest
         problems = _check_files(snap, manifest)
         if problems:
             raise BackupError("the snapshot is damaged: " + "; ".join(problems))
         before = take_snapshot(home, "pre-restore", now=now, keep_damaged=True)
+        # Every copy first, then the swaps: an interruption while copying leaves the databases as they were.
+        staged = []
+        try:
+            for entry in manifest["files"]:
+                tmp = home / f".{entry['file']}.restoring"
+                staged.append(tmp)
+                shutil.copyfile(snap.path / entry["file"], tmp)
+                private_file(tmp)
+                with open(tmp, "rb") as fh:
+                    os.fsync(fh.fileno())
+        except BaseException:
+            for tmp in staged:
+                tmp.unlink(missing_ok=True)
+            raise
         restored = []
-        for entry in manifest["files"]:
+        for entry, tmp in zip(manifest["files"], staged):
             target = home / entry["file"]
-            tmp = home / f".{entry['file']}.restoring"
-            shutil.copyfile(snap.path / entry["file"], tmp)
-            private_file(tmp)
-            with open(tmp, "rb") as fh:
-                os.fsync(fh.fileno())
             # A WAL or journal left beside the old file would be applied to the restored one.
             for suffix in ("-wal", "-shm", "-journal"):
                 target.with_name(target.name + suffix).unlink(missing_ok=True)
@@ -585,6 +628,7 @@ def restore(home: Path, name: str, *, now: datetime | None = None) -> dict:
             restored.append(entry["file"])
         untouched = [p.name for p in database_files(home) if p.name not in restored]
     finally:
+        _restore_signals(signals)
         settings.pid_path.unlink(missing_ok=True)
         os.close(fd)
     damaged = [f["file"] for f in failures(before)] if before else []
@@ -643,6 +687,7 @@ class BackupService:
 
     def run_once(self, now: datetime | None = None) -> Snapshot | None:
         try:
+            remove_leftovers(self.home)  # the host holds its lock
             snap = take_snapshot(self.home, "hourly", only_if_changed=True, now=now)
             prune(self.home, now)
             newest = snap or next(iter(list_snapshots(self.home)), None)

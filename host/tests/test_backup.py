@@ -465,6 +465,34 @@ def test_restore_puts_a_snapshot_back_over_a_damaged_database(home, damage):
     assert verify(home, pre.name)["ok"] is True  # the drill checks what the snapshot holds
 
 
+def test_a_restore_cannot_be_stopped_as_if_it_were_the_host(home, monkeypatch):
+    import signal
+
+    from mydata.service.daemon import daemon_pid
+    snap = take_snapshot(home, "manual", now=NOW)
+    stale = home / ".contacts.sqlite.restoring"
+    stale.write_bytes(b"a copy from a restore that was killed")
+    (home / "mydatad.pid").write_text("99999")  # an old pid nobody holds the lock on
+    seen = {}
+    real = backup.take_snapshot
+
+    def during(*a, **kw):
+        settings = Settings(home=home)
+        seen["pid"] = daemon_pid(settings)
+        seen["file"] = settings.pid_path.read_text()
+        seen["sigterm"] = signal.getsignal(signal.SIGTERM)
+        seen["stale"] = stale.exists()
+        return real(*a, **kw)
+
+    before = signal.getsignal(signal.SIGTERM)
+    monkeypatch.setattr(backup, "take_snapshot", during)
+    restore(home, snap.name, now=NOW + timedelta(hours=1))
+    # mydata stop finds no host to stop, and a SIGTERM would be ignored meanwhile
+    assert seen == {"pid": None, "file": "restoring", "sigterm": signal.SIG_IGN, "stale": False}
+    assert signal.getsignal(signal.SIGTERM) == before
+    assert not list(home.glob(".*.restoring"))
+
+
 def test_restore_refuses_while_the_host_runs(home):
     snap = take_snapshot(home, "manual", now=NOW)
     fd = acquire_pid_lock(Settings(home=home))  # stands in for a running mydatad
