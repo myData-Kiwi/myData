@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 
 import '../generated/tokens.g.dart';
 import '../theme.dart';
+import 'app_frame.dart' show AppLayout, PhoneType;
+import 'form_scope.dart';
 import 'pressable.dart';
 
 /// A single-line input with a label above and optional help below (design/components/TextField).
@@ -17,9 +19,14 @@ import 'pressable.dart';
 /// - Focus draws the 2px `focus` ring whenever the field holds focus (a text input always matches
 ///   `:focus-visible` in the preview, however it was focused). In error the ring is `ink`, so it cannot merge
 ///   with the red border (design/README.md "Focus and danger").
-/// - Disabled: 45% opacity, not focusable.
+/// - Disabled: the label and the box at 45% opacity, not focusable; the [help] (the reason) is not faded.
+/// - While its Dialog or Inspector waits for the host ([FormBusy]) it is read-only: focus stays, typing does
+///   nothing.
+/// - Under 600px the text is `body` at 16px ([PhoneType]); `mono` keeps its size.
 ///
 /// The field fills the width it is given; put it in an [Expanded] or a sized box inside a [Row].
+///
+/// [MyDataTextField.multiline] is the text area, for text people write in sentences.
 class MyDataTextField extends StatefulWidget {
   const MyDataTextField({
     super.key,
@@ -37,7 +44,39 @@ class MyDataTextField extends StatefulWidget {
     this.autofocus = false,
     this.keyboardType,
     this.textInputAction,
-  });
+    this.showLabel = true,
+  }) : multiline = false;
+
+  /// A TextField that takes several lines, for text people write in sentences: a contact's notes, an
+  /// event's description (design/components/TextField, "Multi-line").
+  ///
+  /// - As the single-line field (label above, help or error below, `surface`, 1px `line-strong`,
+  ///   `radius-md`), with `space-4` padding across and `space-3` down; the text wraps.
+  /// - It starts [minLines] tall and grows a line at a time, at once and without animation, up to
+  ///   [maxLines]; past that it scrolls inside with the platform's scroll bar, keeping the typing point in
+  ///   view. It never shrinks below [minLines].
+  /// - Return inserts a new line; Tab moves focus on (it never inserts a tab); ⌘Return (Control+Return
+  ///   elsewhere) is not handled here, so the Inspector or Dialog holding the form saves with it.
+  /// - No counter: none of today's uses has a limit.
+  /// - Not for a single value, an address, or a mail body.
+  const MyDataTextField.multiline({
+    super.key,
+    required this.label,
+    required this.controller,
+    this.help,
+    this.error,
+    this.placeholder,
+    this.enabled = true,
+    this.onChanged,
+    this.focusNode,
+    this.autofocus = false,
+    this.showLabel = true,
+  })  : multiline = true,
+        mono = false,
+        obscure = false,
+        onSubmitted = null,
+        keyboardType = TextInputType.multiline,
+        textInputAction = TextInputAction.newline;
 
   /// Sentence case: "Folder for your data".
   final String label;
@@ -66,6 +105,22 @@ class MyDataTextField extends StatefulWidget {
   final bool autofocus;
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
+
+  /// Whether this is the text area ([MyDataTextField.multiline]).
+  final bool multiline;
+
+  /// False in a form group that holds only this field (Notes): the group's heading names it, and [label]
+  /// stays its accessible name (design/components/FormRow).
+  final bool showLabel;
+
+  /// The text area's height: spec "it starts three lines tall".
+  static const minLines = 3;
+
+  /// Spec: "grows a line at a time as the text grows, up to twelve lines; past that it scrolls inside".
+  static const maxLines = 12;
+
+  /// Spec: "Multi-line: `space-4` padding across and `space-3` down".
+  static const multilineVerticalPadding = MyDataSpace.s3;
 
   /// Spec: "`surface` fill, 1px `line-strong` border".
   static const borderWidth = 1.0;
@@ -111,7 +166,9 @@ class _MyDataTextFieldState extends State<MyDataTextField> {
     final hasError = widget.error != null;
     final note = widget.error ?? widget.help;
     final borderWidth = hasError ? MyDataTextField.errorBorderWidth : MyDataTextField.borderWidth;
-    final style = (widget.mono ? MyDataType.mono : MyDataType.body).copyWith(color: c.ink);
+    final phone = AppLayout.isPhone(context);
+    final style =
+        (widget.mono ? MyDataType.mono : PhoneType.body(MyDataType.body, phone: phone)).copyWith(color: c.ink);
 
     Widget field = _Field(
       controller: widget.controller,
@@ -119,6 +176,7 @@ class _MyDataTextFieldState extends State<MyDataTextField> {
       style: style,
       placeholder: widget.placeholder,
       enabled: widget.enabled,
+      readOnly: FormBusy.of(context),
       obscure: widget.obscure,
       autofocus: widget.autofocus,
       onChanged: widget.onChanged,
@@ -128,6 +186,7 @@ class _MyDataTextFieldState extends State<MyDataTextField> {
       // The 2px error border grows inward; the text stays where it was.
       horizontalInset: MyDataSpace.s4 - borderWidth,
       verticalInset: borderWidth,
+      multiline: widget.multiline,
       decoration: BoxDecoration(
         color: c.surface,
         borderRadius: MyDataRadii.md,
@@ -144,14 +203,19 @@ class _MyDataTextFieldState extends State<MyDataTextField> {
       child: field,
     );
 
-    final body = Column(
+    // Disabled, only the control fades (its label and box); the help, which gives the reason, keeps full
+    // `ink-muted` (design/platforms.md "Disabled controls").
+    Widget faded(Widget w) => widget.enabled ? w : Opacity(opacity: Pressable.disabledOpacity, child: w);
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Read out through the field's own semantics.
-        ExcludeSemantics(child: Text(widget.label, style: MyDataType.label.copyWith(color: c.ink))),
-        const SizedBox(height: MyDataSpace.s2),
-        field,
+        if (widget.showLabel) ...[
+          // Read out through the field's own semantics.
+          faded(ExcludeSemantics(child: Text(widget.label, style: MyDataType.label.copyWith(color: c.ink)))),
+          const SizedBox(height: MyDataSpace.s2),
+        ],
+        faded(field),
         if (note != null) ...[
           const SizedBox(height: MyDataSpace.s2),
           ExcludeSemantics(
@@ -160,7 +224,6 @@ class _MyDataTextFieldState extends State<MyDataTextField> {
         ],
       ],
     );
-    return widget.enabled ? body : Opacity(opacity: Pressable.disabledOpacity, child: body);
   }
 }
 
@@ -230,6 +293,7 @@ class _MyDataSearchFieldState extends State<MyDataSearchField> {
         style: MyDataType.body.copyWith(color: c.ink),
         placeholder: widget.placeholder,
         enabled: true,
+        readOnly: false,
         obscure: false,
         autofocus: widget.autofocus,
         onChanged: widget.onChanged,
@@ -260,6 +324,7 @@ class _Field extends StatelessWidget {
     required this.style,
     required this.placeholder,
     required this.enabled,
+    required this.readOnly,
     required this.obscure,
     required this.autofocus,
     required this.onChanged,
@@ -273,6 +338,7 @@ class _Field extends StatelessWidget {
     this.readPlaceholder = true,
     this.leading,
     this.danger = false,
+    this.multiline = false,
   });
 
   final TextEditingController controller;
@@ -280,6 +346,9 @@ class _Field extends StatelessWidget {
   final TextStyle style;
   final String? placeholder;
   final bool enabled;
+
+  /// Its form waits for the host ([FormBusy]): focus stays, typing does nothing.
+  final bool readOnly;
   final bool obscure;
   final bool autofocus;
   final ValueChanged<String>? onChanged;
@@ -304,16 +373,22 @@ class _Field extends StatelessWidget {
   /// In error, with its 2px `danger` border: the focus ring is `ink` (design/README.md "Focus and danger").
   final bool danger;
 
+  /// The text area: [MyDataTextField.minLines] to [MyDataTextField.maxLines] lines, `space-3` padding down.
+  final bool multiline;
+
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
     final lineHeight = style.fontSize! * style.height!;
-    final vertical = (MyDataSize.controlHeight - lineHeight) / 2 - verticalInset;
+    final vertical = multiline
+        ? MyDataTextField.multilineVerticalPadding - verticalInset
+        : (MyDataSize.controlHeight - lineHeight) / 2 - verticalInset;
     final hintStyle = style.copyWith(color: c.inkMuted);
     final text = TextField(
       controller: controller,
       focusNode: focusNode,
       enabled: enabled,
+      readOnly: readOnly,
       autofocus: autofocus,
       obscureText: obscure,
       autocorrect: !obscure,
@@ -322,10 +397,11 @@ class _Field extends StatelessWidget {
       onSubmitted: onSubmitted,
       keyboardType: keyboardType,
       textInputAction: textInputAction,
-      maxLines: 1,
+      minLines: multiline ? MyDataTextField.minLines : null,
+      maxLines: multiline ? MyDataTextField.maxLines : 1,
       style: style,
       cursorColor: c.accent,
-      textAlignVertical: TextAlignVertical.center,
+      textAlignVertical: multiline ? TextAlignVertical.top : TextAlignVertical.center,
       decoration: InputDecoration(
         isCollapsed: true,
         border: InputBorder.none,
@@ -337,7 +413,7 @@ class _Field extends StatelessWidget {
             : ExcludeSemantics(
                 child: Text(placeholder!, style: hintStyle, maxLines: 1, overflow: TextOverflow.ellipsis)),
         hintStyle: hintStyle,
-        hintMaxLines: 1,
+        hintMaxLines: multiline ? MyDataTextField.minLines : 1,
         contentPadding: EdgeInsets.fromLTRB(
             leading == null ? horizontalInset : MyDataSpace.s2, vertical, horizontalInset, vertical),
       ),
@@ -347,7 +423,7 @@ class _Field extends StatelessWidget {
       borderRadius: borderRadius,
       danger: danger,
       child: Container(
-        height: MyDataSize.controlHeight,
+        height: multiline ? null : MyDataSize.controlHeight,
         decoration: decoration,
         child: leading == null
             ? text

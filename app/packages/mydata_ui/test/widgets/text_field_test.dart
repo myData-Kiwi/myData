@@ -202,7 +202,7 @@ void main() {
     handle.dispose();
   });
 
-  testWidgets('disabled: 45% opacity, not focusable, no typing', (tester) async {
+  testWidgets('disabled: label and box at 45% (the help is not faded), not focusable, no typing', (tester) async {
     final node = FocusNode();
     addTearDown(node.dispose);
     final controller = _c('imap.example.com');
@@ -210,8 +210,14 @@ void main() {
         themeMatrix.first,
         SizedBox(
             width: 300,
-            child: MyDataTextField(label: 'Mail server', controller: controller, enabled: false, focusNode: node))));
-    expect(tester.widget<Opacity>(find.byType(Opacity)).opacity, Pressable.disabledOpacity);
+            child: MyDataTextField(
+                label: 'Mail server', controller: controller, enabled: false, focusNode: node, help: 'Set by your host.'))));
+    for (final part in [find.text('Mail server'), find.byType(TextField)]) {
+      expect(tester.widget<Opacity>(find.ancestor(of: part, matching: find.byType(Opacity)).first).opacity,
+          Pressable.disabledOpacity);
+    }
+    // design/platforms.md "Disabled controls": only the control fades; the reason keeps full ink-muted.
+    expect(find.ancestor(of: find.text('Set by your host.'), matching: find.byType(Opacity)), findsNothing);
     await tester.tap(find.byType(TextField), warnIfMissed: false);
     await tester.sendKeyEvent(LogicalKeyboardKey.tab);
     await tester.pump();
@@ -291,5 +297,41 @@ void main() {
     }
 
     expect(await sizeWith(true), await sizeWith(false));
+  });
+
+  testWidgets('body at 16px under 600px, 15px from 600px; the multi-line field too', (tester) async {
+    for (final (width, size) in [(390.0, PhoneType.bodySize), (800.0, MyDataType.body.fontSize)]) {
+      tester.view.physicalSize = Size(width, 500);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(themedFrame(
+          themeMatrix.first,
+          SizedBox(
+            width: 300,
+            child: Column(children: [
+              MyDataTextField(label: 'Your name', controller: _c('Ava')),
+              MyDataTextField.multiline(label: 'Notes', controller: _c('Met at the book club.')),
+            ]),
+          )));
+      for (final e in tester.widgetList<EditableText>(find.byType(EditableText))) {
+        expect(e.style.fontSize, size, reason: '$width wide');
+      }
+    }
+  });
+
+  testWidgets('while its form waits for the host (FormBusy) it is read-only, focus kept', (tester) async {
+    final node = FocusNode();
+    addTearDown(node.dispose);
+    Widget field(bool busy) => themedFrame(
+        themeMatrix.first,
+        FormBusy(busy: busy, child: SizedBox(width: 300, child: MyDataTextField(label: 'Name', controller: _c('Ava'), focusNode: node))));
+    await tester.pumpWidget(field(false));
+    node.requestFocus();
+    await tester.pump();
+    await tester.pumpWidget(field(true));
+    expect(tester.widget<EditableText>(find.byType(EditableText)).readOnly, isTrue);
+    expect(node.hasFocus, isTrue);
+    await tester.pumpWidget(field(false));
+    expect(tester.widget<EditableText>(find.byType(EditableText)).readOnly, isFalse);
   });
 }
