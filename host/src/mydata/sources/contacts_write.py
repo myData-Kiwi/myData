@@ -26,7 +26,7 @@ delete restores the card; undoing a restore deletes it again. An undo is not its
 
 Delete is soft: `deleted_at` is set and `purge_after` is 30 days later. expire_trash() (the host runs it
 daily) purges cards past their date through purge permits (owned.purge), with their revisions, which hold
-their text; the change feed and undo log rows hold no contact data and stay. Copies in the host's snapshots
+their text, and purge_now() does the same for one card when the user deletes it for good; the change feed and undo log rows hold no contact data and stay. Copies in the host's snapshots
 stay until those expire (backup.kept_until).
 
 Group cards are not contacts here (they are never found by id), so they are never written; a contact's
@@ -307,6 +307,20 @@ def trash(store: ContactsStore) -> list[dict]:
                           "WHERE b.mode = ? AND c.deleted_at IS NOT NULL AND c.kind != 'group' "
                           "ORDER BY c.deleted_at DESC, c.id", (owned.OWNED,)).fetchall()
     return [public_row(r) for r in rows]
+
+
+def purge_now(store: ContactsStore, contact_id: str) -> None:
+    """Delete one card in Recently deleted for good now, because the user asked, with its revisions, as
+    expire_trash does for cards whose time is over. A card that is not in Recently deleted is refused
+    (NotFound), so a contact in use is never purged by mistake; a followed one is refused (ReadOnly)."""
+    with store.db.transaction() as db:
+        row = _row(db, contact_id)
+        if row["deleted_at"] is None:
+            raise NotFound("This contact is not in Recently deleted.")
+        owned.purge(db, owned.CONTACTS, row_ids=[contact_id])
+        db.execute("DELETE FROM revisions WHERE object_id = ?", (contact_id,))
+        db.execute("INSERT INTO contacts_fts (contacts_fts) VALUES ('optimize')")
+    store.db.checkpoint()
 
 
 def expire_trash(store: ContactsStore, now: datetime | None = None) -> int:

@@ -26,6 +26,7 @@
   PATCH /contacts/{id}         change an owned contact; If-Match with its etag is required
   DELETE /contacts/{id}        move an owned contact to Recently deleted (purged after 30 days)
   GET  /trash                  what is in Recently deleted, and when each item is purged
+  DELETE /trash/{id}           delete an item in Recently deleted for good now
   POST /trash/{id}/restore     bring an item back from Recently deleted
   POST /undo/{id}              undo one change (as a new change; refused if the item changed since)
   GET  /calendars              mirrored calendars
@@ -69,7 +70,7 @@ from .appearance import DEFAULT_THEME, THEME_IDS, THEMES
 from .assistant import Assistant
 from .auth import SCOPES, Authenticator
 from ..sources._db import MigrationError
-from .backup import BackupError, BackupService
+from .backup import BackupError, BackupService, kept_until
 from .logs import LAST_ERROR, log
 from .state import HostState
 from .mcp import build_mcp
@@ -465,6 +466,9 @@ class TrashItemOut(BaseModel):
     title: str = Field(description="the item's name as the apps show it")
     deleted_at: str
     purge_after: str = Field(description="when it is deleted for good (UTC)")
+    backups_kept_until: str = Field(description="YYYY-MM-DD: copies of it in the host's snapshots are kept until "
+                                                "this day if it is deleted for good now, while the host keeps "
+                                                "running (the apps say so before deleting it for good)")
     contact: ContactOut | None = Field(default=None, description="for kind contact")
 
 
@@ -1157,8 +1161,27 @@ def _routes_contact_writes(app: FastAPI, need: Callable[[], SyncService], unavai
         """Recently deleted: what was deleted in the apps, the most recent first, with when each is deleted for
         good. Copies in the host's snapshots stay until those expire."""
         rows = cw.trash(need().contacts)
+        kept = kept_until().isoformat()
         return [TrashItemOut(id=r["id"], kind="contact", title=r["display_name"], deleted_at=r["deleted_at"],
-                             purge_after=r["purge_after"] or "", contact=ContactOut(**_list_view(r))) for r in rows]
+                             purge_after=r["purge_after"] or "", backups_kept_until=kept,
+                             contact=ContactOut(**_list_view(r))) for r in rows]
+
+    @app.delete("/trash/{item_id}", dependencies=needs("contacts:write"), tags=["sources"], status_code=204,
+                responses={404: {"description": "no such item in Recently deleted"},
+                           409: {"description": "the contact is followed from a source"}, **unavailable})
+    def purge_item(item_id: str, request: Request) -> Response:
+        """Delete an item in Recently deleted for good now, with its earlier versions; it cannot be brought back
+        or undone. Copies in the host's snapshots stay until those expire (backups_kept_until)."""
+        service = need()
+        who = actor(request)
+        try:
+            cw.purge_now(service.contacts, item_id)
+        except cw.NotFound as e:
+            raise HTTPException(404, str(e)) from None
+        except cw.WriteError as e:
+            raise HTTPException(409, str(e)) from None
+        log(_LOGGER, logging.INFO, "contact purged", actor=who, contact_id=item_id)
+        return Response(status_code=204)
 
     @app.post("/trash/{item_id}/restore", dependencies=needs("contacts:write"), tags=["sources"],
               response_model=ContactWriteOut, responses={**refused, **unavailable})

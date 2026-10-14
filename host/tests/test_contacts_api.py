@@ -6,6 +6,8 @@ data (the daily trash expiry is in test_trash_expiry.py). Invented data only (ex
 from __future__ import annotations
 
 import logging
+from datetime import date
+
 import pytest
 from starlette.testclient import TestClient
 
@@ -142,6 +144,31 @@ def test_delete_trash_restore_and_undo(host, client):
     assert client.post("/undo/no-such-id", headers=auth).status_code == 404
 
 
+def test_delete_for_good_from_recently_deleted(host, client):
+    auth = bearer(host, "mycontacts")
+    contact = create(client, host).json()["contact"]
+    keep = create(client, host, {"company": "Example Library"}).json()["contact"]
+    path = f"/contacts/{contact['id']}"
+    assert client.delete(f"/trash/{contact['id']}", headers=auth).status_code == 404  # not in the trash: kept
+    undo_delete = client.delete(path, headers=auth).json()["undo_id"]
+    [item] = client.get("/trash", headers=auth).json()
+    kept = date.fromisoformat(item["backups_kept_until"])
+    assert kept.day == 1 and kept > date.today()
+    r = client.delete(f"/trash/{contact['id']}", headers=auth)
+    assert r.status_code == 204 and r.content == b""
+    assert client.get("/trash", headers=auth).json() == []
+    assert client.get(path, headers=auth).status_code == 404
+    assert client.post(f"/trash/{contact['id']}/restore", headers=auth).status_code == 404
+    r = client.post(f"/undo/{undo_delete}", headers=auth)
+    assert r.status_code == 409 and "deleted for good" in r.json()["detail"]
+    assert client.delete(f"/trash/{contact['id']}", headers=auth).status_code == 404
+    db = host.sources.contacts.db
+    with db.connect() as c:
+        assert c.execute("SELECT COUNT(*) FROM revisions WHERE object_id = ?", (contact["id"],)).fetchone()[0] == 0
+        assert c.execute("SELECT COUNT(*) FROM revisions WHERE object_id = ?", (keep["id"],)).fetchone()[0] > 0
+    assert [x["id"] for x in client.get("/contacts", headers=auth).json()] == [keep["id"]]
+
+
 def test_undo_across_a_restart_of_the_host(tmp_path):
     first = Host(tmp_path, FakeDav())
     with TestClient(first.app, base_url="http://127.0.0.1") as c:
@@ -168,11 +195,13 @@ def test_followed_contacts_cannot_be_changed(host, client):
                      json={"given_name": "Changed"})
     assert r.status_code == 409 and "followed" in r.json()["detail"]
     assert client.delete(f"/contacts/{target['id']}", headers=auth).status_code == 409
+    assert client.delete(f"/trash/{target['id']}", headers=auth).status_code == 409
     assert client.get(f"/contacts/{target['id']}", headers=auth).json()["display_name"] == target["display_name"]
 
 
 WRITES = [("post", "/contacts", {"given_name": "Pip"}), ("patch", "/contacts/x", {"given_name": "Pip"}),
-          ("delete", "/contacts/x", None), ("post", "/trash/x/restore", None), ("post", "/undo/x", None)]
+          ("delete", "/contacts/x", None), ("post", "/trash/x/restore", None), ("delete", "/trash/x", None),
+          ("post", "/undo/x", None)]
 
 
 def _send(client, method, path, body, headers):

@@ -23,7 +23,8 @@ def test_openapi_declares_bearer_auth_and_localhost_server():
                                  "/accounts/{account_id}", "/accounts/{account_id}/sync", "/sync", "/contacts",
                                  "/contacts/{contact_id}", "/contacts/{contact_id}/photo", "/calendars", "/events",
                                  "/sources", "/sources/mac", "/sources/mac/request-access", "/sources/mac/sync",
-                                 "/sources/mac/reader", "/trash", "/trash/{item_id}/restore", "/undo/{undo_id}"}
+                                 "/sources/mac/reader", "/trash", "/trash/{item_id}", "/trash/{item_id}/restore",
+                                 "/undo/{undo_id}"}
 
 
 def test_source_routes_are_tagged_and_the_password_is_write_only():
@@ -31,7 +32,7 @@ def test_source_routes_are_tagged_and_the_password_is_write_only():
     for path in ("/accounts", "/accounts/{account_id}", "/accounts/{account_id}/sync", "/sync", "/contacts",
                  "/contacts/{contact_id}", "/contacts/{contact_id}/photo", "/calendars", "/events", "/sources",
                  "/sources/mac", "/sources/mac/request-access", "/sources/mac/sync", "/sources/mac/reader", "/trash",
-                 "/trash/{item_id}/restore", "/undo/{undo_id}"):
+                 "/trash/{item_id}", "/trash/{item_id}/restore", "/undo/{undo_id}"):
         for op in doc["paths"][path].values():
             assert op["tags"] == ["sources"], path
     password = doc["components"]["schemas"]["AccountIn"]["properties"]["password"]

@@ -47,6 +47,7 @@ ROUTE_SCOPES = {
     ("DELETE", "/contacts/{contact_id}"): ("contacts:write",),
     ("GET", "/trash"): ("contacts:read",),
     ("POST", "/trash/{item_id}/restore"): ("contacts:write",),
+    ("DELETE", "/trash/{item_id}"): ("contacts:write",),
     ("POST", "/undo/{undo_id}"): ("contacts:write",),
     ("GET", "/calendars"): ("calendar:read",),
     ("GET", "/events"): ("calendar:read",),

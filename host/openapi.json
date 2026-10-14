@@ -2478,6 +2478,11 @@
       },
       "TrashItemOut": {
         "properties": {
+          "backups_kept_until": {
+            "description": "YYYY-MM-DD: copies of it in the host's snapshots are kept until this day if it is deleted for good now, while the host keeps running (the apps say so before deleting it for good)",
+            "title": "Backups Kept Until",
+            "type": "string"
+          },
           "contact": {
             "anyOf": [
               {
@@ -2519,7 +2524,8 @@
           "kind",
           "title",
           "deleted_at",
-          "purge_after"
+          "purge_after",
+          "backups_kept_until"
         ],
         "title": "TrashItemOut",
         "type": "object"
@@ -5245,6 +5251,84 @@
         ],
         "x-mydata-scopes": [
           "contacts:read"
+        ]
+      }
+    },
+    "/trash/{item_id}": {
+      "delete": {
+        "description": "Delete an item in Recently deleted for good now, with its earlier versions; it cannot be brought back\nor undone. Copies in the host's snapshots stay until those expire (backups_kept_until).",
+        "operationId": "purge_item",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "item_id",
+            "required": true,
+            "schema": {
+              "title": "Item Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "missing or wrong token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
+          },
+          "404": {
+            "description": "no such item in Recently deleted"
+          },
+          "409": {
+            "description": "the contact is followed from a source"
+          },
+          "421": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "the Host header is not this machine"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "503": {
+            "description": "accounts are not available in this host"
+          }
+        },
+        "summary": "Purge Item",
+        "tags": [
+          "sources"
+        ],
+        "x-mydata-scopes": [
+          "contacts:write"
         ]
       }
     },
