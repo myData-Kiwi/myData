@@ -2170,7 +2170,7 @@
       "ImportNoteOut": {
         "properties": {
           "code": {
-            "description": "skipped_unreadable, skipped_no_end, skipped_version, skipped_empty, skipped_too_many, nested_zip, encrypted (losses); converted_21, windows_1252, outside_text, other_files (changes)",
+            "description": "skipped_unreadable, skipped_no_end, skipped_version, skipped_empty, skipped_too_many, nested_zip, encrypted, unsupported_compression (losses); converted_21, windows_1252, outside_text, other_files (changes)",
             "title": "Code",
             "type": "string"
           },

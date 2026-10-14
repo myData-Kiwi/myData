@@ -8,7 +8,8 @@ Caps, each refused with ImportFileError (a message for the user, no content):
 - MAX_INPUT bytes uploaded;
 - for a zip: at most MAX_ENTRIES entries in its directory, MAX_EXPANDED bytes read out of it in all, each entry
   read through a bounded read (a header that understates an entry's size is never trusted), and no entry that
-  expands more than MAX_RATIO times (a zip bomb). Nested zips and encrypted entries are not read (reported).
+  expands more than MAX_RATIO times (a zip bomb). Nested zips, encrypted entries and entries compressed other than
+  stored or deflated (bzip2 and LZMA expand a whole read before any cap applies) are not read (reported).
 
 Each card is cut out of the text on its own, so one malformed card never stops the others: a card without
 END:VCARD, one the line parser rejects, an unsupported VERSION or a vCard 2.1 that cannot be converted is
@@ -37,6 +38,9 @@ MAX_EXPANDED = 200 * 1024 * 1024
 MAX_ENTRIES = 10_000
 MAX_RATIO = 200
 MAX_CARDS = 50_000
+# Zip entries are read only when stored or deflated (Google, Takeout and macOS write these): zlib expands a bounded
+# read in bounded steps, so the caps below hold while the entry is read.
+_READ_COMPRESSION = (zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED)
 
 # Why a card was not read (the loss report's codes); the messages are the app's words.
 SKIP_REASONS = {
@@ -137,6 +141,11 @@ def _zip_vcards(data: bytes, result: ReadResult):
             continue
         if info.flag_bits & 0x1:
             result.note("encrypted")
+            continue
+        if info.compress_type not in _READ_COMPRESSION:
+            # bzip2 and LZMA are expanded a whole read at a time, before any cap could stop them (a few KB can
+            # expand to gigabytes); exports never use them.
+            result.note("unsupported_compression")
             continue
         cap = min(budget, max(info.compress_size, 1) * MAX_RATIO)
         try:

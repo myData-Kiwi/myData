@@ -38,15 +38,18 @@ def several() -> bytes:
                    "Takeout/Calendar/Invented.ics": b"BEGIN:VCALENDAR\r\nEND:VCALENDAR\r\n"})
 
 
-def bomb(size: int = 300 * 1024 * 1024) -> bytes:
-    """One .vcf entry of `size` bytes of the same character: a few hundred KB compressed. Written in pieces, so
-    the test never holds the expanded bytes."""
+def bomb(size: int = 300 * 1024 * 1024, *, compression: int = zipfile.ZIP_DEFLATED,
+         beside: dict[str, bytes] | None = None) -> bytes:
+    """One .vcf entry of `size` bytes of the same character: a few hundred KB compressed (a few hundred bytes with
+    bzip2), and the `beside` entries deflated. Written in pieces, so the test never holds the expanded bytes."""
     out = io.BytesIO()
-    with zipfile.ZipFile(out, "w", compression=zipfile.ZIP_DEFLATED) as z:
+    with zipfile.ZipFile(out, "w", compression=compression) as z:
         with z.open("contacts.vcf", "w", force_zip64=True) as fh:
             chunk = b"A" * (1024 * 1024)
             for _ in range(size // len(chunk)):
                 fh.write(chunk)
+        for name, data in (beside or {}).items():
+            z.writestr(name, data, compress_type=zipfile.ZIP_DEFLATED)
     return out.getvalue()
 
 

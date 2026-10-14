@@ -4,6 +4,7 @@ with their caps, malformed cards skipped one by one, and nothing ever written to
 from __future__ import annotations
 
 import os
+import tracemalloc
 import zipfile
 
 import pytest
@@ -77,6 +78,21 @@ def test_a_zip_bomb_is_refused_without_expanding_it():
     assert len(data) < 2 * 1024 * 1024
     with pytest.raises(ImportFileError, match="expands"):
         read_contacts(data)
+
+
+@pytest.mark.parametrize("compression", [zipfile.ZIP_BZIP2, zipfile.ZIP_LZMA])
+def test_bzip2_and_lzma_entries_are_never_expanded(compression):
+    # bzip2 and LZMA expand a whole read at once, before the size cap could stop them: such entries are not read.
+    data = corpus.bomb(64 * 1024 * 1024, compression=compression, beside={"plain.vcf": corpus.read(corpus.GOOGLE)})
+    assert len(data) < 64 * 1024
+    tracemalloc.start()
+    try:
+        r = read_contacts(data)
+        peak = tracemalloc.get_traced_memory()[1]
+    finally:
+        tracemalloc.stop()
+    assert r.notes == {"unsupported_compression": 1} and len(r.cards) == 2
+    assert peak < 8 * 1024 * 1024
 
 
 def test_a_zip_expanding_past_the_total_cap_is_refused(monkeypatch):

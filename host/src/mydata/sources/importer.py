@@ -344,6 +344,8 @@ def _missing(db: sqlite3.Connection, source: ImportSource, present: set[str]) ->
 _LOSS_NOTES = {
     "nested_zip": "{n} zip file(s) inside the zip were not read.",
     "encrypted": "{n} encrypted file(s) in the zip were not read.",
+    "unsupported_compression": "{n} file(s) in the zip are compressed in a way myData does not read (only stored "
+                               "and deflated); they were not read.",
 }
 _CHANGE_NOTES = {
     "windows_1252": "The file was not UTF-8; it was read as Windows-1252 text.",
