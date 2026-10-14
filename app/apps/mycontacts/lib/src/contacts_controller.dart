@@ -549,9 +549,10 @@ class ContactsController extends ChangeNotifier {
     final names = <String>[];
     WriteFailure? failure;
     for (final id in ids) {
-      final d = _details[id];
       try {
-        final w = await backend.delete(id, etag: d is DetailReady ? d.contact.etag : null);
+        final etag = await _etagOf(id);
+        if (etag == null) throw const Gone();
+        final w = await backend.delete(id, etag);
         done.add(id);
         names.add(w.contact.displayName);
         if (w.undoId != null) undoIds.add(w.undoId!);
@@ -578,6 +579,17 @@ class ContactsController extends ChangeNotifier {
     }
     _notify();
     return BulkResult(done, failure, entry);
+  }
+
+  /// The version of [id] the user sees, which a delete names (the host requires it): its page's when read,
+  /// else the list row's, else the host's now (a contact neither shows, such as one a link opened). Null
+  /// when the host has no such contact.
+  Future<String?> _etagOf(String id) async {
+    final d = _details[id];
+    if (d is DetailReady) return d.contact.etag;
+    final listed = _byId[id];
+    if (listed != null) return listed.etag;
+    return (await backend.contact(id))?.etag;
   }
 
   /// [gone] left the list: open the row now in the first one's place, and read the list again.
@@ -672,7 +684,7 @@ class ContactsController extends ChangeNotifier {
     WriteFailure? failure;
     for (final id in ids) {
       try {
-        final w = await backend.restore(id);
+        final w = await backend.restore(id, etag: _trashEtagOf(id));
         done.add(id);
         names.add(w.contact.displayName);
         if (w.undoId != null) undoIds.add(w.undoId!);
@@ -685,6 +697,7 @@ class ContactsController extends ChangeNotifier {
       }
     }
     if (_disposed) return BulkResult(done, failure, null);
+    if (done.isEmpty && failure is ChangedElsewhere) await loadTrash();
     UndoEntry? entry;
     if (done.isNotEmpty) {
       final n = done.length;
@@ -702,14 +715,26 @@ class ContactsController extends ChangeNotifier {
     return BulkResult(done, failure, entry);
   }
 
+  /// The version of [id] Recently deleted listed, or null when it does not list it.
+  String? _trashEtagOf(String id) {
+    for (final t in trash ?? const <TrashItemOut>[]) {
+      if (t.id == id) return t.contact?.etag;
+    }
+    return null;
+  }
+
   /// Deletes [ids], which are in Recently deleted, for good, stopping at the first failure. It cannot be
-  /// undone.
-  Future<BulkResult> purge(List<String> ids) async {
+  /// undone. Each goes only at the version the user saw: [seen] (the versions listed when the dialog asked),
+  /// else the one Recently deleted lists now. One changed elsewhere since (restored, edited and deleted
+  /// again) stops it with [ChangedElsewhere], and Recently deleted is read again.
+  Future<BulkResult> purge(List<String> ids, {Map<String, String?> seen = const {}}) async {
     final done = <String>[];
     WriteFailure? failure;
     for (final id in ids) {
       try {
-        await backend.purge(id);
+        final etag = seen.containsKey(id) ? seen[id] : _trashEtagOf(id);
+        if (etag == null) throw const Gone();
+        await backend.purge(id, etag);
         done.add(id);
       } on Gone {
         done.add(id); // Already gone: what the user asked for.
@@ -722,7 +747,7 @@ class ContactsController extends ChangeNotifier {
       }
     }
     if (_disposed) return BulkResult(done, failure, null);
-    if (done.isNotEmpty) await loadTrash();
+    if (done.isNotEmpty || failure is ChangedElsewhere) await loadTrash();
     _notify();
     return BulkResult(done, failure, null);
   }

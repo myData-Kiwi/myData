@@ -114,14 +114,22 @@ class _TrashViewState extends State<TrashView> {
         return UndoResult(await _c.undo(entry));
       });
     }
-    if (result.failure != null) {
-      setState(() => _error = 'The contacts could not all be restored. ${_why(result.failure!)} Check that the '
-          'host is running, then try again.');
+    final failure = result.failure;
+    if (failure != null) {
+      setState(() => _error = failure is ChangedElsewhere
+          ? 'The contacts could not all be restored. $changedSince'
+          : 'The contacts could not all be restored. ${_why(failure)} Check that the host is running, then try '
+              'again.');
     }
     if (_phone && result.done.isNotEmpty) Navigator.of(context).popUntil((r) => r.isFirst);
   }
 
   static String _why(WriteFailure f) => f is NoAnswer ? 'The host did not answer.' : 'The host refused one of them.';
+
+  /// A contact here was restored, changed and deleted again elsewhere since this list was read: the list is
+  /// read again, so the user sees that version before acting on it.
+  static const changedSince = 'One of them changed elsewhere since this list was read. Look at it again, then try '
+      'again.';
 
   Future<void> _purge(List<String> ids) async {
     final items = [for (final id in ids) ?_item(id)];
@@ -129,6 +137,9 @@ class _TrashViewState extends State<TrashView> {
     final one = items.length == 1;
     final kept = TrashView.backupsLine(items.first.backupsKeptUntil);
     final remaining = [...ids];
+    // The versions this dialog names: pressing its button again after a failure never deletes a version
+    // changed elsewhere meanwhile.
+    final seen = {for (final i in items) i.id: i.contact?.etag};
     final done = await showMyDataDialog(
       context: context,
       builder: (_) => MyDataDialog(
@@ -142,10 +153,17 @@ class _TrashViewState extends State<TrashView> {
         workingLabel: 'Deleting…',
         workingAnnouncement: one ? 'Deleting ${items.single.title}' : 'Deleting ${items.length} contacts',
         onConfirm: () async {
-          final result = await _c.purge([...remaining]);
+          final result = await _c.purge([...remaining], seen: seen);
           remaining.removeWhere(result.done.contains);
-          if (result.failure == null) return null;
-          return '${one ? 'The contact' : 'The contacts'} could not be deleted. ${_why(result.failure!)} Check that '
+          final failure = result.failure;
+          if (failure == null) return null;
+          if (failure is ChangedElsewhere) {
+            return one
+                ? 'The contact was not deleted. It changed elsewhere since this list was read. Look at it again, '
+                    'then try again.'
+                : 'The contacts could not all be deleted. $changedSince';
+          }
+          return '${one ? 'The contact' : 'The contacts'} could not be deleted. ${_why(failure)} Check that '
               'the host is running, then try again.';
         },
       ),

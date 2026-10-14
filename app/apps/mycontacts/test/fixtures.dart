@@ -219,13 +219,13 @@ class FakeBackend implements ContactsBackend {
   }
 
   @override
-  Future<Written> delete(String id, {String? etag}) async {
+  Future<Written> delete(String id, String etag) async {
     etagsSent.add(etag);
     _checkWrite();
     final old = _find(id);
     if (old == null) throw const Gone();
     if (!old.editable) throw const Refused('This contact is followed from another source.');
-    if (etag != null && etag != old.etag) throw const ChangedElsewhere();
+    if (etag != old.etag) throw const ChangedElsewhere();
     final rev = _revOf(old) + 1;
     final gone = _withRev(old, rev, deleted: true);
     cards = [for (final x in cards) if (x.id != id) x];
@@ -249,10 +249,12 @@ class FakeBackend implements ContactsBackend {
       ];
 
   @override
-  Future<Written> restore(String id) async {
+  Future<Written> restore(String id, {String? etag}) async {
+    etagsSent.add(etag);
     _checkWrite();
     final old = trashed.where((c) => c.id == id).firstOrNull;
     if (old == null) throw const Gone();
+    if (etag != null && etag != old.etag) throw const ChangedElsewhere();
     final rev = _revOf(old) + 1;
     final back = _withRev(old, rev, deleted: false);
     trashed.remove(old);
@@ -262,10 +264,12 @@ class FakeBackend implements ContactsBackend {
   }
 
   @override
-  Future<void> purge(String id) async {
+  Future<void> purge(String id, String etag) async {
+    etagsSent.add(etag);
     _checkWrite();
     final old = trashed.where((c) => c.id == id).firstOrNull;
     if (old == null) throw const Gone();
+    if (etag != old.etag) throw const ChangedElsewhere();
     trashed.remove(old);
     writes.add('purge $id');
   }
@@ -306,6 +310,13 @@ class FakeBackend implements ContactsBackend {
     final c = _withRev(old, _revOf(old) + 1, deleted: false);
     if (jobTitle != null) c.jobTitle = jobTitle;
     cards = [for (final x in cards) x.id == id ? c : x];
+  }
+
+  /// Elsewhere (another app), [id] in Recently deleted was restored, changed and deleted again: its etag
+  /// moves on.
+  void changeInTrashElsewhere(String id) {
+    final i = trashed.indexWhere((c) => c.id == id);
+    trashed[i] = _withRev(trashed[i], _revOf(trashed[i]) + 3, deleted: true);
   }
 
   static ContactDetailOut _withRev(ContactDetailOut c, int rev, {required bool deleted}) {

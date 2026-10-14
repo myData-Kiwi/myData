@@ -90,17 +90,20 @@ abstract class ContactsBackend {
   /// ([ChangedElsewhere] when it changed since).
   Future<Written> update(String id, String etag, ContactIn form);
 
-  /// Moves contact [id] to Recently deleted. Throws a [WriteFailure].
-  Future<Written> delete(String id, {String? etag});
+  /// Moves contact [id] to Recently deleted, from the version [etag] the user chose (the host requires it).
+  /// Throws a [WriteFailure] ([ChangedElsewhere] when it changed since).
+  Future<Written> delete(String id, String etag);
 
   /// Recently deleted, the most recently deleted first.
   Future<List<TrashItemOut>> trash();
 
-  /// Brings [id] back from Recently deleted. Throws a [WriteFailure].
-  Future<Written> restore(String id);
+  /// Brings [id] back from Recently deleted, from the version [etag] Recently deleted listed when known.
+  /// Throws a [WriteFailure] ([ChangedElsewhere] when it changed since).
+  Future<Written> restore(String id, {String? etag});
 
-  /// Deletes [id], which is in Recently deleted, for good. Throws a [WriteFailure].
-  Future<void> purge(String id);
+  /// Deletes [id], which is in Recently deleted, for good, from the version [etag] Recently deleted listed
+  /// (the host requires it, so a version changed elsewhere is never deleted unseen). Throws a [WriteFailure].
+  Future<void> purge(String id, String etag);
 
   /// Undoes the write [undoId] names. Throws a [WriteFailure] ([Refused] when the contact changed since).
   Future<ContactDetailOut> undo(String undoId);
@@ -164,16 +167,16 @@ class HostContactsBackend implements ContactsBackend {
       _write(() => _api.updateContact(id, form, ifMatch: etag));
 
   @override
-  Future<Written> delete(String id, {String? etag}) => _write(() => _api.deleteContact(id, ifMatch: etag));
+  Future<Written> delete(String id, String etag) => _write(() => _api.deleteContact(id, ifMatch: etag));
 
   @override
-  Future<Written> restore(String id) => _write(() => _api.restoreItem(id));
+  Future<Written> restore(String id, {String? etag}) => _write(() => _api.restoreItem(id, ifMatch: etag));
 
   @override
   Future<List<TrashItemOut>> trash() async => await _api.trash(kind: 'contact') ?? const <TrashItemOut>[];
 
   @override
-  Future<void> purge(String id) => _guard(() => _api.purgeItem(id));
+  Future<void> purge(String id, String etag) => _guard(() => _api.purgeItem(id, ifMatch: etag));
 
   @override
   Future<ContactDetailOut> undo(String undoId) async {

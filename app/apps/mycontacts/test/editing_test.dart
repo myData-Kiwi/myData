@@ -582,4 +582,81 @@ void main() {
       await outlastToast(tester);
     });
   });
+  group('etags on every delete (review)', () {
+    testWidgets('a delete of rows never opened sends each row\'s etag from the list', (tester) async {
+      desktop(tester);
+      final backend = ownedBackend(more: [
+        ownedCard('c-quinn', ContactIn(givenName: 'Quinn', familyName: 'Owned'), rev: 2),
+      ]);
+      await tester.pumpWidget(app(backend));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(row('Quinn Owned'));
+      await tester.pumpAndSettle();
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.tap(row('Quinn Owned'));
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pumpAndSettle();
+      expect(backend.detailCalls, isNot(contains('c-quinn')), reason: 'Quinn\'s page was never read');
+      await tester.tap(find.widgetWithText(Button, 'Delete 2 contacts'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.descendant(of: find.byType(MyDataDialog), matching: find.text('Delete 2 contacts')));
+      await tester.pumpAndSettle();
+      expect(backend.writes, ['delete c-quinn', 'delete c-pip']);
+      expect(backend.etagsSent, ['"2-c-quinn"', '"3-c-pip"']);
+      await outlastToast(tester);
+    });
+
+    testWidgets('a stale list deletes nothing: the host refuses the old etag', (tester) async {
+      desktop(tester);
+      final backend = ownedBackend(more: [ownedCard('c-quinn', ContactIn(givenName: 'Quinn', familyName: 'Owned'))]);
+      await tester.pumpWidget(app(backend));
+      await tester.pumpAndSettle();
+      backend.changeElsewhere('c-quinn'); // the myData app saved a new phone; this window's list is older
+      await tester.ensureVisible(row('Quinn Owned'));
+      await tester.pumpAndSettle();
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.tap(row('Quinn Owned'));
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(Button, 'Delete 2 contacts'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.descendant(of: find.byType(MyDataDialog), matching: find.text('Delete 2 contacts')));
+      await tester.pumpAndSettle();
+      expect(backend.writes, isEmpty);
+      expect(find.textContaining('One of them changed since'), findsOneWidget);
+    });
+
+    testWidgets('delete permanently refuses a version changed elsewhere, even when pressed again', (tester) async {
+      desktop(tester);
+      final backend = ownedBackend();
+      await tester.pumpWidget(app(backend));
+      await tester.pumpAndSettle();
+      await tester.tap(row('Pip Owned'));
+      await tester.sendKeyEvent(LogicalKeyboardKey.delete);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Deleted'));
+      await tester.pumpAndSettle();
+      backend.changeInTrashElsewhere('c-pip');
+      await tester.tap(find.widgetWithText(Button, TrashView.purgeLabel));
+      await tester.pumpAndSettle();
+      final confirm = find.descendant(of: find.byType(MyDataDialog), matching: find.text('Delete permanently'));
+      await tester.tap(confirm);
+      await tester.pumpAndSettle();
+      expect(find.textContaining('It changed elsewhere since this list was read'), findsOneWidget);
+      await tester.tap(confirm);
+      await tester.pumpAndSettle();
+      expect(backend.writes.where((w) => w.startsWith('purge')), isEmpty);
+      expect(backend.etagsSent.last, '"4-c-pip"', reason: 'the version the dialog named');
+      await tester.tap(find.descendant(of: find.byType(MyDataDialog), matching: find.text('Cancel')));
+      await tester.pumpAndSettle();
+      // Recently deleted was read again: looking at it again and deleting goes, at the newer version.
+      await tester.tap(find.widgetWithText(Button, TrashView.purgeLabel));
+      await tester.pumpAndSettle();
+      await tester.tap(confirm);
+      await tester.pumpAndSettle();
+      expect(backend.writes.last, 'purge c-pip');
+      expect(backend.etagsSent.last, '"7-c-pip"');
+      await outlastToast(tester);
+    });
+  });
 }
