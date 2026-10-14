@@ -10,7 +10,7 @@ contact written, changed and deleted through sources/contacts_write.py, with its
 log rows; and, from the schema with imports and merges, a file import (vCard 2.1, undone), a copy of a followed
 account imported into owned contacts, and a merge of two of them; and, from the schema with origins.held_by, one
 of the merged originals deleted for good; and, from the schema with shadows, a file import that hides This Mac's
-copy of the person it brings in.
+copy of the person it brings in; and, from the schema with decisions, a followed change saved, undone, then kept.
 
 A dump holds INSERT statements for the stores' own tables, never the schema, schema_version or a search
 index (the migrations build those, and the insert triggers fill the index). A text value holding a carriage
@@ -39,7 +39,7 @@ import test_contacts_store as con  # noqa: E402
 
 # Tables a schema does not have yet are left out of its dump.
 TABLES = {"contacts.sqlite": ("address_books", "contacts", "revisions", "changes", "undo_log", "imports", "origins",
-                               "merges", "shadows"),
+                               "merges", "shadows", "decisions"),
           "calendar.sqlite": ("calendars", "events", "occurrences", "coverage")}
 
 CRLF = "\r\n"
@@ -127,6 +127,21 @@ def _imports_and_merges(contacts) -> None:
                          "NOTE:Invented note.", "UID:3F1C0F0E-0000-4000-8000-0000000AE0F1", "END:VCARD"]) + CRLF
         importer.commit(contacts, importer.ImportSource("file", "", "Contacts.vcf"), read_contacts(ava.encode()),
                         actor="mydata", region="US")
+    with contacts.db.connect() as db:
+        decisions = db.execute("SELECT 1 FROM sqlite_master WHERE name = 'decisions'").fetchone() is not None
+    if decisions:  # a followed copy changed since the import, kept as it was in myData; a save undone
+        from mydata.sources import contacts_review
+        edited = con.card("ava-fictional.vcf").replace("NICKNAME:Avi", "NICKNAME:Avi B")
+        contacts.apply("acc-1", con.BOOK, con.result([Item(href="/1/carddavhome/card/ava-fictional.vcf",
+                                                           etag='"2"', data=edited)]))
+        [owned_ava] = [c for c in contacts.list() if c["changed_in_source"] == "acc-1"]
+        [copy] = [c for c in (contacts.get(r["contact_id"]) for r in
+                              contacts_review.followed_changes(contacts, owned_ava["id"]))]
+        saved = contacts_review.save_changes(contacts, owned_ava["id"], {"nickname": "Avi B"},
+                                             [(copy["id"], copy["http_etag"])], if_match=owned_ava["http_etag"],
+                                             actor="mycontacts")
+        contacts_review.undo(contacts, saved.undo_id, actor="mycontacts")
+        contacts_review.keep_mine(contacts, owned_ava["id"], [(copy["id"], copy["http_etag"])], actor="mycontacts")
 
 
 def literal(value, hexed: bool = False) -> str:

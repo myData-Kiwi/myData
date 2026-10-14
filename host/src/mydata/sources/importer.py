@@ -260,7 +260,8 @@ def _origins(db: sqlite3.Connection, source: ImportSource) -> dict[str, sqlite3.
         shadows: dict[str, sqlite3.Row] = {}
         for r in db.execute(
                 "SELECT s.rowid AS origin_rowid, s.object_id, s.import_id, 'shadow' AS source_kind, s.source_uid, "
-                "s.source_hash, NULL AS source_raw, c.rev AS imported_rev, s.source_account, 'link' AS action, "
+                "s.source_hash, s.reviewed_hash, NULL AS source_raw, c.rev AS imported_rev, s.source_account, "
+                "'link' AS action, "
                 "NULL AS prior_rev, s.undone_at, s.held_by, c.id AS cid, c.rev AS crev, c.deleted_at AS cdeleted, "
                 "c.merged_into AS cmerged, c.display_name AS cname, c.emails AS cemails, c.phones AS cphones, "
                 "i.label AS ilabel FROM shadows s JOIN imports i ON i.id = s.import_id "
@@ -373,7 +374,8 @@ def analyse(db: sqlite3.Connection, source: ImportSource, read: ReadResult, *,
             item.origin, item.target = origin, origin["cid"]
             item.matches.append(Match(origin["cname"] or "", "mydata", "same_origin", signals,
                                       contact_id=origin["cid"]))
-            if origin["source_hash"] == card.source_hash:
+            if card.source_hash in (origin["source_hash"], origin["reviewed_hash"]):
+                # as imported, or as the user settled it since (kept theirs, or saved its changes: contacts_review)
                 item.status, item.action, item.choices = "unchanged", "skip", ("skip",)
             elif origin["held_by"] is not None or (origin["cdeleted"] is not None and origin["cmerged"] is not None):
                 # merged into another contact (held_by: the original was deleted for good since)

@@ -204,6 +204,26 @@ _MIGRATIONS = {
         "CREATE INDEX shadows_import ON shadows (import_id)",
         "CREATE INDEX shadows_held_by ON shadows (held_by)",
     ],
+    # Reviewing owned contacts (sources/contacts_review.py): the followed text a user settled a change to (kept
+    # theirs, or saved the changes), and decisions that can be undone (not the same person, keep mine, save
+    # changes): ids, kinds and hashes only, never a value. Additive only.
+    7: [
+        "ALTER TABLE origins ADD COLUMN reviewed_hash TEXT",
+        "ALTER TABLE shadows ADD COLUMN reviewed_hash TEXT",
+        """CREATE TABLE decisions (
+            id TEXT PRIMARY KEY,
+            kind TEXT NOT NULL,
+            object_id TEXT NOT NULL,
+            other_id TEXT,
+            data TEXT NOT NULL DEFAULT '{}',
+            actor TEXT NOT NULL,
+            at TEXT NOT NULL,
+            undone_at TEXT,
+            undone_by TEXT
+        )""",
+        "CREATE INDEX decisions_object ON decisions (object_id)",
+        "CREATE INDEX decisions_other ON decisions (other_id)",
+    ],
 }
 
 # Cards that are people or organisations: a group card is kept (and exported) but never shown as a contact.
@@ -522,7 +542,7 @@ def changed_in_source(db: sqlite3.Connection, ids: list[str]) -> dict[str, str]:
     """See ContactsStore.changed_in_source. An owned contact's origins and shadows are its own and those of the cards
     merged into it (held by it once those are deleted for good); for each (account, UID) only the newest origin and
     the newest shadow count (a later import from the source moved it on), and the followed card has changed when its
-    text is neither."""
+    text is neither's, as imported or as the user last settled it (reviewed_hash: sources/contacts_review.py)."""
     links: dict[tuple[str, str, str], list[bool]] = {}  # (owner, account, UID): [is the followed card that text]
     for start in range(0, len(ids), 400):
         chunk = ids[start:start + 400]
@@ -531,6 +551,8 @@ def changed_in_source(db: sqlite3.Connection, ids: list[str]) -> dict[str, str]:
                    f"  SELECT id, id FROM contacts WHERE id IN ({marks})"
                    f"  UNION ALL SELECT merged_into, id FROM contacts WHERE merged_into IN ({marks})"
                    f"  UNION ALL SELECT DISTINCT held_by, object_id FROM origins WHERE held_by IN ({marks})), ")
+        # The followed card is as imported, or as the user last settled it (contacts_review: kept theirs, saved).
+        same = "(f.raw_sha256 = o.source_hash OR f.raw_sha256 IS o.reviewed_hash) AS same"
         followed = (f"JOIN contacts f ON f.account_id = o.source_account AND f.uid = o.source_uid "
                     f"AND f.deleted_at IS NULL AND f.account_id != '{owned.OWNED_ACCOUNT}'")
         rows = db.execute(
@@ -538,14 +560,14 @@ def changed_in_source(db: sqlite3.Connection, ids: list[str]) -> dict[str, str]:
             "  FROM origins o JOIN objects ON objects.object_id = o.object_id "
             "  WHERE o.source_kind != 'file' AND o.undone_at IS NULL "
             "  GROUP BY objects.owner, o.source_account, o.source_uid) "
-            "SELECT DISTINCT latest.owner, o.source_account, o.source_uid, f.raw_sha256 = o.source_hash AS same "
+            f"SELECT DISTINCT latest.owner, o.source_account, o.source_uid, {same} "
             f"FROM latest JOIN origins o ON o.rowid = latest.rid {followed}",
             [*chunk, *chunk, *chunk]).fetchall()
         rows += db.execute(
             objects + "latest AS (SELECT objects.owner, o.source_account, o.source_uid, MAX(o.rowid) AS rid "
             "  FROM shadows o JOIN objects ON objects.object_id = COALESCE(o.held_by, o.object_id) "
             "  WHERE o.undone_at IS NULL GROUP BY objects.owner, o.source_account, o.source_uid) "
-            "SELECT DISTINCT latest.owner, o.source_account, o.source_uid, f.raw_sha256 = o.source_hash AS same "
+            f"SELECT DISTINCT latest.owner, o.source_account, o.source_uid, {same} "
             f"FROM latest JOIN shadows o ON o.rowid = latest.rid {followed}",
             [*chunk, *chunk, *chunk]).fetchall()
         for owner, account, uid, same in rows:

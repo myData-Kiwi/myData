@@ -232,25 +232,46 @@ def update(store: ContactsStore, contact_id: str, form: dict, *, if_match: str, 
         _check_etag(row, if_match)
         if row["deleted_at"] is not None:
             raise InTrash("This contact is in Recently deleted. Restore it first.")
-        try:
-            card = VCard.parse(row["raw_vcard"])
-            current = contact_form.read(card)
-        except VCardError as e:
-            raise WriteError("This contact's card cannot be edited here.") from e
-        # Only what differs from the card is checked: a value it already holds never blocks the edit.
-        values = contact_form.check(form, creating=False, current=current)
-        try:
-            contact_form.apply(card, values)
-        except VCardError as e:
-            raise WriteError("This contact's card cannot be edited here.") from e
-        if not card.changed:
+        text = edited_text(row, form, at)
+        if text is None:
             return Written(contact_id, None)
-        text = card.to_text(now=at)
         _baseline(db, row)
         rev = _write_text(db, row, text, when)
         undo_id = _record(db, contact_id, row["address_book_id"], row["href"], rev, text, "update", "modify", actor,
                           when, undo_op="update", prior_rev=row["rev"])
     return Written(contact_id, undo_id)
+
+
+def edited_text(row: sqlite3.Row, form: dict, at: datetime) -> str | None:
+    """The card's text with the form's fields changed (only the lines whose values differ), or None when that
+    changes nothing. FormError for a bad form; only the values that differ from the card are checked."""
+    try:
+        card = VCard.parse(row["raw_vcard"])
+        current = contact_form.read(card)
+    except VCardError as e:
+        raise WriteError("This contact's card cannot be edited here.") from e
+    # Only what differs from the card is checked: a value it already holds never blocks the edit.
+    values = contact_form.check(form, creating=False, current=current)
+    try:
+        contact_form.apply(card, values)
+    except VCardError as e:
+        raise WriteError("This contact's card cannot be edited here.") from e
+    return card.to_text(now=at) if card.changed else None
+
+
+def revert_text(db: sqlite3.Connection, row: sqlite3.Row, prior_rev: int, when: str) -> tuple[int, str]:
+    """Write the card's text as it was at revision `prior_rev` as its next revision (an undo of an edit): (the new
+    revision, the text). UndoRefused when that text is not fully recorded."""
+    prior = db.execute("SELECT rev, raw FROM revisions WHERE object_id = ? AND rev <= ? AND raw IS NOT NULL "
+                       "ORDER BY rev DESC LIMIT 1", (row["id"], prior_rev)).fetchone()
+    # Every revision from that text up to the one the edit started from must be recorded (a delete or a
+    # restore keeps the text); a gap is a change written around this module, which undo would lose.
+    recorded = 0 if prior is None else db.execute(
+        "SELECT COUNT(*) FROM revisions WHERE object_id = ? AND rev > ? AND rev <= ?",
+        (row["id"], prior["rev"], prior_rev)).fetchone()[0]
+    if prior is None or recorded != prior_rev - prior["rev"]:
+        raise UndoRefused("The earlier version of this contact is not kept, so this cannot be undone.")
+    return _write_text(db, row, prior["raw"], when), prior["raw"]
 
 
 def delete(store: ContactsStore, contact_id: str, *, if_match: str | None = None, actor: str) -> Written:
@@ -306,17 +327,8 @@ def undo(store: ContactsStore, undo_id: str, *, actor: str) -> Written:
             raise UndoRefused("This contact changed since, so this cannot be undone.")
         op = entry["op"]
         if op == "update":
-            prior = db.execute("SELECT rev, raw FROM revisions WHERE object_id = ? AND rev <= ? AND raw IS NOT NULL "
-                               "ORDER BY rev DESC LIMIT 1", (row["id"], entry["prior_rev"])).fetchone()
-            # Every revision from that text up to the one the edit started from must be recorded (a delete or a
-            # restore keeps the text); a gap is a change written around this module, which undo would lose.
-            recorded = 0 if prior is None else db.execute(
-                "SELECT COUNT(*) FROM revisions WHERE object_id = ? AND rev > ? AND rev <= ?",
-                (row["id"], prior["rev"], entry["prior_rev"])).fetchone()[0]
-            if prior is None or recorded != entry["prior_rev"] - prior["rev"]:
-                raise UndoRefused("The earlier version of this contact is not kept, so this cannot be undone.")
-            rev = _write_text(db, row, prior["raw"], when)
-            raw, change = prior["raw"], "modify"
+            rev, raw = revert_text(db, row, entry["prior_rev"], when)
+            change = "modify"
         else:
             deleting = op in ("create", "restore")  # undoing a delete restores; the others go to the trash
             rev = _set_deleted(db, row, deleting, at)

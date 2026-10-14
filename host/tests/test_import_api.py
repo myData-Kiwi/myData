@@ -365,6 +365,46 @@ def test_a_file_hides_this_macs_copies_so_find_contact_answers_once(host, client
     assert names.count("Ava Fictional") == 1 and names.count("Dev Placeholder") == 1  # This Mac's again
 
 
+def test_a_followed_change_is_reviewed_saved_kept_and_undone_through_the_api(host, client):
+    account = _follow(host)
+    auth = bearer(host, "mydata")
+    preview = client.post(f"/import/contacts/from-source/{account}/preview", headers=auth).json()
+    client.post(f"/import/previews/{preview['id']}/commit", headers=auth, json={})
+    ava = next(c for c in client.get("/contacts", headers=auth).json() if c["display_name"] == "Ava Fictional")
+    mine = bearer(host, "mycontacts")
+    url = f"/contacts/{ava['id']}/followed-changes"
+    assert client.get(url, headers=mine).json()["changes"] == []
+    edited = con.card("ava-fictional.vcf").replace("NICKNAME:Avi", "NICKNAME:Avi B")
+    host.sources.contacts.apply(account, con.BOOK, con.result([con.Item(
+        href="/1/carddavhome/card/ava-fictional.vcf", etag='"2"', data=edited)]))
+    r = client.get(url, headers=bearer(host, "myassistant"))  # reading needs contacts:read only
+    assert r.status_code == 200, r.text
+    [change] = r.json()["changes"]
+    assert change["differences"] == ["nickname"] and change["followed"]["nickname"] == "Avi B"
+    assert change["source_label"] == "the iCloud account ava.fictional@example.com"
+    assert r.json()["contact"]["changed_in_source"] == account
+    seen = [{"id": change["followed"]["id"], "etag": change["followed"]["etag"]}]
+    assert client.post(f"{url}/keep", headers=bearer(host, "myassistant"), json={"followed": seen}).status_code == 403
+    r = client.post(f"{url}/keep", headers=mine, json={"followed": [{**seen[0], "etag": '"1-stale"'}]})
+    assert r.status_code == 412
+    r = client.post(f"{url}/keep", headers=mine, json={"followed": seen})
+    assert r.status_code == 200, r.text
+    assert r.json()["contact"]["changed_in_source"] is None and r.json()["undo_id"]
+    assert client.post(f"{url}/keep", headers=mine, json={"followed": seen}).status_code == 409  # nothing to review
+    r = client.post(f"/undo/{r.json()['undo_id']}", headers=mine)
+    assert r.status_code == 200 and r.json()["contact"]["changed_in_source"] == account
+    body = {"contact": {"nickname": "Avi B"}, "followed": seen}
+    assert client.post(f"{url}/save", headers=mine, json=body).status_code == 428
+    r = client.post(f"{url}/save", headers={**mine, "If-Match": ava["etag"]}, json=body)
+    assert r.status_code == 200, r.text
+    saved = r.json()["contact"]
+    assert saved["nickname"] == "Avi B" and saved["changed_in_source"] is None and r.headers["ETag"] == saved["etag"]
+    r = client.post(f"/undo/{r.json()['undo_id']}", headers=mine)
+    assert r.status_code == 200 and r.json()["contact"]["nickname"] == "Avi"
+    assert r.json()["contact"]["changed_in_source"] == account
+    assert client.get(f"/contacts/{change['followed']['id']}/followed-changes", headers=mine).status_code == 409
+
+
 # ---------------------------------------------------------------- merge
 
 def test_merge_says_what_it_left_out(host, client):

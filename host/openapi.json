@@ -1587,6 +1587,129 @@
         "title": "FieldErrorsOut",
         "type": "object"
       },
+      "FollowedChangeOut": {
+        "properties": {
+          "account_id": {
+            "description": "the followed source (GET /sources): \"mac\" or an iCloud account id",
+            "title": "Account Id",
+            "type": "string"
+          },
+          "differences": {
+            "description": "what differs from the contact of yours, after normalising (case, spacing, emails in lower case, phones in E.164), in a contact page's order: name, nickname, company, job_title, phone, email, address, birthday, url, note (not for This Mac, which reads no notes), photo, other (any other detail)",
+            "items": {
+              "type": "string"
+            },
+            "title": "Differences",
+            "type": "array"
+          },
+          "followed": {
+            "$ref": "#/components/schemas/ContactDetailOut",
+            "description": "the followed copy as it is now (hidden from lists while the contact stands for it)"
+          },
+          "source_label": {
+            "description": "that source inside a sentence (\"the iCloud account you@example.com\", \"this Mac\")",
+            "title": "Source Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "account_id",
+          "source_label",
+          "followed",
+          "differences"
+        ],
+        "title": "FollowedChangeOut",
+        "type": "object"
+      },
+      "FollowedChangesOut": {
+        "properties": {
+          "changes": {
+            "description": "its followed copies that changed since the import, or since the user last settled them; empty when none did",
+            "items": {
+              "$ref": "#/components/schemas/FollowedChangeOut"
+            },
+            "title": "Changes",
+            "type": "array"
+          },
+          "contact": {
+            "$ref": "#/components/schemas/ContactDetailOut",
+            "description": "the contact of yours"
+          }
+        },
+        "required": [
+          "contact",
+          "changes"
+        ],
+        "title": "FollowedChangesOut",
+        "type": "object"
+      },
+      "FollowedKeepIn": {
+        "properties": {
+          "followed": {
+            "description": "the changed copies the user reviewed: their mark is cleared",
+            "items": {
+              "$ref": "#/components/schemas/FollowedSeenIn"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Followed",
+            "type": "array"
+          }
+        },
+        "required": [
+          "followed"
+        ],
+        "title": "FollowedKeepIn",
+        "type": "object"
+      },
+      "FollowedSaveIn": {
+        "properties": {
+          "contact": {
+            "$ref": "#/components/schemas/ContactIn",
+            "description": "the values chosen, as an edit (PATCH /contacts/{id}) takes them"
+          },
+          "followed": {
+            "description": "the changed copies the user reviewed: their mark is cleared",
+            "items": {
+              "$ref": "#/components/schemas/FollowedSeenIn"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Followed",
+            "type": "array"
+          }
+        },
+        "required": [
+          "contact",
+          "followed"
+        ],
+        "title": "FollowedSaveIn",
+        "type": "object"
+      },
+      "FollowedSeenIn": {
+        "properties": {
+          "etag": {
+            "description": "its etag as the user saw it",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Etag",
+            "type": "string"
+          },
+          "id": {
+            "description": "a followed copy's id (FollowedChangeOut.followed.id)",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "etag"
+        ],
+        "title": "FollowedSeenIn",
+        "type": "object"
+      },
       "GuardError": {
         "properties": {
           "detail": {
@@ -5649,6 +5772,356 @@
           }
         },
         "summary": "Update Contact",
+        "tags": [
+          "sources"
+        ],
+        "x-mydata-scopes": [
+          "contacts:write"
+        ]
+      }
+    },
+    "/contacts/{contact_id}/followed-changes": {
+      "get": {
+        "description": "A contact of yours beside each followed copy of it (This Mac, an iCloud account) that changed since the\nimport (changed_in_source), with what differs: \"Changed since import\" in myContacts' Review. Settle it with\n.../followed-changes/save or .../keep.",
+        "operationId": "followed_changes",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "contact_id",
+            "required": true,
+            "schema": {
+              "title": "Contact Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FollowedChangesOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "missing or wrong token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
+          },
+          "404": {
+            "description": "no such contact"
+          },
+          "409": {
+            "description": "the contact is followed from a source (only yours are reviewed)"
+          },
+          "421": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "the Host header is not this machine"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "503": {
+            "description": "accounts are not available in this host"
+          }
+        },
+        "summary": "Followed Changes",
+        "tags": [
+          "sources"
+        ],
+        "x-mydata-scopes": [
+          "contacts:read"
+        ]
+      }
+    },
+    "/contacts/{contact_id}/followed-changes/keep": {
+      "post": {
+        "description": "Keep your version: clear the \"changed since import\" mark of the copies reviewed, the contact unchanged.\n412 when a copy changed again since it was shown; 409 for a copy with nothing to review. undo_id brings the\nmark back (POST /undo/{undo_id}).",
+        "operationId": "keep_mine",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "contact_id",
+            "required": true,
+            "schema": {
+              "title": "Contact Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FollowedKeepIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactWriteOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "missing or wrong token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
+          },
+          "404": {
+            "description": "no such contact"
+          },
+          "409": {
+            "description": "the contact is followed from a source (change it there), or is in Recently deleted"
+          },
+          "412": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreconditionFailedOut"
+                }
+              }
+            },
+            "description": "the contact changed since the etag sent; `etag` is the current one",
+            "headers": {
+              "ETag": {
+                "description": "the contact's etag",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "421": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "the Host header is not this machine"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "503": {
+            "description": "accounts are not available in this host"
+          }
+        },
+        "summary": "Keep Mine",
+        "tags": [
+          "sources"
+        ],
+        "x-mydata-scopes": [
+          "contacts:write"
+        ]
+      }
+    },
+    "/contacts/{contact_id}/followed-changes/save": {
+      "post": {
+        "description": "Save the values the user chose (the \"After\" column) into the contact of yours, as an edit (only the lines\nwhose values change), and clear the \"changed since import\" mark of the copies reviewed until they change\nagain. 412 when the contact, or a copy, changed since it was shown; 409 for a copy with nothing to review.\nundo_id undoes both (POST /undo/{undo_id}) while the contact is unchanged since.",
+        "operationId": "save_followed_changes",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "contact_id",
+            "required": true,
+            "schema": {
+              "title": "Contact Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "the contact's etag, as shown beside its copies",
+            "in": "header",
+            "name": "If-Match",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "the contact's etag, as shown beside its copies",
+              "title": "If-Match"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FollowedSaveIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactWriteOut"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "the contact's etag",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldErrorsOut"
+                }
+              }
+            },
+            "description": "a field is not valid; `fields` says which and why"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "missing or wrong token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
+          },
+          "404": {
+            "description": "no such contact"
+          },
+          "409": {
+            "description": "the contact is followed from a source (change it there), or is in Recently deleted"
+          },
+          "412": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreconditionFailedOut"
+                }
+              }
+            },
+            "description": "the contact changed since the etag sent; `etag` is the current one",
+            "headers": {
+              "ETag": {
+                "description": "the contact's etag",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "421": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "the Host header is not this machine"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "428": {
+            "description": "If-Match is missing"
+          },
+          "503": {
+            "description": "accounts are not available in this host"
+          }
+        },
+        "summary": "Save Followed Changes",
         "tags": [
           "sources"
         ],

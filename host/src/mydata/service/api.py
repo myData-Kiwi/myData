@@ -480,6 +480,41 @@ class UndoOut(BaseModel):
                                                            "Recently deleted)")
 
 
+class FollowedSeenIn(BaseModel):
+    id: str = Field(min_length=1, max_length=100, description="a followed copy's id (FollowedChangeOut.followed.id)")
+    etag: str = Field(min_length=1, max_length=200, description="its etag as the user saw it")
+
+
+class FollowedChangeOut(BaseModel):
+    account_id: str = Field(description="the followed source (GET /sources): \"mac\" or an iCloud account id")
+    source_label: str = Field(description="that source inside a sentence (\"the iCloud account you@example.com\", "
+                                          "\"this Mac\")")
+    followed: ContactDetailOut = Field(description="the followed copy as it is now (hidden from lists while the "
+                                                   "contact stands for it)")
+    differences: list[str] = Field(description="what differs from the contact of yours, after normalising (case, "
+                                               "spacing, emails in lower case, phones in E.164), in a contact "
+                                               "page's order: name, nickname, company, job_title, phone, email, "
+                                               "address, birthday, url, note (not for This Mac, which reads no "
+                                               "notes), photo, other (any other detail)")
+
+
+class FollowedChangesOut(BaseModel):
+    contact: ContactDetailOut = Field(description="the contact of yours")
+    changes: list[FollowedChangeOut] = Field(description="its followed copies that changed since the import, or since "
+                                                         "the user last settled them; empty when none did")
+
+
+class FollowedSaveIn(BaseModel):
+    contact: ContactIn = Field(description="the values chosen, as an edit (PATCH /contacts/{id}) takes them")
+    followed: list[FollowedSeenIn] = Field(min_length=1, max_length=20, description="the changed copies the user "
+                                                                                   "reviewed: their mark is cleared")
+
+
+class FollowedKeepIn(BaseModel):
+    followed: list[FollowedSeenIn] = Field(min_length=1, max_length=20, description="the changed copies the user "
+                                                                                   "reviewed: their mark is cleared")
+
+
 class MergeContactIn(BaseModel):
     id: str = Field(min_length=1, max_length=100)
     etag: str = Field(min_length=1, max_length=200, description="the contact's etag as the user saw it")
@@ -1474,6 +1509,74 @@ def _routes_contact_writes(app: FastAPI, need: Callable[[], SyncService], unavai
         written = run(lambda: cw.restore(service.contacts, item_id, if_match=if_match, actor=who))
         return answer(service, written, "restore", who)
 
+    @app.get("/contacts/{contact_id}/followed-changes", dependencies=needs("contacts:read"), tags=["sources"],
+             response_model=FollowedChangesOut,
+             responses={404: {"description": "no such contact"},
+                        409: {"description": "the contact is followed from a source (only yours are reviewed)"},
+                        **unavailable})
+    def followed_changes(contact_id: str) -> FollowedChangesOut:
+        """A contact of yours beside each followed copy of it (This Mac, an iCloud account) that changed since the
+        import (changed_in_source), with what differs: "Changed since import" in myContacts' Review. Settle it with
+        .../followed-changes/save or .../keep."""
+        from ..sources import contacts_review
+        from ..sources.views import source_in_sentence
+        service = need()
+        try:
+            changes = contacts_review.followed_changes(service.contacts, contact_id)
+        except cw.NotFound as e:
+            raise HTTPException(404, str(e)) from None
+        except cw.WriteError as e:
+            raise HTTPException(409, str(e)) from None
+        emails = service.account_emails()
+        return FollowedChangesOut(
+            contact=_detail(service, service.contacts.get(contact_id)),
+            changes=[FollowedChangeOut(account_id=c["account_id"],
+                                       source_label=source_in_sentence(c["account_id"], emails.get(c["account_id"])),
+                                       followed=_detail(service, service.contacts.get(c["contact_id"])),
+                                       differences=c["differences"]) for c in changes])
+
+    @app.post("/contacts/{contact_id}/followed-changes/save", dependencies=needs("contacts:write"), tags=["sources"],
+              response_model=ContactWriteOut,
+              responses={200: {"headers": etag_header}, **invalid, **refused, **stale,
+                         428: {"description": "If-Match is missing"}, **unavailable})
+    def save_followed_changes(contact_id: str, body: FollowedSaveIn, request: Request, response: Response,
+                              if_match: str | None = Header(default=None, alias="If-Match",
+                                                            description="the contact's etag, as shown beside its "
+                                                                        "copies")) -> ContactWriteOut:
+        """Save the values the user chose (the "After" column) into the contact of yours, as an edit (only the lines
+        whose values change), and clear the "changed since import" mark of the copies reviewed until they change
+        again. 412 when the contact, or a copy, changed since it was shown; 409 for a copy with nothing to review.
+        undo_id undoes both (POST /undo/{undo_id}) while the contact is unchanged since."""
+        from ..sources import contacts_review
+        if not if_match:
+            raise HTTPException(428, "Send the contact's etag as If-Match.")
+        service = need()
+        who = actor(request)
+        seen = [(f.id, f.etag) for f in body.followed]
+
+        def write() -> "cw.Written":
+            done = contacts_review.save_changes(service.contacts, contact_id,
+                                                body.contact.model_dump(exclude_unset=True), seen, if_match=if_match,
+                                                actor=who)
+            return cw.Written(done.contact_id, done.undo_id)
+        return answer(service, run(write), "save followed changes", who, response)
+
+    @app.post("/contacts/{contact_id}/followed-changes/keep", dependencies=needs("contacts:write"), tags=["sources"],
+              response_model=ContactWriteOut, responses={**refused, **stale, **unavailable})
+    def keep_mine(contact_id: str, body: FollowedKeepIn, request: Request) -> ContactWriteOut:
+        """Keep your version: clear the "changed since import" mark of the copies reviewed, the contact unchanged.
+        412 when a copy changed again since it was shown; 409 for a copy with nothing to review. undo_id brings the
+        mark back (POST /undo/{undo_id})."""
+        from ..sources import contacts_review
+        service = need()
+        who = actor(request)
+        seen = [(f.id, f.etag) for f in body.followed]
+
+        def write() -> "cw.Written":
+            done = contacts_review.keep_mine(service.contacts, contact_id, seen, actor=who)
+            return cw.Written(done.contact_id, done.undo_id)
+        return answer(service, run(write), "keep mine", who)
+
     @app.post("/undo/{undo_id}", dependencies=needs("contacts:write"), tags=["sources"], response_model=UndoOut,
               responses={404: {"description": "no such undo id"},
                          409: {"description": "already undone, or the item changed since (or was deleted for good)"},
@@ -1482,9 +1585,14 @@ def _routes_contact_writes(app: FastAPI, need: Callable[[], SyncService], unavai
         """Undo one change by its undo id, a merge's too. The undo is a new change: it is refused when the item
         changed since (nothing later is ever overwritten), and a change is undone at most once, also across a
         restart. Undoing a merge restores each original and moves the merged contact to Recently deleted."""
-        from ..sources import contacts_merge
+        from ..sources import contacts_merge, contacts_review
         service = need()
         who = actor(request)
+        if contacts_review.is_decision(service.contacts, undo_id):
+            settled = run(lambda: contacts_review.undo(service.contacts, undo_id, actor=who))
+            log(_LOGGER, logging.INFO, "contact decision undone", actor=who, undo_id=undo_id)
+            first = _detail(service, service.contacts.get(settled.contact_id, include_deleted=True))
+            return UndoOut(undo_id=undo_id, contact=first, contact_ids=list(settled.contact_ids))
         if contacts_merge.is_merge(service.contacts, undo_id):
             merged = run(lambda: contacts_merge.undo(service.contacts, undo_id, actor=who))
             log(_LOGGER, logging.INFO, "contacts merge undone", actor=who, merge_id=undo_id)
