@@ -16,6 +16,7 @@ export 'src/widgets/badge.dart';
 export 'src/widgets/button.dart';
 export 'src/widgets/card.dart';
 export 'src/widgets/checkbox.dart';
+export 'src/widgets/colour_picker.dart';
 export 'src/widgets/contact_header.dart';
 export 'src/widgets/contact_list.dart';
 export 'src/widgets/data_colour.dart';
