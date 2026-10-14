@@ -47,9 +47,6 @@ body{margin:0;padding:24px;background:var(--bg);color:var(--ink);font-family:var
 .opt[aria-disabled="true"],.r[aria-disabled="true"]{cursor:not-allowed}
 .opt[aria-disabled="true"] .box,.opt[aria-disabled="true"] .lt{opacity:.45}
 .opts{display:flex;flex-direction:column;gap:8px}
-.dlg{padding:20px;background:var(--surface-raised);box-shadow:var(--shadow-2);border-radius:var(--radius-xl);max-width:440px}
-.dlg h3{font:700 22px/28px var(--font-display);letter-spacing:-0.01em;margin:0 0 8px}
-.dlg p{margin:0 0 12px;color:var(--ink-muted)}
 .acts{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;flex-wrap:wrap;align-items:center}
 .states{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px 16px}
 .why{font-size:13px;line-height:18px;color:var(--ink-muted)}
@@ -76,15 +73,14 @@ body{margin:0;padding:24px;background:var(--bg);color:var(--ink);font-family:var
 <p class="cap" role="status" aria-live="polite" id="said" style="margin:8px 0 0 8px"></p>
 </section>
 </div><div>
-<section class="sec" aria-labelledby="h-dlg">
-<p class="lbl" id="h-dlg">An option in a dialog: unchecked by default</p>
-<div class="dlg" role="dialog" aria-labelledby="d-t">
-<h3 id="d-t">Undo this import?</h3>
-<p>The 48 contacts imported from contacts.vcf on 12 October are moved to Recently deleted.</p>
+<section class="sec" aria-labelledby="h-acc">
+<p class="lbl" id="h-acc">An option that goes with an action: unchecked by default (the import's loss report)</p>
+<div class="card" style="padding:20px">
+<p class="cap" style="margin:0 0 4px">Card 57 ends before END:VCARD; the file may be cut short. Card 112 could not be read as a vCard.</p>
 <div class="opts">
-<div class="opt" role="checkbox" aria-checked="false" tabindex="0" data-toggle><span class="box"><svg class="ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 12.5l3.5 3.5 7.5-8"></path></svg><svg class="mx" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 12h9"></path></svg></span><span class="txt">Also remove the 3 contacts you changed after the import<span class="cap b">Ava Fictional, Ben Sample and Chloe Example</span></span></div>
+<div class="opt" id="acc" role="checkbox" aria-checked="false" tabindex="0" aria-describedby="acc-c" data-toggle><span class="box"><svg class="ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 12.5l3.5 3.5 7.5-8"></path></svg><svg class="mx" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 12h9"></path></svg></span><span class="txt"><span class="lt">Import without what is listed above</span><span class="cap b" id="acc-c">2 cards are not imported.</span></span></div>
 </div>
-<div class="acts"><button class="btn plain" type="button">Cancel</button><button class="btn danger" type="button">Undo import</button></div>
+<div class="foot"><span class="why" id="acc-why">Tick “Import without what is listed above” first, or choose another file.</span><button class="btn plain" type="button">Cancel</button><button class="btn primary" id="acc-go" type="button" disabled aria-describedby="acc-why">Import 128 contacts</button></div>
 </div>
 </section>
 <section class="sec" aria-labelledby="h-st">
@@ -127,6 +123,12 @@ body{margin:0;padding:24px;background:var(--bg);color:var(--ink);font-family:var
 <script>
 (function () {
   function toggle(el) { if (el.getAttribute('aria-disabled') === 'true') return; el.setAttribute('aria-checked', el.getAttribute('aria-checked') === 'true' ? 'false' : 'true'); }
+  (function () {
+    var acc = document.getElementById('acc'), go = document.getElementById('acc-go'), why = document.getElementById('acc-why');
+    function sync() { var on = acc.getAttribute('aria-checked') === 'true'; go.disabled = !on; why.hidden = on; }
+    acc.addEventListener('click', function () { setTimeout(sync, 0); });
+    acc.addEventListener('keydown', function (e) { if (e.key === ' ') setTimeout(sync, 0); });
+  })();
   document.querySelectorAll('[data-toggle]').forEach(function (el) {
     el.addEventListener('click', function () { toggle(el); });
     el.addEventListener('keydown', function (e) { if (e.key === ' ') { e.preventDefault(); toggle(el); } });

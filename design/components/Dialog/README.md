@@ -49,7 +49,7 @@ A small window over the app that asks one question before something happens, or 
 - **Used by:**
   - myData, Settings, Agents: "Revoke Claude on my laptop?", and "Token for Claude on my laptop", shown once with one button. Both are built today on Material's `AlertDialog`.
   - myData, Settings, Sources: "Turn off This Mac?" and "Remove you@example.com?", built today. From phase 4, turning a source off also asks whether to keep what was brought in; that choice sits in the body.
-  - myData, import (phase 4): "Undo this import?".
+  - myData, import (phase 4): "Undo this import?" (no options: contacts changed since the import always stay), and, from the import's Done step, Settings' remove dialog titled "Stop following ava@example.org?" (ImportFlow).
   - myContacts (phase 3): "Delete 3 contacts?" for a multi-selection (MultiSelect); in Recently deleted, "Delete Ava Fictional permanently?" and "Empty Recently deleted?".
   - myContacts edit contact and myCalendar edit event: "Discard changes?" (Inspector).
   - myCalendar (phase 6): "New calendar" and "Edit calendar" (Name, then Colour, a ColourPicker), "Delete the calendar Book club?". The question of which events a change to a repeating event applies to ("This event", "This and following events", "All events") is a dialog whose choices are its buttons; it is specified with phase 6.

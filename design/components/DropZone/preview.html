@@ -1,0 +1,147 @@
+<!-- @dsCard group="Inputs" height=1640 -->
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700&family=Figtree:wght@400;600&family=JetBrains+Mono&display=swap">
+<style>
+body{margin:0;padding:24px;background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:22px}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.btn{height:44px;padding:0 22px;border-radius:var(--radius-control);font:600 15px/1 var(--font-body);border:0;cursor:pointer}
+.primary{background:var(--accent);color:var(--on-accent)}
+.tonal{background:var(--accent-soft);color:var(--accent)}
+.plain{background:transparent;color:var(--accent)}
+.btn:active{opacity:.85;transform:scale(.97)}
+.fr{outline:2px solid var(--focus);outline-offset:2px}
+.tile{width:36px;height:36px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;flex:none}
+.tile svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.t-accent{background:var(--accent-soft);color:var(--accent)}.t-warn{background:var(--warning-soft);color:var(--warning)}
+.cap{font-size:13px;line-height:18px;color:var(--ink-muted)}
+.lbl{font:600 13px/18px var(--font-body);color:var(--ink-muted);margin:0 0 8px 8px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(400px,1fr));gap:24px 24px;align-items:start}
+/* The zone: a sunken well, no border; the content centred. */
+.dz{background:var(--surface-sunken);border-radius:var(--radius-lg);padding:32px 24px;display:flex;flex-direction:column;align-items:center;text-align:center;transition:background-color .12s,box-shadow .12s}
+.dz .ins{font-weight:600;margin-top:12px}
+.dz .cap{margin-top:4px;max-width:340px}
+.dz .acts{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;justify-content:center}
+.dz.over{background:var(--accent-soft);box-shadow:inset 0 0 0 2px var(--accent)}
+.dz .err{color:var(--danger);margin-top:4px;max-width:360px}
+.dz.off .tile,.dz.off .ins,.dz.off .btn{opacity:.45}
+.dz.off .btn{cursor:not-allowed}
+.loader{width:36px;height:36px;border-radius:50%;background:var(--kiwi-wash);display:flex;align-items:center;justify-content:center;flex:none;position:relative}
+.loader::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:3px solid transparent;border-top-color:var(--accent);animation:spin 1s linear infinite}
+.loader i{width:10px;height:10px;border-radius:50%;background:var(--ink)}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.loader::after{animation:none}}
+.phone{width:375px;max-width:100%;border-radius:var(--radius-lg);background:var(--bg);padding:16px;box-sizing:border-box;box-shadow:var(--shadow-1)}
+.phone h1{font:700 28px/34px var(--font-display);letter-spacing:-0.01em;margin:8px 0 16px}
+.phone .dz{padding:24px 16px}
+.phone .btn{width:100%;font-size:16px}
+.phone .dz .acts{width:100%}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+</style></head><body>
+<div class="grid">
+
+<div>
+<p class="lbl">Idle, with the page's one filled button</p>
+<div class="dz" role="group" aria-label="Drop a .vcf or .zip file here" aria-describedby="c1">
+<span class="tile t-accent"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14v4.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V14"></path><path d="M4 14h4l1.5 2.5h5L16 14h4"></path><path d="M12 4v8M8.5 8.5L12 12l3.5-3.5"></path></svg></span>
+<span class="ins">Drop a .vcf or .zip file here</span>
+<span class="cap" id="c1">A vCard file (.vcf) from Apple, Google or Samsung, or a .zip of them. Up to 50 MB.</span>
+<div class="acts"><button class="btn primary" type="button">Choose file…</button></div>
+</div>
+</div>
+
+<div>
+<p class="lbl">A file dragged over the page: fill, inner line and the words change</p>
+<div class="dz over" role="group" aria-label="Drop to import contacts-2026-10-14.vcf">
+<span class="tile t-accent" style="background:var(--surface)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14v4.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V14"></path><path d="M4 14h4l1.5 2.5h5L16 14h4"></path><path d="M12 4v8M8.5 8.5L12 12l3.5-3.5"></path></svg></span>
+<span class="ins">Drop to import contacts-2026-10-14.vcf</span>
+<span class="cap" style="color:var(--ink)">A vCard file (.vcf) from Apple, Google or Samsung, or a .zip of them. Up to 50 MB.</span>
+<div class="acts"><button class="btn primary" type="button">Choose file…</button></div>
+</div>
+</div>
+
+<div>
+<p class="lbl">Reading: the loading slice, the file's name and Cancel</p>
+<div class="dz" role="group" aria-label="Reading contacts-2026-10-14.vcf" aria-busy="true">
+<span class="loader" aria-hidden="true"><i></i></span>
+<span class="ins">Reading contacts-2026-10-14.vcf…</span>
+<span class="cap">A large file takes up to half a minute.</span>
+<div class="acts"><button class="btn plain fr" type="button">Cancel</button></div>
+<p class="sr" role="status">Reading contacts-2026-10-14.vcf</p>
+</div>
+</div>
+
+<div>
+<p class="lbl">Error: not a vCard (by extension, before sending). Focus back on Choose file</p>
+<div class="dz" role="group" aria-label="Drop a .vcf or .zip file here">
+<span class="tile t-warn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.8l9 15.7H3z"></path><path d="M12 10v4.5M12 17v.4"></path></svg></span>
+<span class="ins">Drop a .vcf or .zip file here</span>
+<span class="err" role="alert">notes.txt is not a vCard file. Choose a .vcf file, or a .zip with .vcf files in it.</span>
+<div class="acts"><button class="btn primary fr" type="button">Choose file…</button></div>
+</div>
+</div>
+
+<div>
+<p class="lbl">Error: the host did not answer. Try again sends the same file</p>
+<div class="dz" role="group" aria-label="Drop a .vcf or .zip file here">
+<span class="tile t-warn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.8l9 15.7H3z"></path><path d="M12 10v4.5M12 17v.4"></path></svg></span>
+<span class="ins">Drop a .vcf or .zip file here</span>
+<span class="err" role="alert">contacts-2026-10-14.vcf was not read. The host did not answer. Check that it is running, then try again.</span>
+<div class="acts"><button class="btn primary" type="button">Choose file…</button><button class="btn tonal fr" type="button">Try again</button></div>
+</div>
+</div>
+
+<div>
+<p class="lbl">Error from the host (400): its sentence after the file’s name, then a next step</p>
+<div class="dz" role="group" aria-label="Drop a .vcf or .zip file here">
+<span class="tile t-warn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.8l9 15.7H3z"></path><path d="M12 10v4.5M12 17v.4"></path></svg></span>
+<span class="ins">Drop a .vcf or .zip file here</span>
+<span class="err" role="alert">takeout-2026-10-14.zip cannot be imported. The zip holds no vCard (.vcf) file. When you make a Google Takeout archive, include Contacts.</span>
+<div class="acts"><button class="btn primary fr" type="button">Choose file…</button></div>
+</div>
+</div>
+
+<div>
+<p class="lbl">Error: too big (checked before sending; the host refuses it too, 413)</p>
+<div class="dz" role="group" aria-label="Drop a .vcf or .zip file here">
+<span class="tile t-warn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.8l9 15.7H3z"></path><path d="M12 10v4.5M12 17v.4"></path></svg></span>
+<span class="ins">Drop a .vcf or .zip file here</span>
+<span class="err" role="alert">contacts-all.vcf is 63 MB. myData reads files up to 50 MB. Compress it into a .zip in the Finder and drop that, or export fewer contacts at a time.</span>
+<div class="acts"><button class="btn primary fr" type="button">Choose file…</button></div>
+</div>
+</div>
+
+<div>
+<p class="lbl">Error: several files dropped. One file per import</p>
+<div class="dz" role="group" aria-label="Drop a .vcf or .zip file here">
+<span class="tile t-warn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.8l9 15.7H3z"></path><path d="M12 10v4.5M12 17v.4"></path></svg></span>
+<span class="ins">Drop a .vcf or .zip file here</span>
+<span class="err" role="alert">Drop one file at a time. To bring several, put them in one .zip.</span>
+<div class="acts"><button class="btn primary fr" type="button">Choose file…</button></div>
+</div>
+</div>
+
+<div>
+<p class="lbl">Disabled: the host cannot be reached. The reason is not faded</p>
+<div class="dz off" role="group" aria-label="Drop a .vcf or .zip file here" aria-describedby="c8">
+<span class="tile t-accent"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14v4.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V14"></path><path d="M4 14h4l1.5 2.5h5L16 14h4"></path><path d="M12 4v8M8.5 8.5L12 12l3.5-3.5"></path></svg></span>
+<span class="ins">Drop a .vcf or .zip file here</span>
+<span class="cap" id="c8">The host cannot be reached. Import works when it is running.</span>
+<div class="acts"><button class="btn primary" type="button" disabled tabindex="-1">Choose file…</button></div>
+</div>
+</div>
+
+<div>
+<p class="lbl">Under 600px: nothing to drop; the button opens the system's picker</p>
+<div class="phone">
+<h1>Import</h1>
+<div class="dz" role="group" aria-label="Import from a file">
+<span class="tile t-accent"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14v4.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V14"></path><path d="M4 14h4l1.5 2.5h5L16 14h4"></path><path d="M12 4v8M8.5 8.5L12 12l3.5-3.5"></path></svg></span>
+<span class="cap" style="margin-top:12px">A vCard file (.vcf) from Apple, Google or Samsung, or a .zip of them. Up to 50 MB.</span>
+<div class="acts"><button class="btn primary" type="button">Choose file…</button></div>
+</div>
+</div>
+</div>
+
+</div>
+</body></html>

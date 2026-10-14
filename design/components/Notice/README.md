@@ -13,5 +13,6 @@ One or two plain sentences above a list or grid that say what it cannot show, su
   - Refused in macOS: "myData is not allowed to read this Mac's calendars. Turn on myData in System Settings, under Privacy & Security, Calendars." (`warning`, with "Open System Settings", which opens that pane). macOS's own setting names are quoted exactly as macOS writes them, so the user can find them.
 - It cannot be dismissed. It goes away when every day on screen is read.
 - Screen readers hear it politely when it appears. The icon is decoration: the words carry the meaning, and the tone is never the only signal.
+- **The import review (phase 4, decided 2026-10-14):** `info` notices above the lists say what the import will do beyond the counts: the end of the demo on a first import, groups imported but not shown yet, and followed copies that will be hidden (ImportFlow, Review).
 - Not for errors (a host that cannot be reached is the app frame's warning line) and not for screens with nothing to list yet (EmptyState).
 - You provide the sentences, the tone and the optional action.

@@ -1,7 +1,7 @@
 A box the user ticks to include something: an option that goes with an action, or items picked from a list.
 
 - **Checkbox or Switch.** A Switch is a property of a thing that is on or off: it takes effect at once in settings, or on Save in a form ("All-day"). A Checkbox chooses: which items an action applies to ("Import these 12 contacts"), or an extra the action will also do ("Also remove…"). A test: if the sentence is "this is on", it is a Switch; if it is "do this too" or "include this", it is a Checkbox.
-- **Do not use it** for one choice among several (Select or SegmentedControl; myData has no radio buttons), for agreeing to terms (there are none), or to confirm something destructive in place of a dialog (the Danger button confirms).
+- **Do not use it** for one choice among several (Select or SegmentedControl; myData has no radio buttons), for agreeing to terms (there are none; the import's "Import without what is listed above" is not agreement but a choice of what the import does, ImportFlow), or to confirm something destructive in place of a dialog (the Danger button confirms).
 
 - **The box** is `icon` (20px) across, a rounded square with `radius-xs` (6px) corners, everywhere: on its own, in a list and in a row:
   - unchecked: `surface` fill and a 1px `line-strong` edge;
@@ -27,12 +27,12 @@ A box the user ticks to include something: an option that goes with an action, o
 - **Light and dark, every theme:** only tokens. `line-strong` meets 3:1 on `surface` and `bg` in both modes, so the unchecked edge stays visible; `on-accent` on `accent` meets 4.5:1 in every theme by theming.md's rules.
 - **Phone (under 600px):** the same box; a list row is `row-height` with `body` at 16px; the target is the row. ⇧ and ⌘ shortcuts do not apply. A long import list on a phone gets select all in the same place.
 - **Sizes:** the box is `icon` in every density; on its own its target is at least `control-height` (compact density, when built: `control-height-compact`); in a list, the row is at least `row-height`.
-- **Copy:** sentence case, no full stop on the label. The label says what checking it does, in the positive ("Also remove the 3 contacts you changed after the import", never "Don't keep…"). The safer choice is unchecked by default: an option that removes or sends more than the main action says is never checked for the user. A caption names what it covers, by name or count.
+- **Copy:** sentence case, no full stop on the label. The label says what checking it does, in the positive ("Import these 12 contacts", never "Don't skip…"). The safer choice is unchecked by default: an option that removes or sends more than the main action says is never checked for the user. A caption names what it covers, by name or count.
 - **Used by:**
-  - myData import, review step: "Import these 12 contacts", the list with select all, and the Import button that counts (phase 4).
-  - myData import, "What to bring" step: which address books or calendars in the file to bring (phase 4).
-  - myData import history, the Undo import dialog: "Also remove the 3 contacts you changed after the import", unchecked by default (phase 4).
+  - myData import, review step: the lists with select all, and the Import button that counts (phase 4; ImportFlow). A row that also has a button (Compare) holds two targets side by side, the checkbox and the button; the button is never inside the checkbox's target.
+  - myData import, review step: "Import without what is listed above", unticked, which must be ticked before a review with a loss report can be imported (phase 4; ImportFlow). The lists are grouped: "Possible duplicates" ticked, "Changed since your last import" ticked, "Already in myData" unticked, "New contacts" ticked and folded.
+  - myData import, "Files in the zip": for a .zip of several .vcf files, which files to bring, as a list on the review step (phase 4; ImportFlow has no separate step for it).
 - **Token:** `radius-xs` (tokens.json, 6px), the step under `radius-sm` (10px, which would make a 20px box a circle). The scale's steps grow by 4, 6 and 8px (10, 14, 20, 28), so the step below 10 is 6. On a 20px box it gives a clearly rounded square that cannot be read as a circle.
-- **Why a square.** On macOS, Windows and Linux a circle is the radio button's shape, so a lone round box in a dialog ("Also remove the 3 contacts you changed after the import") would read as a single radio option. Apple's round marks in Mail, Photos and Reminders are selection or completion marks in lists, mostly on iOS, not form checkboxes.
+- **Why a square.** On macOS, Windows and Linux a circle is the radio button's shape, so a lone round box ("Import without what is listed above", on the import's review) would read as a single radio option. Apple's round marks in Mail, Photos and Reminders are selection or completion marks in lists, mostly on iOS, not form checkboxes.
 - **Decided 2026-10-14:** the checkbox is a rounded square everywhere, in lists too.
 - You provide the label, an optional caption, the state, and what changes it; for a list, the items and the select-all title.

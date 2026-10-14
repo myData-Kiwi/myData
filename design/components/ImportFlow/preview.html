@@ -1,0 +1,410 @@
+<!-- @dsCard group="Flows" height=6840 -->
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700&family=Figtree:wght@400;600&family=JetBrains+Mono&display=swap">
+<style>
+body{margin:0;padding:24px;background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:22px}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.btn{height:44px;padding:0 22px;border-radius:var(--radius-control);font:600 15px/1 var(--font-body);border:0;cursor:pointer;white-space:nowrap}
+.primary{background:var(--accent);color:var(--on-accent)}
+.tonal{background:var(--accent-soft);color:var(--accent)}
+.plain{background:transparent;color:var(--accent)}
+.pd{background:transparent;color:var(--danger)}
+.danger{background:var(--danger);color:var(--on-danger)}
+.btn[disabled],.btn[aria-disabled="true"].off{opacity:.45;cursor:not-allowed}
+.btn:active{opacity:.85;transform:scale(.97)}
+.fr{outline:2px solid var(--focus);outline-offset:2px}
+.danger.fr,.pd.fr{outline-color:var(--ink)}
+.card{background:var(--surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-1)}
+.tile{width:36px;height:36px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;flex:none}
+svg.i,.tile svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.t-accent{background:var(--accent-soft);color:var(--accent)}.t-warn{background:var(--warning-soft);color:var(--warning)}
+.t-info{background:var(--info-soft);color:var(--info)}.t-n{background:var(--surface-sunken);color:var(--ink-muted)}
+.chipst{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:var(--radius-pill);font:600 13px/1 var(--font-body);white-space:nowrap;background:var(--surface-sunken);color:var(--ink-muted)}
+.cap{font-size:13px;line-height:18px;color:var(--ink-muted)}
+.lbl{font:600 13px/18px var(--font-body);color:var(--ink-muted);margin:0 0 8px 8px}
+.stage{margin-bottom:36px}
+.row2{display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start}
+/* The myData window: sidebar and a reading column. */
+.win{display:flex;width:1180px;max-width:100%;border-radius:var(--radius-lg);overflow:hidden;background:var(--bg);box-shadow:var(--shadow-1);position:relative}
+.side{width:var(--sidebar-width);flex:none;background:var(--surface);padding:20px 12px;box-sizing:border-box;display:flex;flex-direction:column}
+.side h2{font:700 22px/28px var(--font-display);margin:4px 8px 16px}
+.nav{display:flex;align-items:center;gap:12px;height:44px;padding:0 12px;border-radius:var(--radius-sm);color:var(--ink)}
+.nav.cur{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.conn{margin-top:auto;font-size:13px;color:var(--ink-muted);padding:16px 8px 0;display:flex;gap:8px;align-items:center}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--brand)}
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.col{padding:32px;box-sizing:border-box;max-width:calc(var(--content-max) + 64px);width:100%}
+h1.pt{font:700 34px/40px var(--font-display);letter-spacing:-0.02em;margin:0 0 4px}
+.lead{color:var(--ink-muted);margin:0 0 24px}
+.gh{font:600 13px/18px var(--font-body);color:var(--ink-muted);margin:24px 0 8px 8px}
+.gh:first-child{margin-top:0}
+.g{overflow:hidden}.g>:first-child{border-top:0}
+.r{display:flex;gap:12px;align-items:center;min-height:56px;box-sizing:border-box;padding:8px 16px;border-top:1px solid var(--line)}
+.r .txt{flex:1;min-width:0}.t{font-weight:600;display:block}.cap.b{display:block}
+.end{display:flex;align-items:center;gap:8px;flex:none}
+.r .btn{padding:0 14px}
+.chev{color:var(--ink-muted);transition:transform .12s}
+[aria-expanded="true"] .chev{transform:rotate(90deg)}
+.steps{margin:0;padding:4px 16px 16px 64px;border-top:0}
+.steps ol{margin:0;padding-left:20px}
+.steps li+li{margin-top:4px}
+.steps p{margin:8px 0 0}
+.q{font-weight:600}
+/* DropZone */
+.dz{background:var(--surface-sunken);border-radius:var(--radius-lg);padding:28px 24px;display:flex;flex-direction:column;align-items:center;text-align:center}
+.dz .ins{font-weight:600;margin-top:12px}
+.dz .cap{margin-top:4px;max-width:380px}
+.dz .acts{display:flex;gap:8px;margin-top:16px}
+/* Checkbox */
+.slot{width:36px;height:36px;display:flex;align-items:center;justify-content:center;flex:none}
+.box{width:20px;height:20px;box-sizing:border-box;border-radius:var(--radius-xs);border:1px solid var(--line-strong);background:var(--surface);color:var(--on-accent);display:flex;align-items:center;justify-content:center;flex:none}
+.box svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;opacity:0}
+.box .mx{display:none}
+[aria-checked="true"] .box,[aria-checked="mixed"] .box{background:var(--accent);border-color:var(--accent)}
+[aria-checked="true"] .box .ck{opacity:1}
+[aria-checked="mixed"] .box .ck{display:none}[aria-checked="mixed"] .box .mx{display:block;opacity:1}
+.opt{display:flex;gap:12px;align-items:flex-start;min-height:44px;padding:10px 0 0;cursor:pointer}
+.opt .box{margin-top:1px}
+.r[role="checkbox"]{cursor:pointer}
+/* Select (closed) */
+.fld label,.fl{font:600 13px/18px var(--font-body);color:var(--ink);display:block;margin-bottom:var(--space-2)}
+.sel-f{height:44px;width:320px;max-width:100%;display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);padding:0 var(--space-3) 0 var(--space-4);box-sizing:border-box;border:1px solid var(--line-strong);border-radius:var(--radius-md);background:var(--surface);color:var(--ink);font:400 15px var(--font-body);cursor:pointer;text-align:left}
+.sel-f svg{color:var(--ink-muted)}
+.help{font-size:13px;line-height:18px;color:var(--ink-muted);margin-top:var(--space-2)}
+.part{padding:16px 20px;border-top:1px solid var(--line)}
+.part:first-child{border-top:0}
+/* Notice */
+.nt{display:flex;gap:12px;align-items:center;padding:12px 16px;border-radius:var(--radius-md);background:var(--surface-sunken);box-sizing:border-box}
+.nt+.nt{margin-top:8px}
+.nt p{flex:1;min-width:0;margin:0}
+.nt .ii{color:var(--info)}
+/* Duplicate pair, compact */
+.dp{padding:0 16px 8px 64px}
+.dr{display:grid;grid-template-columns:84px 1fr 1fr;column-gap:12px;padding:8px;border-radius:var(--radius-sm);align-items:start}
+.dr.hd{border-bottom:1px solid var(--line);border-radius:0}
+.dr.diff{background:var(--surface-sunken)}
+.dr+.dr{margin-top:2px}
+.dl{font:600 13px/18px var(--font-body);color:var(--ink-muted)}.dl b{display:block;color:var(--ink)}
+.k{font-size:13px;color:var(--ink-muted);margin-right:6px}
+.none{color:var(--ink-muted)}
+/* Footer bar */
+.foot{position:sticky;bottom:0;display:flex;justify-content:flex-end;align-items:center;gap:8px;padding:16px 32px;border-top:1px solid var(--line);background:var(--bg);flex-wrap:wrap}
+.why{font-size:13px;line-height:18px;color:var(--ink-muted);margin-right:auto;max-width:420px}
+.failed{color:var(--danger);margin:0 0 0;flex-basis:100%}
+/* Progress */
+.pb-l{display:flex;justify-content:space-between;align-items:baseline;font-weight:600}
+.pb-l .fig{font-weight:400;color:var(--ink-muted)}
+.track{height:8px;border-radius:var(--radius-pill);background:var(--surface-sunken);margin:10px 0 8px;overflow:hidden}
+.fill{height:100%;border-radius:var(--radius-pill);background:var(--accent)}
+.fill.ind{width:30%}
+/* Dialog */
+.dstage{position:relative;width:560px;max-width:100%;height:420px;border-radius:var(--radius-lg);overflow:hidden;background:var(--bg)}
+.fake{padding:20px}.fake .card{height:56px;margin-bottom:12px}
+.scrim{position:absolute;inset:0;background:var(--scrim)}
+.dlg{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:calc(100% - 40px);max-width:var(--dialog-width);box-sizing:border-box;padding:24px;background:var(--surface-raised);border-radius:var(--radius-xl);box-shadow:var(--shadow-2)}
+.dlg h2{margin:0;font:700 22px/28px var(--font-display);letter-spacing:-0.01em}
+.dlg p{margin:8px 0 0}
+.dlg .acts{display:flex;justify-content:flex-end;gap:8px;margin-top:24px}
+/* Phone */
+.phone{position:relative;width:375px;height:780px;border-radius:var(--radius-lg);overflow:hidden;background:var(--bg);box-shadow:var(--shadow-1);display:flex;flex-direction:column;font-size:16px}
+.phone .body{flex:1;overflow:hidden;padding:12px 16px 0}
+.phone h1.pt{font-size:28px;line-height:34px}
+.phone .tabbar{margin:0 16px 16px;height:60px;border-radius:var(--radius-xl);background:var(--glass-fill);box-shadow:var(--shadow-glass);border:1px solid var(--glass-stroke);display:flex;align-items:center;justify-content:space-around;font-size:12px;color:var(--ink-muted)}
+.phone .tab{display:flex;flex-direction:column;align-items:center;gap:2px}
+.phone .tab.cur{color:var(--accent);font-weight:600}
+.phone .pbar{padding:12px 16px;background:var(--bg)}
+.phone .pbar .btn{width:100%;font-size:16px}
+.phone .dz .btn{width:100%;font-size:16px}
+.phone .dz .acts{width:100%}
+.phone .r{font-size:16px}
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:8px 4px 0}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* Review rows: the checkbox and the Compare button are two targets side by side */
+.r.li{gap:8px}
+.hit{display:flex;gap:12px;align-items:center;flex:1;min-width:0;cursor:pointer;align-self:stretch}
+.where{margin:0 8px}
+h2.qh{font:600 17px/24px var(--font-body);margin:0 0 8px}
+</style></head><body>
+
+<!-- ============ 1. CHOOSE ============ -->
+<div class="stage">
+<p class="lbl">1. Choose: the Import section in myData. Apple's steps are open (the link came from myContacts on a Mac)</p>
+<div class="win">
+<nav class="side" aria-label="myData">
+<h2>myData</h2>
+<div class="nav"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2.5-6 4 12 2.5-6h5"></path></svg>Status</div>
+<div class="nav cur" aria-current="page"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14v4.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V14"></path><path d="M12 4v10M8 10l4 4 4-4"></path></svg>Import</div>
+<div class="nav"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M5.6 18.4l1.8-1.8M16.6 7.4l1.8-1.8"></path></svg>Settings</div>
+<div class="conn"><span class="dot"></span>Connected to your host</div>
+</nav>
+<main class="main"><div class="col">
+<h1 class="pt">Import contacts</h1>
+<p class="lead">Bring contacts into myData as its own. They are on myData only, not on your phone yet.</p>
+
+<p class="gh">From a file</p>
+<div class="dz" role="group" aria-label="Drop a .vcf or .zip file here" aria-describedby="dzc">
+<span class="tile t-accent"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14v4.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V14"></path><path d="M4 14h4l1.5 2.5h5L16 14h4"></path><path d="M12 4v8M8.5 8.5L12 12l3.5-3.5"></path></svg></span>
+<span class="ins">Drop a .vcf or .zip file here</span>
+<span class="cap" id="dzc">A vCard file (.vcf) from Apple, Google or Samsung, or a .zip of them. Up to 50 MB.</span>
+<div class="acts"><button class="btn primary" type="button">Choose file…</button></div>
+</div>
+
+<p class="gh">Where to get a file</p>
+<div class="card g">
+<div class="r" role="button" aria-expanded="true" tabindex="0"><span class="tile t-n"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"></rect><path d="M8 20h8M12 16v4"></path></svg></span><span class="txt"><span class="t">Contacts on a Mac</span><span class="cap b">Every account on the Mac, with notes and photos</span></span><svg class="i chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></div>
+<div class="steps"><ol>
+<li>In Contacts, choose <span class="q">Contacts &gt; Settings &gt; vCard</span>, and turn on “Export notes in vCards” and “Export photos in vCards”.</li>
+<li>Select all contacts (⌘A in the list).</li>
+<li>Choose <span class="q">File &gt; Export &gt; Export vCard…</span>, and save the file.</li>
+<li>Drop it here.</li></ol>
+<p class="cap">This covers every account on this Mac: iCloud, Google, Exchange and On My Mac.</p></div>
+<div class="r" role="button" aria-expanded="false" tabindex="0"><span class="tile t-n"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18h10a4 4 0 0 0 .5-8A5.5 5.5 0 0 0 7 9a4.5 4.5 0 0 0 0 9z"></path></svg></span><span class="txt"><span class="t">iCloud on the web</span><span class="cap b">For a computer that is not a Mac</span></span><svg class="i chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></div>
+<div class="r" role="button" aria-expanded="false" tabindex="0"><span class="tile t-n"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 12h7"></path></svg></span><span class="txt"><span class="t">Google</span><span class="cap b">contacts.google.com as vCard, or a Takeout .zip with Contacts</span></span><svg class="i chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></div>
+<div class="r" role="button" aria-expanded="false" tabindex="0"><span class="tile t-n"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="3" width="10" height="18" rx="2"></rect><path d="M11 18h2"></path></svg></span><span class="txt"><span class="t">Samsung Galaxy</span><span class="cap b">Best moved to Google first</span></span><svg class="i chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></div>
+<div class="r" role="button" aria-expanded="false" tabindex="0"><span class="tile t-n"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M3 7l9 6 9-6"></path></svg></span><span class="txt"><span class="t">Outlook</span><span class="cap b">Outlook.com exports only CSV, which myData cannot read yet</span></span><svg class="i chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></div>
+</div>
+
+<p class="gh">From an account myData follows</p>
+<div class="card g">
+<div class="r"><span class="tile t-n"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18h10a4 4 0 0 0 .5-8A5.5 5.5 0 0 0 7 9a4.5 4.5 0 0 0 0 9z"></path></svg></span><span class="txt"><span class="t">The iCloud account ava@example.org</span><span class="cap b">128 contacts, as of today at 09:12</span></span><span class="end"><button class="btn tonal" type="button">Import a copy</button></span></div>
+<div class="r"><span class="tile t-n"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"></rect><path d="M8 20h8M12 16v4"></path></svg></span><span class="txt"><span class="t">This Mac</span><span class="cap b">A copy from this Mac would be incomplete: myData does not read notes from it. Export a vCard from Contacts instead (Contacts on a Mac, above).</span></span><span class="end"><button class="btn plain" type="button">Show how</button></span></div>
+</div>
+
+<p class="gh">Earlier imports</p>
+<div class="card g">
+<div class="r"><span class="tile t-n"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l4 4v14H7z"></path><path d="M14 3v4h4"></path></svg></span><span class="txt"><span class="t">contacts-2026-10-14.vcf</span><span class="cap b">14 Oct 2026. 128 added, 2 updated, 2 could not be read.</span></span><span class="end"><button class="btn pd" type="button">Undo import</button></span></div>
+<div class="r"><span class="tile t-n"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18h10a4 4 0 0 0 .5-8A5.5 5.5 0 0 0 7 9a4.5 4.5 0 0 0 0 9z"></path></svg></span><span class="txt"><span class="t">Copy of the iCloud account ava@example.org</span><span class="cap b">12 Oct 2026. 120 added, 6 kept as yours.</span></span><span class="end"><button class="btn pd" type="button">Undo import</button></span></div>
+<div class="r"><span class="tile t-n"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l4 4v14H7z"></path><path d="M14 3v4h4"></path></svg></span><span class="txt"><span class="t">Contacts file, 9 Oct 2026</span><span class="cap b">9 Oct 2026. 40 added. Undone 10 Oct 2026: 38 moved to Recently deleted, 2 changed since were kept.</span></span><span class="end"><span class="chipst">Undone</span></span></div>
+</div>
+</div></main>
+</div>
+</div>
+
+<!-- ============ 2. REVIEW ============ -->
+<div class="stage">
+<p class="lbl">2. Review: nothing written yet. The loss report is not accepted, so Import is disabled with its reason. Compare (open on Ben Sample) needs host gap H3; the file shadowing notice needs H1, built before this ships</p>
+<div class="win">
+<nav class="side" aria-label="myData">
+<h2>myData</h2>
+<div class="nav"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2.5-6 4 12 2.5-6h5"></path></svg>Status</div>
+<div class="nav cur" aria-current="page"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14v4.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V14"></path><path d="M12 4v10M8 10l4 4 4-4"></path></svg>Import</div>
+<div class="nav"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M5.6 18.4l1.8-1.8M16.6 7.4l1.8-1.8"></path></svg>Settings</div>
+<div class="conn"><span class="dot"></span>Connected to your host</div>
+</nav>
+<main class="main"><div class="col">
+<h1 class="pt">Review the import</h1>
+<p class="lead">contacts-2026-10-14.vcf: 143 cards.</p>
+
+<div class="card g" aria-label="Summary">
+<div class="r"><span class="tile t-accent"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="8" r="3.5"></circle><path d="M4 19c.8-3.2 3.3-5 6-5s5.2 1.8 6 5"></path><path d="M18 8v6M15 11h6"></path></svg></span><span class="txt"><span class="t">125 new contacts</span><span class="cap b">Imported.</span></span></div>
+<div class="r"><span class="tile t-info"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="7.5" height="14" rx="2"></rect><rect x="13.5" y="5" width="7.5" height="14" rx="2"></rect></svg></span><span class="txt"><span class="t">3 possible duplicates</span><span class="cap b">Imported as separate contacts unless you untick them below.</span></span></div>
+<div class="r"><span class="tile t-n"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 0 1 13.7-5.6L20 8.5M20 4v4.5h-4.5"></path><path d="M20 12a8 8 0 0 1-13.7 5.6L4 15.5M4 20v-4.5h4.5"></path></svg></span><span class="txt"><span class="t">2 changed since your last import</span><span class="cap b">Your copies are updated unless you untick them below.</span></span></div>
+<div class="r"><span class="tile t-n"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span><span class="txt"><span class="t">7 already in myData</span><span class="cap b">Not imported again unless you tick them below. 1 of them is not updated, because you changed it since.</span></span></div>
+<div class="r"><span class="tile t-warn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.8l9 15.7H3z"></path><path d="M12 10v4.5M12 17v.4"></path></svg></span><span class="txt"><span class="t">2 cards cannot be read</span><span class="cap b">Not imported. See below.</span></span></div>
+</div>
+
+<p class="gh">What this import will not bring</p>
+<div class="card g" role="group" aria-label="What this import will not bring">
+<div class="part"><span class="t">2 cards cannot be read</span>Card 57 ends before END:VCARD; the file may be cut short. Card 112 could not be read as a vCard.</div>
+<div class="part">
+<div class="opt" role="checkbox" aria-checked="false" tabindex="0" aria-describedby="acc-c"><span class="box"><svg class="ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 12.5l3.5 3.5 7.5-8"></path></svg><svg class="mx" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 12h9"></path></svg></span><span><span class="lt">Import without what is listed above</span><span class="cap b" id="acc-c">2 cards are not imported.</span></span></div>
+</div>
+</div>
+
+<p class="gh">Where they go</p>
+<p class="where">Into myData, the address book on this host. Imported contacts are on myData only, not on your phone yet.</p>
+
+<div style="margin-top:16px">
+<div class="nt" role="status"><svg class="i ii" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5.5M12 7.5v.5"></path></svg><p>This file has 4 groups. They are imported with the contacts, but myContacts does not show groups yet.</p></div>
+<div class="nt" role="status"><svg class="i ii" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5.5M12 7.5v.5"></path></svg><p>42 of these contacts are also read from this Mac. After the import, myData shows your copy and hides the one read from this Mac, so each person is found once.</p></div>
+</div>
+
+<p class="gh">Possible duplicates (3)</p>
+<div class="card g" role="group" aria-label="Possible duplicates, 3">
+<div class="r" role="checkbox" aria-checked="true" tabindex="0"><span class="slot"><span class="box"><svg class="ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 12.5l3.5 3.5 7.5-8"></path></svg><svg class="mx" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 12h9"></path></svg></span></span><span class="txt"><span class="t">All 3 possible duplicates</span><span class="cap b">3 of 3 ticked. Ticked ones are imported as separate contacts. You can merge them later in myContacts.</span></span></div>
+<div class="r li"><div class="hit" role="checkbox" aria-checked="true" tabindex="-1"><span class="slot"><span class="box"><svg class="ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 12.5l3.5 3.5 7.5-8"></path></svg><svg class="mx" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 12h9"></path></svg></span></span><span class="txt"><span class="t">Ben Sample</span><span class="cap b">Same name as Ben Sample in myData.</span></span></div><button class="btn plain" type="button" aria-expanded="true" aria-label="Hide comparison of Ben Sample">Hide comparison</button></div>
+<div class="dp" role="table" aria-label="Ben Sample, in the file and in myData">
+<div class="dr hd" role="row"><span role="columnheader"></span><span class="dl" role="columnheader"><b>In the file</b></span><span class="dl" role="columnheader"><b>In myData</b>Added 2 Oct 2026</span></div>
+<div class="dr diff" role="row"><span class="dl" role="rowheader">Phone<b>Differs</b></span><span role="cell"><span class="k">mobile</span>555-0188</span><span role="cell"><span class="k">mobile</span>555-0142</span></div>
+<div class="dr diff" role="row"><span class="dl" role="rowheader">Email<b>Differs</b></span><span role="cell"><span class="k">work</span>ben@example.org</span><span class="none" role="cell">None</span></div>
+</div>
+<div class="r li"><div class="hit" role="checkbox" aria-checked="true" tabindex="-1"><span class="slot"><span class="box"><svg class="ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 12.5l3.5 3.5 7.5-8"></path></svg><svg class="mx" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 12h9"></path></svg></span></span><span class="txt"><span class="t">Cleo Example</span><span class="cap b">Same name as Cleo Example in myData.</span></span></div><button class="btn plain" type="button" aria-expanded="false" aria-label="Compare Cleo Example">Compare</button></div>
+<div class="r li"><div class="hit" role="checkbox" aria-checked="true" tabindex="-1"><span class="slot"><span class="box"><svg class="ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 12.5l3.5 3.5 7.5-8"></path></svg><svg class="mx" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 12h9"></path></svg></span></span><span class="txt"><span class="t">Ava M. Fictional</span><span class="cap b">Same email as Ava Fictional in myData, under another name.</span></span></div><button class="btn plain" type="button" aria-expanded="false" aria-label="Compare Ava M. Fictional">Compare</button></div>
+</div>
+
+<p class="gh">Changed since your last import (2)</p>
+<div class="card g" role="group" aria-label="Changed since your last import, 2">
+<div class="r" role="checkbox" aria-checked="true" tabindex="0"><span class="slot"><span class="box"><svg class="ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 12.5l3.5 3.5 7.5-8"></path></svg><svg class="mx" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 12h9"></path></svg></span></span><span class="txt"><span class="t">All 2 changed contacts</span><span class="cap b">2 of 2 ticked. Changed in the file since you imported it. Ticking one updates your copy.</span></span></div>
+<div class="r" role="checkbox" aria-checked="true" tabindex="-1"><span class="slot"><span class="box"><svg class="ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 12.5l3.5 3.5 7.5-8"></path></svg><svg class="mx" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 12h9"></path></svg></span></span><span class="txt"><span class="t">Dev Placeholder</span></span></div>
+<div class="r" role="checkbox" aria-checked="true" tabindex="-1"><span class="slot"><span class="box"><svg class="ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 12.5l3.5 3.5 7.5-8"></path></svg><svg class="mx" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 12h9"></path></svg></span></span><span class="txt"><span class="t">Hana Specimen</span></span></div>
+</div>
+
+<p class="gh">Already in myData (7)</p>
+<div class="card g" role="group" aria-label="Already in myData, 7">
+<div class="r" role="checkbox" aria-checked="false" tabindex="0"><span class="slot"><span class="box"><svg class="ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 12.5l3.5 3.5 7.5-8"></path></svg><svg class="mx" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 12h9"></path></svg></span></span><span class="txt"><span class="t">All 2 that can be imported again</span><span class="cap b">0 of 2 ticked. Ticked ones are imported as separate contacts.</span></span></div>
+<div class="r li"><div class="hit" role="checkbox" aria-checked="false" tabindex="-1"><span class="slot"><span class="box"><svg class="ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 12.5l3.5 3.5 7.5-8"></path></svg></span></span><span class="txt"><span class="t">Farah Mock</span><span class="cap b">Same email and name as Farah Mock in myData.</span></span></div><button class="btn plain" type="button" aria-expanded="false" aria-label="Compare Farah Mock">Compare</button></div>
+<div class="r" role="checkbox" aria-checked="false" tabindex="-1"><span class="slot"><span class="box"><svg class="ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 12.5l3.5 3.5 7.5-8"></path></svg></span></span><span class="txt"><span class="t">Gus Mock</span><span class="cap b">Your copy is in Recently deleted. Restore it there, or tick this to import the file's version as a new contact.</span></span></div>
+<div class="r"><span class="slot"></span><span class="txt"><span class="cap b">Eli Testcase is not updated: you changed it in myData since the last import. 3 unchanged since you imported this file, and 1 repeated in it, are left out.</span></span></div>
+</div>
+
+<p class="gh">New contacts (125)</p>
+<div class="card g" role="group" aria-label="New contacts, 125">
+<div class="r li"><div class="hit" role="checkbox" aria-checked="true" tabindex="0"><span class="slot"><span class="box"><svg class="ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 12.5l3.5 3.5 7.5-8"></path></svg><svg class="mx" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 12h9"></path></svg></span></span><span class="txt"><span class="t">All 125 new contacts</span><span class="cap b">125 of 125 ticked</span></span></div><button class="btn plain" type="button" aria-expanded="false">Show all 125</button></div>
+</div>
+
+<p class="gh">Not in this file any more (4)</p>
+<div class="card g">
+<div class="r"><span class="slot"></span><span class="txt"><span class="cap b">Imported before from this file, and not in it now. They stay in myData; delete them in myContacts if you no longer want them.</span></span><button class="btn plain" type="button" aria-expanded="false">Show 4</button></div>
+</div>
+</div>
+<div class="foot"><span class="why" id="why">Tick “Import without what is listed above” first, or choose another file.</span><button class="btn plain" type="button">Cancel</button><button class="btn primary off" type="button" aria-disabled="true" aria-describedby="why">Import 130 contacts</button></div>
+</main>
+</div>
+</div>
+
+<!-- ============ 3. IMPORTING / failures ============ -->
+<div class="stage row2">
+<div style="flex:1 1 560px;max-width:580px">
+<p class="lbl">3. Importing: one request, no progress to report and nothing to cancel. Shown only after 1 second</p>
+<div class="card" style="padding:24px">
+<h1 class="pt" style="font-size:28px;line-height:34px" tabindex="-1">Importing 130 contacts</h1>
+<div style="margin-top:16px" role="progressbar" aria-busy="true" aria-label="Making a backup copy, then saving" aria-describedby="sv">
+<div class="pb-l"><span>Making a backup copy, then saving</span></div>
+<div class="track"><div class="fill ind"></div></div>
+<div class="cap" id="sv">Nothing is in myData until this ends. Undo import is offered then.</div></div>
+</div>
+<p class="lbl" style="margin-top:24px">Expired: the host no longer holds the review (an hour, or a restart)</p>
+<div class="card" style="padding:0;overflow:hidden">
+<div style="padding:20px 24px 4px"><p style="margin:0">This review is no longer held by the host. It keeps one for an hour, and not across a restart. Choose the file again.</p></div>
+<div class="foot" style="position:static;padding:16px 24px"><button class="btn plain" type="button">Cancel</button><button class="btn primary fr" type="button">Choose file…</button></div>
+</div>
+</div>
+<div style="flex:1 1 560px;max-width:580px">
+<p class="lbl">Failed: back on Review, the line above the footer (here, the backup copy failed)</p>
+<div class="card" style="padding:0;overflow:hidden">
+<div style="padding:20px 24px 4px" class="cap">… Review, as it was …</div>
+<div class="foot" style="position:static;padding:16px 24px"><p class="failed" role="alert">The contacts were not imported: the host could not make its backup copy first. Nothing changed. Check that the host’s disk has free space, then press Import again.</p><button class="btn plain" type="button">Cancel</button><button class="btn primary fr" type="button">Import 130 contacts</button></div>
+</div>
+<p class="lbl" style="margin-top:24px">Nothing new: every card is already in myData</p>
+<div class="card g">
+<div class="r"><span class="tile t-n"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span><span class="txt"><span class="t">136 already in myData</span><span class="cap b">Nothing new in this file. Tick any you want imported again.</span></span></div>
+</div>
+<div class="foot" style="position:static;border:0;padding:16px 0 0"><button class="btn plain" type="button">Cancel</button><button class="btn primary" type="button">Choose another file</button></div>
+</div>
+</div>
+
+<!-- ============ 4. DONE ============ -->
+<div class="stage">
+<p class="lbl">4. Done, after importing a copy of a followed iCloud account: the host's result, and whether to keep following</p>
+<div class="win">
+<nav class="side" aria-label="myData">
+<h2>myData</h2>
+<div class="nav"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2.5-6 4 12 2.5-6h5"></path></svg>Status</div>
+<div class="nav cur" aria-current="page"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14v4.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V14"></path><path d="M12 4v10M8 10l4 4 4-4"></path></svg>Import</div>
+<div class="nav"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M5.6 18.4l1.8-1.8M16.6 7.4l1.8-1.8"></path></svg>Settings</div>
+<div class="conn"><span class="dot"></span>Connected to your host</div>
+</nav>
+<main class="main"><div class="col">
+<h1 class="pt" tabindex="-1">Imported 120 contacts into myData</h1>
+<p class="lead">From a copy of the iCloud account ava@example.org, 14 Oct 2026.</p>
+<div class="card g">
+<div class="r"><span class="tile t-n"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span><span class="txt"><span class="t">6 kept as yours, the iCloud copies hidden</span></span></div>
+<div class="r"><span class="tile t-info"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="7.5" height="14" rx="2"></rect><rect x="13.5" y="5" width="7.5" height="14" rx="2"></rect></svg></span><span class="txt"><span class="t">2 possible duplicates were imported as separate contacts</span><span class="cap b">Merge them in myContacts if they are the same person.</span></span></div>
+</div>
+<div style="display:flex;gap:8px;margin-top:20px;flex-wrap:wrap"><button class="btn primary" type="button">Open in myContacts</button><button class="btn tonal" type="button">Undo import</button><button class="btn plain" type="button">Import more</button></div>
+
+<p class="gh" style="margin-top:32px">The account</p>
+<div class="card" style="padding:20px">
+<h2 class="qh">Keep following the iCloud account ava@example.org?</h2>
+<p style="margin:0 0 8px">myData now shows your imported copy of each contact and hides the one it follows, so each person is found once (in myContacts, in search and in the assistant’s answers).</p>
+<p style="margin:0 0 8px">While you follow the account, a contact that changes in iCloud after today is marked in myContacts. Changes made on your iPhone reach myData only this way until myData can serve your phone itself.</p>
+<p style="margin:0 0 8px">Its 3 calendars are read from this account too, and are not imported yet.</p>
+<p style="margin:0">2 of its contacts are not on myData (you left them out), so they would leave myData too.</p>
+<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px"><button class="btn plain" type="button">Keep following</button><button class="btn tonal" type="button">Stop following</button></div>
+</div>
+</div></main>
+</div>
+</div>
+
+<!-- ============ 5. DIALOGS ============ -->
+<div class="stage row2">
+<div>
+<p class="lbl">5. Undo import: the rule, not counts (the host says what it did afterwards)</p>
+<div class="dstage" style="height:470px">
+<div class="fake" aria-hidden="true"><div class="card"></div><div class="card"></div><div class="card"></div><div class="card"></div></div>
+<div class="scrim"></div>
+<div class="dlg" role="alertdialog" aria-modal="true" aria-labelledby="u1" aria-describedby="u1b">
+<h2 id="u1">Undo this import?</h2>
+<p id="u1b">Contacts this import added that nobody changed since move to Recently deleted, where you can restore them for 30 days. Contacts it updated go back to how they were. Contacts changed since the import stay as they are.</p>
+<p>This cannot be undone as a whole; each contact can be restored from Recently deleted.</p>
+<div class="acts"><button class="btn plain fr" type="button">Cancel</button><button class="btn danger" type="button">Undo import</button></div>
+</div>
+</div>
+</div>
+<div>
+<p class="lbl">Stop following, from Done: Settings' remove dialog, with what leaves and what stays</p>
+<div class="dstage" style="height:470px">
+<div class="fake" aria-hidden="true"><div class="card"></div><div class="card"></div><div class="card"></div><div class="card"></div></div>
+<div class="scrim"></div>
+<div class="dlg" role="alertdialog" aria-modal="true" aria-labelledby="s1" aria-describedby="s1b">
+<h2 id="s1">Stop following ava@example.org?</h2>
+<p id="s1b">myData stops reading this account. Your 120 imported contacts stay. 2 contacts you left out, and its 3 calendars, are not imported, so they leave myData; they stay in iCloud. To follow it again you will need its app-specific password.</p>
+<div class="acts"><button class="btn plain fr" type="button">Cancel</button><button class="btn danger" type="button">Stop following</button></div>
+</div>
+</div>
+<p class="lbl" style="margin-top:24px">After Undo import: no toast (it cannot be undone); the history row changes and takes focus</p>
+<div class="card g" style="width:560px;max-width:100%">
+<div class="r fr" tabindex="-1" style="outline-offset:-2px"><span class="tile t-n"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l4 4v14H7z"></path><path d="M14 3v4h4"></path></svg></span><span class="txt"><span class="t">contacts-2026-10-14.vcf</span><span class="cap b">14 Oct 2026. 128 added. Undone 15 Oct 2026: 125 moved to Recently deleted, 3 changed since were kept: Ava Fictional, Ben Sample and Cleo Example.</span></span><span class="end"><span class="chipst">Undone</span></span></div>
+</div>
+</div>
+</div>
+
+<!-- ============ 6. PHONE ============ -->
+<div class="stage row2">
+<div>
+<p class="lbl">Under 600px: Choose (the middle tab)</p>
+<div class="phone">
+<div class="body">
+<h1 class="pt">Import contacts</h1>
+<p class="lead" style="margin-bottom:16px">They are on myData only, not on your phone yet.</p>
+<div class="dz" role="group" aria-label="Import from a file" style="padding:20px 16px">
+<span class="tile t-accent"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14v4.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V14"></path><path d="M4 14h4l1.5 2.5h5L16 14h4"></path><path d="M12 4v8M8.5 8.5L12 12l3.5-3.5"></path></svg></span>
+<span class="cap" style="margin-top:10px">A vCard file (.vcf) from Apple, Google or Samsung, or a .zip of them. Up to 50 MB.</span>
+<div class="acts"><button class="btn primary" type="button">Choose file…</button></div>
+</div>
+<p class="gh">Where to get a file</p>
+<div class="card g">
+<div class="r" role="button" aria-expanded="false"><span class="txt"><span class="t">Contacts on a Mac</span></span><svg class="i chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></div>
+<div class="r" role="button" aria-expanded="false"><span class="txt"><span class="t">Google</span></span><svg class="i chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></div>
+<div class="r" role="button" aria-expanded="false"><span class="txt"><span class="t">Samsung Galaxy</span></span><svg class="i chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></div>
+</div>
+</div>
+<div class="tabbar" aria-label="Sections"><span class="tab">Status</span><span class="tab cur" aria-current="page">Import</span><span class="tab">Settings</span></div>
+</div>
+</div>
+<div>
+<p class="lbl">Under 600px: Review, with the action bar above the tab bar</p>
+<div class="phone">
+<div class="topbar"><button class="btn plain" type="button">Cancel</button></div>
+<div class="body" style="padding-top:0">
+<h1 class="pt">Review the import</h1>
+<p class="lead" style="margin-bottom:12px">contacts-2026-10-14.vcf: 143 cards.</p>
+<div class="card g">
+<div class="r"><span class="tile t-accent"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="8" r="3.5"></circle><path d="M4 19c.8-3.2 3.3-5 6-5s5.2 1.8 6 5"></path><path d="M18 8v6M15 11h6"></path></svg></span><span class="txt"><span class="t">125 new contacts</span></span></div>
+<div class="r"><span class="tile t-info"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="7.5" height="14" rx="2"></rect><rect x="13.5" y="5" width="7.5" height="14" rx="2"></rect></svg></span><span class="txt"><span class="t">3 possible duplicates</span></span></div>
+<div class="r"><span class="tile t-warn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.8l9 15.7H3z"></path><path d="M12 10v4.5M12 17v.4"></path></svg></span><span class="txt"><span class="t">2 cards cannot be read</span></span></div>
+</div>
+<p class="gh">What this import will not bring</p>
+<div class="card"><div class="part">Card 57 ends before END:VCARD. Card 112 could not be read as a vCard.</div><div class="part">
+<div class="opt" role="checkbox" aria-checked="true" tabindex="0" style="padding-top:0"><span class="box"><svg class="ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 12.5l3.5 3.5 7.5-8"></path></svg><svg class="mx" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 12h9"></path></svg></span><span><span>Import without what is listed above</span><span class="cap b">2 cards are not imported.</span></span></div>
+</div></div>
+</div>
+<div class="pbar"><button class="btn primary" type="button">Import 130 contacts</button></div>
+<div class="tabbar" aria-label="Sections"><span class="tab">Status</span><span class="tab cur" aria-current="page">Import</span><span class="tab">Settings</span></div>
+</div>
+</div>
+</div>
+
+</body></html>
