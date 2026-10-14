@@ -20,15 +20,16 @@ import 'status.dart';
 ///   use at most [GroupedList.maxTileTones] tones.
 /// - Use a [GroupedList] when every part is a row; use this when one part is not.
 class GroupedSection extends StatelessWidget {
-  GroupedSection({super.key, required this.heading, required this.parts})
+  GroupedSection({super.key, this.heading, required this.parts})
     : assert(parts.isNotEmpty, 'a grouped section has at least one part'),
       assert(
         _tileTones(parts).length <= GroupedList.maxTileTones,
         'use at most ${GroupedList.maxTileTones} different tile tones on one screen (design/README.md "Colour")',
       );
 
-  /// The small heading above the group, in sentence case ("Appearance").
-  final String heading;
+  /// The small heading above the group, in sentence case ("Appearance"). Null for none, as a [GroupedList]
+  /// may have none (an import's Done list).
+  final String? heading;
 
   /// The parts, top to bottom.
   final List<Widget> parts;

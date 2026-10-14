@@ -229,4 +229,20 @@ void main() {
       ],
     );
   });
+
+  testWidgets('without a heading: the group alone, as a GroupedList may be', (tester) async {
+    await tester.pumpWidget(themedFrame(
+      themeMatrix.first,
+      SizedBox(
+        width: 480,
+        child: GroupedSection(parts: const [
+          GroupedRow(title: '3 updated'),
+          GroupedContentPart(child: Text('A note')),
+        ]),
+      ),
+    ));
+    expect(find.text('3 updated'), findsOneWidget);
+    expect(find.text('A note'), findsOneWidget);
+    expect(find.byType(Text), findsNWidgets(2), reason: 'no heading above the group');
+  });
 }
