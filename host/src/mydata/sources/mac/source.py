@@ -17,8 +17,10 @@ Permission
 - The helper reports the status of each kind without prompting. It asks the system only when the host
   sends request_access, which happens only when the user presses Allow in the myData app
   (POST /sources/mac/request-access). Never at login.
-- When a kind is not readable (denied, restricted, not asked yet, write-only), what was mirrored of
-  that kind is deleted: access taken away in System Settings takes the copy away too.
+- When access to a kind is taken away (denied, restricted, or calendars write-only), what was mirrored
+  of that kind is deleted: access taken away in System Settings takes the copy away too. "Not asked yet"
+  keeps the copy, unread until the user allows access again: macOS reports it when myData's signing
+  identity changes (every ad hoc rebuild), which is not the user taking anything away.
 
 Reading
 - On connect, the host asks for every readable kind (with the window it expects), again when a kind is
@@ -528,9 +530,9 @@ class MacSource:
             if not self.enabled:
                 return
             self._save(contacts_status=contacts, calendars_status=calendars)
-            if contacts not in protocol.CONTACTS_READABLE:
+            if contacts in protocol.CONTACTS_NO_ACCESS:
                 self._delete_contacts()
-            if calendars not in protocol.CALENDARS_READABLE:
+            if calendars in protocol.CALENDARS_NO_ACCESS:
                 self._delete_calendars()
         with self._status_cond:
             self._status_seq += 1

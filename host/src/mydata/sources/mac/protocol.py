@@ -57,6 +57,12 @@ ACCESS_KINDS = ("contacts", "calendars")
 CONTACTS_READABLE = ("authorized",)
 CALENDARS_READABLE = ("fullAccess",)
 
+# Statuses that mean the user (or a policy) took access away. Only these delete what was mirrored: "not
+# asked yet" is also what macOS reports when myData's signing identity changes (an ad hoc rebuild, a re-signed
+# or moved app), which takes nothing away; and an unknown status from a later macOS is not a refusal either.
+CONTACTS_NO_ACCESS = ("restricted", "denied")
+CALENDARS_NO_ACCESS = ("restricted", "denied", "writeOnly")
+
 # The most parts one snapshot may come in (the helper keeps each part to a few MB).
 MAX_PARTS = 1000
 

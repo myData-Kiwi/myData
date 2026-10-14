@@ -215,6 +215,23 @@ def test_access_taken_away_deletes_what_was_read(make_host):
         assert len(c.get("/calendars")) == 3  # calendars are still allowed
 
 
+def test_access_not_asked_yet_keeps_what_was_read(make_host):
+    # What macOS reports for a rebuilt (ad hoc signed) myData: not a refusal, so the copy stays, unread.
+    mac = FakeMac("authorized", "fullAccess")
+    h = make_host(mac)
+    with Client(h) as c:
+        on(c, mac)
+        assert wait(lambda: len(c.names()) == 4 and len(c.get("/calendars")) == 3)
+        mac.status.update(contacts="notDetermined", calendars="notDetermined")
+        mac.helper.send({"type": "status", **mac.status})
+        assert wait(lambda: c.mac()["contacts_status"] == "notDetermined")
+        assert len(c.names()) == 4 and len(c.get("/calendars")) == 3
+        mac.status.update(contacts="unknown", calendars="unknown")  # a status a later macOS adds
+        mac.helper.send({"type": "status", **mac.status})
+        assert wait(lambda: c.mac()["contacts_status"] == "unknown")
+        assert len(c.names()) == 4 and len(c.get("/calendars")) == 3
+
+
 def test_access_taken_away_survives_owned_data(make_host, home):
     before = _owned(home)
     mac = FakeMac("authorized", "fullAccess")
