@@ -681,11 +681,21 @@ def _to_30(card: VCard) -> None:
                 continue
         elif key == "MEMBER":
             card.update(prop, name="X-ADDRESSBOOKSERVER-MEMBER")
-        elif key in ("PHOTO", "LOGO") and prop.value.lower().startswith("data:"):
+        elif key in _BINARY and prop.value.lower().startswith("data:"):
             meta, _, data = prop.value[5:].partition(",")
             if ";base64" in meta.lower():
                 subtype = meta.split(";", 1)[0].split("/", 1)[-1].upper() or "JPEG"
                 card.update(prop, Raw(data), [("ENCODING", ["b"]), ("TYPE", [subtype])])
+            else:
+                card.update(prop, params=[*_without(prop.params, "VALUE"), ("VALUE", ["uri"])])
+        elif key in _BINARY and _URI.match(prop.value.strip()) and not prop.encoding and (
+                prop.param("MEDIATYPE") or not any(v.lower() == "uri" for v in prop.param("VALUE"))):
+            # 3.0 reads these as binary unless told otherwise; 4.0's MEDIATYPE is 3.0's TYPE
+            params = _without(_without(prop.params, "VALUE"), "MEDIATYPE")
+            media = prop.param("MEDIATYPE")
+            if media and not prop.types:
+                params.append(("TYPE", [media[0].split("/", 1)[-1].upper()]))
+            card.update(prop, params=[*params, ("VALUE", ["uri"])])
         elif key in ("BDAY", "ANNIVERSARY"):
             v = prop.value.strip()
             if m := re.fullmatch(r"--(\d{2})-?(\d{2})", v):
@@ -722,8 +732,8 @@ def _to_40(card: VCard) -> None:
         elif key == "X-ABSHOWAS" and prop.text().strip().upper() == "COMPANY" and card.first("KIND") is None:
             card.add("KIND", Raw("org"))
         elif key in ("PHOTO", "LOGO") and prop.encoding in ("B", "BASE64"):
-            subtype = next((t for t in prop.types), "jpeg")
             data = re.sub(r"\s+", "", prop.value)
+            subtype = next((t for t in prop.types), None) or _image_type(data)
             card.update(prop, Raw(f"data:image/{subtype};base64,{data}"),
                         [p for p in prop.params if p[0] is not None and p[0].upper() not in ("ENCODING", "TYPE")])
         elif key in ("BDAY", "ANNIVERSARY", "X-ABDATE"):
@@ -731,6 +741,10 @@ def _to_40(card: VCard) -> None:
             m = re.fullmatch(r"(\d{4})-?(\d{2})-?(\d{2})", prop.value.strip())
             if omit and m and m.group(1) == omit[0]:
                 card.update(prop, Raw(f"--{m.group(2)}{m.group(3)}"), _without(prop.params, "X-APPLE-OMIT-YEAR"))
+            elif key != "X-ABDATE" and (basic := _basic(prop.value.strip())) is not None:
+                card.update(prop, Raw(basic))
+        elif key == "REV" and (basic := _basic(prop.value.strip())) is not None:
+            card.update(prop, Raw(basic))
         if "pref" in prop.types:
             params = []
             for n, values in prop.params:
@@ -747,14 +761,47 @@ def _to_40(card: VCard) -> None:
         version.touch()
 
 
+# Properties 3.0 reads as binary (ENCODING=b) unless VALUE=uri says otherwise.
+_BINARY = ("PHOTO", "LOGO", "SOUND", "KEY")
+_URI = re.compile(r"[A-Za-z][A-Za-z0-9+.-]*:")
+# A date or date-time in ISO 8601's extended format (3.0 writes it; 4.0 allows only the basic one).
+_EXTENDED = re.compile(r"(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2})(?::(\d{2}))?(?:[.,]\d+)?"
+                       r"(Z|[+-]\d{2}(?::?\d{2})?)?)?")
+_MAGIC = ((b"\x89PNG", "png"), (b"\xff\xd8\xff", "jpeg"), (b"GIF8", "gif"))
+
+
+def _basic(value: str) -> str | None:
+    """A date or date-time in ISO 8601's basic format (19850412, 20260101T000000Z); None when it is not one in
+    the extended format (already basic, or something else: left as it is)."""
+    m = _EXTENDED.fullmatch(value)
+    if not m:
+        return None
+    day = m.group(1) + m.group(2) + m.group(3)
+    if m.group(4) is None:
+        return day
+    return f"{day}T{m.group(4)}{m.group(5)}{m.group(6) or '00'}{(m.group(7) or '').replace(':', '')}"
+
+
+def _image_type(data: str) -> str:
+    """The image type of base64 data, from its first bytes (JPEG when unknown)."""
+    try:
+        head = base64.b64decode(data[:16] + "=" * (-len(data[:16]) % 4))
+    except (binascii.Error, ValueError):
+        return "jpeg"
+    if head[:4] == b"RIFF" and head[8:12] == b"WEBP":
+        return "webp"
+    return next((name for magic, name in _MAGIC if head.startswith(magic)), "jpeg")
+
+
 def _without(params: list[tuple[str | None, list[str]]], name: str) -> list[tuple[str | None, list[str]]]:
     return [(n, v) for n, v in params if n is None or n.upper() != name.upper()]
 
 
 def convert(text: str, version: str) -> str:
     """One card in another vCard version ("3.0" or "4.0"), changing only the lines that differ between them
-    (VERSION; KIND and MEMBER against Apple's X-ADDRESSBOOKSERVER-KIND and -MEMBER; an embedded PHOTO; PREF
-    against TYPE=pref; a birthday without a year; a tel: URI). Everything else is copied as it came, and a card
+    (VERSION; KIND and MEMBER against Apple's X-ADDRESSBOOKSERVER-KIND and -MEMBER; an embedded PHOTO; a link
+    in PHOTO, LOGO, SOUND or KEY, which 3.0 marks VALUE=uri; PREF against TYPE=pref; a birthday without a year;
+    dates and REV, which 4.0 writes in the basic format; a tel: URI). Everything else is copied as it came, and a card
     already in that version is returned unchanged. REV is not changed: the card's content is the same."""
     if version not in ("3.0", "4.0"):
         raise VCardError(f"cannot write vCard {version}")

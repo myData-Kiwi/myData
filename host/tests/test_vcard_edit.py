@@ -525,3 +525,28 @@ def test_a_link_replacing_an_embedded_photo_drops_its_encoding():
     card.set("PHOTO", Raw("https://example.org/p.jpg"))
     photo_prop = VCard.parse(card.to_text(now=NOW)).first("PHOTO")
     assert photo_prop.encoding == "" and photo_prop.value == "https://example.org/p.jpg"
+
+
+def test_converting_to_3_0_marks_links_as_links():
+    text = ("BEGIN:VCARD\r\nVERSION:4.0\r\nFN:Kai Invented\r\nPHOTO:https://example.org/p.jpg\r\n"
+            "LOGO;MEDIATYPE=image/png:https://example.org/l.png\r\nKEY:https://example.org/k.asc\r\n"
+            "SOUND;VALUE=uri:https://example.org/s.ogg\r\nEND:VCARD\r\n")
+    out = convert(text, "3.0")
+    assert "PHOTO;VALUE=uri:https://example.org/p.jpg\r\n" in out
+    assert "LOGO;TYPE=PNG;VALUE=uri:https://example.org/l.png\r\n" in out
+    assert "KEY;VALUE=uri:https://example.org/k.asc\r\n" in out
+    assert "SOUND;VALUE=uri:https://example.org/s.ogg\r\n" in out  # already marked: copied as it came
+    assert vobject.readOne(out).photo.value == "https://example.org/p.jpg"
+
+
+def test_converting_to_4_0_writes_dates_in_the_basic_format_and_finds_the_photo_type():
+    png = base64.b64encode(b"\x89PNG\r\n\x1a\n" + bytes(16)).decode()
+    text = ("BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Kai Invented\r\nN:Invented;Kai;;;\r\nBDAY:1985-04-12\r\n"
+            "ANNIVERSARY;VALUE=date-time:2010-06-01T15:30:00+12:00\r\nREV:2026-01-01T00:00:00Z\r\n"
+            f"PHOTO;ENCODING=b:{png}\r\nX-ABDATE:2001-02-03\r\nEND:VCARD\r\n")
+    out = convert(text, "4.0")
+    assert "BDAY:19850412\r\n" in out and "REV:20260101T000000Z\r\n" in out
+    assert "ANNIVERSARY;VALUE=date-time:20100601T153000+1200\r\n" in out
+    assert f"PHOTO:data:image/png;base64,{png}\r\n" in out
+    assert "X-ABDATE:2001-02-03\r\n" in out  # Apple's own field: as it came
+    assert parse_vcard(out).birthday == "1985-04-12"
