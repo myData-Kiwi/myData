@@ -21,9 +21,9 @@ Retention (retention(), pure): the newest snapshot of each of the 24 most recent
 and 12 most recent months that have one (UTC), and every snapshot not taken by the hourly timer for at
 least 90 days, except that of those taken before a migration only the newest 3 per migration are.
 
-The restore drill (verify()) copies a snapshot into a temporary folder inside backups/, opens each
-database with this code (running its migrations there), runs the checks, compares row counts with the
-manifest, and records the result in backups/last_verify.json. restore() needs the host stopped: it holds
+The restore drill (verify()) copies a snapshot into a temporary folder inside backups/, compares its row
+counts with the manifest, opens each database with this code (running its migrations there), runs the
+checks, and records the result in backups/last_verify.json. restore() needs the host stopped: it holds
 the host's pid lock while it works, so no host can start meanwhile, takes a snapshot of the current state
 (a database too damaged to copy is kept in it byte for byte, so damage never blocks a restore), then puts
 the snapshot's files back.
@@ -491,25 +491,37 @@ def _drill(snap: Snapshot, manifest: dict, work: Path) -> list[str]:
     for entry in manifest.get("files", []):
         name = entry["file"]
         copy = work / name
-        shutil.copyfile(snap.path / name, copy)
-        private_file(copy)
+        try:
+            shutil.copyfile(snap.path / name, copy)
+            private_file(copy)
+            # The copy as it was taken, before this code's migrations change it: its row counts must be the
+            # manifest's. (A migration may rename or merge tables; that is not a fault of the snapshot.)
+            db = sqlite3.connect(copy, isolation_level=None)
+            try:
+                counts = table_counts(db)
+            finally:
+                db.close()
+        except FileNotFoundError:  # pruned meanwhile, by a running host
+            problems.append(f"{name} is missing from the snapshot")
+            continue
+        except (OSError, sqlite3.Error) as e:
+            problems.append(f"{name} cannot be read ({type(e).__name__}: {e})")
+            continue
+        for table, n in sorted(entry.get("row_counts", {}).items()):
+            if table not in counts:
+                problems.append(f"{name}: table {table} is missing")
+            elif counts[table] != n:
+                problems.append(f"{name}: {table} has {counts[table]} rows, the manifest says {n}")
         try:
             if name in stores:
                 stores[name](copy)  # this code's migrations, as the host would run them
             db = sqlite3.connect(copy, isolation_level=None)
             try:
                 problems += [f"{name}: {p}" for p in check(db)]
-                counts = table_counts(db)
             finally:
                 db.close()
         except Exception as e:
             problems.append(f"{name} could not be opened with this host ({type(e).__name__}: {e})")
-            continue
-        for table, n in sorted(entry.get("row_counts", {}).items()):
-            if table not in counts:
-                problems.append(f"{name}: table {table} is missing after opening it")
-            elif counts[table] != n:
-                problems.append(f"{name}: {table} has {counts[table]} rows, the manifest says {n}")
     return problems
 
 

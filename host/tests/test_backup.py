@@ -378,6 +378,16 @@ def test_the_drill_runs_this_codes_migrations(home, monkeypatch):
     assert count(home / "contacts.sqlite", "schema_version") == len(ContactsStore.MIGRATIONS)  # live file untouched
 
 
+def test_the_drill_counts_rows_before_this_codes_migrations_change_them(home, monkeypatch):
+    class Renamed(ContactsStore):  # a later build that renames a table: the snapshot is still faithful
+        MIGRATIONS = {**ContactsStore.MIGRATIONS,
+                      max(ContactsStore.MIGRATIONS) + 1: ["ALTER TABLE address_books RENAME TO books"]}
+
+    take_snapshot(home, "manual", now=NOW)
+    monkeypatch.setattr(backup, "_stores", lambda: {"contacts.sqlite": Renamed})
+    assert verify(home)["problems"] == []
+
+
 def test_the_drill_finds_a_damaged_snapshot(home):
     snap = take_snapshot(home, "manual", now=NOW)
     with open(snap.path / "contacts.sqlite", "ab") as fh:

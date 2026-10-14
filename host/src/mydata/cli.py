@@ -33,6 +33,7 @@ import getpass
 import json
 import os
 import signal
+import sqlite3
 import subprocess
 import sys
 import time
@@ -407,6 +408,9 @@ def cmd_backup(settings: Settings, ns: argparse.Namespace) -> int:
     except backup.BackupError as e:
         print(f"mydata: {e}", file=sys.stderr)
         return 1
+    except (OSError, sqlite3.Error) as e:
+        print(f"mydata: {type(e).__name__}: {e}", file=sys.stderr)
+        return 1
 
 
 def cmd_export(settings: Settings, out: str) -> int:
@@ -415,6 +419,9 @@ def cmd_export(settings: Settings, out: str) -> int:
         summary = export_raw(settings.home, out)
     except ExportError as e:
         print(f"mydata: {e}", file=sys.stderr)
+        return 1
+    except (OSError, sqlite3.Error) as e:
+        print(f"mydata: {type(e).__name__}: {e}", file=sys.stderr)
         return 1
     cards = sum(c["cards"] for c in summary["contacts"])
     events = sum(c["resources"] for c in summary["calendars"])
