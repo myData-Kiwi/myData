@@ -786,26 +786,9 @@ class _CellState extends State<_Cell> {
     final fill = widget.notRead ? c.surfaceSunken : (widget.selected ? c.accentSoft : null);
     final muted = !widget.inMonth;
 
-    // The number: today's disc; else ink-muted when not read, ink when selected, ink-muted outside the month.
-    final Color numberColour = widget.today
-        ? c.onAccent
-        : widget.notRead
-            ? c.inkMuted
-            : widget.selected
-                ? c.ink
-                : (muted ? c.inkMuted : c.ink);
     final scaler = MediaQuery.textScalerOf(context);
-    final numberBox = MonthGrid.numberBoxSize(scaler);
-    final number = Container(
-      width: numberBox,
-      height: numberBox,
-      alignment: Alignment.center,
-      decoration: widget.today ? BoxDecoration(color: c.accent, shape: BoxShape.circle) : null,
-      child: Text('${widget.day.day}',
-          maxLines: 1,
-          softWrap: false,
-          style: (widget.today ? MyDataType.bodyStrong : MyDataType.body).copyWith(color: numberColour)),
-    );
+    final number = _DayNumber(
+        day: widget.day, today: widget.today, selected: widget.selected, notRead: widget.notRead, outside: muted);
 
     final overflow = shown.length > MonthGrid.maxLines;
     final visible = overflow ? shown.sublist(0, MonthGrid.maxLines - 1) : shown;
@@ -913,6 +896,136 @@ class _CellState extends State<_Cell> {
             child: cell,
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// A day's number in its box ([MonthGrid.numberBoxSize]): on today's `accent` disc in `body-strong` and
+/// `on-accent`; else in `body`, `ink-muted` for a day not read, `ink` when selected, `ink-muted` outside the
+/// month. Shared by the grid's cells and [MonthGridDay], so the two cannot drift apart.
+class _DayNumber extends StatelessWidget {
+  const _DayNumber(
+      {required this.day, required this.today, required this.selected, required this.notRead, required this.outside});
+  final DateTime day;
+  final bool today;
+  final bool selected;
+  final bool notRead;
+  final bool outside;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final Color colour = today
+        ? c.onAccent
+        : notRead
+            ? c.inkMuted
+            : selected
+                ? c.ink
+                : (outside ? c.inkMuted : c.ink);
+    final box = MonthGrid.numberBoxSize(MediaQuery.textScalerOf(context));
+    return Container(
+      width: box,
+      height: box,
+      alignment: Alignment.center,
+      decoration: today ? BoxDecoration(color: c.accent, shape: BoxShape.circle) : null,
+      child: Text('${day.day}',
+          maxLines: 1,
+          softWrap: false,
+          style: (today ? MyDataType.bodyStrong : MyDataType.body).copyWith(color: colour)),
+    );
+  }
+}
+
+/// One day drawn by MonthGrid's own day marks, on a round cell with no events: the days of [DatePicker]'s
+/// popover (design/components/DatePicker, "Days reuse MonthGrid's day marks").
+///
+/// - From the bottom up: the fill (`accent-soft` when [selected]), the number (today's 28px `accent` disc;
+///   `ink-muted` outside the month), the selection ring (2px `ink` inside the cell's edge) or, on a day that
+///   is not selected, the hover edge (1px `line-strong`, over `fast`, no fill), then the focus ring (2px
+///   `focus`, inside the selection ring) when [focused].
+/// - [unavailable]: the number at 45% opacity, no hover edge, no click cursor, and pressing does nothing.
+///   The one mark MonthGrid itself does not have.
+/// - It has no semantics of its own: the holder names it (the full date, "today", "selected",
+///   "unavailable") and decides what pressing it means.
+class MonthGridDay extends StatefulWidget {
+  const MonthGridDay({
+    super.key,
+    required this.day,
+    this.size = MyDataSize.controlHeight,
+    this.inMonth = true,
+    this.today = false,
+    this.selected = false,
+    this.focused = false,
+    this.unavailable = false,
+    this.onPressed,
+  });
+
+  /// The day; only the date is used.
+  final DateTime day;
+
+  /// The cell's side: `control-height`, or `control-height-compact` in the Compact density.
+  final double size;
+  final bool inMonth;
+  final bool today;
+  final bool selected;
+
+  /// Draws the focus ring (keyboard focus is on this day).
+  final bool focused;
+  final bool unavailable;
+
+  /// Called with the day when the cell is pressed, unless [unavailable].
+  final ValueChanged<DateTime>? onPressed;
+
+  @override
+  State<MonthGridDay> createState() => _MonthGridDayState();
+}
+
+class _MonthGridDayState extends State<MonthGridDay> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final w = widget;
+    final pressable = !w.unavailable && w.onPressed != null;
+    Widget number = _DayNumber(day: w.day, today: w.today, selected: w.selected, notRead: false, outside: !w.inMonth);
+    if (w.unavailable) number = Opacity(opacity: Pressable.disabledOpacity, child: number);
+    final cell = SizedBox.square(
+      dimension: w.size,
+      child: AnimatedContainer(
+        duration: MyDataMotion.fast,
+        curve: MyDataMotion.standard,
+        decoration: BoxDecoration(color: w.selected ? c.accentSoft : c.accentSoft.withValues(alpha: 0), shape: BoxShape.circle),
+        child: TweenAnimationBuilder<double>(
+          tween: Tween(end: _hovered && !w.selected && !w.unavailable ? 1 : 0),
+          duration: MyDataMotion.fast,
+          curve: MyDataMotion.standard,
+          builder: (context, hover, child) => CustomPaint(
+            foregroundPainter: _MarksPainter(
+              shape: MyDataRadii.pill,
+              hover: hover,
+              hoverColour: c.lineStrong,
+              selected: w.selected,
+              ringColour: c.ink,
+              focused: w.focused,
+              focusColour: FocusRing.colourOf(c),
+            ),
+            child: child,
+          ),
+          child: Center(child: number),
+        ),
+      ),
+    );
+    return MouseRegion(
+      cursor: pressable ? SystemMouseCursors.click : MouseCursor.defer,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        excludeFromSemantics: true,
+        onTap: pressable ? () => w.onPressed!(_date(w.day)) : null,
+        child: cell,
       ),
     );
   }
