@@ -88,8 +88,10 @@ class ReviewModel extends ChangeNotifier {
 
   void _contactsChanged() {
     if (_disposed) return;
+    // Only pages never read: this runs on every notify of the controller, a failed read included, so
+    // retrying here would loop on the host. A failed page is read again with the list's next read.
     for (final c in changed) {
-      controller.ensureDetail(c.id);
+      controller.ensureDetail(c.id, retryFailed: false);
     }
     _keepSelection();
     _notify();

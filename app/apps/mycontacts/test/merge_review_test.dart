@@ -408,6 +408,27 @@ void main() {
         await outlastToast(tester);
       });
 
+      testWidgets('a changed contact whose page cannot be read is asked for a bounded number of times',
+          (tester) async {
+        desktop(tester);
+        final backend = changedBackend()..failDetails = true;
+        await tester.pumpWidget(app(backend));
+        await tester.pumpAndSettle();
+        final asked = backend.detailCalls.where((id) => id == 'c-ben1').length;
+        expect(asked, lessThanOrEqualTo(2), reason: 'a failed read is not retried by the listener that notices it');
+        // Further notifications (a poll, a selection) do not ask again for the failed page either.
+        for (var i = 0; i < 5; i++) {
+          await tester.tap(find.text('Ava Fictional').first);
+          await tester.pumpAndSettle();
+        }
+        expect(backend.detailCalls.where((id) => id == 'c-ben1').length, asked);
+        // The list's next read starts afresh: the page is asked for once more.
+        backend.failDetails = false;
+        await tester.tap(find.text('Review').first);
+        await tester.pumpAndSettle();
+        expect(find.text(ReviewView.changedHeading(1)), findsOneWidget);
+      });
+
       testWidgets('choosing "In myData" for a row keeps that value', (tester) async {
         desktop(tester);
         final backend = changedBackend();

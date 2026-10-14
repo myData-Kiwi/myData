@@ -440,10 +440,12 @@ class ContactsController extends ChangeNotifier {
   /// The page of contact [id] as far as it has been read.
   ContactDetail detailOf(String id) => _details[id] ?? const DetailLoading();
 
-  /// Read contact [id]'s page unless it is read or being read.
-  void ensureDetail(String id) {
+  /// Read contact [id]'s page unless it is read or being read. A page that failed is read again, unless
+  /// [retryFailed] is false: a listener of this controller passes false, since a failed read notifies and
+  /// would ask again at once, without end, while the host keeps failing.
+  void ensureDetail(String id, {bool retryFailed = true}) {
     final known = _details[id];
-    if (known != null && known is! DetailFailed) return;
+    if (known != null && (known is! DetailFailed || !retryFailed)) return;
     _details[id] = const DetailLoading();
     unawaited(_readDetail(id));
   }
