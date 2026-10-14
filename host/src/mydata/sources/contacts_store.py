@@ -146,7 +146,7 @@ class ContactsStore:
     MIGRATIONS = _MIGRATIONS  # read by service/backup.open_store to snapshot before a migration
 
     def __init__(self, path: Path):
-        self.db = Database(path, _MIGRATIONS)
+        self.db = Database(path, self.MIGRATIONS)
         if _FTS_SECURE_DELETE:
             with self.db.connect() as db:  # a persistent index setting; setting it again changes nothing
                 db.execute("INSERT INTO contacts_fts (contacts_fts, rank) VALUES ('secure-delete', 1)")

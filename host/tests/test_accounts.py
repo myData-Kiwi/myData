@@ -285,6 +285,8 @@ def test_cli_remove_data_hook_deletes_rows_with_the_stores(tmp_path, monkeypatch
     calls = []
 
     class FakeStore:
+        MIGRATIONS = {1: []}  # read by backup.open_store, which opens the stores
+
         def __init__(self, path):
             self.path = path
 

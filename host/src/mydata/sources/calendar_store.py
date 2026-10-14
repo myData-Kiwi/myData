@@ -132,7 +132,7 @@ class CalendarStore:
     MIGRATIONS = _MIGRATIONS  # read by service/backup.open_store to snapshot before a migration
 
     def __init__(self, path: Path):
-        self.db = Database(path, _MIGRATIONS)
+        self.db = Database(path, self.MIGRATIONS)
 
     # ------------------------------------------------------------------ sync
 

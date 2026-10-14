@@ -236,14 +236,16 @@ def _verify(provider: str, email: str, password: str) -> None:
 
 
 def _remove_account_data(settings: Settings, account) -> None:
-    """Hard-delete the account's mirrored contacts and calendars. Files that do not exist are left alone."""
+    """Hard-delete the account's mirrored contacts and calendars. Files that do not exist are left alone.
+    A file that needs migrating is snapshotted first (backup.open_store)."""
+    from .service.backup import open_store
     from .sources.calendar_store import CalendarStore
     from .sources.contacts_store import ContactsStore
     for cls, name in ((ContactsStore, "contacts.sqlite"), (CalendarStore, "calendar.sqlite")):
         path = settings.home / name
         if not path.exists():
             continue
-        store = cls(path)
+        store = open_store(cls, settings.home, name)
         try:
             store.delete_account(account.id)
         finally:
@@ -304,9 +306,10 @@ def cmd_account(settings: Settings, ns: argparse.Namespace) -> int:
         if answer.strip().lower() not in ("y", "yes"):
             print("Not removed.")
             return 1
+    from .service.backup import BackupError
     try:
         accounts.remove(account.id, on_remove=lambda a: _remove_account_data(settings, a))
-    except SecretStoreError as e:
+    except (SecretStoreError, BackupError) as e:  # BackupError: a store needed migrating, and its snapshot failed
         print(f"mydata: {e}", file=sys.stderr)
         return 1
     print(f"Removed {name} account {account.email} (id {account.id}): its mirrored data and its Keychain "

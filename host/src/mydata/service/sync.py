@@ -43,6 +43,7 @@ from ..sources.accounts import Account, Accounts
 from ..sources.calendar_store import CalendarStore
 from ..sources.contacts_store import ContactsStore
 from ..sources.mac import MAC_ID
+from .backup import open_store
 from .logs import log
 from .state import HostState
 
@@ -220,19 +221,21 @@ class SyncService:
         return out
 
     # ---------------------------------------------------------------- stores (opened on first use)
+    # Through backup.open_store: a store whose file needs migrating is snapshotted first, and not opened
+    # (MigrationRefused) if that fails.
 
     @property
     def contacts(self) -> ContactsStore:
         with self._store_lock:
             if self._contacts is None:
-                self._contacts = ContactsStore(self.home / CONTACTS_FILE)
+                self._contacts = open_store(ContactsStore, self.home, CONTACTS_FILE)
             return self._contacts
 
     @property
     def calendar(self) -> CalendarStore:
         with self._store_lock:
             if self._calendar is None:
-                self._calendar = CalendarStore(self.home / CALENDAR_FILE)
+                self._calendar = open_store(CalendarStore, self.home, CALENDAR_FILE)
             return self._calendar
 
     def _existing_stores(self) -> list:
