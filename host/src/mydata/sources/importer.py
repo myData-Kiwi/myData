@@ -26,8 +26,18 @@ notes and only part of each card, so the copy would not be faithful (the owned-d
 - skipped: the card could not be read (import_files). These are the losses.
 
 Every item also lists its matches: owned and followed contacts with a strong signal, the same name alone (a
-suggestion, never acted on), and earlier cards in the input. Group cards (iCloud's and vCard 4's) are imported as
-group rows: never listed as contacts, but their members, named by UID, keep their membership.
+suggestion, never acted on), and earlier cards in the input.
+
+**A file hides the followed copies of the people it brings in** (the owner's rule, 2026-10-14): a followed card
+(This Mac, an iCloud account) with the same name and the same email or phone as a file's card (hidden_by_file) is
+hidden behind the owned contact the commit writes for it, or finds unchanged from an earlier import of the file (so
+importing again hides a source turned on since). It is a `shadows` row keyed by the followed card's account and UID
+(contacts_store._SHADOWED), so each person is one result in lists, search and find_contact. The followed card stays
+hidden when it changes later, and the owned contact is flagged (changed_in_source); it shows again when the owned
+contact is deleted, and when the import is undone. A copy of an account hides only that account's cards (by UID).
+
+Group cards (iCloud's and vCard 4's) are imported as group rows: never listed as contacts, but their members, named
+by UID, keep their membership.
 
 The loss report is what the input holds that will not reach the host (cards that could not be read, zip
 entries that were not read). A preview with losses is committed only with accept_losses. What changes without
@@ -43,7 +53,8 @@ and an `undo_log` row like an app's write (so a single contact's import can be u
 create). The caller takes a snapshot first (service/imports.py).
 
 **Undo** (undo_import) reverts the whole batch, forward: a contact it created and nobody changed since goes to
-Recently deleted; one it updated and nobody changed since gets its earlier text back; a link is dropped. Anything
+Recently deleted; one it updated and nobody changed since gets its earlier text back; a link is dropped, and so is
+what it hid behind a contact it takes back. Anything
 changed since is reported and left as it is, and so is anything already in Recently deleted; their origins stay,
 since they are still copies of those cards. Nothing is ever hard-deleted, and the undo is persisted (the
 imports row's status), so it works after a restart, once.
@@ -110,6 +121,7 @@ class Match:
     contact_id: str | None = None
     account_id: str | None = None
     item_index: int | None = None
+    hides: bool = False  # a followed card this card hides once written (a file import: hidden_by_file)
 
 
 @dataclass
@@ -125,6 +137,7 @@ class Item:
     matches: list[Match] = field(default_factory=list)
     target: str | None = None  # the owned contact an update, link, conflict or deleted refers to
     origin: sqlite3.Row | None = None
+    hides: list[str] = field(default_factory=list)  # followed contacts hidden behind it once written (hidden_by_file)
 
 
 @dataclass
@@ -241,6 +254,21 @@ def _origins(db: sqlite3.Connection, source: ImportSource) -> dict[str, sqlite3.
     out: dict[str, sqlite3.Row] = {}
     for r in rows:
         out[r["source_uid"]] = r
+    if source.kind != FILE:
+        # A followed card a file import hid behind a contact of yours (a shadow) is a link: that contact was kept
+        # instead of it. The account's own origins come first.
+        shadows: dict[str, sqlite3.Row] = {}
+        for r in db.execute(
+                "SELECT s.rowid AS origin_rowid, s.object_id, s.import_id, 'shadow' AS source_kind, s.source_uid, "
+                "s.source_hash, NULL AS source_raw, c.rev AS imported_rev, s.source_account, 'link' AS action, "
+                "NULL AS prior_rev, s.undone_at, s.held_by, c.id AS cid, c.rev AS crev, c.deleted_at AS cdeleted, "
+                "c.merged_into AS cmerged, c.display_name AS cname, c.emails AS cemails, c.phones AS cphones, "
+                "i.label AS ilabel FROM shadows s JOIN imports i ON i.id = s.import_id "
+                "LEFT JOIN contacts c ON c.id = COALESCE(s.held_by, s.object_id) "
+                "WHERE s.source_account = ? AND s.undone_at IS NULL ORDER BY s.rowid", (source.account,)):
+            shadows[r["source_uid"]] = r  # the newest wins
+        for uid, r in shadows.items():
+            out.setdefault(uid, r)
     return out
 
 
@@ -283,6 +311,14 @@ def _signals(a: _Keys, b: _Keys) -> list[str]:
     if a.name and a.name == b.name:
         out.append("name")
     return out
+
+
+def hidden_by_file(keys: _Keys, row: sqlite3.Row, other: _Keys) -> bool:
+    """Whether a file's card hides a followed contact once imported (the owner's rule, 2026-10-14): the same name
+    and the same email or phone (emails in lower case, phones in E.164). A followed card without a UID is never
+    hidden: hiding is kept by its account and UID, never by the followed row's id."""
+    return (row["account_id"] != owned.OWNED_ACCOUNT and bool(row["uid"]) and keys.name is not None
+            and keys.name == other.name and bool(keys.emails & other.emails or keys.phones & other.phones))
 
 
 def analyse(db: sqlite3.Connection, source: ImportSource, read: ReadResult, *,
@@ -350,6 +386,19 @@ def analyse(db: sqlite3.Connection, source: ImportSource, read: ReadResult, *,
                 item.status, item.action, item.choices = "update", "update", ("update", "skip")
             else:
                 item.status, item.action, item.choices, item.reason = "conflict", "skip", ("skip",), "edited"
+            if (source.kind == FILE and card.kind != "group" and item.status in ("update", "unchanged")
+                    and origin["cdeleted"] is None):
+                # Its owned copy hides the followed copies of the same person when this import writes it (an update)
+                # or finds it unchanged: a source turned on since the last import is hidden by importing again.
+                for n in sorted({n for e in keys.emails for n in by_email.get(e, ())}
+                                | {n for p in keys.phones for n in by_phone.get(p, ())}):
+                    row, other = existing[n]
+                    if hidden_by_file(keys, row, other):
+                        item.hides.append(row["id"])
+                        item.matches.append(Match(row["display_name"], _source_of(row["account_id"]), "strong",
+                                                  _signals(keys, other), contact_id=row["id"],
+                                                  account_id=row["account_id"], hides=True))
+                del item.matches[MAX_MATCHES:]
             continue
         if card.kind == "group":
             same = [r for r in owned_uids.get(card.uid, ()) if r["kind"] == "group" and r["deleted_at"] is None]
@@ -381,9 +430,12 @@ def analyse(db: sqlite3.Connection, source: ImportSource, read: ReadResult, *,
                                          or keys.name == other.name)
             if is_strong and row["account_id"] == owned.OWNED_ACCOUNT:
                 owned_strong.append(row["id"])
+            hides = source.kind == FILE and n in strong and hidden_by_file(keys, row, other)
+            if hides:
+                item.hides.append(row["id"])
             item.matches.append(Match(row["display_name"], _source_of(row["account_id"]),
                                       "strong" if is_strong else "suggestion", sorted(set(signals)),
-                                      contact_id=row["id"], account_id=row["account_id"]))
+                                      contact_id=row["id"], account_id=row["account_id"], hides=hides))
         # Earlier cards sharing a key, looked up (never every earlier card: an input holds up to 50,000), those with
         # an email or phone first; a name shared by hundreds is a suggestion for the first few only.
         strong_near = sorted({n for k in (*(("email", e) for e in keys.emails), *(("phone", p) for p in keys.phones))
@@ -400,7 +452,7 @@ def analyse(db: sqlite3.Connection, source: ImportSource, read: ReadResult, *,
             earlier_by.setdefault(k, []).append(len(earlier))
         earlier.append((card.index, card.display_name, keys))
         rank = {"same_origin": 0, "strong": 1, "suggestion": 2}
-        item.matches.sort(key=lambda m: (rank[m.strength], m.source != "mydata"))
+        item.matches.sort(key=lambda m: (rank[m.strength], m.source != "mydata", not m.hides))
         del item.matches[MAX_MATCHES:]
         if owned_strong:
             item.status, item.action, item.choices = "duplicate", "skip", ("skip", "import")
@@ -461,8 +513,8 @@ _CHANGE_NOTES = {
 def followed_left(db: sqlite3.Connection, account_id: str) -> dict[str, int]:
     """What stopping following an account would take off the host now: `followed` (its contacts with no owned copy:
     skipped, never imported, or imported and undone), `linked` (followed cards hidden behind a contact the user
-    kept instead, which may hold details that contact does not) and `changed` (followed cards hidden behind an
-    owned copy that changed in the source since the import)."""
+    kept instead, or that a file import hid, which may hold details that contact does not) and `changed` (followed
+    cards hidden behind an owned copy that changed in the source since the import)."""
     rows = db.execute(f"SELECT c.uid, c.raw_sha256, {_SHADOWED_SQL} AS shadowed FROM contacts c JOIN address_books b "
                       "ON b.id = c.address_book_id WHERE c.account_id = ? AND b.mode = ? AND c.deleted_at IS NULL "
                       "AND b.deleted_at IS NULL AND c.kind != 'group'", (account_id, owned.FOLLOWED)).fetchall()
@@ -470,10 +522,14 @@ def followed_left(db: sqlite3.Connection, account_id: str) -> dict[str, int]:
     for o in db.execute("SELECT source_uid, source_hash, action FROM origins WHERE source_account = ? AND "
                         "source_kind != 'file' AND undone_at IS NULL ORDER BY rowid", (account_id,)):
         latest[o["source_uid"]] = o
+    hidden = {r[0] for r in db.execute("SELECT source_uid FROM shadows WHERE source_account = ? AND undone_at IS NULL",
+                                       (account_id,))}
     out = {"followed": 0, "linked": 0, "changed": 0}
     for r in rows:
         origin = latest.get(r["uid"])
-        if not r["shadowed"] or origin is None:
+        if r["shadowed"] and origin is None and r["uid"] in hidden:
+            out["linked"] += 1  # hidden by a file import behind a contact of yours, which may lack its details
+        elif not r["shadowed"] or origin is None:
             out["followed"] += 1
         elif origin["action"] == "link":
             out["linked"] += 1
@@ -537,8 +593,7 @@ def _counts(items: list[Item], missing: list[dict], uncut: int = 0) -> dict[str,
         "conflicts": n(lambda i: i.status == "conflict"),
         "deleted": n(lambda i: i.status == "deleted"),
         "suggestions": n(lambda i: any(m.strength == "suggestion" for m in i.matches)),
-        "followed_matches": n(lambda i: any(m.strength == "strong" and m.source in ("icloud", "mac")
-                                            for m in i.matches)),
+        "followed_matches": n(lambda i: bool(i.hides)),
         "missing": len(missing),
         "to_import": n(lambda i: i.action == "import"),
         "to_update": n(lambda i: i.action == "update"),
@@ -582,6 +637,24 @@ def _origin(db, object_id: str, import_id: str, source: ImportSource, card: Read
                "imported_rev, source_account, action, prior_rev) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                (object_id, import_id, source.kind, card.source_uid, card.source_hash,
                 _original(card) if original is _ORIGINAL else original, rev, source.account, action, prior_rev))
+
+
+def _shadow(db, object_id: str, import_id: str, followed_ids: list[str]) -> set[str]:
+    """Hide these followed contacts behind the owned contact `object_id` (a file import: hidden_by_file), keyed by
+    their account and UID, with the hash of their text now (changed_in_source compares it). Returns the followed ids
+    hidden; one that is gone or has no UID is left as it is."""
+    out = set()
+    for followed_id in dict.fromkeys(followed_ids):
+        f = db.execute("SELECT c.account_id, c.uid, c.raw_sha256 FROM contacts c JOIN address_books b "
+                       "ON b.id = c.address_book_id WHERE c.id = ? AND b.mode = ? AND c.deleted_at IS NULL "
+                       "AND c.uid != '' AND c.account_id != ?", (followed_id, owned.FOLLOWED,
+                                                                 owned.OWNED_ACCOUNT)).fetchone()
+        if f is None:
+            continue
+        db.execute("INSERT OR IGNORE INTO shadows (object_id, import_id, source_account, source_uid, source_hash) "
+                   "VALUES (?, ?, ?, ?, ?)", (object_id, import_id, f["account_id"], f["uid"], f["raw_sha256"]))
+        out.add(followed_id)
+    return out
 
 
 def _with_uid(text: str, uid: str) -> str:
@@ -644,8 +717,9 @@ def commit(store: ContactsStore, source: ImportSource, read: ReadResult, *, choi
         db.execute("INSERT INTO imports (id, source, label, started_at, counts, status, actor, source_account, "
                    "address_book_id) VALUES (?, ?, ?, ?, '{}', 'committing', ?, ?, ?)",
                    (import_id, source.kind, source.label, when, actor, source.account, book_id))
-        done = {"created": 0, "groups_created": 0, "updated": 0, "linked": 0, "not_written": 0}
+        done = {"created": 0, "groups_created": 0, "updated": 0, "linked": 0, "not_written": 0, "hidden": 0}
         conflicts: list[dict] = []
+        hidden: set[str] = set()
         for item in plan.items:
             action = actions[item.index]
             card = item.card
@@ -654,6 +728,8 @@ def commit(store: ContactsStore, source: ImportSource, read: ReadResult, *, choi
                                   "reason": item.reason})
             if action == "skip" or card is None:
                 done["not_written"] += 1
+                if item.status == "unchanged" and item.hides:  # its copy hides what was turned on since
+                    hidden.update(_shadow(db, item.target, import_id, item.hides))
                 continue
             if action == "import":
                 row_id = new_id()
@@ -678,6 +754,7 @@ def commit(store: ContactsStore, source: ImportSource, read: ReadResult, *, choi
                 if card.kind != "group":
                     _undo_entry(db, row_id, "create", actor, 1, None, when)
                 _origin(db, row_id, import_id, source, card, 1, "create", None, original=original)
+                hidden.update(_shadow(db, row_id, import_id, item.hides))
                 done["groups_created" if card.kind == "group" else "created"] += 1
             elif action == "update":
                 row = db.execute("SELECT * FROM contacts WHERE id = ?", (item.target,)).fetchone()
@@ -688,11 +765,13 @@ def commit(store: ContactsStore, source: ImportSource, read: ReadResult, *, choi
                 if row["kind"] != "group":
                     _undo_entry(db, row["id"], "update", actor, rev, row["rev"], when)
                 _origin(db, row["id"], import_id, source, card, rev, "update", row["rev"])
+                hidden.update(_shadow(db, row["id"], import_id, item.hides))
                 done["updated"] += 1
             elif action == "link":
                 row = db.execute("SELECT id, rev FROM contacts WHERE id = ?", (item.target,)).fetchone()
                 _origin(db, row["id"], import_id, source, card, row["rev"], "link", row["rev"])
                 done["linked"] += 1
+        done["hidden"] = len(hidden)
         counts = {**plan.counts, **done}
         db.execute("UPDATE imports SET counts = ?, status = 'committed', finished_at = ? WHERE id = ?",
                    (json.dumps(counts), when, import_id))
@@ -710,6 +789,7 @@ class Undone:
     unlinked: int
     kept: list[dict]  # changed since the import: left as they are
     gone: int  # already in Recently deleted or deleted for good
+    unhidden: int = 0  # followed cards a file import hid, shown again
 
 
 def undo_import(store: ContactsStore, import_id: str, *, actor: str) -> Undone:
@@ -727,6 +807,7 @@ def undo_import(store: ContactsStore, import_id: str, *, actor: str) -> Undone:
                           "ORDER BY o.rowid", (import_id,)).fetchall()
         removed = groups_removed = reverted = unlinked = gone = 0
         kept: list[dict] = []
+        stays: set[str] = set()  # contacts the undo leaves as they are: what they hide stays hidden
         for o in rows:
             row = db.execute("SELECT * FROM contacts WHERE id = ?", (o["object_id"],)).fetchone()
             # Only what the undo takes back loses its origin. A contact it keeps (changed since, or in Recently
@@ -736,9 +817,11 @@ def undo_import(store: ContactsStore, import_id: str, *, actor: str) -> Undone:
                 unlinked += 1
             elif row is None or row["deleted_at"] is not None:
                 gone += 1
+                stays.add(o["object_id"])
                 continue
             elif row["rev"] != o["imported_rev"]:
                 kept.append({"contact_id": row["id"], "display_name": row["display_name"]})
+                stays.add(o["object_id"])
                 continue
             elif o["action"] == "create":
                 rev = _set_deleted(db, row, True, at)
@@ -754,6 +837,7 @@ def undo_import(store: ContactsStore, import_id: str, *, actor: str) -> Undone:
                                    "ORDER BY rev DESC LIMIT 1", (row["id"], o["prior_rev"])).fetchone()
                 if prior is None:
                     kept.append({"contact_id": row["id"], "display_name": row["display_name"]})
+                    stays.add(o["object_id"])
                     continue
                 else:
                     rev = _write_text(db, row, prior["raw"], when)
@@ -767,12 +851,19 @@ def undo_import(store: ContactsStore, import_id: str, *, actor: str) -> Undone:
                     _close_undo(db, row["id"], "update", o["imported_rev"], actor, when, rev)
                     reverted += 1
             db.execute("UPDATE origins SET undone_at = ? WHERE rowid = ?", (when, o["rid"]))
+        # What this import hid behind a contact it takes back is shown again (also behind one it found unchanged).
+        unhidden = 0
+        for shadow in db.execute("SELECT rowid, object_id FROM shadows WHERE import_id = ? AND undone_at IS NULL",
+                                 (import_id,)).fetchall():
+            if shadow["object_id"] not in stays:
+                db.execute("UPDATE shadows SET undone_at = ? WHERE rowid = ?", (when, shadow["rowid"]))
+                unhidden += 1
         counts = json.loads(imp["counts"] or "{}")
-        counts["undo"] = {"removed": removed, "groups_removed": groups_removed, "reverted": reverted, "unlinked": unlinked, "kept": len(kept),
-                          "gone": gone}
+        counts["undo"] = {"removed": removed, "groups_removed": groups_removed, "reverted": reverted,
+                          "unlinked": unlinked, "unhidden": unhidden, "kept": len(kept), "gone": gone}
         db.execute("UPDATE imports SET status = 'undone', undone_at = ?, undone_by = ?, counts = ? WHERE id = ?",
                    (when, actor, json.dumps(counts), import_id))
-    return Undone(import_id, removed, groups_removed, reverted, unlinked, kept, gone)
+    return Undone(import_id, removed, groups_removed, reverted, unlinked, kept, gone, unhidden)
 
 
 def _close_undo(db, object_id: str, op: str, rev: int, actor: str, when: str, undone_rev: int) -> None:

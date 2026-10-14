@@ -21,6 +21,8 @@ from mydata.sources._db import table_counts
 from mydata.sources.contacts_store import ContactsStore
 from mydata.sources.import_files import ReadCard, ReadResult, read_card, read_contacts
 from mydata.sources.importer import FILE, ICLOUD, ImportSource
+from mydata.sources.mac.cards import to_vcard
+from mydata.sources.mac.protocol import _contact
 
 REGION = "US"
 FILE_SOURCE = ImportSource(FILE, "", "contacts.vcf")
@@ -477,11 +479,160 @@ def test_the_same_uid_from_another_source_is_never_a_silent_second_card(followed
                                                                            ("Kim Renamed", "local")]
 
 
-def test_this_mac_rows_are_never_shadowed_by_a_file(followed):
-    mac = con.Collection(url="mac://contacts/c1", kind="contacts", display_name="Mac")
-    followed.apply("mac", mac, con.result([con.item("ava-fictional.vcf", href="ava-mac")]))
-    commit(followed, FILE_SOURCE, read_contacts(con.card("ava-fictional.vcf").encode()))
-    assert len(followed.find_by_name("Ava")) == 3  # a file is no source: owned, iCloud and This Mac
+# ---------------------------------------------------------------- a file import hides followed copies (H1)
+
+MAC = con.Collection(url="mac://contacts/c1", kind="contacts", display_name="Mac")
+
+
+def _mac_person(uid: str, given: str, family: str, *, emails=(), phones=()) -> str:
+    """A card as the This Mac source stores it (sources/mac/cards.py: no note, its own PRODID)."""
+    return to_vcard(_contact({"id": uid, "given_name": given, "family_name": family, "kind": "person",
+                              "emails": [{"value": e, "label": "_$!<Home>!$_"} for e in emails],
+                              "phones": [{"value": p, "label": "_$!<Mobile>!$_"} for p in phones]}))
+
+
+MAC_PEOPLE = {
+    "mac-ava": ("Ava", "Fictional", ["ava@example.org"], ["+1 202 555 0100"]),
+    "mac-ben": ("Ben", "Sample", [], ["+1 202 555 0142"]),
+    "mac-cleo": ("Cleo", "Example", ["CLEO@example.org"], []),
+    # The same name as one in the export, and nothing else in common: another person.
+    "mac-dev": ("Dev", "Placeholder", ["dev.other@example.net"], ["+1 202 555 0177"]),
+}
+
+
+def _this_mac(store, people=MAC_PEOPLE) -> None:
+    store.apply("mac", MAC, con.result([con.Item(href=uid, etag='"1"', data=_mac_person(uid, g, f, emails=e, phones=p))
+                                        for uid, (g, f, e, p) in people.items()], full=True))
+
+
+def _contacts_export() -> bytes:
+    """A Contacts on a Mac export of the same people (its own UIDs, Apple's labels and spacing), notes on."""
+    def card(n, given, family, lines):
+        return ("BEGIN:VCARD\r\nVERSION:3.0\r\nPRODID:-//Apple Inc.//macOS 26.0//EN\r\n"
+                f"N:{family};{given};;;\r\nFN:{given} {family}\r\n{lines}NOTE:Invented note {n}.\r\n"
+                f"UID:3F1C0F0E-0000-4000-8000-00000000E00{n}\r\nEND:VCARD\r\n")
+    return (card(1, "Ava", "Fictional", "item1.EMAIL;type=INTERNET;type=pref:ava@example.org\r\n"
+                                        "item1.X-ABLabel:_$!<Work>!$_\r\n")
+            + card(2, "Ben", "Sample", "item1.TEL;type=CELL;type=VOICE;type=pref:+1 (202) 555-0142\r\n")
+            + card(3, "Cleo", "Example", "EMAIL;type=INTERNET;type=HOME:cleo@example.org\r\n")
+            + card(4, "Dev", "Placeholder", "EMAIL;type=INTERNET:dev@example.org\r\n")).encode()
+
+
+def _found(store, name: str) -> list[tuple[str, str]]:
+    return sorted((store.get(m["id"])["account_id"], m["name"]) for m in store.find_by_name(name))
+
+
+def test_a_contacts_export_hides_this_macs_copies_of_the_same_people(store):
+    _this_mac(store)
+    assert _found(store, "Ava") == [("mac", "Ava Fictional")]
+    plan = preview(store, FILE_SOURCE, read_contacts(_contacts_export()))
+    assert plan.counts["followed_matches"] == 3 and plan.counts["to_import"] == 4
+    by_name = {i.display_name: i for i in plan.items}
+    assert [(m.source, m.strength, m.signals, m.hides) for m in by_name["Ava Fictional"].matches] == [
+        ("mac", "strong", ["email", "name"], True)]
+    assert [m.hides for m in by_name["Ben Sample"].matches] == [True]
+    # The same name and nothing else in common: a suggestion only, never hidden.
+    assert [(m.strength, m.signals, m.hides) for m in by_name["Dev Placeholder"].matches] == [
+        ("suggestion", ["name"], False)]
+    done = commit(store, FILE_SOURCE, read_contacts(_contacts_export()))
+    assert done.counts["created"] == 4 and done.counts["hidden"] == 3
+    for name in ("Ava", "Ben", "Cleo"):
+        assert [a for a, _ in _found(store, name)] == ["local"], name  # one result per person, the owned one
+    assert _found(store, "Dev") == [("local", "Dev Placeholder"), ("mac", "Dev Placeholder")]
+    assert store.counts("mac")["contacts"] == 1 and len(store.list()) == 5
+    with store.db.connect() as db:
+        shadows = db.execute("SELECT * FROM shadows").fetchall()
+    assert sorted(r["source_uid"] for r in shadows) == ["mac-ava", "mac-ben", "mac-cleo"]
+    assert {r["import_id"] for r in shadows} == {done.import_id} and {r["source_account"] for r in shadows} == {"mac"}
+
+
+def test_a_hidden_copy_that_changes_stays_hidden_and_flags_the_contact(store):
+    _this_mac(store)
+    commit(store, FILE_SOURCE, read_contacts(_contacts_export()))
+    [ava] = store.find_by_name("Ava")
+    assert store.get(ava["id"])["changed_in_source"] is None
+    changed = dict(MAC_PEOPLE, **{"mac-ava": ("Ava", "Fictional", ["ava.new@example.org"], ["+1 202 555 0100"])})
+    _this_mac(store, changed)  # edited on the Mac: a new email, the same UID
+    assert [m["id"] for m in store.find_by_name("Ava")] == [ava["id"]]
+    assert store.get(ava["id"])["changed_in_source"] == "mac"
+    assert {c["id"]: c["changed_in_source"] for c in store.list()}[ava["id"]] == "mac"
+
+
+def test_deleting_the_owned_contact_shows_the_hidden_copy_again(store):
+    _this_mac(store)
+    done = commit(store, FILE_SOURCE, read_contacts(_contacts_export()))
+    [ava] = store.find_by_name("Ava")
+    cw.delete(store, ava["id"], if_match=store.get(ava["id"])["http_etag"], actor="mycontacts")
+    assert _found(store, "Ava") == [("mac", "Ava Fictional")]
+    cw.restore(store, ava["id"], actor="mycontacts")
+    assert _found(store, "Ava") == [("local", "Ava Fictional")]
+    # Deleted for good: its shadows go with it, and the Mac copy is back for good.
+    cw.delete(store, ava["id"], if_match=store.get(ava["id"])["http_etag"], actor="mycontacts")
+    cw.purge_now(store, ava["id"], if_match=store.get(ava["id"], include_deleted=True)["http_etag"])
+    assert _found(store, "Ava") == [("mac", "Ava Fictional")]
+    with store.db.connect() as db:
+        assert db.execute("SELECT COUNT(*) FROM shadows WHERE object_id = ?", (ava["id"],)).fetchone()[0] == 0
+    # Undoing the import shows the others again.
+    undone = importer.undo_import(store, done.import_id, actor="mydata")
+    assert undone.unhidden == 2 and _found(store, "Ben") == [("mac", "Ben Sample")]
+
+
+def test_an_account_copy_hides_its_own_cards_and_a_file_hides_every_followed_copy(followed):
+    """The same person in a followed iCloud account and on this Mac: importing a copy of the account hides only
+    the account's card (by UID); a file of that person hides the Mac's too (the same name and email or phone)."""
+    ava_icloud = con.card("ava-fictional.vcf")
+    _this_mac(followed, {"mac-ava": ("Ava", "Fictional", ["ava@example.com"], [])})
+    assert sorted(a for a, _ in _found(followed, "Ava Fictional")) == [ACCOUNT, "mac"]
+    source = ImportSource(ICLOUD, ACCOUNT, "iCloud account")
+    copy = commit(followed, source, copy_of(followed, ACCOUNT))
+    assert copy.counts["hidden"] == 0
+    assert sorted(a for a, _ in _found(followed, "Ava Fictional")) == ["local", "mac"]
+    importer.undo_import(followed, copy.import_id, actor="mydata")
+    done = commit(followed, FILE_SOURCE, read_contacts(ava_icloud.replace("UID:", "UID:file-").encode()))
+    assert done.counts["created"] == 1 and done.counts["hidden"] == 2
+    assert [a for a, _ in _found(followed, "Ava Fictional")] == ["local"]
+    # A copy of the account imported after it: Ava's card is one the file already kept, never a second Ava.
+    plan = preview(followed, source, copy_of(followed, ACCOUNT))
+    [item] = [i for i in plan.items if i.display_name == "Ava Fictional"]
+    assert (item.status, item.reason) == ("unchanged", None)
+    # Stopping following the account loses nothing of Ava, but she may hold details the file's copy does not.
+    with followed.db.connect() as db:
+        left = importer.followed_left(db, ACCOUNT)
+    assert left["linked"] == 1
+
+
+def test_importing_the_file_again_hides_a_source_turned_on_since(store):
+    first = commit(store, FILE_SOURCE, read_contacts(_contacts_export()))
+    assert first.counts["hidden"] == 0
+    _this_mac(store)  # This Mac turned on after the import: both copies show
+    assert len(store.find_by_name("Ava")) == 2
+    plan = preview(store, FILE_SOURCE, read_contacts(_contacts_export()))
+    ava = next(i for i in plan.items if i.display_name == "Ava Fictional")
+    assert ava.status == "unchanged" and [m.hides for m in ava.matches] == [False, True]
+    again = commit(store, FILE_SOURCE, read_contacts(_contacts_export()))
+    assert again.counts["created"] == 0 and again.counts["hidden"] == 3
+    assert [a for a, _ in _found(store, "Ava")] == ["local"]
+    undone = importer.undo_import(store, again.import_id, actor="mydata")
+    assert undone.unhidden == 3 and len(store.find_by_name("Ava")) == 2
+
+
+def test_merged_contacts_keep_hiding_after_their_originals_are_deleted_for_good(store):
+    _this_mac(store)
+    commit(store, FILE_SOURCE, read_contacts(_contacts_export()))
+    [ava] = store.find_by_name("Ava")
+    other = cw.create(store, {"given_name": "Ava", "family_name": "F.", "phones": [{"value": "+1 202 555 0111"}]},
+                      actor="mycontacts").contact_id
+    merged = merge_.merge(store, [(ava["id"], store.get(ava["id"])["http_etag"]),
+                                  (other, store.get(other)["http_etag"])], actor="mycontacts")
+    assert [m["id"] for m in store.find_by_name("Ava Fictional")] == [merged.contact_id]
+    gone = store.get(ava["id"], include_deleted=True)
+    cw.purge_now(store, ava["id"], if_match=gone["http_etag"])
+    assert [m["id"] for m in store.find_by_name("Ava Fictional")] == [merged.contact_id]
+    with store.db.connect() as db:
+        assert {r[0] for r in db.execute("SELECT held_by FROM shadows WHERE source_uid = 'mac-ava'")} == {
+            merged.contact_id}
+    _this_mac(store, dict(MAC_PEOPLE, **{"mac-ava": ("Ava", "Fictional", ["ava@example.org"], ["+1 202 555 0199"])}))
+    assert store.get(merged.contact_id)["changed_in_source"] == "mac"
 
 
 # ---------------------------------------------------------------- merge

@@ -1863,7 +1863,7 @@
             "type": "integer"
           },
           "followed_matches": {
-            "description": "cards whose email or phone a followed contact has",
+            "description": "a file's cards that hide a followed contact once imported (the same name and the same email or phone, emails in lower case and phones in E.164): each person is then one result. Matches with hides say which. 0 for a copy of an account (it hides its own cards)",
             "title": "Followed Matches",
             "type": "integer"
           },
@@ -1882,6 +1882,18 @@
               }
             ],
             "title": "Groups Created"
+          },
+          "hidden": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "after the commit of a file: followed contacts now hidden behind the contacts it wrote (or found unchanged)",
+            "title": "Hidden"
           },
           "in_file": {
             "description": "cards repeated in the input",
@@ -2108,6 +2120,12 @@
           "display_name": {
             "title": "Display Name",
             "type": "string"
+          },
+          "hides": {
+            "default": false,
+            "description": "a followed contact (This Mac, an iCloud account) this file's card hides once imported, so the person is found once; shown again if the imported contact is deleted or the import undone",
+            "title": "Hides",
+            "type": "boolean"
           },
           "item_index": {
             "anyOf": [
@@ -2436,6 +2454,12 @@
           "summary": {
             "$ref": "#/components/schemas/ImportOut",
             "description": "the import as it is now (status undone)"
+          },
+          "unhidden": {
+            "default": 0,
+            "description": "followed contacts the import hid, shown again",
+            "title": "Unhidden",
+            "type": "integer"
           },
           "unlinked": {
             "title": "Unlinked",

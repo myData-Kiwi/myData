@@ -9,7 +9,8 @@ that has them on, owned collections (tests/owned_data.py) and, from the schema w
 contact written, changed and deleted through sources/contacts_write.py, with its revisions, changes and undo
 log rows; and, from the schema with imports and merges, a file import (vCard 2.1, undone), a copy of a followed
 account imported into owned contacts, and a merge of two of them; and, from the schema with origins.held_by, one
-of the merged originals deleted for good.
+of the merged originals deleted for good; and, from the schema with shadows, a file import that hides This Mac's
+copy of the person it brings in.
 
 A dump holds INSERT statements for the stores' own tables, never the schema, schema_version or a search
 index (the migrations build those, and the insert triggers fill the index). A text value holding a carriage
@@ -38,7 +39,7 @@ import test_contacts_store as con  # noqa: E402
 
 # Tables a schema does not have yet are left out of its dump.
 TABLES = {"contacts.sqlite": ("address_books", "contacts", "revisions", "changes", "undo_log", "imports", "origins",
-                               "merges"),
+                               "merges", "shadows"),
           "calendar.sqlite": ("calendars", "events", "occurrences", "coverage")}
 
 CRLF = "\r\n"
@@ -118,6 +119,14 @@ def _imports_and_merges(contacts) -> None:
         from mydata.sources import contacts_write as cw
         gone = contacts.get(sams[0]["id"], include_deleted=True)
         cw.purge_now(contacts, gone["id"], if_match=gone["http_etag"])
+    with contacts.db.connect() as db:
+        shadows = db.execute("SELECT 1 FROM sqlite_master WHERE name = 'shadows'").fetchone() is not None
+    if shadows:  # a file that hides This Mac's copy of the person it brings in
+        ava = CRLF.join(["BEGIN:VCARD", "VERSION:3.0", "PRODID:-//Apple Inc.//macOS 26.0//EN", "N:Fictional;Ava;Q;;",
+                         "FN:Ava Q Fictional", "EMAIL;type=INTERNET:ava.fictional@example.com",
+                         "NOTE:Invented note.", "UID:3F1C0F0E-0000-4000-8000-0000000AE0F1", "END:VCARD"]) + CRLF
+        importer.commit(contacts, importer.ImportSource("file", "", "Contacts.vcf"), read_contacts(ava.encode()),
+                        actor="mydata", region="US")
 
 
 def literal(value, hexed: bool = False) -> str:

@@ -361,8 +361,8 @@ def purge_now(store: ContactsStore, contact_id: str, *, if_match: str) -> None:
 
 
 def _settle_origins(db: sqlite3.Connection, ids: list[str]) -> None:
-    """Before the cards `ids` are purged: the origins they hold (their own, and those held for originals merged
-    into them) go with them, except those of a card merged into one that stays (merged_into, followed past cards
+    """Before the cards `ids` are purged: the origins and shadows they hold (their own, and those held for originals
+    merged into them) go with them, except those of a card merged into one that stays (merged_into, followed past cards
     purged now): the merged card holds them from now on (`held_by`), without the original's text (source_raw), so
     it keeps shadowing the followed copies and importing again still knows them (contacts_store._SHADOWED). An
     import of a file with nothing left on the host stops naming the file (_forget_label)."""
@@ -380,7 +380,11 @@ def _settle_origins(db: sqlite3.Connection, ids: list[str]) -> None:
         if successor is not None and db.execute("SELECT 1 FROM contacts WHERE id = ?", (successor,)).fetchone():
             db.execute("UPDATE origins SET held_by = ?, source_raw = NULL WHERE held_by = ? OR (held_by IS NULL "
                        "AND object_id = ?)", (successor, contact_id, contact_id))
+            db.execute("UPDATE shadows SET held_by = ? WHERE held_by = ? OR (held_by IS NULL AND object_id = ?)",
+                       (successor, contact_id, contact_id))
         else:
+            db.execute("DELETE FROM shadows WHERE held_by = ? OR (held_by IS NULL AND object_id = ?)",
+                       (contact_id, contact_id))
             imports.update(r[0] for r in db.execute(
                 "SELECT import_id FROM origins WHERE held_by = ? OR (held_by IS NULL AND object_id = ?)",
                 (contact_id, contact_id)))

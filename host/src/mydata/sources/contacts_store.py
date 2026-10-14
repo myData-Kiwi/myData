@@ -16,10 +16,12 @@ also goes up on a delete or restore, and their `etag` column holds the API's eta
 have no source. The undo log (`undo_log`) is in this file too.
 
 Imports (sources/importer.py) write owned cards with an `origins` row naming where each came from (source kind,
-account, UID). The shadowing rule (_SHADOWED): a followed card an owned contact was imported from, matched by
-account and UID and never by the followed row's id, is left out of lists, counts, search and find_contact while
-that owned contact is live (or was merged, `merged_into`, into one that is: sources/contacts_merge.py). An owned
-contact whose followed copy changed since the import carries `changed_in_source`.
+account, UID), and, for a file, a `shadows` row for each followed card with the same name and the same email or
+phone. The shadowing rule (_SHADOWED): a followed card an owned contact was imported from, or that a file import hid
+behind it, matched by account and UID and never by the followed row's id, is left out of lists, counts, search and
+find_contact while that owned contact is live (or was merged, `merged_into`, into one that is:
+sources/contacts_merge.py). An owned contact whose followed copy changed since the import carries
+`changed_in_source`.
 
 The "This Mac" source (account_id "mac") is stored the same way: one synthetic address book per
 Contacts container (url mac://contacts/<container id>) and a vCard generated from what the helper read
@@ -185,21 +187,43 @@ _MIGRATIONS = {
         "ALTER TABLE origins ADD COLUMN held_by TEXT",
         "CREATE INDEX origins_held_by ON origins (held_by)",
     ],
+    # Followed cards a file import hides behind the owned contact it wrote (sources/importer.py): the same name and
+    # the same email or phone. Keyed by the followed card's account and UID, as origins are. Additive only.
+    6: [
+        """CREATE TABLE shadows (
+            object_id TEXT NOT NULL,
+            import_id TEXT NOT NULL REFERENCES imports(id),
+            source_account TEXT NOT NULL,
+            source_uid TEXT NOT NULL,
+            source_hash TEXT NOT NULL,
+            held_by TEXT,
+            undone_at TEXT,
+            PRIMARY KEY (object_id, import_id, source_account, source_uid)
+        )""",
+        "CREATE INDEX shadows_source ON shadows (source_account, source_uid)",
+        "CREATE INDEX shadows_import ON shadows (import_id)",
+        "CREATE INDEX shadows_held_by ON shadows (held_by)",
+    ],
 }
 
 # Cards that are people or organisations: a group card is kept (and exported) but never shown as a contact.
 _PEOPLE = "kind != 'group'"
 
 # The shadowing rule (the owned-data plan, 2(a)): a followed card that an owned contact was imported from (an
-# origin naming the same account and UID, never the followed row's id) is hidden from lists, counts, search and
-# find_contact while that owned contact is live, or was merged into one that is (also once the merged original
-# is deleted for good: its origins are then held by the merged card, `held_by`). `c` is the followed row.
-_SHADOWED = f"""(c.account_id != '{owned.OWNED_ACCOUNT}' AND c.uid != '' AND EXISTS (
+# origin naming the same account and UID, never the followed row's id), or that a file import hid behind the owned
+# contact it wrote (a shadow: the same name and the same email or phone, also keyed by account and UID), is hidden
+# from lists, counts, search and find_contact while that owned contact is live, or was merged into one that is (also
+# once the merged original is deleted for good: its origins and shadows are then held by the merged card,
+# `held_by`). `c` is the followed row. A followed card that changes later stays hidden (its UID does not change);
+# the owned contact is then flagged (changed_in_source). Deleting the owned contact shows the followed card again.
+_LIVE_OWNER = """(oc.deleted_at IS NULL OR (oc.merged_into IS NOT NULL AND EXISTS (
+        SELECT 1 FROM contacts m WHERE m.id = oc.merged_into AND m.deleted_at IS NULL)))"""
+_SHADOWED = f"""(c.account_id != '{owned.OWNED_ACCOUNT}' AND c.uid != '' AND (EXISTS (
     SELECT 1 FROM origins o JOIN contacts oc ON oc.id = COALESCE(o.held_by, o.object_id)
     WHERE o.source_account = c.account_id AND o.source_uid = c.uid AND o.source_kind != 'file'
-    AND o.undone_at IS NULL
-    AND (oc.deleted_at IS NULL OR (oc.merged_into IS NOT NULL AND EXISTS (
-        SELECT 1 FROM contacts m WHERE m.id = oc.merged_into AND m.deleted_at IS NULL)))))"""
+    AND o.undone_at IS NULL AND {_LIVE_OWNER}) OR EXISTS (
+    SELECT 1 FROM shadows s JOIN contacts oc ON oc.id = COALESCE(s.held_by, s.object_id)
+    WHERE s.source_account = c.account_id AND s.source_uid = c.uid AND s.undone_at IS NULL AND {_LIVE_OWNER})))"""
 # A card shown as a contact: a person or organisation, not shadowed by an owned copy.
 _VISIBLE = f"c.{_PEOPLE} AND NOT {_SHADOWED}"
 
@@ -362,6 +386,7 @@ class ContactsStore:
                                                          (book_id,))]
             gone = owned.purge(db, owned.CONTACTS, collection_ids=book_ids, row_ids=contact_ids)
             db.executemany("DELETE FROM origins WHERE object_id = ?", [(i,) for i in contact_ids])
+            db.executemany("DELETE FROM shadows WHERE object_id = ? OR held_by = ?", [(i, i) for i in contact_ids])
             db.execute("INSERT INTO contacts_fts (contacts_fts) VALUES ('optimize')")
         self.db.checkpoint()
         return gone
@@ -494,27 +519,40 @@ class ContactsStore:
 
 
 def changed_in_source(db: sqlite3.Connection, ids: list[str]) -> dict[str, str]:
-    """See ContactsStore.changed_in_source. An owned contact's origins are its own and those of the cards merged
-    into it (held by it once those are deleted for good); for each (account, UID) only the newest origin counts (a
-    later import from the source moved it on)."""
-    out: dict[str, str] = {}
+    """See ContactsStore.changed_in_source. An owned contact's origins and shadows are its own and those of the cards
+    merged into it (held by it once those are deleted for good); for each (account, UID) only the newest origin and
+    the newest shadow count (a later import from the source moved it on), and the followed card has changed when its
+    text is neither."""
+    links: dict[tuple[str, str, str], list[bool]] = {}  # (owner, account, UID): [is the followed card that text]
     for start in range(0, len(ids), 400):
         chunk = ids[start:start + 400]
         marks = ", ".join("?" * len(chunk))
+        objects = ("WITH objects(owner, object_id) AS ("
+                   f"  SELECT id, id FROM contacts WHERE id IN ({marks})"
+                   f"  UNION ALL SELECT merged_into, id FROM contacts WHERE merged_into IN ({marks})"
+                   f"  UNION ALL SELECT DISTINCT held_by, object_id FROM origins WHERE held_by IN ({marks})), ")
+        followed = (f"JOIN contacts f ON f.account_id = o.source_account AND f.uid = o.source_uid "
+                    f"AND f.deleted_at IS NULL AND f.account_id != '{owned.OWNED_ACCOUNT}'")
         rows = db.execute(
-            "WITH objects(owner, object_id) AS ("
-            f"  SELECT id, id FROM contacts WHERE id IN ({marks})"
-            f"  UNION ALL SELECT merged_into, id FROM contacts WHERE merged_into IN ({marks})"
-            f"  UNION ALL SELECT DISTINCT held_by, object_id FROM origins WHERE held_by IN ({marks})), "
-            "latest AS (SELECT o.source_account, o.source_uid, MAX(o.rowid) AS rid FROM origins o "
-            "  JOIN objects ON objects.object_id = o.object_id "
-            "  WHERE o.source_kind != 'file' AND o.undone_at IS NULL GROUP BY o.source_account, o.source_uid) "
-            "SELECT DISTINCT objects.owner, o.source_account FROM latest JOIN origins o ON o.rowid = latest.rid "
-            "JOIN objects ON objects.object_id = o.object_id "
-            "JOIN contacts f ON f.account_id = o.source_account AND f.uid = o.source_uid AND f.deleted_at IS NULL "
-            f"WHERE f.account_id != '{owned.OWNED_ACCOUNT}' AND f.raw_sha256 != o.source_hash",
+            objects + "latest AS (SELECT objects.owner, o.source_account, o.source_uid, MAX(o.rowid) AS rid "
+            "  FROM origins o JOIN objects ON objects.object_id = o.object_id "
+            "  WHERE o.source_kind != 'file' AND o.undone_at IS NULL "
+            "  GROUP BY objects.owner, o.source_account, o.source_uid) "
+            "SELECT DISTINCT latest.owner, o.source_account, o.source_uid, f.raw_sha256 = o.source_hash AS same "
+            f"FROM latest JOIN origins o ON o.rowid = latest.rid {followed}",
             [*chunk, *chunk, *chunk]).fetchall()
-        for owner, account in rows:
+        rows += db.execute(
+            objects + "latest AS (SELECT objects.owner, o.source_account, o.source_uid, MAX(o.rowid) AS rid "
+            "  FROM shadows o JOIN objects ON objects.object_id = COALESCE(o.held_by, o.object_id) "
+            "  WHERE o.undone_at IS NULL GROUP BY objects.owner, o.source_account, o.source_uid) "
+            "SELECT DISTINCT latest.owner, o.source_account, o.source_uid, f.raw_sha256 = o.source_hash AS same "
+            f"FROM latest JOIN shadows o ON o.rowid = latest.rid {followed}",
+            [*chunk, *chunk, *chunk]).fetchall()
+        for owner, account, uid, same in rows:
+            links.setdefault((owner, account, uid), []).append(bool(same))
+    out: dict[str, str] = {}
+    for (owner, account, _uid), same in sorted(links.items()):
+        if not any(same):
             out.setdefault(owner, account)
     return out
 

@@ -255,10 +255,11 @@ class ContactImports:
         with self._write_lock:
             undone = importer.undo_import(self.sources.contacts, import_id, actor=actor)
         log(logger, logging.INFO, "contacts import undone", import_id=import_id, actor=actor, removed=undone.removed,
-            reverted=undone.reverted, unlinked=undone.unlinked, kept=len(undone.kept), gone=undone.gone)
+            reverted=undone.reverted, unlinked=undone.unlinked, unhidden=undone.unhidden, kept=len(undone.kept),
+            gone=undone.gone)
         return {"summary": importer.get_import(self.sources.contacts, import_id), "removed": undone.removed,
-                "groups_removed": undone.groups_removed,
-                "reverted": undone.reverted, "unlinked": undone.unlinked, "kept": undone.kept, "gone": undone.gone}
+                "groups_removed": undone.groups_removed, "reverted": undone.reverted, "unlinked": undone.unlinked,
+                "unhidden": undone.unhidden, "kept": undone.kept, "gone": undone.gone}
 
     def history(self) -> list[dict]:
         return importer.history(self.sources.contacts)
@@ -271,4 +272,4 @@ def _item(i: importer.Item) -> dict:
             "converted_from": card.converted_from if card else None, "entry": card.entry if card else None,
             "matches": [{"contact_id": m.contact_id, "item_index": m.item_index, "display_name": m.display_name,
                          "source": m.source, "account_id": m.account_id, "strength": m.strength,
-                         "signals": m.signals} for m in i.matches]}
+                         "signals": m.signals, "hides": m.hides} for m in i.matches]}

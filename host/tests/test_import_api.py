@@ -322,6 +322,27 @@ def test_a_person_imported_from_icloud_while_still_followed_is_found_once(host, 
     assert [s["counts"]["contacts"] for s in sources if s["id"] == account] == [0]
 
 
+def test_a_file_hides_this_macs_copies_so_find_contact_answers_once(host, client):
+    import test_importer as imp
+    imp._this_mac(host.sources.contacts)
+    auth = bearer(host, "mydata")
+    preview = upload(client, host, imp._contacts_export(), filename="Contacts.vcf").json()
+    assert preview["counts"]["followed_matches"] == 3
+    ava = next(i for i in preview["items"] if i["display_name"] == "Ava Fictional")
+    assert [(m["source"], m["hides"]) for m in ava["matches"]] == [("mac", True)]
+    done = client.post(f"/import/previews/{preview['id']}/commit", headers=auth, json={}).json()
+    assert done["counts"]["hidden"] == 3 and done["counts"]["created"] == 4
+    events = parse_sse(client.post("/assistant/messages", headers=host.assistant_auth,
+                                   json={"text": "Find Ava"}).text)
+    result = dict(events)["result"]
+    assert len(result["items"]) == 1
+    assert client.get(f"/contacts/{result['items'][0]['id']}", headers=auth).json()["source"] == "mydata"
+    r = client.post(f"/imports/{done['id']}/undo", headers=auth).json()
+    assert r["unhidden"] == 3 and r["summary"]["counts"]["undo"]["unhidden"] == 3
+    names = [c["display_name"] for c in client.get("/contacts", headers=auth).json()]
+    assert names.count("Ava Fictional") == 1 and names.count("Dev Placeholder") == 1  # This Mac's again
+
+
 # ---------------------------------------------------------------- merge
 
 def test_merge_says_what_it_left_out(host, client):

@@ -523,7 +523,10 @@ class ImportCountsOut(BaseModel):
                                        "not written")
     deleted: int = Field(description="cards imported before whose owned copy is in Recently deleted")
     suggestions: int = Field(description="cards with a contact of the same name only (a suggestion)")
-    followed_matches: int = Field(description="cards whose email or phone a followed contact has")
+    followed_matches: int = Field(description="a file's cards that hide a followed contact once imported (the same "
+                                              "name and the same email or phone, emails in lower case and phones "
+                                              "in E.164): each person is then one result. Matches with hides say "
+                                              "which. 0 for a copy of an account (it hides its own cards)")
     missing: int = Field(description="contacts earlier imports from this source brought in that the input no longer "
                                      "has (reported, never deleted)")
     to_import: int
@@ -534,6 +537,8 @@ class ImportCountsOut(BaseModel):
     updated: int | None = None
     linked: int | None = None
     not_written: int | None = None
+    hidden: int | None = Field(default=None, description="after the commit of a file: followed contacts now hidden "
+                                                          "behind the contacts it wrote (or found unchanged)")
 
 
 class ImportNoteOut(BaseModel):
@@ -559,6 +564,9 @@ class ImportMatchOut(BaseModel):
     contact_id: str | None = None
     account_id: str | None = None
     item_index: int | None = Field(default=None, description="for source file: the earlier card's index")
+    hides: bool = Field(default=False, description="a followed contact (This Mac, an iCloud account) this file's card "
+                                                   "hides once imported, so the person is found once; shown again "
+                                                   "if the imported contact is deleted or the import undone")
 
 
 class ImportItemOut(BaseModel):
@@ -670,6 +678,7 @@ class ImportUndoneOut(BaseModel):
     groups_removed: int = Field(default=0, description="group cards it created, now in Recently deleted with them")
     reverted: int = Field(description="contacts it updated, back to their earlier text")
     unlinked: int
+    unhidden: int = Field(default=0, description="followed contacts the import hid, shown again")
     kept: list[ImportMissingOut] = Field(description="contacts changed since the import: left as they are")
     gone: int = Field(description="contacts already in Recently deleted or deleted for good")
 
