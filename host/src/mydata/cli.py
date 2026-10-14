@@ -344,8 +344,11 @@ def cmd_backup(settings: Settings, ns: argparse.Namespace) -> int:
                 return 0
             backup.prune(home)
             files = ", ".join(f"{f['file']} ({_size(f['size'])})" for f in snap.manifest["files"])
-            print(f"Took snapshot {snap.name}: {files}\n  in {snap.path}")
-            return 0
+            print(f"Took snapshot {snap.name}: {files or 'nothing'}\n  in {snap.path}")
+            failed = backup.failures(snap)
+            for f in failed:
+                print(f"mydata: left out {f['file']}: {f['reason']}", file=sys.stderr)
+            return 1 if failed else 0
         if ns.action == "list":
             snaps = backup.list_snapshots(home)
             if not snaps:
@@ -354,8 +357,10 @@ def cmd_backup(settings: Settings, ns: argparse.Namespace) -> int:
                 try:
                     m = s.manifest
                     files = m.get("files", [])
+                    failed = backup.failures(s)
                     print(f"{s.name}  {m.get('reason', '?'):13}  {len(files)} file(s)  "
-                          f"{_size(sum(f.get('size', 0) for f in files))}")
+                          f"{_size(sum(f.get('size', 0) for f in files))}"
+                          + (f"  left out: {', '.join(f['file'] for f in failed)}" if failed else ""))
                 except (OSError, ValueError):
                     print(f"{s.name}  (manifest unreadable)")
             last = backup.last_verify(home)
@@ -393,6 +398,9 @@ def cmd_backup(settings: Settings, ns: argparse.Namespace) -> int:
         if out["before"]:
             print(f"The state it replaced is snapshot {out['before']} (mydata backup restore {out['before']} "
                   f"puts it back).")
+        if out["damaged"]:
+            print(f"Too damaged to copy, so kept as they were in {out['before']}/{backup.DAMAGED}: "
+                  f"{', '.join(out['damaged'])}.")
         if out["untouched"]:
             print(f"Not in the snapshot, so left as they are: {', '.join(out['untouched'])}.")
         return 0

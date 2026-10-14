@@ -73,3 +73,18 @@ def test_verify_reports_problems_with_exit_1(tmp_path):
     assert "calendar.sqlite has changed since the snapshot was taken" in r.stderr
     r = _mydata(tmp_path, "backup", "verify", "19990101T000000Z")
     assert r.returncode == 1 and "no snapshot named" in r.stderr
+
+
+def test_a_damaged_database_is_left_out_of_a_snapshot_and_kept_by_a_restore(tmp_path):
+    populate(tmp_path)
+    assert _mydata(tmp_path, "backup", "now").returncode == 0
+    [good] = list_snapshots(tmp_path)
+    (tmp_path / "calendar.sqlite").write_bytes(b"not a database at all" * 100)
+    r = _mydata(tmp_path, "backup", "now")
+    assert r.returncode == 1 and "contacts.sqlite" in r.stdout
+    assert "left out calendar.sqlite: calendar.sqlite could not be copied" in r.stderr
+    assert "left out: calendar.sqlite" in _mydata(tmp_path, "backup", "list").stdout
+    r = _mydata(tmp_path, "backup", "restore", good.name, "--yes")
+    assert r.returncode == 0, r.stderr
+    assert "Too damaged to copy, so kept as they were in" in r.stdout and "damaged: calendar.sqlite." in r.stdout
+    assert count(tmp_path / "calendar.sqlite", "events") == 6

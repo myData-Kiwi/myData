@@ -3,15 +3,18 @@
 A snapshot is a consistent copy of every *.sqlite in the host folder (sqlite3's online backup, so the
 host keeps running), in <home>/backups/<UTC time, e.g. 20261013T101500Z>/, with manifest.json: per file
 its sha256, size, schema version and row counts, plus the host version and why it was taken. Each copy
-must pass integrity_check, or there is no snapshot (other findings are recorded as warnings). A
-snapshot is built in a hidden folder and renamed into place when complete, so a crash never leaves one
-that looks whole. Folders are 0700 and files 0600, like the rest of the host folder.
+must pass integrity_check (other findings are recorded as warnings). Files are copied one by one: one
+that cannot be copied is listed as failed and the others are still kept, so one damaged database never
+stops the others being backed up. A snapshot is built in a hidden folder and renamed into place when
+complete, so a crash never leaves one that looks whole. Folders are 0700 and files 0600, like the rest
+of the host folder.
 
 When snapshots are taken:
   - every hour while the host runs (BackupService), skipped when no database file changed since the last
     snapshot (their size and modification times are compared, so nothing is opened);
   - always before a migration: open_store() takes one before it opens a store whose file is at an older
-    schema version, and refuses to open it (the error shows in /status's last_error) if that fails;
+    schema version, and refuses to open it (the error shows in /status's last_error) if that file could
+    not be copied;
   - before a restore, and on `mydata backup now`.
 
 Retention (retention(), pure): the newest snapshot of each of the 24 most recent hours, 30 most recent days
@@ -21,8 +24,9 @@ least 90 days.
 The restore drill (verify()) copies a snapshot into a temporary folder inside backups/, opens each
 database with this code (running its migrations there), runs the checks, compares row counts with the
 manifest, and records the result in backups/last_verify.json. restore() needs the host stopped: it holds
-the host's pid lock while it works, so no host can start meanwhile, takes a snapshot of the current state,
-then puts the snapshot's files back.
+the host's pid lock while it works, so no host can start meanwhile, takes a snapshot of the current state
+(a database too damaged to copy is kept in it byte for byte, so damage never blocks a restore), then puts
+the snapshot's files back.
 
 Nothing here logs or reports row contents: messages name files, tables and counts only.
 """
@@ -55,6 +59,7 @@ logger = logging.getLogger("mydata.backup")
 
 BACKUPS = "backups"
 MANIFEST = "manifest.json"
+DAMAGED = "damaged"  # in a snapshot taken before a restore: files SQLite could not copy, kept byte for byte
 LAST_VERIFY = "last_verify.json"
 FORMAT = 1
 HOURLY, DAILY, MONTHLY = 24, 30, 12
@@ -227,12 +232,19 @@ def _describe(path: Path) -> dict:
     return {**info, "sha256": _sha256(path), "size": path.stat().st_size}
 
 
-def take_snapshot(home: Path, reason: str, *, only_if_changed: bool = False,
-                  now: datetime | None = None) -> Snapshot | None:
+def take_snapshot(home: Path, reason: str, *, only_if_changed: bool = False, now: datetime | None = None,
+                  require: Iterable[str] = (), keep_damaged: bool = False) -> Snapshot | None:
     """Copy every database in the host folder into a new snapshot. None when there is nothing to copy, or
-    (only_if_changed) when no database changed since the newest snapshot. Raises BackupError on failure,
-    leaving nothing behind."""
+    (only_if_changed) when no database changed since the newest snapshot.
+
+    Each file is copied on its own: one that cannot be (unreadable, or its copy fails integrity_check) is
+    listed under the manifest's "failed" ({file, reason}) and the others are still copied. With
+    keep_damaged (before a restore, which must not be blocked by the damage it is there to repair), such a
+    file is kept as it is, with its -wal, -shm and -journal, in the snapshot's damaged/ folder ("kept").
+    Raises BackupError, leaving nothing behind, when a file named in `require` failed, when nothing at all
+    was kept, or on any other failure."""
     home = Path(home)
+    required = set(require)
     with _take_lock:
         files = database_files(home)
         if not files:
@@ -249,23 +261,68 @@ def take_snapshot(home: Path, reason: str, *, only_if_changed: bool = False,
         root = private_dir(backups_dir(home))
         work = private_dir(root / f".partial-{at.strftime(_STAMP)}-{secrets.token_hex(4)}")
         try:
-            entries = []
+            entries, failed = [], []
             for src in files:
                 dst = work / src.name
+                # Before SQLite opens it: closing a connection can fold the WAL into a damaged file, or drop it.
+                kept = _keep_as_is(src, private_dir(work / DAMAGED)) if keep_damaged else None
                 try:
-                    _copy_database(src, dst)
-                except sqlite3.Error as e:
-                    raise BackupError(f"{src.name} could not be copied ({type(e).__name__}: {e})") from None
-                entries.append(_describe(dst))
+                    try:
+                        _copy_database(src, dst)
+                    except sqlite3.Error as e:
+                        raise BackupError(f"{src.name} could not be copied ({type(e).__name__}: {e})") from None
+                    entries.append(_describe(dst))
+                except BackupError as e:
+                    dst.unlink(missing_ok=True)
+                    if src.name in required:
+                        raise
+                    failed.append({"file": src.name, "reason": str(e), **({"kept": kept} if kept else {})})
+                    log(logger, logging.ERROR, "a database could not be snapshotted", file=src.name, error=str(e))
+                else:
+                    for k in kept or ():
+                        (work / k["file"]).unlink()
+            if not entries and not any(f.get("kept") for f in failed):
+                raise BackupError("; ".join(f["reason"] for f in failed))
             manifest = {"format": FORMAT, "created_at": _iso(at), "reason": reason, "host_version": __version__,
                         "files": entries, "sources": sources}
+            if failed:
+                manifest["failed"] = failed
+            if (work / DAMAGED).exists() and not any((work / DAMAGED).iterdir()):
+                (work / DAMAGED).rmdir()
             _write_json(work / MANIFEST, manifest)
             final = _place(work, root, at)
         except BaseException:
             shutil.rmtree(work, ignore_errors=True)
             raise
-    log(logger, logging.INFO, "snapshot taken", snapshot=final.name, reason=reason, files=len(entries))
+    log(logger, logging.INFO, "snapshot taken", snapshot=final.name, reason=reason, files=len(entries),
+        failed=len(failed))
     return Snapshot(final.name, final, at)
+
+
+def _keep_as_is(src: Path, folder: Path) -> list[dict]:
+    """Byte copies of a database SQLite cannot copy, with the files beside it, for a person to look at."""
+    kept = []
+    for p in (src, *(src.with_name(src.name + s) for s in ("-wal", "-shm", "-journal"))):
+        if not p.exists():
+            continue
+        dst = folder / p.name
+        try:
+            fd = os.open(dst, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            os.close(fd)
+            shutil.copyfile(p, dst)
+        except OSError as e:
+            raise BackupError(f"{p.name} could not be kept as it is ({type(e).__name__})") from None
+        kept.append({"file": f"{DAMAGED}/{p.name}", "sha256": _sha256(dst), "size": dst.stat().st_size})
+    return kept
+
+
+def failures(snap: Snapshot) -> list[dict]:
+    """The files a snapshot could not copy ({file, reason, kept?}); empty when it holds them all."""
+    try:
+        failed = snap.manifest.get("failed", [])
+    except (OSError, ValueError):
+        return []
+    return failed if isinstance(failed, list) else []
 
 
 def _place(work: Path, root: Path, at: datetime) -> Path:
@@ -344,7 +401,7 @@ def open_store(cls, home: Path, filename: str):
     if pending is not None:
         current, target = pending
         try:
-            snap = take_snapshot(home, "pre-migration")
+            snap = take_snapshot(home, "pre-migration", require=[filename])
             if snap is None:
                 raise BackupError(f"{filename} was not found to copy")
         except Exception as e:
@@ -443,8 +500,9 @@ class HostRunning(BackupError):
 def restore(home: Path, name: str, *, now: datetime | None = None) -> dict:
     """Put a snapshot's databases back in the host folder. The host must be stopped: its pid lock is held
     throughout, so it cannot start meanwhile (HostRunning if it is running). The current state is
-    snapshotted first. Databases that are not in the snapshot are left as they are.
-    Returns {snapshot, before (the snapshot of the current state, or None), restored, untouched}."""
+    snapshotted first; a database too damaged to copy is kept in that snapshot's damaged/ folder as it was.
+    Databases that are not in the snapshot are left as they are. Returns {snapshot, before (the snapshot of
+    the current state, or None), restored, untouched, damaged (files kept as they were in `before`)}."""
     from .config import Settings
     from .daemon import acquire_pid_lock
 
@@ -459,7 +517,7 @@ def restore(home: Path, name: str, *, now: datetime | None = None) -> dict:
         problems = _check_files(snap, manifest)
         if problems:
             raise BackupError("the snapshot is damaged: " + "; ".join(problems))
-        before = take_snapshot(home, "pre-restore", now=now)
+        before = take_snapshot(home, "pre-restore", now=now, keep_damaged=True)
         restored = []
         for entry in manifest["files"]:
             target = home / entry["file"]
@@ -477,10 +535,11 @@ def restore(home: Path, name: str, *, now: datetime | None = None) -> dict:
     finally:
         settings.pid_path.unlink(missing_ok=True)
         os.close(fd)
+    damaged = [f["file"] for f in failures(before)] if before else []
     log(logger, logging.WARNING, "snapshot restored", snapshot=snap.name, before=before.name if before else None,
-        files=len(restored))
+        files=len(restored), damaged=len(damaged))
     return {"snapshot": snap.name, "before": before.name if before else None, "restored": restored,
-            "untouched": untouched}
+            "untouched": untouched, "damaged": damaged}
 
 
 # ---------------------------------------------------------------- status
@@ -534,12 +593,17 @@ class BackupService:
         try:
             snap = take_snapshot(self.home, "hourly", only_if_changed=True, now=now)
             prune(self.home, now)
+            newest = snap or next(iter(list_snapshots(self.home)), None)
         except Exception as e:
             reason = str(e) if isinstance(e, BackupError) else type(e).__name__
             self.error = f"The hourly snapshot failed ({reason}). The host will try again."
             log(logger, logging.ERROR, self.error)
             return None
-        self.error = None
+        failed = failures(newest) if newest is not None else []
+        # A file that cannot be copied stays an error until a snapshot holds it again.
+        self.error = (f"The hourly snapshot left out {', '.join(f['file'] for f in failed)} "
+                      f"({'; '.join(f['reason'] for f in failed)}). The other databases were copied; the host will "
+                      f"try again." if failed else None)
         return snap
 
     def status(self) -> dict:

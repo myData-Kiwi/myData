@@ -125,6 +125,57 @@ def test_a_copy_that_fails_integrity_check_is_no_snapshot(home, monkeypatch):
     assert list_snapshots(home) == []
 
 
+def _garble(path, pages=(2, 3)):
+    """Overwrite whole pages of a database with noise: it opens, but its pages are broken."""
+    with open(path, "r+b") as fh:
+        for n in pages:
+            fh.seek((n - 1) * 4096)
+            fh.write(bytes((i * 37 + 11) % 256 for i in range(4096)))
+
+
+def test_one_damaged_database_does_not_stop_the_others_being_copied(home):
+    (home / "calendar.sqlite").write_bytes(b"not a database at all" * 100)
+    snap = take_snapshot(home, "hourly", now=NOW)
+    assert [f["file"] for f in snap.manifest["files"]] == ["contacts.sqlite"]
+    [failed] = backup.failures(snap)
+    assert failed["file"] == "calendar.sqlite" and "could not be copied" in failed["reason"]
+    assert "kept" not in failed and not (snap.path / backup.DAMAGED).exists()
+    assert sorted(p.name for p in snap.path.iterdir()) == ["contacts.sqlite", "manifest.json"]
+    assert verify(home)["ok"] is True  # what the snapshot holds restores cleanly
+
+
+def test_the_hourly_snapshot_reports_a_file_it_left_out_until_one_holds_it(home):
+    service = BackupService(home, platform="linux")
+    _garble(home / "calendar.sqlite")
+    assert service.run_once(NOW) is not None
+    assert service.error.startswith("The hourly snapshot left out calendar.sqlite (the copy of calendar.sqlite ")
+    assert "The other databases were copied" in service.error
+    assert service.run_once(NOW + timedelta(hours=1)) is None  # nothing changed: no new copy, still an error
+    assert service.error is not None and len(list_snapshots(home)) == 1
+    (home / "calendar.sqlite").unlink()
+    assert service.run_once(NOW + timedelta(hours=2)) is not None
+    assert service.error is None
+
+
+def test_a_migration_needs_only_its_own_file_copied(home):
+    (home / "calendar.sqlite").write_bytes(b"not a database at all" * 100)
+    open_store(NextContactsStore, home, "contacts.sqlite")
+    [snap] = list_snapshots(home)
+    assert snap.manifest["reason"] == "pre-migration"
+    assert [f["file"] for f in snap.manifest["files"]] == ["contacts.sqlite"]
+
+
+def test_a_migration_is_refused_when_its_own_file_cannot_be_copied(home):
+    with sqlite3.connect(home / "contacts.sqlite") as db:
+        pages = [r[0] for r in db.execute("SELECT pageno FROM dbstat WHERE name = 'contacts'")]
+    _garble(home / "contacts.sqlite", pages)
+    with sqlite3.connect(home / "contacts.sqlite") as db:  # still reads as version 1, so it would migrate
+        assert db.execute("SELECT MAX(version) FROM schema_version").fetchone()[0] == 1
+    with pytest.raises(MigrationRefused, match="contacts.sqlite"):
+        open_store(NextContactsStore, home, "contacts.sqlite")
+    assert list_snapshots(home) == [] and not list((home / "backups").glob(".partial-*"))
+
+
 # ---------------------------------------------------------------- retention
 
 
@@ -307,6 +358,32 @@ def test_restore_puts_a_snapshot_back_and_keeps_the_state_it_replaced(home):
     assert entry["row_counts"]["contacts"] == 0  # the state that was replaced is kept
     assert not (home / "mydatad.pid").exists()  # the lock is released
     assert ContactsStore(home / "contacts.sqlite").list()  # the host opens it as usual
+
+
+@pytest.mark.parametrize("damage", ["pages", "garbage"])
+def test_restore_puts_a_snapshot_back_over_a_damaged_database(home, damage):
+    snap = take_snapshot(home, "manual", now=NOW)
+    live = home / "calendar.sqlite"
+    if damage == "pages":
+        _garble(live)
+    else:
+        live.write_bytes(b"not a database at all" * 100)
+    (home / "calendar.sqlite-wal").write_bytes(b"a wal beside it")
+    damaged = live.read_bytes()
+    out = restore(home, snap.name, now=NOW + timedelta(hours=1))
+    assert sorted(out["restored"]) == ["calendar.sqlite", "contacts.sqlite"] and out["damaged"] == ["calendar.sqlite"]
+    assert count(live, "events") == 6
+    pre = find_snapshot(home, out["before"])
+    assert pre.manifest["reason"] == "pre-restore"
+    assert [f["file"] for f in pre.manifest["files"]] == ["contacts.sqlite"]  # the healthy one, copied as usual
+    [failed] = backup.failures(pre)
+    assert [k["file"] for k in failed["kept"]] == ["damaged/calendar.sqlite", "damaged/calendar.sqlite-wal"]
+    kept = pre.path / "damaged"
+    assert (kept / "calendar.sqlite").read_bytes() == damaged  # byte for byte, to look at later
+    assert (kept / "calendar.sqlite-wal").read_bytes() == b"a wal beside it"
+    assert mode(kept) == 0o700 and {mode(p) for p in kept.iterdir()} == {0o600}
+    assert failed["kept"][0]["sha256"] == backup._sha256(kept / "calendar.sqlite")
+    assert verify(home, pre.name)["ok"] is True  # the drill checks what the snapshot holds
 
 
 def test_restore_refuses_while_the_host_runs(home):
