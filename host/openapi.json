@@ -52,6 +52,18 @@
       },
       "AccountOut": {
         "properties": {
+          "backups_kept_until": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "YYYY-MM-DD: copies of what it mirrored stay in the host's snapshots until this day if it is removed now (after DELETE: since it was removed), while the host keeps running",
+            "title": "Backups Kept Until"
+          },
           "created_at": {
             "title": "Created At",
             "type": "string"
@@ -3702,6 +3714,18 @@
             "title": "Available",
             "type": "boolean"
           },
+          "backups_kept_until": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "YYYY-MM-DD: if it is turned off or removed now, copies of what it mirrored stay in the host's snapshots until this day, while the host keeps running (the turn-off and remove dialogs say so)",
+            "title": "Backups Kept Until"
+          },
           "calendars": {
             "default": [],
             "items": {
@@ -4011,6 +4035,11 @@
             "title": "Account Id",
             "type": "string"
           },
+          "backups_kept_until": {
+            "description": "YYYY-MM-DD: if the account is no longer followed from now, copies of what it mirrored stay in the host's snapshots until this day, while the host keeps running (\"Stop following\" says so)",
+            "title": "Backups Kept Until",
+            "type": "string"
+          },
           "calendars_followed": {
             "description": "stopping following the account stops following these too; they are not imported yet",
             "title": "Calendars Followed",
@@ -4048,6 +4077,7 @@
           "label",
           "contacts_followed",
           "calendars_followed",
+          "backups_kept_until",
           "message"
         ],
         "title": "StopFollowingOut",

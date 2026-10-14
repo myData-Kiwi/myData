@@ -17,7 +17,7 @@ import test_contacts_store as con
 from fake_dav import FakeDav
 from mydata.service import imports as imports_service
 from mydata.service.auth import AgentStore
-from mydata.service.backup import BackupError, list_snapshots
+from mydata.service.backup import BackupError, kept_until, list_snapshots
 from mydata.sources import import_files
 from mydata.sources._db import table_counts
 
@@ -299,6 +299,13 @@ def test_stop_following_says_what_is_not_on_mydata(host, client):
                        json={"choices": [{"index": first, "action": "skip"}]}).json()
     stop = done["stop_following"]
     assert stop["contacts_followed"] == 1 and stop["contacts_linked"] == 0
+    assert stop["backups_kept_until"] == kept_until().isoformat()
+    # The same day for the account itself, wherever the apps offer to remove it.
+    assert [a["backups_kept_until"] for a in client.get("/accounts", headers=auth).json()] == [kept_until().isoformat()]
+    assert [s["backups_kept_until"] for s in client.get("/sources", headers=auth).json()["sources"]
+            if s["id"] == account] == [kept_until().isoformat()]
+    r = client.delete(f"/accounts/{account}", headers=auth)
+    assert r.status_code == 200 and r.json()["backups_kept_until"] == kept_until().isoformat()
     assert stop["message"].startswith("Keep following") and "1 of its contact(s) are not on myData" in stop["message"]
 
 

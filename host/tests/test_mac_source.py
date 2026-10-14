@@ -19,6 +19,7 @@ from starlette.testclient import TestClient
 import fake_dav
 from fake_dav import FakeDav
 from fake_mac import FakeLauncher, FakeMac, data
+from mydata.service.backup import kept_until
 from mydata.service.sync import SyncService
 from mydata.sources.accounts import Accounts
 from mydata.sources.mac import MAC_ID
@@ -126,6 +127,7 @@ def test_off_by_default_and_turning_on_asks_nothing_and_reads_nothing(make_host,
         assert status["mac_available"] is True and status["mode"] == "demo"
         src = c.mac()
         assert src["enabled"] is False and src["contacts_status"] == "unknown" and src["notes_included"] is False
+        assert src["backups_kept_until"] == kept_until().isoformat()  # what a turn-off dialog says
         assert mac.launches == [] and not socket_path(home).exists()  # nothing runs while it is off
 
         on(c, mac)

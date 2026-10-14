@@ -287,6 +287,10 @@ class AccountOut(BaseModel):
     email: str
     created_at: str
     label: str
+    backups_kept_until: str | None = Field(default=None, description="YYYY-MM-DD: copies of what it mirrored stay in "
+                                                                     "the host's snapshots until this day if it is "
+                                                                     "removed now (after DELETE: since it was "
+                                                                     "removed), while the host keeps running")
 
 
 class SyncCounts(BaseModel):
@@ -713,6 +717,9 @@ class StopFollowingOut(BaseModel):
                                                          "copy on myData is older)")
     calendars_followed: int = Field(description="stopping following the account stops following these too; they "
                                                 "are not imported yet")
+    backups_kept_until: str = Field(description="YYYY-MM-DD: if the account is no longer followed from now, copies "
+                                                "of what it mirrored stay in the host's snapshots until this day, "
+                                                "while the host keeps running (\"Stop following\" says so)")
     message: str
 
 
@@ -907,6 +914,11 @@ class SourceOut(BaseModel):
     last_error: str | None = Field(default=None, description="a short message for the user; never a secret")
     counts: SyncCounts | None = Field(default=None, description="what the source holds now: for an iCloud account, "
                                                                  "as of its last sync; for This Mac while it is on")
+    backups_kept_until: str | None = Field(default=None, description="YYYY-MM-DD: if it is turned off or removed "
+                                                                     "now, copies of what it mirrored stay in the "
+                                                                     "host's snapshots until this day, while the host "
+                                                                     "keeps running (the turn-off and remove dialogs "
+                                                                     "say so)")
 
 
 class SourcesOut(BaseModel):
@@ -1156,7 +1168,8 @@ def _routes_sources(app: FastAPI, need: Callable[[], SyncService], current_mode:
              tags=["sources"], response_model=list[AccountOut], responses=unavailable)
     def accounts() -> list[AccountOut]:
         """Linked accounts. Passwords are never returned."""
-        return [AccountOut(**a.public()) for a in need().accounts.list()]
+        kept = kept_until().isoformat()
+        return [AccountOut(**a.public(), backups_kept_until=kept) for a in need().accounts.list()]
 
     @app.post("/accounts", dependencies=needs("sources:manage"),
               tags=["sources"], response_model=AccountOut, status_code=201,
@@ -1173,7 +1186,7 @@ def _routes_sources(app: FastAPI, need: Callable[[], SyncService], current_mode:
             raise HTTPException(400, str(e)) from None
         except SecretStoreError as e:
             raise HTTPException(503, f"{e}. Nothing was stored.") from None
-        return AccountOut(**account.public())
+        return AccountOut(**account.public(), backups_kept_until=kept_until().isoformat())
 
     @app.delete("/accounts/{account_id}", dependencies=needs("sources:manage"),
                 tags=["sources"], response_model=AccountOut,
@@ -1189,7 +1202,7 @@ def _routes_sources(app: FastAPI, need: Callable[[], SyncService], current_mode:
             raise HTTPException(404, "no such account") from None
         except SecretStoreError as e:
             raise HTTPException(503, str(e)) from None
-        return AccountOut(**account.public())
+        return AccountOut(**account.public(), backups_kept_until=kept_until().isoformat())
 
     @app.post("/accounts/{account_id}/sync", dependencies=needs("sources:manage"),
               tags=["sources"], response_model=AccountSyncOut, status_code=202,
@@ -1327,7 +1340,8 @@ def _routes_mac(app: FastAPI, need: Callable[[], SyncService]) -> None:
             st = status.get(a.id, {})
             out.append(SourceOut(id=a.id, kind="icloud", enabled=True, email=a.email, notes_included=True,
                                  state=st.get("state"), last_update=st.get("last_success"),
-                                 last_error=st.get("last_error"), counts=SyncCounts(**(st.get("counts") or {}))))
+                                 last_error=st.get("last_error"), counts=SyncCounts(**(st.get("counts") or {})),
+                                 backups_kept_until=kept_until().isoformat()))
         return out
 
     @app.get("/sources", dependencies=needs("sources:read"), tags=["sources"], response_model=SourcesOut,
@@ -1340,7 +1354,7 @@ def _routes_mac(app: FastAPI, need: Callable[[], SyncService]) -> None:
             mac_row = service.mac.public()
             if service.mac.enabled:  # what it mirrored now; a source that is off holds nothing
                 mac_row["counts"] = SyncCounts(**service.contacts.counts(MAC_ID), **service.calendar.counts(MAC_ID))
-            rows.append(SourceOut(**mac_row))
+            rows.append(SourceOut(**mac_row, backups_kept_until=kept_until().isoformat()))
         return SourcesOut(sources=[*rows, *icloud_rows(service)])
 
     @app.put("/sources/mac", dependencies=needs("sources:manage"), tags=["sources"], response_model=SourceOut,
@@ -1359,7 +1373,8 @@ def _routes_mac(app: FastAPI, need: Callable[[], SyncService]) -> None:
         if "calendars" in given:
             kwargs["calendars"] = body.calendars
         try:
-            return SourceOut(**source.configure(enabled=body.enabled, **kwargs))
+            return SourceOut(**source.configure(enabled=body.enabled, **kwargs),
+                             backups_kept_until=kept_until().isoformat())
         except MacUnavailable:
             raise HTTPException(404, "This host is not a Mac, so there is no This Mac source.") from None
 

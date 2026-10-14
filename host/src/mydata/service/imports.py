@@ -32,7 +32,7 @@ from ..sources.card_values import card_values
 from ..sources.import_files import ReadCard, ReadResult, read_card, read_contacts
 from ..sources.importer import FILE, ICLOUD, ImportSource
 from ..sources.mac import MAC_ID
-from .backup import BackupError, take_snapshot
+from .backup import BackupError, kept_until, take_snapshot
 from .logs import log
 
 logger = logging.getLogger("mydata.imports")
@@ -229,7 +229,7 @@ class ContactImports:
                         "keep following it for them.")
         return {"account_id": source.account, "label": source.label, "contacts_followed": left["followed"],
                 "contacts_linked": left["linked"], "contacts_changed": left["changed"],
-                "calendars_followed": calendars, "message": message}
+                "calendars_followed": calendars, "backups_kept_until": kept_until().isoformat(), "message": message}
 
     # ---------------------------------------------------------------- commit, undo, history
 

@@ -78,7 +78,7 @@ def test_added_account_is_listed_without_its_password_anywhere(host, tmp_path):
         r = c.post("/accounts", headers=host.auth, json=BODY)
         assert r.status_code == 201
         account = r.json()
-        assert set(account) == {"id", "provider", "email", "created_at", "label"}
+        assert set(account) == {"id", "provider", "email", "created_at", "label", "backups_kept_until"}
         assert c.get("/accounts", headers=host.auth).json() == [account]
         assert c.get("/status", headers=host.auth).json()["mode"] == "real"
         r = c.post(f"/accounts/{account['id']}/sync", headers=host.auth)
