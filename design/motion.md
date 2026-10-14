@@ -9,6 +9,7 @@ Soft and quick. Things ease into place; nothing snaps and nothing lingers.
 | `slow` | 380ms | Sheets, dialogs and screen transitions |
 | `standard` curve | cubic-bezier(0.2, 0, 0, 1) | Movement within the screen |
 | `spring` | Gentle, about 350ms, a trace of overshoot | Sheets, the segmented control's thumb, the tab pill |
+| `toast-duration` | 8s | How long a Toast stays before it leaves; paused on hover, touch and focus (Toast). Decided 2026-10-14 |
 
 ## Rules
 
