@@ -436,6 +436,73 @@
         "title": "AssistantSettingsIn",
         "type": "object"
       },
+      "BackupOut": {
+        "properties": {
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "why the last hourly snapshot failed; null once one succeeds",
+            "title": "Error"
+          },
+          "filevault": {
+            "description": "whether the disk is encrypted (macOS FileVault); unknown on other systems",
+            "enum": [
+              "on",
+              "off",
+              "unknown"
+            ],
+            "title": "Filevault",
+            "type": "string"
+          },
+          "last_snapshot_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "when the newest snapshot of the databases was taken (UTC); none yet: null",
+            "title": "Last Snapshot At"
+          },
+          "last_verified_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "when a snapshot was last restored into a temporary folder and checked (`mydata backup verify`)",
+            "title": "Last Verified At"
+          },
+          "last_verify_ok": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "whether that restore drill passed",
+            "title": "Last Verify Ok"
+          }
+        },
+        "required": [
+          "filevault"
+        ],
+        "title": "BackupOut",
+        "type": "object"
+      },
       "CalendarOut": {
         "properties": {
           "account_caption": {
@@ -1724,6 +1791,17 @@
             "description": "false when the user switched the assistant off",
             "title": "Assistant Enabled",
             "type": "boolean"
+          },
+          "backup": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BackupOut"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "snapshots of the databases and the last restore drill"
           },
           "conversation_epoch": {
             "description": "moves on by one at every switch between demo and real mode, which ends every conversation: an app that sees it change starts a new conversation and says why",

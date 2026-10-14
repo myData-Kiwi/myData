@@ -108,6 +108,7 @@ Class | Method | HTTP request | Description
  - [AppearanceOut](doc//AppearanceOut.md)
  - [ApprovalOut](doc//ApprovalOut.md)
  - [AssistantSettingsIn](doc//AssistantSettingsIn.md)
+ - [BackupOut](doc//BackupOut.md)
  - [CalendarOut](doc//CalendarOut.md)
  - [ContactDetailOut](doc//ContactDetailOut.md)
  - [ContactField](doc//ContactField.md)

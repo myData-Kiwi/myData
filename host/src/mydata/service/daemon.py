@@ -1,9 +1,10 @@
 """mydatad: the host service. Runs in the foreground; `mydata start` runs it in the background.
 
 On start: read config.toml (create it with defaults), create the token on first start, set up
-structured logging, refuse to run twice, start getting the model ready in the background, and
-serve the API on the loopback address from the config. On SIGTERM/SIGINT: finish open requests,
-stop Ollama if the host started it, and remove the pid file.
+structured logging, refuse to run twice, start getting the model ready in the background, start the
+hourly snapshots of the databases (backup.py), and serve the API on the loopback address from the
+config. On SIGTERM/SIGINT: finish open requests, stop Ollama if the host started it, and remove the pid
+file.
 """
 
 from __future__ import annotations
@@ -25,6 +26,7 @@ from .model import ModelManager
 from .modes import ModeController
 from .state import HostState
 from .auth import AgentStore, Authenticator, ensure_app_tokens
+from .backup import BackupService
 from .sync import SyncService
 
 logger = logging.getLogger("mydata.daemon")
@@ -85,9 +87,10 @@ def build_sources(settings: Settings, secrets=None, transport=None) -> SyncServi
 
 
 def build(settings: Settings, sources: SyncService | None = None, *, model_factory=None, models=None,
-          real_today=None):
-    """The app, plus the parts main() starts and stops: (app, models, sources). The keyword arguments are
-    for tests: a scripted model, a stand-in for the model manager, and a fixed date for real mode."""
+          real_today=None, backups: BackupService | None = None):
+    """The app, plus the parts main() starts and stops: (app, models, sources). main() passes the backup
+    service it starts; the other keyword arguments are for tests: a scripted model, a stand-in for the
+    model manager, and a fixed date for real mode."""
     legacy = settings.home / "token"  # phase 1 had one shared token; it is replaced by per-app tokens
     if legacy.exists():
         legacy.unlink()
@@ -104,7 +107,8 @@ def build(settings: Settings, sources: SyncService | None = None, *, model_facto
     sources.on_accounts_changed = modes.refresh
     modes.refresh()
     stop = lambda: os.kill(os.getpid(), signal.SIGTERM)  # the same clean shutdown as `mydata stop`
-    app = create_app(auth, registry, models, assistant, state=state, shutdown=stop, sources=sources)
+    app = create_app(auth, registry, models, assistant, state=state, shutdown=stop, sources=sources,
+                     backups=backups or BackupService(settings.home))
     return app, models, sources
 
 
@@ -122,7 +126,8 @@ def main(argv: list[str] | None = None) -> int:
         log(logger, logging.ERROR, "already running", pid=daemon_pid(settings))
         return 1
 
-    app, models, sources = build(settings)
+    backups = BackupService(settings.home)
+    app, models, sources = build(settings, backups=backups)
     mode = "real" if sources.any_source_on() else "demo"
     log(logger, logging.INFO, "starting", version=__version__, host=settings.host, port=settings.port,
         home=str(settings.home), model=settings.model, mode=mode)
@@ -132,6 +137,7 @@ def main(argv: list[str] | None = None) -> int:
             pin_today=settings.pin_today.isoformat())
     models.start()
     sources.start()  # syncs every account now, then every 15 minutes; starts This Mac's reader if it is on
+    backups.start()  # a snapshot now if a database changed since the last one, then every hour
     # uvicorn shuts down gracefully on SIGTERM/SIGINT, then re-raises the signal to the handler that was
     # installed before it. With the default handler that kills the process before the cleanup below runs,
     # so install a harmless one: shutdown still happens, and Ollama and the pid file are cleaned up.
@@ -148,6 +154,7 @@ def main(argv: list[str] | None = None) -> int:
         code = int(e.code or 1)
     finally:
         sources.stop()
+        backups.stop()
         models.stop()
         settings.pid_path.unlink(missing_ok=True)
         os.close(lock_fd)

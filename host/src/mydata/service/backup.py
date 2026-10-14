@@ -568,6 +568,7 @@ class BackupService:
             self._thread = None
 
     def _loop(self) -> None:
+        filevault(self.platform)  # asked here once, so /status never waits for it
         while not self._stopping.is_set():
             self.run_once()
             self._stopping.wait(self.interval)

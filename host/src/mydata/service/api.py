@@ -58,6 +58,7 @@ from ..tools import ApprovalError, Registry
 from .appearance import DEFAULT_THEME, THEME_IDS, THEMES
 from .assistant import Assistant
 from .auth import LIFETIME_APPS, Authenticator
+from .backup import BackupService
 from .logs import LAST_ERROR
 from .state import HostState
 from .mcp import build_mcp
@@ -98,6 +99,19 @@ class ErrorOut(BaseModel):
     logger: str
 
 
+class BackupOut(BaseModel):
+    last_snapshot_at: str | None = Field(default=None, description="when the newest snapshot of the databases "
+                                                                    "was taken (UTC); none yet: null")
+    last_verified_at: str | None = Field(default=None, description="when a snapshot was last restored into a "
+                                                                   "temporary folder and checked "
+                                                                   "(`mydata backup verify`)")
+    last_verify_ok: bool | None = Field(default=None, description="whether that restore drill passed")
+    filevault: Literal["on", "off", "unknown"] = Field(description="whether the disk is encrypted (macOS "
+                                                                   "FileVault); unknown on other systems")
+    error: str | None = Field(default=None, description="why the last hourly snapshot failed; null once one "
+                                                        "succeeds")
+
+
 class StatusOut(BaseModel):
     version: str
     api_version: str = Field(description="a hash of this host's API (its routes and schemas); an app built "
@@ -123,6 +137,8 @@ class StatusOut(BaseModel):
     conversation_epoch: int = Field(ge=0, description="moves on by one at every switch between demo and real "
                                                       "mode, which ends every conversation: an app that sees it "
                                                       "change starts a new conversation and says why")
+    backup: BackupOut | None = Field(default=None, description="snapshots of the databases and the last "
+                                                               "restore drill")
 
 
 class MessageIn(BaseModel):
@@ -460,9 +476,10 @@ gives."""
 
 def create_app(auth: Authenticator, registry: Registry, models: ModelManager, assistant: Assistant,
                state: HostState | None = None, shutdown: Callable[[], None] | None = None,
-               sources: SyncService | None = None):
+               sources: SyncService | None = None, backups: BackupService | None = None):
     """The ASGI app: FastAPI routes plus /mcp, wrapped in the token and Host checks. Without `sources`
-    (the OpenAPI document, older tests) the account and mirror routes answer 503."""
+    (the OpenAPI document, older tests) the account and mirror routes answer 503; without `backups`,
+    /status has no backup section."""
     started = time.time()
     session_manager = build_mcp(registry)
     # Without a state file (the OpenAPI document), the theme lives in memory only.
@@ -506,7 +523,8 @@ def create_app(auth: Authenticator, registry: Registry, models: ModelManager, as
                          demo_date=registry.mode == "demo" and assistant.settings.pin_today is not None,
                          theme=current_theme(), mode=current_mode(),
                          conversation_epoch=assistant.conversation_epoch,
-                         mac_available=sources is not None and sources.mac_available)
+                         mac_available=sources is not None and sources.mac_available,
+                         backup=BackupOut(**backups.status()) if backups is not None else None)
 
     @app.post("/model/retry", tags=["host"], response_model=StatusOut)
     def retry() -> StatusOut:

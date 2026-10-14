@@ -343,6 +343,20 @@ def test_status_reports_the_last_snapshot_and_drill(home, monkeypatch):
     assert (st["last_verified_at"], st["last_verify_ok"]) == ("2026-10-13T12:02:00+00:00", True)
 
 
+def test_status_has_a_backup_section(home):
+    import fake_dav
+    from service_helpers import Host
+    from starlette.testclient import TestClient
+
+    take_snapshot(home, "manual", now=NOW)
+    verify(home, now=NOW)
+    host = Host(home, fake_dav.FakeDav())
+    st = TestClient(host.app, base_url="http://127.0.0.1").get("/status", headers=host.auth).json()
+    assert st["backup"] == {"last_snapshot_at": "2026-10-13T12:00:00+00:00",
+                            "last_verified_at": "2026-10-13T12:00:00+00:00", "last_verify_ok": True,
+                            "filevault": "unknown", "error": None}
+
+
 @pytest.mark.parametrize("out,expected", [("true\n", "on"), ("false\n", "off"), ("", "unknown")])
 def test_filevault_is_asked_once_without_a_prompt(monkeypatch, out, expected):
     monkeypatch.setattr(backup, "_filevault", None)

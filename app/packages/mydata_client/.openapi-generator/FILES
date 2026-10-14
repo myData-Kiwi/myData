@@ -16,6 +16,7 @@ doc/ApprovalOut.md
 doc/ApprovalsApi.md
 doc/AssistantApi.md
 doc/AssistantSettingsIn.md
+doc/BackupOut.md
 doc/CalendarOut.md
 doc/ContactDetailOut.md
 doc/ContactField.md
@@ -78,6 +79,7 @@ lib/model/appearance_in.dart
 lib/model/appearance_out.dart
 lib/model/approval_out.dart
 lib/model/assistant_settings_in.dart
+lib/model/backup_out.dart
 lib/model/calendar_out.dart
 lib/model/contact_detail_out.dart
 lib/model/contact_field.dart
@@ -124,6 +126,7 @@ test/approval_out_test.dart
 test/approvals_api_test.dart
 test/assistant_api_test.dart
 test/assistant_settings_in_test.dart
+test/backup_out_test.dart
 test/calendar_out_test.dart
 test/contact_detail_out_test.dart
 test/contact_field_group_test.dart

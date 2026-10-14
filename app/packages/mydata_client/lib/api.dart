@@ -47,6 +47,7 @@ part 'model/appearance_in.dart';
 part 'model/appearance_out.dart';
 part 'model/approval_out.dart';
 part 'model/assistant_settings_in.dart';
+part 'model/backup_out.dart';
 part 'model/calendar_out.dart';
 part 'model/contact_detail_out.dart';
 part 'model/contact_field.dart';

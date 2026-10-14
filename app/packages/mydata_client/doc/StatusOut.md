@@ -11,6 +11,7 @@ Name | Type | Description | Notes
 **agentsConnected** | **int** | agent tokens used in the last five minutes | 
 **apiVersion** | **String** | a hash of this host's API (its routes and schemas); an app built against another API version replaces the host | 
 **assistantEnabled** | **bool** | false when the user switched the assistant off | 
+**backup** | [**BackupOut**](BackupOut.md) | snapshots of the databases and the last restore drill | [optional] 
 **conversationEpoch** | **int** | moves on by one at every switch between demo and real mode, which ends every conversation: an app that sees it change starts a new conversation and says why | 
 **demoDate** | **bool** | true while today is pinned to the demo data's date | 
 **lastError** | [**ErrorOut**](ErrorOut.md) |  | [optional] 

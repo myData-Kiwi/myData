@@ -39,6 +39,14 @@ def _never_start_the_real_reader(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _filevault_not_asked(monkeypatch):
+    """/status reports FileVault; tests never run fdesetup (test_backup checks the call with a stand-in)."""
+    import mydata.service.backup as backup
+
+    monkeypatch.setattr(backup, "_filevault", "unknown")
+
+
+@pytest.fixture(autouse=True)
 def _plain_engine(request, monkeypatch):
     if request.module.__name__.rsplit(".", 1)[-1] in SCORER_AGREEMENT_MODULES and hasattr(request.module, "Engine"):
         monkeypatch.setattr(request.module, "Engine", functools.partial(Engine, route=False, ground=False))

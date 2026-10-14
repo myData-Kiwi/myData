@@ -16,6 +16,7 @@ class StatusOut {
     required this.agentsConnected,
     required this.apiVersion,
     required this.assistantEnabled,
+    this.backup,
     required this.conversationEpoch,
     required this.demoDate,
     this.lastError,
@@ -39,6 +40,9 @@ class StatusOut {
 
   /// false when the user switched the assistant off
   bool assistantEnabled;
+
+  /// snapshots of the databases and the last restore drill
+  BackupOut? backup;
 
   /// moves on by one at every switch between demo and real mode, which ends every conversation: an app that sees it change starts a new conversation and says why
   ///
@@ -83,6 +87,7 @@ class StatusOut {
           other.agentsConnected == agentsConnected &&
           other.apiVersion == apiVersion &&
           other.assistantEnabled == assistantEnabled &&
+          other.backup == backup &&
           other.conversationEpoch == conversationEpoch &&
           other.demoDate == demoDate &&
           other.lastError == lastError &&
@@ -103,6 +108,7 @@ class StatusOut {
       (agentsConnected.hashCode) +
       (apiVersion.hashCode) +
       (assistantEnabled.hashCode) +
+      (backup == null ? 0 : backup!.hashCode) +
       (conversationEpoch.hashCode) +
       (demoDate.hashCode) +
       (lastError == null ? 0 : lastError!.hashCode) +
@@ -119,13 +125,18 @@ class StatusOut {
 
   @override
   String toString() =>
-      'StatusOut[agentsConnected=$agentsConnected, apiVersion=$apiVersion, assistantEnabled=$assistantEnabled, conversationEpoch=$conversationEpoch, demoDate=$demoDate, lastError=$lastError, macAvailable=$macAvailable, memory=$memory, mode=$mode, model=$model, ready=$ready, stale=$stale, theme=$theme, today=$today, uptimeSeconds=$uptimeSeconds, version=$version]';
+      'StatusOut[agentsConnected=$agentsConnected, apiVersion=$apiVersion, assistantEnabled=$assistantEnabled, backup=$backup, conversationEpoch=$conversationEpoch, demoDate=$demoDate, lastError=$lastError, macAvailable=$macAvailable, memory=$memory, mode=$mode, model=$model, ready=$ready, stale=$stale, theme=$theme, today=$today, uptimeSeconds=$uptimeSeconds, version=$version]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
     json[r'agents_connected'] = this.agentsConnected;
     json[r'api_version'] = this.apiVersion;
     json[r'assistant_enabled'] = this.assistantEnabled;
+    if (this.backup != null) {
+      json[r'backup'] = this.backup;
+    } else {
+      json[r'backup'] = null;
+    }
     json[r'conversation_epoch'] = this.conversationEpoch;
     json[r'demo_date'] = this.demoDate;
     if (this.lastError != null) {
@@ -216,6 +227,7 @@ class StatusOut {
         agentsConnected: mapValueOfType<int>(json, r'agents_connected')!,
         apiVersion: mapValueOfType<String>(json, r'api_version')!,
         assistantEnabled: mapValueOfType<bool>(json, r'assistant_enabled')!,
+        backup: BackupOut.fromJson(json[r'backup']),
         conversationEpoch: mapValueOfType<int>(json, r'conversation_epoch')!,
         demoDate: mapValueOfType<bool>(json, r'demo_date')!,
         lastError: ErrorOut.fromJson(json[r'last_error']),

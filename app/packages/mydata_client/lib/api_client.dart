@@ -226,6 +226,8 @@ class ApiClient {
           return ApprovalOut.fromJson(value);
         case 'AssistantSettingsIn':
           return AssistantSettingsIn.fromJson(value);
+        case 'BackupOut':
+          return BackupOut.fromJson(value);
         case 'CalendarOut':
           return CalendarOut.fromJson(value);
         case 'ContactDetailOut':
