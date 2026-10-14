@@ -6,6 +6,7 @@ import 'package:mydata_ui/mydata_ui.dart';
 import 'contact_actions.dart';
 import 'contact_page.dart';
 import 'contacts_controller.dart';
+import 'merge_pane.dart';
 
 /// The contacts screen (design/components/ContactList):
 ///
@@ -228,7 +229,16 @@ class _ContactsViewState extends State<ContactsView> {
                       alignment: AlignmentDirectional.topStart,
                       child: ConstrainedBox(
                         constraints: const BoxConstraints(maxWidth: MyDataSize.contentMax),
-                        child: missing
+                        child: _controller.merging != null
+                            ? MergePane(
+                                key: ValueKey(_controller.merging),
+                                session: _controller.merging!,
+                                title: MergePane.mergeTitle(_controller.merging!.ids.length),
+                                plainLabel: 'Cancel',
+                                onPlain: _controller.endMerge,
+                                onMerge: () => unawaited(_actions.confirmMerge()),
+                              )
+                            : missing
                             ? const _PlainLine(ContactsView.missingLinkText)
                             : several
                             ? _Selection(controller: _controller, actions: _actions)

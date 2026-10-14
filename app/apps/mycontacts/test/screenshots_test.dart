@@ -1,6 +1,7 @@
 // Whole-app screenshots in Kiwi and Graphite, light and dark: test/screenshots/<name>.<theme>-<mode>.png.
 // Refresh with `flutter test --update-goldens test/screenshots_test.dart`.
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -185,4 +186,85 @@ void main() {
       await settle(tester);
     },
   );
+
+  // Merge from a multi-selection: Pip and Quinn, whom the host owns, with "After merging".
+  screenMatrix('merge_pane', (t) => app(t, lastOpened: 'c-pip', backend: owned()), before: (tester) async {
+    await settle(tester);
+    await _showRow(tester, 'Quinn Owned');
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.tap(find.descendant(of: find.byType(ContactList), matching: find.text('Quinn Owned')));
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await settle(tester);
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse, buttons: kSecondaryMouseButton);
+    await mouse.down(tester.getCenter(find.descendant(of: find.byType(ContactList), matching: find.text('Quinn Owned'))));
+    await mouse.up();
+    await settle(tester);
+    await tester.tap(find.text('Merge contacts…'));
+    await settle(tester);
+  });
+
+  // Review: a possible duplicate, "Same person?".
+  screenMatrix('review_duplicate', (t) => app(t, lastOpened: 'c-pip', backend: _reviewBackend()), before: (tester) async {
+    await settle(tester);
+    await tester.tap(find.text('Review').first);
+    await settle(tester);
+  });
+
+  // Review: Quinn changed in a followed iCloud account since the import.
+  screenMatrix('review_changes', (t) => app(t, lastOpened: 'c-quinn', backend: _reviewBackend()), before: (tester) async {
+    await settle(tester);
+    await tester.tap(find.text('Review').first);
+    await settle(tester);
+    await tester.tap(find.byKey(const ValueKey('changed:c-quinn')));
+    await settle(tester);
+  });
+
+  // Quinn's page: the "changed since import" Notice between the header and the fields.
+  screenMatrix('contact_changed', (t) => app(t, lastOpened: 'c-quinn', backend: _reviewBackend()), before: settle);
+
+  // Review with nothing in it.
+  screenMatrix('review_empty', (t) => app(t, lastOpened: 'c-pip', backend: owned()), before: (tester) async {
+    await settle(tester);
+    await tester.tap(find.text('Review').first);
+    await settle(tester);
+  });
+}
+
+/// Pip and Quinn, whom the host owns, as a possible duplicate (a shared phone under another name), and Quinn
+/// changed in a followed iCloud account since the import.
+FakeBackend _reviewBackend() {
+  final b = owned();
+  final pip = b.cards.firstWhere((c) => c.id == 'c-pip');
+  final quinn = b.cards.firstWhere((c) => c.id == 'c-quinn')
+    ..changedInSource = 'acct-quinn'
+    ..changedInSourceLabel = 'the iCloud account quinn@example.org';
+  b.pairs = [
+    DuplicatePairOut(
+      contacts: [listView(pip), listView(quinn)],
+      signals: const ['email'],
+      strength: 'suggestion',
+      emails: const ['quinn@example.org'],
+    ),
+  ];
+  b.followed['c-quinn'] = FollowedChangesOut(
+    contact: quinn,
+    changes: [
+      FollowedChangeOut(
+        accountId: 'acct-quinn',
+        differences: const ['job_title', 'phone'],
+        followed: card(
+          id: 'c-quinn-icloud',
+          name: 'Quinn Owned',
+          given: 'Quinn',
+          family: 'Owned',
+          job: 'Editor',
+          icloud: true,
+          phones: [('Mobile', '555-0188')],
+          emails: [('Home', 'quinn@example.org')],
+        ),
+        sourceLabel: 'the iCloud account quinn@example.org',
+      ),
+    ],
+  );
+  return b;
 }

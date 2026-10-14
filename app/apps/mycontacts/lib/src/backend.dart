@@ -107,6 +107,31 @@ abstract class ContactsBackend {
 
   /// Undoes the write [undoId] names. Throws a [WriteFailure] ([Refused] when the contact changed since).
   Future<ContactDetailOut> undo(String undoId);
+
+  /// What merging [contacts] (each with the etag the user saw, in order) would make, keeping the names and
+  /// details of [namesFrom] (null: the one changed most recently). Writes nothing (H6c). Throws a
+  /// [WriteFailure].
+  Future<MergePreviewOut> mergePreview(List<MergeContactIn> contacts, {String? namesFrom});
+
+  /// Merges [contacts] into a new contact; the originals go to Recently deleted. Throws a [WriteFailure]
+  /// ([ChangedElsewhere] when one changed since, [Gone] when one is gone, [Refused] for a followed one).
+  Future<MergeOut> merge(List<MergeContactIn> contacts, {String? namesFrom});
+
+  /// Pairs of the host's own contacts that may be the same person, strong ones first (H6a).
+  Future<List<DuplicatePairOut>> duplicates();
+
+  /// Records that [a] and [b] are different people, until undone (H6b). Returns the undo id.
+  Future<String> notDuplicates(String a, String b);
+
+  /// The followed copies of contact [id] that changed since the import, beside it (H7).
+  Future<FollowedChangesOut> followedChanges(String id);
+
+  /// Writes [form] into contact [id] from the version [etag], and clears the mark of the copies [seen]
+  /// (H7). Throws a [WriteFailure].
+  Future<Written> saveFollowed(String id, String etag, ContactIn form, List<FollowedSeenIn> seen);
+
+  /// Clears the mark of the copies [seen] without changing contact [id] (H7). Throws a [WriteFailure].
+  Future<Written> keepMine(String id, List<FollowedSeenIn> seen);
 }
 
 /// The host's API, through the app's current connection.
@@ -184,6 +209,45 @@ class HostContactsBackend implements ContactsBackend {
     if (out == null) throw const NoAnswer();
     return out.contact;
   }
+
+  @override
+  Future<MergePreviewOut> mergePreview(List<MergeContactIn> contacts, {String? namesFrom}) async {
+    final out = await _guard(() => _api.mergePreview(MergeIn(contacts: contacts, namesFrom: namesFrom)));
+    if (out == null) throw const NoAnswer();
+    return out;
+  }
+
+  @override
+  Future<MergeOut> merge(List<MergeContactIn> contacts, {String? namesFrom}) async {
+    final out = await _guard(() => _api.mergeContacts(MergeIn(contacts: contacts, namesFrom: namesFrom)));
+    if (out == null) throw const NoAnswer();
+    return out;
+  }
+
+  @override
+  Future<List<DuplicatePairOut>> duplicates() async => await _api.duplicates() ?? const <DuplicatePairOut>[];
+
+  @override
+  Future<String> notDuplicates(String a, String b) async {
+    final out = await _guard(() => _api.notDuplicates(NotDuplicatesIn(ids: [a, b])));
+    if (out == null) throw const NoAnswer();
+    return out.undoId;
+  }
+
+  @override
+  Future<FollowedChangesOut> followedChanges(String id) async {
+    final out = await _guard(() => _api.followedChanges(id));
+    if (out == null) throw const NoAnswer();
+    return out;
+  }
+
+  @override
+  Future<Written> saveFollowed(String id, String etag, ContactIn form, List<FollowedSeenIn> seen) =>
+      _write(() => _api.saveFollowedChanges(id, FollowedSaveIn(contact: form, followed: seen), ifMatch: etag));
+
+  @override
+  Future<Written> keepMine(String id, List<FollowedSeenIn> seen) =>
+      _write(() => _api.keepMine(id, FollowedKeepIn(followed: seen)));
 
   static Future<Written> _write(Future<ContactWriteOut?> Function() call) async {
     final out = await _guard(call);

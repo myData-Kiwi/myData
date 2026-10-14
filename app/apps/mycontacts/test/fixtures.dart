@@ -286,11 +286,36 @@ class FakeBackend implements ContactsBackend {
     if (undone.contains(undoId)) throw const Refused('This was already undone.');
     final now = _find(u.id) ?? trashed.where((c) => c.id == u.id).firstOrNull;
     if (now == null) throw const Refused('This contact was deleted for good.');
-    if (_revOf(now) != u.rev) throw const Refused('This contact changed since.');
+    if (u.op != 'notdup' && _revOf(now) != u.rev) throw const Refused('This contact changed since.');
     undone.add(undoId);
     writes.add('undo $undoId');
     final rev = u.rev + 1;
     switch (u.op) {
+      case 'merge':
+        final merged = _find(u.id)!;
+        cards = [for (final x in cards) if (x.id != u.id) x];
+        trashed.insert(0, _withRev(merged, rev, deleted: true));
+        ContactDetailOut? first;
+        for (final id in u.ids) {
+          final t = trashed.firstWhere((c) => c.id == id);
+          trashed.remove(t);
+          final back = _withRev(t, _revOf(t) + 1, deleted: false)..mergedInto = null;
+          first ??= back;
+          cards = [...cards, back]..sort((a, b) => a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase()));
+        }
+        return first!;
+      case 'notdup':
+        notSame.remove(_pairKey(u.ids[0], u.ids[1]));
+        return now;
+      case 'keep':
+        now
+          ..changedInSource = u.mark?.$1
+          ..changedInSourceLabel = u.mark?.$2;
+        return now;
+      case 'save':
+        final back = _withRev(u.prior!, rev, deleted: false);
+        cards = [for (final x in cards) x.id == u.id ? back : x];
+        return back;
       case 'update':
         final back = _withRev(u.prior!, rev, deleted: false);
         cards = [for (final x in cards) x.id == u.id ? back : x];
@@ -306,6 +331,166 @@ class FakeBackend implements ContactsBackend {
         trashed.insert(0, gone);
         return gone;
     }
+  }
+
+  // ---- Merge and Review (H6a to H6c, H7) ------------------------------------------------------------------
+
+  /// The host's possible duplicates (GET /contacts/duplicates), less the pairs marked as different people.
+  List<DuplicatePairOut> pairs = [];
+  final notSame = <String>{};
+
+  /// The followed copies that changed since the import, by contact id.
+  final followed = <String, FollowedChangesOut>{};
+
+  /// Merge requests, in order: "preview c-a,c-b names_from=c-a", "merge c-a,c-b names_from=null".
+  final mergeCalls = <String>[];
+
+  /// While set, a merge waits for it.
+  Completer<void>? holdMerge;
+  int _merged = 0;
+
+  /// The contacts [sent] name, checked as the host checks them: each owned, present and at the etag sent.
+  List<ContactDetailOut> _merging(List<MergeContactIn> sent) {
+    _checkWrite();
+    final out = <ContactDetailOut>[];
+    for (final m in sent) {
+      final c = _find(m.id);
+      if (c == null) throw const Gone();
+      if (!c.editable) throw const Refused('Only contacts the host owns are merged.');
+      if (c.etag != m.etag) throw const ChangedElsewhere();
+      out.add(c);
+    }
+    return out;
+  }
+
+  /// The contact whose names a merge keeps: [namesFrom], else the one changed most recently.
+  static ContactDetailOut _kept(List<ContactDetailOut> cs, String? namesFrom) =>
+      cs.where((c) => c.id == namesFrom).firstOrNull ??
+      (cs.toList()..sort((a, b) => b.modifiedAt.compareTo(a.modifiedAt))).first;
+
+  static ContactIn _mergedForm(List<ContactDetailOut> cs, ContactDetailOut kept) {
+    List<LabeledValueIn> join(List<LabeledValue> Function(ContactDetailOut) of) {
+      final seen = <String>{};
+      return [
+        for (final c in [kept, ...cs.where((c) => c != kept)])
+          for (final v in of(c))
+            if (seen.add(v.value.toLowerCase())) LabeledValueIn(label: v.label, value: v.value),
+      ];
+    }
+
+    return ContactIn(
+      givenName: kept.givenName,
+      familyName: kept.familyName,
+      company: kept.company,
+      jobTitle: kept.jobTitle.isNotEmpty ? kept.jobTitle : cs.map((c) => c.jobTitle).firstWhere((t) => t.isNotEmpty, orElse: () => ''),
+      phones: join((c) => c.phones),
+      emails: join((c) => c.emails),
+      urls: join((c) => c.urls),
+      birthday: kept.birthday ?? cs.map((c) => c.birthday).whereType<String>().firstOrNull ?? '',
+      note: [for (final c in cs) if (c.note.isNotEmpty) c.note].join('\n\n'),
+    );
+  }
+
+  static List<MergeLeftOutValueOut> _leftOut(List<ContactDetailOut> cs, ContactDetailOut kept) => [
+        for (final c in cs)
+          if (c != kept) ...[
+            if (c.jobTitle.isNotEmpty && kept.jobTitle.isNotEmpty && c.jobTitle != kept.jobTitle)
+              MergeLeftOutValueOut(contactId: c.id, kind: 'job_title', property: 'TITLE', value: c.jobTitle),
+            if (c.birthday != null && kept.birthday != null && c.birthday != kept.birthday)
+              MergeLeftOutValueOut(contactId: c.id, kind: 'birthday', property: 'BDAY', value: c.birthday),
+          ],
+      ];
+
+  @override
+  Future<MergePreviewOut> mergePreview(List<MergeContactIn> contacts, {String? namesFrom}) async {
+    mergeCalls.add('preview ${contacts.map((c) => c.id).join(',')} names_from=$namesFrom');
+    final cs = _merging(contacts);
+    final kept = _kept(cs, namesFrom);
+    final values = ownedCard('preview', _mergedForm(cs, kept));
+    return MergePreviewOut(
+      contact: CardValuesOut.fromJson({...values.toJson(), 'kind': 'individual'})!,
+      namesFrom: kept.id,
+      newest: _kept(cs, null).id,
+      leftOut: _leftOut(cs, kept),
+    );
+  }
+
+  @override
+  Future<MergeOut> merge(List<MergeContactIn> contacts, {String? namesFrom}) async {
+    mergeCalls.add('merge ${contacts.map((c) => c.id).join(',')} names_from=$namesFrom');
+    await holdMerge?.future;
+    final cs = _merging(contacts);
+    final kept = _kept(cs, namesFrom);
+    final merged = ownedCard('c-merged-${++_merged}', _mergedForm(cs, kept), rev: 1);
+    final ids = {for (final c in cs) c.id};
+    cards = [...cards.where((c) => !ids.contains(c.id)), merged]
+      ..sort((a, b) => a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase()));
+    for (final c in cs) {
+      trashed.insert(0, _withRev(c, _revOf(c) + 1, deleted: true)..mergedInto = merged.id);
+    }
+    writes.add('merge ${ids.join(',')}');
+    final left = _leftOut(cs, kept);
+    return MergeOut(
+      contact: merged,
+      merged: [for (final c in cs) c.id],
+      undoId: _undoId(FakeUndo('merge', merged.id, 1, null, ids: [for (final c in cs) c.id])),
+      leftOut: [
+        for (final p in left.map((l) => l.property).toSet())
+          MergeLeftOutOut(property: p, count: left.where((l) => l.property == p).length),
+      ],
+    );
+  }
+
+  @override
+  Future<List<DuplicatePairOut>> duplicates() async => [
+        for (final p in pairs)
+          if (!notSame.contains(_pairKey(p.contacts[0].id, p.contacts[1].id)) &&
+              p.contacts.every((c) => _find(c.id) != null))
+            p,
+      ];
+
+  static String _pairKey(String a, String b) => ([a, b]..sort()).join('|');
+
+  @override
+  Future<String> notDuplicates(String a, String b) async {
+    _checkWrite();
+    notSame.add(_pairKey(a, b));
+    writes.add('not-duplicates $a,$b');
+    return _undoId(FakeUndo('notdup', a, 0, null, ids: [a, b]));
+  }
+
+  @override
+  Future<FollowedChangesOut> followedChanges(String id) async {
+    final c = _find(id);
+    if (c == null) throw const Gone();
+    final f = followed[id];
+    if (f == null || c.changedInSource == null) return FollowedChangesOut(contact: c, changes: const []);
+    f.contact = c;
+    return f;
+  }
+
+  @override
+  Future<Written> saveFollowed(String id, String etag, ContactIn form, List<FollowedSeenIn> seen) async {
+    final w = await update(id, etag, form);
+    writes.removeLast();
+    writes.add('save-followed $id');
+    final c = _find(id)!..changedInSource = null..changedInSourceLabel = null;
+    undoLog[w.undoId!] = FakeUndo('save', id, _revOf(c), undoLog[w.undoId!]!.prior);
+    return Written(c, w.undoId);
+  }
+
+  @override
+  Future<Written> keepMine(String id, List<FollowedSeenIn> seen) async {
+    _checkWrite();
+    final c = _find(id);
+    if (c == null) throw const Gone();
+    final label = c.changedInSourceLabel;
+    final source = c.changedInSource;
+    c
+      ..changedInSource = null
+      ..changedInSourceLabel = null;
+    writes.add('keep $id');
+    return Written(c, _undoId(FakeUndo('keep', id, _revOf(c), null, mark: (source, label))));
   }
 
   /// A change made elsewhere (another app): the etag moves on.
@@ -326,6 +511,8 @@ class FakeBackend implements ContactsBackend {
   static ContactDetailOut _withRev(ContactDetailOut c, int rev, {required bool deleted}) {
     final json = c.toJson();
     final copy = ContactDetailOut.fromJson(json)!;
+    copy.changedInSource = c.changedInSource;
+    copy.changedInSourceLabel = c.changedInSourceLabel;
     copy.etag = '"$rev-${c.id}"';
     copy.deletedAt = deleted ? '2026-10-14T09:30:00+00:00' : null;
     copy.purgeAfter = deleted ? '2026-11-13T09:30:00+00:00' : null;
@@ -335,11 +522,17 @@ class FakeBackend implements ContactsBackend {
 
 /// One entry of [FakeBackend.undoLog].
 class FakeUndo {
-  FakeUndo(this.op, this.id, this.rev, this.prior);
+  FakeUndo(this.op, this.id, this.rev, this.prior, {this.ids = const [], this.mark});
   final String op;
   final String id;
   final int rev;
   final ContactDetailOut? prior;
+
+  /// A merge's originals; the two contacts marked as different people.
+  final List<String> ids;
+
+  /// The mark "Keep mine" cleared: the source's id and label.
+  final (String?, String?)? mark;
 }
 
 /// A contact the host owns, as the host gives it after a write of [form].
@@ -498,6 +691,8 @@ ContactOut listView(ContactDetailOut c) => ContactOut(
   editable: c.editable,
   onPhone: c.onPhone,
   purgeAfter: c.purgeAfter,
+  changedInSource: c.changedInSource,
+  mergedInto: c.mergedInto,
 );
 
 typedef Labeled = (String label, String value);

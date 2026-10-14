@@ -22,7 +22,12 @@ class MyContactsApp extends StatefulWidget {
     this.links,
     this.onOpenLink,
     this.menuPlatform,
+    this.openLink,
   });
+
+  /// Opens a link in another app (File > Import… opens myData's Import); null uses [appLinks]. Tests pass a
+  /// fake.
+  final Future<bool> Function(MyDataLink link)? openLink;
 
   /// This app's view of the host, made with `app: 'mycontacts'`. The app connects and disposes it.
   final HostController host;
@@ -81,6 +86,7 @@ class _MyContactsAppState extends State<MyContactsApp> {
           links: widget.links,
           onOpenLink: widget.onOpenLink,
           menuPlatform: widget.menuPlatform,
+          openLink: widget.openLink,
         ),
       );
     },

@@ -8,6 +8,7 @@ import 'package:mydata_ui/mydata_ui.dart';
 
 import 'backend.dart';
 import 'host_photo.dart';
+import 'merge.dart';
 
 /// Where a contact's page is: still being read, read, gone from the host, or not readable now.
 sealed class ContactDetail {
@@ -337,6 +338,13 @@ class ContactsController extends ChangeNotifier {
   /// The list changed the selection (a click, ⌘-click, ⇧-click or a key): one row is the contact open.
   void _selectionChanged() {
     if (_selecting || _disposed) return;
+    final m = merging;
+    if (m != null && !(selection.count == m.ids.length && m.ids.every(selection.isSelected))) {
+      // Another selection: the Merge pane was about the one before.
+      merging = null;
+      m.removeListener(_notify);
+      m.dispose();
+    }
     if (selection.count == 1) {
       final id = selection.selected.first;
       if (id != selectedId) {
@@ -868,6 +876,97 @@ class ContactsController extends ChangeNotifier {
     return BulkResult(done, failure, null);
   }
 
+  // ------------------------------------------------------------------------------------------------------
+  // Merge (design/components/DuplicatePair, "Merge from a multi-selection") and Review.
+  // ------------------------------------------------------------------------------------------------------
+
+  /// The Merge pane in the contact pane's place, or null.
+  MergeSession? merging;
+
+  /// The most contacts the host merges at once.
+  static const mergeMax = 20;
+
+  /// Why [ids] cannot be merged now, a full sentence; null when they can.
+  String? mergeDisabledReason(List<String> ids) {
+    if (ids.length < 2) return mergeTooFew;
+    if (ids.length > mergeMax) return mergeTooMany;
+    for (final id in ids) {
+      if (!isEditable(id)) {
+        final from = isFromThisMac(id) ? 'this Mac' : 'an iCloud account';
+        return '${nameOf(id)} is read from $from. Only contacts on myData can be merged.';
+      }
+    }
+    return null;
+  }
+
+  static const mergeTooFew = 'Select two or more contacts to merge.';
+  static const mergeTooMany = 'Merge at most 20 contacts at a time.';
+
+  /// Opens the Merge pane on [ids] (two to twenty contacts the host owns), reading each one again first.
+  void startMerge(List<String> ids) {
+    if (mergeDisabledReason(ids) != null) return;
+    merging?.dispose();
+    merging = MergeSession(backend: backend, ids: ids)..addListener(_notify);
+    unawaited(merging!.load());
+    _notify();
+  }
+
+  /// Closes the Merge pane without merging.
+  void endMerge() {
+    final m = merging;
+    if (m == null) return;
+    merging = null;
+    m.removeListener(_notify);
+    m.dispose();
+    _notify();
+  }
+
+  /// [out] was merged on the host: the originals leave the list, the merged contact opens, and Undo can take
+  /// it back ("Undo Merge Contacts"). Returns the entry Undo uses.
+  UndoEntry merged(MergeOut out, {required List<String> names}) {
+    final order = [for (final e in entries) e.id];
+    final entry = UndoEntry(
+      action: mergeAction,
+      undoIds: [out.undoId],
+      names: [out.contact.displayName],
+      undone: mergeUndone,
+      contactIds: [out.contact.id, ...out.merged],
+    );
+    undoStack.add(entry);
+    _details[out.contact.id] = DetailReady(out.contact);
+    _wanted = out.contact.id;
+    if (merging != null) {
+      merging!.removeListener(_notify);
+      merging!.dispose();
+      merging = null;
+    }
+    _afterRemoving(out.merged, order);
+    selectedId = out.contact.id;
+    _selecting = true;
+    selection.select(out.contact.id);
+    _selecting = false;
+    _notify();
+    return entry;
+  }
+
+  static const mergeAction = 'Merge contacts';
+  static const mergeUndone = 'Contacts unmerged';
+
+  /// A change made from Review (a save, a kept version, two people marked as different): Undo can take it
+  /// back, and the list and pages are read again.
+  UndoEntry reviewed({required String action, required String undoId, required String name, required String undone,
+      required List<String> contactIds, ContactDetailOut? contact}) {
+    final entry = UndoEntry(action: action, undoIds: [undoId], names: [name], undone: undone, contactIds: contactIds);
+    undoStack.add(entry);
+    if (contact != null) _details[contact.id] = DetailReady(contact);
+    _readListAgain();
+    _notify();
+    return entry;
+  }
+
+  /// Read the list (and so the marks of contacts changed in their source) again now.
+  void readListAgain() => _readListAgain();
+
   /// Says in the contact pane that [id] could not be deleted.
   void showPaneError(String id, String message) {
     paneErrorId = id;
@@ -906,6 +1005,7 @@ class ContactsController extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    merging?.dispose();
     selection.removeListener(_selectionChanged);
     selection.dispose();
     unawaited(_linkOpened.close());

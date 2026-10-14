@@ -9,6 +9,8 @@ import 'contact_actions.dart';
 import 'contact_page.dart';
 import 'contacts_controller.dart';
 import 'contacts_view.dart';
+import 'review.dart';
+import 'review_view.dart';
 import 'trash_view.dart';
 
 /// The app's screen, in its frame: a panel for every state of the host, an EmptyState while there are no
@@ -32,9 +34,14 @@ class ContactsHome extends StatefulWidget {
     this.links,
     this.onOpenLink,
     this.menuPlatform,
+    this.openLink,
   });
 
   final HostController host;
+
+  /// Opens a link in another app (File > Import… opens myData's Import); null uses [appLinks]. Tests pass a
+  /// fake.
+  final Future<bool> Function(MyDataLink link)? openLink;
 
   /// The platform the menu bar is built for; null is the one the app runs on. Tests pass one.
   final TargetPlatform? menuPlatform;
@@ -55,12 +62,25 @@ class ContactsHome extends StatefulWidget {
   static const sections = [
     AppSection(icon: Icons.contacts_outlined, label: 'Contacts'),
     AppSection(icon: Icons.delete_outline_rounded, label: 'Deleted'),
+    AppSection(icon: Icons.fact_check_outlined, label: 'Review'),
   ];
+
+  /// The sections with Review's count ("Review, 4").
+  static List<AppSection> sectionsWith(int review) => [
+        sections[0],
+        sections[1],
+        AppSection(icon: sections[2].icon, label: sections[2].label, count: review),
+      ];
+
+  /// File, Import… (design/platforms.md; ImportFlow, "Where it lives"): opens myData at its Import section.
+  static const importMenuItem = 'Import…';
+  static const importLabel = 'Import contacts…';
+  static const importFailed = 'myContacts could not open myData. Open it, then choose Import.';
 
   static const noSourceTitle = 'No contacts yet';
   static const noSourceSentence =
-      'Add a contact here, or turn on a source in myData, under Settings, Sources, to see the contacts you '
-      'already have.';
+      'Add a contact here, or import a file of your contacts in myData, under Import. To see the contacts you '
+      'already have, turn on a source in myData, under Settings, Sources.';
   static const nothingReadTitle = 'No contacts yet';
   static const nothingReadSentence =
       'myData has not read any contacts from your sources yet. They appear here when it has; you can add one '
@@ -77,9 +97,12 @@ class _ContactsHomeState extends State<ContactsHome> {
     store: widget.store,
   );
   final _toasts = ToastController();
-  late final _actions = ContactActions(controller: _contacts, toasts: _toasts, context: () => context);
+  late final _actions =
+      ContactActions(controller: _contacts, toasts: _toasts, context: () => context, onReview: _openReview);
+  late final _review = ReviewModel(controller: _contacts);
+  DateTime? _reviewRead;
 
-  /// 0: Contacts; 1: Recently deleted.
+  /// 0: Contacts; 1: Recently deleted; 2: Review.
   int _section = 0;
   IncomingLinks? _incoming;
   StreamSubscription<MyDataLink>? _links;
@@ -90,6 +113,7 @@ class _ContactsHomeState extends State<ContactsHome> {
   void initState() {
     super.initState();
     _host.addListener(_followHost);
+    _contacts.addListener(_followContacts);
     _host.connect();
     final links = widget.links ?? (_incoming = IncomingLinks(app: MyDataAppId.mycontacts)).links;
     _links = links.listen(_onLink);
@@ -98,14 +122,43 @@ class _ContactsHomeState extends State<ContactsHome> {
 
   void _followHost() => unawaited(_contacts.follow(_host.phase));
 
+  /// The possible duplicates are read again whenever the contacts were (Review's count follows them).
+  void _followContacts() {
+    final at = _contacts.updatedAt;
+    if (at == null || at == _reviewRead || _host.phase != HostPhase.running) return;
+    _reviewRead = at;
+    unawaited(_review.load());
+  }
+
+  /// The contact page's "Review": Review opens on that contact.
+  Future<void> _openReview(String id) async {
+    await _select(2);
+    if (_section == 2) _review.openChanged(id);
+  }
+
+  /// File, Import…: myData comes forward at its Import section (mydata://import/contacts); myContacts stays as
+  /// it was.
+  Future<void> _import() async {
+    final open = widget.openLink ?? appLinks.openLink;
+    final ok = await open(const OpenMyDataImport()).catchError((Object _) => false);
+    if (!mounted || ok) return;
+    ScaffoldMessenger.maybeOf(context)?.showSnackBar(const SnackBar(content: Text(ContactsHome.importFailed)));
+  }
+
   void _onLink(MyDataLink link) {
-    if (link is OpenContact) _contacts.openLink(link);
+    if (link is OpenContact) {
+      if (_section != 0) unawaited(_select(0));
+      _contacts.openLink(link);
+    }
+    if (link is OpenContactList && _section != 0) unawaited(_select(0));
   }
 
   @override
   void dispose() {
     _host.removeListener(_followHost);
+    _contacts.removeListener(_followContacts);
     _links?.cancel();
+    _review.dispose();
     _incoming?.dispose();
     _contacts.dispose();
     _toasts.dispose();
@@ -117,6 +170,7 @@ class _ContactsHomeState extends State<ContactsHome> {
   Future<void> _select(int section) async {
     if (section == _section) return;
     if (!await _actions.leaveEditor()) return;
+    _contacts.endMerge();
     if (mounted) setState(() => _section = section);
   }
 
@@ -135,6 +189,7 @@ class _ContactsHomeState extends State<ContactsHome> {
     final one = ids.length == 1 ? ids.single : null;
     final editing = _contacts.editing != null;
     final canEdit = contacts && !editing && one != null && _contacts.isEditable(one);
+    final canMerge = contacts && _contacts.merging == null && _contacts.mergeDisabledReason(ids) == null;
     return AppMenuBar(
       appName: ContactsHome.appName,
       platform: widget.menuPlatform,
@@ -144,6 +199,7 @@ class _ContactsHomeState extends State<ContactsHome> {
           shortcut: AppMenuBar.newShortcut,
           onSelected: _isRunning ? () => unawaited(_newContact()) : null,
         ),
+        AppMenuItem(title: ContactsHome.importMenuItem, onSelected: () => unawaited(_import())),
         // Enabled while an inspector is open: it claims Save.
         const AppMenuItem(title: 'Save', shortcut: AppMenuBar.saveShortcut),
       ],
@@ -153,6 +209,10 @@ class _ContactsHomeState extends State<ContactsHome> {
           shortcut: AppMenuBar.editShortcut,
           onSelected: canEdit ? () => unawaited(_actions.edit(one)) : null,
         ),
+        AppMenuItem(
+          title: menuTitleCase(ContactActions.mergeLabel),
+          onSelected: canMerge ? () => unawaited(_actions.merge(ids)) : null,
+        ),
         AppMenuItem.delete(
           title: menuTitleCase(_actions.deleteLabelFor(ids)),
           onSelected: deletable.isEmpty || !_actions.canDeleteNow(ids) ? null : () => unawaited(_actions.delete(ids)),
@@ -161,7 +221,7 @@ class _ContactsHomeState extends State<ContactsHome> {
       view: [
         for (var i = 0; i < ContactsHome.sections.length; i++)
           AppMenuItem(
-            title: i == 0 ? 'Contacts' : 'Recently Deleted',
+            title: const ['Contacts', 'Recently Deleted', 'Review'][i],
             shortcut: AppMenuBar.sectionShortcut(i + 1),
             onSelected: () => unawaited(_select(i)),
           ),
@@ -183,7 +243,13 @@ class _ContactsHomeState extends State<ContactsHome> {
             label: ContactActions.newLabel,
             onPressed: () => unawaited(_newContact()),
           ),
-          MoreActionsButton(entries: () => [_actions.undoMenuItem()]),
+          MoreActionsButton(
+            entries: () => [
+              _actions.undoMenuItem(),
+              const MenuSeparator(),
+              MenuItem(label: ContactsHome.importLabel, onSelected: () => unawaited(_import())),
+            ],
+          ),
         ];
 
   /// The frame's "Open myData" link.
@@ -197,7 +263,7 @@ class _ContactsHomeState extends State<ContactsHome> {
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
-    listenable: Listenable.merge([_host, _contacts, _contacts.selection]),
+    listenable: Listenable.merge([_host, _contacts, _contacts.selection, _review]),
     builder: (context, _) => _menuBar(
       Scaffold(
         backgroundColor: context.colors.bg,
@@ -207,7 +273,7 @@ class _ContactsHomeState extends State<ContactsHome> {
           null => _body(),
           final connection => AppFrame(
             appName: ContactsHome.appName,
-            sections: ContactsHome.sections,
+            sections: ContactsHome.sectionsWith(_review.count),
             current: _section,
             onSelect: (i) => unawaited(_select(i)),
             connection: connection,
@@ -296,6 +362,7 @@ class _ContactsHomeState extends State<ContactsHome> {
     if (_section == 1) {
       return TrashView(controller: contacts, toasts: _toasts, onShowContacts: () => unawaited(_select(0)));
     }
+    if (_section == 2) return ReviewView(model: _review, toasts: _toasts);
     // A new contact's inspector, even while there are no contacts yet.
     if (contacts.editing != null && !AppLayout.isPhone(context)) return _view();
     if (contacts.loadFailed) {

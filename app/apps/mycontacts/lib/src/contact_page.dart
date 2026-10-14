@@ -58,6 +58,11 @@ class ContactPage extends StatelessWidget {
       'This contact is no longer on your host. It may have been deleted, or its source '
       'turned off in myData.';
   static const failedText = 'myContacts could not read this contact from your host.';
+  static const reviewLabel = 'Review';
+
+  /// The Notice on a contact whose followed copy changed since the import (H7).
+  static String changedNotice(String? label) =>
+      'This contact changed in ${label ?? 'a source myData follows'} after you imported it.';
   static const retryLabel = 'Try again';
 
   @override
@@ -137,6 +142,21 @@ class ContactPage extends StatelessWidget {
           )
         else
           header,
+        if (detail is DetailReady && detail.contact.changedInSource != null) ...[
+          const SizedBox(height: ContactHeader.fieldsGap),
+          // Between the header and the fields (design/components/DuplicatePair, "The contact page flag").
+          Align(
+            alignment: AlignmentDirectional.topStart,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: fieldsMaxWidth),
+              child: Notice(
+                message: changedNotice(detail.contact.changedInSourceLabel),
+                actionLabel: actions?.onReview == null ? null : reviewLabel,
+                onAction: actions?.onReview == null ? null : () => actions!.onReview!(detail.contact.id),
+              ),
+            ),
+          ),
+        ],
         if (below != null) ...[
           const SizedBox(height: ContactHeader.fieldsGap),
           Align(

@@ -6,6 +6,7 @@ import 'package:mydata_ui/mydata_ui.dart';
 import 'backend.dart';
 import 'contact_editor.dart';
 import 'contacts_controller.dart';
+import 'merge_pane.dart';
 
 /// What the user does to contacts, one place for every way in: the menu bar, the list's Menu, the contact
 /// pane's buttons and "More actions", the keys, and the phone's title (design/platforms.md, "The menu bar on
@@ -20,10 +21,13 @@ import 'contacts_controller.dart';
 /// - **Undo** takes back the newest change this app made ([ContactsController.undoStack]), after its toast
 ///   too: ⌘Z and Edit, Undo, or "More actions" on a phone.
 class ContactActions {
-  ContactActions({required this.controller, required this.toasts, required this.context});
+  ContactActions({required this.controller, required this.toasts, required this.context, this.onReview});
 
   final ContactsController controller;
   final ToastController toasts;
+
+  /// Opens Review on a contact whose followed copy changed (the contact page's Notice).
+  final void Function(String id)? onReview;
 
   /// A context under the app's Navigator and its theme, for dialogs, sheets and the layout.
   final BuildContext Function() context;
@@ -240,6 +244,31 @@ class ContactActions {
       };
 
   // ---------------------------------------------------------------------------------------------------
+  // Merge (design/components/DuplicatePair, "Merge from a multi-selection").
+  // ---------------------------------------------------------------------------------------------------
+
+  static const mergeLabel = 'Merge contacts…';
+
+  /// Opens the Merge pane on [ids] in the contact pane's place, leaving an open inspector first.
+  Future<void> merge(List<String> ids) async {
+    if (controller.mergeDisabledReason(ids) != null) return;
+    if (!await leaveEditor()) return;
+    _quietToast();
+    controller.startMerge(ids);
+  }
+
+  /// Merge, in the pane: on success the merged contact opens and a toast says so, with Undo.
+  Future<void> confirmMerge() async {
+    final session = controller.merging;
+    if (session == null) return;
+    final names = [for (final c in session.inOrder) c.displayName];
+    final out = await session.merge();
+    if (out == null) return;
+    final entry = controller.merged(out, names: names);
+    toasts.show(mergedToast(out), undo: () => _undo(entry));
+  }
+
+  // ---------------------------------------------------------------------------------------------------
   // Undo.
   // ---------------------------------------------------------------------------------------------------
 
@@ -294,6 +323,14 @@ class ContactActions {
         disabledReason: canEdit ? null : (several ? 'Edit one contact at a time.' : reason),
         onSelected: () => unawaited(edit(id)),
       ),
+      if (several) ...[
+        MenuItem(
+          label: mergeLabel,
+          enabled: controller.mergeDisabledReason(ids) == null,
+          disabledReason: controller.mergeDisabledReason(ids),
+          onSelected: () => unawaited(merge(ids)),
+        ),
+      ],
       const MenuSeparator(),
       MenuItem(
         label: deleteLabelFor(ids),
