@@ -25,6 +25,7 @@ Name | Type | Description | Notes
 **givenName** | **String** |  | [optional] [default to '']
 **hasPhoto** | **bool** |  | [optional] [default to false]
 **id** | **String** |  | 
+**mergedInto** | **String** | for a contact in Recently deleted because it was merged: the contact it went into, which a link to it can open instead; null otherwise | [optional] 
 **modifiedAt** | **String** |  | 
 **nickname** | **String** |  | [optional] [default to '']
 **note** | **String** |  | [optional] [default to '']

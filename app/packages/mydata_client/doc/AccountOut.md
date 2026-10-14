@@ -8,6 +8,7 @@ import 'package:mydata_client/api.dart';
 ## Properties
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
+**backupsKeptUntil** | **String** | YYYY-MM-DD: copies of what it mirrored stay in the host's snapshots until this day if it is removed now (after DELETE: since it was removed), while the host keeps running | [optional] 
 **createdAt** | **String** |  | 
 **email** | **String** |  | 
 **id** | **String** |  | 

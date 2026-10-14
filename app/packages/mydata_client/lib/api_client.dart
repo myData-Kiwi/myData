@@ -230,6 +230,8 @@ class ApiClient {
           return BackupOut.fromJson(value);
         case 'CalendarOut':
           return CalendarOut.fromJson(value);
+        case 'CardValuesOut':
+          return CardValuesOut.fromJson(value);
         case 'ContactDetailOut':
           return ContactDetailOut.fromJson(value);
         case 'ContactField':
@@ -246,6 +248,8 @@ class ApiClient {
           return CoverageOut.fromJson(value);
         case 'DecisionIn':
           return DecisionIn.fromJson(value);
+        case 'DuplicatePairOut':
+          return DuplicatePairOut.fromJson(value);
         case 'ErrorOut':
           return ErrorOut.fromJson(value);
         case 'EventOut':
@@ -254,10 +258,22 @@ class ApiClient {
           return EventsOut.fromJson(value);
         case 'FieldErrorsOut':
           return FieldErrorsOut.fromJson(value);
+        case 'FollowedChangeOut':
+          return FollowedChangeOut.fromJson(value);
+        case 'FollowedChangesOut':
+          return FollowedChangesOut.fromJson(value);
+        case 'FollowedKeepIn':
+          return FollowedKeepIn.fromJson(value);
+        case 'FollowedSaveIn':
+          return FollowedSaveIn.fromJson(value);
+        case 'FollowedSeenIn':
+          return FollowedSeenIn.fromJson(value);
         case 'GuardError':
           return GuardError.fromJson(value);
         case 'HTTPValidationError':
           return HTTPValidationError.fromJson(value);
+        case 'ImportCardOut':
+          return ImportCardOut.fromJson(value);
         case 'ImportChoiceIn':
           return ImportChoiceIn.fromJson(value);
         case 'ImportCommitIn':
@@ -280,6 +296,8 @@ class ApiClient {
           return ImportOut.fromJson(value);
         case 'ImportPreviewOut':
           return ImportPreviewOut.fromJson(value);
+        case 'ImportRefusedOut':
+          return ImportRefusedOut.fromJson(value);
         case 'ImportUndoneOut':
           return ImportUndoneOut.fromJson(value);
         case 'LabeledValue':
@@ -300,12 +318,20 @@ class ApiClient {
           return MergeIn.fromJson(value);
         case 'MergeLeftOutOut':
           return MergeLeftOutOut.fromJson(value);
+        case 'MergeLeftOutValueOut':
+          return MergeLeftOutValueOut.fromJson(value);
         case 'MergeOut':
           return MergeOut.fromJson(value);
+        case 'MergePreviewOut':
+          return MergePreviewOut.fromJson(value);
         case 'MessageIn':
           return MessageIn.fromJson(value);
         case 'ModelOut':
           return ModelOut.fromJson(value);
+        case 'NotDuplicatesIn':
+          return NotDuplicatesIn.fromJson(value);
+        case 'NotDuplicatesOut':
+          return NotDuplicatesOut.fromJson(value);
         case 'PostalAddress':
           return PostalAddress.fromJson(value);
         case 'PostalAddressIn':

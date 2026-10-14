@@ -16,6 +16,7 @@ class SourceOut {
     this.allCalendars,
     this.allContactContainers,
     this.available = true,
+    this.backupsKeptUntil,
     this.calendars = const [],
     this.calendarsStatus,
     this.contactContainers = const [],
@@ -41,6 +42,9 @@ class SourceOut {
   bool? allContactContainers;
 
   bool available;
+
+  /// YYYY-MM-DD: if it is turned off or removed now, copies of what it mirrored stay in the host's snapshots until this day, while the host keeps running (the turn-off and remove dialogs say so)
+  String? backupsKeptUntil;
 
   List<MacCalendarOut> calendars;
 
@@ -91,6 +95,7 @@ class SourceOut {
           other.allCalendars == allCalendars &&
           other.allContactContainers == allContactContainers &&
           other.available == available &&
+          other.backupsKeptUntil == backupsKeptUntil &&
           _deepEquality.equals(other.calendars, calendars) &&
           other.calendarsStatus == calendarsStatus &&
           _deepEquality.equals(other.contactContainers, contactContainers) &&
@@ -114,6 +119,7 @@ class SourceOut {
       (allCalendars == null ? 0 : allCalendars!.hashCode) +
       (allContactContainers == null ? 0 : allContactContainers!.hashCode) +
       (available.hashCode) +
+      (backupsKeptUntil == null ? 0 : backupsKeptUntil!.hashCode) +
       (calendars.hashCode) +
       (calendarsStatus == null ? 0 : calendarsStatus!.hashCode) +
       (contactContainers.hashCode) +
@@ -133,7 +139,7 @@ class SourceOut {
 
   @override
   String toString() =>
-      'SourceOut[allCalendars=$allCalendars, allContactContainers=$allContactContainers, available=$available, calendars=$calendars, calendarsStatus=$calendarsStatus, contactContainers=$contactContainers, contactsStatus=$contactsStatus, counts=$counts, decided=$decided, email=$email, enabled=$enabled, id=$id, kind=$kind, lastError=$lastError, lastUpdate=$lastUpdate, notesIncluded=$notesIncluded, readerRunning=$readerRunning, state=$state, window=$window]';
+      'SourceOut[allCalendars=$allCalendars, allContactContainers=$allContactContainers, available=$available, backupsKeptUntil=$backupsKeptUntil, calendars=$calendars, calendarsStatus=$calendarsStatus, contactContainers=$contactContainers, contactsStatus=$contactsStatus, counts=$counts, decided=$decided, email=$email, enabled=$enabled, id=$id, kind=$kind, lastError=$lastError, lastUpdate=$lastUpdate, notesIncluded=$notesIncluded, readerRunning=$readerRunning, state=$state, window=$window]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
@@ -148,6 +154,11 @@ class SourceOut {
       json[r'all_contact_containers'] = null;
     }
     json[r'available'] = this.available;
+    if (this.backupsKeptUntil != null) {
+      json[r'backups_kept_until'] = this.backupsKeptUntil;
+    } else {
+      json[r'backups_kept_until'] = null;
+    }
     json[r'calendars'] = this.calendars;
     if (this.calendarsStatus != null) {
       json[r'calendars_status'] = this.calendarsStatus;
@@ -242,6 +253,7 @@ class SourceOut {
         allContactContainers:
             mapValueOfType<bool>(json, r'all_contact_containers'),
         available: mapValueOfType<bool>(json, r'available') ?? true,
+        backupsKeptUntil: mapValueOfType<String>(json, r'backups_kept_until'),
         calendars: MacCalendarOut.listFromJson(json[r'calendars']),
         calendarsStatus: mapValueOfType<String>(json, r'calendars_status'),
         contactContainers:

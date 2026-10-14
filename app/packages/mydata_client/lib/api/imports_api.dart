@@ -277,6 +277,83 @@ class ImportsApi {
     return null;
   }
 
+  /// Import Preview Item
+  ///
+  /// One card of a preview with its values, in the shape of a contact's page, to compare it with a contact it matches (\"In the file\" beside \"In myData\"). Only the app that made the preview can read it.
+  ///
+  /// Note: This method returns the HTTP [Response].
+  ///
+  /// Parameters:
+  ///
+  /// * [String] previewId (required):
+  ///
+  /// * [int] index (required):
+  Future<Response> importPreviewItemWithHttpInfo(
+    String previewId,
+    int index, {
+    Future<void>? abortTrigger,
+  }) async {
+    // ignore: prefer_const_declarations
+    final path = r'/import/previews/{preview_id}/items/{index}'
+        .replaceAll('{preview_id}', previewId)
+        .replaceAll('{index}', index.toString());
+
+    // ignore: prefer_final_locals
+    Object? postBody;
+
+    final queryParams = <QueryParam>[];
+    final headerParams = <String, String>{};
+    final formParams = <String, String>{};
+
+    const contentTypes = <String>[];
+
+    return apiClient.invokeAPI(
+      path,
+      'GET',
+      queryParams,
+      postBody,
+      headerParams,
+      formParams,
+      contentTypes.isEmpty ? null : contentTypes.first,
+      abortTrigger: abortTrigger,
+    );
+  }
+
+  /// Import Preview Item
+  ///
+  /// One card of a preview with its values, in the shape of a contact's page, to compare it with a contact it matches (\"In the file\" beside \"In myData\"). Only the app that made the preview can read it.
+  ///
+  /// Parameters:
+  ///
+  /// * [String] previewId (required):
+  ///
+  /// * [int] index (required):
+  Future<ImportCardOut?> importPreviewItem(
+    String previewId,
+    int index, {
+    Future<void>? abortTrigger,
+  }) async {
+    final response = await importPreviewItemWithHttpInfo(
+      previewId,
+      index,
+      abortTrigger: abortTrigger,
+    );
+    if (response.statusCode >= HttpStatus.badRequest) {
+      throw ApiException(response.statusCode, await _decodeBodyBytes(response));
+    }
+    // When a remote server returns no body with a status of 204, we shall not decode it.
+    // At the time of writing this, `dart:convert` will throw an "Unexpected end of input"
+    // FormatException when trying to decode an empty string.
+    if (response.body.isNotEmpty &&
+        response.statusCode != HttpStatus.noContent) {
+      return await apiClient.deserializeAsync(
+        await _decodeBodyBytes(response),
+        'ImportCardOut',
+      ) as ImportCardOut;
+    }
+    return null;
+  }
+
   /// Preview Contacts Import
   ///
   /// Read a .vcf (vCard 2.1, 3.0 or 4.0) or a .zip of them, sent as the request body, into a preview held for an hour: counts, every card's status and default action, matches with your contacts and followed ones, the loss report and what changes. Nothing is written. The zip is read in memory, never extracted.

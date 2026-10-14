@@ -14,6 +14,7 @@ Name | Type | Description | Notes
 **removed** | **int** | contacts it created, now in Recently deleted | 
 **reverted** | **int** | contacts it updated, back to their earlier text | 
 **summary** | [**ImportOut**](ImportOut.md) | the import as it is now (status undone) | 
+**unhidden** | **int** | followed contacts the import hid, shown again | [optional] [default to 0]
 **unlinked** | **int** |  | 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)

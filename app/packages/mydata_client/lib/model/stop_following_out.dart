@@ -14,6 +14,7 @@ class StopFollowingOut {
   /// Returns a new [StopFollowingOut] instance.
   StopFollowingOut({
     required this.accountId,
+    required this.backupsKeptUntil,
     required this.calendarsFollowed,
     this.contactsChanged = 0,
     required this.contactsFollowed,
@@ -23,6 +24,9 @@ class StopFollowingOut {
   });
 
   String accountId;
+
+  /// YYYY-MM-DD: if the account is no longer followed from now, copies of what it mirrored stay in the host's snapshots until this day, while the host keeps running (\"Stop following\" says so)
+  String backupsKeptUntil;
 
   /// stopping following the account stops following these too; they are not imported yet
   int calendarsFollowed;
@@ -46,6 +50,7 @@ class StopFollowingOut {
       identical(this, other) ||
       other is StopFollowingOut &&
           other.accountId == accountId &&
+          other.backupsKeptUntil == backupsKeptUntil &&
           other.calendarsFollowed == calendarsFollowed &&
           other.contactsChanged == contactsChanged &&
           other.contactsFollowed == contactsFollowed &&
@@ -57,6 +62,7 @@ class StopFollowingOut {
   int get hashCode =>
       // ignore: unnecessary_parenthesis
       (accountId.hashCode) +
+      (backupsKeptUntil.hashCode) +
       (calendarsFollowed.hashCode) +
       (contactsChanged.hashCode) +
       (contactsFollowed.hashCode) +
@@ -66,11 +72,12 @@ class StopFollowingOut {
 
   @override
   String toString() =>
-      'StopFollowingOut[accountId=$accountId, calendarsFollowed=$calendarsFollowed, contactsChanged=$contactsChanged, contactsFollowed=$contactsFollowed, contactsLinked=$contactsLinked, label=$label, message=$message]';
+      'StopFollowingOut[accountId=$accountId, backupsKeptUntil=$backupsKeptUntil, calendarsFollowed=$calendarsFollowed, contactsChanged=$contactsChanged, contactsFollowed=$contactsFollowed, contactsLinked=$contactsLinked, label=$label, message=$message]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
     json[r'account_id'] = this.accountId;
+    json[r'backups_kept_until'] = this.backupsKeptUntil;
     json[r'calendars_followed'] = this.calendarsFollowed;
     json[r'contacts_changed'] = this.contactsChanged;
     json[r'contacts_followed'] = this.contactsFollowed;
@@ -95,6 +102,10 @@ class StopFollowingOut {
             'Required key "StopFollowingOut[account_id]" is missing from JSON.');
         assert(json[r'account_id'] != null,
             'Required key "StopFollowingOut[account_id]" has a null value in JSON.');
+        assert(json.containsKey(r'backups_kept_until'),
+            'Required key "StopFollowingOut[backups_kept_until]" is missing from JSON.');
+        assert(json[r'backups_kept_until'] != null,
+            'Required key "StopFollowingOut[backups_kept_until]" has a null value in JSON.');
         assert(json.containsKey(r'calendars_followed'),
             'Required key "StopFollowingOut[calendars_followed]" is missing from JSON.');
         assert(json[r'calendars_followed'] != null,
@@ -116,6 +127,7 @@ class StopFollowingOut {
 
       return StopFollowingOut(
         accountId: mapValueOfType<String>(json, r'account_id')!,
+        backupsKeptUntil: mapValueOfType<String>(json, r'backups_kept_until')!,
         calendarsFollowed: mapValueOfType<int>(json, r'calendars_followed')!,
         contactsChanged: mapValueOfType<int>(json, r'contacts_changed') ?? 0,
         contactsFollowed: mapValueOfType<int>(json, r'contacts_followed')!,
@@ -179,6 +191,7 @@ class StopFollowingOut {
   /// The list of required keys that must be present in a JSON.
   static const requiredKeys = <String>{
     'account_id',
+    'backups_kept_until',
     'calendars_followed',
     'contacts_followed',
     'label',

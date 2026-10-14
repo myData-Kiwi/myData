@@ -30,6 +30,7 @@ Name | Type | Description | Notes
 **hasPhoto** | **bool** |  | [optional] [default to false]
 **id** | **String** |  | 
 **jobTitle** | **String** |  | [optional] [default to '']
+**mergedInto** | **String** | for a contact in Recently deleted because it was merged: the contact it went into, which a link to it can open instead; null otherwise | [optional] 
 **middleName** | **String** | for the edit form, as are the four fields below | [optional] [default to '']
 **modifiedAt** | **String** |  | 
 **namePrefix** | **String** |  | [optional] [default to '']

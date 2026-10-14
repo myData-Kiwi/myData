@@ -13,6 +13,7 @@ Method | HTTP request | Description
 [**discardImportPreview**](ImportsApi.md#discardimportpreview) | **DELETE** /import/previews/{preview_id} | Discard Import Preview
 [**importHistory**](ImportsApi.md#importhistory) | **GET** /imports | Import History
 [**importPreview**](ImportsApi.md#importpreview) | **GET** /import/previews/{preview_id} | Import Preview
+[**importPreviewItem**](ImportsApi.md#importpreviewitem) | **GET** /import/previews/{preview_id}/items/{index} | Import Preview Item
 [**previewContactsImport**](ImportsApi.md#previewcontactsimport) | **POST** /import/contacts/preview | Preview Contacts Import
 [**previewSourceImport**](ImportsApi.md#previewsourceimport) | **POST** /import/contacts/from-source/{account_id}/preview | Preview Source Import
 [**undoImport**](ImportsApi.md#undoimport) | **POST** /imports/{import_id}/undo | Undo Import
@@ -199,6 +200,57 @@ Name | Type | Description  | Notes
 ### Return type
 
 [**ImportPreviewOut**](ImportPreviewOut.md)
+
+### Authorization
+
+[bearer](../README.md#bearer)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **importPreviewItem**
+> ImportCardOut importPreviewItem(previewId, index)
+
+Import Preview Item
+
+One card of a preview with its values, in the shape of a contact's page, to compare it with a contact it matches (\"In the file\" beside \"In myData\"). Only the app that made the preview can read it.
+
+### Example
+```dart
+import 'package:mydata_client/api.dart';
+// TODO Configure HTTP Bearer authorization: bearer
+// Case 1. Use String Token
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearer').setAccessToken('YOUR_ACCESS_TOKEN');
+// Case 2. Use Function which generate token.
+// String yourTokenGeneratorFunction() { ... }
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearer').setAccessToken(yourTokenGeneratorFunction);
+
+final api_instance = ImportsApi();
+final previewId = previewId_example; // String | 
+final index = 56; // int | 
+
+try {
+    final result = api_instance.importPreviewItem(previewId, index);
+    print(result);
+} catch (e) {
+    print('Exception when calling ImportsApi->importPreviewItem: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **previewId** | **String**|  | 
+ **index** | **int**|  | 
+
+### Return type
+
+[**ImportCardOut**](ImportCardOut.md)
 
 ### Authorization
 

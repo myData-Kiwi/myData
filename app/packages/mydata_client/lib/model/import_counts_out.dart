@@ -22,6 +22,7 @@ class ImportCountsOut {
     required this.followedMatches,
     required this.groups,
     this.groupsCreated,
+    this.hidden,
     required this.inFile,
     this.linked,
     required this.missing,
@@ -55,13 +56,16 @@ class ImportCountsOut {
   /// cards whose email or phone an owned contact of the same name already has
   int duplicates;
 
-  /// cards whose email or phone a followed contact has
+  /// a file's cards that hide a followed contact once imported (the same name and the same email or phone, emails in lower case and phones in E.164): each person is then one result. Matches with hides say which. 0 for a copy of an account (it hides its own cards)
   int followedMatches;
 
   /// group cards: imported as groups, never listed as contacts
   int groups;
 
   int? groupsCreated;
+
+  /// after the commit of a file: followed contacts now hidden behind the contacts it wrote (or found unchanged)
+  int? hidden;
 
   /// cards repeated in the input
   int inFile;
@@ -108,6 +112,7 @@ class ImportCountsOut {
           other.followedMatches == followedMatches &&
           other.groups == groups &&
           other.groupsCreated == groupsCreated &&
+          other.hidden == hidden &&
           other.inFile == inFile &&
           other.linked == linked &&
           other.missing == missing &&
@@ -134,6 +139,7 @@ class ImportCountsOut {
       (followedMatches.hashCode) +
       (groups.hashCode) +
       (groupsCreated == null ? 0 : groupsCreated!.hashCode) +
+      (hidden == null ? 0 : hidden!.hashCode) +
       (inFile.hashCode) +
       (linked == null ? 0 : linked!.hashCode) +
       (missing.hashCode) +
@@ -150,7 +156,7 @@ class ImportCountsOut {
 
   @override
   String toString() =>
-      'ImportCountsOut[cards=$cards, conflicts=$conflicts, contacts=$contacts, created=$created, deleted=$deleted, duplicates=$duplicates, followedMatches=$followedMatches, groups=$groups, groupsCreated=$groupsCreated, inFile=$inFile, linked=$linked, missing=$missing, new_=$new_, notWritten=$notWritten, skipped=$skipped, suggestions=$suggestions, toImport=$toImport, toLink=$toLink, toUpdate=$toUpdate, unchanged=$unchanged, updated=$updated, updates=$updates]';
+      'ImportCountsOut[cards=$cards, conflicts=$conflicts, contacts=$contacts, created=$created, deleted=$deleted, duplicates=$duplicates, followedMatches=$followedMatches, groups=$groups, groupsCreated=$groupsCreated, hidden=$hidden, inFile=$inFile, linked=$linked, missing=$missing, new_=$new_, notWritten=$notWritten, skipped=$skipped, suggestions=$suggestions, toImport=$toImport, toLink=$toLink, toUpdate=$toUpdate, unchanged=$unchanged, updated=$updated, updates=$updates]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
@@ -170,6 +176,11 @@ class ImportCountsOut {
       json[r'groups_created'] = this.groupsCreated;
     } else {
       json[r'groups_created'] = null;
+    }
+    if (this.hidden != null) {
+      json[r'hidden'] = this.hidden;
+    } else {
+      json[r'hidden'] = null;
     }
     json[r'in_file'] = this.inFile;
     if (this.linked != null) {
@@ -291,6 +302,7 @@ class ImportCountsOut {
         followedMatches: mapValueOfType<int>(json, r'followed_matches')!,
         groups: mapValueOfType<int>(json, r'groups')!,
         groupsCreated: mapValueOfType<int>(json, r'groups_created'),
+        hidden: mapValueOfType<int>(json, r'hidden'),
         inFile: mapValueOfType<int>(json, r'in_file')!,
         linked: mapValueOfType<int>(json, r'linked'),
         missing: mapValueOfType<int>(json, r'missing')!,

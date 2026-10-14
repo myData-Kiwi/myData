@@ -30,6 +30,7 @@ class ContactOut {
     this.givenName = '',
     this.hasPhoto = false,
     required this.id,
+    this.mergedInto,
     required this.modifiedAt,
     this.nickname = '',
     this.note = '',
@@ -81,6 +82,9 @@ class ContactOut {
 
   String id;
 
+  /// for a contact in Recently deleted because it was merged: the contact it went into, which a link to it can open instead; null otherwise
+  String? mergedInto;
+
   String modifiedAt;
 
   String nickname;
@@ -127,6 +131,7 @@ class ContactOut {
           other.givenName == givenName &&
           other.hasPhoto == hasPhoto &&
           other.id == id &&
+          other.mergedInto == mergedInto &&
           other.modifiedAt == modifiedAt &&
           other.nickname == nickname &&
           other.note == note &&
@@ -158,6 +163,7 @@ class ContactOut {
       (givenName.hashCode) +
       (hasPhoto.hashCode) +
       (id.hashCode) +
+      (mergedInto == null ? 0 : mergedInto!.hashCode) +
       (modifiedAt.hashCode) +
       (nickname.hashCode) +
       (note.hashCode) +
@@ -171,7 +177,7 @@ class ContactOut {
 
   @override
   String toString() =>
-      'ContactOut[accountId=$accountId, addressBookId=$addressBookId, addresses=$addresses, birthday=$birthday, caption=$caption, changedInSource=$changedInSource, createdAt=$createdAt, deletedAt=$deletedAt, displayName=$displayName, editable=$editable, emails=$emails, etag=$etag, familyName=$familyName, fullName=$fullName, givenName=$givenName, hasPhoto=$hasPhoto, id=$id, modifiedAt=$modifiedAt, nickname=$nickname, note=$note, notesIncluded=$notesIncluded, onPhone=$onPhone, organisation=$organisation, phones=$phones, purgeAfter=$purgeAfter, sortLetter=$sortLetter, source_=$source_]';
+      'ContactOut[accountId=$accountId, addressBookId=$addressBookId, addresses=$addresses, birthday=$birthday, caption=$caption, changedInSource=$changedInSource, createdAt=$createdAt, deletedAt=$deletedAt, displayName=$displayName, editable=$editable, emails=$emails, etag=$etag, familyName=$familyName, fullName=$fullName, givenName=$givenName, hasPhoto=$hasPhoto, id=$id, mergedInto=$mergedInto, modifiedAt=$modifiedAt, nickname=$nickname, note=$note, notesIncluded=$notesIncluded, onPhone=$onPhone, organisation=$organisation, phones=$phones, purgeAfter=$purgeAfter, sortLetter=$sortLetter, source_=$source_]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
@@ -208,6 +214,11 @@ class ContactOut {
     json[r'given_name'] = this.givenName;
     json[r'has_photo'] = this.hasPhoto;
     json[r'id'] = this.id;
+    if (this.mergedInto != null) {
+      json[r'merged_into'] = this.mergedInto;
+    } else {
+      json[r'merged_into'] = null;
+    }
     json[r'modified_at'] = this.modifiedAt;
     json[r'nickname'] = this.nickname;
     json[r'note'] = this.note;
@@ -301,6 +312,7 @@ class ContactOut {
         givenName: mapValueOfType<String>(json, r'given_name') ?? '',
         hasPhoto: mapValueOfType<bool>(json, r'has_photo') ?? false,
         id: mapValueOfType<String>(json, r'id')!,
+        mergedInto: mapValueOfType<String>(json, r'merged_into'),
         modifiedAt: mapValueOfType<String>(json, r'modified_at')!,
         nickname: mapValueOfType<String>(json, r'nickname') ?? '',
         note: mapValueOfType<String>(json, r'note') ?? '',

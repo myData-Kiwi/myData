@@ -9,6 +9,7 @@ import 'package:mydata_client/api.dart';
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **accountId** | **String** |  | 
+**backupsKeptUntil** | **String** | YYYY-MM-DD: if the account is no longer followed from now, copies of what it mirrored stay in the host's snapshots until this day, while the host keeps running (\"Stop following\" says so) | 
 **calendarsFollowed** | **int** | stopping following the account stops following these too; they are not imported yet | 
 **contactsChanged** | **int** | its contacts changed since they were imported (the copy on myData is older) | [optional] [default to 0]
 **contactsFollowed** | **int** | its contacts with no copy on myData (skipped, not imported yet): stopping following removes them from myData | 

@@ -18,12 +18,18 @@ Method | HTTP request | Description
 [**contacts**](SourcesApi.md#contacts) | **GET** /contacts | Contacts
 [**createContact**](SourcesApi.md#createcontact) | **POST** /contacts | Create Contact
 [**deleteContact**](SourcesApi.md#deletecontact) | **DELETE** /contacts/{contact_id} | Delete Contact
+[**duplicates**](SourcesApi.md#duplicates) | **GET** /contacts/duplicates | Duplicates
 [**events**](SourcesApi.md#events) | **GET** /events | Events
+[**followedChanges**](SourcesApi.md#followedchanges) | **GET** /contacts/{contact_id}/followed-changes | Followed Changes
+[**keepMine**](SourcesApi.md#keepmine) | **POST** /contacts/{contact_id}/followed-changes/keep | Keep Mine
 [**mergeContacts**](SourcesApi.md#mergecontacts) | **POST** /contacts/merge | Merge Contacts
+[**mergePreview**](SourcesApi.md#mergepreview) | **POST** /contacts/merge/preview | Merge Preview
+[**notDuplicates**](SourcesApi.md#notduplicates) | **POST** /contacts/not-duplicates | Not Duplicates
 [**purgeItem**](SourcesApi.md#purgeitem) | **DELETE** /trash/{item_id} | Purge Item
 [**removeAccount**](SourcesApi.md#removeaccount) | **DELETE** /accounts/{account_id} | Remove Account
 [**requestMacAccess**](SourcesApi.md#requestmacaccess) | **POST** /sources/mac/request-access | Request Mac Access
 [**restoreItem**](SourcesApi.md#restoreitem) | **POST** /trash/{item_id}/restore | Restore Item
+[**saveFollowedChanges**](SourcesApi.md#savefollowedchanges) | **POST** /contacts/{contact_id}/followed-changes/save | Save Followed Changes
 [**setMacReader**](SourcesApi.md#setmacreader) | **PUT** /sources/mac/reader | Set Mac Reader
 [**sources**](SourcesApi.md#sources) | **GET** /sources | Sources
 [**syncAccount**](SourcesApi.md#syncaccount) | **POST** /accounts/{account_id}/sync | Sync Account
@@ -223,11 +229,11 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **contact**
-> ContactDetailOut contact(contactId, raw)
+> ContactDetailOut contact(contactId, raw, includeDeleted)
 
 Contact
 
-One contact, for its page: the fields grouped by kind, the job title and where the card comes from; whether it can be changed here, and its etag (also the ETag header).
+One contact, for its page: the fields grouped by kind, the job title and where the card comes from; whether it can be changed here, and its etag (also the ETag header). A contact in Recently deleted is 404 unless include_deleted; one that was merged says which contact it went into (merged_into).
 
 ### Example
 ```dart
@@ -242,9 +248,10 @@ import 'package:mydata_client/api.dart';
 final api_instance = SourcesApi();
 final contactId = contactId_example; // String | 
 final raw = true; // bool | include the raw vCard
+final includeDeleted = true; // bool | also a contact of yours in Recently deleted (deleted_at set): a link to a merged original finds merged_into
 
 try {
-    final result = api_instance.contact(contactId, raw);
+    final result = api_instance.contact(contactId, raw, includeDeleted);
     print(result);
 } catch (e) {
     print('Exception when calling SourcesApi->contact: $e\n');
@@ -257,6 +264,7 @@ Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **contactId** | **String**|  | 
  **raw** | **bool**| include the raw vCard | [optional] [default to false]
+ **includeDeleted** | **bool**| also a contact of yours in Recently deleted (deleted_at set): a link to a merged original finds merged_into | [optional] [default to false]
 
 ### Return type
 
@@ -475,6 +483,55 @@ Name | Type | Description  | Notes
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **duplicates**
+> List<DuplicatePairOut> duplicates(limit)
+
+Duplicates
+
+Pairs of contacts of yours that may be one person, strong ones first, for myContacts' Review: the same email or phone under the same name is strong; the same name alone, or an email or phone shared under another name, is a suggestion. Followed contacts are never offered, and pairs marked as different people (POST /contacts/not-duplicates) are left out. Nothing is merged here.
+
+### Example
+```dart
+import 'package:mydata_client/api.dart';
+// TODO Configure HTTP Bearer authorization: bearer
+// Case 1. Use String Token
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearer').setAccessToken('YOUR_ACCESS_TOKEN');
+// Case 2. Use Function which generate token.
+// String yourTokenGeneratorFunction() { ... }
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearer').setAccessToken(yourTokenGeneratorFunction);
+
+final api_instance = SourcesApi();
+final limit = 56; // int | 
+
+try {
+    final result = api_instance.duplicates(limit);
+    print(result);
+} catch (e) {
+    print('Exception when calling SourcesApi->duplicates: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **limit** | **int**|  | [optional] [default to 500]
+
+### Return type
+
+[**List<DuplicatePairOut>**](DuplicatePairOut.md)
+
+### Authorization
+
+[bearer](../README.md#bearer)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **events**
 > EventsOut events(start, end, calendar)
 
@@ -528,6 +585,106 @@ Name | Type | Description  | Notes
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **followedChanges**
+> FollowedChangesOut followedChanges(contactId)
+
+Followed Changes
+
+A contact of yours beside each followed copy of it (This Mac, an iCloud account) that changed since the import (changed_in_source), with what differs: \"Changed since import\" in myContacts' Review. Settle it with .../followed-changes/save or .../keep.
+
+### Example
+```dart
+import 'package:mydata_client/api.dart';
+// TODO Configure HTTP Bearer authorization: bearer
+// Case 1. Use String Token
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearer').setAccessToken('YOUR_ACCESS_TOKEN');
+// Case 2. Use Function which generate token.
+// String yourTokenGeneratorFunction() { ... }
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearer').setAccessToken(yourTokenGeneratorFunction);
+
+final api_instance = SourcesApi();
+final contactId = contactId_example; // String | 
+
+try {
+    final result = api_instance.followedChanges(contactId);
+    print(result);
+} catch (e) {
+    print('Exception when calling SourcesApi->followedChanges: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **contactId** | **String**|  | 
+
+### Return type
+
+[**FollowedChangesOut**](FollowedChangesOut.md)
+
+### Authorization
+
+[bearer](../README.md#bearer)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **keepMine**
+> ContactWriteOut keepMine(contactId, followedKeepIn)
+
+Keep Mine
+
+Keep your version: clear the \"changed since import\" mark of the copies reviewed, the contact unchanged. 412 when a copy changed again since it was shown; 409 for a copy with nothing to review. undo_id brings the mark back (POST /undo/{undo_id}).
+
+### Example
+```dart
+import 'package:mydata_client/api.dart';
+// TODO Configure HTTP Bearer authorization: bearer
+// Case 1. Use String Token
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearer').setAccessToken('YOUR_ACCESS_TOKEN');
+// Case 2. Use Function which generate token.
+// String yourTokenGeneratorFunction() { ... }
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearer').setAccessToken(yourTokenGeneratorFunction);
+
+final api_instance = SourcesApi();
+final contactId = contactId_example; // String | 
+final followedKeepIn = FollowedKeepIn(); // FollowedKeepIn | 
+
+try {
+    final result = api_instance.keepMine(contactId, followedKeepIn);
+    print(result);
+} catch (e) {
+    print('Exception when calling SourcesApi->keepMine: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **contactId** | **String**|  | 
+ **followedKeepIn** | [**FollowedKeepIn**](FollowedKeepIn.md)|  | 
+
+### Return type
+
+[**ContactWriteOut**](ContactWriteOut.md)
+
+### Authorization
+
+[bearer](../README.md#bearer)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **mergeContacts**
 > MergeOut mergeContacts(mergeIn)
 
@@ -565,6 +722,104 @@ Name | Type | Description  | Notes
 ### Return type
 
 [**MergeOut**](MergeOut.md)
+
+### Authorization
+
+[bearer](../README.md#bearer)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **mergePreview**
+> MergePreviewOut mergePreview(mergeIn)
+
+Merge Preview
+
+What POST /contacts/merge would make of these contacts now, written nowhere: the merged contact (the \"After merging\" column) and each value it would leave out, with the value and whose it is, so the user sees what is kept and left out before pressing Merge. Read it again when names_from changes. The same refusals as a merge: 412 when a contact changed since its etag.
+
+### Example
+```dart
+import 'package:mydata_client/api.dart';
+// TODO Configure HTTP Bearer authorization: bearer
+// Case 1. Use String Token
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearer').setAccessToken('YOUR_ACCESS_TOKEN');
+// Case 2. Use Function which generate token.
+// String yourTokenGeneratorFunction() { ... }
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearer').setAccessToken(yourTokenGeneratorFunction);
+
+final api_instance = SourcesApi();
+final mergeIn = MergeIn(); // MergeIn | 
+
+try {
+    final result = api_instance.mergePreview(mergeIn);
+    print(result);
+} catch (e) {
+    print('Exception when calling SourcesApi->mergePreview: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **mergeIn** | [**MergeIn**](MergeIn.md)|  | 
+
+### Return type
+
+[**MergePreviewOut**](MergePreviewOut.md)
+
+### Authorization
+
+[bearer](../README.md#bearer)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **notDuplicates**
+> NotDuplicatesOut notDuplicates(notDuplicatesIn)
+
+Not Duplicates
+
+\"Not the same person\": the two contacts of yours are never offered as possible duplicates again (GET /contacts/duplicates), also after an import or a merge, until undone with POST /undo/{undo_id}. Nothing on either contact changes.
+
+### Example
+```dart
+import 'package:mydata_client/api.dart';
+// TODO Configure HTTP Bearer authorization: bearer
+// Case 1. Use String Token
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearer').setAccessToken('YOUR_ACCESS_TOKEN');
+// Case 2. Use Function which generate token.
+// String yourTokenGeneratorFunction() { ... }
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearer').setAccessToken(yourTokenGeneratorFunction);
+
+final api_instance = SourcesApi();
+final notDuplicatesIn = NotDuplicatesIn(); // NotDuplicatesIn | 
+
+try {
+    final result = api_instance.notDuplicates(notDuplicatesIn);
+    print(result);
+} catch (e) {
+    print('Exception when calling SourcesApi->notDuplicates: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **notDuplicatesIn** | [**NotDuplicatesIn**](NotDuplicatesIn.md)|  | 
+
+### Return type
+
+[**NotDuplicatesOut**](NotDuplicatesOut.md)
 
 ### Authorization
 
@@ -772,6 +1027,59 @@ Name | Type | Description  | Notes
 ### HTTP request headers
 
  - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **saveFollowedChanges**
+> ContactWriteOut saveFollowedChanges(contactId, followedSaveIn, ifMatch)
+
+Save Followed Changes
+
+Save the values the user chose (the \"After\" column) into the contact of yours, as an edit (only the lines whose values change), and clear the \"changed since import\" mark of the copies reviewed until they change again. 412 when the contact, or a copy, changed since it was shown; 409 for a copy with nothing to review. undo_id undoes both (POST /undo/{undo_id}) while the contact is unchanged since.
+
+### Example
+```dart
+import 'package:mydata_client/api.dart';
+// TODO Configure HTTP Bearer authorization: bearer
+// Case 1. Use String Token
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearer').setAccessToken('YOUR_ACCESS_TOKEN');
+// Case 2. Use Function which generate token.
+// String yourTokenGeneratorFunction() { ... }
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearer').setAccessToken(yourTokenGeneratorFunction);
+
+final api_instance = SourcesApi();
+final contactId = contactId_example; // String | 
+final followedSaveIn = FollowedSaveIn(); // FollowedSaveIn | 
+final ifMatch = ifMatch_example; // String | the contact's etag, as shown beside its copies
+
+try {
+    final result = api_instance.saveFollowedChanges(contactId, followedSaveIn, ifMatch);
+    print(result);
+} catch (e) {
+    print('Exception when calling SourcesApi->saveFollowedChanges: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **contactId** | **String**|  | 
+ **followedSaveIn** | [**FollowedSaveIn**](FollowedSaveIn.md)|  | 
+ **ifMatch** | **String**| the contact's etag, as shown beside its copies | [optional] 
+
+### Return type
+
+[**ContactWriteOut**](ContactWriteOut.md)
+
+### Authorization
+
+[bearer](../README.md#bearer)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
  - **Accept**: application/json
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)

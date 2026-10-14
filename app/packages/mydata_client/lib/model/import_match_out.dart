@@ -16,6 +16,7 @@ class ImportMatchOut {
     this.accountId,
     this.contactId,
     required this.displayName,
+    this.hides = false,
     this.itemIndex,
     this.signals = const [],
     required this.source_,
@@ -27,6 +28,9 @@ class ImportMatchOut {
   String? contactId;
 
   String displayName;
+
+  /// a followed contact (This Mac, an iCloud account) this file's card hides once imported, so the person is found once; shown again if the imported contact is deleted or the import undone
+  bool hides;
 
   /// for source file: the earlier card's index
   int? itemIndex;
@@ -47,6 +51,7 @@ class ImportMatchOut {
           other.accountId == accountId &&
           other.contactId == contactId &&
           other.displayName == displayName &&
+          other.hides == hides &&
           other.itemIndex == itemIndex &&
           _deepEquality.equals(other.signals, signals) &&
           other.source_ == source_ &&
@@ -58,6 +63,7 @@ class ImportMatchOut {
       (accountId == null ? 0 : accountId!.hashCode) +
       (contactId == null ? 0 : contactId!.hashCode) +
       (displayName.hashCode) +
+      (hides.hashCode) +
       (itemIndex == null ? 0 : itemIndex!.hashCode) +
       (signals.hashCode) +
       (source_.hashCode) +
@@ -65,7 +71,7 @@ class ImportMatchOut {
 
   @override
   String toString() =>
-      'ImportMatchOut[accountId=$accountId, contactId=$contactId, displayName=$displayName, itemIndex=$itemIndex, signals=$signals, source_=$source_, strength=$strength]';
+      'ImportMatchOut[accountId=$accountId, contactId=$contactId, displayName=$displayName, hides=$hides, itemIndex=$itemIndex, signals=$signals, source_=$source_, strength=$strength]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
@@ -80,6 +86,7 @@ class ImportMatchOut {
       json[r'contact_id'] = null;
     }
     json[r'display_name'] = this.displayName;
+    json[r'hides'] = this.hides;
     if (this.itemIndex != null) {
       json[r'item_index'] = this.itemIndex;
     } else {
@@ -125,6 +132,7 @@ class ImportMatchOut {
         accountId: mapValueOfType<String>(json, r'account_id'),
         contactId: mapValueOfType<String>(json, r'contact_id'),
         displayName: mapValueOfType<String>(json, r'display_name')!,
+        hides: mapValueOfType<bool>(json, r'hides') ?? false,
         itemIndex: mapValueOfType<int>(json, r'item_index'),
         signals: json[r'signals'] is Iterable
             ? (json[r'signals'] as Iterable)

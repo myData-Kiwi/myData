@@ -19,6 +19,7 @@ class ImportUndoneOut {
     required this.removed,
     required this.reverted,
     required this.summary,
+    this.unhidden = 0,
     required this.unlinked,
   });
 
@@ -40,6 +41,9 @@ class ImportUndoneOut {
   /// the import as it is now (status undone)
   ImportOut summary;
 
+  /// followed contacts the import hid, shown again
+  int unhidden;
+
   int unlinked;
 
   @override
@@ -52,6 +56,7 @@ class ImportUndoneOut {
           other.removed == removed &&
           other.reverted == reverted &&
           other.summary == summary &&
+          other.unhidden == unhidden &&
           other.unlinked == unlinked;
 
   @override
@@ -63,11 +68,12 @@ class ImportUndoneOut {
       (removed.hashCode) +
       (reverted.hashCode) +
       (summary.hashCode) +
+      (unhidden.hashCode) +
       (unlinked.hashCode);
 
   @override
   String toString() =>
-      'ImportUndoneOut[gone=$gone, groupsRemoved=$groupsRemoved, kept=$kept, removed=$removed, reverted=$reverted, summary=$summary, unlinked=$unlinked]';
+      'ImportUndoneOut[gone=$gone, groupsRemoved=$groupsRemoved, kept=$kept, removed=$removed, reverted=$reverted, summary=$summary, unhidden=$unhidden, unlinked=$unlinked]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
@@ -77,6 +83,7 @@ class ImportUndoneOut {
     json[r'removed'] = this.removed;
     json[r'reverted'] = this.reverted;
     json[r'summary'] = this.summary;
+    json[r'unhidden'] = this.unhidden;
     json[r'unlinked'] = this.unlinked;
     return json;
   }
@@ -126,6 +133,7 @@ class ImportUndoneOut {
         removed: mapValueOfType<int>(json, r'removed')!,
         reverted: mapValueOfType<int>(json, r'reverted')!,
         summary: ImportOut.fromJson(json[r'summary'])!,
+        unhidden: mapValueOfType<int>(json, r'unhidden') ?? 0,
         unlinked: mapValueOfType<int>(json, r'unlinked')!,
       );
     }

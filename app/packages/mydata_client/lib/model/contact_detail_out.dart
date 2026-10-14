@@ -35,6 +35,7 @@ class ContactDetailOut {
     this.hasPhoto = false,
     required this.id,
     this.jobTitle = '',
+    this.mergedInto,
     this.middleName = '',
     required this.modifiedAt,
     this.namePrefix = '',
@@ -105,6 +106,9 @@ class ContactDetailOut {
 
   String jobTitle;
 
+  /// for a contact in Recently deleted because it was merged: the contact it went into, which a link to it can open instead; null otherwise
+  String? mergedInto;
+
   /// for the edit form, as are the four fields below
   String middleName;
 
@@ -172,6 +176,7 @@ class ContactDetailOut {
           other.hasPhoto == hasPhoto &&
           other.id == id &&
           other.jobTitle == jobTitle &&
+          other.mergedInto == mergedInto &&
           other.middleName == middleName &&
           other.modifiedAt == modifiedAt &&
           other.namePrefix == namePrefix &&
@@ -214,6 +219,7 @@ class ContactDetailOut {
       (hasPhoto.hashCode) +
       (id.hashCode) +
       (jobTitle.hashCode) +
+      (mergedInto == null ? 0 : mergedInto!.hashCode) +
       (middleName.hashCode) +
       (modifiedAt.hashCode) +
       (namePrefix.hashCode) +
@@ -233,7 +239,7 @@ class ContactDetailOut {
 
   @override
   String toString() =>
-      'ContactDetailOut[accountId=$accountId, addressBookId=$addressBookId, addresses=$addresses, birthday=$birthday, caption=$caption, changedInSource=$changedInSource, changedInSourceLabel=$changedInSourceLabel, company=$company, createdAt=$createdAt, deletedAt=$deletedAt, department=$department, displayName=$displayName, editable=$editable, emails=$emails, etag=$etag, familyName=$familyName, fields=$fields, fullName=$fullName, givenName=$givenName, hasPhoto=$hasPhoto, id=$id, jobTitle=$jobTitle, middleName=$middleName, modifiedAt=$modifiedAt, namePrefix=$namePrefix, nameSuffix=$nameSuffix, nickname=$nickname, note=$note, notesIncluded=$notesIncluded, onPhone=$onPhone, organisation=$organisation, phones=$phones, purgeAfter=$purgeAfter, rawVcard=$rawVcard, sortLetter=$sortLetter, source_=$source_, sourceLabel=$sourceLabel, urls=$urls]';
+      'ContactDetailOut[accountId=$accountId, addressBookId=$addressBookId, addresses=$addresses, birthday=$birthday, caption=$caption, changedInSource=$changedInSource, changedInSourceLabel=$changedInSourceLabel, company=$company, createdAt=$createdAt, deletedAt=$deletedAt, department=$department, displayName=$displayName, editable=$editable, emails=$emails, etag=$etag, familyName=$familyName, fields=$fields, fullName=$fullName, givenName=$givenName, hasPhoto=$hasPhoto, id=$id, jobTitle=$jobTitle, mergedInto=$mergedInto, middleName=$middleName, modifiedAt=$modifiedAt, namePrefix=$namePrefix, nameSuffix=$nameSuffix, nickname=$nickname, note=$note, notesIncluded=$notesIncluded, onPhone=$onPhone, organisation=$organisation, phones=$phones, purgeAfter=$purgeAfter, rawVcard=$rawVcard, sortLetter=$sortLetter, source_=$source_, sourceLabel=$sourceLabel, urls=$urls]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
@@ -279,6 +285,11 @@ class ContactDetailOut {
     json[r'has_photo'] = this.hasPhoto;
     json[r'id'] = this.id;
     json[r'job_title'] = this.jobTitle;
+    if (this.mergedInto != null) {
+      json[r'merged_into'] = this.mergedInto;
+    } else {
+      json[r'merged_into'] = null;
+    }
     json[r'middle_name'] = this.middleName;
     json[r'modified_at'] = this.modifiedAt;
     json[r'name_prefix'] = this.namePrefix;
@@ -396,6 +407,7 @@ class ContactDetailOut {
         hasPhoto: mapValueOfType<bool>(json, r'has_photo') ?? false,
         id: mapValueOfType<String>(json, r'id')!,
         jobTitle: mapValueOfType<String>(json, r'job_title') ?? '',
+        mergedInto: mapValueOfType<String>(json, r'merged_into'),
         middleName: mapValueOfType<String>(json, r'middle_name') ?? '',
         modifiedAt: mapValueOfType<String>(json, r'modified_at')!,
         namePrefix: mapValueOfType<String>(json, r'name_prefix') ?? '',

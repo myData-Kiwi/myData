@@ -19,7 +19,7 @@ class ImportNoteOut {
     required this.message,
   });
 
-  /// skipped_unreadable, skipped_no_end, skipped_version, skipped_empty, skipped_too_large, skipped_too_many, guessed_charset, outside_text, unreadable_entry, nested_zip, encrypted, unsupported_compression (losses); converted_21, declared_charset, other_files (changes)
+  /// skipped_unreadable, skipped_no_end, skipped_version, skipped_empty, skipped_too_large, skipped_too_many, guessed_charset, outside_text, unreadable_entry, nested_zip, encrypted, unsupported_compression, no_notes (a file from Contacts on a Mac in which no card has a note: count is its cards) (losses); converted_21, declared_charset, other_files (changes)
   String code;
 
   int count;

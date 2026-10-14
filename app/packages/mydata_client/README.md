@@ -81,6 +81,7 @@ Class | Method | HTTP request | Description
 *ImportsApi* | [**discardImportPreview**](doc//ImportsApi.md#discardimportpreview) | **DELETE** /import/previews/{preview_id} | Discard Import Preview
 *ImportsApi* | [**importHistory**](doc//ImportsApi.md#importhistory) | **GET** /imports | Import History
 *ImportsApi* | [**importPreview**](doc//ImportsApi.md#importpreview) | **GET** /import/previews/{preview_id} | Import Preview
+*ImportsApi* | [**importPreviewItem**](doc//ImportsApi.md#importpreviewitem) | **GET** /import/previews/{preview_id}/items/{index} | Import Preview Item
 *ImportsApi* | [**previewContactsImport**](doc//ImportsApi.md#previewcontactsimport) | **POST** /import/contacts/preview | Preview Contacts Import
 *ImportsApi* | [**previewSourceImport**](doc//ImportsApi.md#previewsourceimport) | **POST** /import/contacts/from-source/{account_id}/preview | Preview Source Import
 *ImportsApi* | [**undoImport**](doc//ImportsApi.md#undoimport) | **POST** /imports/{import_id}/undo | Undo Import
@@ -93,12 +94,18 @@ Class | Method | HTTP request | Description
 *SourcesApi* | [**contacts**](doc//SourcesApi.md#contacts) | **GET** /contacts | Contacts
 *SourcesApi* | [**createContact**](doc//SourcesApi.md#createcontact) | **POST** /contacts | Create Contact
 *SourcesApi* | [**deleteContact**](doc//SourcesApi.md#deletecontact) | **DELETE** /contacts/{contact_id} | Delete Contact
+*SourcesApi* | [**duplicates**](doc//SourcesApi.md#duplicates) | **GET** /contacts/duplicates | Duplicates
 *SourcesApi* | [**events**](doc//SourcesApi.md#events) | **GET** /events | Events
+*SourcesApi* | [**followedChanges**](doc//SourcesApi.md#followedchanges) | **GET** /contacts/{contact_id}/followed-changes | Followed Changes
+*SourcesApi* | [**keepMine**](doc//SourcesApi.md#keepmine) | **POST** /contacts/{contact_id}/followed-changes/keep | Keep Mine
 *SourcesApi* | [**mergeContacts**](doc//SourcesApi.md#mergecontacts) | **POST** /contacts/merge | Merge Contacts
+*SourcesApi* | [**mergePreview**](doc//SourcesApi.md#mergepreview) | **POST** /contacts/merge/preview | Merge Preview
+*SourcesApi* | [**notDuplicates**](doc//SourcesApi.md#notduplicates) | **POST** /contacts/not-duplicates | Not Duplicates
 *SourcesApi* | [**purgeItem**](doc//SourcesApi.md#purgeitem) | **DELETE** /trash/{item_id} | Purge Item
 *SourcesApi* | [**removeAccount**](doc//SourcesApi.md#removeaccount) | **DELETE** /accounts/{account_id} | Remove Account
 *SourcesApi* | [**requestMacAccess**](doc//SourcesApi.md#requestmacaccess) | **POST** /sources/mac/request-access | Request Mac Access
 *SourcesApi* | [**restoreItem**](doc//SourcesApi.md#restoreitem) | **POST** /trash/{item_id}/restore | Restore Item
+*SourcesApi* | [**saveFollowedChanges**](doc//SourcesApi.md#savefollowedchanges) | **POST** /contacts/{contact_id}/followed-changes/save | Save Followed Changes
 *SourcesApi* | [**setMacReader**](doc//SourcesApi.md#setmacreader) | **PUT** /sources/mac/reader | Set Mac Reader
 *SourcesApi* | [**sources**](doc//SourcesApi.md#sources) | **GET** /sources | Sources
 *SourcesApi* | [**syncAccount**](doc//SourcesApi.md#syncaccount) | **POST** /accounts/{account_id}/sync | Sync Account
@@ -125,6 +132,7 @@ Class | Method | HTTP request | Description
  - [AssistantSettingsIn](doc//AssistantSettingsIn.md)
  - [BackupOut](doc//BackupOut.md)
  - [CalendarOut](doc//CalendarOut.md)
+ - [CardValuesOut](doc//CardValuesOut.md)
  - [ContactDetailOut](doc//ContactDetailOut.md)
  - [ContactField](doc//ContactField.md)
  - [ContactFieldGroup](doc//ContactFieldGroup.md)
@@ -133,12 +141,19 @@ Class | Method | HTTP request | Description
  - [ContactWriteOut](doc//ContactWriteOut.md)
  - [CoverageOut](doc//CoverageOut.md)
  - [DecisionIn](doc//DecisionIn.md)
+ - [DuplicatePairOut](doc//DuplicatePairOut.md)
  - [ErrorOut](doc//ErrorOut.md)
  - [EventOut](doc//EventOut.md)
  - [EventsOut](doc//EventsOut.md)
  - [FieldErrorsOut](doc//FieldErrorsOut.md)
+ - [FollowedChangeOut](doc//FollowedChangeOut.md)
+ - [FollowedChangesOut](doc//FollowedChangesOut.md)
+ - [FollowedKeepIn](doc//FollowedKeepIn.md)
+ - [FollowedSaveIn](doc//FollowedSaveIn.md)
+ - [FollowedSeenIn](doc//FollowedSeenIn.md)
  - [GuardError](doc//GuardError.md)
  - [HTTPValidationError](doc//HTTPValidationError.md)
+ - [ImportCardOut](doc//ImportCardOut.md)
  - [ImportChoiceIn](doc//ImportChoiceIn.md)
  - [ImportCommitIn](doc//ImportCommitIn.md)
  - [ImportCommittedOut](doc//ImportCommittedOut.md)
@@ -150,6 +165,7 @@ Class | Method | HTTP request | Description
  - [ImportNoteOut](doc//ImportNoteOut.md)
  - [ImportOut](doc//ImportOut.md)
  - [ImportPreviewOut](doc//ImportPreviewOut.md)
+ - [ImportRefusedOut](doc//ImportRefusedOut.md)
  - [ImportUndoneOut](doc//ImportUndoneOut.md)
  - [LabeledValue](doc//LabeledValue.md)
  - [LabeledValueIn](doc//LabeledValueIn.md)
@@ -160,9 +176,13 @@ Class | Method | HTTP request | Description
  - [MergeContactIn](doc//MergeContactIn.md)
  - [MergeIn](doc//MergeIn.md)
  - [MergeLeftOutOut](doc//MergeLeftOutOut.md)
+ - [MergeLeftOutValueOut](doc//MergeLeftOutValueOut.md)
  - [MergeOut](doc//MergeOut.md)
+ - [MergePreviewOut](doc//MergePreviewOut.md)
  - [MessageIn](doc//MessageIn.md)
  - [ModelOut](doc//ModelOut.md)
+ - [NotDuplicatesIn](doc//NotDuplicatesIn.md)
+ - [NotDuplicatesOut](doc//NotDuplicatesOut.md)
  - [PostalAddress](doc//PostalAddress.md)
  - [PostalAddressIn](doc//PostalAddressIn.md)
  - [PreconditionFailedOut](doc//PreconditionFailedOut.md)

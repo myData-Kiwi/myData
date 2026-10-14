@@ -13,12 +13,16 @@ part of openapi.api;
 class AccountOut {
   /// Returns a new [AccountOut] instance.
   AccountOut({
+    this.backupsKeptUntil,
     required this.createdAt,
     required this.email,
     required this.id,
     required this.label,
     required this.provider,
   });
+
+  /// YYYY-MM-DD: copies of what it mirrored stay in the host's snapshots until this day if it is removed now (after DELETE: since it was removed), while the host keeps running
+  String? backupsKeptUntil;
 
   String createdAt;
 
@@ -34,6 +38,7 @@ class AccountOut {
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is AccountOut &&
+          other.backupsKeptUntil == backupsKeptUntil &&
           other.createdAt == createdAt &&
           other.email == email &&
           other.id == id &&
@@ -43,6 +48,7 @@ class AccountOut {
   @override
   int get hashCode =>
       // ignore: unnecessary_parenthesis
+      (backupsKeptUntil == null ? 0 : backupsKeptUntil!.hashCode) +
       (createdAt.hashCode) +
       (email.hashCode) +
       (id.hashCode) +
@@ -51,10 +57,15 @@ class AccountOut {
 
   @override
   String toString() =>
-      'AccountOut[createdAt=$createdAt, email=$email, id=$id, label=$label, provider=$provider]';
+      'AccountOut[backupsKeptUntil=$backupsKeptUntil, createdAt=$createdAt, email=$email, id=$id, label=$label, provider=$provider]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
+    if (this.backupsKeptUntil != null) {
+      json[r'backups_kept_until'] = this.backupsKeptUntil;
+    } else {
+      json[r'backups_kept_until'] = null;
+    }
     json[r'created_at'] = this.createdAt;
     json[r'email'] = this.email;
     json[r'id'] = this.id;
@@ -98,6 +109,7 @@ class AccountOut {
       }());
 
       return AccountOut(
+        backupsKeptUntil: mapValueOfType<String>(json, r'backups_kept_until'),
         createdAt: mapValueOfType<String>(json, r'created_at')!,
         email: mapValueOfType<String>(json, r'email')!,
         id: mapValueOfType<String>(json, r'id')!,
