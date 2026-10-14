@@ -5732,7 +5732,7 @@
           "imports"
         ],
         "x-mydata-scopes": [
-          "contacts:write"
+          "contacts:import"
         ]
       }
     },
@@ -5833,7 +5833,7 @@
           "imports"
         ],
         "x-mydata-scopes": [
-          "contacts:write"
+          "contacts:import"
         ]
       }
     },
@@ -5908,7 +5908,7 @@
           "imports"
         ],
         "x-mydata-scopes": [
-          "contacts:write"
+          "contacts:import"
         ]
       },
       "get": {
@@ -5988,7 +5988,7 @@
           "imports"
         ],
         "x-mydata-scopes": [
-          "contacts:write"
+          "contacts:import"
         ]
       }
     },
@@ -6083,7 +6083,7 @@
           "imports"
         ],
         "x-mydata-scopes": [
-          "contacts:write"
+          "contacts:import"
         ]
       }
     },
@@ -6145,7 +6145,7 @@
           "imports"
         ],
         "x-mydata-scopes": [
-          "contacts:write"
+          "contacts:import"
         ]
       }
     },
@@ -6230,7 +6230,7 @@
           "imports"
         ],
         "x-mydata-scopes": [
-          "contacts:write"
+          "contacts:import"
         ]
       }
     },

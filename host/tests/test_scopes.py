@@ -50,13 +50,13 @@ ROUTE_SCOPES = {
     ("DELETE", "/trash/{item_id}"): ("contacts:write",),
     ("POST", "/undo/{undo_id}"): ("contacts:write",),
     ("POST", "/contacts/merge"): ("contacts:write",),
-    ("POST", "/import/contacts/preview"): ("contacts:write",),
-    ("POST", "/import/contacts/from-source/{account_id}/preview"): ("contacts:write",),
-    ("GET", "/import/previews/{preview_id}"): ("contacts:write",),
-    ("DELETE", "/import/previews/{preview_id}"): ("contacts:write",),
-    ("POST", "/import/previews/{preview_id}/commit"): ("contacts:write",),
-    ("GET", "/imports"): ("contacts:write",),
-    ("POST", "/imports/{import_id}/undo"): ("contacts:write",),
+    ("POST", "/import/contacts/preview"): ("contacts:import",),
+    ("POST", "/import/contacts/from-source/{account_id}/preview"): ("contacts:import",),
+    ("GET", "/import/previews/{preview_id}"): ("contacts:import",),
+    ("DELETE", "/import/previews/{preview_id}"): ("contacts:import",),
+    ("POST", "/import/previews/{preview_id}/commit"): ("contacts:import",),
+    ("GET", "/imports"): ("contacts:import",),
+    ("POST", "/imports/{import_id}/undo"): ("contacts:import",),
     ("GET", "/calendars"): ("calendar:read",),
     ("GET", "/events"): ("calendar:read",),
     ("GET", "/sources"): ("sources:read",),
@@ -72,10 +72,10 @@ ROUTE_SCOPES = {
 }
 
 # Each app's scopes, as agreed in the owned-data plan (phase 0c; myContacts gains contacts:write with editing,
-# phase 3). calendar:write is reserved: only the myData app and the command hold it, and no route uses it yet.
+# phase 3; importing is contacts:import, the myData app's and the command's only: ImportFlow, Decisions 2). calendar:write is reserved: only the myData app and the command hold it, and no route uses it yet.
 EXPECTED_SCOPES = {
-    "mydata": {"status", "admin", "approve", "contacts:read", "contacts:write", "calendar:read", "calendar:write",
-               "sources:read", "sources:manage", "shutdown", "mcp"},
+    "mydata": {"status", "admin", "approve", "contacts:read", "contacts:write", "contacts:import", "calendar:read",
+               "calendar:write", "sources:read", "sources:manage", "shutdown", "mcp"},
     "myassistant": {"status", "assistant", "approve", "contacts:read", "calendar:read"},
     "mycontacts": {"status", "contacts:read", "contacts:write", "sources:read"},
     "mycalendar": {"status", "calendar:read", "sources:read"},
@@ -120,6 +120,7 @@ def test_each_app_has_exactly_its_scopes():
     assert set(LIFETIME_APPS) == {"mydata", "cli"}
     assert "contacts:write" in APP_SCOPES["mycontacts"]  # editing contacts, phase 3
     assert "contacts:write" not in APP_SCOPES["mycalendar"] and "contacts:write" not in APP_SCOPES["myassistant"]
+    assert {a for a in APPS if "contacts:import" in APP_SCOPES[a]} == {"mydata", "cli"}
 
 
 def _call(c: TestClient, method: str, path: str, token: str):

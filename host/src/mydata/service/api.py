@@ -1470,7 +1470,7 @@ def _routes_contact_writes(app: FastAPI, need: Callable[[], SyncService], unavai
 
 def _routes_imports(app: FastAPI, need: Callable[[], SyncService], unavailable: dict) -> None:
     """Contact import (sources/importer.py, service/imports.py): an app action, never a tool, so MCP agents (and
-    the assistant) get nothing; contacts:write only."""
+    the assistant) get nothing; contacts:import only (the myData app and the command)."""
     from fastapi.concurrency import run_in_threadpool
 
     from ..sources import contacts_write as cw
@@ -1513,7 +1513,7 @@ def _routes_imports(app: FastAPI, need: Callable[[], SyncService], unavailable: 
                                    "content": {"application/octet-stream": {"schema": {"type": "string",
                                                                                        "format": "binary"}}}}}
 
-    @app.post("/import/contacts/preview", dependencies=needs("contacts:write"), tags=["imports"],
+    @app.post("/import/contacts/preview", dependencies=needs("contacts:import"), tags=["imports"],
               response_model=ImportPreviewOut, status_code=201, openapi_extra=body_schema,
               responses={400: {"description": "the file cannot be imported at all (not a vCard, a zip that cannot "
                                               "be read or expands too far); the message says why"},
@@ -1540,7 +1540,7 @@ def _routes_imports(app: FastAPI, need: Callable[[], SyncService], unavailable: 
         out = await run_in_threadpool(run, lambda: service.preview_file(data, filename, who))
         return ImportPreviewOut(**out)
 
-    @app.post("/import/contacts/from-source/{account_id}/preview", dependencies=needs("contacts:write"),
+    @app.post("/import/contacts/from-source/{account_id}/preview", dependencies=needs("contacts:import"),
               tags=["imports"], response_model=ImportPreviewOut, status_code=201,
               responses={404: {"description": "no such account"},
                          409: {"description": "This Mac is never imported; the message says why and what to do "
@@ -1557,14 +1557,14 @@ def _routes_imports(app: FastAPI, need: Callable[[], SyncService], unavailable: 
         except KeyError:
             raise HTTPException(404, "no such account") from None
 
-    @app.get("/import/previews/{preview_id}", dependencies=needs("contacts:write"), tags=["imports"],
+    @app.get("/import/previews/{preview_id}", dependencies=needs("contacts:import"), tags=["imports"],
              response_model=ImportPreviewOut, responses={**gone, **unavailable})
     def import_preview(preview_id: str, request: Request) -> ImportPreviewOut:
         """A preview again, analysed as the host is now. Only the app that made it can read it."""
         service, who = imports(), actor(request)
         return ImportPreviewOut(**run(lambda: service.get(preview_id, who)))
 
-    @app.delete("/import/previews/{preview_id}", dependencies=needs("contacts:write"), tags=["imports"],
+    @app.delete("/import/previews/{preview_id}", dependencies=needs("contacts:import"), tags=["imports"],
                 status_code=204, responses={**gone, **unavailable})
     def discard_import_preview(preview_id: str, request: Request) -> Response:
         """Drop a preview the app cancelled, with the file's contents the host holds for it. Only the app that made
@@ -1573,7 +1573,7 @@ def _routes_imports(app: FastAPI, need: Callable[[], SyncService], unavailable: 
         run(lambda: service.discard(preview_id, who))
         return Response(status_code=204)
 
-    @app.post("/import/previews/{preview_id}/commit", dependencies=needs("contacts:write"), tags=["imports"],
+    @app.post("/import/previews/{preview_id}/commit", dependencies=needs("contacts:import"), tags=["imports"],
               response_model=ImportCommittedOut, status_code=201,
               responses={**gone, 400: {"description": "losses not accepted, or a choice a card cannot take"},
                          503: {"description": "the snapshot before the import failed: nothing was imported"}})
@@ -1589,13 +1589,13 @@ def _routes_imports(app: FastAPI, need: Callable[[], SyncService], unavailable: 
                                          accept_losses=body.accept_losses, actor=who))
         return ImportCommittedOut(**out)
 
-    @app.get("/imports", dependencies=needs("contacts:write"), tags=["imports"], response_model=list[ImportOut],
+    @app.get("/imports", dependencies=needs("contacts:import"), tags=["imports"], response_model=list[ImportOut],
              responses=unavailable)
     def import_history() -> list[ImportOut]:
         """Every import, the newest first: when, from where, its counts and whether it was undone."""
         return [ImportOut(**r) for r in imports().history()]
 
-    @app.post("/imports/{import_id}/undo", dependencies=needs("contacts:write"), tags=["imports"],
+    @app.post("/imports/{import_id}/undo", dependencies=needs("contacts:import"), tags=["imports"],
               response_model=ImportUndoneOut,
               responses={404: {"description": "no such import"}, 409: {"description": "already undone"},
                          **unavailable})

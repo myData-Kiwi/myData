@@ -51,7 +51,7 @@ def test_the_import_upload_is_the_raw_file():
     op = openapi_document()["paths"]["/import/contacts/preview"]["post"]
     assert op["requestBody"]["content"] == {"application/octet-stream": {"schema": {"type": "string",
                                                                                     "format": "binary"}}}
-    assert op["tags"] == ["imports"] and op["x-mydata-scopes"] == ["contacts:write"]
+    assert op["tags"] == ["imports"] and op["x-mydata-scopes"] == ["contacts:import"]
 
 
 def test_every_operation_names_its_scope():

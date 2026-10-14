@@ -3,10 +3,10 @@
 - App tokens: one per app that acts for the user (the myData app, myAssistant, myContacts, myCalendar,
   the mydata command). The host creates them on start, each in its own file readable only by the user
   (<home>/app-tokens/<app>). Each app's token has scopes (APP_SCOPES), and every route declares the
-  scope it needs (api.py): myContacts reads contacts, myCalendar reads calendars, myAssistant talks to
-  the assistant and approves, the myData app administers the host, and the mydata command can do
-  everything. Approvals record which app decided; only the myData app and the mydata command may stop
-  the host (POST /shutdown).
+  scope it needs (api.py): myContacts reads and edits contacts, myCalendar reads calendars, myAssistant
+  talks to the assistant and approves, the myData app administers the host and imports contacts, and the
+  mydata command can do everything. Approvals record which app decided; only the myData app and the
+  mydata command may stop the host (POST /shutdown).
 - Agent tokens: for MCP agents. Created, listed and revoked with `mydata agent ...` or from the
   myData app. Only their SHA-256 hash is stored (<home>/agents.json). An agent token reaches
   /mcp and nothing else: no approvals, no assistant, no status.
@@ -43,7 +43,10 @@ SCOPES = {
     "assistant": "talk to the assistant, and ask the host to get the model ready again",
     "approve": "list held calls and approve or reject them",
     "contacts:read": "the contacts the host holds",
-    "contacts:write": "create, change and delete the contacts the host owns, restore them, and undo those changes",
+    "contacts:write": "create, change, merge and delete the contacts the host owns, restore them, and undo those "
+                      "changes",
+    "contacts:import": "import contacts from a file or a followed account, read and undo imports (the myData app "
+                       "and the command only: an import is done in one place, which keeps its history)",
     "calendar:read": "the calendars and events the host holds",
     "calendar:write": "change calendars and events (nothing uses it yet)",
     "sources:read": "the sources, linked accounts and their sync status",
@@ -53,8 +56,8 @@ SCOPES = {
 }
 
 APP_SCOPES: dict[str, frozenset[str]] = {
-    "mydata": frozenset({"status", "admin", "approve", "contacts:read", "contacts:write", "calendar:read",
-                         "calendar:write", "sources:read", "sources:manage", "shutdown", "mcp"}),
+    "mydata": frozenset({"status", "admin", "approve", "contacts:read", "contacts:write", "contacts:import",
+                         "calendar:read", "calendar:write", "sources:read", "sources:manage", "shutdown", "mcp"}),
     "myassistant": frozenset({"status", "assistant", "approve", "contacts:read", "calendar:read"}),
     "mycontacts": frozenset({"status", "contacts:read", "contacts:write", "sources:read"}),
     "mycalendar": frozenset({"status", "calendar:read", "sources:read"}),

@@ -41,7 +41,7 @@ def client(host):
         yield c
 
 
-def upload(client, host, data: bytes, filename="contacts.vcf", app="mycontacts"):
+def upload(client, host, data: bytes, filename="contacts.vcf", app="mydata"):
     return client.post("/import/contacts/preview", params={"filename": filename}, content=data,
                        headers={**bearer(host, app), "Content-Type": "application/octet-stream"})
 
@@ -64,44 +64,44 @@ def test_preview_commit_history_and_undo(host, client):
     assert [c["code"] for c in preview["changes"]] == ["converted_21", "other_files"]
     assert {i["status"] for i in preview["items"]} == {"new"}
     assert counts(host) == before  # nothing written
-    assert client.get(f"/import/previews/{preview['id']}", headers=bearer(host, "mycontacts")).json()["counts"] \
+    assert client.get(f"/import/previews/{preview['id']}", headers=bearer(host, "mydata")).json()["counts"] \
         == preview["counts"]
-    r = client.post(f"/import/previews/{preview['id']}/commit", headers=bearer(host, "mycontacts"), json={})
+    r = client.post(f"/import/previews/{preview['id']}/commit", headers=bearer(host, "mydata"), json={})
     assert r.status_code == 201, r.text
     done = r.json()
     assert done["status"] == "committed" and done["counts"]["created"] == 7 and done["counts"]["groups_created"] == 1
     assert done["label"] == "Takeout.zip" and done["stop_following"] is None
     after = client.get("/status", headers=host.auth).json()
     assert after["mode"] == "real" and after["conversation_epoch"] == status["conversation_epoch"] + 1
-    listed = client.get("/contacts", headers=bearer(host, "mycontacts")).json()
+    listed = client.get("/contacts", headers=bearer(host, "mydata")).json()
     assert len(listed) == 7 and all(c["source"] == "mydata" and c["on_phone"] is False for c in listed)
     assert [s.manifest["reason"] for s in list_snapshots(host.home)] == ["pre-import"]
     # The preview was used: it is gone.
-    assert client.get(f"/import/previews/{preview['id']}", headers=bearer(host, "mycontacts")).status_code == 404
+    assert client.get(f"/import/previews/{preview['id']}", headers=bearer(host, "mydata")).status_code == 404
     history = client.get("/imports", headers=bearer(host, "mydata")).json()
     assert [(h["id"], h["status"]) for h in history] == [(done["id"], "committed")]
-    r = client.post(f"/imports/{done['id']}/undo", headers=bearer(host, "mycontacts"))
+    r = client.post(f"/imports/{done['id']}/undo", headers=bearer(host, "mydata"))
     assert r.status_code == 200, r.text
     assert r.json()["removed"] == 7 and r.json()["groups_removed"] == 1 and r.json()["kept"] == []
     assert r.json()["summary"]["status"] == "undone"
-    assert client.get("/contacts", headers=bearer(host, "mycontacts")).json() == []
-    assert len(client.get("/trash", headers=bearer(host, "mycontacts")).json()) == 7  # never deleted for good
-    assert client.post(f"/imports/{done['id']}/undo", headers=bearer(host, "mycontacts")).status_code == 409
-    assert client.post("/imports/no-such/undo", headers=bearer(host, "mycontacts")).status_code == 404
+    assert client.get("/contacts", headers=bearer(host, "mydata")).json() == []
+    assert len(client.get("/trash", headers=bearer(host, "mydata")).json()) == 7  # never deleted for good
+    assert client.post(f"/imports/{done['id']}/undo", headers=bearer(host, "mydata")).status_code == 409
+    assert client.post("/imports/no-such/undo", headers=bearer(host, "mydata")).status_code == 404
 
 
 def test_importing_the_same_file_again_adds_nothing(host, client):
     data = corpus.read(corpus.APPLE)
     first = upload(client, host, data).json()
-    client.post(f"/import/previews/{first['id']}/commit", headers=bearer(host, "mycontacts"), json={})
+    client.post(f"/import/previews/{first['id']}/commit", headers=bearer(host, "mydata"), json={})
     again = upload(client, host, data).json()
     assert {i["status"] for i in again["items"]} == {"unchanged"} and again["counts"]["to_import"] == 0
-    r = client.post(f"/import/previews/{again['id']}/commit", headers=bearer(host, "mycontacts"), json={})
+    r = client.post(f"/import/previews/{again['id']}/commit", headers=bearer(host, "mydata"), json={})
     assert r.json()["counts"]["created"] == 0 and len(client.get("/contacts", headers=host.auth).json()) == 3
 
 
 def test_choices_and_losses(host, client):
-    client.post("/contacts", headers=bearer(host, "mycontacts"),
+    client.post("/contacts", headers=bearer(host, "mydata"),
                 json={"given_name": "Ava", "family_name": "Fictional", "emails": [{"value": "ava@example.org"}]})
     preview = upload(client, host, corpus.read(corpus.APPLE) + corpus.read(corpus.MALFORMED)).json()
     assert preview["needs_acceptance"] is True
@@ -111,12 +111,12 @@ def test_choices_and_losses(host, client):
     assert (ava["status"], ava["action"], ava["choices"]) == ("duplicate", "skip", ["skip", "import"])
     assert ava["matches"][0]["source"] == "mydata" and ava["matches"][0]["signals"] == ["email", "name"]
     url = f"/import/previews/{preview['id']}/commit"
-    r = client.post(url, headers=bearer(host, "mycontacts"), json={})
+    r = client.post(url, headers=bearer(host, "mydata"), json={})
     assert r.status_code == 400 and "loss report" in r.json()["detail"]
-    r = client.post(url, headers=bearer(host, "mycontacts"),
+    r = client.post(url, headers=bearer(host, "mydata"),
                     json={"accept_losses": True, "choices": [{"index": 0, "action": "update"}]})
     assert r.status_code == 400 and "Card 0 can only be" in r.json()["detail"]
-    r = client.post(url, headers=bearer(host, "mycontacts"),
+    r = client.post(url, headers=bearer(host, "mydata"),
                     json={"accept_losses": True, "choices": [{"index": 0, "action": "import"}]})
     assert r.status_code == 201 and r.json()["counts"]["created"] == 4  # Ava as new, the org, Sam, Robin
     assert len([c for c in client.get("/contacts", headers=host.auth).json() if c["display_name"].startswith("Ava")]) == 2
@@ -147,7 +147,7 @@ def test_a_file_over_the_cap_is_refused_before_it_is_read(tmp_path, monkeypatch)
     with TestClient(host.app, base_url="http://127.0.0.1") as c:
         r = upload(c, host, corpus.over_cap(5000))
         assert r.status_code == 413
-        r = c.post("/import/contacts/preview", headers=bearer(host, "mycontacts"),
+        r = c.post("/import/contacts/preview", headers=bearer(host, "mydata"),
                    content=iter([corpus.over_cap(5000)]))  # streamed, no Content-Length
         assert r.status_code == 413
 
@@ -157,7 +157,7 @@ def test_nothing_is_imported_when_the_snapshot_fails(host, client, monkeypatch):
         raise BackupError("contacts.sqlite could not be copied (invented failure)")
     monkeypatch.setattr(imports_service, "take_snapshot", fail)
     preview = upload(client, host, corpus.read(corpus.APPLE)).json()
-    r = client.post(f"/import/previews/{preview['id']}/commit", headers=bearer(host, "mycontacts"), json={})
+    r = client.post(f"/import/previews/{preview['id']}/commit", headers=bearer(host, "mydata"), json={})
     assert r.status_code == 503 and "Nothing was imported" in r.json()["detail"]
     assert client.get("/contacts", headers=host.auth).json() == [] and client.get("/imports", headers=host.auth).json() == []
 
@@ -167,10 +167,10 @@ def test_a_restart_drops_previews_and_keeps_imports_undoable(tmp_path):
     with TestClient(first.app, base_url="http://127.0.0.1") as c:
         held = upload(c, first, corpus.read(corpus.GOOGLE)).json()
         used = upload(c, first, corpus.read(corpus.APPLE)).json()
-        done = c.post(f"/import/previews/{used['id']}/commit", headers=bearer(first, "mycontacts"), json={}).json()
+        done = c.post(f"/import/previews/{used['id']}/commit", headers=bearer(first, "mydata"), json={}).json()
     again = Host(tmp_path, FakeDav())  # a new host process over the same folder
     with TestClient(again.app, base_url="http://127.0.0.1") as c:
-        auth = bearer(again, "mycontacts")
+        auth = bearer(again, "mydata")
         r = c.get(f"/import/previews/{held['id']}", headers=auth)
         assert r.status_code == 404 and "restarted" in r.json()["detail"]
         assert c.post(f"/import/previews/{held['id']}/commit", headers=auth, json={}).status_code == 404
@@ -182,13 +182,13 @@ def test_a_restart_drops_previews_and_keeps_imports_undoable(tmp_path):
 def test_a_preview_belongs_to_the_app_that_made_it_and_can_be_discarded(host, client):
     preview = upload(client, host, corpus.read(corpus.GOOGLE)).json()
     url = f"/import/previews/{preview['id']}"
+    assert client.get(url, headers=bearer(host, "cli")).status_code == 404
+    assert client.post(f"{url}/commit", headers=bearer(host, "cli"), json={}).status_code == 404
+    assert client.delete(url, headers=bearer(host, "cli")).status_code == 404
+    assert client.get(url, headers=bearer(host, "mydata")).status_code == 200
+    assert client.delete(url, headers=bearer(host, "mydata")).status_code == 204
     assert client.get(url, headers=bearer(host, "mydata")).status_code == 404
-    assert client.post(f"{url}/commit", headers=bearer(host, "mydata"), json={}).status_code == 404
     assert client.delete(url, headers=bearer(host, "mydata")).status_code == 404
-    assert client.get(url, headers=bearer(host, "mycontacts")).status_code == 200
-    assert client.delete(url, headers=bearer(host, "mycontacts")).status_code == 204
-    assert client.get(url, headers=bearer(host, "mycontacts")).status_code == 404
-    assert client.delete(url, headers=bearer(host, "mycontacts")).status_code == 404
     assert client.get("/imports", headers=host.auth).json() == []
 
 
@@ -216,7 +216,7 @@ def test_previews_expire(tmp_path, monkeypatch):
     with TestClient(host.app, base_url="http://127.0.0.1") as c:
         held = upload(c, host, corpus.read(corpus.GOOGLE)).json()
         assert held["expires_at"]
-        assert c.get(f"/import/previews/{held['id']}", headers=bearer(host, "mycontacts")).status_code == 404
+        assert c.get(f"/import/previews/{held['id']}", headers=bearer(host, "mydata")).status_code == 404
 
 
 def test_cards_past_the_limit_are_one_loss_and_the_oldest_preview_goes_before_a_new_read(tmp_path, monkeypatch):
@@ -253,7 +253,7 @@ def _follow(host) -> str:
 
 def test_stop_following_says_what_is_not_on_mydata(host, client):
     account = _follow(host)
-    auth = bearer(host, "mycontacts")
+    auth = bearer(host, "mydata")
     preview = client.post(f"/import/contacts/from-source/{account}/preview", headers=auth).json()
     first = preview["items"][0]["index"]
     done = client.post(f"/import/previews/{preview['id']}/commit", headers=auth,
@@ -264,15 +264,15 @@ def test_stop_following_says_what_is_not_on_mydata(host, client):
 
 
 def test_this_mac_is_never_imported(host, client):
-    r = client.post("/import/contacts/from-source/mac/preview", headers=bearer(host, "mycontacts"))
+    r = client.post("/import/contacts/from-source/mac/preview", headers=bearer(host, "mydata"))
     assert r.status_code == 409 and "never imported" in r.json()["detail"] and "Export vCard" in r.json()["detail"]
-    assert client.post("/import/contacts/from-source/no-such/preview", headers=bearer(host, "mycontacts")).status_code \
+    assert client.post("/import/contacts/from-source/no-such/preview", headers=bearer(host, "mydata")).status_code \
         == 404
 
 
 def test_a_person_imported_from_icloud_while_still_followed_is_found_once(host, client):
     account = _follow(host)
-    auth = bearer(host, "mycontacts")
+    auth = bearer(host, "mydata")
     assert len([c for c in client.get("/contacts", headers=auth).json() if c["display_name"] == "Ava Fictional"]) == 1
     r = client.post(f"/import/contacts/from-source/{account}/preview", headers=auth)
     assert r.status_code == 201, r.text
@@ -346,8 +346,8 @@ def test_merge_and_undo_through_the_api(host, client):
 # ---------------------------------------------------------------- who may import, and the logs
 
 IMPORT_ROUTES = [("post", "/import/contacts/preview"), ("post", "/import/contacts/from-source/x/preview"),
-                 ("get", "/import/previews/x"), ("post", "/import/previews/x/commit"), ("get", "/imports"),
-                 ("post", "/imports/x/undo"), ("post", "/contacts/merge")]
+                 ("get", "/import/previews/x"), ("delete", "/import/previews/x"), ("post", "/import/previews/x/commit"),
+                 ("get", "/imports"), ("post", "/imports/x/undo")]
 
 
 def _send(client, method, path, headers):
@@ -357,15 +357,20 @@ def _send(client, method, path, headers):
     return client.request(method.upper(), path, **kwargs)
 
 
-def test_only_apps_with_contacts_write_import_and_agents_get_nothing(host, client):
-    for app in ("mycalendar", "myassistant"):
+def test_only_the_mydata_app_and_the_command_import_and_agents_get_nothing(host, client):
+    for app in ("mycontacts", "mycalendar", "myassistant"):
         for method, path in IMPORT_ROUTES:
             assert _send(client, method, path, bearer(host, app)).status_code == 403, (app, path)
-    for app in ("mycontacts", "mydata", "cli"):
+    for app in ("mydata", "cli"):
         for method, path in IMPORT_ROUTES:
             assert _send(client, method, path, bearer(host, app)).status_code != 403, (app, path)
+    # Merging stays with editing (contacts:write): myContacts merges.
+    for app in ("mycontacts", "mydata", "cli"):
+        assert _send(client, "post", "/contacts/merge", bearer(host, app)).status_code != 403, app
+    for app in ("mycalendar", "myassistant"):
+        assert _send(client, "post", "/contacts/merge", bearer(host, app)).status_code == 403, app
     _, token = AgentStore(host.home).create("Example agent")
-    for method, path in IMPORT_ROUTES:
+    for method, path in [*IMPORT_ROUTES, ("post", "/contacts/merge")]:
         assert _send(client, method, path, {"Authorization": f"Bearer {token}"}).status_code in (401, 403), path
     tools = [t["name"] for t in client.get("/tools", headers=host.auth).json()]
     assert not any("import" in t or "merge" in t for t in tools)
@@ -375,10 +380,10 @@ def test_the_logs_hold_no_imported_data(host, client, caplog):
     caplog.set_level(logging.DEBUG)
     account = _follow(host)
     preview = upload(client, host, corpus.several(), filename="Takeout private-name.zip").json()
-    done = client.post(f"/import/previews/{preview['id']}/commit", headers=bearer(host, "mycontacts"), json={}).json()
-    client.post(f"/imports/{done['id']}/undo", headers=bearer(host, "mycontacts"))
-    copy = client.post(f"/import/contacts/from-source/{account}/preview", headers=bearer(host, "mycontacts")).json()
-    client.post(f"/import/previews/{copy['id']}/commit", headers=bearer(host, "mycontacts"), json={})
+    done = client.post(f"/import/previews/{preview['id']}/commit", headers=bearer(host, "mydata"), json={}).json()
+    client.post(f"/imports/{done['id']}/undo", headers=bearer(host, "mydata"))
+    copy = client.post(f"/import/contacts/from-source/{account}/preview", headers=bearer(host, "mydata")).json()
+    client.post(f"/import/previews/{copy['id']}/commit", headers=bearer(host, "mydata"), json={})
     upload(client, host, corpus.read(corpus.MALFORMED))
     messages = [r.getMessage() for r in caplog.records]
     assert {"contacts import previewed", "contacts imported", "contacts import undone"} <= set(messages)
