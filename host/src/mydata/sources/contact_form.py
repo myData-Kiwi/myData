@@ -228,16 +228,44 @@ def _birthday_ok(value: str) -> bool:
     return True
 
 
-def check(form: dict, *, creating: bool) -> dict:
+def _same(value, current) -> bool:
+    """`value` from a form is the card's own value (as read() gives it), so it needs no check."""
+    return isinstance(value, str) and value.strip() == (current or "")
+
+
+def _item_key(kind: str, item: dict) -> tuple | None:
+    """A form's list item as (label key, value) to match against the card's own (read()), or None when it is not
+    plain text."""
+    label = item.get("label")
+    if label is not None and not isinstance(label, str):
+        return None
+    if kind == "addresses":
+        parts = [item.get(p) for p in ADDRESS_PARTS]
+        if not all(p is None or isinstance(p, str) for p in parts):
+            return None
+        return label_key(label), tuple((p or "").strip() for p in parts)
+    value = item.get("value")
+    return (label_key(label), value.strip()) if isinstance(value, str) else None
+
+
+def check(form: dict, *, creating: bool, current: dict | None = None) -> dict:
     """The form with its values trimmed (None for a text left empty, [] for a list), or FormError with one
     message per field ("emails[1].value": "Not an email address."). Only the fields given are checked; a
-    new contact needs a name, a company, a nickname, an email or a phone."""
+    new contact needs a name, a company, a nickname, an email or a phone.
+
+    `current` (an edit: read() of the card) exempts the values the card already holds: a text field equal to
+    the card's, and a list item whose label and value the card has. The apps send the whole form, so a value
+    the checks would refuse (an imported BDAY "March 18", an address at localhost, a long note) never blocks
+    an edit of something else; such a value is kept as it is."""
     errors: dict[str, str] = {}
     out: dict = {}
     for field in TEXT_FIELDS:
         if field not in form:
             continue
         value = form[field]
+        if current is not None and _same(value, current.get(field)):
+            out[field] = value.strip()
+            continue
         _text_ok(errors, field, value, limit=MAX_NOTE if field == "note" else MAX_TEXT, lines=field == "note")
         if field in errors:
             continue
@@ -256,10 +284,24 @@ def check(form: dict, *, creating: bool) -> dict:
             errors[kind] = f"Too many (at most {MAX_ITEMS})."
             continue
         cleaned = []
+        held = set()
+        if current is not None:
+            for have in current.get(kind) or []:
+                k = _item_key(kind, have)
+                if k is not None:
+                    held.add(k)
         for i, item in enumerate(items):
             key = f"{kind}[{i}]"
             if not isinstance(item, dict):
                 errors[key] = "Must be an object."
+                continue
+            known = _item_key(kind, item)
+            if known is not None and known in held:  # the card's own value: kept as it is
+                label = (item.get("label") or "").strip()
+                if kind == "addresses":
+                    cleaned.append({"label": label, **dict(zip(ADDRESS_PARTS, known[1]))})
+                else:
+                    cleaned.append({"label": label, "value": known[1]})
                 continue
             _text_ok(errors, f"{key}.label", item.get("label"), limit=MAX_LABEL)
             label = (item.get("label") or "").strip()

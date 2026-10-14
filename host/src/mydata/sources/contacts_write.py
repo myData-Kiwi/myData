@@ -222,7 +222,6 @@ def create(store: ContactsStore, form: dict, *, actor: str) -> Written:
 def update(store: ContactsStore, contact_id: str, form: dict, *, if_match: str, actor: str) -> Written:
     """Change the fields given in the form, from the card at etag `if_match`. Only the lines whose values
     differ are written; an edit that changes nothing writes nothing (undo_id None)."""
-    values = contact_form.check(form, creating=False)
     at = _clock(store)()
     when = stamp(at)
     with store.db.transaction() as db:
@@ -232,6 +231,12 @@ def update(store: ContactsStore, contact_id: str, form: dict, *, if_match: str, 
             raise InTrash("This contact is in Recently deleted. Restore it first.")
         try:
             card = VCard.parse(row["raw_vcard"])
+            current = contact_form.read(card)
+        except VCardError as e:
+            raise WriteError("This contact's card cannot be edited here.") from e
+        # Only what differs from the card is checked: a value it already holds never blocks the edit.
+        values = contact_form.check(form, creating=False, current=current)
+        try:
             contact_form.apply(card, values)
         except VCardError as e:
             raise WriteError("This contact's card cannot be edited here.") from e

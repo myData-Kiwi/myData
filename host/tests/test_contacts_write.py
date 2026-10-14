@@ -489,3 +489,35 @@ def test_a_deleted_and_restored_card_needs_no_new_baseline(store):
     assert store.get(w.contact_id)["nickname"] == ""
     assert "baseline" not in [r["op"] for r in rows(store, "SELECT op FROM revisions WHERE object_id = ?",
                                                      w.contact_id)]
+
+
+def test_a_value_the_card_already_holds_never_blocks_an_edit_of_another(store):
+    """Cards made elsewhere (phase 4 imports) can hold values the checks refuse. The apps send the whole form,
+    so only the values that differ from the card are checked; the others stay byte for byte."""
+    long_note = "Invented. " * 2100  # over MAX_NOTE
+    original = ("BEGIN:VCARD\r\nVERSION:3.0\r\nUID:imported-ava\r\nN:Fictional;Ava;;;\r\nFN:Ava Fictional\r\n"
+                "BDAY:March 18\r\nEMAIL;TYPE=HOME:ava@localhost\r\nTEL;TYPE=CELL:call 555 0100\r\n"
+                f"NOTE:{long_note}\r\nEND:VCARD\r\n")
+    contact_id = imported(store, original)
+    form = cf.read(VCard.parse(original))
+    assert form["birthday"] == "March 18" and len(form["note"]) > cf.MAX_NOTE
+    form["job_title"] = "Inventor"
+    cw.update(store, contact_id, form, if_match=etag(store, contact_id), actor="mycontacts")
+    text = store.get(contact_id)["raw_vcard"]
+    for line in ("BDAY:March 18", "EMAIL;TYPE=HOME:ava@localhost", "TEL;TYPE=CELL:call 555 0100"):
+        assert line + "\r\n" in text
+    assert "TITLE:Inventor\r\n" in text and cf.read(VCard.parse(text))["note"] == form["note"]
+    # A value the user changes is checked as always, and names its field.
+    form = cf.read(VCard.parse(text))
+    form["emails"] = [{"label": "home", "value": "ava@localhost"}, {"label": "work", "value": "still-wrong"}]
+    form["birthday"] = "March 19"
+    with pytest.raises(cf.FormError) as e:
+        cw.update(store, contact_id, form, if_match=etag(store, contact_id), actor="mycontacts")
+    assert e.value.fields == {"birthday": "Not a date: YYYY-MM-DD, or --MM-DD without a year.",
+                              "emails[1].value": "Not an email address."}
+    # A held value under another label is a change, so it is checked.
+    form = cf.read(VCard.parse(text))
+    form["emails"] = [{"label": "work", "value": "ava@localhost"}]
+    with pytest.raises(cf.FormError) as e:
+        cw.update(store, contact_id, form, if_match=etag(store, contact_id), actor="mycontacts")
+    assert e.value.fields == {"emails[0].value": "Not an email address."}
