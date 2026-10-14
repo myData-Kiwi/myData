@@ -274,8 +274,12 @@ class FakeBackend implements ContactsBackend {
     writes.add('purge $id');
   }
 
+  /// While set, an undo waits for it: the host is still answering.
+  Completer<void>? holdUndo;
+
   @override
   Future<ContactDetailOut> undo(String undoId) async {
+    await holdUndo?.future;
     if (failWrites) throw const NoAnswer();
     final u = undoLog[undoId];
     if (u == null) throw const Gone();

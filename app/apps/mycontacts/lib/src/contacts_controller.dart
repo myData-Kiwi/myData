@@ -202,6 +202,7 @@ class ContactsController extends ChangeNotifier {
         }
         return;
       }
+      if (_disposed) return;
       anySourceOn = state.anyOn;
       // The host's own contacts are listed whatever the sources say.
       if (state.revision == _revision && contacts != null) return;
@@ -213,6 +214,7 @@ class ContactsController extends ChangeNotifier {
         _notify();
         return;
       }
+      if (_disposed) return;
       _revision = state.revision;
       _setContacts(read);
     } finally {
@@ -655,8 +657,38 @@ class ContactsController extends ChangeNotifier {
     _notify();
   }
 
-  /// Takes back [entry]. Completes with what the toast then says: what came back, or why it did not.
-  Future<String> undo(UndoEntry entry) async {
+  /// Whether an undo is under way: Undo does nothing more until it ends.
+  bool get undoing => _undoRuns.isNotEmpty;
+  final _undoRuns = <UndoEntry, Future<String>>{};
+
+  /// What each entry's finished undo said, so a later Undo of the same entry (the toast's, after ⌘Z took it
+  /// back) repeats it instead of asking the host a second time.
+  final _undoSaid = Expando<String>('undo said');
+
+  /// Takes back [entry]. Completes with what the toast then says: what came back, or why it did not. The
+  /// entry leaves [undoStack] at once, so a second Undo (another press, the toast's and ⌘Z) never sends the
+  /// same change to the host again: it gets the first one's answer.
+  Future<String> undo(UndoEntry entry) {
+    final said = _undoSaid[entry];
+    if (said != null) return Future.value(said);
+    return _undoRuns[entry] ??= _undo(entry);
+  }
+
+  Future<String> _undo(UndoEntry entry) async {
+    final at = undoStack.indexOf(entry);
+    undoStack.remove(entry);
+    _notify();
+    try {
+      final said = await _undoOnHost(entry, at);
+      if (said != undoNoAnswer) _undoSaid[entry] = said;
+      return said;
+    } finally {
+      _undoRuns.remove(entry);
+      _notify();
+    }
+  }
+
+  Future<String> _undoOnHost(UndoEntry entry, int at) async {
     final refused = <String>[];
     var undone = 0;
     String? lastId;
@@ -671,11 +703,14 @@ class ContactsController extends ChangeNotifier {
       } on Gone {
         refused.add(i < entry.names.length ? entry.names[i] : 'This contact');
       } on Object {
-        if (undone == 0 && refused.isEmpty) return undoNoAnswer;
+        if (undone == 0 && refused.isEmpty) {
+          // Nothing reached the host: Undo can try it again.
+          if (!_disposed && !undoStack.contains(entry)) undoStack.insert(at < 0 ? undoStack.length : at, entry);
+          return undoNoAnswer;
+        }
         break;
       }
     }
-    undoStack.remove(entry);
     if (undone > 0) {
       // A deleted contact that came back, or an edit taken back: open it.
       if (lastId != null && (entry.action.startsWith('Delete') || entry.action == editAction)) _wanted = lastId;

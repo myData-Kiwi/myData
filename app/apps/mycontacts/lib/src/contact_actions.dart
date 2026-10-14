@@ -227,7 +227,8 @@ class ContactActions {
   /// ⌘Z, Edit, Undo and "More actions" on a phone, after the toast has gone.
   Future<void> undoLast() async {
     final entry = undoable;
-    if (entry == null) return;
+    // While an undo runs (the toast's, or a press before this one), a press does nothing more.
+    if (entry == null || controller.undoing) return;
     final result = await _undo(entry);
     toasts.show(result.message);
   }

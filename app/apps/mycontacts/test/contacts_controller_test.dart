@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mycontacts/src/contacts_controller.dart';
 import 'package:mydata_core/mydata_core.dart';
@@ -103,6 +105,41 @@ void main() {
     await pumpEventQueue();
     expect(c.selectedId, 'c-ben');
     expect(c.missingLinkId, isNull);
+    c.dispose();
+  });
+
+  test('a second Undo while the first runs sends nothing more and gets the same answer', () async {
+    final backend = FakeBackend(cards: [...sampleCards(), pipOwned()]);
+    final c = controller(backend);
+    await c.follow(HostPhase.running);
+    await c.delete(['c-pip']);
+    final entry = c.undoStack.single;
+    backend.holdUndo = Completer<void>();
+    final first = c.undo(entry);
+    expect(c.undoStack, isEmpty, reason: 'it leaves the stack at once');
+    expect(c.undoing, isTrue);
+    final second = c.undo(entry);
+    backend.holdUndo!.complete();
+    expect(await first, 'Contact restored');
+    expect(await second, 'Contact restored');
+    expect(await c.undo(entry), 'Contact restored', reason: 'a later press repeats the answer');
+    expect(backend.writes.where((w) => w.startsWith('undo')), ['undo u-1']);
+    expect(c.undoing, isFalse);
+    c.dispose();
+  });
+
+  test('an undo the host did not answer goes back on the stack, to try again', () async {
+    final backend = FakeBackend(cards: [...sampleCards(), pipOwned()]);
+    final c = controller(backend);
+    await c.follow(HostPhase.running);
+    await c.delete(['c-pip']);
+    final entry = c.undoStack.single;
+    backend.failWrites = true;
+    expect(await c.undo(entry), ContactsController.undoNoAnswer);
+    expect(c.undoStack, [entry]);
+    backend.failWrites = false;
+    expect(await c.undo(entry), 'Contact restored');
+    expect(c.undoStack, isEmpty);
     c.dispose();
   });
 }
