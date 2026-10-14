@@ -480,13 +480,16 @@ def test_merge_says_what_it_left_out(host, client):
     a = client.post("/contacts", headers=auth, json={"given_name": "Ava", "job_title": "Librarian"}).json()
     b = client.post("/contacts", headers=auth, json={"given_name": "Ava", "job_title": "Chess coach"}).json()
     pair = [{"id": c["contact"]["id"], "etag": c["contact"]["etag"]} for c in (a, b)]
-    r = client.post("/contacts/merge/preview", headers=auth, json={"contacts": pair})
+    r = client.post("/contacts/merge/preview", headers=auth, json={"contacts": pair, "names_from": a["contact"]["id"]})
     assert r.status_code == 200, r.text
     preview = r.json()
     assert preview["contact"]["job_title"] == "Librarian" and preview["names_from"] == a["contact"]["id"]
     assert preview["left_out"] == [{"property": "TITLE", "kind": "job_title", "value": "Chess coach",
                                     "contact_id": b["contact"]["id"]}]
     assert preview["newest"] in (a["contact"]["id"], b["contact"]["id"])
+    # Without names_from, the newest contact's names (the two may have been written in the same second).
+    default = client.post("/contacts/merge/preview", headers=auth, json={"contacts": pair}).json()
+    assert default["names_from"] == default["newest"] == preview["newest"]
     r = client.post("/contacts/merge/preview", headers=auth, json={"contacts": pair, "names_from": b["contact"]["id"]})
     assert r.json()["contact"]["job_title"] == "Chess coach" and r.json()["left_out"][0]["value"] == "Librarian"
     assert len(client.get("/contacts", headers=auth).json()) == 2  # nothing written
@@ -512,7 +515,8 @@ def test_merge_and_undo_through_the_api(host, client):
                                                                         {"id": a["id"], "etag": a["etag"]}]})
     assert r.status_code == 400
     r = client.post("/contacts/merge", headers=auth, json={"contacts": [{"id": a["id"], "etag": a["etag"]},
-                                                                        {"id": b["id"], "etag": b["etag"]}]})
+                                                                        {"id": b["id"], "etag": b["etag"]}],
+                                                           "names_from": a["id"]})
     assert r.status_code == 201, r.text
     merged = r.json()
     assert merged["contact"]["display_name"] == "Ava Fictional" and merged["merged"] == [a["id"], b["id"]]

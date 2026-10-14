@@ -1,4 +1,4 @@
 // GENERATED from host/openapi.json and host/src/mydata/__init__.py by `uv run mydata openapi --out openapi.json`. Do not edit.
 /// The host version and API version this app was built against.
 const expectedHostVersion = '0.1.0';
-const expectedHostApiVersion = '5cf2aeb7d28e';
+const expectedHostApiVersion = '4baa4b40ebfa';

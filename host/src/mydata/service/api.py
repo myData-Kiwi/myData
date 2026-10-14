@@ -553,7 +553,8 @@ class MergeIn(BaseModel):
                                                                                    "order")
     names_from: str | None = Field(default=None, max_length=100, description="the contact whose names (and lines) "
                                                                              "the merged one starts from; default "
-                                                                             "the first")
+                                                                             "the one changed most recently (the "
+                                                                             "preview's newest)")
 
 
 class MergeLeftOutOut(BaseModel):
@@ -610,7 +611,7 @@ class MergeLeftOutValueOut(BaseModel):
 class MergePreviewOut(BaseModel):
     contact: CardValuesOut = Field(description="the contact the merge would make (not stored)")
     names_from: str = Field(description="the contact whose name and details it starts from")
-    newest: str = Field(description="the contact changed most recently: the default for names_from")
+    newest: str = Field(description="the contact changed most recently: names_from when none is sent")
     left_out: list[MergeLeftOutValueOut] = Field(default=[], description="each value of the others it would not "
                                                                          "hold (a different value of a single one, "
                                                                          "such as a second birthday or job title, "
@@ -1733,8 +1734,8 @@ def _routes_contact_writes(app: FastAPI, need: Callable[[], SyncService], unavai
                                                                "names_from not among them"},
                                           **refused, **stale, **unavailable})
     def merge_contacts(body: MergeIn, request: Request) -> MergeOut:
-        """Merge owned contacts the user chose as one person (never automatic): a new contact holds the first
-        one's names (or names_from's), every email, phone, address and link of them all, and every other property
+        """Merge owned contacts the user chose as one person (never automatic): a new contact holds the names of
+        the one changed most recently (or names_from's), every email, phone, address and link of them all, and every other property
         it has no value of; what it cannot take (a second job title or birthday, another photo) is listed in
         left_out. The originals go to Recently deleted, unchanged, so POST /undo/{undo_id} brings them back while
         nothing changed since. 412 when a contact changed since its etag."""

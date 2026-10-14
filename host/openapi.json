@@ -3233,7 +3233,7 @@
                 "type": "null"
               }
             ],
-            "description": "the contact whose names (and lines) the merged one starts from; default the first",
+            "description": "the contact whose names (and lines) the merged one starts from; default the one changed most recently (the preview's newest)",
             "title": "Names From"
           }
         },
@@ -3359,7 +3359,7 @@
             "type": "string"
           },
           "newest": {
-            "description": "the contact changed most recently: the default for names_from",
+            "description": "the contact changed most recently: names_from when none is sent",
             "title": "Newest",
             "type": "string"
           }
@@ -5746,7 +5746,7 @@
     },
     "/contacts/merge": {
       "post": {
-        "description": "Merge owned contacts the user chose as one person (never automatic): a new contact holds the first\none's names (or names_from's), every email, phone, address and link of them all, and every other property\nit has no value of; what it cannot take (a second job title or birthday, another photo) is listed in\nleft_out. The originals go to Recently deleted, unchanged, so POST /undo/{undo_id} brings them back while\nnothing changed since. 412 when a contact changed since its etag.",
+        "description": "Merge owned contacts the user chose as one person (never automatic): a new contact holds the names of\nthe one changed most recently (or names_from's), every email, phone, address and link of them all, and every other property\nit has no value of; what it cannot take (a second job title or birthday, another photo) is listed in\nleft_out. The originals go to Recently deleted, unchanged, so POST /undo/{undo_id} brings them back while\nnothing changed since. 412 when a contact changed since its etag.",
         "operationId": "merge_contacts",
         "requestBody": {
           "content": {

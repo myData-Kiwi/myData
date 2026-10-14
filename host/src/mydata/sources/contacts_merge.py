@@ -5,8 +5,8 @@ the contacts to merge. Only owned contacts are merged; a followed one is refused
 
 A merge creates one new card and moves the originals to Recently deleted:
 
-- the new card starts as a copy of the contact whose names are kept (the first one unless the user chose
-  another), lines it holds copied byte for byte;
+- the new card starts as a copy of the contact whose names are kept (the one changed most recently unless the
+  user chose another: DuplicatePair, Decisions 2), lines it holds copied byte for byte;
 - every email address, phone number, postal address, link, instant-message handle, social profile, related
   name and Apple date the others hold and it does not (compared as values: an email in any case, a phone number
   in E.164, an address part by part) is added, with its label in a new Apple item group;
@@ -156,8 +156,14 @@ class Preview:
     """What a merge would make, written nowhere (merge_preview)."""
     text: str  # the merged card
     names_from: str  # the contact whose names and lines it starts from
-    newest: str  # the contact changed most recently: the default for names_from (DuplicatePair, Decisions 2)
+    newest: str  # the contact changed most recently: names_from when none is given (DuplicatePair, Decisions 2)
     left_out: tuple[dict, ...]  # {property, value (None for a photo), contact_id}: what it does not hold
+
+
+def newest(rows: list[sqlite3.Row]) -> sqlite3.Row:
+    """The contact changed most recently (the latest modified_at, then the highest revision; the first named on a
+    tie): whose names a merge keeps unless the user chose another (DuplicatePair, Decisions 2)."""
+    return max(rows, key=lambda r: (r["modified_at"], r["rev"]))
 
 
 def _plan(db: sqlite3.Connection, contacts: list[tuple[str, str]], names_from: str | None,
@@ -180,7 +186,7 @@ def _plan(db: sqlite3.Connection, contacts: list[tuple[str, str]], names_from: s
         if row["deleted_at"] is not None:
             raise InTrash("A contact to merge is in Recently deleted. Restore it first.")
         rows.append(row)
-    first = names_from or ids[0]
+    first = names_from or newest(rows)["id"]
     base = next(r for r in rows if r["id"] == first)
     others = [r for r in rows if r["id"] != first]
     try:
@@ -196,15 +202,15 @@ def merge_preview(store: ContactsStore, contacts: list[tuple[str, str]], *, name
     details: list[dict] = []
     with store.db.connect() as db:
         rows, base, others, text, _ = _plan(db, contacts, names_from, details)
-    newest = max(rows, key=lambda r: (r["modified_at"], r["rev"]))
-    return Preview(text, base["id"], newest["id"], tuple({"property": d["property"], "value": d["value"],
+    return Preview(text, base["id"], newest(rows)["id"], tuple({"property": d["property"], "value": d["value"],
                                                            "contact_id": others[d["other"]]["id"]} for d in details))
 
 
 def merge(store: ContactsStore, contacts: list[tuple[str, str]], *, names_from: str | None = None,
           actor: str) -> Merged:
     """Merge owned contacts, each given as (id, the etag the user saw). PreconditionFailed when one changed
-    since; MergeRefused for fewer than two, a repeat, or names_from not among them."""
+    since; MergeRefused for fewer than two, a repeat, or names_from not among them. Without names_from the names
+    are the newest contact's (newest())."""
     ids = [c for c, _ in contacts]
     at = _clock(store)()
     when = stamp(at)

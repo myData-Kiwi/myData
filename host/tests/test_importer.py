@@ -638,7 +638,7 @@ def test_merged_contacts_keep_hiding_after_their_originals_are_deleted_for_good(
     other = cw.create(store, {"given_name": "Ava", "family_name": "F.", "phones": [{"value": "+1 202 555 0111"}]},
                       actor="mycontacts").contact_id
     merged = merge_.merge(store, [(ava["id"], store.get(ava["id"])["http_etag"]),
-                                  (other, store.get(other)["http_etag"])], actor="mycontacts")
+                                  (other, store.get(other)["http_etag"])], names_from=ava["id"], actor="mycontacts")
     assert [m["id"] for m in store.find_by_name("Ava Fictional")] == [merged.contact_id]
     gone = store.get(ava["id"], include_deleted=True)
     cw.purge_now(store, ava["id"], if_match=gone["http_etag"])
@@ -707,10 +707,11 @@ def _two(store):
     return a, b
 
 
-def test_merge_keeps_every_distinct_value_and_the_first_names(store):
+def test_merge_keeps_every_distinct_value_and_the_chosen_names(store):
     a, b = _two(store)
     raws = {i: store.get(i)["raw_vcard"] for i in (a, b)}
-    merged = merge_.merge(store, [(a, store.get(a)["http_etag"]), (b, store.get(b)["http_etag"])], actor="mycontacts")
+    merged = merge_.merge(store, [(a, store.get(a)["http_etag"]), (b, store.get(b)["http_etag"])], names_from=a,
+                          actor="mycontacts")
     m = store.get(merged.contact_id)
     assert m["display_name"] == "Ava Fictional" and m["organisation"] == "Example Widgets"
     assert sorted(e["value"].lower() for e in m["emails"]) == ["ava.club@example.org", "ava@example.org"]
@@ -756,17 +757,18 @@ def test_a_merge_preview_writes_nothing_and_shows_what_is_left_out(store, monkey
         db.execute("UPDATE contacts SET modified_at = '2099-01-01T00:00:00+00:00' WHERE id = ?", (b,))
     pair = [(a, store.get(a)["http_etag"]), (b, store.get(b)["http_etag"])]
     before = _counts(store)
-    preview_ = merge_.merge_preview(store, pair)
+    preview_ = merge_.merge_preview(store, pair, names_from=a)
     assert _counts(store) == before  # written nowhere
     assert (preview_.names_from, preview_.newest) == (a, b)
     assert list(preview_.left_out) == [{"property": "TITLE", "value": "Chess coach", "contact_id": b}]
     assert "EMAIL:ava@example.org" in preview_.text and "TITLE:Librarian" in preview_.text
-    other = merge_.merge_preview(store, pair, names_from=b)
-    assert other.names_from == b and list(other.left_out) == [{"property": "TITLE", "value": "Librarian",
-                                                               "contact_id": a}]
+    # Without names_from, the names of the contact changed most recently (DuplicatePair, Decisions 2).
+    other = merge_.merge_preview(store, pair)
+    assert (other.names_from, other.newest) == (b, b)
+    assert list(other.left_out) == [{"property": "TITLE", "value": "Librarian", "contact_id": a}]
     assert "BDAY:1990-03-18" in other.text  # a value only the other has is taken
-    # The merge itself makes what the preview showed.
-    done = merge_.merge(store, pair, names_from=b, actor="mycontacts")
+    # The merge itself makes what the preview showed, with the same default.
+    done = merge_.merge(store, pair, actor="mycontacts")
     merged = store.get(done.contact_id)["raw_vcard"]
     strip = lambda text: [line for line in text.splitlines() if not line.startswith(("REV:", "UID:"))]  # noqa: E731
     assert strip(merged) == strip(other.text) and done.left_out == (("TITLE", 1),)
