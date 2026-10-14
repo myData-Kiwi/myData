@@ -85,6 +85,11 @@ abstract final class ThisMacText {
   static const openSettings = 'Open System Settings';
   static const notes = 'Notes on contacts are not included.';
 
+  /// The turn-off dialog's body, with until when the host's backups keep the copies (H8).
+  static String offBody(String? backupsKeptUntil) =>
+      'myData deletes the contacts and events it copied from this Mac. Nothing on the Mac changes, and you can '
+      'turn it on again at any time.${backupsKeptUntil == null ? '' : ' ${RemoveAccountText.backupsKept(backupsKeptUntil)}'}';
+
   /// The toggle row's caption while it is on: the last error, or when it last read the Mac.
   static String caption(SourceOut mac) {
     if (mac.lastError != null && mac.lastError!.isNotEmpty) return mac.lastError!;
@@ -195,32 +200,15 @@ class _ThisMacSectionState extends State<ThisMacSection> {
     if (mounted) setState(() => _saving = false);
   }
 
-  Future<bool> _confirmOff() async {
-    final sure = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Turn off This Mac?'),
-        content: const Text(
-          'myData deletes the contacts and events it copied from this Mac. Nothing on the Mac changes, and '
-          'you can turn it on again at any time.',
+  Future<bool> _confirmOff() => showMyDataDialog(
+        context: context,
+        builder: (_) => MyDataDialog(
+          title: 'Turn off This Mac?',
+          message: ThisMacText.offBody(_mac.backupsKeptUntil),
+          confirmLabel: 'Turn off This Mac',
+          destructive: true,
         ),
-        actions: [
-          ButtonRow(
-            alignment: WrapAlignment.end,
-            children: [
-              Button(label: 'Cancel', variant: ButtonVariant.plain, onPressed: () => Navigator.pop(context, false)),
-              Button(
-                label: 'Turn off This Mac',
-                variant: ButtonVariant.danger,
-                onPressed: () => Navigator.pop(context, true),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-    return sure == true;
-  }
+      );
 
   /// Shows the system's prompt (the host waits for the answer, up to a few minutes).
   Future<void> _allow(String kind) async {
@@ -511,36 +499,26 @@ class _IcloudSectionState extends State<IcloudSection> {
 
   Future<void> _remove(SourceOut a) async {
     final email = a.email ?? 'this account';
-    final sure = await showDialog<bool>(
+    final removed = await showRemoveAccountDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Remove $email?'),
-        content: Text(RemoveAccountText.body(email)),
-        actions: [
-          ButtonRow(
-            alignment: WrapAlignment.end,
-            children: [
-              Button(label: 'Cancel', variant: ButtonVariant.plain, onPressed: () => Navigator.pop(context, false)),
-              Button(
-                label: RemoveAccountText.confirm,
-                variant: ButtonVariant.danger,
-                onPressed: () => Navigator.pop(context, true),
-              ),
-            ],
-          ),
-        ],
-      ),
+      title: 'Remove $email?',
+      message: RemoveAccountText.body(email, backupsKeptUntil: a.backupsKeptUntil),
+      confirmLabel: RemoveAccountText.confirm,
+      workingLabel: RemoveAccountText.working,
+      onConfirm: () async {
+        final c = widget.controller.connection;
+        if (c == null) return RemoveAccountText.failed(email);
+        try {
+          await c.sources.removeAccount(a.id);
+        } on Object {
+          return RemoveAccountText.failed(email);
+        }
+        return null;
+      },
     );
-    if (sure != true || !mounted) return;
-    setState(() => _busy.add(a.id));
-    await runHostAction(
-      context,
-      widget.controller,
-      failure: 'Could not remove $email',
-      action: (c) => c.sources.removeAccount(a.id),
-    );
+    if (!removed || !mounted) return;
     await widget.sources.load();
-    if (mounted) setState(() => _busy.remove(a.id));
+    await widget.controller.refresh();
   }
 
   @override
@@ -658,8 +636,46 @@ abstract final class IcloudForm {
 abstract final class RemoveAccountText {
   static const ask = 'Remove';
   static const confirm = 'Remove account';
+  static const working = 'Removing…';
 
-  static String body(String email) =>
+  /// The dialog's body, with until when the host's backups keep the copies (H8) when the host says.
+  static String body(String email, {String? backupsKeptUntil}) =>
       'myData stops following $email and deletes the contacts and events it copied from it. Nothing in the '
-      'iCloud account changes.';
+      'iCloud account changes.${backupsKeptUntil == null ? '' : ' ${backupsKept(backupsKeptUntil)}'}';
+
+  /// "Copies in your host's backups are kept until 1 October 2027."
+  static String backupsKept(String isoDay) {
+    final d = DateTime.tryParse(isoDay);
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June', //
+      'July', 'August', 'September', 'October', 'November', 'December',
+    ];
+    final day = d == null ? isoDay : '${d.day} ${months[d.month - 1]} ${d.year}';
+    return 'Copies in your host’s backups are kept until $day.';
+  }
+
+  static String failed(String email) =>
+      'myData did not remove $email. The host did not answer. Check that it is running, then try again.';
 }
+
+/// Settings' Dialog for removing a followed account, also used by the import's Done step ("Stop following
+/// ava@example.org?"): [message] says what goes and until when the backups keep it; the Danger button
+/// [confirmLabel] runs [onConfirm], whose failure line keeps the dialog open. True when it was done.
+Future<bool> showRemoveAccountDialog({
+  required BuildContext context,
+  required String title,
+  required String message,
+  required String confirmLabel,
+  required String workingLabel,
+  required Future<String?> Function() onConfirm,
+}) => showMyDataDialog(
+  context: context,
+  builder: (_) => MyDataDialog(
+    title: title,
+    message: message,
+    confirmLabel: confirmLabel,
+    destructive: true,
+    workingLabel: workingLabel,
+    onConfirm: onConfirm,
+  ),
+);

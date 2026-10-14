@@ -474,6 +474,35 @@ void main() {
     });
   });
 
+  testWidgets('removing an account says until when the backups keep its copies (H8)', (tester) async {
+    final account = icloudSource('sam@example.com')..backupsKeptUntil = '2027-10-01';
+    final host = FakeHost(accounts: [account]);
+    await pumpApp(tester, host);
+    await openSettings(tester);
+    await tapVisible(tester, find.text(RemoveAccountText.ask));
+    expect(find.text(RemoveAccountText.body('sam@example.com', backupsKeptUntil: '2027-10-01')), findsOneWidget);
+    expect(find.textContaining('kept until 1 October 2027.'), findsOneWidget);
+  });
+
+  testWidgets('turning This Mac off says until when the backups keep its copies (H8)', (tester) async {
+    final host = FakeHost(mac: macSource()..backupsKeptUntil = '2027-10-01');
+    await pumpApp(tester, host);
+    await openSettings(tester);
+    await tapVisible(tester, find.text(ThisMacText.title));
+    expect(find.text(ThisMacText.offBody('2027-10-01')), findsOneWidget);
+  });
+
+  testWidgets('a removal the host does not answer keeps the dialog open with its line', (tester) async {
+    final host = FakeHost(accounts: [icloudSource('sam@example.com')]);
+    await pumpApp(tester, host);
+    await openSettings(tester);
+    await tapVisible(tester, find.text(RemoveAccountText.ask));
+    host.imports.down = true;
+    await tester.tap(find.text(RemoveAccountText.confirm));
+    await settle(tester);
+    expect(find.text(RemoveAccountText.failed('sam@example.com')), findsOneWidget);
+  });
+
   test('MacChoice sets every field, so nothing is left out by accident', () {
     expect(MacChoice.turn(on: true).toJson(), {'calendars': null, 'contact_containers': null, 'enabled': true});
   });

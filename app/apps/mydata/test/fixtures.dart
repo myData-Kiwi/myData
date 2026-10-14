@@ -194,6 +194,9 @@ class FakeHost {
 
   final requests = <String>[];
 
+  /// The import routes (design/components/ImportFlow), with invented data only.
+  final imports = FakeImports();
+
   late final http.Client client = MockClient(_answer);
 
   /// A controller already connected to this host, as after a successful connect, without its poll timer.
@@ -213,8 +216,16 @@ class FakeHost {
 
   Future<http.Response> _answer(http.Request r) async {
     final path = r.url.path;
-    requests.add('${r.method} $path${r.body.isEmpty ? '' : ' ${r.body}'}');
-    final body = r.body.isEmpty ? null : jsonDecode(r.body) as Map<String, Object?>;
+    final json = (r.headers['content-type'] ?? '').startsWith('application/json');
+    if (json || r.bodyBytes.isEmpty) {
+      requests.add('${r.method} $path${r.body.isEmpty ? '' : ' ${r.body}'}');
+    } else {
+      // A file sent as it is: only its name and size are recorded.
+      requests.add('${r.method} $path?${r.url.query} (${r.bodyBytes.length} bytes)');
+    }
+    final body = !json || r.body.isEmpty ? null : jsonDecode(r.body) as Map<String, Object?>;
+    final imported = await imports.answer(r, path, body, _json);
+    if (imported != null) return imported;
     switch ((r.method, path)) {
       case ('GET', '/status'):
         if (down) return _json({'detail': 'gone'}, 503);
@@ -305,6 +316,7 @@ class FakeHost {
           202,
         );
       case ('DELETE', final p) when p.startsWith('/accounts/'):
+        if (imports.down) throw http.ClientException('the host stopped answering');
         final id = p.substring('/accounts/'.length);
         final a = accounts.firstWhere((a) => a.id == id);
         accounts = [...accounts]..remove(a);
@@ -355,3 +367,256 @@ class FakeLaunchServices {
     links: AppLinks(run: call, macOS: true),
   );
 }
+
+
+typedef JsonAnswer = http.Response Function(Object? body, [int code]);
+
+/// The host's import routes, answered from fields a test sets. A preview is held by its id until it is
+/// discarded or committed, as the host holds it.
+class FakeImports {
+  /// The answer to the next file (POST /import/contacts/preview), by file name; [nextPreview] otherwise.
+  final byName = <String, ImportPreviewOut>{};
+  ImportPreviewOut? nextPreview;
+
+  /// A copy of a followed account, by account id.
+  final byAccount = <String, ImportPreviewOut>{};
+
+  /// The next file is refused with this status and code (H4).
+  (int, String)? refuse;
+
+  /// The host does not answer the import routes (and removing an account).
+  bool down = false;
+
+  /// While set, a file preview waits for it (the host still reading).
+  Completer<void>? previewGate;
+
+  /// Previews held, by id.
+  final held = <String, ImportPreviewOut>{};
+
+  /// GET /import/previews/{id} answers 404 for these (an hour passed, or the host restarted).
+  final gone = <String>{};
+
+  /// The values of a preview's cards (H3), by index.
+  final cards = <int, ImportCardOut>{};
+
+  /// The contacts of myData, for Compare's "In myData".
+  final contacts = <String, ContactDetailOut>{};
+
+  /// The commit's answer, or its refusal.
+  ImportCommittedOut? commitResult;
+  (int, String?)? commitRefusal;
+  Completer<void>? commitGate;
+
+  /// The answer to a preview read again after a refused commit.
+  ImportPreviewOut? afterRefusal;
+
+  /// The history, newest first.
+  List<ImportOut> history = [];
+
+  /// The answer to the next undo, or 409 when [undoConflict].
+  ImportUndoneOut? undoResult;
+  bool undoConflict = false;
+
+  Future<http.Response?> answer(http.Request r, String path, Map<String, Object?>? body, JsonAnswer json) async {
+    final m = r.method;
+    if (!path.startsWith('/import') && !(m == 'GET' && path.startsWith('/contacts/'))) return null;
+    if (down) throw http.ClientException('the host stopped answering');
+    if (m == 'POST' && path == '/import/contacts/preview') {
+      await previewGate?.future;
+      final refusal = refuse;
+      if (refusal != null) {
+        refuse = null;
+        return json({'detail': 'refused', 'code': refusal.$2}, refusal.$1);
+      }
+      final name = r.url.queryParameters['filename'] ?? '';
+      final p = byName[name] ?? nextPreview;
+      if (p == null) return json({'detail': 'No vCard', 'code': 'no_vcard'}, 400);
+      held[p.id] = p;
+      return json(p.toJson(), 201);
+    }
+    final source = RegExp(r'^/import/contacts/from-source/([^/]+)/preview$').firstMatch(path);
+    if (m == 'POST' && source != null) {
+      final p = byAccount[source.group(1)];
+      if (p == null) return json({'detail': 'This Mac is never imported.'}, 409);
+      held[p.id] = p;
+      return json(p.toJson(), 201);
+    }
+    final item = RegExp(r'^/import/previews/([^/]+)/items/(\d+)$').firstMatch(path);
+    if (m == 'GET' && item != null) {
+      final card = cards[int.parse(item.group(2)!)];
+      return card == null ? json({'detail': 'gone'}, 404) : json(card.toJson());
+    }
+    final commit = RegExp(r'^/import/previews/([^/]+)/commit$').firstMatch(path);
+    if (m == 'POST' && commit != null) {
+      await commitGate?.future;
+      final refusal = commitRefusal;
+      if (refusal != null) {
+        commitRefusal = null;
+        if (refusal.$1 == 400 && afterRefusal != null) held[commit.group(1)!] = afterRefusal!;
+        return json({'detail': 'refused', 'code': ?refusal.$2}, refusal.$1);
+      }
+      held.remove(commit.group(1));
+      final out = commitResult!;
+      history = [
+        ImportOut(
+          id: out.id,
+          label: out.label,
+          source_: out.source_,
+          sourceAccount: out.sourceAccount,
+          startedAt: out.startedAt,
+          status: 'committed',
+          counts: out.counts,
+        ),
+        ...history,
+      ];
+      return json(out.toJson(), 201);
+    }
+    final preview = RegExp(r'^/import/previews/([^/]+)$').firstMatch(path);
+    if (preview != null) {
+      final id = preview.group(1)!;
+      if (m == 'DELETE') {
+        held.remove(id);
+        return http.Response('', 204);
+      }
+      final p = held[id];
+      if (p == null || gone.contains(id)) return json({'detail': 'gone'}, 404);
+      return json(p.toJson());
+    }
+    if (m == 'GET' && path == '/imports') return json([for (final i in history) i.toJson()]);
+    final undo = RegExp(r'^/imports/([^/]+)/undo$').firstMatch(path);
+    if (m == 'POST' && undo != null) {
+      final id = undo.group(1)!;
+      final i = history.firstWhere((x) => x.id == id);
+      if (undoConflict || i.status == 'undone') {
+        history = [for (final x in history) x.id == id ? _undone(x) : x];
+        return json({'detail': 'already undone'}, 409);
+      }
+      final u = undoResult!;
+      history = [for (final x in history) x.id == id ? _undone(x) : x];
+      u.summary = history.firstWhere((x) => x.id == id);
+      return json(u.toJson());
+    }
+    final contact = RegExp(r'^/contacts/([^/]+)$').firstMatch(path);
+    if (m == 'GET' && contact != null) {
+      final c = contacts[contact.group(1)];
+      return c == null ? json({'detail': 'gone'}, 404) : json(c.toJson());
+    }
+    return null;
+  }
+
+  ImportOut _undone(ImportOut i) => ImportOut(
+        id: i.id,
+        label: i.label,
+        source_: i.source_,
+        sourceAccount: i.sourceAccount,
+        startedAt: i.startedAt,
+        status: 'undone',
+        undoneAt: '2026-10-15T09:00:00',
+        counts: {
+          ...i.counts,
+          'undo': {'removed': undoResult?.removed ?? 0, 'reverted': undoResult?.reverted ?? 0, 'kept': undoResult?.kept.length ?? 0},
+        },
+      );
+}
+
+/// One card of a preview: [status] with its default [action] and the [choices] it may take.
+ImportItemOut importItem(
+  int index,
+  String name, {
+  String status = 'new',
+  String action = 'import',
+  List<String> choices = const ['import', 'skip'],
+  List<ImportMatchOut> matches = const [],
+  String? reason,
+  String? entry,
+  String kind = 'individual',
+}) => ImportItemOut(
+  index: index,
+  displayName: status == 'skipped' ? '' : name,
+  status: status,
+  action: action,
+  choices: choices,
+  matches: matches,
+  reason: reason,
+  entry: entry,
+  kind: status == 'skipped' ? null : kind,
+);
+
+/// A match with a contact in myData.
+ImportMatchOut ownMatch(String name, {String strength = 'suggestion', List<String> signals = const ['name'], String id = 'c-own'}) =>
+    ImportMatchOut(displayName: name, source_: 'mydata', strength: strength, signals: signals, contactId: id);
+
+/// A preview as the host gives it, its counts worked out from [items] the way the host counts them.
+ImportPreviewOut previewOf(
+  List<ImportItemOut> items, {
+  String id = 'pv-1',
+  String label = 'contacts-2026-10-14.vcf',
+  String source = 'file',
+  String? accountId,
+  List<ImportNoteOut> losses = const [],
+  List<ImportNoteOut> changes = const [],
+  List<ImportMissingOut> missing = const [],
+  int followedMatches = 0,
+  int groups = 0,
+  StopFollowingOut? stopFollowing,
+}) {
+  int n(bool Function(ImportItemOut) f) => items.where(f).length;
+  return ImportPreviewOut(
+    id: id,
+    expiresAt: '2026-10-14T10:00:00Z',
+    source_: source,
+    accountId: accountId,
+    label: label,
+    losses: losses,
+    changes: changes,
+    needsAcceptance: losses.isNotEmpty,
+    missing: missing,
+    stopFollowing: stopFollowing,
+    items: items,
+    counts: ImportCountsOut(
+      cards: items.length,
+      contacts: n((i) => i.status != 'skipped' && i.kind != 'group'),
+      groups: groups,
+      skipped: n((i) => i.status == 'skipped'),
+      new_: n((i) => i.status == 'new'),
+      duplicates: n((i) => i.status == 'duplicate'),
+      inFile: n((i) => i.status == 'in_file'),
+      unchanged: n((i) => i.status == 'unchanged'),
+      updates: n((i) => i.status == 'update'),
+      conflicts: n((i) => i.status == 'conflict'),
+      deleted: n((i) => i.status == 'deleted'),
+      suggestions: n((i) => i.matches.any((m) => m.strength == 'suggestion')),
+      followedMatches: followedMatches,
+      missing: missing.length,
+      toImport: n((i) => i.action == 'import'),
+      toUpdate: n((i) => i.action == 'update'),
+      toLink: n((i) => i.action == 'link'),
+    ),
+  );
+}
+
+/// The host's answer to a commit.
+ImportCommittedOut committed({
+  String id = 'imp-1',
+  String label = 'contacts-2026-10-14.vcf',
+  String source = 'file',
+  String? account,
+  int created = 0,
+  int updated = 0,
+  int linked = 0,
+  int skipped = 0,
+  List<ImportConflictOut> conflicts = const [],
+  List<ImportMissingOut> missing = const [],
+  StopFollowingOut? stopFollowing,
+}) => ImportCommittedOut(
+  id: id,
+  label: label,
+  source_: source,
+  sourceAccount: account,
+  startedAt: '2026-10-14T09:30:00',
+  status: 'committed',
+  counts: {'created': created, 'updated': updated, 'linked': linked, 'skipped': skipped},
+  conflicts: conflicts,
+  missing: missing,
+  stopFollowing: stopFollowing,
+);
