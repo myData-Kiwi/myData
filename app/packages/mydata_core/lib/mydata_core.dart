@@ -10,6 +10,7 @@ export 'src/host_controller.dart';
 export 'src/host_version.g.dart';
 export 'src/appearance.dart';
 export 'src/calendar_visibility.dart';
+export 'src/contact_pair.dart';
 export 'src/incoming_links.dart';
 export 'src/installed_apps.dart';
 export 'src/links.dart';
