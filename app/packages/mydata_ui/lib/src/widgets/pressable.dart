@@ -14,7 +14,9 @@ import '../theme.dart';
 /// - keyboard focus draws a 2px `focus` ring 2px outside the shape given by [borderRadius], in `ink` instead
 ///   when [danger] says the control is already red (design/README.md "Focus and danger");
 /// - [hoverFill], when given, fills the shape while hovered or pressed (rows); controls leave it null;
-/// - disabled: 45% opacity, no focus, no cursor change (the previews' disabled state).
+/// - disabled ([onPressed] null): 45% opacity, no focus, no cursor change (the previews' disabled state);
+/// - disabled with a [disabledReason]: focusable but inert (design/platforms.md "Disabled controls"), for a
+///   control whose reason shows only on demand (an icon button's tooltip, a menu item's caption).
 class Pressable extends StatefulWidget {
   const Pressable({
     super.key,
@@ -31,9 +33,10 @@ class Pressable extends StatefulWidget {
     this.toggled,
     this.tooltip,
     this.danger = false,
+    this.disabledReason,
   });
 
-  /// Null disables the control.
+  /// Null disables the control: out of the Tab order, or focusable but inert with a [disabledReason].
   final VoidCallback? onPressed;
   final Widget child;
   final BorderRadius borderRadius;
@@ -53,6 +56,16 @@ class Pressable extends StatefulWidget {
   /// its focus ring is then `ink`, so it cannot be told apart from the red ([FocusRing.colourOf]).
   final bool danger;
 
+  /// Why the control is disabled, as a full sentence with a full stop ("The host cannot be reached.").
+  ///
+  /// Only read while [onPressed] is null. Given, the disabled control **stays focusable** (design/platforms.md
+  /// "Disabled controls"): Tab and arrow keys reach it and keyboard focus draws the ring, it is announced as
+  /// disabled with the reason as its hint, and pressing, Enter and Space do nothing. It has no hover fill and
+  /// no click cursor. With a [tooltip], the tooltip adds the reason on a second line in `ink-muted`, appears
+  /// at once on keyboard focus, and on hover as usual. Leave it null where the reason is visible text next to
+  /// the control (a help line or caption): the control then leaves the Tab order.
+  final String? disabledReason;
+
   /// Opacity of a disabled control.
   static const disabledOpacity = 0.45;
 
@@ -65,7 +78,23 @@ class _PressableState extends State<Pressable> {
   bool _hovered = false;
   bool _focused = false;
 
+  final _tooltipKey = GlobalKey<TooltipState>();
+
   bool get _enabled => widget.onPressed != null;
+
+  /// Disabled, but focusable because its reason shows only on demand.
+  bool get _inert => !_enabled && widget.disabledReason != null;
+
+  void _focusHighlight(bool visible) {
+    setState(() => _focused = visible);
+    if (!_inert || widget.tooltip == null) return;
+    // The reason is in the tooltip: keyboard focus shows it at once, and leaving takes it away.
+    if (visible) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _tooltipKey.currentState?.ensureTooltipVisible());
+    } else {
+      Tooltip.dismissAllToolTips();
+    }
+  }
 
   void _activate() {
     if (!_enabled) return;
@@ -111,13 +140,13 @@ class _PressableState extends State<Pressable> {
           : body,
     );
     body = CustomPaint(
-      foregroundPainter: _focused && _enabled
+      foregroundPainter: _focused && (_enabled || _inert)
           ? _FocusRingPainter(FocusRing.colourOf(c, danger: widget.danger), widget.borderRadius)
           : null,
       child: body,
     );
     body = FocusableActionDetector(
-      enabled: _enabled,
+      enabled: _enabled || _inert,
       focusNode: widget.focusNode,
       autofocus: widget.autofocus,
       mouseCursor: _enabled ? SystemMouseCursors.click : MouseCursor.defer,
@@ -127,7 +156,7 @@ class _PressableState extends State<Pressable> {
         SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
       },
       actions: {ActivateIntent: CallbackAction<ActivateIntent>(onInvoke: (_) => _activate())},
-      onShowFocusHighlight: (v) => setState(() => _focused = v),
+      onShowFocusHighlight: _focusHighlight,
       onShowHoverHighlight: (v) => setState(() => _hovered = v),
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
@@ -143,10 +172,25 @@ class _PressableState extends State<Pressable> {
       enabled: _enabled,
       selected: widget.selected,
       toggled: widget.toggled,
-      label: widget.semanticLabel,
+      label: widget.semanticLabel ?? (_inert ? widget.tooltip : null),
+      hint: _inert ? widget.disabledReason : null,
       child: body,
     );
-    if (widget.tooltip != null) body = Tooltip(message: widget.tooltip!, child: body);
+    final tooltip = widget.tooltip;
+    if (tooltip != null && _inert) {
+      // The name, then the reason on its own line in full `ink-muted` (not faded with the control). Screen
+      // readers hear the name and the reason through the Semantics above, once.
+      body = Tooltip(
+        key: _tooltipKey,
+        excludeFromSemantics: true,
+        richMessage: TextSpan(text: tooltip, children: [
+          TextSpan(text: '\n${widget.disabledReason}', style: TextStyle(color: c.inkMuted)),
+        ]),
+        child: body,
+      );
+    } else if (tooltip != null) {
+      body = Tooltip(key: _tooltipKey, message: tooltip, child: body);
+    }
     return body;
   }
 }
