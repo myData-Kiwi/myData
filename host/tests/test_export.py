@@ -347,3 +347,45 @@ def test_the_export_command_writes_vcard_4_or_the_raw_text(full_home, tmp_path):
                        env=env, capture_output=True, text=True, timeout=60)
     assert r.returncode == 0 and "(the stored text as it is)" in r.stdout
     assert json.loads((tmp_path / "raw" / "export.json").read_text())["style"] == "raw"
+
+
+def _custom_zone(uid: str, tzid_line: str, tzid_param: str, offset: str) -> str:
+    return ("BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Example Corp//Outlook-like//EN\r\nBEGIN:VTIMEZONE\r\n"
+            f"{tzid_line}\r\nBEGIN:STANDARD\r\nDTSTART:16010101T000000\r\nTZOFFSETFROM:{offset}\r\n"
+            f"TZOFFSETTO:{offset}\r\nEND:STANDARD\r\nEND:VTIMEZONE\r\nBEGIN:VEVENT\r\nUID:{uid}\r\n"
+            f"DTSTAMP:20260101T000000Z\r\nDTSTART;TZID={tzid_param}:20261102T090000\r\nSUMMARY:Call\r\nEND:VEVENT\r\n"
+            "END:VCALENDAR\r\n")
+
+
+def _starts(text: str) -> list[str]:
+    window = (datetime(2026, 1, 1, tzinfo=timezone.utc), datetime(2027, 1, 1, tzinfo=timezone.utc))
+    return sorted((str(o["UID"]), o["DTSTART"].dt.astimezone(timezone.utc).isoformat())
+                  for o in recurring_ical_events.of(icalendar.Calendar.from_ical(text)).between(*window))
+
+
+def test_a_vtimezone_whose_tzid_is_escaped_defines_the_zone_its_events_name():
+    from mydata.sources.export import clean_calendar
+
+    escaped = _custom_zone("a@example.org", r"TZID:(UTC+01:00) Amsterdam\, Berlin",
+                           '"(UTC+01:00) Amsterdam, Berlin"', "+0100")
+    plain = _custom_zone("b@example.org", "TZID:(UTC+01:00) Amsterdam, Berlin", '"(UTC+01:00) Amsterdam, Berlin"',
+                         "+0100")
+    text, added, unknown = clean_calendar([escaped, plain], "Work")
+    assert unknown == [] and added == [] and text.count("BEGIN:VTIMEZONE") == 1
+
+
+def test_two_custom_zones_with_one_name_stay_two_zones():
+    first = _custom_zone("a@example.org", "TZID:Customized Time Zone", '"Customized Time Zone"', "+0530")
+    second = _custom_zone("b@example.org", "TZID:Customized Time Zone", '"Customized Time Zone"', "-0300")
+    again = _custom_zone("c@example.org", "TZID:Customized Time Zone", '"Customized Time Zone"', "-0300")
+    merged = merge_calendar([first, second, again], "Work")
+    assert merged.count("BEGIN:VTIMEZONE") == 2 and "TZID:Customized Time Zone (2)\r\n" in merged
+    # each event at 09:00 in its own zone (icalendar keeps one zone per TZID per process, so each resource's own
+    # reading is not a fair reference)
+    assert _starts(merged) == [("a@example.org", "2026-11-02T03:30:00+00:00"),
+                               ("b@example.org", "2026-11-02T12:00:00+00:00"),
+                               ("c@example.org", "2026-11-02T12:00:00+00:00")]
+    # a zone's own name: the same zone written twice, kept once
+    nz = [_custom_zone(u, "TZID:Pacific/Auckland", "Pacific/Auckland", off) for u, off in (("d@example.org", "+1300"),
+                                                                                            ("e@example.org", "+1200"))]
+    assert merge_calendar(nz, "Home").count("BEGIN:VTIMEZONE") == 1

@@ -1259,7 +1259,7 @@ def defined_tzids(text: str) -> list[str]:
             inside = True
         elif prop.key == "END" and prop.value.strip().upper() == "VTIMEZONE":
             inside = False
-        elif inside and prop.key == "TZID" and prop.value.strip() not in out:
-            out.append(prop.value.strip())
+        elif inside and prop.key == "TZID" and unescape_text(prop.value).strip() not in out:
+            out.append(unescape_text(prop.value).strip())  # a writer may escape its commas
     return out
 

@@ -44,7 +44,7 @@ from . import ical_edit
 from .mac import MAC_ID
 from .owned import OWNED_ACCOUNT
 from .vcard import card_kind
-from .vcard_edit import VCardError, convert
+from .vcard_edit import VCardError, convert, escape_text, fold, parse_line, unescape_text
 
 PRODID = "-//myData//raw export//EN"
 STYLES = ("clean", "raw")
@@ -116,8 +116,60 @@ def _tzid(component: list[str]) -> str | None:
                 if cont[:1] not in (" ", "\t"):
                     break
                 value += cont[1:]
-            return value.split(":", 1)[1].strip()
+            return unescape_text(value.split(":", 1)[1]).strip()  # a writer may escape its commas
     return None
+
+
+def _zone_rules(component: list[str]) -> tuple:
+    """What a VTIMEZONE says about its zone: its STANDARD and DAYLIGHT parts' offsets, starts and rules, in
+    any order and whatever else they carry (TZNAME, LAST-MODIFIED)."""
+    parts, current = [], None
+    for line in _logical(component):
+        upper = line.upper()
+        if upper in ("BEGIN:STANDARD", "BEGIN:DAYLIGHT"):
+            current = [upper]
+        elif upper in ("END:STANDARD", "END:DAYLIGHT") and current is not None:
+            parts.append(tuple(sorted(current)))
+            current = None
+        elif current is not None and re.match(r"(TZOFFSETFROM|TZOFFSETTO|DTSTART|RRULE|RDATE)[;:]", upper):
+            current.append(upper.replace(" ", ""))
+    return tuple(sorted(parts))
+
+
+def _logical(component: list[str]) -> list[str]:
+    """A component's lines unfolded."""
+    out: list[str] = []
+    for line in component:
+        if line[:1] in (" ", "\t") and out:
+            out[-1] += line[1:]
+        else:
+            out.append(line)
+    return out
+
+
+def _rename_tzid(component: list[str], old: str, new: str) -> list[str]:
+    """The component with every reference to TZID `old` (a TZID parameter, or a VTIMEZONE's own TZID) made
+    `new`; the lines that do not name it are kept as they are."""
+    out: list[str] = []
+    for i, line in enumerate(component):
+        if line[:1] in (" ", "\t"):
+            continue
+        group = [line]
+        for cont in component[i + 1:]:
+            if cont[:1] not in (" ", "\t"):
+                break
+            group.append(cont)
+        prop = parse_line(group[0] + "".join(c[1:] for c in group[1:]))
+        changed = False
+        if prop is not None and prop.key == "TZID" and unescape_text(prop.value).strip() == old:
+            prop.value, changed = escape_text(new), True
+        elif prop is not None:
+            for n, values in prop.params:
+                if n is not None and n.upper() == "TZID" and old in values:
+                    values[:] = [new if v == old else v for v in values]
+                    changed = True
+        out += fold(prop.render()).rstrip("\r\n").split("\r\n") if changed else group
+    return out
 
 
 def _escape(text: str) -> str:
@@ -140,11 +192,28 @@ def _fold(line: str) -> list[str]:
 
 def merge_calendar(raws: list[str], name: str) -> str:
     """One VCALENDAR holding every component of the stored resources: each VTIMEZONE once (the first seen
-    for its TZID), then everything else in order."""
+    for its TZID), then everything else in order. Two VTIMEZONEs with one TZID that is no zone's name
+    (Outlook calls every custom zone "Customized Time Zone") and different rules are two zones: the later
+    one is renamed ("Customized Time Zone (2)") in its own resource, so its events keep their offsets. With
+    a zone's name (an IANA or Windows one) the first is kept: it is the same zone, written differently."""
     zones: dict[str, list[str]] = {}
     others: list[list[str]] = []
     for raw in raws:
-        for comp in components(raw):
+        comps = components(raw)
+        renames: dict[str, str] = {}
+        for comp in comps:
+            tzid = _tzid(comp) if _kind(comp) == "VTIMEZONE" else None
+            if tzid is not None and tzid in zones and ical_edit.iana_zone(tzid) is None and \
+                    _zone_rules(zones[tzid]) != _zone_rules(comp):
+                same = next((t for t, z in zones.items() if t.startswith(tzid) and _zone_rules(z) == _zone_rules(comp)),
+                            None)
+                n = 2
+                while same is None and f"{tzid} ({n})" in zones:
+                    n += 1
+                renames[tzid] = same or f"{tzid} ({n})"
+        for comp in comps:
+            for old, new in renames.items():
+                comp = _rename_tzid(comp, old, new)
             if _kind(comp) == "VTIMEZONE":
                 tzid = _tzid(comp)
                 if tzid is not None and tzid not in zones:
