@@ -1,0 +1,243 @@
+<!-- @dsCard group="Content" height=3760 -->
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700&family=Figtree:wght@400;600&family=JetBrains+Mono&display=swap">
+<style>
+body{margin:0;padding:24px;background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:22px}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.btn{height:44px;padding:0 22px;border-radius:var(--radius-control);font:600 15px/1 var(--font-body);border:0;cursor:pointer;white-space:nowrap}
+.primary{background:var(--accent);color:var(--on-accent)}
+.tonal{background:var(--accent-soft);color:var(--accent)}
+.plain{background:transparent;color:var(--accent)}
+.btn:active{opacity:.85;transform:scale(.97)}
+.fr{outline:2px solid var(--focus);outline-offset:2px}
+.card{background:var(--surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-1)}
+.cap{font-size:13px;line-height:18px;color:var(--ink-muted)}
+.lbl{font:600 13px/18px var(--font-body);color:var(--ink-muted);margin:0 0 8px 8px}
+.stage{margin-bottom:32px}
+.av{width:36px;height:36px;border-radius:var(--radius-pill);background:var(--kiwi-wash);color:var(--ink);display:flex;align-items:center;justify-content:center;flex:none;font:600 15px/22px var(--font-body)}
+svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex:none}
+/* App window: sidebar, list, pane. */
+.win{display:flex;width:1280px;max-width:100%;height:840px;border-radius:var(--radius-lg);overflow:hidden;background:var(--bg);box-shadow:var(--shadow-1)}
+.side{width:var(--sidebar-width);flex:none;background:var(--surface);padding:20px 12px;box-sizing:border-box;display:flex;flex-direction:column}
+.side h2{font:700 22px/28px var(--font-display);margin:4px 8px 16px}
+.nav{display:flex;align-items:center;gap:12px;height:44px;padding:0 12px;border-radius:var(--radius-sm);color:var(--ink)}
+.nav.cur{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.nav .n{margin-left:auto;font-size:13px;color:var(--ink-muted);font-weight:400}
+.conn{margin-top:auto;font-size:13px;color:var(--ink-muted);padding:0 8px;display:flex;gap:8px;align-items:center}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--brand)}
+.list{width:260px;flex:none;padding:20px 16px;box-sizing:border-box;overflow:hidden}
+.gh{font:600 13px/18px var(--font-body);color:var(--ink-muted);margin:0 0 8px 8px}
+.g{overflow:hidden}.g>:first-child{border-top:0}
+.r{display:flex;gap:12px;align-items:center;min-height:56px;box-sizing:border-box;padding:8px 16px;border-top:1px solid var(--line)}
+.r .txt{flex:1;min-width:0}.t{font-weight:600;display:block}
+.r.sel{background:var(--accent-soft);box-shadow:inset 0 0 0 2px var(--ink)}
+.pane{flex:1;min-width:0;padding:20px 24px;overflow:hidden}
+h3.pt{font:700 34px/40px var(--font-display);letter-spacing:-0.02em;margin:4px 0 4px}
+.sub{color:var(--ink-muted);margin:0 0 16px}
+/* The pair: one card, a grid per row so a differing row can carry its band. */
+.dp{padding:8px 12px}
+.dr{display:grid;grid-template-columns:84px repeat(var(--cols),minmax(0,1fr));column-gap:12px;padding:10px 8px;border-radius:var(--radius-sm);align-items:start}
+.dr.hd{border-bottom:1px solid var(--line);border-radius:0;padding-bottom:12px;margin-bottom:4px;align-items:center}
+.dr.diff{background:var(--surface-sunken)}
+.dr+.dr{margin-top:2px}
+.fl{font:600 13px/18px var(--font-body);color:var(--ink-muted);padding-top:2px}
+.fl .df{display:block;font-weight:600;color:var(--ink)}
+.who{display:flex;gap:10px;align-items:center;min-width:0}
+.who .t{font-size:15px}
+.v{min-width:0;overflow-wrap:anywhere}
+.v .k{font-size:13px;color:var(--ink-muted);margin-right:6px}
+.none{color:var(--ink-muted)}
+.res .v{font-weight:400}
+.colh{font:600 13px/18px var(--font-body);color:var(--ink)}
+.sel-f{height:44px;width:100%;display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);padding:0 var(--space-3) 0 var(--space-3);box-sizing:border-box;border:1px solid var(--line-strong);border-radius:var(--radius-md);background:var(--surface);color:var(--ink);font:400 15px var(--font-body);cursor:pointer;text-align:left}
+.sel-f span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sel-f svg{color:var(--ink-muted)}
+.acts{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;flex-wrap:wrap}
+.more{margin:4px 0 0 8px}
+.more .btn{padding:0 12px}
+.keep{display:flex;align-items:center;gap:12px;margin:0 0 12px;flex-wrap:wrap}
+.keep .kl{font:600 13px/18px var(--font-body);color:var(--ink)}
+.keep .sel-f{width:260px}
+.lo{display:block;font-size:13px;line-height:18px;color:var(--ink-muted)}
+.note{margin:8px 0 0 8px}
+/* Notice */
+.nt{display:flex;gap:12px;align-items:center;padding:12px 16px;border-radius:var(--radius-md);background:var(--surface-sunken);box-sizing:border-box}
+.nt p{flex:1;min-width:0;margin:0}
+.nt .btn{flex:none;margin:-8px -8px -8px 0}
+.nt .ii{color:var(--info)}
+.row2{display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start}
+/* Phone */
+.phone{position:relative;width:375px;height:700px;border-radius:var(--radius-lg);overflow:hidden;background:var(--bg);box-shadow:var(--shadow-1);display:flex;flex-direction:column}
+.phone .top{padding:12px 16px 0}
+.phone h3.pt{font-size:28px;line-height:34px}
+.seg{display:flex;padding:4px;gap:2px;border-radius:var(--radius-pill);background:var(--surface-sunken);margin:8px 0 12px}
+.seg button{flex:1;min-width:0;height:36px;padding:0 8px;border:0;border-radius:var(--radius-pill);background:transparent;color:var(--ink-muted);font:400 15px/1 var(--font-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:var(--shadow-1)}
+.phone .body{flex:1;overflow:hidden;padding:0 16px;font-size:16px}
+.phone .dr{grid-template-columns:96px 1fr}
+.phone .bar{padding:12px 16px 20px;display:flex;flex-direction:column;gap:8px;background:var(--bg)}
+.phone .bar .btn{width:100%;font-size:16px}
+/* Toast */
+.toast{display:inline-flex;align-items:center;gap:16px;background:var(--surface-raised);border-radius:var(--radius-xl);box-shadow:var(--shadow-2);padding:8px 8px 8px 20px}
+.empty{display:flex;flex-direction:column;align-items:center;text-align:center;justify-content:center;height:100%;max-width:400px;margin:0 auto}
+.empty h3{font:700 22px/28px var(--font-display);margin:0 0 8px}
+.empty p{margin:0;color:var(--ink-muted)}
+.mini{width:600px;height:300px}
+.ch{font:700 34px/40px var(--font-display);letter-spacing:-0.02em;margin:0}
+.chh{display:flex;gap:20px;align-items:center;margin-bottom:24px}
+.chh .av{width:96px;height:96px;font-size:30px}
+.fr2{display:flex;gap:16px;padding:12px 16px;border-top:1px solid var(--line)}
+.fr2 .k{width:80px;flex:none;color:var(--ink-muted);font-size:13px;padding-top:2px}
+</style></head><body>
+
+<div class="stage">
+<p class="lbl">Merge, in myContacts' Review section (built after host gaps H6a and H7; "After merging" is the merge preview, H6c). Single values come from the contact chosen in the Select; a different one is shown as left out; lists are joined</p>
+<div class="win">
+<nav class="side" aria-label="myContacts">
+<h2>myContacts</h2>
+<div class="nav"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"></circle><path d="M3 19c.8-3.2 3.3-5 6-5s5.2 1.8 6 5"></path><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14c1.6.6 2.7 2.3 3 5"></path></svg>Contacts</div>
+<div class="nav"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4.5h6V7M6 7l1 13h10l1-13"></path></svg>Recently deleted</div>
+<div class="nav cur" aria-current="page"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="7.5" height="14" rx="2"></rect><rect x="13.5" y="5" width="7.5" height="14" rx="2"></rect></svg>Review<span class="n" aria-label="4 to review">4</span></div>
+<div class="conn"><span class="dot"></span>Connected to your host</div>
+</nav>
+<div class="list" aria-label="To review">
+<p class="gh">Possible duplicates (3)</p>
+<div class="card g">
+<div class="r sel" aria-current="true"><span class="txt"><span class="t">Ava Fictional and Ava M. Fictional</span><span class="cap">Same email: ava@example.org</span></span></div>
+<div class="r"><span class="txt"><span class="t">Ben Sample and Ben Sample</span><span class="cap">Same phone: 555-0142</span></span></div>
+<div class="r"><span class="txt"><span class="t">Cleo Example and Cleo Example</span><span class="cap">Same name</span></span></div>
+</div>
+<p class="gh" style="margin-top:20px">Changed since import (1)</p>
+<div class="card g">
+<div class="r"><span class="txt"><span class="t">Dev Placeholder</span><span class="cap">Changed in the iCloud account ava@example.org</span></span></div>
+</div>
+</div>
+<section class="pane" aria-labelledby="m1">
+<h3 class="pt" id="m1">Same person?</h3>
+<p class="sub">They share an email address.</p>
+<div class="keep"><span class="kl" id="kl">Keep the name and details of</span><button class="sel-f fr" type="button" aria-haspopup="listbox" aria-label="Keep the name and details of, Ava M. Fictional"><span>Ava M. Fictional</span><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9.5l4-4 4 4M8 14.5l4 4 4-4"></path></svg></button></div>
+<div class="card dp" role="table" aria-label="Ava Fictional and Ava M. Fictional" style="--cols:3">
+<div class="dr hd" role="row"><span role="columnheader"></span>
+<div class="who" role="columnheader"><span class="av" aria-hidden="true">AF</span><span><span class="t">Ava Fictional</span><span class="cap">Added 2 Oct 2026</span></span></div>
+<div class="who" role="columnheader"><span class="av" aria-hidden="true">AF</span><span><span class="t">Ava M. Fictional</span><span class="cap">Imported 14 Oct 2026</span></span></div>
+<div role="columnheader"><span class="colh">After merging</span><span class="cap" style="display:block">A new contact. These two go to Recently deleted</span></div></div>
+<div class="dr diff" role="row"><span class="fl" role="rowheader">Name<span class="df">Differs</span></span><span class="v">Ava Fictional</span><span class="v">Ava M. Fictional</span><span class="v">Ava M. Fictional<span class="lo">Left out: Ava Fictional</span></span></div>
+<div class="dr" role="row"><span class="fl" role="rowheader">Company</span><span class="v">Example Labs</span><span class="v">Example Labs</span><span class="v">Example Labs</span></div>
+<div class="dr diff" role="row"><span class="fl" role="rowheader">Phone<span class="df">Differs</span></span><span class="v"><span class="k">mobile</span>555-0142</span><span class="v"><span class="k">mobile</span>555-0142<br><span class="k">work</span>555-0177</span><span class="v"><span class="k">mobile</span>555-0142<br><span class="k">work</span>555-0177</span></div>
+<div class="dr" role="row"><span class="fl" role="rowheader">Email</span><span class="v"><span class="k">home</span>ava@example.org</span><span class="v"><span class="k">home</span>ava@example.org</span><span class="v"><span class="k">home</span>ava@example.org</span></div>
+<div class="dr diff" role="row"><span class="fl" role="rowheader">Address<span class="df">Differs</span></span><span class="v none">None</span><span class="v"><span class="k">home</span>1 Example Street, Sampletown</span><span class="v"><span class="k">home</span>1 Example Street, Sampletown</span></div>
+<div class="dr diff" role="row"><span class="fl" role="rowheader">Birthday<span class="df">Differs</span></span><span class="v">18 March</span><span class="v">18 March 1990</span><span class="v">18 March 1990<span class="lo">Left out: 18 March</span></span></div>
+<div class="dr diff" role="row"><span class="fl" role="rowheader">Notes<span class="df">Differs</span></span><span class="v none">None</span><span class="v">Met at the example.org meetup.</span><span class="v">Met at the example.org meetup.</span></div>
+</div>
+<p class="cap note">What is left out stays with the originals in Recently deleted for 30 days.</p>
+<div class="acts"><button class="btn plain" type="button">Not the same person</button><button class="btn primary" type="button">Merge</button></div>
+</section>
+</div>
+</div>
+
+<div class="stage row2">
+<div>
+<p class="lbl">Compare, read-only, in myData's import review (differences only; needs host gap H3)</p>
+<div class="card" style="width:600px;padding:4px 0 8px">
+<div class="r" style="border-top:0"><span style="width:36px;display:flex;justify-content:center"><span style="width:20px;height:20px;border-radius:var(--radius-xs);background:var(--accent);display:flex;align-items:center;justify-content:center;color:var(--on-accent)"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 12.5l3.5 3.5 7.5-8"></path></svg></span></span><span class="txt"><span class="t">Ben Sample</span><span class="cap">Same name as Ben Sample in myData.</span></span><button class="btn plain" type="button" aria-expanded="true">Hide comparison</button></div>
+<div class="dp" role="table" aria-label="Ben Sample, in the file and in myData" style="--cols:2;padding:0 16px">
+<div class="dr hd" role="row"><span role="columnheader"></span><div role="columnheader"><span class="colh">In the file</span></div><div role="columnheader"><span class="colh">In myData</span><span class="cap" style="display:block">Added 2 Oct 2026</span></div></div>
+<div class="dr diff" role="row"><span class="fl" role="rowheader">Phone<span class="df">Differs</span></span><span class="v"><span class="k">mobile</span>555-0188</span><span class="v"><span class="k">mobile</span>555-0142</span></div>
+<div class="dr diff" role="row"><span class="fl" role="rowheader">Email<span class="df">Differs</span></span><span class="v"><span class="k">work</span>ben@example.org</span><span class="v none">None</span></div>
+</div>
+<div class="more"><button class="btn plain" type="button">Show all fields</button></div>
+</div>
+</div>
+
+<div>
+<p class="lbl">Changes: a contact that changed in a followed account after the import (needs host gap H7)</p>
+<div class="card" style="width:600px;padding:16px 0 16px">
+<div style="padding:0 20px"><h3 class="pt" style="font-size:28px;line-height:34px;margin:0">Changed in iCloud</h3><p class="sub" style="margin:4px 0 8px">Dev Placeholder changed in the iCloud account ava@example.org since you imported it.</p></div>
+<div class="dp" role="table" aria-label="Dev Placeholder, in myData and in iCloud" style="--cols:3;padding:0 12px">
+<div class="dr hd" role="row"><span role="columnheader"></span><div role="columnheader"><span class="colh">In myData</span></div><div role="columnheader"><span class="colh">In iCloud now</span></div><div role="columnheader"><span class="colh">After</span></div></div>
+<div class="dr diff" role="row"><span class="fl" role="rowheader">Job title<span class="df">Differs</span></span><span class="v">Analyst</span><span class="v">Lead analyst</span><span class="v res"><button class="sel-f" type="button" aria-haspopup="listbox" aria-label="Job title to keep, Lead analyst"><span>Lead analyst</span><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9.5l4-4 4 4M8 14.5l4 4 4-4"></path></svg></button></span></div>
+<div class="dr diff" role="row"><span class="fl" role="rowheader">Phone<span class="df">Differs</span></span><span class="v"><span class="k">mobile</span>555-0161</span><span class="v"><span class="k">mobile</span>555-0161<br><span class="k">home</span>555-0119</span><span class="v"><span class="k">mobile</span>555-0161<br><span class="k">home</span>555-0119</span></div>
+</div>
+<div class="more" style="margin-left:20px"><button class="btn plain" type="button">Show all fields</button></div>
+<div class="acts" style="padding:0 20px;margin-top:8px"><button class="btn plain" type="button">Keep mine</button><button class="btn primary" type="button">Save changes</button></div>
+</div>
+</div>
+</div>
+
+<div class="stage row2">
+<div>
+<p class="lbl">The contact page's flag, between the header and the fields: today's host gives the flag only, so no Review button until H7</p>
+<div class="card" style="width:600px;padding:24px;box-sizing:border-box;background:var(--bg);box-shadow:var(--shadow-1)">
+<div class="chh"><span class="av" aria-hidden="true">DP</span><div><p class="ch">Dev Placeholder</p><p class="sub" style="margin:4px 0 0">Analyst, Example Labs</p><p class="cap" style="margin:4px 0 0">On myData only, not on your phone yet.</p></div></div>
+<div class="nt" role="status"><svg class="i ii" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5.5M12 7.5v.5"></path></svg><p>This contact changed in the iCloud account ava@example.org after you imported it. Its changes are not shown here yet; you can see them in Contacts on your Mac or iPhone.</p></div>
+<div class="card g" style="margin-top:16px"><div class="fr2" style="border-top:0"><span class="k">mobile</span><span>555-0161</span></div><div class="fr2"><span class="k">work</span><span>dev@example.org</span></div></div>
+</div>
+</div>
+<div>
+<p class="lbl">After Merge: the toast, with Undo, naming what the host left out</p>
+<div style="width:600px;height:120px;border-radius:var(--radius-lg);background:var(--bg);display:flex;align-items:flex-end;justify-content:center;padding-bottom:24px;box-sizing:border-box;box-shadow:var(--shadow-1)">
+<div class="toast" role="status"><span>Contacts merged. 1 birthday was left out.</span><button class="btn tonal" type="button">Undo</button></div>
+</div>
+<p class="lbl" style="margin-top:24px">Nothing to review: no kiwi, no button</p>
+<div class="card mini" style="background:var(--bg)">
+<div class="empty"><h3>Nothing to review</h3><p>When two contacts look like the same person, or a contact changes in an account myData follows, it shows here.</p></div>
+</div>
+</div>
+</div>
+
+<div class="stage row2">
+<div>
+<p class="lbl">Under 600px: the versions in segments; "Differs" in every segment</p>
+<div class="phone">
+<div class="top"><h3 class="pt">Same person?</h3>
+<div class="keep" style="margin:8px 0 0"><button class="sel-f" style="width:100%" type="button" aria-haspopup="listbox" aria-label="Keep the name and details of, Ava M. Fictional"><span>Ava M. Fictional</span><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9.5l4-4 4 4M8 14.5l4 4 4-4"></path></svg></button></div>
+<div class="seg" role="group" aria-label="Version"><button type="button" aria-pressed="false">Ava Fictional</button><button type="button" aria-pressed="false">Ava M. Fictional</button><button type="button" aria-pressed="true">After merging</button></div></div>
+<div class="body">
+<div class="card dp" style="--cols:1">
+<div class="dr diff"><span class="fl">Name<span class="df">Differs</span></span><span class="v">Ava M. Fictional<span class="lo">Left out: Ava Fictional</span></span></div>
+<div class="dr"><span class="fl">Company</span><span class="v">Example Labs</span></div>
+<div class="dr diff"><span class="fl">Phone<span class="df">Differs</span></span><span class="v"><span class="k">mobile</span>555-0142<br><span class="k">work</span>555-0177</span></div>
+<div class="dr"><span class="fl">Email</span><span class="v"><span class="k">home</span>ava@example.org</span></div>
+<div class="dr diff"><span class="fl">Address<span class="df">Differs</span></span><span class="v"><span class="k">home</span>1 Example Street, Sampletown</span></div>
+<div class="dr diff"><span class="fl">Birthday<span class="df">Differs</span></span><span class="v">18 March 1990<span class="lo">Left out: 18 March</span></span></div>
+</div>
+</div>
+<div class="bar"><button class="btn primary" type="button">Merge</button><button class="btn plain" type="button">Not the same person</button></div>
+</div>
+</div>
+<div>
+<p class="lbl">Failed, and changed while looking</p>
+<div class="card" style="width:600px;padding:20px;box-sizing:border-box">
+<p style="margin:0;color:var(--danger)" role="alert">The contacts were not merged. The host did not answer. Check that it is running, then try again.</p>
+<div class="acts"><button class="btn plain" type="button">Not the same person</button><button class="btn primary fr" type="button">Merge</button></div>
+</div>
+<div class="card" style="width:600px;padding:20px;box-sizing:border-box;margin-top:16px">
+<p style="margin:0">Ben Sample changed while you were looking. This is the new version.</p>
+<div class="acts"><button class="btn plain" type="button">Not the same person</button><button class="btn primary" type="button">Merge</button></div>
+</div>
+</div>
+</div>
+
+<div class="stage">
+<p class="lbl">Merge from a multi-selection in Contacts (Edit &gt; Merge Contacts…): built first, with the merge preview (H6c) that fills "After merging". The default keeps the contact changed most recently</p>
+<div class="card" style="width:820px;max-width:100%;padding:20px 24px;box-sizing:border-box">
+<h3 class="pt" style="margin:0" tabindex="-1">Merge 2 contacts?</h3>
+<p class="sub" style="margin:4px 0 12px">Ava Fictional and Ava M. Fictional are owned by myData.</p>
+<div class="keep"><span class="kl">Keep the name and details of</span><button class="sel-f fr" type="button" aria-haspopup="listbox" aria-label="Keep the name and details of, Ava M. Fictional"><span>Ava M. Fictional</span><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9.5l4-4 4 4M8 14.5l4 4 4-4"></path></svg></button></div>
+<div class="dp" role="table" aria-label="Ava Fictional and Ava M. Fictional" style="--cols:3;padding:0">
+<div class="dr hd" role="row"><span role="columnheader"></span>
+<div class="who" role="columnheader"><span class="av" aria-hidden="true">AF</span><span><span class="t">Ava Fictional</span><span class="cap">Added 2 Oct 2026</span></span></div>
+<div class="who" role="columnheader"><span class="av" aria-hidden="true">AF</span><span><span class="t">Ava M. Fictional</span><span class="cap">Imported 14 Oct 2026</span></span></div>
+<div role="columnheader"><span class="colh">After merging</span><span class="cap" style="display:block">A new contact. These two go to Recently deleted</span></div></div>
+<div class="dr diff" role="row"><span class="fl" role="rowheader">Name<span class="df">Differs</span></span><span class="v" role="cell">Ava Fictional</span><span class="v" role="cell">Ava M. Fictional</span><span class="v" role="cell">Ava M. Fictional<span class="lo">Left out: Ava Fictional</span></span></div>
+<div class="dr diff" role="row"><span class="fl" role="rowheader">Phone<span class="df">Differs</span></span><span class="v" role="cell"><span class="k">mobile</span>555-0142</span><span class="v" role="cell"><span class="k">mobile</span>555-0142<br><span class="k">work</span>555-0177</span><span class="v" role="cell"><span class="k">mobile</span>555-0142<br><span class="k">work</span>555-0177</span></div>
+<div class="dr" role="row"><span class="fl" role="rowheader">Email</span><span class="v" role="cell"><span class="k">home</span>ava@example.org</span><span class="v" role="cell"><span class="k">home</span>ava@example.org</span><span class="v" role="cell"><span class="k">home</span>ava@example.org</span></div>
+<div class="dr diff" role="row"><span class="fl" role="rowheader">Birthday<span class="df">Differs</span></span><span class="v" role="cell">18 March</span><span class="v" role="cell">18 March 1990</span><span class="v" role="cell">18 March 1990<span class="lo">Left out: 18 March</span></span></div>
+</div>
+<p class="cap note">What is left out stays with the originals in Recently deleted for 30 days.</p>
+<div class="acts"><button class="btn plain" type="button">Cancel</button><button class="btn primary" type="button">Merge</button></div>
+</div>
+</div>
+
+</body></html>
