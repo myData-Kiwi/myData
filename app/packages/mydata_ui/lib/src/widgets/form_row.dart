@@ -512,8 +512,24 @@ class _RepeatableFormGroupState<K> extends State<RepeatableFormGroup<K>> with Ti
         child: row,
       );
       item = FadeTransition(opacity: curved, child: item);
-      // With reduced motion the rows only fade, and the form jumps to its new height.
-      if (!reduced) item = SizeTransition(sizeFactor: curved, alignment: Alignment.topCenter, child: item);
+      // With reduced motion the rows only fade, and the form jumps to its new height. A row at rest is not
+      // clipped, so its fields' focus rings (2px outside them) show whole. The tree keeps one shape
+      // throughout, so the row's fields keep their state (and focus) when the motion ends.
+      item = AnimatedBuilder(
+        animation: curved,
+        child: item,
+        builder: (context, child) {
+          final moving = !reduced && (r.leaving || r.controller.value < 1);
+          return ClipRect(
+            clipBehavior: moving ? Clip.hardEdge : Clip.none,
+            child: Align(
+              alignment: Alignment.topCenter,
+              heightFactor: moving ? curved.value.clamp(0.0, 1.0) : 1,
+              child: child,
+            ),
+          );
+        },
+      );
       if (reduced && r.leaving) item = const SizedBox.shrink();
       children.add(KeyedSubtree(key: ValueKey<Object?>(r.key), child: item));
     }

@@ -364,17 +364,35 @@ void main() {
     });
 
     testWidgets('motion: an added row opens and fades over base; with reduced motion it only fades', (tester) async {
+      Iterable<double?> growing() => tester
+          .widgetList<Align>(find.byWidgetPredicate((w) => w is Align && w.alignment == Alignment.topCenter))
+          .map((a) => a.heightFactor);
       await tester.pumpWidget(themedFrame(themeMatrix.first, _panel(const _Phones())));
       await tester.tap(find.text('Add phone'));
       await tester.pump();
       await tester.pump(MyDataMotion.base ~/ 2);
-      final grow = tester.widgetList<SizeTransition>(find.byType(SizeTransition)).last;
-      expect(grow.sizeFactor.value, inExclusiveRange(0, 1));
+      expect(growing().last, inExclusiveRange(0, 1));
       await tester.pumpAndSettle();
+      expect(growing().every((f) => f == 1), isTrue);
 
       await tester.pumpWidget(themedFrame(themeMatrix.first, _panel(const _Phones()), reduceMotion: true));
+      await tester.tap(find.text('Add phone'));
+      await tester.pump();
+      await tester.pump(MyDataMotion.fast ~/ 2);
+      expect(growing().every((f) => f == 1), isTrue, reason: 'with reduced motion it only fades');
       await tester.pumpAndSettle();
-      expect(find.byType(SizeTransition), findsNothing);
+    });
+
+    testWidgets('a row at rest is not clipped, and its value keeps focus when the motion ends', (tester) async {
+      await tester.pumpWidget(themedFrame(themeMatrix.first, _panel(const _Phones())));
+      await tester.tap(find.text('Add phone'));
+      await tester.pumpAndSettle();
+      final state = tester.state<_PhonesState>(find.byType(_Phones));
+      expect(state.rows.last.focus.hasPrimaryFocus, isTrue);
+      final clips = tester.widgetList<ClipRect>(
+          find.descendant(of: find.byType(RepeatableFormGroup<int>), matching: find.byType(ClipRect)));
+      expect(clips.where((c) => c.clipBehavior != Clip.none), isEmpty,
+          reason: 'the focus ring, 2px outside the field, shows whole');
     });
 
     test('nextPresetLabel: the first unused preset, then the last again', () {
