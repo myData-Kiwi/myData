@@ -133,7 +133,8 @@ class _ContactsHomeState extends State<ContactsHome> {
     final ids = contacts ? _contacts.selectedIds : const <String>[];
     final deletable = _actions.deletable(ids);
     final one = ids.length == 1 ? ids.single : null;
-    final canEdit = contacts && _contacts.editing == null && one != null && _contacts.isEditable(one);
+    final editing = _contacts.editing != null;
+    final canEdit = contacts && !editing && one != null && _contacts.isEditable(one);
     return AppMenuBar(
       appName: ContactsHome.appName,
       platform: widget.menuPlatform,
@@ -154,7 +155,7 @@ class _ContactsHomeState extends State<ContactsHome> {
         ),
         AppMenuItem.delete(
           title: menuTitleCase(_actions.deleteLabelFor(ids)),
-          onSelected: deletable.isEmpty ? null : () => unawaited(_actions.delete(ids)),
+          onSelected: deletable.isEmpty || !_actions.canDeleteNow(ids) ? null : () => unawaited(_actions.delete(ids)),
         ),
       ],
       view: [
@@ -165,8 +166,10 @@ class _ContactsHomeState extends State<ContactsHome> {
             onSelected: () => unawaited(_select(i)),
           ),
       ],
-      undoAction: _isRunning ? _actions.undoTitle : null,
-      onUndo: () => unawaited(_actions.undoLast()),
+      // While the inspector is open, ⌘Z and Edit, Undo are the form's typing only: taking back a change on the
+      // host would leave the open form stale.
+      undoAction: _isRunning && !editing ? _actions.undoTitle : null,
+      onUndo: editing ? null : () => unawaited(_actions.undoLast()),
       child: child,
     );
   }

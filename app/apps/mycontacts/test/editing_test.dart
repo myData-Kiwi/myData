@@ -540,6 +540,57 @@ void main() {
       expect(followed.firstWhere((i) => i.label == 'Delete Contact').enabled, isFalse);
     }, variant: TargetPlatformVariant.only(TargetPlatform.macOS));
 
+    testWidgets('with the inspector open: no host Undo, no toast, and Delete only for the record being edited',
+        (tester) async {
+      desktop(tester);
+      capture(tester);
+      final backend = ownedBackend();
+      await tester.pumpWidget(app(backend, menu: TargetPlatform.macOS));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(Button, ContactActions.editButton));
+      await tester.pumpAndSettle();
+      await enter(tester, 'Job title', 'Head archivist');
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+      expect(toast('Changes saved'), findsOneWidget);
+      expect(items('Edit').map((i) => i.label), contains('Undo Edit Contact'));
+
+      // Edit again: the earlier save's toast goes, and Undo is no longer the host's.
+      await tester.tap(find.widgetWithText(Button, ContactActions.editButton));
+      await tester.pumpAndSettle();
+      expect(toast('Changes saved'), findsNothing);
+      FocusManager.instance.primaryFocus?.unfocus(); // focus on no text field, as on a label picker
+      await tester.pumpAndSettle();
+      var edit = items('Edit');
+      expect(edit.map((i) => i.label), isNot(contains('Undo Edit Contact')));
+      expect(edit.firstWhere((i) => i.label == 'Undo').enabled, isFalse);
+      expect(edit.firstWhere((i) => i.label == 'Delete Contact').enabled, isTrue,
+          reason: 'the record being edited, after leaving the inspector');
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyZ);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
+      await tester.pumpAndSettle();
+      expect(backend.writes, ['update c-pip'], reason: 'nothing undone on the host under the open form');
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+
+      // A new contact's inspector hides the selected contact: Delete is off.
+      await tester.tap(find.byWidgetPredicate((w) => w is MyDataIconButton && w.label == 'New contact'));
+      await tester.pumpAndSettle();
+      edit = items('Edit');
+      expect(edit.firstWhere((i) => i.label == 'Delete Contact').enabled, isFalse);
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pumpAndSettle();
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
+      await tester.pumpAndSettle();
+      expect(backend.writes, ['update c-pip'], reason: 'the hidden contact is not deleted');
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(items('Edit').map((i) => i.label), contains('Undo Edit Contact'), reason: 'back once it closes');
+    }, variant: TargetPlatformVariant.only(TargetPlatform.macOS));
+
     testWidgets('Windows: Ctrl+N, Ctrl+S, Ctrl+Z and Ctrl+E work without a drawn menu bar', (tester) async {
       desktop(tester);
       final backend = ownedBackend();

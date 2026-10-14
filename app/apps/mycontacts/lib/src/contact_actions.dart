@@ -65,6 +65,7 @@ class ContactActions {
   Future<void> newContact() async {
     if (!await leaveEditor()) return;
     controller.startNew();
+    _quietToast();
     if (_phone) await _sheet();
   }
 
@@ -77,8 +78,14 @@ class ContactActions {
     final contact = await controller.readForEdit(id);
     if (contact == null || controller.editing != null) return;
     controller.startEdit(contact);
+    _quietToast();
     if (_phone) await _sheet();
   }
+
+  /// An open inspector holds its own changes: the toast of an earlier change goes, so neither its Undo nor ⌘Z
+  /// takes back a change on the host under the open form (whose Save would then be refused). Undo is
+  /// offered again once the inspector closes.
+  void _quietToast() => toasts.hide();
 
   /// The editor sheet on a phone. It follows [ContactsController.editing], so Reload swaps the form inside it.
   Future<void> _sheet() => showSheet<void>(
@@ -128,8 +135,22 @@ class ContactActions {
     return n <= 1 ? deleteOneLabel : deleteManyLabel(n);
   }
 
+  /// Whether Delete (the menu bar's, the list's key) may act on [ids] now. While the inspector is open it acts
+  /// only on the record the inspector holds (after leaving it, asking when it has changes): the contact behind
+  /// a "New contact" inspector, or another one selected, is out of view.
+  bool canDeleteNow(List<String> ids) {
+    final edit = controller.editing;
+    if (edit == null) return true;
+    final targets = deletable(ids);
+    return edit.id != null && targets.length == 1 && targets.single == edit.id;
+  }
+
   /// Deletes the selected contacts (or the open one): one at once with Undo, several after a Dialog.
-  Future<void> deleteSelected() => delete(controller.selectedIds);
+  Future<void> deleteSelected() async {
+    final ids = controller.selectedIds;
+    if (!canDeleteNow(ids)) return;
+    await delete(ids);
+  }
 
   Future<void> delete(List<String> ids) async {
     final targets = deletable(ids);
