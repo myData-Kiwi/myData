@@ -565,6 +565,52 @@ class MergeOut(BaseModel):
                                                                     "until they are deleted for good")
 
 
+class CardValuesOut(BaseModel):
+    """A card's values as a contact's page shows them (ContactDetailOut's fields), for a card that is not a contact
+    on the host: a card in an import preview, or the contact a merge would make."""
+    display_name: str = Field(description="never empty (organisation, email or phone when the card has no name)")
+    full_name: str = ""
+    given_name: str = ""
+    family_name: str = ""
+    middle_name: str = ""
+    name_prefix: str = ""
+    name_suffix: str = ""
+    nickname: str = ""
+    organisation: str = Field(default="", description="the company and, after a comma, the department")
+    company: str = ""
+    department: str = ""
+    job_title: str = ""
+    emails: list[LabeledValue] = []
+    phones: list[LabeledValue] = []
+    addresses: list[PostalAddress] = []
+    urls: list[LabeledValue] = []
+    birthday: str | None = Field(default=None, description="YYYY-MM-DD, or --MM-DD when the year is not known")
+    note: str = ""
+    has_photo: bool = False
+    kind: str = Field(description="individual, org or group")
+    fields: list[ContactFieldGroup] = Field(description="the values grouped as a contact's page shows them: phone, "
+                                                        "email, address, birthday, url, note")
+
+
+class MergeLeftOutValueOut(BaseModel):
+    property: str = Field(description="a vCard property name, upper case (TITLE, BDAY, PHOTO, ...)")
+    kind: str = Field(description="what the app names it: birthday, job_title, photo, company, nickname, or other")
+    value: str | None = Field(default=None, description="the value as the contact holds it (a birthday as "
+                                                        "YYYY-MM-DD or --MM-DD); null for a photo")
+    contact_id: str = Field(description="the contact that holds it")
+
+
+class MergePreviewOut(BaseModel):
+    contact: CardValuesOut = Field(description="the contact the merge would make (not stored)")
+    names_from: str = Field(description="the contact whose name and details it starts from")
+    newest: str = Field(description="the contact changed most recently: the default for names_from")
+    left_out: list[MergeLeftOutValueOut] = Field(default=[], description="each value of the others it would not "
+                                                                         "hold (a different value of a single one, "
+                                                                         "such as a second birthday or job title, "
+                                                                         "or what kind of card it is): it stays "
+                                                                         "with the originals in Recently deleted")
+
+
 class ImportCountsOut(BaseModel):
     cards: int = Field(description="cards in the input, read or not")
     contacts: int = Field(description="cards that are contacts (people and organisations)")
@@ -639,33 +685,6 @@ class ImportItemOut(BaseModel):
     converted_from: str | None = Field(default=None, description="2.1 for a vCard 2.1 stored as 3.0")
     entry: str | None = Field(default=None, description="the zip entry the card came from (a name only)")
     matches: list[ImportMatchOut] = []
-
-
-class CardValuesOut(BaseModel):
-    """A card's values as a contact's page shows them (ContactDetailOut's fields), for a card that is not a contact
-    on the host: a card in an import preview, or the contact a merge would make."""
-    display_name: str = Field(description="never empty (organisation, email or phone when the card has no name)")
-    full_name: str = ""
-    given_name: str = ""
-    family_name: str = ""
-    middle_name: str = ""
-    name_prefix: str = ""
-    name_suffix: str = ""
-    nickname: str = ""
-    organisation: str = Field(default="", description="the company and, after a comma, the department")
-    company: str = ""
-    department: str = ""
-    job_title: str = ""
-    emails: list[LabeledValue] = []
-    phones: list[LabeledValue] = []
-    addresses: list[PostalAddress] = []
-    urls: list[LabeledValue] = []
-    birthday: str | None = Field(default=None, description="YYYY-MM-DD, or --MM-DD when the year is not known")
-    note: str = ""
-    has_photo: bool = False
-    kind: str = Field(description="individual, org or group")
-    fields: list[ContactFieldGroup] = Field(description="the values grouped as a contact's page shows them: phone, "
-                                                        "email, address, birthday, url, note")
 
 
 class ImportCardOut(CardValuesOut):
@@ -1657,6 +1676,32 @@ def _routes_contact_writes(app: FastAPI, need: Callable[[], SyncService], unavai
         done = run(write)
         log(_LOGGER, logging.INFO, "contacts marked as different people", actor=who, undo_id=done.undo_id)
         return NotDuplicatesOut(undo_id=done.undo_id, contact_ids=list(done.contact_ids))
+
+    @app.post("/contacts/merge/preview", dependencies=needs("contacts:write"), tags=["sources"],
+              response_model=MergePreviewOut,
+              responses={400: {"description": "fewer than two contacts, one named twice, or names_from not among "
+                                              "them"}, **refused, **stale, **unavailable})
+    def merge_preview(body: MergeIn) -> MergePreviewOut:
+        """What POST /contacts/merge would make of these contacts now, written nowhere: the merged contact (the
+        "After merging" column) and each value it would leave out, with the value and whose it is, so the user sees
+        what is kept and left out before pressing Merge. Read it again when names_from changes. The same refusals as
+        a merge: 412 when a contact changed since its etag."""
+        from ..sources import contacts_merge
+        from ..sources.card_values import card_values
+        service = need()
+
+        def plan() -> "contacts_merge.Preview":
+            try:
+                return contacts_merge.merge_preview(service.contacts, [(c.id, c.etag) for c in body.contacts],
+                                                    names_from=body.names_from)
+            except contacts_merge.MergeRefused as e:
+                raise HTTPException(400, str(e)) from None
+        preview = run(plan)
+        kinds = {"BDAY": "birthday", "TITLE": "job_title", "PHOTO": "photo", "ORG": "company", "NICKNAME": "nickname"}
+        return MergePreviewOut(contact=CardValuesOut(**card_values(preview.text)), names_from=preview.names_from,
+                               newest=preview.newest,
+                               left_out=[MergeLeftOutValueOut(kind=kinds.get(d["property"], "other"), **d)
+                                         for d in preview.left_out])
 
     @app.post("/contacts/merge", dependencies=needs("contacts:write"), tags=["sources"], response_model=MergeOut,
               status_code=201, responses={400: {"description": "fewer than two contacts, one named twice, or "

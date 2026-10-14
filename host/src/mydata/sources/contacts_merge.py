@@ -91,14 +91,17 @@ def merged_text(base: str, others: list[str], *, region: str | None = None) -> s
     return merge_cards(base, others, region=region)[0]
 
 
-def merge_cards(base: str, others: list[str], *, region: str | None = None) -> tuple[str | None, dict[str, int]]:
+def merge_cards(base: str, others: list[str], *, region: str | None = None,
+                details: list[dict] | None = None) -> tuple[str | None, dict[str, int]]:
     """(the merged card's text, or None when nothing was added to `base`; what the others hold that it does not
-    take: {property name: how many values}, names only, never a value). See the module docstring."""
+    take: {property name: how many values}, names only, never a value). See the module docstring. `details`, when
+    given, gets each value left out: {property, value (None for a photo or other binary value), other (its index in
+    `others`)}, for a merge preview the user reads; never logged."""
     region = region if region is not None else default_region()
     card = VCard.parse(base)
     version = card.version
     left_out: dict[str, int] = {}
-    for text in others:
+    for index, text in enumerate(others):
         if VCard.parse(text).version != version and version in ("3.0", "4.0"):
             text = convert(text, version)
         other = VCard.parse(text)
@@ -135,13 +138,32 @@ def merge_cards(base: str, others: list[str], *, region: str | None = None) -> t
                 lost = [p for p in values if _value_key(p, region) not in have]
             if lost:
                 left_out[name] = left_out.get(name, 0) + len(lost)
+                if details is not None:
+                    details.extend({"property": name, "other": index,
+                                    "value": None if name in _BINARY or _is_binary(p) else p.decoded()} for p in lost)
     return (card.to_text() if card.changed else None), left_out
 
 
-def merge(store: ContactsStore, contacts: list[tuple[str, str]], *, names_from: str | None = None,
-          actor: str) -> Merged:
-    """Merge owned contacts, each given as (id, the etag the user saw). PreconditionFailed when one changed
-    since; MergeRefused for fewer than two, a repeat, or names_from not among them."""
+_BINARY = ("PHOTO", "LOGO", "SOUND", "KEY")
+
+
+def _is_binary(prop) -> bool:
+    return any(v.lower() in ("b", "base64") for v in prop.param("ENCODING")) or prop.value.startswith("data:")
+
+
+@dataclass(frozen=True)
+class Preview:
+    """What a merge would make, written nowhere (merge_preview)."""
+    text: str  # the merged card
+    names_from: str  # the contact whose names and lines it starts from
+    newest: str  # the contact changed most recently: the default for names_from (DuplicatePair, Decisions 2)
+    left_out: tuple[dict, ...]  # {property, value (None for a photo), contact_id}: what it does not hold
+
+
+def _plan(db: sqlite3.Connection, contacts: list[tuple[str, str]], names_from: str | None,
+          details: list[dict] | None = None) -> tuple[list[sqlite3.Row], sqlite3.Row, list[sqlite3.Row], str,
+                                                       dict[str, int]]:
+    """Check a merge and work out its card: (the rows in order, the base, the others, the merged text, left_out)."""
     ids = [c for c, _ in contacts]
     if len(ids) < 2:
         raise MergeRefused("Choose at least two contacts to merge.")
@@ -151,24 +173,43 @@ def merge(store: ContactsStore, contacts: list[tuple[str, str]], *, names_from: 
         raise MergeRefused("A contact is named twice.")
     if names_from is not None and names_from not in ids:
         raise MergeRefused("The contact whose names are kept must be one of those merged.")
+    rows = []
+    for contact_id, etag in contacts:
+        row = _row(db, contact_id)
+        _check_etag(row, etag)
+        if row["deleted_at"] is not None:
+            raise InTrash("A contact to merge is in Recently deleted. Restore it first.")
+        rows.append(row)
+    first = names_from or ids[0]
+    base = next(r for r in rows if r["id"] == first)
+    others = [r for r in rows if r["id"] != first]
+    try:
+        text, left_out = merge_cards(base["raw_vcard"], [r["raw_vcard"] for r in others], details=details)
+    except VCardError as e:
+        raise WriteError("These contacts' cards cannot be merged here.") from e
+    return rows, base, others, text or base["raw_vcard"], left_out
+
+
+def merge_preview(store: ContactsStore, contacts: list[tuple[str, str]], *, names_from: str | None = None) -> Preview:
+    """What merge() would make of these contacts now, written nowhere: the merged card and every value it leaves out
+    (with the value, for the user to read before pressing Merge; never logged). The same refusals as merge()."""
+    details: list[dict] = []
+    with store.db.connect() as db:
+        rows, base, others, text, _ = _plan(db, contacts, names_from, details)
+    newest = max(rows, key=lambda r: (r["modified_at"], r["rev"]))
+    return Preview(text, base["id"], newest["id"], tuple({"property": d["property"], "value": d["value"],
+                                                           "contact_id": others[d["other"]]["id"]} for d in details))
+
+
+def merge(store: ContactsStore, contacts: list[tuple[str, str]], *, names_from: str | None = None,
+          actor: str) -> Merged:
+    """Merge owned contacts, each given as (id, the etag the user saw). PreconditionFailed when one changed
+    since; MergeRefused for fewer than two, a repeat, or names_from not among them."""
+    ids = [c for c, _ in contacts]
     at = _clock(store)()
     when = stamp(at)
     with store.db.transaction() as db:
-        rows = []
-        for contact_id, etag in contacts:
-            row = _row(db, contact_id)
-            _check_etag(row, etag)
-            if row["deleted_at"] is not None:
-                raise InTrash("A contact to merge is in Recently deleted. Restore it first.")
-            rows.append(row)
-        first = names_from or ids[0]
-        base = next(r for r in rows if r["id"] == first)
-        others = [r for r in rows if r["id"] != first]
-        try:
-            text, left_out = merge_cards(base["raw_vcard"], [r["raw_vcard"] for r in others])
-            text = text or base["raw_vcard"]
-        except VCardError as e:
-            raise WriteError("These contacts' cards cannot be merged here.") from e
+        rows, base, others, text, left_out = _plan(db, contacts, names_from)
         merged_id = new_id()
         href = f"{merged_id}.vcf"
         book = base["address_book_id"]

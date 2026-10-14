@@ -566,6 +566,146 @@
         "title": "CalendarOut",
         "type": "object"
       },
+      "CardValuesOut": {
+        "description": "A card's values as a contact's page shows them (ContactDetailOut's fields), for a card that is not a contact\non the host: a card in an import preview, or the contact a merge would make.",
+        "properties": {
+          "addresses": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/PostalAddress"
+            },
+            "title": "Addresses",
+            "type": "array"
+          },
+          "birthday": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "YYYY-MM-DD, or --MM-DD when the year is not known",
+            "title": "Birthday"
+          },
+          "company": {
+            "default": "",
+            "title": "Company",
+            "type": "string"
+          },
+          "department": {
+            "default": "",
+            "title": "Department",
+            "type": "string"
+          },
+          "display_name": {
+            "description": "never empty (organisation, email or phone when the card has no name)",
+            "title": "Display Name",
+            "type": "string"
+          },
+          "emails": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/LabeledValue"
+            },
+            "title": "Emails",
+            "type": "array"
+          },
+          "family_name": {
+            "default": "",
+            "title": "Family Name",
+            "type": "string"
+          },
+          "fields": {
+            "description": "the values grouped as a contact's page shows them: phone, email, address, birthday, url, note",
+            "items": {
+              "$ref": "#/components/schemas/ContactFieldGroup"
+            },
+            "title": "Fields",
+            "type": "array"
+          },
+          "full_name": {
+            "default": "",
+            "title": "Full Name",
+            "type": "string"
+          },
+          "given_name": {
+            "default": "",
+            "title": "Given Name",
+            "type": "string"
+          },
+          "has_photo": {
+            "default": false,
+            "title": "Has Photo",
+            "type": "boolean"
+          },
+          "job_title": {
+            "default": "",
+            "title": "Job Title",
+            "type": "string"
+          },
+          "kind": {
+            "description": "individual, org or group",
+            "title": "Kind",
+            "type": "string"
+          },
+          "middle_name": {
+            "default": "",
+            "title": "Middle Name",
+            "type": "string"
+          },
+          "name_prefix": {
+            "default": "",
+            "title": "Name Prefix",
+            "type": "string"
+          },
+          "name_suffix": {
+            "default": "",
+            "title": "Name Suffix",
+            "type": "string"
+          },
+          "nickname": {
+            "default": "",
+            "title": "Nickname",
+            "type": "string"
+          },
+          "note": {
+            "default": "",
+            "title": "Note",
+            "type": "string"
+          },
+          "organisation": {
+            "default": "",
+            "description": "the company and, after a comma, the department",
+            "title": "Organisation",
+            "type": "string"
+          },
+          "phones": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/LabeledValue"
+            },
+            "title": "Phones",
+            "type": "array"
+          },
+          "urls": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/LabeledValue"
+            },
+            "title": "Urls",
+            "type": "array"
+          }
+        },
+        "required": [
+          "display_name",
+          "kind",
+          "fields"
+        ],
+        "title": "CardValuesOut",
+        "type": "object"
+      },
       "ContactDetailOut": {
         "properties": {
           "account_id": {
@@ -3087,6 +3227,44 @@
         "title": "MergeLeftOutOut",
         "type": "object"
       },
+      "MergeLeftOutValueOut": {
+        "properties": {
+          "contact_id": {
+            "description": "the contact that holds it",
+            "title": "Contact Id",
+            "type": "string"
+          },
+          "kind": {
+            "description": "what the app names it: birthday, job_title, photo, company, nickname, or other",
+            "title": "Kind",
+            "type": "string"
+          },
+          "property": {
+            "description": "a vCard property name, upper case (TITLE, BDAY, PHOTO, ...)",
+            "title": "Property",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "the value as the contact holds it (a birthday as YYYY-MM-DD or --MM-DD); null for a photo",
+            "title": "Value"
+          }
+        },
+        "required": [
+          "property",
+          "kind",
+          "contact_id"
+        ],
+        "title": "MergeLeftOutValueOut",
+        "type": "object"
+      },
       "MergeOut": {
         "properties": {
           "contact": {
@@ -3122,6 +3300,40 @@
           "merged"
         ],
         "title": "MergeOut",
+        "type": "object"
+      },
+      "MergePreviewOut": {
+        "properties": {
+          "contact": {
+            "$ref": "#/components/schemas/CardValuesOut",
+            "description": "the contact the merge would make (not stored)"
+          },
+          "left_out": {
+            "default": [],
+            "description": "each value of the others it would not hold (a different value of a single one, such as a second birthday or job title, or what kind of card it is): it stays with the originals in Recently deleted",
+            "items": {
+              "$ref": "#/components/schemas/MergeLeftOutValueOut"
+            },
+            "title": "Left Out",
+            "type": "array"
+          },
+          "names_from": {
+            "description": "the contact whose name and details it starts from",
+            "title": "Names From",
+            "type": "string"
+          },
+          "newest": {
+            "description": "the contact changed most recently: the default for names_from",
+            "title": "Newest",
+            "type": "string"
+          }
+        },
+        "required": [
+          "contact",
+          "names_from",
+          "newest"
+        ],
+        "title": "MergePreviewOut",
         "type": "object"
       },
       "MessageIn": {
@@ -5575,6 +5787,111 @@
           }
         },
         "summary": "Merge Contacts",
+        "tags": [
+          "sources"
+        ],
+        "x-mydata-scopes": [
+          "contacts:write"
+        ]
+      }
+    },
+    "/contacts/merge/preview": {
+      "post": {
+        "description": "What POST /contacts/merge would make of these contacts now, written nowhere: the merged contact (the\n\"After merging\" column) and each value it would leave out, with the value and whose it is, so the user sees\nwhat is kept and left out before pressing Merge. Read it again when names_from changes. The same refusals as\na merge: 412 when a contact changed since its etag.",
+        "operationId": "merge_preview",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MergeIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MergePreviewOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "description": "fewer than two contacts, one named twice, or names_from not among them"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "missing or wrong token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
+          },
+          "404": {
+            "description": "no such contact"
+          },
+          "409": {
+            "description": "the contact is followed from a source (change it there), or is in Recently deleted"
+          },
+          "412": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreconditionFailedOut"
+                }
+              }
+            },
+            "description": "the contact changed since the etag sent; `etag` is the current one",
+            "headers": {
+              "ETag": {
+                "description": "the contact's etag",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "421": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "the Host header is not this machine"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "503": {
+            "description": "accounts are not available in this host"
+          }
+        },
+        "summary": "Merge Preview",
         "tags": [
           "sources"
         ],

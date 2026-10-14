@@ -54,6 +54,7 @@ ROUTE_SCOPES = {
     ("POST", "/contacts/{contact_id}/followed-changes/save"): ("contacts:write",),
     ("POST", "/contacts/{contact_id}/followed-changes/keep"): ("contacts:write",),
     ("POST", "/contacts/merge"): ("contacts:write",),
+    ("POST", "/contacts/merge/preview"): ("contacts:write",),
     ("POST", "/contacts/not-duplicates"): ("contacts:write",),
     ("POST", "/import/contacts/preview"): ("contacts:import",),
     ("POST", "/import/contacts/from-source/{account_id}/preview"): ("contacts:import",),

@@ -690,6 +690,38 @@ def test_merge_carries_what_the_kept_card_lacks_and_reports_the_rest():
     assert left_out == {"TITLE": 1, "X-ABSHOWAS": 1}  # names and counts, never a value
 
 
+def test_a_merge_preview_writes_nothing_and_shows_what_is_left_out(store, monkeypatch):
+    a = cw.create(store, {"given_name": "Ava", "family_name": "Fictional", "job_title": "Librarian",
+                          "birthday": "1990-03-18"}, actor="mycontacts").contact_id
+    b = cw.create(store, {"given_name": "Ava", "family_name": "F.", "job_title": "Chess coach",
+                          "emails": [{"value": "ava@example.org"}]}, actor="mycontacts").contact_id
+    with store.db.transaction() as db:  # b was changed last
+        db.execute("UPDATE contacts SET modified_at = '2099-01-01T00:00:00+00:00' WHERE id = ?", (b,))
+    pair = [(a, store.get(a)["http_etag"]), (b, store.get(b)["http_etag"])]
+    before = _counts(store)
+    preview_ = merge_.merge_preview(store, pair)
+    assert _counts(store) == before  # written nowhere
+    assert (preview_.names_from, preview_.newest) == (a, b)
+    assert list(preview_.left_out) == [{"property": "TITLE", "value": "Chess coach", "contact_id": b}]
+    assert "EMAIL:ava@example.org" in preview_.text and "TITLE:Librarian" in preview_.text
+    other = merge_.merge_preview(store, pair, names_from=b)
+    assert other.names_from == b and list(other.left_out) == [{"property": "TITLE", "value": "Librarian",
+                                                               "contact_id": a}]
+    assert "BDAY:1990-03-18" in other.text  # a value only the other has is taken
+    # The merge itself makes what the preview showed.
+    done = merge_.merge(store, pair, names_from=b, actor="mycontacts")
+    merged = store.get(done.contact_id)["raw_vcard"]
+    strip = lambda text: [line for line in text.splitlines() if not line.startswith(("REV:", "UID:"))]  # noqa: E731
+    assert strip(merged) == strip(other.text) and done.left_out == (("TITLE", 1),)
+    with pytest.raises(cw.PreconditionFailed):
+        merge_.merge_preview(store, pair)  # they changed: they are in Recently deleted now
+    photo = "PHOTO;ENCODING=b;TYPE=JPEG:/9j/4AAQ\r\n"
+    assert merge_.merge_cards(f"BEGIN:VCARD\r\nVERSION:3.0\r\nFN:A\r\n{photo}END:VCARD\r\n",
+                              [f"BEGIN:VCARD\r\nVERSION:3.0\r\nFN:A\r\n{photo.replace('4AAQ', '4BBQ')}"
+                               "END:VCARD\r\n"], details=(details := []))[1] == {"PHOTO": 1}
+    assert details == [{"property": "PHOTO", "other": 0, "value": None}]  # a photo is named, never quoted
+
+
 def test_a_merge_changed_since_is_not_undone(store):
     a, b = _two(store)
     merged = merge_.merge(store, [(a, store.get(a)["http_etag"]), (b, store.get(b)["http_etag"])],
