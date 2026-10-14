@@ -2,7 +2,8 @@
 a schema_version table and numbered migrations, files readable only by the user.
 
 Migrations run on a connection of their own with foreign keys off, set before BEGIN (inside a
-transaction the pragma does nothing). With them on, rebuilding a parent table (create, copy, drop,
+transaction the pragma does nothing), and recursive_triggers on, so INSERT OR REPLACE cannot remove owned
+rows past their triggers (sources/owned.py). With them on, rebuilding a parent table (create, copy, drop,
 rename) deletes every child row through ON DELETE CASCADE. Afterwards no table that still exists may
 hold fewer rows than before (unless the migration declares it may: `may_shrink`), every trigger must still
 exist (dropping a table drops its triggers, and nothing else would notice: a rebuild must create them
@@ -120,6 +121,9 @@ class Database:
             db.execute("PRAGMA busy_timeout=30000")
             db.execute("PRAGMA journal_mode=WAL")
             db.execute("PRAGMA foreign_keys=OFF")  # before BEGIN: it is ignored inside a transaction
+            # As in connect(): a row an INSERT OR REPLACE removes runs the delete triggers, so a migration
+            # cannot replace owned data past the triggers that keep it (sources/owned.py).
+            db.execute("PRAGMA recursive_triggers=ON")
             db.execute("BEGIN IMMEDIATE")
             try:
                 db.execute("CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL)")

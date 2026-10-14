@@ -212,3 +212,29 @@ def test_a_migration_may_declare_the_tables_it_shrinks(tmp_path):
         Database(path, {**V1, 2: dedupe})
     db = Database(path, {**V1, 2: dedupe}, may_shrink={2: ["cards"]})
     assert (_version(db), _count(db, "cards")) == (2, 3)
+
+
+@pytest.mark.parametrize("sql", [
+    # A card at the owned card's (account, collection, href): the owned one would be replaced.
+    "INSERT OR REPLACE INTO contacts (id, account_id, address_book_id, collection_url, href, raw_vcard, created_at, "
+    "modified_at) SELECT 'new', account_id, address_book_id, collection_url, href, 'x', 't', 't' FROM contacts "
+    "WHERE address_book_id = 'owned-book-1' LIMIT 1",
+    # The owned book itself, by its id: with foreign keys off nothing cascades, but the book would be gone.
+    "INSERT OR REPLACE INTO address_books (id, account_id, url, created_at, modified_at) "
+    "VALUES ('owned-book-1', 'acc-x', 'https://dav.example.invalid/b/', 't', 't')",
+])
+def test_a_migration_cannot_replace_owned_data(tmp_path, sql):
+    """Migrations run with recursive_triggers on, as every other connection does: a row INSERT OR REPLACE
+    removes runs the triggers that keep owned data, so the migration is rolled back. Row counts alone would
+    not notice: a replace deletes one row and inserts one."""
+    from mydata.sources import contacts_store
+    from owned_data import add_owned, owned_rows
+
+    add_owned(tmp_path)
+    before = owned_rows(tmp_path)
+    newest = max(contacts_store._MIGRATIONS)
+    with pytest.raises(sqlite3.IntegrityError, match="owned data is never deleted"):
+        Database(tmp_path / "contacts.sqlite", {**contacts_store._MIGRATIONS, newest + 1: [sql]})
+    assert owned_rows(tmp_path) == before
+    assert Database.pending(tmp_path / "contacts.sqlite", {**contacts_store._MIGRATIONS, newest + 1: []}) == (
+        newest, newest + 1)

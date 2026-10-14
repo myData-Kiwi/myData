@@ -14,8 +14,9 @@ each store's migration):
 - an owned collection cannot be deleted, nor turned into a followed one, unless a purge permit names it
   and every row in it;
 - a row in an owned collection cannot be deleted, nor moved to a collection that is not owned, unless a
-  permit names it. SQLite runs these triggers for foreign-key cascades too, and the connection turns on
-  recursive_triggers so a row removed by INSERT OR REPLACE runs them as well.
+  permit names it. SQLite runs these triggers for foreign-key cascades too, and the stores' connections and the
+  migration runner (sources/_db.py) turn on recursive_triggers so a row removed by INSERT OR REPLACE runs
+  them as well. A plain connection without that pragma is not covered against a replace.
 
 A permit is a row of `purge_permits`, written by purge() in the same transaction as the delete and removed
 before it commits. Only the trash expiry and "Forget" (both later) may call purge().
