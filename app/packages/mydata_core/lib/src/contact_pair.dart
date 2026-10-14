@@ -10,6 +10,7 @@ abstract final class ContactPair {
   static PairVersion ofContact(ContactDetailOut c, {String? name, required String caption, ImageProvider? photo}) =>
       PairVersion(
         name: name ?? c.displayName,
+        personName: c.displayName,
         caption: caption,
         givenName: c.givenName,
         familyName: c.familyName,
@@ -32,6 +33,7 @@ abstract final class ContactPair {
   /// A card of an import preview as a column titled [name] ("In the file").
   static PairVersion ofCard(ImportCardOut c, {required String name, required String caption}) => PairVersion(
         name: name,
+        personName: c.displayName,
         caption: caption,
         givenName: c.givenName,
         familyName: c.familyName,
