@@ -454,6 +454,7 @@ class FakeBackend implements ContactsBackend {
   @override
   Future<String> notDuplicates(String a, String b) async {
     _checkWrite();
+    if (_find(a) == null || _find(b) == null) throw const Gone();
     notSame.add(_pairKey(a, b));
     writes.add('not-duplicates $a,$b');
     return _undoId(FakeUndo('notdup', a, 0, null, ids: [a, b]));
@@ -484,6 +485,7 @@ class FakeBackend implements ContactsBackend {
     _checkWrite();
     final c = _find(id);
     if (c == null) throw const Gone();
+    if (c.changedInSource == null) throw const Refused('That copy has no changes to review (settled already).');
     final label = c.changedInSourceLabel;
     final source = c.changedInSource;
     c

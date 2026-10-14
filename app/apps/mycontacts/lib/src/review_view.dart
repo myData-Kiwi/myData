@@ -35,7 +35,8 @@ class ReviewView extends StatefulWidget {
   static const afterSaving = 'Your contact after saving.';
   static const nothingLine = 'This contact has nothing to review any more.';
 
-  static String duplicatesHeading(int n) => 'Possible duplicates ($n)';
+  /// "Possible duplicates (3)"; "(500+)" when the host's answer reached its limit.
+  static String duplicatesHeading(int n, {bool more = false}) => 'Possible duplicates ($n${more ? '+' : ''})';
   static String changedHeading(int n) => 'Changed since import ($n)';
 
   /// "Ava Fictional and Ava M. Fictional".
@@ -48,8 +49,18 @@ class ReviewView extends StatefulWidget {
     return 'Same name';
   }
 
-  /// "Changed in the iCloud account ava@example.org".
-  static String changedCaption(String? label) => label == null ? 'Changed in a source myData follows' : 'Changed in $label';
+  /// "The line under the pane's title" (DuplicatePair, Anatomy): why the two may be one person.
+  static String pairReason(DuplicatePairOut p) {
+    if (p.signals.contains('email')) return 'They share an email address.';
+    if (p.signals.contains('phone')) return 'They share a phone number.';
+    return 'They have the same name.';
+  }
+
+  /// "Changed in the iCloud account ava@example.org", "Changed on this Mac".
+  static String changedCaption(String? label) {
+    if (label == null) return 'Changed in a source myData follows';
+    return label.startsWith('this Mac') ? 'Changed on $label' : 'Changed in $label';
+  }
 
   /// The pane's title for a change: "Changed in iCloud", "Changed on this Mac".
   static String changesTitle(String label) => label.startsWith('this Mac') ? 'Changed on this Mac' : 'Changed in iCloud';
@@ -151,7 +162,7 @@ class _ReviewViewState extends State<ReviewView> {
                     message: 'Getting it from the host.',
                   );
           }
-          if (_m.keys.isEmpty) return const _Empty();
+          if (_m.keys.isEmpty && _m.paneLine == null) return const _Empty();
           final layout = AppLayout.of(context);
           final pad = PageScaffold.paddingFor(layout);
           final insets = MediaQuery.paddingOf(context);
@@ -194,13 +205,13 @@ class _ReviewViewState extends State<ReviewView> {
         if (!_phone) ...[
           Semantics(
             header: true,
-            child: Text('${ReviewView.title}, ${_m.count}', style: MyDataType.title.copyWith(color: c.ink)),
+            child: Text('${ReviewView.title}, ${_m.countText}', style: MyDataType.title.copyWith(color: c.ink)),
           ),
           const SizedBox(height: MyDataSpace.s4),
         ],
         if (pairs.isNotEmpty)
           GroupedList(
-            heading: ReviewView.duplicatesHeading(pairs.length),
+            heading: ReviewView.duplicatesHeading(pairs.length, more: _m.capped),
             rows: [
               for (final p in pairs)
                 GroupedRow(
@@ -270,11 +281,21 @@ class _ReviewViewState extends State<ReviewView> {
 
   /// The pane for the selected row.
   Widget _pane() {
+    final line = _m.paneLine;
+    if (line != null) {
+      // The pair is no longer a duplicate: the line alone, with no actions.
+      return Semantics(
+        liveRegion: true,
+        child: Text(line, style: MyDataType.body.copyWith(color: context.colors.inkMuted)),
+      );
+    }
     final pair = _m.pair;
     if (pair != null) {
+      final p = _m.selected == null ? null : _m.pairOf(_m.selected!);
       return MergePane(
         session: pair,
         title: ReviewView.samePerson,
+        reason: p == null ? null : ReviewView.pairReason(p),
         plainLabel: ReviewView.notSame,
         onPlain: () => unawaited(_notSame()),
         onMerge: () => unawaited(_merge()),

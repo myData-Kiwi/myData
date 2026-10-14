@@ -23,13 +23,20 @@ class ReviewModel extends ChangeNotifier {
   List<DuplicatePairOut>? pairs;
   bool failed = false;
 
+  /// The host gives at most this many pairs at once (`GET /contacts/duplicates`' default limit).
+  static const pairLimit = 500;
+
+  /// The last read reached [pairLimit]: there may be more, so the counts say "500+".
+  bool capped = false;
+
   /// The selected row: [pairKey] or [changedKey]; null when none is.
   String? selected;
 
   MergeSession? pair;
   ChangesSession? changes;
 
-  /// A line in the pane when the selected pair is no longer a duplicate.
+  /// A line in the pane, with no actions, when the selected pair is no longer a duplicate (one side was
+  /// deleted or merged elsewhere). The row has left the list; the line stays until another row is chosen.
   String? paneLine;
 
   bool _disposed = false;
@@ -59,6 +66,9 @@ class ReviewModel extends ChangeNotifier {
   /// How many things wait here, for the sidebar ("Review, 4").
   int get count => (pairs?.length ?? 0) + changed.length;
 
+  /// [count] as said: "4", or "503+" when the host's answer reached [pairLimit].
+  String get countText => capped ? '$count+' : '$count';
+
   static String pairKey(DuplicatePairOut p) => 'pair:${(p.contacts.map((c) => c.id).toList()..sort()).join('|')}';
   static String changedKey(String id) => 'changed:$id';
 
@@ -77,6 +87,7 @@ class ReviewModel extends ChangeNotifier {
       final read = await backend.duplicates();
       if (_disposed || ticket != _loads) return;
       pairs = read;
+      capped = read.length >= pairLimit;
       failed = false;
     } on Object {
       if (_disposed || ticket != _loads) return;
@@ -100,7 +111,7 @@ class ReviewModel extends ChangeNotifier {
   void _keepSelection({int? at}) {
     if (!_active) return;
     final k = keys;
-    if (selected != null && k.contains(selected)) return;
+    if (selected != null && (k.contains(selected) || paneLine != null)) return;
     if (k.isEmpty) {
       _clearPane();
       selected = null;
@@ -117,10 +128,14 @@ class ReviewModel extends ChangeNotifier {
     paneLine = null;
     final p = pairOf(key);
     if (p != null) {
-      pair = MergeSession(backend: backend, ids: [for (final c in p.contacts) c.id])..addListener(_notify);
+      pair = MergeSession(backend: backend, ids: [for (final c in p.contacts) c.id])..addListener(_pairChanged);
       unawaited(pair!.load());
     } else if (key.startsWith('changed:')) {
-      changes = ChangesSession(backend: backend, id: key.substring('changed:'.length))..addListener(_notify);
+      changes = ChangesSession(
+        backend: backend,
+        id: key.substring('changed:'.length),
+        onSettledElsewhere: controller.readListAgain,
+      )..addListener(_notify);
       unawaited(changes!.load());
     }
     _notify();
@@ -141,8 +156,29 @@ class ReviewModel extends ChangeNotifier {
     select(changedKey(id));
   }
 
+  /// The pair in the pane changed; when one side turned out to be gone, the row leaves the list and the pane
+  /// says so, with no actions (DuplicatePair, States).
+  void _pairChanged() {
+    final s = pair;
+    final key = selected;
+    if (s != null && s.gone && key != null && paneLine == null) {
+      final p = pairOf(key);
+      final name = p?.contacts.where((c) => c.id == s.goneId).firstOrNull?.displayName ??
+          s.contacts[s.goneId]?.displayName ??
+          'One of them';
+      paneLine = goneLine(name);
+      pairs = [for (final x in pairs ?? const <DuplicatePairOut>[]) if (pairKey(x) != key) x];
+      // The contact list still shows the one that went.
+      controller.readListAgain();
+    }
+    _notify();
+  }
+
+  static String goneLine(String name) => 'This pair is no longer a duplicate: $name was deleted.';
+  static const noLongerLine = 'This pair is no longer a duplicate.';
+
   void _clearPane() {
-    pair?.removeListener(_notify);
+    pair?.removeListener(_pairChanged);
     pair?.dispose();
     pair = null;
     changes?.removeListener(_notify);
@@ -179,12 +215,42 @@ class ReviewModel extends ChangeNotifier {
       );
       leave(key);
       return entry;
+    } on Gone {
+      return _noLonger(key, s);
+    } on Refused {
+      return _noLonger(key, s);
     } on Object {
       s?.message = markFailed;
       s?.messageIsError = true;
       _notify();
       return null;
     }
+  }
+
+  /// The host refused the marking because something changed: the pair is read again. A side that is gone
+  /// shows the "no longer a duplicate" line ([_pairChanged]); a pair settled elsewhere leaves the list with
+  /// [noLongerLine].
+  Future<UndoEntry?> _noLonger(String key, MergeSession? s) async {
+    await s?.load();
+    if (_disposed || s == null || s.gone || selected != key) return null;
+    try {
+      final read = await backend.duplicates();
+      if (_disposed) return null;
+      pairs = read;
+      capped = read.length >= pairLimit;
+    } on Object {
+      // Kept as it was: the line below says the host did not answer.
+    }
+    if (_disposed || selected != key) return null;
+    if (pairOf(key) == null) {
+      paneLine = noLongerLine;
+    } else {
+      s
+        ..message = markFailed
+        ..messageIsError = true;
+    }
+    _notify();
+    return null;
   }
 
   static const markAction = 'Mark as different people';
@@ -209,10 +275,13 @@ class ReviewModel extends ChangeNotifier {
 /// what differs (the host's word), and which side's values the "After" column takes for each, the followed
 /// copy's by default.
 class ChangesSession extends ChangeNotifier {
-  ChangesSession({required this.backend, required this.id});
+  ChangesSession({required this.backend, required this.id, this.onSettledElsewhere});
 
   final ContactsBackend backend;
   final String id;
+
+  /// The host said the change was settled elsewhere, or the contact went: the list is read again.
+  final VoidCallback? onSettledElsewhere;
 
   FollowedChangesOut? data;
   bool loading = true;
@@ -357,6 +426,24 @@ class ChangesSession extends ChangeNotifier {
     } on ChangedElsewhere {
       working = false;
       await load(changedName: data?.contact.displayName);
+      return null;
+    } on Gone {
+      // The contact was deleted for good meanwhile.
+      working = false;
+      nothing = true;
+      message = null;
+      _notify();
+      onSettledElsewhere?.call();
+      return null;
+    } on Refused {
+      // Settled in another window, or the contact is in Recently deleted: nothing is left to review here.
+      working = false;
+      await load();
+      if (_disposed) return null;
+      nothing = true;
+      message = null;
+      _notify();
+      onSettledElsewhere?.call();
       return null;
     } on Object {
       working = false;

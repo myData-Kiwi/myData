@@ -66,10 +66,10 @@ class ContactsHome extends StatefulWidget {
   ];
 
   /// The sections with Review's count ("Review, 4").
-  static List<AppSection> sectionsWith(int review) => [
+  static List<AppSection> sectionsWith(int review, {bool more = false}) => [
         sections[0],
         sections[1],
-        AppSection(icon: sections[2].icon, label: sections[2].label, count: review),
+        AppSection(icon: sections[2].icon, label: sections[2].label, count: review, countMore: more),
       ];
 
   /// File, Import… (design/platforms.md; ImportFlow, "Where it lives"): opens myData at its Import section.
@@ -278,7 +278,7 @@ class _ContactsHomeState extends State<ContactsHome> {
           null => _body(),
           final connection => AppFrame(
             appName: ContactsHome.appName,
-            sections: ContactsHome.sectionsWith(_review.count),
+            sections: ContactsHome.sectionsWith(_review.count, more: _review.capped),
             current: _section,
             onSelect: (i) => unawaited(_select(i)),
             connection: connection,

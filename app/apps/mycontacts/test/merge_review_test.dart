@@ -14,6 +14,7 @@ import 'package:mycontacts/src/contacts_controller.dart';
 import 'package:mycontacts/src/home.dart';
 import 'package:mycontacts/src/merge.dart';
 import 'package:mycontacts/src/merge_pane.dart';
+import 'package:mycontacts/src/review.dart';
 import 'package:mycontacts/src/review_view.dart';
 import 'package:mydata_core/mydata_core.dart';
 import 'package:mydata_ui/mydata_ui.dart';
@@ -299,6 +300,10 @@ void main() {
       expect(find.text('Ben Sample and Ben M. Sample'), findsOneWidget);
       expect(find.text('Same email: ben@example.org'), findsOneWidget);
       expect(find.text(ReviewView.samePerson), findsOneWidget);
+      // The longer story is the line under the pane's title.
+      expect(find.text('They share an email address.'), findsOneWidget);
+      expect(tester.getRect(find.text('They share an email address.')).top,
+          greaterThan(tester.getRect(find.text(ReviewView.samePerson)).bottom));
       await tapButton(tester, find.widgetWithText(Button, ReviewView.notSame));
       await tester.pumpAndSettle();
       expect(backend.writes, ['not-duplicates c-ben1,c-ben2']);
@@ -309,6 +314,76 @@ void main() {
       expect(find.text('Ben Sample and Ben M. Sample'), findsOneWidget);
       handle.dispose();
       await outlastToast(tester);
+    });
+
+    testWidgets('a side deleted elsewhere: the row leaves the list and the pane says so, with no actions',
+        (tester) async {
+      desktop(tester);
+      final a = benOwned(), b = benImported();
+      final backend = backendWith([a, b])..pairs = [pairOf(a, b)];
+      await tester.pumpWidget(app(backend));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Review').first);
+      await tester.pumpAndSettle();
+      expect(find.text(ReviewView.samePerson), findsOneWidget);
+      // Ben M. Sample is deleted for good in another window while the pair is shown.
+      backend.cards = [for (final c in backend.cards) if (c.id != 'c-ben2') c];
+      await tapButton(tester, find.widgetWithText(Button, ReviewView.notSame));
+      await tester.pumpAndSettle();
+      expect(find.text('This pair is no longer a duplicate: Ben M. Sample was deleted.'), findsOneWidget);
+      expect(find.text(ReviewModel.markFailed), findsNothing);
+      expect(find.text('Ben Sample and Ben M. Sample'), findsNothing, reason: 'the row leaves the list');
+      expect(find.widgetWithText(Button, ReviewView.notSame), findsNothing);
+      expect(find.text(MergePane.mergeLabel), findsNothing);
+      expect(backend.writes, isEmpty);
+    });
+
+    testWidgets('a pair whose side went before it was opened shows the same line', (tester) async {
+      desktop(tester);
+      final a = benOwned(), b = benImported();
+      final cee = ownedCard('c-cee', ContactIn(givenName: 'Cee', familyName: 'Example'));
+      final dee = ownedCard('c-dee', ContactIn(givenName: 'Cee', familyName: 'Example'));
+      final backend = backendWith([a, b, cee, dee])..pairs = [pairOf(cee, dee, signals: ['name']), pairOf(a, b)];
+      await tester.pumpWidget(app(backend));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Review').first);
+      await tester.pumpAndSettle();
+      expect(find.text('They have the same name.'), findsOneWidget);
+      backend.cards = [for (final c in backend.cards) if (c.id != 'c-ben1') c];
+      await tester.tap(find.text('Ben Sample and Ben M. Sample'));
+      await tester.pumpAndSettle();
+      expect(find.text('This pair is no longer a duplicate: Ben Sample was deleted.'), findsOneWidget);
+      expect(find.text(ReviewView.duplicatesHeading(1)), findsOneWidget);
+      expect(find.widgetWithText(Button, ReviewView.notSame), findsNothing);
+      // Choosing another row opens it as usual.
+      await tester.tap(find.text('Cee Example and Cee Example'));
+      await tester.pumpAndSettle();
+      expect(find.widgetWithText(Button, ReviewView.notSame), findsOneWidget);
+    });
+
+    test('the counts say "500+" when the host answered with as many pairs as it gives', () async {
+      final owned = [
+        for (var i = 0; i < ReviewModel.pairLimit * 2; i++)
+          ownedCard('c-p$i', ContactIn(givenName: 'Ava', familyName: 'Fictional $i')),
+      ];
+      final backend = FakeBackend(cards: owned)
+        ..pairs = [for (var i = 0; i < ReviewModel.pairLimit; i++) pairOf(owned[2 * i], owned[2 * i + 1], signals: ['name'])];
+      final model = ReviewModel(controller: ContactsController(backend: backend, store: MemoryDeviceStore()));
+      await model.load();
+      expect(model.capped, isTrue);
+      expect(model.countText, '500+');
+      expect(ReviewView.duplicatesHeading(500, more: model.capped), 'Possible duplicates (500+)');
+      expect(ContactsHome.sectionsWith(500, more: true)[2].spoken, 'Review, 500 or more');
+      backend.pairs = backend.pairs.take(3).toList();
+      await model.load();
+      expect(model.countText, '3');
+      model.dispose();
+    });
+
+    test('a change on this Mac is captioned "Changed on this Mac"', () {
+      expect(ReviewView.changedCaption('this Mac'), 'Changed on this Mac');
+      expect(ReviewView.changedCaption('the iCloud account ava@example.org'),
+          'Changed in the iCloud account ava@example.org');
     });
 
     testWidgets('Merge from Review: the pair leaves the list', (tester) async {
@@ -427,6 +502,25 @@ void main() {
         await tester.tap(find.text('Review').first);
         await tester.pumpAndSettle();
         expect(find.text(ReviewView.changedHeading(1)), findsOneWidget);
+      });
+
+      testWidgets('settled in another window: Keep mine reads it again instead of saying the host did not answer',
+          (tester) async {
+        desktop(tester);
+        final backend = changedBackend();
+        await tester.pumpWidget(app(backend));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Review').first);
+        await tester.pumpAndSettle();
+        // Another window kept the contact's version meanwhile.
+        backend.cards.firstWhere((c) => c.id == 'c-ben1')
+          ..changedInSource = null
+          ..changedInSourceLabel = null;
+        await tapButton(tester, find.widgetWithText(SteadyWidthButton, ReviewView.keepMine));
+        await tester.pumpAndSettle();
+        expect(find.text(ChangesSession.keepFailed), findsNothing);
+        expect(find.text(ReviewView.emptyTitle), findsOneWidget, reason: 'the list is read again; nothing is left');
+        expect(backend.writes, isEmpty);
       });
 
       testWidgets('choosing "In myData" for a row keeps that value', (tester) async {

@@ -20,6 +20,7 @@ class MergePane extends StatelessWidget {
     super.key,
     required this.session,
     required this.title,
+    this.reason,
     required this.plainLabel,
     required this.onPlain,
     required this.onMerge,
@@ -28,6 +29,9 @@ class MergePane extends StatelessWidget {
 
   final MergeSession session;
   final String title;
+
+  /// The line under the title in Review: why the two may be one person ("They share an email address.").
+  final String? reason;
 
   /// "Cancel" or "Not the same person".
   final String plainLabel;
@@ -115,6 +119,10 @@ class MergePane extends StatelessWidget {
                 busy: s.working,
                 child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
                   Semantics(header: true, child: Text(title, style: MyDataType.displayLg.copyWith(color: c.ink))),
+                  if (reason != null) ...[
+                    const SizedBox(height: MyDataSpace.s2),
+                    Text(reason!, style: MyDataType.body.copyWith(color: c.inkMuted)),
+                  ],
                   const SizedBox(height: MyDataSpace.s4),
                   if (names)
                     Align(

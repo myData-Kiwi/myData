@@ -39,6 +39,9 @@ class MergeSession extends ChangeNotifier {
   /// One of the contacts is no longer on the host (deleted, or merged elsewhere): nothing can be merged.
   bool gone = false;
 
+  /// The contact that is gone, when [gone].
+  String? goneId;
+
   bool _disposed = false;
   int _previewTicket = 0;
 
@@ -55,6 +58,7 @@ class MergeSession extends ChangeNotifier {
         final c = await backend.contact(id);
         if (c == null || c.deletedAt != null) {
           gone = true;
+          goneId = id;
           message = goneLine(c?.displayName ?? contacts[id]?.displayName ?? 'One of them');
           messageIsError = false;
           contacts.remove(id);
