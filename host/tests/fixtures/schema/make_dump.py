@@ -24,8 +24,6 @@ HERE = Path(__file__).resolve().parent
 sys.path[:0] = [str(HERE.parents[2] / "src"), str(HERE.parents[1])]
 
 from fake_mac import data as mac_data  # noqa: E402
-from mydata.sources.calendar_store import CalendarStore  # noqa: E402
-from mydata.sources.contacts_store import ContactsStore  # noqa: E402
 from mydata.sources.dav.discovery import Collection  # noqa: E402
 from mydata.sources.dav.sync import CollectionState, Item, SyncResult  # noqa: E402
 from mydata.sources.mac.cards import etag, to_vcard  # noqa: E402
