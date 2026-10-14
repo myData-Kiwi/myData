@@ -583,7 +583,8 @@ def _date_values(event, name: str) -> list:
 
 def _starts_between(master, low, high, *, exdates: bool = True) -> list:
     """The series' starts in [low, high] (in the master's kind): DTSTART, the RRULE's, the RDATEs, less the
-    EXDATEs (unless exdates is False)."""
+    EXDATEs (unless exdates is False). An EXDATE that is a date on a timed series removes every start on that
+    day (the day on the series' own clock), as recurring-ical-events reads it."""
     template = master["DTSTART"].dt
     rule = _rule(master)
     found = []
@@ -598,8 +599,10 @@ def _starts_between(master, low, high, *, exdates: bool = True) -> list:
         if _le(low, value) and _le(value, high):
             found.append(value)
     if exdates:
-        gone = [_like(v, template) for v in _date_values(master, "EXDATE") if _is_dt(v) == _is_dt(template)]
-        found = [v for v in found if not any(_same(v, g) for g in gone)]
+        values = _date_values(master, "EXDATE")
+        gone = [_like(v, template) for v in values if _is_dt(v) == _is_dt(template)]
+        days = {v for v in values if not _is_dt(v)} if _is_dt(template) else set()
+        found = [v for v in found if not any(_same(v, g) for g in gone) and _wall(v).date() not in days]
     unique = []
     for v in sorted(found, key=lambda v: _instant(v) if _is_dt(v) and v.tzinfo else _wall(v)):
         if not unique or not _same(unique[-1], v):
@@ -812,16 +815,9 @@ def delete_this(text: str, recurrence_id, *, now: datetime | None = None) -> str
 
 
 def _exceptions(edit: _Edit, master) -> tuple[list, list]:
-    """(EXDATE values, overrides) that are occurrences of the series as it is now (stale ones are left alone)."""
-    template = master["DTSTART"].dt
-    exdates = [v for v in _date_values(master, "EXDATE") if _is_dt(v) == _is_dt(template)]
-    live_ex = []
-    for v in exdates:
-        try:
-            occurrence(master, v, exdates=False)
-            live_ex.append(v)
-        except IcsError:
-            pass
+    """(EXDATE values, overrides) that are occurrences of the series as it is now (stale ones are left alone);
+    a date EXDATE of a timed series counts when the series has a start that day."""
+    live_ex = [v for v in _date_values(master, "EXDATE") if _still(master, v)]
     live_ov = []
     for o in edit.overrides():
         try:
@@ -910,7 +906,7 @@ def edit_all(text: str, changes: Mapping[str, object], *, exceptions: str = "kee
 
     # Exceptions that were occurrences before and are not now: refuse, or drop them when asked.
     if time_only:
-        live_ex = [_add_wall(v, delta) for v in live_ex]
+        live_ex = [_add_wall(v, delta) if _is_dt(v) else v for v in live_ex]
     stale_ex = [v for v in live_ex if not _still(master, v)]
     stale_ov = [o for o in live_ov if not _still(master, o["RECURRENCE-ID"].dt)]
     if stale_ex or stale_ov:
@@ -939,6 +935,14 @@ def edit_all(text: str, changes: Mapping[str, object], *, exceptions: str = "kee
 
 
 def _still(master, value) -> bool:
+    """Whether value (an EXDATE or RECURRENCE-ID) names an occurrence of the series, EXDATEs left aside; a
+    date on a timed series, whether the series starts on that day."""
+    template = master["DTSTART"].dt
+    if _is_dt(template) and not _is_dt(value):
+        day = datetime.combine(value, time.min)
+        span = _starts_between(master, _like(day - timedelta(days=1), template), _like(day + timedelta(days=2),
+                               template), exdates=False)
+        return any(_wall(v).date() == value for v in span)
     try:
         occurrence(master, value, exdates=False)
         return True
@@ -973,7 +977,10 @@ def edit_following(text: str, recurrence_id, changes: Mapping[str, object], *, e
                        "RDATE); change this event or all events instead")
 
     def later(v) -> bool:
-        """Whether a date value (EXDATE, RDATE, RECURRENCE-ID) belongs to the new series."""
+        """Whether a date value (EXDATE, RDATE, RECURRENCE-ID) belongs to the new series; a date EXDATE of a
+        timed series does from the day of the split on."""
+        if _is_dt(template) and not _is_dt(v):
+            return v >= _wall(start).date()
         return _is_dt(v) == _is_dt(template) and _le(start, _like(v, template))
 
     # The new series: a copy of the master from this occurrence on, with what lies after it.

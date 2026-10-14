@@ -664,3 +664,29 @@ def test_an_until_of_another_kind_ends_the_series_where_the_reader_ends_it(start
     after_last = (max(reader, key=_start_key) + timedelta(days=1))
     with pytest.raises(IcsError, match="not an occurrence"):
         ie.edit_this(text, after_last, {"SUMMARY": "Extra"}, now=NOW)
+
+
+_DAY_EXDATE = ("BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Example Corp//Day exdate//EN\r\nBEGIN:VEVENT\r\n"
+               "UID:day-exdate@example.org\r\nDTSTAMP:20260101T000000Z\r\n"
+               "DTSTART;TZID=Pacific/Auckland:20261026T090000\r\nDTEND;TZID=Pacific/Auckland:20261026T100000\r\n"
+               "RRULE:FREQ=WEEKLY;COUNT=4\r\nEXDATE;VALUE=DATE:20261109\r\nSUMMARY:Weekly\r\nEND:VEVENT\r\n"
+               "END:VCALENDAR\r\n")
+
+
+def test_a_date_exdate_on_a_timed_series_removes_that_day_for_the_writer_too():
+    assert local_times(_DAY_EXDATE) == ["10-26 09:00+1300", "11-02 09:00+1300", "11-16 09:00+1300"]
+    deleted = datetime(2026, 11, 9, 9, tzinfo=NZ)
+    for edit in (lambda: ie.edit_this(_DAY_EXDATE, deleted, {"SUMMARY": "X"}, now=NOW),
+                 lambda: ie.delete_this(_DAY_EXDATE, deleted, now=NOW),
+                 lambda: ie.edit_following(_DAY_EXDATE, deleted, {"SUMMARY": "X"}, now=NOW)):
+        with pytest.raises(IcsError, match="not an occurrence"):
+            edit()
+    # split before the deleted day: the day stays deleted, in the new series
+    old, new = ie.edit_following(_DAY_EXDATE, datetime(2026, 11, 2, 9, tzinfo=NZ), {"SUMMARY": "Later"}, now=NOW)
+    assert occ(old, new) == [(s, e, "Later" if s >= "2026-11-01" else "Weekly") for s, e, _ in occ(_DAY_EXDATE)]
+    assert "EXDATE;VALUE=DATE:20261109" in new and "EXDATE" not in old
+    # a new time of day keeps the day deleted; a new day of the week leaves it off the series
+    moved = ie.edit_all(_DAY_EXDATE, {"DTSTART": datetime(2026, 10, 26, 7, tzinfo=NZ)}, now=NOW)
+    assert local_times(moved) == ["10-26 07:00+1300", "11-02 07:00+1300", "11-16 07:00+1300"]
+    with pytest.raises(IcsError, match="1 deleted"):
+        ie.edit_all(_DAY_EXDATE, {"DTSTART": datetime(2026, 10, 27, 9, tzinfo=NZ)}, now=NOW)
