@@ -235,7 +235,7 @@ void main() {
   });
 
   group('mydata://settings/sources', () {
-    bool settingsShown(WidgetTester tester) => tester.widget<AppFrame>(find.byType(AppFrame)).current == 1;
+    bool settingsShown(WidgetTester tester) => tester.widget<AppFrame>(find.byType(AppFrame)).current == 2;
 
     testWidgets('opens Settings, scrolled to Sources', (tester) async {
       final links = StreamController<MyDataLink>();

@@ -6,6 +6,7 @@ import 'package:mydata_ui/mydata_ui.dart';
 
 import 'format.dart';
 import 'host_action.dart';
+import 'import/import_files.dart';
 import 'setup_screen.dart';
 import 'source_list.dart';
 import 'shell.dart';
@@ -23,9 +24,21 @@ class MyDataApp extends StatefulWidget {
     this.links,
     this.installedApps,
     this.openApp,
+    this.openLink,
+    this.chooser,
+    this.acceptDrops = true,
   });
 
   final HostController controller;
+
+  /// Opens a link in another app (Import's "Open in myContacts"); null uses [appLinks]. Tests pass a fake.
+  final Future<bool> Function(MyDataLink link)? openLink;
+
+  /// The system's file chooser for Import; null is the real one. Tests pass a fake.
+  final FileChooser? chooser;
+
+  /// Takes files dropped on the Import page (off in tests, which have no drag and drop).
+  final bool acceptDrops;
 
   /// Start on the Setup screen even if the host is ready (launched with --setup, e.g. by myAssistant).
   final bool openSetup;
@@ -41,7 +54,7 @@ class MyDataApp extends StatefulWidget {
   final MacSystem? macSystem;
 
   /// Links other apps opened myData with ([IncomingLinks.links]); `mydata://settings/sources` opens
-  /// Settings at Sources. Null: none arrive.
+  /// Settings at Sources, `mydata://import/contacts` opens Import. Null: none arrive.
   final Stream<MyDataLink>? links;
 
   /// Which of the other apps are installed, for the Status screen; null looks them up on this Mac.
@@ -90,6 +103,9 @@ class _MyDataAppState extends State<MyDataApp> {
           links: widget.links,
           installedApps: widget.installedApps,
           openApp: widget.openApp,
+          openLink: widget.openLink,
+          chooser: widget.chooser,
+          acceptDrops: widget.acceptDrops,
         ),
       );
     },
@@ -107,10 +123,16 @@ class _Home extends StatefulWidget {
     this.links,
     this.installedApps,
     this.openApp,
+    this.openLink,
+    this.chooser,
+    this.acceptDrops = true,
   });
 
   final HostController controller;
   final AppearanceController appearance;
+  final Future<bool> Function(MyDataLink link)? openLink;
+  final FileChooser? chooser;
+  final bool acceptDrops;
   final bool openSetup;
   final MacSystem mac;
   final Stream<MyDataLink>? links;
@@ -143,6 +165,9 @@ class _HomeState extends State<_Home> {
 
   /// How many times a link asked for Settings, Sources ([HomeShell.sourcesAsked]).
   int _sourcesAsked = 0;
+
+  /// How many times a link asked for Import ([HomeShell.importAsked]).
+  int _importAsked = 0;
   StreamSubscription<MyDataLink>? _links;
 
   HostController get _c => widget.controller;
@@ -167,6 +192,7 @@ class _HomeState extends State<_Home> {
 
   void _onLink(MyDataLink link) {
     if (link is OpenMyDataSources) setState(() => _sourcesAsked++);
+    if (link is OpenMyDataImport) setState(() => _importAsked++);
   }
 
   void _onHost() {
@@ -329,6 +355,10 @@ class _HomeState extends State<_Home> {
         installedApps: widget.installedApps,
         openApp: widget.openApp,
         sourcesAsked: _sourcesAsked,
+        importAsked: _importAsked,
+        openLink: widget.openLink,
+        chooser: widget.chooser,
+        acceptDrops: widget.acceptDrops,
       );
     }
     // While the host's answers about the theme and This Mac are on their way, keep showing the host being

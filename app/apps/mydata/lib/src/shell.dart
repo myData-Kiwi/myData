@@ -7,14 +7,22 @@ import 'package:mydata_ui/mydata_ui.dart';
 import 'agent_list.dart';
 import 'apps_section.dart';
 import 'host_phase_panel.dart';
+import 'import/import_controller.dart';
+import 'import/import_files.dart';
+import 'import/import_page.dart';
 import 'settings_screen.dart';
 import 'source_list.dart';
 import 'status_screen.dart';
 
-/// The myData app after setup: Status and Settings in the app frame. If the host stops, its panel takes
-/// their place and the frame says the host cannot be reached.
+/// The myData app after setup: Status, Import and Settings in the app frame. If the host stops, its panel
+/// takes the place of Status and Settings and the frame says the host cannot be reached; Import stays, with
+/// its file and account buttons disabled and the history as last read (design/components/ImportFlow).
 ///
-/// A `mydata://settings/sources` link ([sourcesAsked] going up) opens Settings and scrolls to Sources.
+/// A `mydata://settings/sources` link ([sourcesAsked] going up) opens Settings and scrolls to Sources; a
+/// `mydata://import/contacts` link ([importAsked]) opens Import.
+///
+/// The menu bar (macOS; the same keys with Control elsewhere): File, Import…; View, Status ⌘1, Import ⌘2,
+/// Settings ⌘3; Settings… ⌘, in the app menu (design/platforms.md).
 class HomeShell extends StatefulWidget {
   const HomeShell({
     super.key,
@@ -24,6 +32,10 @@ class HomeShell extends StatefulWidget {
     this.installedApps,
     this.openApp,
     this.sourcesAsked = 0,
+    this.importAsked = 0,
+    this.openLink,
+    this.chooser,
+    this.acceptDrops = true,
   });
 
   final HostController controller;
@@ -42,13 +54,32 @@ class HomeShell extends StatefulWidget {
   /// before this shell was built (during setup).
   final int sourcesAsked;
 
+  /// How many times a link asked for Import (`mydata://import/contacts`).
+  final int importAsked;
+
+  /// Opens a link in another app ("Open in myContacts"); null uses [appLinks].
+  final Future<bool> Function(MyDataLink link)? openLink;
+
+  /// The system's file chooser; null is the real one. Tests pass a fake.
+  final FileChooser? chooser;
+
+  /// Takes files dropped on the Import page (off in tests).
+  final bool acceptDrops;
+
   /// When opening an app failed.
   static String openFailed(MyDataAppId app) => 'myData could not open ${app.displayName}. Open it yourself.';
 
   static const sections = [
     AppSection(icon: Icons.monitor_heart_outlined, label: 'Status'),
+    AppSection(icon: Icons.move_to_inbox_outlined, label: 'Import'),
     AppSection(icon: Icons.settings_outlined, label: 'Settings'),
   ];
+
+  /// The sections' names in the menu bar's View menu, in its title case.
+  static const menuTitles = ['Status', 'Import', 'Settings'];
+
+  /// File, Import… in the menu bar.
+  static const importMenuItem = 'Import…';
 
   /// What the frame says about the host in [phase]. This is myData, so there is no "Open myData" link.
   static AppConnection connectionFor(HostPhase phase, VoidCallback onRetry) => switch (phase) {
@@ -72,11 +103,15 @@ class _HomeShellState extends State<HomeShell> {
   late final _sources = SourceList(widget.controller);
   late final InstalledApps _apps =
       widget.installedApps ?? InstalledApps(apps: AppsSection.listed);
+  late final _import = ImportController(host: widget.controller, sources: _sources, chooser: widget.chooser);
   final _sourcesKey = GlobalKey();
   int _index = 0;
   int _sourcesShown = 0;
+  int _importShown = 0;
 
-  static const _settings = 1;
+  static const _status = 0;
+  static const _importSection = 1;
+  static const _settings = 2;
 
   @override
   void initState() {
@@ -86,12 +121,21 @@ class _HomeShellState extends State<HomeShell> {
     _sources.load();
     unawaited(_apps.start());
     if (widget.sourcesAsked > 0) unawaited(_showSources());
+    if (widget.importAsked > 0) _showImport();
   }
 
   @override
   void didUpdateWidget(HomeShell old) {
     super.didUpdateWidget(old);
     if (widget.sourcesAsked > _sourcesShown) unawaited(_showSources());
+    if (widget.importAsked > _importShown) _showImport();
+  }
+
+  /// Import, from a `mydata://import/contacts` link: Choose, unless an import is in Review or Importing.
+  void _showImport() {
+    _importShown = widget.importAsked;
+    _import.openFromLink();
+    setState(() => _index = _importSection);
   }
 
   @override
@@ -99,6 +143,7 @@ class _HomeShellState extends State<HomeShell> {
     widget.controller.removeListener(_onPoll);
     _agents.dispose();
     _sources.dispose();
+    _import.dispose();
     if (widget.installedApps == null) _apps.dispose();
     super.dispose();
   }
@@ -136,36 +181,59 @@ class _HomeShellState extends State<HomeShell> {
 
   void _select(int i) {
     setState(() => _index = i);
-    if (i == _settings) _sources.load();
+    if (i == _settings || i == _importSection) _sources.load();
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    backgroundColor: context.colors.bg,
-    body: ListenableBuilder(
-      listenable: widget.controller,
-      builder: (context, _) {
-        final c = widget.controller;
-        return AppFrame(
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: widget.controller,
+    builder: (context, _) => AppMenuBar(
+      appName: 'myData',
+      file: [AppMenuItem(title: HomeShell.importMenuItem, onSelected: () => _select(_importSection))],
+      view: [
+        for (var i = 0; i < HomeShell.menuTitles.length; i++)
+          AppMenuItem(
+            title: HomeShell.menuTitles[i],
+            shortcut: AppMenuBar.sectionShortcut(i + 1),
+            onSelected: () => _select(i),
+          ),
+      ],
+      onSettings: () => _select(_settings),
+      child: Scaffold(
+        backgroundColor: context.colors.bg,
+        body: AppFrame(
           appName: 'myData',
           sections: HomeShell.sections,
           current: _index,
           onSelect: _select,
-          connection: HomeShell.connectionFor(c.phase, c.retry),
+          connection: HomeShell.connectionFor(widget.controller.phase, widget.controller.retry),
           child: _page(),
-        );
-      },
+        ),
+      ),
     ),
   );
 
   Widget _page() {
     final c = widget.controller;
     final status = c.status;
+    // Import stays when the host stops: its buttons say why they wait, and the history shows what was read.
+    if (_index == _importSection && (status != null || c.phase == HostPhase.running)) {
+      return ImportPage(
+        key: const ValueKey('import'),
+        controller: _import,
+        sources: _sources,
+        installedApps: _apps,
+        openLink: widget.openLink ?? appLinks.openLink,
+        macHost: status?.macAvailable ?? false,
+        acceptDrops: widget.acceptDrops,
+        demo: status?.mode == StatusOutModeEnum.demo,
+      );
+    }
     if (c.phase != HostPhase.running || status == null) {
       // The frame's connection line carries the Retry ([connectionFor]), so the panel only explains.
       return HostPhasePanel(phase: c.phase, error: c.error, detail: c.detail, onRetry: c.retry, showRetry: false);
     }
-    return _index == 0
+    return _index == _status
         ? StatusScreen(status: status, agents: _agents, apps: _apps, sources: _sources, onOpenApp: _openApp)
         : SettingsScreen(
             controller: c,
