@@ -376,7 +376,8 @@ def _settle_origins(db: sqlite3.Connection, ids: list[str]) -> None:
     """Before the cards `ids` are purged: the origins and shadows they hold (their own, and those held for originals
     merged into them) go with them, except those of a card merged into one that stays (merged_into, followed past cards
     purged now): the merged card holds them from now on (`held_by`), without the original's text (source_raw), so
-    it keeps shadowing the followed copies and importing again still knows them (contacts_store._SHADOWED). An
+    it keeps shadowing the followed copies and importing again still knows them (contacts_store._SHADOWED), and its
+    "not the same person" decisions concern the merged card. An
     import of a file with nothing left on the host stops naming the file (_forget_label)."""
     purged = set(ids)
     imports: set[str] = set()  # imports that lost an origin
@@ -394,9 +395,13 @@ def _settle_origins(db: sqlite3.Connection, ids: list[str]) -> None:
                        "AND object_id = ?)", (successor, contact_id, contact_id))
             db.execute("UPDATE shadows SET held_by = ? WHERE held_by = ? OR (held_by IS NULL AND object_id = ?)",
                        (successor, contact_id, contact_id))
-            # "Not the same person" and other decisions about it now concern the contact it went into.
-            db.execute("UPDATE decisions SET object_id = ? WHERE object_id = ?", (successor, contact_id))
-            db.execute("UPDATE decisions SET other_id = ? WHERE other_id = ?", (successor, contact_id))
+            # "Not the same person" now concerns the contact it went into. A review's decisions (save_changes,
+            # keep_mine) stay on the original: their revisions are the original's, so undoing one is refused once
+            # it is gone, never applied to the merged contact (contacts_review.undo).
+            db.execute("UPDATE decisions SET object_id = ? WHERE object_id = ? AND kind = 'not_duplicate'",
+                       (successor, contact_id))
+            db.execute("UPDATE decisions SET other_id = ? WHERE other_id = ? AND kind = 'not_duplicate'",
+                       (successor, contact_id))
         else:
             db.execute("DELETE FROM shadows WHERE held_by = ? OR (held_by IS NULL AND object_id = ?)",
                        (contact_id, contact_id))

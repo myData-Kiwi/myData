@@ -5,6 +5,7 @@ that changed since the import.
 the reason and its strength, never merged here (the user merges: sources/contacts_merge.py). "Not the same person"
 (not_duplicate()) is kept until undone, by the contacts' ids, which an import never changes; a merge's contact stands
 for its originals, also once they are deleted for good (contacts_write._settle_origins moves the decision to it).
+A review's decision (save, keep) stays on its contact, and its undo is refused once that contact is deleted for good.
 
 **Changed since import.** An owned contact stands for the followed cards it was imported from (origins, by account
 and UID) or that a file import hid behind it (shadows), its own and those of the contacts merged into it. When such
@@ -274,8 +275,9 @@ def is_decision(store: ContactsStore, undo_id: str) -> bool:
 
 
 def undo(store: ContactsStore, decision_id: str, *, actor: str) -> Settled:
-    """Undo a decision (see the module docstring). UndoRefused when it was undone already, or when a save's
-    contact changed since."""
+    """Undo a decision (see the module docstring). UndoRefused when it was undone already, when a save's contact
+    changed since, or when its contact was deleted for good (for "not the same person": both). Settled names the
+    contacts still on the host, the first one to show."""
     at = _clock(store)()
     when = stamp(at)
     with store.db.transaction() as db:
@@ -285,12 +287,18 @@ def undo(store: ContactsStore, decision_id: str, *, actor: str) -> Settled:
         if d["undone_at"] is not None:
             raise UndoRefused("This was already undone.")
         data = json.loads(d["data"])
+        ids = tuple(i for i in (d["object_id"], d["other_id"]) if i and _exists(db, i))
+        if not ids or (d["kind"] in (SAVE, KEEP) and d["object_id"] not in ids):
+            # Its contact was deleted for good (with nothing it went into for a "not the same person"): nothing to
+            # bring back, and nothing to answer with.
+            raise UndoRefused("This contact was deleted for good, so this cannot be undone.")
         if d["kind"] == SAVE and data.get("rev") is not None:
-            try:
-                row = _row(db, d["object_id"])
-            except NotFound:
-                raise UndoRefused("This contact was deleted for good, so this cannot be undone.") from None
-            if row["rev"] != data["rev"]:
+            row = _row(db, d["object_id"])
+            # Still at the revision the save wrote, and that revision is the save's own: a decision whose contact
+            # is not the one it wrote (moved to a merged contact by an earlier version) is never applied to it.
+            wrote = db.execute("SELECT op FROM revisions WHERE object_id = ? AND rev = ?",
+                               (row["id"], data["rev"])).fetchone()
+            if row["rev"] != data["rev"] or wrote is None or wrote["op"] != "review":
                 raise UndoRefused("This contact changed since, so this cannot be undone.")
             rev, raw = revert_text(db, row, data["prior_rev"], when)
             _record(db, row["id"], row["address_book_id"], row["href"], rev, raw, "undo", "modify", actor, when,
@@ -299,8 +307,11 @@ def undo(store: ContactsStore, decision_id: str, *, actor: str) -> Settled:
             db.execute(f"UPDATE {_table(link['table'])} SET reviewed_hash = ? WHERE rowid = ? AND reviewed_hash IS ?",
                        (link["prior"], link["rowid"], link["now"]))
         db.execute("UPDATE decisions SET undone_at = ?, undone_by = ? WHERE id = ?", (when, actor, decision_id))
-    ids = tuple(i for i in (d["object_id"], d["other_id"]) if i)
-    return Settled(d["object_id"], decision_id, ids)
+    return Settled(ids[0], decision_id, ids)
+
+
+def _exists(db: sqlite3.Connection, contact_id: str) -> bool:
+    return db.execute("SELECT 1 FROM contacts WHERE id = ?", (contact_id,)).fetchone() is not None
 
 
 def _table(name: str) -> str:

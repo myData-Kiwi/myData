@@ -447,6 +447,34 @@ def test_possible_duplicates_through_the_api(host, client):
                        json={"ids": ids}).status_code == 403
 
 
+def test_undoing_a_decision_once_a_contact_of_it_was_deleted_for_good(host, client):
+    auth = bearer(host, "mycontacts")
+    a, b = (client.post("/contacts", headers=auth, json={"given_name": "Ava", "family_name": "Fictional",
+                                                          "emails": [{"value": "ava@example.org"}]}).json()["contact"]
+            for _ in range(2))
+    marked = client.post("/contacts/not-duplicates", headers=auth, json={"ids": [a["id"], b["id"]]}).json()
+    for contact in (a, b):
+        deleted = client.delete(f"/contacts/{contact['id']}", headers={**auth, "If-Match": contact["etag"]})
+        assert deleted.status_code == 200, deleted.text
+        if contact is a:
+            gone = client.delete(f"/trash/{a['id']}", headers={**auth, "If-Match": deleted.json()["contact"]["etag"]})
+            assert gone.status_code == 204, gone.text
+    # One of the pair is left (in Recently deleted): the undo answers with it.
+    r = client.post(f"/undo/{marked['undo_id']}", headers=auth)
+    assert r.status_code == 200, r.text
+    assert r.json()["contact"]["id"] == b["id"] and r.json()["contact_ids"] == [b["id"]]
+    assert client.post(f"/undo/{marked['undo_id']}", headers=auth).status_code == 409
+    # Both gone: refused before anything is written, never a 500.
+    bens = [client.post("/contacts", headers=auth, json={"given_name": "Ben"}).json()["contact"] for _ in range(2)]
+    again = client.post("/contacts/not-duplicates", headers=auth, json={"ids": [c["id"] for c in bens]}).json()
+    for contact in bens:
+        deleted = client.delete(f"/contacts/{contact['id']}", headers={**auth, "If-Match": contact["etag"]}).json()
+        assert client.delete(f"/trash/{contact['id']}",
+                             headers={**auth, "If-Match": deleted["contact"]["etag"]}).status_code == 204
+    r = client.post(f"/undo/{again['undo_id']}", headers=auth)
+    assert r.status_code == 409, r.text
+
+
 def test_merge_says_what_it_left_out(host, client):
     auth = bearer(host, "mycontacts")
     a = client.post("/contacts", headers=auth, json={"given_name": "Ava", "job_title": "Librarian"}).json()

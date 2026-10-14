@@ -245,3 +245,74 @@ def test_not_the_same_person_needs_two_contacts_of_yours(store):
     cw.delete(store, gone, if_match=store.get(gone)["http_etag"], actor="mycontacts")
     with pytest.raises(cw.InTrash):
         review.not_duplicate(store, mine, gone, actor="mycontacts")
+
+
+# ---------------------------------------------------------------- undo once a contact is deleted for good
+
+def _purge(store, contact_id: str) -> None:
+    row = store.get(contact_id, include_deleted=True)
+    if row["deleted_at"] is None:
+        cw.delete(store, contact_id, if_match=row["http_etag"], actor="mycontacts")
+    cw.purge_now(store, contact_id, if_match=store.get(contact_id, include_deleted=True)["http_etag"])
+
+
+def test_a_saved_review_of_a_merged_original_is_never_undone_on_the_merged_contact(store):
+    ava = _imported_ava(store)
+    copy = _change_upstream(store, "NICKNAME:Avi", "NICKNAME:Avi B")
+    saved = review.save_changes(store, ava, {"nickname": "Avi B"}, [(copy["id"], copy["http_etag"])],
+                                if_match=store.get(ava)["http_etag"], actor="mycontacts")
+    kept_copy = _change_upstream(store, "NICKNAME:Avi", "NICKNAME:Avi C", etag='"3"')
+    kept = review.keep_mine(store, ava, [(kept_copy["id"], kept_copy["http_etag"])], actor="mycontacts")
+    with store.db.connect() as db:
+        rev = json.loads(db.execute("SELECT data FROM decisions WHERE id = ?", (saved.undo_id,)).fetchone()[0])["rev"]
+    other = _make(store, given_name="Ava", family_name="F.", phones=[{"value": "+1 202 555 0123"}])
+    merged = imp.merge_.merge(store, [(ava, store.get(ava)["http_etag"]), (other, store.get(other)["http_etag"])],
+                              actor="mycontacts").contact_id
+    _purge(store, ava)
+    # The merged contact is edited until it reaches the revision the save wrote on the original.
+    n = 0
+    while store.get(merged)["rev"] < rev:
+        n += 1
+        cw.update(store, merged, {"job_title": f"T{n}"}, if_match=store.get(merged)["http_etag"], actor="mycontacts")
+    assert store.get(merged)["rev"] == rev
+    before = store.get(merged)["raw_vcard"]
+    for decision in (saved, kept):
+        with pytest.raises(cw.UndoRefused):
+            review.undo(store, decision.undo_id, actor="mycontacts")
+    assert store.get(merged)["raw_vcard"] == before
+    with store.db.connect() as db:
+        assert {r[0] for r in db.execute("SELECT object_id FROM decisions")} == {ava}
+        assert db.execute("SELECT COUNT(*) FROM decisions WHERE undone_at IS NOT NULL").fetchone()[0] == 0
+
+
+def test_a_save_moved_to_another_contact_is_not_undone_on_it(store):
+    """A decision an earlier version moved to the merged contact: the revision it names is not the save's own."""
+    ava = _imported_ava(store)
+    copy = _change_upstream(store, "NICKNAME:Avi", "NICKNAME:Avi B")
+    saved = review.save_changes(store, ava, {"nickname": "Avi B"}, [(copy["id"], copy["http_etag"])],
+                                if_match=store.get(ava)["http_etag"], actor="mycontacts")
+    other = _make(store, given_name="Ben", family_name="Sample")
+    while store.get(other)["rev"] < store.get(ava)["rev"]:
+        cw.update(store, other, {"job_title": "Inventor"}, if_match=store.get(other)["http_etag"], actor="mycontacts")
+    with store.db.transaction() as db:
+        db.execute("UPDATE decisions SET object_id = ? WHERE id = ?", (other, saved.undo_id))
+    before = store.get(other)["raw_vcard"]
+    with pytest.raises(cw.UndoRefused):
+        review.undo(store, saved.undo_id, actor="mycontacts")
+    assert store.get(other)["raw_vcard"] == before
+
+
+def test_not_the_same_person_is_undone_while_one_of_the_pair_is_left(store):
+    a = _make(store, given_name="Ava", family_name="Fictional", emails=[{"value": "ava@example.org"}])
+    b = _make(store, given_name="Ava", family_name="Fictional", emails=[{"value": "ava@example.org"}])
+    c = _make(store, given_name="Ava", family_name="Fictional", emails=[{"value": "ava@example.org"}])
+    marked = review.not_duplicate(store, a, b, actor="mycontacts")
+    both = review.not_duplicate(store, a, c, actor="mycontacts")
+    _purge(store, a)
+    done = review.undo(store, marked.undo_id, actor="mycontacts")
+    assert done.contact_id == b and done.contact_ids == (b,)
+    _purge(store, c)
+    with pytest.raises(cw.UndoRefused):  # both gone: nothing to undo
+        review.undo(store, both.undo_id, actor="mycontacts")
+    with store.db.connect() as db:
+        assert db.execute("SELECT undone_at FROM decisions WHERE id = ?", (both.undo_id,)).fetchone()[0] is None
