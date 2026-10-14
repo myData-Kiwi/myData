@@ -259,3 +259,33 @@ def test_inputs_that_are_not_contacts_are_refused_with_a_code_each():
                                           "zip_unreadable", "zip_no_vcard", "no_vcard", "utf16_unreadable"}
     with pytest.raises(ValueError):
         ImportFileError("An unknown case.", "no_such_code")
+
+
+MAC_CARD = ("BEGIN:VCARD\r\nVERSION:3.0\r\nPRODID:{prodid}\r\nN:Fictional;Ava;;;\r\nFN:Ava Fictional\r\n"
+            "item1.EMAIL;type=INTERNET;type=pref:ava@example.org\r\n{note}UID:mac-{n}@example.org\r\nEND:VCARD\r\n")
+
+
+def _mac_export(*notes: str, prodid: str = "-//Apple Inc.//macOS 26.0//EN") -> bytes:
+    return "".join(MAC_CARD.format(prodid=prodid, note=f"NOTE:{note}\r\n" if note else "", n=n)
+                   for n, note in enumerate(notes)).encode()
+
+
+def test_an_export_from_contacts_on_a_mac_with_no_notes_is_a_loss():
+    r = read_contacts(_mac_export("", "", ""))
+    assert r.notes == {"no_notes": 3}
+    losses, _ = importer._report(r)
+    assert [(x["code"], x["count"]) for x in losses] == [("no_notes", 3)]
+    assert "Export notes in vCards" in losses[0]["message"] and "Ava" not in losses[0]["message"]
+    # Older names of macOS too; a group card is not counted.
+    group = ("BEGIN:VCARD\r\nVERSION:3.0\r\nPRODID:-//Apple Inc.//Mac OS X 10.15.7//EN\r\nN:Book club\r\n"
+             "FN:Book club\r\nX-ADDRESSBOOKSERVER-KIND:group\r\nUID:group-1@example.org\r\nEND:VCARD\r\n")
+    r = read_contacts(_mac_export("", prodid="-//Apple Inc.//Mac OS X 10.15.7//EN") + group.encode())
+    assert r.notes == {"no_notes": 1}
+
+
+def test_a_note_anywhere_or_another_app_is_no_loss():
+    assert read_contacts(_mac_export("", "Met at the invented conference.", "")).notes == {}
+    for prodid in ("-//Google Inc.//Google Contacts//EN", "-//Apple Inc.//iPhone OS 18.0//EN",
+                   "-//Apple Inc.//iCloud Web Address Book 2600B5//EN", "-//myData//This Mac//EN"):
+        assert read_contacts(_mac_export("", "", prodid=prodid)).notes == {}, prodid
+    assert read_contacts(corpus.read(corpus.APPLE)).notes == {}  # Contacts on a Mac, with a note

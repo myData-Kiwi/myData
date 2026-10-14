@@ -7,6 +7,7 @@ Invented data only (example.org, 555-01xx)."""
 from __future__ import annotations
 
 import logging
+import re
 
 import pytest
 from starlette.testclient import TestClient
@@ -120,6 +121,19 @@ def test_choices_and_losses(host, client):
                     json={"accept_losses": True, "choices": [{"index": 0, "action": "import"}]})
     assert r.status_code == 201 and r.json()["counts"]["created"] == 4  # Ava as new, the org, Sam, Robin
     assert len([c for c in client.get("/contacts", headers=host.auth).json() if c["display_name"].startswith("Ava")]) == 2
+
+
+def test_an_export_from_contacts_on_a_mac_without_notes_needs_the_loss_accepted(host, client):
+    text = re.sub(r"NOTE:[^\r\n]*\r?\n", "", corpus.read(corpus.APPLE).decode())
+    assert "NOTE" not in text
+    preview = upload(client, host, text.encode()).json()
+    assert preview["needs_acceptance"] is True
+    assert [(x["code"], x["count"]) for x in preview["losses"]] == [("no_notes", 3)]
+    url = f"/import/previews/{preview['id']}/commit"
+    r = client.post(url, headers=bearer(host, "mydata"), json={})
+    assert r.status_code == 400 and r.json()["code"] == "losses_not_accepted"
+    r = client.post(url, headers=bearer(host, "mydata"), json={"accept_losses": True})
+    assert r.status_code == 201 and r.json()["counts"]["created"] == 3
 
 
 def test_a_card_with_an_odd_character_set_never_fails_the_file(host, client):

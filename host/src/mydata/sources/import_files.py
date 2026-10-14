@@ -104,6 +104,8 @@ class ReadCard:
     emails: list[str] = field(default_factory=list)
     phones: list[str] = field(default_factory=list)
     entry: str | None = None  # the zip entry it came from (its name, as a label only)
+    prodid: str = ""  # the app that wrote the card, as its PRODID says (Apple's Contacts on a Mac: _MAC_CONTACTS)
+    has_note: bool = False
     raw: bytes | None = None  # the card's bytes as received, when its text was decoded by a guess (_decode_card)
     # What is worked out from the card once and used again by every analysis and the commit: its columns
     # ("fields", contacts_store.card_fields) and its matching keys per region (importer).
@@ -123,7 +125,7 @@ class ReadResult:
     skipped: list[Skipped] = field(default_factory=list)
     # Notes about the file that lose nothing ("declared_charset": cards decoded in the character set they name)
     # and ones that do ("guessed_charset": cards decoded by a guess, "outside_text": lines outside any card,
-    # "nested_zip", "encrypted", "too_many"): {code: count}
+    # "nested_zip", "encrypted", "too_many", "no_notes": cards Contacts on a Mac wrote without notes): {code: count}
     notes: dict[str, int] = field(default_factory=dict)
     unread_entries: list[str] = field(default_factory=list)  # .vcf files in a zip with no card that could be read
     entries_read: int = 0  # .vcf files read (1 for a plain .vcf)
@@ -164,7 +166,22 @@ def read_contacts(data: bytes) -> ReadResult:
         result.entries_read = 1
     if not result.cards and not result.skipped:
         raise ImportFileError("No vCard was found in the file.", "no_vcard")
+    _note_missing_notes(result)
     return result
+
+
+# Contacts on a Mac writes "-//Apple Inc.//macOS 26.0//EN" (earlier "Mac OS X 10.15.7", "OS X 10.11").
+_MAC_CONTACTS = re.compile(r"-//Apple Inc\.//(macOS|Mac OS X|OS X)\b", re.IGNORECASE)
+
+
+def _note_missing_notes(result: ReadResult) -> None:
+    """Contacts on a Mac leaves notes out of an export unless "Export notes in vCards" is on, and says nothing: a
+    file whose cards it wrote, none with a NOTE, is a loss ("no_notes": how many of its people and organisations),
+    since the notes are gone for good once the originals are deleted. Only for a file: a followed account's copy
+    holds what the account holds."""
+    written = [c for c in result.cards if c.kind != "group" and _MAC_CONTACTS.match(c.prodid.strip())]
+    if written and not any(c.has_note for c in written):
+        result.note("no_notes", len(written))
 
 
 def _zip_vcards(data: bytes, result: ReadResult):
@@ -389,11 +406,13 @@ def _read_card(original: str, index: int, entry: str | None) -> ReadCard | Skipp
         return Skipped("unreadable", index, entry)  # a lone surrogate, from a codec such as unicode_escape
     uid = parsed.uid.strip()
     fields = card_fields(None, text, parsed)
+    prodid = card.first("PRODID")
     return ReadCard(index=index, text=text, original=original, converted_from=converted, kind=fields["kind"],
                     version=VCard.parse(text).version, uid=uid, source_uid=uid or content_key(original),
                     source_hash=raw_hash(original), display_name=parsed.display_name,
                     emails=[e["value"] for e in parsed.emails], phones=[p["value"] for p in parsed.phones],
-                    entry=entry, cache={"fields": fields})
+                    entry=entry, prodid=prodid.text() if prodid is not None else "",
+                    has_note=bool(parsed.note.strip()), cache={"fields": fields})
 
 
 def _is_unicode(*texts: str) -> bool:

@@ -449,6 +449,8 @@ _LOSS_NOTES = {
     "encrypted": "{n} encrypted file(s) in the zip were not read.",
     "unsupported_compression": "{n} file(s) in the zip are compressed in a way myData does not read (only stored "
                                "and deflated); they were not read.",
+    "no_notes": "None of the {n} card(s) from Contacts on a Mac has a note: Contacts leaves notes out unless "
+                "\"Export notes in vCards\" is on in its settings. Export again with it on to keep them.",
 }
 _CHANGE_NOTES = {
     "declared_charset": "Some cards were not UTF-8; they were read in the character set each one names and are "
