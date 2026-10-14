@@ -49,16 +49,28 @@ Future<void> settle(WidgetTester tester) async {
   }
 }
 
-/// The sample contacts with Pip and Quinn, whom the host owns, after Omar Sample.
+/// The sample contacts with Pip and Quinn, whom the host owns, after Omar Sample, in the host's order (P
+/// before Q).
 FakeBackend owned() {
   final cards = sampleCards();
   cards.insertAll(cards.indexWhere((c) => c.id == 'c-sam'), [
+    pipOwned(),
     ownedCard('c-quinn', ContactIn(givenName: 'Quinn', familyName: 'Owned', emails: [
       LabeledValueIn(label: 'Home', value: 'quinn@example.org'),
     ])),
-    pipOwned(),
   ]);
   return FakeBackend(cards: cards, photos: {'c-ava': portrait});
+}
+
+/// Scrolls the contact list until [name]'s row is built and in view (the list builds rows lazily).
+Future<void> _showRow(WidgetTester tester, String name) async {
+  final row = find.descendant(of: find.byType(ContactList), matching: find.text(name));
+  for (var i = 0; i < 10 && row.evaluate().isEmpty; i++) {
+    await tester.drag(find.byType(ContactList), const Offset(0, -120));
+    await settle(tester);
+  }
+  await tester.ensureVisible(row);
+  await settle(tester);
 }
 
 Finder _iconButton(String label) => find.byWidgetPredicate((w) => w is MyDataIconButton && w.label == label);
@@ -101,6 +113,7 @@ void main() {
   screenMatrix('several_selected', (t) => app(t, lastOpened: 'c-pip', backend: owned()), before: (tester) async {
     await settle(tester);
     for (final name in ['Quinn Owned', 'Omar Sample']) {
+      await _showRow(tester, name);
       await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
       await tester.tap(find.descendant(of: find.byType(ContactList), matching: find.text(name)));
       await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
@@ -121,6 +134,7 @@ void main() {
   screenMatrix('recently_deleted', (t) => app(t, lastOpened: 'c-pip', backend: owned()), before: (tester) async {
     await settle(tester);
     for (final name in ['Quinn Owned', 'Pip Owned']) {
+      await _showRow(tester, name);
       await tester.tap(find.descendant(of: find.byType(ContactList), matching: find.text(name)));
       await settle(tester);
       await tester.sendKeyEvent(LogicalKeyboardKey.delete);
