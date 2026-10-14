@@ -40,6 +40,7 @@ ROUTE_SCOPES = {
     ("POST", "/approvals/{approval_id}"): ("approve",),
     ("POST", "/shutdown"): ("shutdown",),
     ("GET", "/contacts"): ("contacts:read",),
+    ("GET", "/contacts/duplicates"): ("contacts:read",),
     ("GET", "/contacts/{contact_id}"): ("contacts:read",),
     ("GET", "/contacts/{contact_id}/photo"): ("contacts:read",),
     ("POST", "/contacts"): ("contacts:write",),

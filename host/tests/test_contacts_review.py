@@ -144,7 +144,8 @@ def test_a_copy_this_mac_reads_is_reviewed_without_notes(tmp_path):
 
 
 def test_differences_normalise_before_comparing():
-    a = "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Ava Fictional\r\nEMAIL:Ava@Example.org\r\nTEL:+1 (202) 555-0100\r\nEND:VCARD\r\n"
+    a = ("BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Ava Fictional\r\nEMAIL:Ava@Example.org\r\nTEL:+1 (202) 555-0100\r\n"
+         "END:VCARD\r\n")
     b = "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:ava  fictional\r\nEMAIL:ava@example.org\r\nTEL:+12025550100\r\n" \
         "PRODID:-//Apple Inc.//macOS 26.0//EN\r\nEND:VCARD\r\n"
     assert differences(a, b, region="US") == []
@@ -152,3 +153,48 @@ def test_differences_normalise_before_comparing():
     assert differences(a, c, region="US") == ["birthday", "note", "other"]
     assert differences(a, c, notes=False, region="US") == ["birthday", "other"]
     assert json.dumps(differences(a, c, region="US"))  # kinds only, never a value
+
+
+# ---------------------------------------------------------------- possible duplicates
+
+def _make(store, **form) -> str:
+    return cw.create(store, form, actor="mycontacts").contact_id
+
+
+def _pairs(store) -> list[tuple]:
+    names = {}
+    for p in review.duplicates(store, region="US"):
+        a, b = (names.setdefault(i, store.get(i, include_deleted=True)["display_name"]) for i in (p["a"], p["b"]))
+        # Two contacts of one name come in either order: their shared emails are compared in lower case.
+        yield (a, b, p["strength"], tuple(p["signals"]), tuple(e.lower() for e in p["emails"]), tuple(p["phones"]))
+
+
+def test_possible_duplicates_are_pairs_of_yours_strong_first(store):
+    ava1 = _make(store, given_name="Ava", family_name="Fictional", emails=[{"value": "ava@example.org"}])
+    _make(store, given_name="Ava", family_name="Fictional", emails=[{"value": "AVA@example.org"}],
+          phones=[{"value": "+1 202 555 0100"}])
+    _make(store, given_name="Ben", family_name="Sample", phones=[{"value": "(202) 555-0100"}])
+    _make(store, given_name="Cleo", family_name="Example")
+    cleo2 = _make(store, given_name="Cleo", family_name="Example")
+    _make(store, emails=[{"value": "ava@example.org"}])  # no name: the email is its name
+    gone = _make(store, given_name="Ben", family_name="Sample", phones=[{"value": "+1 202 555 0100"}])
+    cw.delete(store, gone, if_match=store.get(gone)["http_etag"], actor="mycontacts")
+    pairs = list(_pairs(store))
+    assert pairs == [
+        ("Ava Fictional", "Ava Fictional", "strong", ("email", "name"), ("ava@example.org",), ()),
+        ("Ava Fictional", "ava@example.org", "strong", ("email",), ("ava@example.org",), ()),
+        ("Ava Fictional", "ava@example.org", "strong", ("email",), ("ava@example.org",), ()),
+        ("Ava Fictional", "Ben Sample", "suggestion", ("phone",), (), ("+1 202 555 0100",)),
+        ("Cleo Example", "Cleo Example", "suggestion", ("name",), (), ()),
+    ]
+    # The followed account's contacts (two Sam Samples, an Ava with this host's email) are never offered.
+    assert all("Sam" not in p[0] for p in pairs)
+    assert store.get(ava1)["account_id"] == "local" and cleo2
+
+
+def test_a_large_group_is_paired_within_a_bound(store, monkeypatch):
+    monkeypatch.setattr(review, "MAX_GROUP", 3)
+    for _ in range(5):
+        _make(store, given_name="Dev", family_name="Placeholder")
+    assert len(review.duplicates(store, region="US")) == 3  # the first three paired, not all ten pairs
+    assert len(review.duplicates(store, region="US", limit=1)) == 1

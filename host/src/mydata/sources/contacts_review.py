@@ -1,5 +1,8 @@
-"""Reviewing the contacts the host owns: a followed copy that changed since the import (design/components/
-DuplicatePair, "Changes").
+"""Reviewing the contacts the host owns (design/components/DuplicatePair): possible duplicates, and a followed copy
+that changed since the import.
+
+**Possible duplicates** (duplicates()): pairs of owned contacts with the same email or phone, or the same name, with
+the reason and its strength, never merged here (the user merges: sources/contacts_merge.py).
 
 **Changed since import.** An owned contact stands for the followed cards it was imported from (origins, by account
 and UID) or that a file import hid behind it (shadows), its own and those of the contacts merged into it. When such
@@ -31,9 +34,11 @@ from .card_values import differences
 from .contacts_store import ContactsStore, http_etag
 from .contacts_write import (InTrash, NotFound, PreconditionFailed, UndoRefused, WriteError, _baseline, _check_etag,
                              _clock, _record, _row, _write_text, edited_text, revert_text, stamp)
+from .importer import _keys, default_region, email_key, phone_key
 from .mac import MAC_ID
+from .views import compare_names
 
-SAVE, KEEP = "save_changes", "keep_mine"
+SAVE, KEEP, NOT_DUPLICATE = "save_changes", "keep_mine", "not_duplicate"
 
 
 class ReviewRefused(WriteError):
@@ -161,6 +166,81 @@ def save_changes(store: ContactsStore, contact_id: str, form: dict, seen: list[t
         links = _settle(db, contact_id, seen)
         decision = _decide(db, SAVE, contact_id, {"rev": rev, "prior_rev": row["rev"], "links": links}, actor, when)
     return Settled(contact_id, decision, (contact_id,))
+
+
+# ---------------------------------------------------------------- possible duplicates
+
+MAX_GROUP = 20  # contacts sharing one email, number or name that are paired with each other
+
+
+def _head(db: sqlite3.Connection, contact_id: str) -> str:
+    """The live contact a contact now is: itself, or the contact it was merged into (followed through merges)."""
+    seen = {contact_id}
+    current = contact_id
+    while True:
+        row = db.execute("SELECT deleted_at, merged_into FROM contacts WHERE id = ?", (current,)).fetchone()
+        if row is None or row["deleted_at"] is None or row["merged_into"] is None or row["merged_into"] in seen:
+            return current
+        current = row["merged_into"]
+        seen.add(current)
+
+
+def different_people(db: sqlite3.Connection) -> set[frozenset[str]]:
+    """Pairs of contacts the user said are not the same person (not undone), as the live contacts they are now: a
+    contact merged since stands for its originals."""
+    out = set()
+    for r in db.execute("SELECT object_id, other_id FROM decisions WHERE kind = ? AND undone_at IS NULL",
+                        (NOT_DUPLICATE,)):
+        pair = frozenset((_head(db, r["object_id"]), _head(db, r["other_id"])))
+        if len(pair) == 2:
+            out.add(pair)
+    return out
+
+
+def duplicates(store: ContactsStore, *, limit: int = 500, region: str | None = None) -> list[dict]:
+    """Pairs of contacts the host owns that may be one person (design/components/DuplicatePair, "Review"), strong
+    ones first: the same email or phone (an email in lower case, a phone in E.164) under the same name, or where one
+    has no name, is strong; the same name alone, or an email or phone shared under another name, is a suggestion.
+    Followed contacts are never offered (a followed copy of an owned contact is hidden instead). Pairs the user
+    marked as different people are left out. Each: {a, b (contact ids, in name order), strength, signals (email,
+    phone, name), emails, phones (the shared values, as the first contact writes them)}. Nothing is merged."""
+    region = region if region is not None else default_region()
+    with store.db.connect() as db:
+        db.create_collation("MYDATA_NAME", compare_names)
+        rows = db.execute("SELECT c.id, c.display_name, c.emails, c.phones FROM contacts c JOIN address_books b "
+                          "ON b.id = c.address_book_id WHERE b.mode = ? AND b.deleted_at IS NULL AND "
+                          "c.deleted_at IS NULL AND c.kind != 'group' ORDER BY c.display_name COLLATE MYDATA_NAME, "
+                          "c.id", (owned.OWNED,)).fetchall()
+        apart = different_people(db)
+    contacts = []
+    for r in rows:
+        emails = [e["value"] for e in json.loads(r["emails"])]
+        phones = [p["value"] for p in json.loads(r["phones"])]
+        contacts.append((r["id"], emails, phones, _keys(r["display_name"], emails, phones, region)))
+    groups: dict[tuple[str, str], list[int]] = {}
+    for n, (_id, _e, _p, keys) in enumerate(contacts):
+        for kind, values in (("email", keys.emails), ("phone", keys.phones), ("name", {keys.name} - {None})):
+            for value in values:
+                groups.setdefault((kind, value), []).append(n)
+    pairs: set[tuple[int, int]] = set()
+    for members in groups.values():
+        members = members[:MAX_GROUP]
+        pairs.update((a, b) for i, a in enumerate(members) for b in members[i + 1:])
+    out = []
+    for a, b in sorted(pairs):
+        (a_id, a_emails, a_phones, ka), (b_id, _be, _bp, kb) = contacts[a], contacts[b]
+        if frozenset((a_id, b_id)) in apart:
+            continue
+        signals = [s for s, shared in (("email", ka.emails & kb.emails), ("phone", ka.phones & kb.phones),
+                                       ("name", ka.name is not None and ka.name == kb.name)) if shared]
+        agree = ka.name is None or kb.name is None or ka.name == kb.name
+        strong = agree and ("email" in signals or "phone" in signals)
+        out.append({"a": a_id, "b": b_id, "strength": "strong" if strong else "suggestion", "signals": signals,
+                    "emails": [e for e in a_emails if (k := email_key(e)) and k in kb.emails],
+                    "phones": [p for p in a_phones if (k := phone_key(p, region)) and k in kb.phones],
+                    "order": (not strong, a, b)})
+    out.sort(key=lambda p: p.pop("order"))
+    return out[:max(1, min(int(limit), 5000))]
 
 
 # ---------------------------------------------------------------- undo

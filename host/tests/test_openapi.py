@@ -21,7 +21,7 @@ def test_openapi_declares_bearer_auth_and_localhost_server():
                                  "/approvals/{approval_id}", "/tools", "/agents", "/agents/{agent_id}",
                                  "/assistant/settings", "/shutdown", "/appearance", "/accounts",
                                  "/accounts/{account_id}", "/accounts/{account_id}/sync", "/sync", "/contacts",
-                                 "/contacts/{contact_id}", "/contacts/{contact_id}/photo",
+                                 "/contacts/{contact_id}", "/contacts/{contact_id}/photo", "/contacts/duplicates",
                                  "/contacts/{contact_id}/followed-changes",
                                  "/contacts/{contact_id}/followed-changes/save",
                                  "/contacts/{contact_id}/followed-changes/keep", "/calendars", "/events",

@@ -407,6 +407,21 @@ def test_a_followed_change_is_reviewed_saved_kept_and_undone_through_the_api(hos
 
 # ---------------------------------------------------------------- merge
 
+def test_possible_duplicates_through_the_api(host, client):
+    auth = bearer(host, "mycontacts")
+    for form in ({"given_name": "Ava", "family_name": "Fictional", "emails": [{"value": "ava@example.org"}]},
+                 {"given_name": "Ava", "family_name": "Fictional", "emails": [{"value": "Ava@Example.org"}]},
+                 {"given_name": "Ben", "family_name": "Sample"}):
+        client.post("/contacts", headers=auth, json=form)
+    r = client.get("/contacts/duplicates", headers=bearer(host, "myassistant"))  # contacts:read
+    assert r.status_code == 200, r.text
+    [pair] = r.json()
+    assert [c["display_name"] for c in pair["contacts"]] == ["Ava Fictional", "Ava Fictional"]
+    assert (pair["strength"], pair["signals"], len(pair["emails"]), pair["phones"]) == ("strong", ["email", "name"],
+                                                                                       1, [])
+    assert client.get("/contacts/duplicates", headers=bearer(host, "mycalendar")).status_code == 403
+
+
 def test_merge_says_what_it_left_out(host, client):
     auth = bearer(host, "mycontacts")
     a = client.post("/contacts", headers=auth, json={"given_name": "Ava", "job_title": "Librarian"}).json()

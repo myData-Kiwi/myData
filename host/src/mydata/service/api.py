@@ -480,6 +480,17 @@ class UndoOut(BaseModel):
                                                            "Recently deleted)")
 
 
+class DuplicatePairOut(BaseModel):
+    contacts: list[ContactOut] = Field(description="the two contacts of yours, in name order")
+    strength: str = Field(description="strong (the same email or phone, under the same name or where one has none) "
+                                      "or suggestion (the same name only, or an email or phone shared under another "
+                                      "name)")
+    signals: list[str] = Field(description="what they share: email, phone, name")
+    emails: list[str] = Field(default=[], description="the emails they share, as the first contact writes them")
+    phones: list[str] = Field(default=[], description="the phone numbers they share, as the first contact writes "
+                                                      "them")
+
+
 class FollowedSeenIn(BaseModel):
     id: str = Field(min_length=1, max_length=100, description="a followed copy's id (FollowedChangeOut.followed.id)")
     etag: str = Field(min_length=1, max_length=200, description="its etag as the user saw it")
@@ -1176,6 +1187,21 @@ def _routes_sources(app: FastAPI, need: Callable[[], SyncService], current_mode:
         else:
             rows = store.list(limit=limit, offset=offset)
         return [ContactOut(**_list_view(r)) for r in rows]
+
+    @app.get("/contacts/duplicates", dependencies=needs("contacts:read"), tags=["sources"],
+             response_model=list[DuplicatePairOut], responses=unavailable)
+    def duplicates(limit: int = Query(default=500, ge=1, le=5000)) -> list[DuplicatePairOut]:
+        """Pairs of contacts of yours that may be one person, strong ones first, for myContacts' Review: the same
+        email or phone under the same name is strong; the same name alone, or an email or phone shared under
+        another name, is a suggestion. Followed contacts are never offered, and pairs marked as different people
+        (POST /contacts/not-duplicates) are left out. Nothing is merged here."""
+        from ..sources import contacts_review
+        store = need().contacts
+        pairs = contacts_review.duplicates(store, limit=limit)
+        rows = {i: store.get(i) for i in {p[k] for p in pairs for k in ("a", "b")}}
+        return [DuplicatePairOut(contacts=[ContactOut(**_list_view(rows[p[k]])) for k in ("a", "b")],
+                                 strength=p["strength"], signals=p["signals"], emails=p["emails"], phones=p["phones"])
+                for p in pairs if rows[p["a"]] and rows[p["b"]]]
 
     @app.get("/contacts/{contact_id}", dependencies=needs("contacts:read"),
              tags=["sources"], response_model=ContactDetailOut,
