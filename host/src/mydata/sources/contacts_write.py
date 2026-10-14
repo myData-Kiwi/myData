@@ -171,9 +171,10 @@ def _check_etag(row: sqlite3.Row, if_match: str | None) -> None:
         raise PreconditionFailed("This contact changed since it was read. Reload it and try again.", current)
 
 
-def _write_text(db: sqlite3.Connection, row: sqlite3.Row, text: str, at: str) -> int:
+def _write_text(db: sqlite3.Connection, row: sqlite3.Row, text: str, at: str, *, fields: dict | None = None) -> int:
+    """Write `text` as the card's next revision. `fields`: card_fields(None, text) when the caller has them."""
     rev = row["rev"] + 1
-    fields = card_fields(None, text)
+    fields = fields if fields is not None else card_fields(None, text)
     fields["etag"] = http_etag(rev, fields["raw_sha256"])
     assignments = ", ".join(f"{k} = ?" for k in fields)
     done = db.execute(f"UPDATE contacts SET {assignments}, rev = ?, modified_at = ? WHERE id = ? AND rev = ?",

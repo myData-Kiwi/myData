@@ -39,7 +39,8 @@ import re
 import zipfile
 from dataclasses import asdict, dataclass, field
 
-from .vcard import card_kind, parse_vcard
+from .contacts_store import card_fields
+from .vcard import parse_vcard
 from .vcard_edit import VCard, VCardError, text_codec, upgrade_21
 
 MAX_INPUT = 50 * 1024 * 1024
@@ -92,6 +93,9 @@ class ReadCard:
     phones: list[str] = field(default_factory=list)
     entry: str | None = None  # the zip entry it came from (its name, as a label only)
     raw: bytes | None = None  # the card's bytes as received, when its text was decoded by a guess (_decode_card)
+    # What is worked out from the card once and used again by every analysis and the commit: its columns
+    # ("fields", contacts_store.card_fields) and its matching keys per region (importer).
+    cache: dict = field(default_factory=dict, repr=False, compare=False)
 
 
 @dataclass
@@ -370,11 +374,12 @@ def _read_card(original: str, index: int, entry: str | None) -> ReadCard | Skipp
     if not _is_unicode(original, text, json.dumps(asdict(parsed), ensure_ascii=False)):
         return Skipped("unreadable", index, entry)  # a lone surrogate, from a codec such as unicode_escape
     uid = parsed.uid.strip()
-    return ReadCard(index=index, text=text, original=original, converted_from=converted, kind=card_kind(text),
+    fields = card_fields(None, text, parsed)
+    return ReadCard(index=index, text=text, original=original, converted_from=converted, kind=fields["kind"],
                     version=VCard.parse(text).version, uid=uid, source_uid=uid or content_key(original),
                     source_hash=raw_hash(original), display_name=parsed.display_name,
                     emails=[e["value"] for e in parsed.emails], phones=[p["value"] for p in parsed.phones],
-                    entry=entry)
+                    entry=entry, cache={"fields": fields})
 
 
 def _is_unicode(*texts: str) -> bool:

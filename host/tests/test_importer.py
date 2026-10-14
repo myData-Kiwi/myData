@@ -203,6 +203,29 @@ def test_duplicates_of_owned_contacts_are_skipped_by_default_and_never_merged(st
     assert done.counts["created"] == 2 and len(owned_rows(store)) == 3  # imported as new, not merged
 
 
+def test_a_large_import_reads_each_card_once_and_compares_only_cards_that_share_a_key(store, monkeypatch):
+    cards = [AVA.replace("ava-1@", f"ava-{n}@").replace("ava@", f"ava{n}@").replace("FN:Ava Fictional", f"FN:Ava {n}")
+             .replace("Fictional;Ava", f"{n};Ava").replace("+1 202 555 0100", f"+1 202 555 {n % 10000:04d}")
+             for n in range(2000)]
+    read = file_with(*cards, AVA.replace("ava-1@", "ava-dup@"))  # shares a number with Ava 100
+    calls = {"signals": 0, "fields": 0}
+    real_signals, real_fields = importer._signals, importer.card_fields
+
+    def signals(a, b):
+        calls["signals"] += 1
+        return real_signals(a, b)
+
+    def fields(*args, **kw):
+        calls["fields"] += 1
+        return real_fields(*args, **kw)
+    monkeypatch.setattr(importer, "_signals", signals)
+    monkeypatch.setattr(importer, "card_fields", fields)
+    done = commit(store, FILE_SOURCE, read)
+    assert done.counts["created"] == 2001
+    assert calls["fields"] == 0  # the columns worked out when the file was read are used again
+    assert calls["signals"] < 100  # not every pair of cards (two million)
+
+
 def test_phone_numbers_match_in_e164():
     assert importer.phone_key("+1 (202) 555-0100", None) == importer.phone_key("tel:+12025550100", None) \
         == "+12025550100"

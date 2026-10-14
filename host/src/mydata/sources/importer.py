@@ -33,7 +33,9 @@ The loss report is what the input holds that will not reach the host (cards that
 entries that were not read). A preview with losses is committed only with accept_losses. What changes without
 being lost (a vCard 2.1 stored as 3.0, with the original kept in origins.source_raw) is reported apart.
 
-**Commit** re-runs the analysis inside its transaction (the host may have changed since the preview), applies
+**Commit** re-runs the analysis inside its transaction (the host may have changed since the preview; the cards'
+columns and matching keys are worked out once, when the file is read, so 44,000 cards hold the write lock for
+seconds, not minutes, under the stores' 30 s busy timeout), applies
 the user's choices, and writes one batch: an `imports` row, and per card written a contacts row (3.0 and 4.0 as
 received, 2.1 converted), an `origins` row (source kind, account, UID or content key, the hash of the text as
 received, the 2.1 original), a `revisions` row (actor "import:<id>", batch_id the import's id), a `changes` row
@@ -55,6 +57,7 @@ Nothing here logs contact data; the messages are the app's words and hold none.
 
 from __future__ import annotations
 
+import functools
 import json
 import locale
 import os
@@ -134,7 +137,9 @@ class Plan:
     counts: dict[str, int]
 
     def item(self, index: int) -> Item | None:
-        return next((i for i in self.items if i.index == index), None)
+        if not hasattr(self, "_by_index"):
+            self._by_index = {i.index: i for i in reversed(self.items)}  # the first item with an index wins
+        return self._by_index.get(index)
 
 
 # ---------------------------------------------------------------- matching keys
@@ -154,8 +159,10 @@ def default_region() -> str | None:
     return m.group(1).upper() if m else None
 
 
+@functools.lru_cache(maxsize=200_000)
 def phone_key(value: str, region: str | None) -> str | None:
-    """The number in E.164, or None when it cannot be read as a possible number."""
+    """The number in E.164, or None when it cannot be read as a possible number. Cached: every analysis reads the
+    numbers of every contact on the host, and phonenumbers takes tens of microseconds a number."""
     value = value.strip()
     if value.lower().startswith("tel:"):
         value = value[4:]
@@ -303,10 +310,13 @@ def analyse(db: sqlite3.Connection, source: ImportSource, read: ReadResult, *,
     claimed: set[str] = set()  # contacts a card without a UID was paired with
     seen_uid: dict[str, int] = {}
     earlier: list[tuple[int, str, _Keys]] = []  # (index, name, keys) of contact cards earlier in the input
+    earlier_by: dict[tuple[str, str], list[int]] = {}  # ("email" / "phone" / "name", key): positions in earlier
     linked: dict[str, list[Item]] = {}  # owned contact: the cards that could be linked to it
     items: list[Item] = []
     for card in read.cards:
-        keys = _keys(card.display_name, card.emails, card.phones, region)
+        keys = card.cache.get(("keys", region))
+        if keys is None:
+            keys = card.cache[("keys", region)] = _keys(card.display_name, card.emails, card.phones, region)
         item = Item(index=card.index, kind=card.kind, display_name=card.display_name, status="new", action="import",
                     choices=("import", "skip"), card=card)
         items.append(item)
@@ -374,12 +384,20 @@ def analyse(db: sqlite3.Connection, source: ImportSource, read: ReadResult, *,
             item.matches.append(Match(row["display_name"], _source_of(row["account_id"]),
                                       "strong" if is_strong else "suggestion", sorted(set(signals)),
                                       contact_id=row["id"], account_id=row["account_id"]))
-        for index, name, other in earlier:
+        # Earlier cards sharing a key, looked up (never every earlier card: an input holds up to 50,000), those with
+        # an email or phone first; a name shared by hundreds is a suggestion for the first few only.
+        strong_near = sorted({n for k in (*(("email", e) for e in keys.emails), *(("phone", p) for p in keys.phones))
+                              for n in earlier_by.get(k, ())})
+        name_near = [n for n in earlier_by.get(("name", keys.name), ()) if n not in strong_near] if keys.name else []
+        for index, name, other in (earlier[n] for n in [*strong_near, *name_near][:MAX_MATCHES * 4]):
             signals = _signals(keys, other)
             if signals:
                 agree = keys.name is None or other.name is None or keys.name == other.name
                 item.matches.append(Match(name, "file", "strong" if agree and signals != ["name"] else "suggestion",
                                           signals, item_index=index))
+        for k in (*(("email", e) for e in keys.emails), *(("phone", p) for p in keys.phones),
+                  *((("name", keys.name),) if keys.name else ())):
+            earlier_by.setdefault(k, []).append(len(earlier))
         earlier.append((card.index, card.display_name, keys))
         rank = {"same_origin": 0, "strong": 1, "suggestion": 2}
         item.matches.sort(key=lambda m: (rank[m.strength], m.source != "mydata"))
@@ -638,14 +656,16 @@ def commit(store: ContactsStore, source: ImportSource, read: ReadResult, *, choi
             if action == "import":
                 row_id = new_id()
                 href = f"{row_id}.vcf"
-                text, original = card.text, _original(card)
+                text, original, fields = card.text, _original(card), dict(card.cache.get("fields") or {})
                 if card.uid and card.uid in owned_uids:
                     # An owned card already holds this UID (the user chose to import it anyway): the new one gets a
                     # UID of its own, so groups and CardDAV never see two cards as one; the card as received is
                     # kept with its origin.
                     text = _with_uid(card.text, f"urn:uuid:{uuid.uuid4()}")
                     original = card.raw if card.raw is not None else card.original
-                fields = card_fields(None, text)
+                    fields = {}
+                if not fields:
+                    fields = card_fields(None, text)
                 fields["etag"] = http_etag(1, fields["raw_sha256"])
                 columns = ["id", "account_id", "address_book_id", "collection_url", "href", *fields, "rev",
                            "created_at", "modified_at"]
@@ -660,7 +680,7 @@ def commit(store: ContactsStore, source: ImportSource, read: ReadResult, *, choi
             elif action == "update":
                 row = db.execute("SELECT * FROM contacts WHERE id = ?", (item.target,)).fetchone()
                 _baseline(db, row)
-                rev = _write_text(db, row, card.text, when)
+                rev = _write_text(db, row, card.text, when, fields=dict(card.cache.get("fields") or {}) or None)
                 _revision(db, row["id"], rev, card.text, "import", by, import_id, when)
                 _change(db, row["address_book_id"], row["id"], row["href"], "modify", when)
                 if row["kind"] != "group":

@@ -40,7 +40,7 @@ from ._mirror import load_state, retire_collections, soft_delete_missing, upsert
 from .dav.discovery import Collection
 from .dav.sync import CollectionState, SyncResult
 from .mac import MAC_ID
-from .vcard import card_kind, card_version, parse_vcard, phone_search_forms
+from .vcard import ParsedContact, card_kind, card_version, parse_vcard, phone_search_forms
 from .vcard import photo as card_photo
 from .views import compare_names
 
@@ -532,10 +532,11 @@ def _annotated(db: sqlite3.Connection, rows: list[sqlite3.Row], *, raw: bool = F
     return out
 
 
-def card_fields(etag: str | None, data: str) -> dict:
+def card_fields(etag: str | None, data: str, parsed: ParsedContact | None = None) -> dict:
     """Every column a card's raw text decides (the parsed fields, the search columns, its hash, kind and
-    version), with its etag: for the mirror's upsert and the owned-contact writer alike."""
-    card = parse_vcard(data)
+    version), with its etag: for the mirror's upsert and the owned-contact writer alike. `parsed`: the card as
+    parse_vcard already read it (the importer reads each card once)."""
+    card = parsed if parsed is not None else parse_vcard(data)
     return {
         "etag": etag or "",
         "uid": card.uid,
