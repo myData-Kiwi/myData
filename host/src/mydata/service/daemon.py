@@ -2,9 +2,9 @@
 
 On start: read config.toml (create it with defaults), create the token on first start, set up
 structured logging, refuse to run twice, start getting the model ready in the background, start the
-hourly snapshots of the databases (backup.py), and serve the API on the loopback address from the
-config. On SIGTERM/SIGINT: finish open requests, stop Ollama if the host started it, and remove the pid
-file.
+hourly snapshots of the databases (backup.py) and the daily trash expiry (trash.py), and serve the API on
+the loopback address from the config. On SIGTERM/SIGINT: finish open requests, stop Ollama if the host
+started it, and remove the pid file.
 """
 
 from __future__ import annotations
@@ -28,6 +28,7 @@ from .state import HostState
 from .auth import AgentStore, Authenticator, ensure_app_tokens
 from .backup import BackupService
 from .sync import SyncService
+from .trash import TrashExpiry
 
 logger = logging.getLogger("mydata.daemon")
 
@@ -140,6 +141,8 @@ def main(argv: list[str] | None = None) -> int:
     models.start()
     sources.start()  # syncs every account now, then every 15 minutes; starts This Mac's reader if it is on
     backups.start()  # a snapshot now if a database changed since the last one, then every hour
+    trash = TrashExpiry(sources)
+    trash.start()  # Recently deleted: what has been there 30 days goes for good, now and then daily
     # uvicorn shuts down gracefully on SIGTERM/SIGINT, then re-raises the signal to the handler that was
     # installed before it. With the default handler that kills the process before the cleanup below runs,
     # so install a harmless one: shutdown still happens, and Ollama and the pid file are cleaned up.
@@ -155,6 +158,7 @@ def main(argv: list[str] | None = None) -> int:
     except SystemExit as e:
         code = int(e.code or 1)
     finally:
+        trash.stop()
         sources.stop()
         models.stop()  # before waiting for a snapshot: `mydata stop` kills the host after 15 seconds
         backups.stop(timeout=5)  # a daemon thread; a snapshot cut short leaves a .partial-* that prune removes
