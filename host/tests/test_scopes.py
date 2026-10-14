@@ -17,7 +17,7 @@ from starlette.testclient import TestClient
 from mydata.service import api
 from mydata.service.api import create_app, route_scopes
 from mydata.service.assistant import Assistant
-from mydata.service.auth import APP_SCOPES, APPS, LIFETIME_APPS, SCOPES, AgentStore, Authenticator
+from mydata.service.auth import APP_SCOPES, APPS, IMPLIED, LIFETIME_APPS, SCOPES, AgentStore, Authenticator
 from mydata.service.config import Settings
 
 from service_helpers import TODAY, ReadyModels, Scripted, spied_registry
@@ -128,6 +128,15 @@ def test_each_app_has_exactly_its_scopes():
     assert "contacts:write" in APP_SCOPES["mycontacts"]  # editing contacts, phase 3
     assert "contacts:write" not in APP_SCOPES["mycalendar"] and "contacts:write" not in APP_SCOPES["myassistant"]
     assert {a for a in APPS if "contacts:import" in APP_SCOPES[a]} == {"mydata", "cli"}
+
+
+def test_a_scope_whose_answers_hold_contacts_comes_with_contacts_read():
+    """The import routes answer with contact data (matched names, a followed card's values): an app holding
+    contacts:import without contacts:read could read the whole iCloud mirror through an account copy's preview."""
+    assert IMPLIED == {"contacts:import": "contacts:read"}
+    for app, scopes in [*APP_SCOPES.items(), *EXPECTED_SCOPES.items()]:
+        for scope, needed in IMPLIED.items():
+            assert scope not in scopes or needed in scopes, (app, scope)
 
 
 def _call(c: TestClient, method: str, path: str, token: str):

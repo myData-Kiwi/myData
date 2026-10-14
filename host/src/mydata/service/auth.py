@@ -46,7 +46,9 @@ SCOPES = {
     "contacts:write": "create, change, merge and delete the contacts the host owns, restore them, and undo those "
                       "changes",
     "contacts:import": "import contacts from a file or a followed account, read and undo imports (the myData app "
-                       "and the command only: an import is done in one place, which keeps its history)",
+                       "and the command only: an import is done in one place, which keeps its history). Its "
+                       "answers hold contact data (matched names, a followed card's values), so it comes only "
+                       "with contacts:read (IMPLIED)",
     "calendar:read": "the calendars and events the host holds",
     "calendar:write": "change calendars and events (nothing uses it yet)",
     "sources:read": "the sources, linked accounts and their sync status",
@@ -63,7 +65,11 @@ APP_SCOPES: dict[str, frozenset[str]] = {
     "mycalendar": frozenset({"status", "calendar:read", "sources:read"}),
     "cli": frozenset(SCOPES),
 }
+# A scope whose routes answer with what another scope guards is held only with that one: an app given
+# contacts:import alone could read every followed card through an account copy's preview.
+IMPLIED = {"contacts:import": "contacts:read"}
 assert set(APP_SCOPES) == set(APPS) and all(s <= set(SCOPES) for s in APP_SCOPES.values())
+assert all(IMPLIED[s] in scopes for scopes in APP_SCOPES.values() for s in scopes if s in IMPLIED)
 
 # The apps that own the host's lifetime: only they may stop it (POST /shutdown).
 LIFETIME_APPS = tuple(a for a in APPS if "shutdown" in APP_SCOPES[a])
