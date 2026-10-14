@@ -31,6 +31,24 @@ enum AppLayout {
 
   /// The layout for the window this [context] is in.
   static AppLayout of(BuildContext context) => forWidth(MediaQuery.sizeOf(context).width);
+
+  /// Whether the window this [context] is in is a phone's (under [railMin]): the one breakpoint every
+  /// component's "Under 600px" follows.
+  static bool isPhone(BuildContext context) => of(context) == phone;
+}
+
+/// The text styles whose size depends on the window (design/README.md "Type": "Body is 15px on desktop and
+/// 16px on phones"). Every field, list row and picker on a phone screen takes its `body` from here.
+abstract final class PhoneType {
+  /// `body` (and `body-strong`) on a phone.
+  static const bodySize = 16.0;
+
+  /// [style] (a `body` or `body-strong` style) at [bodySize] when [phone].
+  static TextStyle body(TextStyle style, {required bool phone}) => phone ? style.copyWith(fontSize: bodySize) : style;
+
+  /// [style] at the size for the window [context] is in.
+  static TextStyle bodyOf(BuildContext context, [TextStyle style = MyDataType.body]) =>
+      body(style, phone: AppLayout.isPhone(context));
 }
 
 /// One of an app's own top-level sections ("Library", "Albums"), as the frame lists it.

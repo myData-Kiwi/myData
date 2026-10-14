@@ -233,6 +233,22 @@ void main() {
       expect(find.byType(FloatingBar), findsNothing);
     });
 
+    testWidgets('one phone breakpoint and the phone body size: 16px under 600px, 15px from it', (tester) async {
+      for (final (width, phone) in [(599.0, true), (600.0, false)]) {
+        tester.view.physicalSize = Size(width, 400);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        late BuildContext context;
+        await tester.pumpWidget(Builder(builder: (c) {
+          context = c;
+          return const SizedBox();
+        }));
+        expect(AppLayout.isPhone(context), phone);
+        expect(PhoneType.bodyOf(context).fontSize, phone ? PhoneType.bodySize : MyDataType.body.fontSize);
+        expect(PhoneType.bodyOf(context, MyDataType.bodyStrong).fontWeight, MyDataType.bodyStrong.fontWeight);
+      }
+    });
+
     test('AppLayout breakpoints', () {
       expect(AppLayout.forWidth(375), AppLayout.phone);
       expect(AppLayout.forWidth(599.9), AppLayout.phone);
