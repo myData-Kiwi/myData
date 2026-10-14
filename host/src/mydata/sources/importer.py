@@ -208,7 +208,8 @@ def _origins(db: sqlite3.Connection, source: ImportSource) -> dict[str, sqlite3.
     """The newest live origin per source UID for this source, with the owned row it points to (if any)."""
     rows = db.execute(
         "SELECT o.rowid AS origin_rowid, o.*, c.id AS cid, c.rev AS crev, c.deleted_at AS cdeleted, "
-        "c.merged_into AS cmerged, c.display_name AS cname FROM origins o LEFT JOIN contacts c ON c.id = o.object_id "
+        "c.merged_into AS cmerged, c.display_name AS cname FROM origins o "
+        "LEFT JOIN contacts c ON c.id = COALESCE(o.held_by, o.object_id) "
         "WHERE o.source_kind = ? AND o.source_account = ? AND o.undone_at IS NULL ORDER BY o.rowid",
         (source.kind, source.account)).fetchall()
     out: dict[str, sqlite3.Row] = {}
@@ -266,7 +267,8 @@ def analyse(db: sqlite3.Connection, source: ImportSource, read: ReadResult, *,
                                       contact_id=origin["cid"]))
             if origin["source_hash"] == card.source_hash:
                 item.status, item.action, item.choices = "unchanged", "skip", ("skip",)
-            elif origin["cdeleted"] is not None and origin["cmerged"] is not None:
+            elif origin["held_by"] is not None or (origin["cdeleted"] is not None and origin["cmerged"] is not None):
+                # merged into another contact (held_by: the original was deleted for good since)
                 item.status, item.action, item.choices, item.reason = "conflict", "skip", ("skip",), "merged"
             elif origin["cdeleted"] is not None:
                 item.status, item.action, item.choices = "deleted", "skip", ("skip", "import")
@@ -329,7 +331,8 @@ def _missing(db: sqlite3.Connection, source: ImportSource, present: set[str]) ->
     """Contacts earlier imports from this source brought in (for a file: from a file of the same name) that the
     input no longer has, and that are still on the host. Reported only."""
     sql = ("SELECT o.source_uid, o.rowid AS rid, o.action, c.id, c.display_name, c.deleted_at, c.kind "
-           "FROM origins o JOIN imports i ON i.id = o.import_id JOIN contacts c ON c.id = o.object_id "
+           "FROM origins o JOIN imports i ON i.id = o.import_id "
+           "JOIN contacts c ON c.id = COALESCE(o.held_by, o.object_id) "
            "WHERE o.source_kind = ? AND o.source_account = ? AND o.undone_at IS NULL")
     params: list = [source.kind, source.account]
     if source.kind == FILE:

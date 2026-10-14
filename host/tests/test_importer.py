@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -438,6 +439,41 @@ def test_merged_copies_of_a_followed_account_keep_shadowing_it(followed):
     assert followed.get(merged.contact_id)["changed_in_source"] == ACCOUNT
     merge_.undo(followed, merged.merge_id, actor="mycontacts")
     assert sorted(c["id"] for c in followed.find_by_name("Sam")) == sorted(c["id"] for c in sams)
+
+
+@pytest.mark.parametrize("how", ["expire", "purge_now"])
+def test_a_merged_contact_keeps_shadowing_after_its_originals_are_deleted_for_good(followed, how):
+    source = ImportSource(ICLOUD, ACCOUNT, "iCloud account")
+    commit(followed, source, copy_of(followed, ACCOUNT))
+    sams = [c for c in followed.list() if c["display_name"] == "Sam Sample"]
+    merged = merge_.merge(followed, [(c["id"], c["http_etag"]) for c in sams], actor="mycontacts")
+    if how == "expire":
+        later = datetime.now(timezone.utc) + timedelta(days=31)
+        assert cw.expire_trash(followed, now=later) == 2
+    else:
+        for c in sams:
+            cw.purge_now(followed, c["id"], if_match=followed.get(c["id"], include_deleted=True)["http_etag"])
+    assert all(followed.get(c["id"], include_deleted=True) is None for c in sams)
+    assert [c["id"] for c in followed.find_by_name("Sam")] == [merged.contact_id]
+    with followed.db.connect() as db:
+        held = db.execute("SELECT held_by, source_raw FROM origins WHERE object_id IN (?, ?)",
+                          [c["id"] for c in sams]).fetchall()
+    assert [tuple(r) for r in held] == [(merged.contact_id, None)] * 2
+    # Importing again knows both cards: unchanged, or a conflict (merged) once one changed; never a new copy.
+    edited = con.card("sam-sample-1.vcf").replace("FN:Sam Sample", "FN:Sam Sample\nNICKNAME:Sammy")
+    followed.apply(ACCOUNT, con.BOOK, con.result([con.Item(href="/1/carddavhome/card/sam-sample-1.vcf", etag='"2"',
+                                                           data=edited)]))
+    assert followed.get(merged.contact_id)["changed_in_source"] == ACCOUNT
+    again = preview(followed, source, copy_of(followed, ACCOUNT))
+    assert sorted((i.status, i.reason) for i in again.items if i.display_name == "Sam Sample") == [
+        ("conflict", "merged"), ("unchanged", None)]
+    # Once the merged card goes for good too, the origins go with it.
+    cw.delete(followed, merged.contact_id, if_match=followed.get(merged.contact_id)["http_etag"], actor="mycontacts")
+    cw.purge_now(followed, merged.contact_id,
+                 if_match=followed.get(merged.contact_id, include_deleted=True)["http_etag"])
+    with followed.db.connect() as db:
+        assert db.execute("SELECT COUNT(*) FROM origins WHERE held_by IS NOT NULL").fetchone()[0] == 0
+    assert len(followed.find_by_name("Sam")) == 2  # the followed copies are shown again
 
 
 def test_merging_needs_no_contact_data_in_its_record(store):

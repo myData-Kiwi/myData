@@ -8,7 +8,8 @@ data (tests/fake_mac), a few extra cards (groups, an organisation, a soft-delete
 that has them on, owned collections (tests/owned_data.py) and, from the schema with the undo log, an owned
 contact written, changed and deleted through sources/contacts_write.py, with its revisions, changes and undo
 log rows; and, from the schema with imports and merges, a file import (vCard 2.1, undone), a copy of a followed
-account imported into owned contacts, and a merge of two of them.
+account imported into owned contacts, and a merge of two of them; and, from the schema with origins.held_by, one
+of the merged originals deleted for good.
 
 A dump holds INSERT statements for the stores' own tables, never the schema, schema_version or a search
 index (the migrations build those, and the insert triggers fill the index). A text value holding a carriage
@@ -111,6 +112,12 @@ def _imports_and_merges(contacts) -> None:
                     region="US")
     sams = [c for c in contacts.list() if c["display_name"] == "Sam Sample" and c["account_id"] == "local"]
     contacts_merge.merge(contacts, [(c["id"], c["http_etag"]) for c in sams], actor="mycontacts")
+    with contacts.db.connect() as db:
+        held_by = "held_by" in {r[1] for r in db.execute("PRAGMA table_info(origins)")}
+    if held_by:  # one merged original deleted for good: the merged card holds its origin
+        from mydata.sources import contacts_write as cw
+        gone = contacts.get(sams[0]["id"], include_deleted=True)
+        cw.purge_now(contacts, gone["id"], if_match=gone["http_etag"])
 
 
 def literal(value, hexed: bool = False) -> str:
@@ -118,6 +125,8 @@ def literal(value, hexed: bool = False) -> str:
         return "NULL"
     if isinstance(value, (int, float)):
         return repr(value)
+    if isinstance(value, bytes):  # origins.source_raw of a card decoded by a guess
+        return f"X'{value.hex().upper()}'"
     if "\r" in value or hexed:
         return f"CAST(X'{value.encode('utf-8').hex().upper()}' AS TEXT)"
     return "'" + value.replace("'", "''") + "'"

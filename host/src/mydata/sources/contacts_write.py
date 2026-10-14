@@ -29,8 +29,9 @@ Delete is soft: `deleted_at` is set and `purge_after` is 30 days later. expire_t
 daily) purges cards past their date through purge permits (owned.purge), with their revisions, which hold
 their text, and purge_now() does the same for one card when the user deletes it for good from Recently
 deleted (only at the etag the user saw there, so a card restored, changed and deleted again elsewhere is
-never purged unseen); its `origins` rows go too (an imported vCard 2.1 keeps its original text there); the
-change feed, undo log and merges rows hold no contact data and stay. The host log records
+never purged unseen); its `origins` rows go too (an imported vCard 2.1 keeps its original text there), except
+that a card merged into one that stays hands them to it, without their text (_settle_origins); the change feed,
+undo log and merges rows hold no contact data and stay. The host log records
 who purged what (ids only). Copies in the host's snapshots stay until those expire (backup.kept_until).
 
 Group cards are not contacts here (they are never found by id), so they are never written; a contact's
@@ -348,11 +349,34 @@ def purge_now(store: ContactsStore, contact_id: str, *, if_match: str) -> None:
         current = http_etag(row["rev"], row["raw_sha256"])
         if not if_match or if_match.strip() != current:
             raise PreconditionFailed("This contact changed since it was read. Look at it again first.", current)
+        _settle_origins(db, [contact_id])
         owned.purge(db, owned.CONTACTS, row_ids=[contact_id])
         db.execute("DELETE FROM revisions WHERE object_id = ?", (contact_id,))
-        db.execute("DELETE FROM origins WHERE object_id = ?", (contact_id,))
         db.execute("INSERT INTO contacts_fts (contacts_fts) VALUES ('optimize')")
     store.db.checkpoint()
+
+
+def _settle_origins(db: sqlite3.Connection, ids: list[str]) -> None:
+    """Before the cards `ids` are purged: the origins they hold (their own, and those held for originals merged
+    into them) go with them, except those of a card merged into one that stays (merged_into, followed past cards
+    purged now): the merged card holds them from now on (`held_by`), without the original's text (source_raw), so
+    it keeps shadowing the followed copies and importing again still knows them (contacts_store._SHADOWED)."""
+    purged = set(ids)
+    for contact_id in ids:
+        successor, seen = contact_id, {contact_id}
+        while successor in purged:
+            row = db.execute("SELECT merged_into FROM contacts WHERE id = ?", (successor,)).fetchone()
+            successor = row["merged_into"] if row is not None else None
+            if successor is None or successor in seen:
+                successor = None
+                break
+            seen.add(successor)
+        if successor is not None and db.execute("SELECT 1 FROM contacts WHERE id = ?", (successor,)).fetchone():
+            db.execute("UPDATE origins SET held_by = ?, source_raw = NULL WHERE held_by = ? OR (held_by IS NULL "
+                       "AND object_id = ?)", (successor, contact_id, contact_id))
+        else:
+            db.execute("DELETE FROM origins WHERE held_by = ? OR (held_by IS NULL AND object_id = ?)",
+                       (contact_id, contact_id))
 
 
 def expire_trash(store: ContactsStore, now: datetime | None = None) -> int:
@@ -365,9 +389,9 @@ def expire_trash(store: ContactsStore, now: datetime | None = None) -> int:
             "AND c.deleted_at IS NOT NULL AND c.purge_after IS NOT NULL AND c.purge_after <= ?", (owned.OWNED, when))]
         if not ids:
             return 0
+        _settle_origins(db, ids)
         gone = owned.purge(db, owned.CONTACTS, row_ids=ids)["rows"]
         db.executemany("DELETE FROM revisions WHERE object_id = ?", [(i,) for i in ids])
-        db.executemany("DELETE FROM origins WHERE object_id = ?", [(i,) for i in ids])
         db.execute("INSERT INTO contacts_fts (contacts_fts) VALUES ('optimize')")
     store.db.checkpoint()
     return gone

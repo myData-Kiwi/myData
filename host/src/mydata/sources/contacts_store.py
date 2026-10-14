@@ -179,6 +179,12 @@ _MIGRATIONS = {
             undone_by TEXT
         )""",
     ],
+    # The contact an origin now belongs to once the merged original it named was deleted for good
+    # (contacts_write._settle_origins): the merged card, so it keeps shadowing the followed copy. Additive only.
+    5: [
+        "ALTER TABLE origins ADD COLUMN held_by TEXT",
+        "CREATE INDEX origins_held_by ON origins (held_by)",
+    ],
 }
 
 # Cards that are people or organisations: a group card is kept (and exported) but never shown as a contact.
@@ -186,9 +192,10 @@ _PEOPLE = "kind != 'group'"
 
 # The shadowing rule (the owned-data plan, 2(a)): a followed card that an owned contact was imported from (an
 # origin naming the same account and UID, never the followed row's id) is hidden from lists, counts, search and
-# find_contact while that owned contact is live, or was merged into one that is. `c` is the followed row.
+# find_contact while that owned contact is live, or was merged into one that is (also once the merged original
+# is deleted for good: its origins are then held by the merged card, `held_by`). `c` is the followed row.
 _SHADOWED = f"""(c.account_id != '{owned.OWNED_ACCOUNT}' AND c.uid != '' AND EXISTS (
-    SELECT 1 FROM origins o JOIN contacts oc ON oc.id = o.object_id
+    SELECT 1 FROM origins o JOIN contacts oc ON oc.id = COALESCE(o.held_by, o.object_id)
     WHERE o.source_account = c.account_id AND o.source_uid = c.uid AND o.source_kind != 'file'
     AND o.undone_at IS NULL
     AND (oc.deleted_at IS NULL OR (oc.merged_into IS NOT NULL AND EXISTS (
@@ -488,7 +495,8 @@ class ContactsStore:
 
 def changed_in_source(db: sqlite3.Connection, ids: list[str]) -> dict[str, str]:
     """See ContactsStore.changed_in_source. An owned contact's origins are its own and those of the cards merged
-    into it; for each (account, UID) only the newest origin counts (a later import from the source moved it on)."""
+    into it (held by it once those are deleted for good); for each (account, UID) only the newest origin counts (a
+    later import from the source moved it on)."""
     out: dict[str, str] = {}
     for start in range(0, len(ids), 400):
         chunk = ids[start:start + 400]
@@ -496,7 +504,8 @@ def changed_in_source(db: sqlite3.Connection, ids: list[str]) -> dict[str, str]:
         rows = db.execute(
             "WITH objects(owner, object_id) AS ("
             f"  SELECT id, id FROM contacts WHERE id IN ({marks})"
-            f"  UNION ALL SELECT merged_into, id FROM contacts WHERE merged_into IN ({marks})), "
+            f"  UNION ALL SELECT merged_into, id FROM contacts WHERE merged_into IN ({marks})"
+            f"  UNION ALL SELECT DISTINCT held_by, object_id FROM origins WHERE held_by IN ({marks})), "
             "latest AS (SELECT o.source_account, o.source_uid, MAX(o.rowid) AS rid FROM origins o "
             "  JOIN objects ON objects.object_id = o.object_id "
             "  WHERE o.source_kind != 'file' AND o.undone_at IS NULL GROUP BY o.source_account, o.source_uid) "
@@ -504,7 +513,7 @@ def changed_in_source(db: sqlite3.Connection, ids: list[str]) -> dict[str, str]:
             "JOIN objects ON objects.object_id = o.object_id "
             "JOIN contacts f ON f.account_id = o.source_account AND f.uid = o.source_uid AND f.deleted_at IS NULL "
             f"WHERE f.account_id != '{owned.OWNED_ACCOUNT}' AND f.raw_sha256 != o.source_hash",
-            [*chunk, *chunk]).fetchall()
+            [*chunk, *chunk, *chunk]).fetchall()
         for owner, account in rows:
             out.setdefault(owner, account)
     return out

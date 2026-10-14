@@ -18,7 +18,8 @@ A merge creates one new card and moves the originals to Recently deleted:
 The originals are only soft-deleted (`deleted_at`, `purge_after`, and `merged_into` naming the new card), so
 their text stays exactly as it was: undo restores them as they were. Each original's origins (where it was
 imported from) keep shadowing their followed copies through `merged_into` (contacts_store._SHADOWED), also for a
-card merged twice (the links are moved to the newest card, and back on undo).
+card merged twice (the links are moved to the newest card, and back on undo), and once the original is deleted for
+good (trash expiry or Delete for good) the merged card holds them (`origins.held_by`, contacts_write).
 
 The merge is recorded in `merges` (ids and revisions only, no contact data); POST /undo/{id} with its id undoes
 it: only while the new card and every original are still at the revisions the merge wrote, so nothing changed
