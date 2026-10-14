@@ -23,6 +23,7 @@ export 'src/widgets/field_row.dart';
 export 'src/widgets/floating_bar.dart';
 export 'src/widgets/grouped_list.dart';
 export 'src/widgets/grouped_section.dart';
+export 'src/widgets/icon_button.dart';
 export 'src/widgets/icon_tile.dart';
 export 'src/widgets/kiwi.dart';
 export 'src/widgets/mono_well.dart';
