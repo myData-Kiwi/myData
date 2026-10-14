@@ -851,4 +851,25 @@ void main() {
       await outlastToast(tester);
     });
   });
+  group('labels (review)', () {
+    testWidgets('a value loaded without a label shows Other but is saved back without one', (tester) async {
+      desktop(tester);
+      final backend = ownedBackend(more: [
+        ownedCard('c-nolabel', ContactIn(givenName: 'Noel', familyName: 'Owned', phones: [
+          LabeledValueIn(label: '', value: '+1 555 0144'),
+        ])),
+      ]);
+      await tester.pumpWidget(app(backend, lastOpened: 'c-nolabel'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(Button, ContactActions.editButton));
+      await tester.pumpAndSettle();
+      expect(field('Other, phone number'), findsOneWidget, reason: 'the picker shows the fallback');
+      await enter(tester, 'Job title', 'Curator');
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+      expect(backend.writes, ['update c-nolabel']);
+      expect(backend.forms.single.phones!.single.label, '', reason: 'no label added to a value that had none');
+      await outlastToast(tester);
+    });
+  });
 }

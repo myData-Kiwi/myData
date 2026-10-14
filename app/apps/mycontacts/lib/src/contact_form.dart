@@ -74,7 +74,13 @@ class ValueRow {
 
   /// Stays the row's while it exists, so a removed row's neighbours keep their state.
   final int key;
+
+  /// The label as loaded or picked. A value loaded without one keeps it empty, so saving sends it back
+  /// unchanged and the host does not add one; [shownLabel] is what the picker shows.
   String label;
+
+  /// The label on screen: [label], or the kind's last preset ("Other") for a value without one.
+  String shownLabel(ValueKind kind) => label.trim().isEmpty ? kind.presets.last : label;
   final TextEditingController value;
   final TextEditingController street;
   final TextEditingController locality;
@@ -123,16 +129,16 @@ class ContactDraft extends ChangeNotifier {
     note.text = c?.note ?? '';
     if (c != null) {
       for (final p in c.phones) {
-        rows[ValueKind.phone]!.add(ValueRow(_next++, _label(p.label, ValueKind.phone), value: p.value));
+        rows[ValueKind.phone]!.add(ValueRow(_next++, p.label, value: p.value));
       }
       for (final e in c.emails) {
-        rows[ValueKind.email]!.add(ValueRow(_next++, _label(e.label, ValueKind.email), value: e.value));
+        rows[ValueKind.email]!.add(ValueRow(_next++, e.label, value: e.value));
       }
       for (final a in c.addresses) {
-        rows[ValueKind.address]!.add(ValueRow(_next++, _label(a.label, ValueKind.address), address: a));
+        rows[ValueKind.address]!.add(ValueRow(_next++, a.label, address: a));
       }
       for (final u in c.urls) {
-        rows[ValueKind.url]!.add(ValueRow(_next++, _label(u.label, ValueKind.url), value: u.value));
+        rows[ValueKind.url]!.add(ValueRow(_next++, u.label, value: u.value));
       }
       birthday = c.birthday == null ? null : Birthday.parse(c.birthday!);
       hasBirthday = birthday != null;
@@ -172,8 +178,6 @@ class ContactDraft extends ChangeNotifier {
 
   List<TextEditingController> get _texts => [given, family, company, jobTitle, note];
 
-  static String _label(String label, ValueKind kind) => label.trim().isEmpty ? kind.presets.last : label;
-
   bool get isNew => original == null;
 
   /// Any value differs from the one loaded.
@@ -191,7 +195,7 @@ class ContactDraft extends ChangeNotifier {
   /// Adds a row of [kind] with the next preset label not yet used.
   ValueRow add(ValueKind kind) {
     final list = rows[kind]!;
-    final row = ValueRow(_next++, nextPresetLabel(kind.presets, list.map((r) => r.label)));
+    final row = ValueRow(_next++, nextPresetLabel(kind.presets, list.map((r) => r.shownLabel(kind))));
     _listen(row);
     list.add(row);
     notifyListeners();

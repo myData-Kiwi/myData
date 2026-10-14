@@ -293,7 +293,7 @@ class _ContactEditorState extends State<ContactEditor> {
       showLabel: false,
       fitToItems: true,
       items: [for (final p in kind.presets) SelectItem(value: p, title: p)],
-      value: r.label,
+      value: r.shownLabel(kind),
       titleOf: (v) => v,
       onChanged: (v) => _draft.setLabel(r, v),
       onCustomLabel: (v) {
@@ -301,7 +301,7 @@ class _ContactEditorState extends State<ContactEditor> {
       },
     );
     void remove() {
-      _removedLabels[r.key] = r.label;
+      _removedLabels[r.key] = r.shownLabel(kind);
       _draft.remove(kind, r);
       for (final part in ['value', 'street']) {
         _hostErrors.remove(_rowId(kind, r, part));
@@ -309,11 +309,11 @@ class _ContactEditorState extends State<ContactEditor> {
       _register();
     }
 
-    final removeLabel = 'Remove ${kind.noun(r.label)}';
+    final removeLabel = 'Remove ${kind.noun(r.shownLabel(kind))}';
     if (kind == ValueKind.address) {
       final id = _rowId(kind, r, 'street');
       Widget part(String placeholder, TextEditingController c, {FocusNode? node, String? error}) => MyDataTextField(
-            label: '${r.label}, address, ${placeholder.toLowerCase()}',
+            label: '${r.shownLabel(kind)}, address, ${placeholder.toLowerCase()}',
             showLabel: false,
             placeholder: placeholder,
             controller: c,
@@ -338,7 +338,7 @@ class _ContactEditorState extends State<ContactEditor> {
     return RepeatableFormRow(
       labelPicker: picker,
       value: MyDataTextField(
-        label: kind.valueName(r.label),
+        label: kind.valueName(r.shownLabel(kind)),
         showLabel: false,
         controller: r.value,
         focusNode: r.valueFocus,
