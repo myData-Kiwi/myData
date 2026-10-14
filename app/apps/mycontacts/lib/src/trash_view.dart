@@ -116,15 +116,20 @@ class _TrashViewState extends State<TrashView> {
     }
     final failure = result.failure;
     if (failure != null) {
+      final one = ids.length == 1;
+      final lead = one ? 'The contact could not be restored.' : 'The contacts could not all be restored.';
+      final changed = one
+          ? 'It changed elsewhere since this list was read. Look at it again, then try again.'
+          : changedSince;
       setState(() => _error = failure is ChangedElsewhere
-          ? 'The contacts could not all be restored. $changedSince'
-          : 'The contacts could not all be restored. ${_why(failure)} Check that the host is running, then try '
-              'again.');
+          ? '$lead $changed'
+          : '$lead ${one ? _whyOne(failure) : _why(failure)} Check that the host is running, then try again.');
     }
     if (_phone && result.done.isNotEmpty) Navigator.of(context).popUntil((r) => r.isFirst);
   }
 
   static String _why(WriteFailure f) => f is NoAnswer ? 'The host did not answer.' : 'The host refused one of them.';
+  static String _whyOne(WriteFailure f) => f is NoAnswer ? 'The host did not answer.' : 'The host refused it.';
 
   /// A contact here was restored, changed and deleted again elsewhere since this list was read: the list is
   /// read again, so the user sees that version before acting on it.

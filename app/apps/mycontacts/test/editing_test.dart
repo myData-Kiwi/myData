@@ -81,6 +81,28 @@ Future<void> ctrl(WidgetTester tester, LogicalKeyboardKey key) async {
   await tester.pumpAndSettle();
 }
 
+/// The macOS menus the app last sent, for [items].
+List<Map<Object?, Object?>> sent = [];
+
+void capture(WidgetTester tester) {
+  tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.menu, (call) async {
+    if (call.method == 'Menu.setMenus') {
+      sent = [for (final m in ((call.arguments as Map)['0'] as List)) m as Map<Object?, Object?>];
+    }
+    return null;
+  });
+  addTearDown(() => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.menu, null));
+}
+
+List<({String label, bool enabled})> items(String menu) {
+  final top = sent.firstWhere((m) => m['label'] == menu);
+  return [
+    for (final c in (top['children'] as List).cast<Map<Object?, Object?>>())
+      if (c['isDivider'] != true && c['label'] != null)
+        (label: c['label'] as String, enabled: c['enabled'] == true),
+  ];
+}
+
 void main() {
   setUp(() => EditableText.debugDeterministicCursor = true);
   tearDown(() => EditableText.debugDeterministicCursor = false);
@@ -515,27 +537,6 @@ void main() {
   });
 
   group('the menu bar', () {
-    List<Map<Object?, Object?>> sent = [];
-
-    void capture(WidgetTester tester) {
-      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.menu, (call) async {
-        if (call.method == 'Menu.setMenus') {
-          sent = [for (final m in ((call.arguments as Map)['0'] as List)) m as Map<Object?, Object?>];
-        }
-        return null;
-      });
-      addTearDown(() => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.menu, null));
-    }
-
-    List<({String label, bool enabled})> items(String menu) {
-      final top = sent.firstWhere((m) => m['label'] == menu);
-      return [
-        for (final c in (top['children'] as List).cast<Map<Object?, Object?>>())
-          if (c['isDivider'] != true && c['label'] != null)
-            (label: c['label'] as String, enabled: c['enabled'] == true),
-      ];
-    }
-
     testWidgets('macOS: New Contact, Edit Contact, Delete Contact, the sections, and Undo named from the action',
         (tester) async {
       desktop(tester);
@@ -775,6 +776,78 @@ void main() {
       await tester.pumpAndSettle();
       expect(backend.writes, ['update c-pip'], reason: 'saved from the current etag: no 412');
       expect(backend.etagsSent, ['"4-c-pip"']);
+      await outlastToast(tester);
+    });
+  });
+  group('undo after a delete for good (review)', () {
+    testWidgets('deleting for good takes the delete off Undo', (tester) async {
+      desktop(tester);
+      capture(tester);
+      final backend = ownedBackend();
+      await tester.pumpWidget(app(backend, menu: TargetPlatform.macOS));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(MoreActionsButton));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Delete contact'));
+      await tester.pumpAndSettle();
+      await outlastToast(tester);
+      expect(backend.writes, ['delete c-pip']);
+      expect(items('Edit').map((i) => i.label), contains('Undo Delete Contact'));
+      await tester.tap(find.text('Deleted'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(Button, TrashView.purgeLabel));
+      await tester.pumpAndSettle();
+      await tester.tap(find.descendant(of: find.byType(MyDataDialog), matching: find.text('Delete permanently')));
+      await tester.pumpAndSettle();
+      await outlastToast(tester);
+      expect(items('Edit').map((i) => i.label), isNot(contains('Undo Delete Contact')));
+      expect(items('Edit').firstWhere((i) => i.label == 'Undo').enabled, isFalse);
+    }, variant: TargetPlatformVariant.only(TargetPlatform.macOS));
+
+    test('an undo refused because the contact was deleted for good says so', () {
+      final one = UndoEntry(action: 'Delete contact', undoIds: ['u-1'], names: ['Pip Owned'], undone: 'Contact restored');
+      expect(ContactsController.undoSaid(one, undone: 0, changed: const [], purged: const ['Pip Owned']),
+          'Not undone. Pip Owned was deleted for good.');
+      expect(ContactsController.undoSaid(one, undone: 0, changed: const ['Pip Owned'], purged: const []),
+          'Not undone. Pip Owned was changed after that.');
+      final two = UndoEntry(action: 'Delete 2 contacts', undoIds: ['u-1', 'u-2'], names: ['Pip Owned', 'Quinn Owned'],
+          undone: '2 contacts restored');
+      expect(ContactsController.undoSaid(two, undone: 0, changed: const [], purged: const ['Pip Owned', 'Quinn Owned']),
+          'Not undone. 2 contacts were deleted for good.');
+      expect(ContactsController.undoSaid(two, undone: 1, changed: const [], purged: const ['Quinn Owned']),
+          'Not all undone. 1 of the contacts were deleted for good.');
+    });
+
+    testWidgets('purged elsewhere: Undo says it was deleted for good, not changed', (tester) async {
+      desktop(tester);
+      final backend = ownedBackend();
+      await tester.pumpWidget(app(backend));
+      await tester.pumpAndSettle();
+      await tester.tap(row('Pip Owned'));
+      await tester.sendKeyEvent(LogicalKeyboardKey.delete);
+      await tester.pumpAndSettle();
+      backend.trashed.clear(); // the 30-day expiry, or another app, deleted Pip for good
+      await tester.tap(find.descendant(of: find.byType(ToastHost), matching: find.text('Undo')));
+      await tester.pumpAndSettle();
+      expect(toast('Not undone. Pip Owned was deleted for good.'), findsOneWidget);
+      await outlastToast(tester);
+    });
+
+    testWidgets('restoring one contact that fails says so in the singular', (tester) async {
+      desktop(tester);
+      final backend = ownedBackend();
+      await tester.pumpWidget(app(backend));
+      await tester.pumpAndSettle();
+      await tester.tap(row('Pip Owned'));
+      await tester.sendKeyEvent(LogicalKeyboardKey.delete);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Deleted'));
+      await tester.pumpAndSettle();
+      backend.failWrites = true;
+      await tester.tap(find.widgetWithText(Button, TrashView.restoreLabel));
+      await tester.pumpAndSettle();
+      expect(find.text('The contact could not be restored. The host did not answer. Check that the host is running, '
+          'then try again.'), findsOneWidget);
       await outlastToast(tester);
     });
   });

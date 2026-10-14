@@ -35,7 +35,16 @@ class DetailFailed extends ContactDetail {
 /// One change this app made on the host that Undo takes back (design/platforms.md "Undo and Redo name the
 /// action"). Several ids when one action wrote several contacts ("Delete 3 contacts").
 class UndoEntry {
-  UndoEntry({required this.action, required this.undoIds, required this.names, required this.undone});
+  UndoEntry({
+    required this.action,
+    required this.undoIds,
+    required this.names,
+    required this.undone,
+    this.contactIds = const [],
+  });
+
+  /// The contacts the action wrote, so a delete for good can take the entry off [ContactsController.undoStack].
+  final List<String> contactIds;
 
   /// The action's verb and object in sentence case: "Delete contact", "Delete 3 contacts", "Edit contact",
   /// "Add contact", "Restore contact". The menu bar writes it in title case ("Undo Delete Contact").
@@ -535,6 +544,7 @@ class ContactsController extends ChangeNotifier {
         undoIds: [written.undoId!],
         names: [c.displayName],
         undone: original == null ? addUndone : editUndone,
+        contactIds: [c.id],
       ));
     }
     lastSaved = written.undoId == null ? null : undoStack.last;
@@ -604,6 +614,7 @@ class ContactsController extends ChangeNotifier {
         undoIds: undoIds,
         names: names,
         undone: n == 1 ? 'Contact restored' : '$n contacts restored',
+        contactIds: [...done],
       );
       if (undoIds.isNotEmpty && remember) undoStack.add(entry);
       _afterRemoving(done, order);
@@ -695,20 +706,24 @@ class ContactsController extends ChangeNotifier {
 
   Future<String> _undoOnHost(UndoEntry entry, int at) async {
     final refused = <String>[];
+    final purged = <String>[];
     var undone = 0;
     String? lastId;
     for (var i = 0; i < entry.undoIds.length; i++) {
+      final name = i < entry.names.length ? entry.names[i] : 'This contact';
       try {
         final c = await backend.undo(entry.undoIds[i]);
         undone++;
         lastId = c.id;
         _details[c.id] = DetailReady(c);
-      } on Refused {
-        refused.add(i < entry.names.length ? entry.names[i] : 'This contact');
+      } on Refused catch (r) {
+        // The host refuses an undo of a contact deleted for good in its own words (409); a missing undo id
+        // is Gone.
+        (r.detail.contains('deleted for good') ? purged : refused).add(name);
       } on Gone {
-        refused.add(i < entry.names.length ? entry.names[i] : 'This contact');
+        purged.add(name);
       } on Object {
-        if (undone == 0 && refused.isEmpty) {
+        if (undone == 0 && refused.isEmpty && purged.isEmpty) {
           // Nothing reached the host: Undo can try it again.
           if (!_disposed && !undoStack.contains(entry)) undoStack.insert(at < 0 ? undoStack.length : at, entry);
           return undoNoAnswer;
@@ -723,10 +738,27 @@ class ContactsController extends ChangeNotifier {
       if (trash != null) unawaited(loadTrash());
     }
     _notify();
-    if (refused.isEmpty) return entry.undone;
-    if (refused.length == 1 && entry.undoIds.length == 1) return 'Not undone. ${refused.first} was changed after that.';
-    if (undone == 0) return 'Not undone. ${refused.length} contacts were changed after that.';
-    return 'Not all undone. ${refused.length} of the contacts were changed after that.';
+    return undoSaid(entry, undone: undone, changed: refused, purged: purged);
+  }
+
+  /// What the toast says after an undo of [entry]: what came back, or why not: [changed] were changed after
+  /// that, [purged] were deleted for good.
+  static String undoSaid(UndoEntry entry,
+      {required int undone, required List<String> changed, required List<String> purged}) {
+    final failed = changed.length + purged.length;
+    if (failed == 0) return entry.undone;
+    if (failed == 1 && entry.undoIds.length == 1) {
+      return changed.isEmpty
+          ? 'Not undone. ${purged.single} was deleted for good.'
+          : 'Not undone. ${changed.single} was changed after that.';
+    }
+    final why = purged.isEmpty
+        ? 'changed after that'
+        : changed.isEmpty
+            ? 'deleted for good'
+            : 'changed or deleted for good after that';
+    if (undone == 0) return 'Not undone. $failed contacts were $why.';
+    return 'Not all undone. $failed of the contacts were $why.';
   }
 
   static const undoNoAnswer = 'Not undone. The host did not answer; try Undo again in a moment.';
@@ -775,6 +807,7 @@ class ContactsController extends ChangeNotifier {
         undoIds: undoIds,
         names: names,
         undone: n == 1 ? 'Contact moved back to Recently deleted' : '$n contacts moved back to Recently deleted',
+        contactIds: [...done],
       );
       if (undoIds.isNotEmpty) undoStack.add(entry);
       _readListAgain();
@@ -816,6 +849,9 @@ class ContactsController extends ChangeNotifier {
       }
     }
     if (_disposed) return BulkResult(done, failure, null);
+    // What is deleted for good can no longer be undone: its entries leave Undo.
+    final purgedSet = done.toSet();
+    undoStack.removeWhere((e) => e.contactIds.isNotEmpty && e.contactIds.every(purgedSet.contains));
     if (done.isNotEmpty || failure is ChangedElsewhere) await loadTrash();
     _notify();
     return BulkResult(done, failure, null);

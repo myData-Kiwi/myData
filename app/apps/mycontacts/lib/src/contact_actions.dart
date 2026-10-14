@@ -175,6 +175,7 @@ class ContactActions {
     final remaining = [...targets];
     final undoIds = <String>[];
     final deletedNames = <String>[];
+    final deletedIds = <String>[];
     await showMyDataDialog(
       context: context(),
       builder: (_) => MyDataDialog(
@@ -190,6 +191,7 @@ class ContactActions {
           if (result.entry != null) {
             undoIds.addAll(result.entry!.undoIds);
             deletedNames.addAll(result.entry!.names);
+            deletedIds.addAll(result.entry!.contactIds);
           }
           if (result.failure == null) return null;
           final done = targets.length - remaining.length;
@@ -208,6 +210,7 @@ class ContactActions {
       undoIds: undoIds,
       names: deletedNames,
       undone: n == 1 ? 'Contact restored' : '$n contacts restored',
+      contactIds: deletedIds,
     );
     if (undoIds.isNotEmpty) controller.remember(entry);
     toasts.show(n == 1 ? 'Contact deleted' : '$n contacts deleted',
