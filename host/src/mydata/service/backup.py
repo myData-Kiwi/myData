@@ -379,8 +379,8 @@ def retention(snapshots: Iterable[tuple], now: datetime, *, hourly: int = HOURLY
 
 
 def prune(home: Path, now: datetime | None = None) -> list[str]:
-    """Delete the snapshots retention() does not keep, and leftovers of interrupted work older than an
-    hour. Returns the names deleted."""
+    """Delete the snapshots retention() does not keep, and leftovers of interrupted snapshots and drills
+    (full copies of the data) older than an hour. Returns the names of the snapshots deleted."""
     now = _utc(now)
     snaps = list_snapshots(home)
     described = []
@@ -400,9 +400,10 @@ def prune(home: Path, now: datetime | None = None) -> list[str]:
             shutil.rmtree(s.path, ignore_errors=True)
             removed.append(s.name)
     root = backups_dir(home)
-    for leftover in root.glob(".partial-*") if root.exists() else ():
-        if leftover.is_dir() and time.time() - leftover.stat().st_mtime > 3600:
-            shutil.rmtree(leftover, ignore_errors=True)
+    for pattern in (".partial-*", ".verify-*"):
+        for leftover in root.glob(pattern) if root.exists() else ():
+            if leftover.is_dir() and time.time() - leftover.stat().st_mtime > 3600:
+                shutil.rmtree(leftover, ignore_errors=True)
     if removed:
         log(logger, logging.INFO, "old snapshots removed", count=len(removed))
     return removed
@@ -676,7 +677,11 @@ def filevault(platform: str = sys.platform, run: Callable = subprocess.run) -> s
 
 def status(home: Path, *, error: str | None = None, platform: str = sys.platform) -> dict:
     """For /status: the newest snapshot, the last restore drill, FileVault, and the last snapshot error."""
-    snaps = list_snapshots(home)
+    try:
+        snaps = list_snapshots(home)
+    except OSError as e:  # never a failed /status
+        snaps = []
+        error = error or f"The snapshots folder cannot be read ({type(e).__name__})."
     verified = last_verify(home) or {}
     ok = verified.get("ok")
     return {"last_snapshot_at": _iso(snaps[0].created_at) if snaps else None,

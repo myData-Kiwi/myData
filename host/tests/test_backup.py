@@ -537,6 +537,30 @@ def test_status_reports_the_last_snapshot_and_drill(home, monkeypatch):
     assert (st["last_verified_at"], st["last_verify_ok"]) == ("2026-10-13T12:02:00+00:00", True)
 
 
+def test_status_answers_when_the_snapshots_folder_cannot_be_read(home, monkeypatch):
+    monkeypatch.setattr(backup, "_filevault", None)
+    (home / "backups").write_text("a file where the folder should be")
+    st = backup.status(home, platform="linux")
+    assert st["last_snapshot_at"] is None
+    assert st["error"] == "The snapshots folder cannot be read (NotADirectoryError)."
+
+
+def test_leftovers_of_killed_drills_and_restores_are_removed(home):
+    take_snapshot(home, "manual", now=NOW)
+    old_drill = home / "backups" / ".verify-dead"
+    new_drill = home / "backups" / ".verify-busy"  # a drill running now, from the mydata command
+    for d in (old_drill, new_drill):
+        d.mkdir()
+        (d / "contacts.sqlite").write_bytes(b"a full copy")
+    os.utime(old_drill, (0, 0))
+    prune(home, NOW)
+    assert not old_drill.exists() and new_drill.exists()
+    staged = home / ".calendar.sqlite.restoring"
+    staged.write_bytes(b"a full copy")
+    BackupService(home, platform="linux").run_once(NOW)  # the running host holds the lock
+    assert not staged.exists()
+
+
 def test_status_has_a_backup_section(home):
     import fake_dav
     from service_helpers import Host
