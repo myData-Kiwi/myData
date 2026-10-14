@@ -24,7 +24,8 @@ RANGE=THISANDFUTURE, which few clients read.
   existing one is changed.
 - delete_this: an EXDATE with DTSTART's value type and TZID, and the occurrence's override is removed.
 - edit_all: the master changes. When only the time of day moves, every EXDATE, RDATE, override and date-time
-  UNTIL moves with it, so deleted and changed occurrences stay deleted and changed. An edit that leaves an
+  UNTIL moves with it, on the series' own clock (a value written in UTC too), so deleted and changed
+  occurrences stay deleted and changed and the last one stays in. An edit that leaves an
   EXDATE or override on a time that is no longer an occurrence (a new date, zone or rule) is refused unless
   the caller passes exceptions="drop", which removes them.
 - edit_following: the series is split. The old one ends before the occurrence (COUNT recounted, else UNTIL:
@@ -877,11 +878,10 @@ def edit_all(text: str, changes: Mapping[str, object], *, exceptions: str = "kee
     time_only = (_is_dt(old_start) and _is_dt(new_start) and _zone(old_start) == _zone(new_start)
                  and _wall(old_start).date() == _wall(new_start).date() and delta != timedelta(0))
 
+    old_master = copy.deepcopy(master)
     _apply(edit, master, changes)
+    shift = _shifter(old_master, delta)
     if time_only:
-        def shift(v):
-            return _add_wall(v, delta) if _is_dt(v) else v
-
         _rewrite_dates(edit, master, "EXDATE", shift)
         _rewrite_dates(edit, master, "RDATE", shift)
         if "RRULE" not in changes and master.get("RRULE") is not None:
@@ -889,24 +889,24 @@ def edit_all(text: str, changes: Mapping[str, object], *, exceptions: str = "kee
             until = rule.get("UNTIL")
             if until and _is_dt(until[0]):
                 edit.allow(master, "RRULE")
-                rule["UNTIL"] = [_add_wall(until[0], delta)]
+                rule["UNTIL"] = [_moved_until(old_master, until[0], delta)]
         for o in edit.overrides():
             edit.allow(o, "RECURRENCE-ID")
             rid = o["RECURRENCE-ID"]
             unmoved = _same(o["DTSTART"].dt, rid.dt) if o.get("DTSTART") is not None else False
-            _set(o, "RECURRENCE-ID", _date_prop(_add_wall(rid.dt, delta), rid))
+            _set(o, "RECURRENCE-ID", _date_prop(shift(rid.dt), rid))
             if unmoved:
                 edit.allow(o, "DTSTART")
                 edit.allow(o, "DTEND")
                 length = _duration(o)
-                _set(o, "DTSTART", _date_prop(_add_wall(o["DTSTART"].dt, delta), o["DTSTART"]))
+                _set(o, "DTSTART", _date_prop(shift(o["DTSTART"].dt), o["DTSTART"]))
                 if length is not None:
                     _set(o, "DTEND", _date_prop(_end(o["DTSTART"].dt, length), o["DTEND"]))
             _touch(edit, o, now, timing=True)
 
     # Exceptions that were occurrences before and are not now: refuse, or drop them when asked.
     if time_only:
-        live_ex = [_add_wall(v, delta) if _is_dt(v) else v for v in live_ex]
+        live_ex = [shift(v) for v in live_ex]
     stale_ex = [v for v in live_ex if not _still(master, v)]
     stale_ov = [o for o in live_ov if not _still(master, o["RECURRENCE-ID"].dt)]
     if stale_ex or stale_ov:
@@ -932,6 +932,51 @@ def edit_all(text: str, changes: Mapping[str, object], *, exceptions: str = "kee
             _set(o, "DTEND", _date_prop(_end(o["DTSTART"].dt, _duration(master)), o["DTEND"]))
     _touch(edit, master, now, timing=bool(_TIMING & changes.keys()))
     return edit.result()
+
+
+def _in_kind_of(value, like):
+    """value (a time on the series' clock) written in like's kind: UTC, its own zone, or floating."""
+    if value.tzinfo is None or like.tzinfo is None:
+        return value.replace(tzinfo=like.tzinfo) if value.tzinfo is None else value.replace(tzinfo=None)
+    if _is_utc(like):
+        return value.astimezone(timezone.utc)
+    return value if _zone(value) == _zone(like) else value.astimezone(like.tzinfo)
+
+
+def _shifter(old_master, delta: timedelta):
+    """The function that moves an EXDATE, RDATE or RECURRENCE-ID with a change of the series' time of day:
+    on the series' own clock (its DTSTART zone), whatever zone the value is written in, and written back in
+    that zone. A value in UTC on a zoned series moves by the wall-clock change in that zone, which differs from
+    the UTC change on a day the clocks change. A value that names an occurrence is moved from the occurrence's
+    own wall time, so one in the skipped hour (02:30 read as 14:30 UTC) moves as the occurrence does."""
+    template = old_master["DTSTART"].dt
+
+    def shift(v):
+        if not _is_dt(v):
+            return v
+        if template.tzinfo is None:
+            return _add_wall(v, delta)
+        try:
+            wall = occurrence(old_master, v, exdates=False)
+        except IcsError:
+            wall = _like(v, template)
+        return _in_kind_of(_add_wall(wall, delta), v)
+
+    return shift
+
+
+def _moved_until(old_master, until, delta: timedelta):
+    """The UNTIL that ends the moved series after the same occurrence: the old last start of the rule moved on
+    the series' clock (in UTC for zoned and UTC series, local for floating ones). Adding the change to UNTIL
+    in UTC loses the last occurrence when it falls on the far side of a clock change from its new time."""
+    template = old_master["DTSTART"].dt
+    last = None
+    for value in _rule(old_master):
+        last = value
+    if last is None:
+        return _shifter(old_master, delta)(until)
+    moved = _add_wall(_from_du(last, template), delta)
+    return moved if moved.tzinfo is None else moved.astimezone(timezone.utc)
 
 
 def _still(master, value) -> bool:

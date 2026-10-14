@@ -225,7 +225,8 @@ def test_moving_the_time_of_every_event_moves_its_exceptions_across_the_clock_ch
     assert "RECURRENCE-ID;TZID=Pacific/Auckland:20260323T103000\r\n" in out
     assert "DTSTART;TZID=Pacific/Auckland:20260323T110000\r\n" in out  # the override's own move is kept
     assert "DTEND;TZID=Pacific/Auckland:20260302T110000\r\n" in out  # the length is kept
-    assert "UNTIL=20260601T222959Z" in out and int(event(out)["SEQUENCE"]) == 4
+    # UNTIL ends the series at its last occurrence, moved (01 Jun 10:30 NZST)
+    assert "UNTIL=20260531T223000Z" in out and int(event(out)["SEQUENCE"]) == 4
 
 
 @pytest.mark.parametrize("name, new_start", [
@@ -306,7 +307,7 @@ def test_split_with_until_ends_the_old_series_in_utc_and_changes_the_new_one():
     text = load("auckland-weekly.ics")
     rid = datetime(2026, 4, 6, 9, tzinfo=NZ)  # 2026-04-05 21:00 UTC, the day after clocks go back
     old, new = ie.edit_following(text, rid, {"DTSTART": datetime(2026, 4, 6, 10, tzinfo=NZ)}, now=NOW)
-    assert "UNTIL=20260405T205959Z" in old and "UNTIL=20260601T" in new
+    assert "UNTIL=20260405T205959Z" in old and "UNTIL=20260531T220000Z" in new
     assert local_times(old) == ["03-02 09:00+1300", "03-09 09:00+1300", "03-23 11:00+1300", "03-30 09:00+1300"]
     assert local_times(new)[0] == "04-06 10:00+1200" and set(t[-10:] for t in local_times(new)) == {"10:00+1200"}
     assert len(local_times(old)) + len(local_times(new)) == len(local_times(text))
@@ -444,9 +445,8 @@ def series(draw):
             end = f"UNTIL={_fmt(last)}"
         elif zone == "floating":
             end = f"UNTIL={_fmt(last)}"
-        else:
-            end = "UNTIL=" + (last.replace(tzinfo=None) + timedelta(hours=3)).replace(tzinfo=last.tzinfo).astimezone(
-                UTC).strftime("%Y%m%dT%H%M%SZ")
+        else:  # tight: the last start itself, in UTC
+            end = "UNTIL=" + last.astimezone(UTC).strftime("%Y%m%dT%H%M%SZ")
     lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Example Corp//Property test//EN", "BEGIN:VEVENT",
              "UID:prop-series@example.org", "DTSTAMP:20260101T000000Z", prop,
              f"RRULE:FREQ={freq};INTERVAL={interval};{end}", "SUMMARY:Series", "END:VEVENT"]
@@ -455,7 +455,9 @@ def series(draw):
         icalendar.Calendar.from_ical(text)).between(*WINDOW)]
     exdate = draw(st.sampled_from([None, *starts[1:]]))
     if exdate is not None:
+        in_utc = zone not in ("date", "floating", "UTC") and draw(st.booleans())  # some writers use UTC
         ex = (f"EXDATE;VALUE=DATE:{_fmt(exdate)}" if zone == "date" else
+              f"EXDATE:{_fmt(exdate.astimezone(UTC))}Z" if in_utc else
               f"EXDATE:{_fmt(exdate)}" if zone in ("UTC", "floating") else f"EXDATE;TZID={zone}:{_fmt(exdate)}")
         text = text.replace("SUMMARY:Series", ex + "\r\nSUMMARY:Series")
     return text, zone
@@ -690,3 +692,43 @@ def test_a_date_exdate_on_a_timed_series_removes_that_day_for_the_writer_too():
     assert local_times(moved) == ["10-26 07:00+1300", "11-02 07:00+1300", "11-16 07:00+1300"]
     with pytest.raises(IcsError, match="1 deleted"):
         ie.edit_all(_DAY_EXDATE, {"DTSTART": datetime(2026, 10, 27, 9, tzinfo=NZ)}, now=NOW)
+
+
+def _daily_auckland(start: str, end: str, extra: str = "") -> str:
+    return ("BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Example Corp//Clock change//EN\r\nBEGIN:VEVENT\r\n"
+            f"UID:clock@example.org\r\nDTSTAMP:20260101T000000Z\r\nDTSTART;TZID=Pacific/Auckland:{start}\r\n"
+            f"RRULE:FREQ=DAILY;{end}\r\n{extra}SUMMARY:Daily\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n")
+
+
+def test_a_tight_utc_until_on_the_day_clocks_change_keeps_the_last_occurrence():
+    # the last occurrence, 27 Sep 04:00 NZDT, is 15:00 UTC; at 01:00 it is still NZST, 13:00 UTC
+    text = _daily_auckland("20260924T040000", "UNTIL=20260926T150000Z")
+    assert local_times(text)[-1] == "09-27 04:00+1300" and len(occ(text)) == 4
+    out = ie.edit_all(text, {"DTSTART": datetime(2026, 9, 24, 1, tzinfo=NZ)}, now=NOW)
+    assert local_times(out) == ["09-24 01:00+1200", "09-25 01:00+1200", "09-26 01:00+1200", "09-27 01:00+1200"]
+    assert "UNTIL=20260926T130000Z" in out
+    old, new = ie.edit_following(text, datetime(2026, 9, 25, 4, tzinfo=NZ), {"DTSTART": datetime(2026, 9, 25, 1,
+                                 tzinfo=NZ)}, now=NOW)
+    assert local_times(old) == ["09-24 04:00+1200"] and len(occ(new)) == 3
+
+
+def test_a_utc_exdate_on_the_day_clocks_change_moves_with_its_occurrence():
+    text = _daily_auckland("20260924T010000", "COUNT=5", "EXDATE:20260926T130000Z\r\n")  # 27 Sep 01:00 NZST
+    assert "09-27 01:00+1200" not in local_times(text) and len(occ(text)) == 4
+    out = ie.edit_all(text, {"DTSTART": datetime(2026, 9, 24, 4, tzinfo=NZ)}, now=NOW)
+    assert local_times(out) == ["09-24 04:00+1200", "09-25 04:00+1200", "09-26 04:00+1200", "09-28 04:00+1300"]
+    assert "EXDATE:20260926T150000Z" in out  # 27 Sep 04:00 NZDT, still in UTC
+
+
+def test_a_utc_recurrence_id_on_the_day_clocks_change_moves_with_its_occurrence():
+    text = _daily_auckland("20260924T010000", "COUNT=5").replace(
+        "END:VCALENDAR", "BEGIN:VEVENT\r\nUID:clock@example.org\r\nDTSTAMP:20260101T000000Z\r\n"
+        "RECURRENCE-ID:20260926T130000Z\r\nDTSTART:20260926T130000Z\r\nSUMMARY:Changed\r\nEND:VEVENT\r\n"
+        "END:VCALENDAR")
+    assert [s for s, _e, summary in occ(text) if summary == "Changed"] == ["2026-09-26T13:00:00+00:00"]
+    assert len(occ(text)) == 5
+    out = ie.edit_all(text, {"DTSTART": datetime(2026, 9, 24, 4, tzinfo=NZ)}, now=NOW)
+    assert local_times(out) == ["09-24 04:00+1200", "09-25 04:00+1200", "09-26 04:00+1200", "09-27 04:00+1300",
+                                "09-28 04:00+1300"]
+    assert [s for s, _e, summary in occ(out) if summary == "Changed"] == ["2026-09-26T15:00:00+00:00"]
+    assert "RECURRENCE-ID:20260926T150000Z" in out
