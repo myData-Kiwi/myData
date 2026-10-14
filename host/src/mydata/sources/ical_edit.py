@@ -30,8 +30,9 @@ RANGE=THISANDFUTURE, which few clients read.
   the caller passes exceptions="drop", which removes them.
 - edit_following: the series is split. The old one ends before the occurrence (COUNT recounted when DTSTART
   is one of the rule's starts, else UNTIL: in UTC for zoned and UTC times, local for floating times, a date for
-  all-day events); the new one is a new resource with a new UID, X-MYDATA-SPLIT-FROM naming the old UID, and the EXDATEs, RDATEs and overrides from
-  that occurrence on. Then the changes are made to it as edit_all makes them.
+  all-day events); the new one is a new resource with a new UID, X-MYDATA-SPLIT-FROM naming the old UID, the
+  calendar's own properties (not METHOD), and the EXDATEs, RDATEs and overrides from that occurrence on. The
+  two together are checked against the input. Then the changes are made to the new one as edit_all makes them.
 
 A field of an override that equals the master's old value follows the master's change (it was not changed for
 that occurrence); a field it changed is kept. Changed components get a new DTSTAMP and LAST-MODIFIED, and
@@ -360,6 +361,28 @@ class _Edit:
         out = self.render(self.cal)
         check(self.text, out, allowed=self._permitted, renamed=self._map, written_from=self.cal)
         return out
+
+    def check_split(self, old_text: str, new_text: str, new_cal) -> None:
+        """Refuse (PropertyLossError) a split that lost anything: the input against the old resource and the
+        new one together, each component of the new one counted as the one it was copied from (an override
+        that moved to the new series, an EXDATE value that went with it)."""
+        back = {after: key for key, after in self.renamed.items()}
+        combined: Counter = Counter()
+        for entry, n in _count(_text_tree(old_text)[0]).items():
+            combined[(back.get(entry[0], entry[0]),) + entry[1:]] += n
+        obj_root = _Node("")
+        _object_tree(new_cal, obj_root)
+        source = {}
+        for key, node in _keyed(obj_root).items():
+            own = self.key(node.ref)
+            source[key] = self._source.get(own) if own is not None else None
+        for entry, n in _count(_text_tree(new_text)[0]).items():
+            if source.get(entry[0]) is not None:
+                combined[(source[entry[0]],) + entry[1:]] += n
+        lost = [f"{_describe(entry)} ({n} -> {combined.get(entry, 0)})" for entry, n in self.before.items()
+                if combined.get(entry, 0) < n]
+        if lost:
+            raise PropertyLossError("refused: the split would lose " + "; ".join(sorted(lost)))
 
     # -- the event
 
@@ -1089,16 +1112,23 @@ def edit_following(text: str, recurrence_id, changes: Mapping[str, object], *, e
         old_rule["UNTIL"] = [_until_before(start, template)]
     edit.allow(master, "RRULE")
 
+    # Everything at calendar level comes along (X-WR-TIMEZONE gives floating times their zone), except METHOD,
+    # which belongs to a scheduling message. The new resource is written by the same edit, so the lines it
+    # copies unchanged are written as the input wrote them.
     new_cal = icalendar.Calendar()
-    for name in ("VERSION", "PRODID", "CALSCALE"):
-        if edit.cal.get(name) is not None:
+    for name in edit.cal.keys():
+        if name.upper() != "METHOD":
             new_cal[name] = copy.deepcopy(edit.cal[name])
     if new_cal.get("VERSION") is None:
         new_cal.add("VERSION", "2.0")
     if new_cal.get("PRODID") is None:
         new_cal.add("PRODID", PRODID)
+    edit.adopt(new_cal, edit.cal)
     for tz in edit.cal.walk("VTIMEZONE"):
-        new_cal.add_component(copy.deepcopy(tz))
+        copied = copy.deepcopy(tz)
+        new_cal.add_component(copied)
+        edit.adopt(copied, tz)
+    edit.adopt(new_master, master)
     _set(new_master, "UID", uid)
     _set(new_master, "DTSTART", _date_prop(start, master["DTSTART"]))
     length = _duration(master)
@@ -1120,14 +1150,16 @@ def edit_following(text: str, recurrence_id, changes: Mapping[str, object], *, e
     for o in list(edit.overrides()):
         if later(o["RECURRENCE-ID"].dt):
             moved = copy.deepcopy(o)
+            edit.adopt(moved, o)
             _set(moved, "UID", uid)
             new_cal.add_component(moved)
             edit.allow(o)
             _remove(edit.cal, o)
     _touch(edit, master, now, timing=True)
     old_text = edit.result()
-    new_text = new_cal.to_ical(sorted=False).decode("utf-8")
+    new_text = edit.render(new_cal)
     check(new_text, new_text, written_from=new_cal)
+    edit.check_split(old_text, new_text, new_cal)
     if changes:
         new_text = edit_all(new_text, changes, exceptions=exceptions, now=now)
     return old_text, new_text

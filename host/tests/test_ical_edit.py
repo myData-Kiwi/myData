@@ -344,7 +344,7 @@ def test_split_keeps_outlook_zone_names():
     text = load("outlook-windows.ics")
     old, new = ie.edit_following(text, datetime(2026, 3, 23, 10, tzinfo=ZoneInfo("Europe/Berlin")), {}, now=NOW)
     assert "DTSTART;TZID=W. Europe Standard Time:20260323T100000" in new
-    assert "EXDATE;TZID=W. Europe Standard Time:20260330T100000" in new
+    assert 'EXDATE;TZID="W. Europe Standard Time":20260330T100000' in new  # moved as it was written
     assert "TZID:W. Europe Standard Time" in new and 'ORGANIZER;CN="Example, Owner"' in new
     assert "COUNT=1" in old and "COUNT=5" in new
 
@@ -824,3 +824,24 @@ def test_splitting_a_count_series_whose_start_is_not_on_the_rule_ends_it_with_un
         old, new = ie.edit_following(text, rid, {}, now=NOW)
         assert "COUNT=0" not in old and "COUNT" not in event(old)["RRULE"] and "UNTIL=" in old
         assert occ(old, new) == occ(text)
+
+
+def test_a_split_keeps_the_calendars_own_properties_and_is_checked_as_a_whole(monkeypatch):
+    text = load("floating-weekly.ics").replace("VERSION:2.0\n", "VERSION:2.0\nX-WR-TIMEZONE:Europe/Berlin\n"
+                                                "X-CUSTOM:keep\nMETHOD:PUBLISH\n", 1)
+    rid = ie.occurrence(event(text), event(text)["DTSTART"].dt + timedelta(days=14))
+    old, new = ie.edit_following(text, rid, {}, now=NOW)
+    for line in ("X-WR-TIMEZONE:Europe/Berlin\r\n", "X-CUSTOM:keep\r\n"):
+        assert line in old and line in new
+    assert "METHOD" in old and "METHOD" not in new
+    # an EXDATE left out of the new series, though taken from the old one, is caught
+    real, calls = ie._map_dates, []
+
+    def forgetting(prop, fn):  # the first call copies the EXDATE into the new series: it comes back empty
+        calls.append(prop)
+        return None if len(calls) == 1 else real(prop, fn)
+
+    monkeypatch.setattr(ie, "_map_dates", forgetting)
+    with_exdate = text.replace("RRULE:", f"EXDATE:{(rid + timedelta(days=7)):%Y%m%dT%H%M%S}\nRRULE:", 1)
+    with pytest.raises(PropertyLossError, match="split would lose .*EXDATE"):
+        ie.edit_following(with_exdate, rid, {}, now=NOW)
