@@ -110,9 +110,7 @@ class ContactActions {
           return failure;
         },
         onClosed: (_) => controller.endEdit(),
-        onReload: () async {
-          await controller.reloadEdit();
-        },
+        onReload: controller.reloadEdit,
       );
 
   void _saved(ContactEdit edit) {

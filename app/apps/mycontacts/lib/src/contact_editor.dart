@@ -40,8 +40,9 @@ class ContactEditor extends StatefulWidget {
   /// The inspector closed: [saved] after a successful save.
   final void Function(bool saved) onClosed;
 
-  /// Reload, after the host refused the save because the contact changed elsewhere.
-  final Future<void> Function() onReload;
+  /// Reload, after the host refused the save because the contact changed elsewhere: null when the host's
+  /// version is open now, else why it could not be read.
+  final Future<WriteFailure?> Function() onReload;
 
   /// The date the birthday's calendar opens on; null is today.
   final DateTime? today;
@@ -67,6 +68,9 @@ class ContactEditor extends StatefulWidget {
   static String gone(String name) =>
       '$name could not be saved. It is no longer on your host: it was deleted for good, or its source was '
       'turned off. Your changes are still here; copy what you need, then press Cancel.';
+  static String reloadNoAnswer(String name) =>
+      '$name could not be reloaded. The host did not answer. Your changes are still here; check that the host is '
+      'running, then press Reload again.';
   static String refused(String name) =>
       '$name could not be saved. It is in Recently deleted now; restore it there, then edit it again.';
   static String fieldsWrong(String name, int n) =>
@@ -226,6 +230,21 @@ class _ContactEditorState extends State<ContactEditor> {
       case NoAnswer():
         return ContactEditor.noAnswer(name);
     }
+  }
+
+  /// Reload: the host's version opens in a new inspector; when it cannot be read, the failure line says why
+  /// and what to do next (Reload stays only when trying again can help).
+  Future<void> _reload() async {
+    final name = _draft.shownName;
+    final failure = await widget.onReload();
+    if (!mounted || failure == null) return;
+    final message = switch (failure) {
+      Gone() => ContactEditor.gone(name),
+      Refused() => ContactEditor.refused(name),
+      _ => ContactEditor.reloadNoAnswer(name),
+    };
+    setState(() => _stale = failure is NoAnswer);
+    widget.edit.inspector.currentState?.showFailure(message);
   }
 
   /// The host's errors ("phones[1].value") as the form's field ids, in the app's words.
@@ -444,7 +463,7 @@ class _ContactEditorState extends State<ContactEditor> {
           original == null ? ContactEditor.newDiscard : 'Your changes to ${original.displayName} are not saved.',
       savingAnnouncement: 'Saving ${d.shownName}',
       failureAction: _stale
-          ? InspectorFailureAction(label: ContactEditor.reloadLabel, onPressed: () => unawaited(widget.onReload()))
+          ? InspectorFailureAction(label: ContactEditor.reloadLabel, onPressed: () => unawaited(_reload()))
           : null,
     );
   }

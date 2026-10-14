@@ -872,4 +872,51 @@ void main() {
       await outlastToast(tester);
     });
   });
+  group('Reload that cannot read the contact (review)', () {
+    Future<FakeBackend> staleSave(WidgetTester tester) async {
+      desktop(tester);
+      final backend = ownedBackend();
+      await tester.pumpWidget(app(backend));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(Button, ContactActions.editButton));
+      await tester.pumpAndSettle();
+      backend.changeElsewhere('c-pip', jobTitle: 'Curator');
+      await enter(tester, 'Job title', 'Head archivist');
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+      expect(find.text(ContactEditor.changedElsewhere('Pip Owned')), findsOneWidget);
+      return backend;
+    }
+
+    testWidgets('moved to Recently deleted elsewhere: the line says so; no Reload', (tester) async {
+      final backend = await staleSave(tester);
+      await backend.delete('c-pip', '"4-c-pip"'); // another app
+      await tester.tap(find.widgetWithText(Button, ContactEditor.reloadLabel));
+      await tester.pumpAndSettle();
+      expect(find.text(ContactEditor.refused('Pip Owned')), findsOneWidget);
+      expect(find.widgetWithText(Button, ContactEditor.reloadLabel), findsNothing);
+      expect(find.widgetWithText(MyDataTextField, 'Head archivist'), findsOneWidget, reason: 'the changes stay');
+    });
+
+    testWidgets('deleted for good elsewhere: the line says it is gone', (tester) async {
+      final backend = await staleSave(tester);
+      backend.cards = [for (final c in backend.cards) if (c.id != 'c-pip') c];
+      await tester.tap(find.widgetWithText(Button, ContactEditor.reloadLabel));
+      await tester.pumpAndSettle();
+      expect(find.text(ContactEditor.gone('Pip Owned')), findsOneWidget);
+      expect(find.widgetWithText(Button, ContactEditor.reloadLabel), findsNothing);
+    });
+
+    testWidgets('the host not answering: the line says so, and Reload stays to try again', (tester) async {
+      final backend = await staleSave(tester);
+      backend.failDetails = true;
+      await tester.tap(find.widgetWithText(Button, ContactEditor.reloadLabel));
+      await tester.pumpAndSettle();
+      expect(find.text(ContactEditor.reloadNoAnswer('Pip Owned')), findsOneWidget);
+      backend.failDetails = false;
+      await tester.tap(find.widgetWithText(Button, ContactEditor.reloadLabel));
+      await tester.pumpAndSettle();
+      expect(find.widgetWithText(MyDataTextField, 'Curator'), findsOneWidget);
+    });
+  });
 }

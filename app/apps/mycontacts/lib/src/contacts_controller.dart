@@ -502,23 +502,34 @@ class ContactsController extends ChangeNotifier {
   }
 
   /// "Reload" after the host refused a save because the contact changed elsewhere: the inspector opens again
-  /// on the host's version, dropping the user's changes. False when it could not be read (gone, or no
-  /// answer); the inspector then stays as it is.
-  Future<bool> reloadEdit() async {
+  /// on the host's version, dropping the user's changes. Null when it did (or the inspector moved on
+  /// meanwhile); otherwise why not, and the inspector stays as it is: [Refused] when the contact is in
+  /// Recently deleted now, [Gone] when the host no longer has it, [NoAnswer] when the host did not answer.
+  Future<WriteFailure?> reloadEdit() async {
     final id = editing?.id;
-    if (id == null) return false;
-    ContactDetailOut? fresh;
+    if (id == null) return null;
+    final ContactDetailOut? fresh;
     try {
       fresh = await backend.contact(id);
     } on Object {
-      fresh = null;
+      return const NoAnswer();
     }
-    if (_disposed || fresh == null || editing?.id != id) return false;
+    if (_disposed || editing?.id != id) return null;
+    if (fresh == null) {
+      // Not found: moved to Recently deleted, or gone for good (or its source turned off).
+      try {
+        final deleted = await backend.trash();
+        if (deleted.any((t) => t.id == id)) return const Refused('in Recently deleted');
+      } on Object {
+        // Said as gone: the host does not have it as a contact either way.
+      }
+      return const Gone();
+    }
     _details[id] = DetailReady(fresh);
     editing = ContactEdit(fresh, ++_editSerial);
     _readListAgain();
     _notify();
-    return true;
+    return null;
   }
 
   /// Saves the inspector's [form]: a new contact, or a change to [edit]'s from the version it opened on.
