@@ -149,8 +149,9 @@ def test_link_sync_read_ask_and_remove(host):
 
 
 def test_link_sync_and_remove_survives_owned_data(tmp_path, monkeypatch):
-    """Twin of the test above with owned contacts and a calendar on the host from the start: linking and
-    removing an account leaves them as they were."""
+    """Twin of the test above with owned contacts and a calendar on the host from the start: the host is in
+    real mode for them alone, linking and removing an account leaves them as they were, and the host stays in
+    real mode afterwards."""
     from owned_data import add_owned, owned_rows
 
     monkeypatch.setenv("TZ", "Pacific/Auckland")
@@ -162,6 +163,8 @@ def test_link_sync_and_remove_survives_owned_data(tmp_path, monkeypatch):
     try:
         with TestClient(host.app, base_url="http://127.0.0.1") as c:
             get = lambda path: c.get(path, headers=host.auth)  # noqa: E731
+            assert get("/status").json()["mode"] == "real"  # owned data is the user's: no demo data over it
+            warms = host.models.rewarms
             r = c.post("/accounts", headers=host.auth, json={"provider": "icloud", "email": fake_dav.USERNAME,
                                                               "password": fake_dav.PASSWORD})
             account_id = r.json()["id"]
@@ -170,6 +173,7 @@ def test_link_sync_and_remove_survives_owned_data(tmp_path, monkeypatch):
             assert c.delete(f"/accounts/{account_id}", headers=host.auth).status_code == 200
             assert [x["display_name"] for x in get("/contacts").json()] == ["Olive Owned", "Pip Keepsake"]
             assert [x["name"] for x in get("/calendars").json()] == ["Kept (owned)"]
+            assert get("/status").json()["mode"] == "real" and host.models.rewarms == warms  # no switch
     finally:
         host.sources.stop()
     assert owned_rows(tmp_path) == before

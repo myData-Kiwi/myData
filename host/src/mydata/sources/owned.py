@@ -33,6 +33,7 @@ from __future__ import annotations
 import hashlib
 import sqlite3
 from collections.abc import Iterable, Sequence
+from pathlib import Path
 
 OWNED = "owned"
 FOLLOWED = "followed"
@@ -174,3 +175,24 @@ def followed_ids(db: sqlite3.Connection, collections: str, account_id: str,
         sql += f" AND url IN ({', '.join('?' * len(urls))})"
         params += urls
     return [r[0] for r in db.execute(sql, params)]
+
+
+def has_owned(path: Path, collections: str) -> bool:
+    """Whether the file holds an owned collection that is not deleted. Read-only and without migrating: a file
+    at an older schema (no mode column), a missing or unreadable one, holds none."""
+    path = Path(path)
+    if not path.exists():
+        return False
+    try:
+        db = sqlite3.connect(f"{path.resolve().as_uri()}?mode=ro", uri=True, timeout=30)
+    except sqlite3.Error:
+        return False
+    try:
+        if "mode" not in {r[1] for r in db.execute(f"PRAGMA table_info({collections})")}:
+            return False
+        return db.execute(f"SELECT 1 FROM {collections} WHERE mode = '{OWNED}' AND deleted_at IS NULL "
+                          "LIMIT 1").fetchone() is not None
+    except sqlite3.Error:
+        return False
+    finally:
+        db.close()

@@ -11,7 +11,7 @@ import pytest
 from mydata.sources import owned
 from mydata.sources.calendar_store import CalendarStore
 from mydata.sources.contacts_store import ContactsStore
-from mydata.sources.owned import OWNED_ACCOUNT, followed_ids
+from mydata.sources.owned import OWNED_ACCOUNT, followed_ids, has_owned
 
 import test_contacts_store as con
 from owned_data import BOOK_URL, WORDS, add_owned, owned_rows
@@ -162,6 +162,23 @@ def test_a_source_never_writes_into_the_owned_account(home):
     from mydata.sources.dav.discovery import Collection
     with pytest.raises(ValueError, match="owned"):
         contacts.apply(OWNED_ACCOUNT, Collection(BOOK_URL, "contacts", "x"), con.result())
+
+
+def test_has_owned_reads_without_migrating_or_creating(tmp_path, home):
+    path, ids, _, _ = home
+    assert has_owned(path / "contacts.sqlite", "address_books") and has_owned(path / "calendar.sqlite", "calendars")
+    assert not has_owned(tmp_path / "missing" / "contacts.sqlite", "address_books")
+    assert not (tmp_path / "missing").exists()
+    old = tmp_path / "old.sqlite"  # a file at the schema before modes: no column, nothing owned, not migrated
+    from mydata.sources._db import Database
+    Database(old, {1: ContactsStore.MIGRATIONS[1]})
+    assert not has_owned(old, "address_books")
+    assert _raw_one(old, "SELECT MAX(version) FROM schema_version") == 1
+    (tmp_path / "junk.sqlite").write_bytes(b"not a database" * 100)
+    assert not has_owned(tmp_path / "junk.sqlite", "address_books")
+    with ContactsStore(path / "contacts.sqlite").db.transaction() as db:  # soft-deleted (in the trash, later)
+        db.execute("UPDATE address_books SET deleted_at = modified_at WHERE mode = 'owned'")
+    assert not has_owned(path / "contacts.sqlite", "address_books")
 
 
 def _raw_one(path, sql, params=()):

@@ -1,10 +1,12 @@
 """Demo mode and real mode.
 
-- demo (no source on: no linked account, and This Mac off or absent): exactly the behaviour before accounts existed: the six fake tools over
-  canned data, the date pinned by [dev] pin_today, the original system prompt.
-- real (any source on: a linked account, or This Mac turned on): the real date and the machine's time zone; only find_contact and
-  list_events, over the mirrored contacts and calendars (tools/mirror.py); a system prompt that says
-  what the assistant cannot do yet.
+- demo (no source on: no linked account, and This Mac off or absent; and no owned data): exactly the
+  behaviour before accounts existed: the six fake tools over canned data, the date pinned by [dev]
+  pin_today, the original system prompt.
+- real (any source on: a linked account, or This Mac turned on; or an owned address book or calendar,
+  sources/owned.py, which is the user's data whether a source is on or not): the real date and the
+  machine's time zone; only find_contact and list_events, over the stored contacts and calendars
+  (tools/mirror.py); a system prompt that says what the assistant cannot do yet.
 
 Within a mode the tool list and the system prompt never change, so the prompt prefix Ollama caches stays
 byte-identical (tests/test_prompt_prefix.py). Switching mode (an account added or removed) swaps the
@@ -83,9 +85,12 @@ class ModeController:
         return self._mode
 
     def wanted(self) -> Mode:
+        """Real when a source is on or the host holds owned data (the code that first creates owned data calls
+        refresh(), as turning a source on does)."""
         any_on = getattr(self.sync, "any_source_on", None)
         on = any_on() if any_on is not None else bool(self.sync.accounts.list())
-        return "real" if on else "demo"
+        owned_data = getattr(self.sync, "owned_data", None)
+        return "real" if on or (owned_data is not None and owned_data()) else "demo"
 
     def spec(self, mode: Mode) -> ModeSpec:
         if mode == "demo":

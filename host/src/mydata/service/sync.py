@@ -48,6 +48,7 @@ from ..sources.accounts import Account, Accounts
 from ..sources.calendar_store import CalendarStore
 from ..sources.contacts_store import ContactsStore
 from ..sources.mac import MAC_ID
+from ..sources import owned
 from ..sources.owned import OWNED_ACCOUNT
 from .backup import open_store
 from .logs import log
@@ -185,8 +186,14 @@ class SyncService:
         return self.mac is not None and self.mac.available
 
     def any_source_on(self) -> bool:
-        """Real mode: an account is linked, or This Mac is turned on."""
+        """An account is linked, or This Mac is turned on."""
         return bool(self.accounts.list()) or (self.mac is not None and self.mac.enabled)
+
+    def owned_data(self) -> bool:
+        """The host holds an owned address book or calendar (sources/owned.py). Read from the files without
+        opening the stores, so it never migrates one: a file at an older schema holds none."""
+        return (owned.has_owned(self.home / CONTACTS_FILE, owned.CONTACTS[0])
+                or owned.has_owned(self.home / CALENDAR_FILE, owned.CALENDAR[0]))
 
     def coverage(self, start: date, end: date) -> list[dict]:
         """Per source holding calendars: does it hold every day from start to end? (CalendarStore.coverage,

@@ -400,11 +400,12 @@ def test_turning_off_stops_the_reader_and_deletes_everything(make_host, home):
         assert len(mac.launches) == 1  # nothing starts it again
 
 
-def test_turning_off_survives_owned_data(make_host, home):
+def test_turning_off_survives_owned_data_and_stays_in_real_mode(make_host, home):
     before = _owned(home)
     mac = FakeMac("authorized", "fullAccess")
     h = make_host(mac)
     with Client(h) as c:
+        assert c.get("/status")["mode"] == "real"  # owned data alone
         on(c, mac)
         assert wait(lambda: len(c.names()) == 4 + 2 and c.mac()["window"])
         c.put("/sources/mac", {"enabled": False})
@@ -412,6 +413,7 @@ def test_turning_off_survives_owned_data(make_host, home):
         assert [e["title"] for e in c.get("/events?start=2026-03-16&end=2026-03-31")["events"]] == [
             "Owned picnic (invented)"]
         assert MAC_ID not in h.sources.contacts.account_ids() and MAC_ID not in h.sources.calendar.account_ids()
+        assert c.get("/status")["mode"] == "real"
     assert owned_rows(home) == before
 
 

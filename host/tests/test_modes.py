@@ -223,3 +223,43 @@ def test_real_mode_reply_uses_only_the_real_tools(parts):
     assert message["text"] == "I can't search mail yet."
     run_tools = [m for m in assistant.history("c2") if m.get("role") == "tool"]
     assert "there is no tool called 'search_mail'" in run_tools[0]["content"]
+
+
+def test_owned_data_alone_is_real_mode(parts, tmp_path):
+    """Real mode follows "a source is on, or the host holds owned data": owned contacts and calendars are the
+    user's own, so demo data never stands in for them. The code that creates or purges owned data calls
+    refresh(), as turning a source on or off does."""
+    from mydata.sources.calendar_store import CalendarStore
+    from mydata.sources.contacts_store import ContactsStore
+    from owned_data import add_owned
+
+    assistant, sources, modes, changes, _, _ = parts
+    assert not sources.owned_data() and modes.refresh() == "demo"
+    ids = add_owned(tmp_path)
+    assert sources.owned_data() and not sources.any_source_on()
+    assert modes.refresh() == "real" and changes == ["real"]
+    assert assistant.registry.names() == ["find_contact", "list_events"]
+
+    account = sources.accounts.add("icloud", "ava.fictional@example.com", "invented-pw", verify=lambda e, p: None)
+    assert modes.refresh() == "real" and changes == ["real"]
+    sources.remove_account(account.id)
+    assert modes.mode == "real" and changes == ["real"]  # the owned data is still there
+
+    ContactsStore(tmp_path / "contacts.sqlite").purge(address_book_ids=ids["address_books"])
+    assert sources.owned_data() and modes.refresh() == "real"  # the calendar is still owned
+    CalendarStore(tmp_path / "calendar.sqlite").purge(calendar_ids=ids["calendars"])
+    assert not sources.owned_data() and modes.refresh() == "demo" and changes == ["real", "demo"]
+
+
+def test_looking_for_owned_data_never_migrates_or_creates_a_file(parts, tmp_path):
+    from mydata.service.backup import list_snapshots
+    from mydata.sources._db import Database
+    from mydata.sources.contacts_store import ContactsStore
+
+    _, sources, modes, _, _, _ = parts
+    assert not sources.owned_data() and not (tmp_path / "contacts.sqlite").exists()
+    Database(tmp_path / "contacts.sqlite", {1: ContactsStore.MIGRATIONS[1]})  # a file from before modes
+    assert not sources.owned_data() and modes.refresh() == "demo"
+    pending = Database.pending(tmp_path / "contacts.sqlite", ContactsStore.MIGRATIONS)
+    assert pending == (1, max(ContactsStore.MIGRATIONS))
+    assert list_snapshots(tmp_path) == []
