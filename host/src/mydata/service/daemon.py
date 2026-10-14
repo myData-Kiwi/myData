@@ -90,9 +90,10 @@ def build_sources(settings: Settings, secrets=None, transport=None) -> SyncServi
 
 def build(settings: Settings, sources: SyncService | None = None, *, model_factory=None, models=None,
           real_today=None, backups: BackupService | None = None):
-    """The app, plus the parts main() starts and stops: (app, models, sources). main() passes the backup
-    service it starts; the other keyword arguments are for tests: a scripted model, a stand-in for the
-    model manager, and a fixed date for real mode."""
+    """The app, the parts main() starts and stops, and the mode refresh() chose (real with a source on or
+    owned data held): (app, models, sources, mode). main() passes the backup service it starts; the other
+    keyword arguments are for tests: a scripted model, a stand-in for the model manager, and a fixed date
+    for real mode."""
     legacy = settings.home / "token"  # phase 1 had one shared token; it is replaced by per-app tokens
     if legacy.exists():
         legacy.unlink()
@@ -111,7 +112,7 @@ def build(settings: Settings, sources: SyncService | None = None, *, model_facto
     stop = lambda: os.kill(os.getpid(), signal.SIGTERM)  # the same clean shutdown as `mydata stop`
     app = create_app(auth, registry, models, assistant, state=state, shutdown=stop, sources=sources,
                      backups=backups or BackupService(settings.home))
-    return app, models, sources
+    return app, models, sources, modes.mode
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -129,8 +130,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     backups = BackupService(settings.home)
-    app, models, sources = build(settings, backups=backups)
-    mode = "real" if sources.any_source_on() else "demo"
+    app, models, sources, mode = build(settings, backups=backups)
     log(logger, logging.INFO, "starting", version=__version__, host=settings.host, port=settings.port,
         home=str(settings.home), model=settings.model, mode=mode)
     if settings.pin_today and mode == "demo":

@@ -99,3 +99,24 @@ def test_detached_daemon_logs_each_line_once(tmp_path):
     assert (tmp_path / "logs" / "mydatad.log").read_text().count('"msg": "starting"') == 1
     assert "DEMO DATE" in (tmp_path / "logs" / "mydatad.log").read_text()
     assert '"msg"' not in (tmp_path / "logs" / "mydatad.out").read_text()
+
+
+def test_the_start_log_reports_real_mode_for_owned_data(tmp_path):
+    """With owned data and no source the host starts in real mode: the log says so, and never claims the
+    demo date."""
+    from owned_data import add_owned
+
+    port = free_port()
+    (tmp_path / "config.toml").write_text(
+        DEFAULT_CONFIG.replace("port = 47821", f"port = {port}")
+        .replace("http://127.0.0.1:11434", f"http://127.0.0.1:{free_port()}")
+        .replace("start_ollama = true", "start_ollama = false"))
+    add_owned(tmp_path)
+    try:
+        assert _mydata(tmp_path, "start").returncode == 0
+    finally:
+        _stop_daemon(tmp_path)
+    [starting] = [json.loads(line) for line in (tmp_path / "logs" / "mydatad.log").read_text().splitlines()
+                  if '"msg": "starting"' in line]
+    assert starting["mode"] == "real"
+    assert "DEMO DATE" not in (tmp_path / "logs" / "mydatad.log").read_text()

@@ -174,8 +174,8 @@ class Host:
 
             return Seen(self.scripts.pop(0) if self.scripts else [])
 
-        self.app, _, _ = build(Settings(home=tmp, pin_today=TODAY), self.sources, model_factory=model, models=self.models,
-                               real_today=lambda: real_today)
+        self.app, _, _, _ = build(Settings(home=tmp, pin_today=TODAY), self.sources, model_factory=model,
+                                  models=self.models, real_today=lambda: real_today)
         self.modes = self.sources.on_accounts_changed.__self__
         self.assistant = self.modes.assistant
         self.token = (tmp / "app-tokens" / "mydata").read_text().strip()
