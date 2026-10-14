@@ -577,12 +577,16 @@ def test_leftovers_of_killed_drills_and_restores_are_removed(home):
     take_snapshot(home, "manual", now=NOW)
     old_drill = home / "backups" / ".verify-dead"
     new_drill = home / "backups" / ".verify-busy"  # a drill running now, from the mydata command
-    for d in (old_drill, new_drill):
+    old_check = home / "backups" / ".check-dead"  # a killed `mydata db check-migration`
+    new_check = home / "backups" / ".check-busy"
+    for d in (old_drill, new_drill, old_check, new_check):
         d.mkdir()
         (d / "contacts.sqlite").write_bytes(b"a full copy")
     os.utime(old_drill, (0, 0))
+    os.utime(old_check, (0, 0))
     prune(home, NOW)
     assert not old_drill.exists() and new_drill.exists()
+    assert not old_check.exists() and new_check.exists()
     staged = home / ".calendar.sqlite.restoring"
     staged.write_bytes(b"a full copy")
     BackupService(home, platform="linux").run_once(NOW)  # the running host holds the lock

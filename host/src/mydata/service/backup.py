@@ -393,8 +393,8 @@ def kept_until(now: datetime | None = None) -> date:
 
 
 def prune(home: Path, now: datetime | None = None) -> list[str]:
-    """Delete the snapshots retention() does not keep, and leftovers of interrupted snapshots and drills
-    (full copies of the data) older than an hour. Returns the names of the snapshots deleted."""
+    """Delete the snapshots retention() does not keep, and leftovers of interrupted snapshots, drills and
+    migration checks (full copies of the data) older than an hour. Returns the names of the snapshots deleted."""
     now = _utc(now)
     snaps = list_snapshots(home)
     described = []
@@ -414,7 +414,7 @@ def prune(home: Path, now: datetime | None = None) -> list[str]:
             shutil.rmtree(s.path, ignore_errors=True)
             removed.append(s.name)
     root = backups_dir(home)
-    for pattern in (".partial-*", ".verify-*"):
+    for pattern in (".partial-*", ".verify-*", ".check-*"):
         for leftover in root.glob(pattern) if root.exists() else ():
             if leftover.is_dir() and time.time() - leftover.stat().st_mtime > 3600:
                 shutil.rmtree(leftover, ignore_errors=True)
