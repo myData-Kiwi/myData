@@ -546,6 +546,21 @@ def test_a_contacts_export_hides_this_macs_copies_of_the_same_people(store):
     assert {r["import_id"] for r in shadows} == {done.import_id} and {r["source_account"] for r in shadows} == {"mac"}
 
 
+def test_a_duplicate_skipped_by_default_is_not_counted_as_hiding(store):
+    _this_mac(store)
+    cw.create(store, {"given_name": "Ava", "family_name": "Fictional", "emails": [{"value": "ava@example.org"}]},
+              actor="mycontacts")
+    plan = preview(store, FILE_SOURCE, read_contacts(_contacts_export()))
+    ava = next(i for i in plan.items if i.display_name == "Ava Fictional")
+    assert (ava.status, ava.action) == ("duplicate", "skip")
+    assert [m.hides for m in ava.matches if m.source == "mac"] == [True]  # if the user ticks it
+    assert plan.counts["followed_matches"] == 2  # Ben and Cleo, imported by default
+    done = commit(store, FILE_SOURCE, read_contacts(_contacts_export()))
+    assert done.counts["hidden"] == 2 and done.counts["followed_matches"] == 2
+    ticked = commit(store, FILE_SOURCE, read_contacts(_contacts_export()), choices={ava.index: "import"})
+    assert ticked.counts["hidden"] == 1
+
+
 def test_a_hidden_copy_that_changes_stays_hidden_and_flags_the_contact(store):
     _this_mac(store)
     commit(store, FILE_SOURCE, read_contacts(_contacts_export()))

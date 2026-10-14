@@ -634,7 +634,8 @@ class ImportCountsOut(BaseModel):
     suggestions: int = Field(description="cards with a contact of the same name only (a suggestion)")
     followed_matches: int = Field(description="a file's cards that hide a followed contact once imported (the same "
                                               "name and the same email or phone, emails in lower case and phones "
-                                              "in E.164): each person is then one result. Matches with hides say "
+                                              "in E.164) with the default choices (imported, updated or found "
+                                              "unchanged): each person is then one result. Matches with hides say "
                                               "which. 0 for a copy of an account (it hides its own cards)")
     missing: int = Field(description="contacts earlier imports from this source brought in that the input no longer "
                                      "has (reported, never deleted)")
@@ -675,7 +676,8 @@ class ImportMatchOut(BaseModel):
     item_index: int | None = Field(default=None, description="for source file: the earlier card's index")
     hides: bool = Field(default=False, description="a followed contact (This Mac, an iCloud account) this file's card "
                                                    "hides once imported, so the person is found once; shown again "
-                                                   "if the imported contact is deleted or the import undone")
+                                                   "if the imported contact is deleted or the import undone. For a "
+                                                   "card skipped by default (a duplicate), only if it is imported")
 
 
 class ImportItemOut(BaseModel):

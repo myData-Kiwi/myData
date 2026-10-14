@@ -121,7 +121,8 @@ class Match:
     contact_id: str | None = None
     account_id: str | None = None
     item_index: int | None = None
-    hides: bool = False  # a followed card this card hides once written (a file import: hidden_by_file)
+    hides: bool = False  # a followed card this card hides once written (a file import: hidden_by_file); for a
+    # card not written by default (a duplicate), only if the user chooses to import it
 
 
 @dataclass
@@ -609,7 +610,10 @@ def _counts(items: list[Item], missing: list[dict], uncut: int = 0) -> dict[str,
         "conflicts": n(lambda i: i.status == "conflict"),
         "deleted": n(lambda i: i.status == "deleted"),
         "suggestions": n(lambda i: any(m.strength == "suggestion" for m in i.matches)),
-        "followed_matches": n(lambda i: bool(i.hides)),
+        # Only cards the default choices write (or find unchanged) hide anything: a duplicate hides its followed
+        # copies only if the user ticks it.
+        "followed_matches": n(lambda i: bool(i.hides) and (i.action in ("import", "update")
+                                                           or i.status == "unchanged")),
         "missing": len(missing),
         "to_import": n(lambda i: i.action == "import"),
         "to_update": n(lambda i: i.action == "update"),
