@@ -14,7 +14,7 @@ from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
 from mydata.sources.vcard import card_kind, parse_vcard, photo
-from mydata.sources.vcard_edit import (Raw, VCard, VCardError, convert, escape_text, fold, new_card, photo_bytes,
+from mydata.sources.vcard_edit import (Prop, Raw, VCard, VCardError, convert, escape_text, fold, new_card, photo_bytes,
                                        split_cards, unescape_text, upgrade_21)
 
 FIXTURES = Path(__file__).parent / "fixtures" / "vcard"
@@ -550,3 +550,29 @@ def test_converting_to_4_0_writes_dates_in_the_basic_format_and_finds_the_photo_
     assert f"PHOTO:data:image/png;base64,{png}\r\n" in out
     assert "X-ABDATE:2001-02-03\r\n" in out  # Apple's own field: as it came
     assert parse_vcard(out).birthday == "1985-04-12"
+
+
+def test_a_2_1_quoted_printable_header_folded_before_its_encoding_is_joined_and_decoded():
+    text = ("BEGIN:VCARD\r\nVERSION:2.1\r\nFN:Kai Invented\r\nNOTE;CHARSET=UTF-8;\r\n"
+            " ENCODING=QUOTED-PRINTABLE:=E3=81=82=E3=81=84=\r\n=E3=81=86 end\r\nTEL;CELL:555-0101\r\nEND:VCARD\r\n")
+    out = upgrade_21(text)
+    assert parse_vcard(out).note == "あいう end"
+    assert "=E3" not in out and "TEL;TYPE=CELL:555-0101\r\n" in out
+    assert all(isinstance(p, Prop) for p in VCard.parse(out).items)
+
+
+def test_a_folded_2_1_line_keeps_its_space_and_is_written_again():
+    text = ("BEGIN:VCARD\r\nVERSION:2.1\r\nFN:Kai Invented\r\nNOTE:running far\r\n away\r\n"
+            "TITLE:Chief\r\n\tinventor\r\nEND:VCARD\r\n")
+    out = upgrade_21(text)
+    assert parse_vcard(out).note == "running far away"
+    assert VCard.parse(out).first("TITLE").text() == "Chief\tinventor"
+    assert "NOTE:running far away\r\n" in out
+
+
+def test_a_2_1_line_that_is_not_a_property_is_refused():
+    with pytest.raises(VCardError, match="not a property"):
+        upgrade_21("BEGIN:VCARD\r\nVERSION:2.1\r\nFN:Kai\r\nstray text\r\nEND:VCARD\r\n")
+    nested = ("BEGIN:VCARD\r\nVERSION:2.1\r\nFN:Kai\r\nAGENT:\r\nBEGIN:VCARD\r\nVERSION:2.1\r\nFN:Pat\r\n"
+              "END:VCARD\r\nEND:VCARD\r\n")
+    assert "FN:Pat" in upgrade_21(nested)

@@ -309,10 +309,11 @@ def _is_qp(first_line: str) -> bool:
     return "QUOTED-PRINTABLE" in head
 
 
-def _logical_lines(text: str) -> list[tuple[str, str]]:
+def _logical_lines(text: str, *, keep_fold_space: bool = False) -> list[tuple[str, str]]:
     """(unfolded line, original text with endings) for each content line. A folded line (the next one starts
     with a space or tab) and a vCard 2.1 quoted-printable soft break (a value line ending in "=") are joined;
-    a blank line is kept with the line before it."""
+    a blank line is kept with the line before it. Unfolding drops the space or tab that starts a folded line
+    (3.0, 4.0), or keeps it with keep_fold_space (2.1 folds as RFC 822 does: the line break alone goes)."""
     out: list[list[str]] = []  # [unfolded, raw]
     qp = qp_open = False
     for phys in _PHYSICAL.findall(text):
@@ -321,8 +322,9 @@ def _logical_lines(text: str) -> list[tuple[str, str]]:
             out[-1][0] = out[-1][0][:-1] + content
             out[-1][1] += phys
         elif out and content[:1] in (" ", "\t"):
-            out[-1][0] += content[1:]
+            out[-1][0] += content if keep_fold_space else content[1:]
             out[-1][1] += phys
+            qp = _is_qp(out[-1][0])  # ENCODING=QUOTED-PRINTABLE can be on a folded part of the header
         elif content.strip() == "":
             if out:
                 out[-1][1] += phys
@@ -626,6 +628,23 @@ def upgrade_21(text: str) -> str:
     card = VCard.parse(text)
     if card.version != "2.1":
         raise VCardError(f"not a vCard 2.1 (VERSION {card.version or 'missing'})")
+    depth = 0
+    for item in card.items:
+        if isinstance(item, Prop):
+            if item.raw is not None and len(_PHYSICAL.findall(item.raw.rstrip("\r\n \t"))) > 1:
+                # a folded 2.1 line: unfolded keeping the space that starts each folded part, and written again
+                again = _parse_prop(_logical_lines(item.raw, keep_fold_space=True)[0][0], None)
+                if again is not None:
+                    item.value, item.params = again.value, again.params
+                item.touch()
+            continue
+        head = item.strip().upper()
+        if head.startswith("BEGIN:"):
+            depth += 1
+        elif head.startswith("END:"):
+            depth -= 1
+        elif depth == 0 and head:
+            raise VCardError("the vCard 2.1 has a line that is not a property")
     for prop in card.props():
         if prop.key == "VERSION":
             card.update(prop, Raw("3.0"))
