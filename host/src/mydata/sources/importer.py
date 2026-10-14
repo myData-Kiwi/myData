@@ -241,14 +241,21 @@ def _owned_uids(db: sqlite3.Connection) -> dict[str, list[sqlite3.Row]]:
     return out
 
 
+# The origin's or shadow's contact `c` still hides its followed card: live, or merged (`m`) into a live one (the
+# shadowing rule's contacts_store._LIVE_OWNER).
+_OWNER_LIVE = ("(c.id IS NOT NULL AND (c.deleted_at IS NULL OR (c.merged_into IS NOT NULL AND m.id IS NOT NULL "
+               "AND m.deleted_at IS NULL)))")
+
+
 def _origins(db: sqlite3.Connection, source: ImportSource) -> dict[str, sqlite3.Row]:
     """The newest live origin per source UID for this source, with the owned row it points to (if any) and the
     label of the import that wrote it."""
     rows = db.execute(
         "SELECT o.rowid AS origin_rowid, o.*, c.id AS cid, c.rev AS crev, c.deleted_at AS cdeleted, "
         "c.merged_into AS cmerged, c.display_name AS cname, c.emails AS cemails, c.phones AS cphones, "
-        "i.label AS ilabel FROM origins o JOIN imports i ON i.id = o.import_id "
+        f"i.label AS ilabel, {_OWNER_LIVE} AS owner_live FROM origins o JOIN imports i ON i.id = o.import_id "
         "LEFT JOIN contacts c ON c.id = COALESCE(o.held_by, o.object_id) "
+        "LEFT JOIN contacts m ON m.id = c.merged_into "
         "WHERE o.source_kind = ? AND o.source_account = ? AND o.undone_at IS NULL ORDER BY o.rowid",
         (source.kind, source.account)).fetchall()
     out: dict[str, sqlite3.Row] = {}
@@ -264,10 +271,15 @@ def _origins(db: sqlite3.Connection, source: ImportSource) -> dict[str, sqlite3.
                 "'link' AS action, "
                 "NULL AS prior_rev, s.undone_at, s.held_by, c.id AS cid, c.rev AS crev, c.deleted_at AS cdeleted, "
                 "c.merged_into AS cmerged, c.display_name AS cname, c.emails AS cemails, c.phones AS cphones, "
-                "i.label AS ilabel FROM shadows s JOIN imports i ON i.id = s.import_id "
+                f"i.label AS ilabel, {_OWNER_LIVE} AS owner_live FROM shadows s JOIN imports i ON i.id = s.import_id "
                 "LEFT JOIN contacts c ON c.id = COALESCE(s.held_by, s.object_id) "
-                "WHERE s.source_account = ? AND s.undone_at IS NULL ORDER BY s.rowid", (source.account,)):
-            shadows[r["source_uid"]] = r  # the newest wins
+                "LEFT JOIN contacts m ON m.id = c.merged_into "
+                f"WHERE s.source_account = ? AND s.undone_at IS NULL AND {_OWNER_LIVE} ORDER BY s.rowid",
+                (source.account,)):
+            # The newest wins. A shadow whose contact is in Recently deleted (not merged into a live one) hides
+            # nothing any more (contacts_store._LIVE_OWNER): the card was never imported from this account, so it
+            # is analysed as any other card, not as one whose copy was deleted.
+            shadows[r["source_uid"]] = r
         for uid, r in shadows.items():
             out.setdefault(uid, r)
     return out
@@ -389,9 +401,11 @@ def analyse(db: sqlite3.Connection, source: ImportSource, read: ReadResult, *,
             else:
                 item.status, item.action, item.choices, item.reason = "conflict", "skip", ("skip",), "edited"
             if (source.kind == FILE and card.kind != "group" and item.status in ("update", "unchanged")
-                    and origin["cdeleted"] is None):
+                    and origin["owner_live"]):
                 # Its owned copy hides the followed copies of the same person when this import writes it (an update)
-                # or finds it unchanged: a source turned on since the last import is hidden by importing again.
+                # or finds it unchanged: a source turned on since the last import is hidden by importing again. A
+                # copy merged into a live contact hides them too, as its origins do (through merged_into, and once
+                # it is deleted for good through held_by).
                 for n in sorted({n for e in keys.emails for n in by_email.get(e, ())}
                                 | {n for p in keys.phones for n in by_phone.get(p, ())}):
                     row, other = existing[n]

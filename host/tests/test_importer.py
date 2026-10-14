@@ -635,6 +635,48 @@ def test_merged_contacts_keep_hiding_after_their_originals_are_deleted_for_good(
     assert store.get(merged.contact_id)["changed_in_source"] == "mac"
 
 
+@pytest.mark.parametrize("original", ["in_trash", "deleted_for_good"])
+def test_importing_again_hides_a_source_turned_on_since_behind_a_merged_contact(store, original):
+    commit(store, FILE_SOURCE, read_contacts(_contacts_export()))
+    [ava] = store.find_by_name("Ava")
+    other = cw.create(store, {"given_name": "Ava", "family_name": "F.", "phones": [{"value": "+1 202 555 0111"}]},
+                      actor="mycontacts").contact_id
+    merged = merge_.merge(store, [(ava["id"], store.get(ava["id"])["http_etag"]),
+                                  (other, store.get(other)["http_etag"])], names_from=ava["id"], actor="mycontacts")
+    if original == "deleted_for_good":
+        cw.purge_now(store, ava["id"], if_match=store.get(ava["id"], include_deleted=True)["http_etag"])
+    _this_mac(store)  # turned on after the import and the merge: both copies show
+    assert sorted(a for a, _ in _found(store, "Ava Fictional")) == ["local", "mac"]
+    plan = preview(store, FILE_SOURCE, read_contacts(_contacts_export()))
+    item = next(i for i in plan.items if i.display_name == "Ava Fictional")
+    assert item.status == "unchanged" and [m.hides for m in item.matches if m.source == "mac"] == [True]
+    again = commit(store, FILE_SOURCE, read_contacts(_contacts_export()))
+    assert again.counts["hidden"] == 3
+    assert [m["id"] for m in store.find_by_name("Ava Fictional")] == [merged.contact_id]
+
+
+def test_an_account_copy_analyses_afresh_a_card_whose_hiding_contact_was_deleted(followed):
+    """A file import hid the iCloud card; once that contact is in Recently deleted the card shows again, and a copy
+    of the account offers it as new: it was never imported from the account."""
+    ava_icloud = con.card("ava-fictional.vcf")
+    done = commit(followed, FILE_SOURCE, read_contacts(ava_icloud.replace("UID:", "UID:file-").encode()))
+    assert done.counts["hidden"] == 1
+    [ava] = [r for r in owned_rows(followed)]
+    source = ImportSource(ICLOUD, ACCOUNT, "iCloud account")
+    hidden = next(i for i in preview(followed, source, copy_of(followed, ACCOUNT)).items
+                  if i.display_name == "Ava Fictional")
+    assert (hidden.status, hidden.reason) == ("unchanged", None)  # kept as yours (the file's copy)
+    cw.delete(followed, ava["id"], if_match=followed.get(ava["id"])["http_etag"], actor="mycontacts")
+    plan = preview(followed, source, copy_of(followed, ACCOUNT))
+    item = next(i for i in plan.items if i.display_name == "Ava Fictional")
+    assert (item.status, item.action) == ("new", "import") and plan.counts["deleted"] == 0
+    # Restored: kept as yours again.
+    cw.restore(followed, ava["id"], actor="mycontacts")
+    item = next(i for i in preview(followed, source, copy_of(followed, ACCOUNT)).items
+                if i.display_name == "Ava Fictional")
+    assert item.status == "unchanged"
+
+
 # ---------------------------------------------------------------- merge
 
 def _two(store):
