@@ -259,6 +259,11 @@ def _parse_prop(unfolded: str, raw: str) -> Prop | None:
     return Prop(group, name, params, value, raw)
 
 
+def parse_line(unfolded: str) -> Prop | None:
+    """One unfolded content line (vCard or iCalendar) as a Prop; None when it has no name or no value."""
+    return _parse_prop(unfolded, None)
+
+
 def _is_qp(first_line: str) -> bool:
     colon = value_colon(first_line)
     head = (first_line[:colon] if colon >= 0 else first_line).upper()
