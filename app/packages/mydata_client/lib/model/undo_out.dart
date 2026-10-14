@@ -14,30 +14,39 @@ class UndoOut {
   /// Returns a new [UndoOut] instance.
   UndoOut({
     required this.contact,
+    this.contactIds = const [],
     required this.undoId,
   });
 
-  /// the contact as it is after the undo
+  /// the contact as it is after the undo (for a merge: the first original, restored)
   ContactDetailOut contact;
+
+  /// every contact the undo changed: for a merge, each original (restored) and the merged contact (moved to Recently deleted)
+  List<String> contactIds;
 
   String undoId;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is UndoOut && other.contact == contact && other.undoId == undoId;
+      other is UndoOut &&
+          other.contact == contact &&
+          _deepEquality.equals(other.contactIds, contactIds) &&
+          other.undoId == undoId;
 
   @override
   int get hashCode =>
       // ignore: unnecessary_parenthesis
-      (contact.hashCode) + (undoId.hashCode);
+      (contact.hashCode) + (contactIds.hashCode) + (undoId.hashCode);
 
   @override
-  String toString() => 'UndoOut[contact=$contact, undoId=$undoId]';
+  String toString() =>
+      'UndoOut[contact=$contact, contactIds=$contactIds, undoId=$undoId]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
     json[r'contact'] = this.contact;
+    json[r'contact_ids'] = this.contactIds;
     json[r'undo_id'] = this.undoId;
     return json;
   }
@@ -66,6 +75,11 @@ class UndoOut {
 
       return UndoOut(
         contact: ContactDetailOut.fromJson(json[r'contact'])!,
+        contactIds: json[r'contact_ids'] is Iterable
+            ? (json[r'contact_ids'] as Iterable)
+                .cast<String>()
+                .toList(growable: false)
+            : const [],
         undoId: mapValueOfType<String>(json, r'undo_id')!,
       );
     }

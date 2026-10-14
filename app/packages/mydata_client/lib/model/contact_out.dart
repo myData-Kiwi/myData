@@ -18,6 +18,7 @@ class ContactOut {
     this.addresses = const [],
     this.birthday,
     this.caption,
+    this.changedInSource,
     required this.createdAt,
     this.deletedAt,
     required this.displayName,
@@ -51,6 +52,9 @@ class ContactOut {
 
   /// the line under the name in the contact list: the organisation, else the first email or phone that is not already the name; none when there is nothing else to say
   String? caption;
+
+  /// for a contact the host owns that was imported from a followed account: that account's id (GET /sources) when its copy changed since the import (\"changed in <source> since import\", to review); null otherwise
+  String? changedInSource;
 
   String createdAt;
 
@@ -111,6 +115,7 @@ class ContactOut {
           _deepEquality.equals(other.addresses, addresses) &&
           other.birthday == birthday &&
           other.caption == caption &&
+          other.changedInSource == changedInSource &&
           other.createdAt == createdAt &&
           other.deletedAt == deletedAt &&
           other.displayName == displayName &&
@@ -141,6 +146,7 @@ class ContactOut {
       (addresses.hashCode) +
       (birthday == null ? 0 : birthday!.hashCode) +
       (caption == null ? 0 : caption!.hashCode) +
+      (changedInSource == null ? 0 : changedInSource!.hashCode) +
       (createdAt.hashCode) +
       (deletedAt == null ? 0 : deletedAt!.hashCode) +
       (displayName.hashCode) +
@@ -165,7 +171,7 @@ class ContactOut {
 
   @override
   String toString() =>
-      'ContactOut[accountId=$accountId, addressBookId=$addressBookId, addresses=$addresses, birthday=$birthday, caption=$caption, createdAt=$createdAt, deletedAt=$deletedAt, displayName=$displayName, editable=$editable, emails=$emails, etag=$etag, familyName=$familyName, fullName=$fullName, givenName=$givenName, hasPhoto=$hasPhoto, id=$id, modifiedAt=$modifiedAt, nickname=$nickname, note=$note, notesIncluded=$notesIncluded, onPhone=$onPhone, organisation=$organisation, phones=$phones, purgeAfter=$purgeAfter, sortLetter=$sortLetter, source_=$source_]';
+      'ContactOut[accountId=$accountId, addressBookId=$addressBookId, addresses=$addresses, birthday=$birthday, caption=$caption, changedInSource=$changedInSource, createdAt=$createdAt, deletedAt=$deletedAt, displayName=$displayName, editable=$editable, emails=$emails, etag=$etag, familyName=$familyName, fullName=$fullName, givenName=$givenName, hasPhoto=$hasPhoto, id=$id, modifiedAt=$modifiedAt, nickname=$nickname, note=$note, notesIncluded=$notesIncluded, onPhone=$onPhone, organisation=$organisation, phones=$phones, purgeAfter=$purgeAfter, sortLetter=$sortLetter, source_=$source_]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
@@ -181,6 +187,11 @@ class ContactOut {
       json[r'caption'] = this.caption;
     } else {
       json[r'caption'] = null;
+    }
+    if (this.changedInSource != null) {
+      json[r'changed_in_source'] = this.changedInSource;
+    } else {
+      json[r'changed_in_source'] = null;
     }
     json[r'created_at'] = this.createdAt;
     if (this.deletedAt != null) {
@@ -278,6 +289,7 @@ class ContactOut {
         addresses: PostalAddress.listFromJson(json[r'addresses']),
         birthday: mapValueOfType<String>(json, r'birthday'),
         caption: mapValueOfType<String>(json, r'caption'),
+        changedInSource: mapValueOfType<String>(json, r'changed_in_source'),
         createdAt: mapValueOfType<String>(json, r'created_at')!,
         deletedAt: mapValueOfType<String>(json, r'deleted_at'),
         displayName: mapValueOfType<String>(json, r'display_name')!,

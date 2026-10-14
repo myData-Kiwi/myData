@@ -18,6 +18,8 @@ class ContactDetailOut {
     this.addresses = const [],
     this.birthday,
     this.caption,
+    this.changedInSource,
+    this.changedInSourceLabel,
     this.company = '',
     required this.createdAt,
     this.deletedAt,
@@ -61,6 +63,12 @@ class ContactDetailOut {
 
   /// the line under the name in the contact list: the organisation, else the first email or phone that is not already the name; none when there is nothing else to say
   String? caption;
+
+  /// for a contact the host owns that was imported from a followed account: that account's id (GET /sources) when its copy changed since the import (\"changed in <source> since import\", to review); null otherwise
+  String? changedInSource;
+
+  /// with changed_in_source: that source inside a sentence (\"the iCloud account you@example.com\")
+  String? changedInSourceLabel;
 
   /// the organisation's name alone (organisation also has the department, after a comma)
   String company;
@@ -147,6 +155,8 @@ class ContactDetailOut {
           _deepEquality.equals(other.addresses, addresses) &&
           other.birthday == birthday &&
           other.caption == caption &&
+          other.changedInSource == changedInSource &&
+          other.changedInSourceLabel == changedInSourceLabel &&
           other.company == company &&
           other.createdAt == createdAt &&
           other.deletedAt == deletedAt &&
@@ -187,6 +197,8 @@ class ContactDetailOut {
       (addresses.hashCode) +
       (birthday == null ? 0 : birthday!.hashCode) +
       (caption == null ? 0 : caption!.hashCode) +
+      (changedInSource == null ? 0 : changedInSource!.hashCode) +
+      (changedInSourceLabel == null ? 0 : changedInSourceLabel!.hashCode) +
       (company.hashCode) +
       (createdAt.hashCode) +
       (deletedAt == null ? 0 : deletedAt!.hashCode) +
@@ -221,7 +233,7 @@ class ContactDetailOut {
 
   @override
   String toString() =>
-      'ContactDetailOut[accountId=$accountId, addressBookId=$addressBookId, addresses=$addresses, birthday=$birthday, caption=$caption, company=$company, createdAt=$createdAt, deletedAt=$deletedAt, department=$department, displayName=$displayName, editable=$editable, emails=$emails, etag=$etag, familyName=$familyName, fields=$fields, fullName=$fullName, givenName=$givenName, hasPhoto=$hasPhoto, id=$id, jobTitle=$jobTitle, middleName=$middleName, modifiedAt=$modifiedAt, namePrefix=$namePrefix, nameSuffix=$nameSuffix, nickname=$nickname, note=$note, notesIncluded=$notesIncluded, onPhone=$onPhone, organisation=$organisation, phones=$phones, purgeAfter=$purgeAfter, rawVcard=$rawVcard, sortLetter=$sortLetter, source_=$source_, sourceLabel=$sourceLabel, urls=$urls]';
+      'ContactDetailOut[accountId=$accountId, addressBookId=$addressBookId, addresses=$addresses, birthday=$birthday, caption=$caption, changedInSource=$changedInSource, changedInSourceLabel=$changedInSourceLabel, company=$company, createdAt=$createdAt, deletedAt=$deletedAt, department=$department, displayName=$displayName, editable=$editable, emails=$emails, etag=$etag, familyName=$familyName, fields=$fields, fullName=$fullName, givenName=$givenName, hasPhoto=$hasPhoto, id=$id, jobTitle=$jobTitle, middleName=$middleName, modifiedAt=$modifiedAt, namePrefix=$namePrefix, nameSuffix=$nameSuffix, nickname=$nickname, note=$note, notesIncluded=$notesIncluded, onPhone=$onPhone, organisation=$organisation, phones=$phones, purgeAfter=$purgeAfter, rawVcard=$rawVcard, sortLetter=$sortLetter, source_=$source_, sourceLabel=$sourceLabel, urls=$urls]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
@@ -237,6 +249,16 @@ class ContactDetailOut {
       json[r'caption'] = this.caption;
     } else {
       json[r'caption'] = null;
+    }
+    if (this.changedInSource != null) {
+      json[r'changed_in_source'] = this.changedInSource;
+    } else {
+      json[r'changed_in_source'] = null;
+    }
+    if (this.changedInSourceLabel != null) {
+      json[r'changed_in_source_label'] = this.changedInSourceLabel;
+    } else {
+      json[r'changed_in_source_label'] = null;
     }
     json[r'company'] = this.company;
     json[r'created_at'] = this.createdAt;
@@ -356,6 +378,9 @@ class ContactDetailOut {
         addresses: PostalAddress.listFromJson(json[r'addresses']),
         birthday: mapValueOfType<String>(json, r'birthday'),
         caption: mapValueOfType<String>(json, r'caption'),
+        changedInSource: mapValueOfType<String>(json, r'changed_in_source'),
+        changedInSourceLabel:
+            mapValueOfType<String>(json, r'changed_in_source_label'),
         company: mapValueOfType<String>(json, r'company') ?? '',
         createdAt: mapValueOfType<String>(json, r'created_at')!,
         deletedAt: mapValueOfType<String>(json, r'deleted_at'),

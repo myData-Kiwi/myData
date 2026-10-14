@@ -758,6 +758,74 @@ class SourcesApi {
     return null;
   }
 
+  /// Merge Contacts
+  ///
+  /// Merge owned contacts the user chose as one person (never automatic): a new contact holds the first one's names (or names_from's) and every email, phone, address and link of them all; the originals go to Recently deleted, unchanged, so POST /undo/{undo_id} brings them back while nothing changed since. 412 when a contact changed since its etag.
+  ///
+  /// Note: This method returns the HTTP [Response].
+  ///
+  /// Parameters:
+  ///
+  /// * [MergeIn] mergeIn (required):
+  Future<Response> mergeContactsWithHttpInfo(
+    MergeIn mergeIn, {
+    Future<void>? abortTrigger,
+  }) async {
+    // ignore: prefer_const_declarations
+    final path = r'/contacts/merge';
+
+    // ignore: prefer_final_locals
+    Object? postBody = mergeIn;
+
+    final queryParams = <QueryParam>[];
+    final headerParams = <String, String>{};
+    final formParams = <String, String>{};
+
+    const contentTypes = <String>['application/json'];
+
+    return apiClient.invokeAPI(
+      path,
+      'POST',
+      queryParams,
+      postBody,
+      headerParams,
+      formParams,
+      contentTypes.isEmpty ? null : contentTypes.first,
+      abortTrigger: abortTrigger,
+    );
+  }
+
+  /// Merge Contacts
+  ///
+  /// Merge owned contacts the user chose as one person (never automatic): a new contact holds the first one's names (or names_from's) and every email, phone, address and link of them all; the originals go to Recently deleted, unchanged, so POST /undo/{undo_id} brings them back while nothing changed since. 412 when a contact changed since its etag.
+  ///
+  /// Parameters:
+  ///
+  /// * [MergeIn] mergeIn (required):
+  Future<MergeOut?> mergeContacts(
+    MergeIn mergeIn, {
+    Future<void>? abortTrigger,
+  }) async {
+    final response = await mergeContactsWithHttpInfo(
+      mergeIn,
+      abortTrigger: abortTrigger,
+    );
+    if (response.statusCode >= HttpStatus.badRequest) {
+      throw ApiException(response.statusCode, await _decodeBodyBytes(response));
+    }
+    // When a remote server returns no body with a status of 204, we shall not decode it.
+    // At the time of writing this, `dart:convert` will throw an "Unexpected end of input"
+    // FormatException when trying to decode an empty string.
+    if (response.body.isNotEmpty &&
+        response.statusCode != HttpStatus.noContent) {
+      return await apiClient.deserializeAsync(
+        await _decodeBodyBytes(response),
+        'MergeOut',
+      ) as MergeOut;
+    }
+    return null;
+  }
+
   /// Purge Item
   ///
   /// Delete an item in Recently deleted for good now, with its earlier versions; it cannot be brought back or undone. Refused with 412 when the item changed since its etag (restored, changed and deleted again elsewhere): look at it again first. The host log records which app asked. Copies in the host's snapshots stay until those expire (backups_kept_until).
@@ -1431,7 +1499,7 @@ class SourcesApi {
 
   /// Undo
   ///
-  /// Undo one change by its undo id. The undo is a new change: it is refused when the item changed since (nothing later is ever overwritten), and a change is undone at most once, also across a restart.
+  /// Undo one change by its undo id, a merge's too. The undo is a new change: it is refused when the item changed since (nothing later is ever overwritten), and a change is undone at most once, also across a restart. Undoing a merge restores each original and moves the merged contact to Recently deleted.
   ///
   /// Note: This method returns the HTTP [Response].
   ///
@@ -1468,7 +1536,7 @@ class SourcesApi {
 
   /// Undo
   ///
-  /// Undo one change by its undo id. The undo is a new change: it is refused when the item changed since (nothing later is ever overwritten), and a change is undone at most once, also across a restart.
+  /// Undo one change by its undo id, a merge's too. The undo is a new change: it is refused when the item changed since (nothing later is ever overwritten), and a change is undone at most once, also across a restart. Undoing a merge restores each original and moves the merged contact to Recently deleted.
   ///
   /// Parameters:
   ///

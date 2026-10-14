@@ -13,6 +13,8 @@ Name | Type | Description | Notes
 **addresses** | [**List<PostalAddress>**](PostalAddress.md) |  | [optional] [default to const []]
 **birthday** | **String** |  | [optional] 
 **caption** | **String** | the line under the name in the contact list: the organisation, else the first email or phone that is not already the name; none when there is nothing else to say | [optional] 
+**changedInSource** | **String** | for a contact the host owns that was imported from a followed account: that account's id (GET /sources) when its copy changed since the import (\"changed in <source> since import\", to review); null otherwise | [optional] 
+**changedInSourceLabel** | **String** | with changed_in_source: that source inside a sentence (\"the iCloud account you@example.com\") | [optional] 
 **company** | **String** | the organisation's name alone (organisation also has the department, after a comma) | [optional] [default to '']
 **createdAt** | **String** |  | 
 **deletedAt** | **String** |  | [optional] 

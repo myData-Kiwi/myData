@@ -77,6 +77,12 @@ Class | Method | HTTP request | Description
 *HostApi* | [**retry**](doc//HostApi.md#retry) | **POST** /model/retry | Retry
 *HostApi* | [**shutdownHost**](doc//HostApi.md#shutdownhost) | **POST** /shutdown | Shutdown Host
 *HostApi* | [**status**](doc//HostApi.md#status) | **GET** /status | Status
+*ImportsApi* | [**commitImport**](doc//ImportsApi.md#commitimport) | **POST** /import/previews/{preview_id}/commit | Commit Import
+*ImportsApi* | [**importHistory**](doc//ImportsApi.md#importhistory) | **GET** /imports | Import History
+*ImportsApi* | [**importPreview**](doc//ImportsApi.md#importpreview) | **GET** /import/previews/{preview_id} | Import Preview
+*ImportsApi* | [**previewContactsImport**](doc//ImportsApi.md#previewcontactsimport) | **POST** /import/contacts/preview | Preview Contacts Import
+*ImportsApi* | [**previewSourceImport**](doc//ImportsApi.md#previewsourceimport) | **POST** /import/contacts/from-source/{account_id}/preview | Preview Source Import
+*ImportsApi* | [**undoImport**](doc//ImportsApi.md#undoimport) | **POST** /imports/{import_id}/undo | Undo Import
 *SourcesApi* | [**accounts**](doc//SourcesApi.md#accounts) | **GET** /accounts | Accounts
 *SourcesApi* | [**addAccount**](doc//SourcesApi.md#addaccount) | **POST** /accounts | Add Account
 *SourcesApi* | [**calendars**](doc//SourcesApi.md#calendars) | **GET** /calendars | Calendars
@@ -87,6 +93,7 @@ Class | Method | HTTP request | Description
 *SourcesApi* | [**createContact**](doc//SourcesApi.md#createcontact) | **POST** /contacts | Create Contact
 *SourcesApi* | [**deleteContact**](doc//SourcesApi.md#deletecontact) | **DELETE** /contacts/{contact_id} | Delete Contact
 *SourcesApi* | [**events**](doc//SourcesApi.md#events) | **GET** /events | Events
+*SourcesApi* | [**mergeContacts**](doc//SourcesApi.md#mergecontacts) | **POST** /contacts/merge | Merge Contacts
 *SourcesApi* | [**purgeItem**](doc//SourcesApi.md#purgeitem) | **DELETE** /trash/{item_id} | Purge Item
 *SourcesApi* | [**removeAccount**](doc//SourcesApi.md#removeaccount) | **DELETE** /accounts/{account_id} | Remove Account
 *SourcesApi* | [**requestMacAccess**](doc//SourcesApi.md#requestmacaccess) | **POST** /sources/mac/request-access | Request Mac Access
@@ -131,12 +138,27 @@ Class | Method | HTTP request | Description
  - [FieldErrorsOut](doc//FieldErrorsOut.md)
  - [GuardError](doc//GuardError.md)
  - [HTTPValidationError](doc//HTTPValidationError.md)
+ - [ImportChoiceIn](doc//ImportChoiceIn.md)
+ - [ImportCommitIn](doc//ImportCommitIn.md)
+ - [ImportCommittedOut](doc//ImportCommittedOut.md)
+ - [ImportConflictOut](doc//ImportConflictOut.md)
+ - [ImportCountsOut](doc//ImportCountsOut.md)
+ - [ImportItemOut](doc//ImportItemOut.md)
+ - [ImportMatchOut](doc//ImportMatchOut.md)
+ - [ImportMissingOut](doc//ImportMissingOut.md)
+ - [ImportNoteOut](doc//ImportNoteOut.md)
+ - [ImportOut](doc//ImportOut.md)
+ - [ImportPreviewOut](doc//ImportPreviewOut.md)
+ - [ImportUndoneOut](doc//ImportUndoneOut.md)
  - [LabeledValue](doc//LabeledValue.md)
  - [LabeledValueIn](doc//LabeledValueIn.md)
  - [MacCalendarOut](doc//MacCalendarOut.md)
  - [MacContainerOut](doc//MacContainerOut.md)
  - [MacSourceIn](doc//MacSourceIn.md)
  - [MemoryOut](doc//MemoryOut.md)
+ - [MergeContactIn](doc//MergeContactIn.md)
+ - [MergeIn](doc//MergeIn.md)
+ - [MergeOut](doc//MergeOut.md)
  - [MessageIn](doc//MessageIn.md)
  - [ModelOut](doc//ModelOut.md)
  - [PostalAddress](doc//PostalAddress.md)
@@ -147,6 +169,7 @@ Class | Method | HTTP request | Description
  - [SourceOut](doc//SourceOut.md)
  - [SourcesOut](doc//SourcesOut.md)
  - [StatusOut](doc//StatusOut.md)
+ - [StopFollowingOut](doc//StopFollowingOut.md)
  - [SyncCounts](doc//SyncCounts.md)
  - [SyncOut](doc//SyncOut.md)
  - [ThemeOut](doc//ThemeOut.md)

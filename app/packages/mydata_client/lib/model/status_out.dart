@@ -59,7 +59,7 @@ class StatusOut {
 
   MemoryOut memory;
 
-  /// demo: no source on, the tools serve fake data and the date is pinned; real: a source is on (an account is linked, or This Mac is turned on) and the tools serve the mirrored data, with the real date
+  /// real when a source is on (an account is linked, or This Mac is turned on) or the host owns data (an address book or calendar of its own): the tools serve that data, with the real date; demo otherwise: the tools serve fake data and the date is pinned
   StatusOutModeEnum mode;
 
   ModelOut model;
@@ -313,7 +313,7 @@ class StatusOut {
   };
 }
 
-/// demo: no source on, the tools serve fake data and the date is pinned; real: a source is on (an account is linked, or This Mac is turned on) and the tools serve the mirrored data, with the real date
+/// real when a source is on (an account is linked, or This Mac is turned on) or the host owns data (an address book or calendar of its own): the tools serve that data, with the real date; demo otherwise: the tools serve fake data and the date is pinned
 enum StatusOutModeEnum {
   demo._(r'demo'),
   real._(r'real'),

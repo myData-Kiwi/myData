@@ -258,6 +258,30 @@ class ApiClient {
           return GuardError.fromJson(value);
         case 'HTTPValidationError':
           return HTTPValidationError.fromJson(value);
+        case 'ImportChoiceIn':
+          return ImportChoiceIn.fromJson(value);
+        case 'ImportCommitIn':
+          return ImportCommitIn.fromJson(value);
+        case 'ImportCommittedOut':
+          return ImportCommittedOut.fromJson(value);
+        case 'ImportConflictOut':
+          return ImportConflictOut.fromJson(value);
+        case 'ImportCountsOut':
+          return ImportCountsOut.fromJson(value);
+        case 'ImportItemOut':
+          return ImportItemOut.fromJson(value);
+        case 'ImportMatchOut':
+          return ImportMatchOut.fromJson(value);
+        case 'ImportMissingOut':
+          return ImportMissingOut.fromJson(value);
+        case 'ImportNoteOut':
+          return ImportNoteOut.fromJson(value);
+        case 'ImportOut':
+          return ImportOut.fromJson(value);
+        case 'ImportPreviewOut':
+          return ImportPreviewOut.fromJson(value);
+        case 'ImportUndoneOut':
+          return ImportUndoneOut.fromJson(value);
         case 'LabeledValue':
           return LabeledValue.fromJson(value);
         case 'LabeledValueIn':
@@ -270,6 +294,12 @@ class ApiClient {
           return MacSourceIn.fromJson(value);
         case 'MemoryOut':
           return MemoryOut.fromJson(value);
+        case 'MergeContactIn':
+          return MergeContactIn.fromJson(value);
+        case 'MergeIn':
+          return MergeIn.fromJson(value);
+        case 'MergeOut':
+          return MergeOut.fromJson(value);
         case 'MessageIn':
           return MessageIn.fromJson(value);
         case 'ModelOut':
@@ -290,6 +320,8 @@ class ApiClient {
           return SourcesOut.fromJson(value);
         case 'StatusOut':
           return StatusOut.fromJson(value);
+        case 'StopFollowingOut':
+          return StopFollowingOut.fromJson(value);
         case 'SyncCounts':
           return SyncCounts.fromJson(value);
         case 'SyncOut':

@@ -19,6 +19,7 @@ Method | HTTP request | Description
 [**createContact**](SourcesApi.md#createcontact) | **POST** /contacts | Create Contact
 [**deleteContact**](SourcesApi.md#deletecontact) | **DELETE** /contacts/{contact_id} | Delete Contact
 [**events**](SourcesApi.md#events) | **GET** /events | Events
+[**mergeContacts**](SourcesApi.md#mergecontacts) | **POST** /contacts/merge | Merge Contacts
 [**purgeItem**](SourcesApi.md#purgeitem) | **DELETE** /trash/{item_id} | Purge Item
 [**removeAccount**](SourcesApi.md#removeaccount) | **DELETE** /accounts/{account_id} | Remove Account
 [**requestMacAccess**](SourcesApi.md#requestmacaccess) | **POST** /sources/mac/request-access | Request Mac Access
@@ -527,6 +528,55 @@ Name | Type | Description  | Notes
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **mergeContacts**
+> MergeOut mergeContacts(mergeIn)
+
+Merge Contacts
+
+Merge owned contacts the user chose as one person (never automatic): a new contact holds the first one's names (or names_from's) and every email, phone, address and link of them all; the originals go to Recently deleted, unchanged, so POST /undo/{undo_id} brings them back while nothing changed since. 412 when a contact changed since its etag.
+
+### Example
+```dart
+import 'package:mydata_client/api.dart';
+// TODO Configure HTTP Bearer authorization: bearer
+// Case 1. Use String Token
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearer').setAccessToken('YOUR_ACCESS_TOKEN');
+// Case 2. Use Function which generate token.
+// String yourTokenGeneratorFunction() { ... }
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearer').setAccessToken(yourTokenGeneratorFunction);
+
+final api_instance = SourcesApi();
+final mergeIn = MergeIn(); // MergeIn | 
+
+try {
+    final result = api_instance.mergeContacts(mergeIn);
+    print(result);
+} catch (e) {
+    print('Exception when calling SourcesApi->mergeContacts: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **mergeIn** | [**MergeIn**](MergeIn.md)|  | 
+
+### Return type
+
+[**MergeOut**](MergeOut.md)
+
+### Authorization
+
+[bearer](../README.md#bearer)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **purgeItem**
 > purgeItem(itemId, ifMatch)
 
@@ -1013,7 +1063,7 @@ Name | Type | Description  | Notes
 
 Undo
 
-Undo one change by its undo id. The undo is a new change: it is refused when the item changed since (nothing later is ever overwritten), and a change is undone at most once, also across a restart.
+Undo one change by its undo id, a merge's too. The undo is a new change: it is refused when the item changed since (nothing later is ever overwritten), and a change is undone at most once, also across a restart. Undoing a merge restores each original and moves the merged contact to Recently deleted.
 
 ### Example
 ```dart
