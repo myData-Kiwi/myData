@@ -16,7 +16,8 @@ Early build. Done:
 - **real contacts and calendars on the host** (phase 3): a read-only mirror from **This Mac** (macOS Contacts and EventKit, the main path on a Mac host) or from a followed iCloud account (CardDAV, CalDAV; under Advanced, for hosts that are not Macs). See "Contacts and calendars sources";
 - **the myContacts and myCalendar apps** (phase 4): read-only views of the mirror, with links between the apps (`mycontacts://contact/<id>`, `mycalendar://day/<date>`, `mydata://settings/sources`). myAssistant opens a real contact or event result in them when they are installed, and myData's Status lists the apps with their counts and sources;
 - **the safety net** (phase 0a of the owned-data plan): migrations with foreign keys off, snapshots (hourly and before every migration), the restore drill, restore and a raw export. See "Data safety";
-- **the additive schema** (phase 0b): owned and followed collections, owned data kept by the database itself, hard deletes limited to followed data, group cards no longer shown as contacts. See "Data safety".
+- **the additive schema** (phase 0b): owned and followed collections, owned data kept by the database itself, hard deletes limited to followed data, group cards no longer shown as contacts. See "Data safety";
+- **tokens, approvals and logging** (phase 0c): scopes per app token, approvals bound to mode and epoch, argument shapes only in the real-mode request log, and scans for mail libraries, `osascript` and `subprocess`. See "Tokens" and "Demo and real mode".
 
 **Sync is read-only for now:** the host only reads from its sources, and no app edits a contact or an event. The two modes are described in "Demo and real mode". **Next:** myMail; see "Build order". Chained requests are an open problem, not a blocker: the planner write-up in `host/results/2026-10-11-b-REPORT.md` is the starting point. Answer latency is in "Answer latency" below.
 
@@ -68,9 +69,22 @@ One host per household, clients on every device.
 - **Host**: a background service that outlives any window and starts at login. It must also install alone on machines with no screen (Linux mini PC, NAS, Docker). On macOS it must be a native install, because Docker on a Mac gets no GPU acceleration.
 - **Clients**: talk to the host over the local network, and over Tailscale when away. Never expose the model server's port to the internet. **For now the host listens on localhost only** (127.0.0.1); phone and remote access come later as a separate, explicit design.
 - **The host owns data and tools; agents are replaceable.** Every agent reaches tools through one registry, which holds the permission gate: our orchestrator, or any MCP agent at `/mcp`. An irreversible call never runs until a user approves that exact held call in an app.
+  - **A held call is bound to the mode, the conversation epoch and the handler** it was held with, all three in its digest. Switching mode or moving the epoch on fails every pending approval (status `failed`, with the reason; approving it then returns it unchanged), and approving checks the binding again, so a send held over demo data never runs in real mode.
+  - Approvals and the undo log are in memory. Persisted undo (an `/undo/{id}` route) is deferred to the phase that brings the first real write (phase 3 of the owned-data plan).
 - **Tokens.**
-  - **App tokens:** one per app (`app-tokens/<app>` in the host's folder, readable only by the user). The myData app, myAssistant and the `mydata` command can do everything, including approving, and each approval records which app decided. myContacts and myCalendar only read: their tokens get GET, nothing else (`READ_ONLY_APPS`).
-  - **Agent tokens:** created and revoked with `mydata agent ...` or in the myData app, with only their hash stored. They reach `/mcp` only.
+  - **App tokens:** one per app (`app-tokens/<app>` in the host's folder, file mode 0600). Each app's token has scopes (`APP_SCOPES` in `service/auth.py`), and every route declares the one it needs (`dependencies=needs(...)` in `api.py`). The host refuses to start with a route that declares none, `openapi.json` lists each operation's `x-mydata-scopes`, and `tests/test_scopes.py` checks every route for every app.
+
+    | App | Scopes |
+    |---|---|
+    | myData | status, admin, approve, contacts:read, calendar:read, sources:read, sources:manage, shutdown, mcp; contacts:write and calendar:write (reserved, no route uses them yet) |
+    | myAssistant | status, assistant, approve, contacts:read, calendar:read |
+    | myContacts | status, contacts:read, sources:read (contacts:write arrives with editing, phase 3) |
+    | myCalendar | status, calendar:read, sources:read |
+    | `mydata` command | every scope |
+
+    Only the apps with `approve` can list, read or decide held calls; each approval records which app decided. Only `shutdown` (myData, the command) stops the host.
+  - **Agent tokens:** created and revoked with `mydata agent ...` or in the myData app, with only their hash stored. They reach `/mcp` only and have no scopes.
+  - **Known limit: the app tokens protect against other users, not other programs.** Any process running as the same user can read `app-tokens/*` and use the API with them, so it can read every contact and event without ever getting its own Contacts or Calendars prompt from macOS. This is true today. It must be hardened before the host sends mail (plan 2(f).4: app to host over a Unix socket with the peer's code signature checked, a Secure Enclave key per send, or Keychain access lists).
 - **Apps.** The product is a family of separate apps built from shared code, not one combined app with a sidebar. Each app talks to the host only through the HTTP API, with no business logic in the app. The user opens an app and the host starts by itself.
   - Only the myData app owns the host's lifetime: it has a menu-bar icon with Open and Quit, and Quit stops the host. The host enforces this: `/shutdown` refuses other apps.
   - Other apps, such as myAssistant, can start the host but never stop it.
@@ -104,6 +118,7 @@ Read-only mirrors in `contacts.sqlite` and `calendar.sqlite` (`host/src/mydata/s
 
 - **Group cards** (iCloud's `X-ADDRESSBOOKSERVER-KIND:group`, vCard 4's `KIND:group`) are stored with `kind = 'group'` and never listed, counted, searched or found by `find_contact`; the export keeps them in a separate file.
 - **Read-only for now.** No source ever writes back: the iCloud client sends only PROPFIND, REPORT, OPTIONS and GET, and the Mac helper has no write calls. Writing back (and the host as a CardDAV/CalDAV server) is a later decision.
+- **Nothing goes around these two paths.** Static scans of the host's sources: no HTTP client outside `DavClient.request` and a localhost allow-list; no `smtplib`, `imaplib`, `poplib` or `ssl` outside one mail module (none yet: `MAIL_ALLOWED` is empty) (`test_dav_no_other_http.py`); only an allow-list of modules, each with its reason, may start a program, nothing may load native code (`ctypes`, `cffi`), and no source mentions `osascript` or AppleScript (`test_no_way_around_the_helper.py`).
 - **Why This Mac is the default on a Mac host:** it uses the normal system permission prompt, so no password reaches myData, and it covers every account on the Mac (iCloud, Google, Exchange). Asking for an app-specific password is not acceptable as the main path, and Apple rejects sign-ins that use an address other than the Apple Account email (for example a custom domain).
 
 - **This Mac** (Mac host only; absent, not broken, elsewhere): a Swift helper, `myDataReader.app` (`app/apps/mydata/macos/Reader`), inside `myData.app/Contents/Helpers`. macOS attributes it to myData, so the permission prompt names myData and the grant belongs to `kiwi.mydata.mydata`. No password or account detail reaches myData, and every account set up on the Mac is covered.
@@ -124,7 +139,7 @@ Read-only mirrors in `contacts.sqlite` and `calendar.sqlite` (`host/src/mydata/s
 The host is in **demo mode** while no source is on and it holds no owned data, and in **real mode** as soon as a source is on or an owned address book or calendar exists (`mode` in `/status`). Turning the first source on or the last one off switches it; code that creates or purges owned data must call `ModeController.refresh()` the same way.
 
 - **Demo mode:** the six built-in tools serve the fake data in `orchestrator/fixtures.py`, and the host's today is pinned to 18 March 2026 (`demo_date` in `/status`; myData shows a "Demo date" chip, myAssistant "Demo data"). MCP agents get the same six fake tools. myContacts and myCalendar have nothing to show and point to myData, Settings, Sources. Results in myAssistant never open in another app: their ids and days are not the user's.
-- **Real mode:** only `find_contact` and `list_events` are offered, reading the mirror, with the real date and the machine's time zone. Mail, photos and creating events have no real source yet, so those tools are not offered. MCP agents get no tools. The request log records the mode and holds no mirrored data. A `result` event says `"mode": "real"`; a contact item carries its id and an event item its day, so myAssistant opens them in myContacts and myCalendar when installed.
+- **Real mode:** only `find_contact` and `list_events` are offered, reading the mirror, with the real date and the machine's time zone. Mail, photos and creating events have no real source yet, so those tools are not offered. MCP agents get no tools. The request log records the mode and holds no mirrored data: no tool results, and for each argument only its shape (name, type and length), never its value, since the model can copy a value from a result. Demo mode logs everything. A `result` event says `"mode": "real"`; a contact item carries its id and an event item its day, so myAssistant opens them in myContacts and myCalendar when installed.
 
 ### Assistant
 
