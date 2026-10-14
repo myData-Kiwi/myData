@@ -218,4 +218,14 @@ void main() {
     // Differing rows keep their word in every segment.
     expect(find.text(DuplicatePair.differsLabel), findsWidgets);
   });
+
+  testWidgets('unframed inside a group: no card of its own', (tester) async {
+    await _pump(tester, const SizedBox(width: 640, child: DuplicatePair(versions: [_ava, _avaM], framed: false)));
+    final cards = find.descendant(
+      of: find.byType(DuplicatePair),
+      matching: find.byWidgetPredicate((w) => w is Container && w.decoration is BoxDecoration &&
+          (w.decoration! as BoxDecoration).boxShadow != null),
+    );
+    expect(cards, findsNothing);
+  });
 }

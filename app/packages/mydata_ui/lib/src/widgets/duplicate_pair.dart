@@ -179,7 +179,12 @@ class DuplicatePair extends StatefulWidget {
     this.messageIsError = false,
     this.actions = const [],
     this.afterLoading = false,
+    this.framed = true,
   });
+
+  /// False inside a group that is already a card (the import's Compare, under a list row): the grid without
+  /// its own card, so there is never a card on a card.
+  final bool framed;
 
   final List<PairVersion> versions;
   final PairMode mode;
@@ -257,7 +262,7 @@ class _DuplicatePairState extends State<DuplicatePair> {
     final c = context.colors;
     final phone = AppLayout.isPhone(context);
     return LayoutBuilder(builder: (context, constraints) {
-      final inner = constraints.maxWidth - 2 * MyDataSpace.s5;
+      final inner = constraints.maxWidth - (widget.framed ? 2 * MyDataSpace.s5 : 0);
       final inlineAfter = widget.after != null && constraints.maxWidth >= DuplicatePair.inlineAfterWidth;
       final rows = _rows();
       final children = <Widget>[];
@@ -324,10 +329,13 @@ class _DuplicatePairState extends State<DuplicatePair> {
               ])
             : ButtonRow(alignment: WrapAlignment.end, children: widget.actions));
       }
+      final column =
+          Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: children);
+      if (!widget.framed) return column;
       return Container(
         padding: const EdgeInsets.all(MyDataSpace.s5),
         decoration: BoxDecoration(color: c.surface, borderRadius: MyDataRadii.lg, boxShadow: context.shadows.shadow1),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: children),
+        child: column,
       );
     });
   }
