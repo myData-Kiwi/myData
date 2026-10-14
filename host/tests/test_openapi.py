@@ -24,7 +24,9 @@ def test_openapi_declares_bearer_auth_and_localhost_server():
                                  "/contacts/{contact_id}", "/contacts/{contact_id}/photo", "/calendars", "/events",
                                  "/sources", "/sources/mac", "/sources/mac/request-access", "/sources/mac/sync",
                                  "/sources/mac/reader", "/trash", "/trash/{item_id}", "/trash/{item_id}/restore",
-                                 "/undo/{undo_id}"}
+                                 "/undo/{undo_id}", "/contacts/merge", "/import/contacts/preview",
+                                 "/import/contacts/from-source/{account_id}/preview", "/import/previews/{preview_id}",
+                                 "/import/previews/{preview_id}/commit", "/imports", "/imports/{import_id}/undo"}
 
 
 def test_source_routes_are_tagged_and_the_password_is_write_only():
@@ -41,6 +43,15 @@ def test_source_routes_are_tagged_and_the_password_is_write_only():
         if name != "AccountIn":
             assert "password" not in schema.get("properties", {}), f"{name} exposes a password field"
     assert "mode" in doc["components"]["schemas"]["StatusOut"]["required"]
+    mode = doc["components"]["schemas"]["StatusOut"]["properties"]["mode"]["description"]
+    assert mode.startswith("real when a source is on") and "the host owns data" in mode
+
+
+def test_the_import_upload_is_the_raw_file():
+    op = openapi_document()["paths"]["/import/contacts/preview"]["post"]
+    assert op["requestBody"]["content"] == {"application/octet-stream": {"schema": {"type": "string",
+                                                                                    "format": "binary"}}}
+    assert op["tags"] == ["imports"] and op["x-mydata-scopes"] == ["contacts:write"]
 
 
 def test_every_operation_names_its_scope():

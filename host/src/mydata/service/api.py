@@ -28,7 +28,14 @@
   GET  /trash                  what is in Recently deleted, and when each item is purged
   DELETE /trash/{id}           delete an item in Recently deleted for good now; If-Match required
   POST /trash/{id}/restore     bring an item back from Recently deleted
-  POST /undo/{id}              undo one change (as a new change; refused if the item changed since)
+  POST /undo/{id}              undo one change (as a new change; refused if the item changed since), a merge too
+  POST /contacts/merge         merge owned contacts into one (the originals go to Recently deleted; undo restores them)
+  POST /import/contacts/preview              read a .vcf or .zip (the raw bytes) into a preview; nothing is written
+  POST /import/contacts/from-source/{id}/preview   a preview of a copy of a followed iCloud account (never This Mac)
+  GET  /import/previews/{id}   a preview again, as the host is now
+  POST /import/previews/{id}/commit          import it as one batch, after a snapshot
+  GET  /imports                the imports, newest first
+  POST /imports/{id}/undo      undo a whole import (what was changed since is kept and reported)
   GET  /calendars              mirrored calendars
   GET  /events                 events between two dates, recurring ones expanded, and what each source holds
   GET  /sources                every source: This Mac (on a Mac host only) and the linked iCloud accounts
@@ -179,10 +186,11 @@ class StatusOut(BaseModel):
     today: str = Field(description="the date the host treats as today")
     demo_date: bool = Field(description="true while today is pinned to the demo data's date")
     theme: str = Field(description="the theme every app uses; mode is per device and not stored here")
-    mode: Literal["demo", "real"] = Field(description="demo: no source on, the tools serve fake data and the "
-                                                      "date is pinned; real: a source is on (an account is "
-                                                      "linked, or This Mac is turned on) and the tools serve the "
-                                                      "mirrored data, with the real date")
+    mode: Literal["demo", "real"] = Field(description="real when a source is on (an account is linked, or This "
+                                                      "Mac is turned on) or the host owns data (an address book "
+                                                      "or calendar of its own): the tools serve that data, with "
+                                                      "the real date; demo otherwise: the tools serve fake data "
+                                                      "and the date is pinned")
     mac_available: bool = Field(default=False, description="true on a Mac host: the This Mac source exists")
     conversation_epoch: int = Field(ge=0, description="moves on by one at every switch between demo and real "
                                                       "mode, which ends every conversation: an app that sees it "
@@ -348,6 +356,11 @@ class ContactOut(BaseModel):
                                                             "(the source decides where it is)")
     purge_after: str | None = Field(default=None, description="for a contact in Recently deleted: when it is "
                                                               "deleted for good (UTC)")
+    changed_in_source: str | None = Field(default=None, description="for a contact the host owns that was imported "
+                                                                    "from a followed account: that account's id "
+                                                                    "(GET /sources) when its copy changed since the "
+                                                                    "import (\"changed in <source> since import\", "
+                                                                    "to review); null otherwise")
     sort_letter: str = Field(description="the contact list's letter group: the first letter of display_name "
                                          "without accents, upper case; \"#\" when it does not start with a letter "
                                          "(digits, symbols, Chinese, Japanese kanji or Korean characters)")
@@ -394,6 +407,9 @@ class ContactDetailOut(ContactOut):
                                                         "with no values is left out; note only when the source reads "
                                                         "notes and the note is not empty (never for This Mac)")
     raw_vcard: str | None = Field(default=None, description="the card as the server sent it; only with ?raw=1")
+    changed_in_source_label: str | None = Field(default=None, description="with changed_in_source: that source "
+                                                                          "inside a sentence (\"the iCloud account "
+                                                                          "you@example.com\")")
 
 
 class LabeledValueIn(BaseModel):
@@ -456,7 +472,173 @@ class ContactWriteOut(BaseModel):
 
 class UndoOut(BaseModel):
     undo_id: str
-    contact: ContactDetailOut = Field(description="the contact as it is after the undo")
+    contact: ContactDetailOut = Field(description="the contact as it is after the undo (for a merge: the first "
+                                                  "original, restored)")
+    contact_ids: list[str] = Field(default=[], description="every contact the undo changed: for a merge, each "
+                                                           "original (restored) and the merged contact (moved to "
+                                                           "Recently deleted)")
+
+
+class MergeContactIn(BaseModel):
+    id: str = Field(min_length=1, max_length=100)
+    etag: str = Field(min_length=1, max_length=200, description="the contact's etag as the user saw it")
+
+
+class MergeIn(BaseModel):
+    contacts: list[MergeContactIn] = Field(min_length=2, max_length=20, description="the owned contacts to merge, in "
+                                                                                   "order")
+    names_from: str | None = Field(default=None, max_length=100, description="the contact whose names (and lines) "
+                                                                             "the merged one starts from; default "
+                                                                             "the first")
+
+
+class MergeOut(BaseModel):
+    contact: ContactDetailOut = Field(description="the merged contact")
+    undo_id: str = Field(description="POST /undo/{undo_id} undoes the merge while nothing changed since")
+    merged: list[str] = Field(description="the originals' ids, now in Recently deleted")
+
+
+class ImportCountsOut(BaseModel):
+    cards: int = Field(description="cards in the input, read or not")
+    contacts: int = Field(description="cards that are contacts (people and organisations)")
+    groups: int = Field(description="group cards: imported as groups, never listed as contacts")
+    skipped: int = Field(description="cards that could not be read (the loss report says why)")
+    new: int
+    duplicates: int = Field(description="cards whose email or phone an owned contact already has")
+    in_file: int = Field(description="cards repeated in the input")
+    unchanged: int = Field(description="cards imported before, unchanged")
+    updates: int = Field(description="cards imported before that changed, the owned copy unedited since")
+    conflicts: int = Field(description="cards imported before that changed, the owned copy edited (or merged) since: "
+                                       "not written")
+    deleted: int = Field(description="cards imported before whose owned copy is in Recently deleted")
+    suggestions: int = Field(description="cards with a contact of the same name only (a suggestion)")
+    followed_matches: int = Field(description="cards whose email or phone a followed contact has")
+    missing: int = Field(description="contacts earlier imports from this source brought in that the input no longer "
+                                     "has (reported, never deleted)")
+    to_import: int
+    to_update: int
+    to_link: int
+    created: int | None = Field(default=None, description="after the commit: contacts created")
+    groups_created: int | None = None
+    updated: int | None = None
+    linked: int | None = None
+    not_written: int | None = None
+
+
+class ImportNoteOut(BaseModel):
+    code: str = Field(description="skipped_unreadable, skipped_no_end, skipped_version, skipped_empty, "
+                                  "skipped_too_many, nested_zip, encrypted (losses); converted_21, windows_1252, "
+                                  "outside_text, other_files (changes)")
+    count: int
+    message: str = Field(description="for the user; holds no contact data")
+
+
+class ImportMatchOut(BaseModel):
+    display_name: str
+    source: str = Field(description="mydata (owned), icloud, mac, or file (an earlier card in the same input)")
+    strength: str = Field(description="same_origin (imported from this card before), strong (same email or phone), "
+                                      "suggestion (same name only: never acted on)")
+    signals: list[str] = Field(description="origin, uid, identical, email, phone, name")
+    contact_id: str | None = None
+    account_id: str | None = None
+    item_index: int | None = Field(default=None, description="for source file: the earlier card's index")
+
+
+class ImportItemOut(BaseModel):
+    index: int = Field(description="the card's position in the input, from 0")
+    kind: str | None = Field(default=None, description="individual, org or group; null for a card not read")
+    display_name: str
+    status: str = Field(description="new, duplicate, in_file, unchanged, update, conflict, deleted, skipped")
+    reason: str | None = Field(default=None, description="conflict: edited, merged or kept_yours; skipped: "
+                                                         "unreadable, no_end, version, empty, too_many")
+    action: str = Field(description="what the commit does unless chosen otherwise: import, update, link (keep the "
+                                    "matching contact of yours and hide the followed copy) or skip")
+    choices: list[str] = Field(description="the actions this card may be given")
+    converted_from: str | None = Field(default=None, description="2.1 for a vCard 2.1 stored as 3.0")
+    entry: str | None = Field(default=None, description="the zip entry the card came from (a name only)")
+    matches: list[ImportMatchOut] = []
+
+
+class ImportMissingOut(BaseModel):
+    contact_id: str
+    display_name: str
+
+
+class StopFollowingOut(BaseModel):
+    account_id: str
+    label: str = Field(description="the source as a heading")
+    contacts_followed: int
+    calendars_followed: int = Field(description="stopping following the account stops following these too; they "
+                                                "are not imported yet")
+    message: str
+
+
+class ImportPreviewOut(BaseModel):
+    id: str = Field(description="the preview's id, held by the host until expires_at (not across a restart)")
+    expires_at: str
+    source: str = Field(description="file, or icloud for a copy of a followed iCloud account")
+    label: str = Field(description="the file's name, or the source as a heading")
+    account_id: str | None = None
+    counts: ImportCountsOut
+    losses: list[ImportNoteOut] = Field(description="what in the input will not reach the host; when not empty, "
+                                                    "commit needs accept_losses")
+    changes: list[ImportNoteOut] = Field(description="what is stored differently without being lost")
+    needs_acceptance: bool
+    missing: list[ImportMissingOut]
+    items: list[ImportItemOut]
+    stop_following: StopFollowingOut | None = Field(default=None, description="for a copy of a followed account: "
+                                                                              "the app may offer to stop following it")
+
+
+class ImportChoiceIn(BaseModel):
+    index: int = Field(ge=0)
+    action: Literal["import", "update", "link", "skip"]
+
+
+class ImportCommitIn(BaseModel):
+    address_book_id: str | None = Field(default=None, max_length=100, description="an owned address book; default "
+                                                                                  "the host's \"myData\" one "
+                                                                                  "(made if missing)")
+    choices: list[ImportChoiceIn] = Field(default=[], max_length=50000, description="actions other than each card's "
+                                                                                    "default")
+    accept_losses: bool = Field(default=False, description="needed when the preview has losses")
+
+
+class ImportConflictOut(BaseModel):
+    index: int
+    contact_id: str | None = None
+    display_name: str
+    reason: str | None = None
+
+
+class ImportOut(BaseModel):
+    id: str
+    source: str
+    label: str
+    source_account: str | None = None
+    started_at: str
+    finished_at: str | None = None
+    status: str = Field(description="committed or undone")
+    counts: dict[str, Any] = Field(description="as ImportCountsOut, plus undo (removed, reverted, unlinked, kept, "
+                                               "gone) once undone")
+    address_book_id: str | None = None
+    undone_at: str | None = None
+
+
+class ImportCommittedOut(ImportOut):
+    conflicts: list[ImportConflictOut] = []
+    missing: list[ImportMissingOut] = []
+    stop_following: StopFollowingOut | None = None
+
+
+class ImportUndoneOut(BaseModel):
+    summary: ImportOut = Field(description="the import as it is now (status undone)")
+    removed: int = Field(description="contacts it created, now in Recently deleted")
+    groups_removed: int = Field(default=0, description="group cards it created, now in Recently deleted with them")
+    reverted: int = Field(description="contacts it updated, back to their earlier text")
+    unlinked: int
+    kept: list[ImportMissingOut] = Field(description="contacts changed since the import: left as they are")
+    gone: int = Field(description="contacts already in Recently deleted or deleted for good")
 
 
 class TrashItemOut(BaseModel):
@@ -901,6 +1083,7 @@ def _routes_sources(app: FastAPI, need: Callable[[], SyncService], current_mode:
         return out
 
     _routes_contact_writes(app, need, unavailable)
+    _routes_imports(app, need, unavailable)
 
     @app.get("/calendars", dependencies=needs("calendar:read"),
              tags=["sources"], response_model=list[CalendarOut], responses=unavailable)
@@ -1065,7 +1248,10 @@ def _detail(service: SyncService, row: dict, *, raw: bool = False) -> ContactDet
     except VCardError:
         form = {}
     row = _list_view(row)
-    row.update(source_label=source_in_sentence(row["account_id"], service.account_emails().get(row["account_id"])),
+    emails = service.account_emails()
+    changed = row.get("changed_in_source")
+    row.update(source_label=source_in_sentence(row["account_id"], emails.get(row["account_id"])),
+               changed_in_source_label=source_in_sentence(changed, emails.get(changed)) if changed else None,
                job_title=card.job_title, urls=card.urls,
                fields=contact_fields(row, urls=card.urls, notes_included=row["notes_included"]),
                **{k: form.get(k, "") for k in ("middle_name", "name_prefix", "name_suffix", "company", "department")})
@@ -1217,13 +1403,176 @@ def _routes_contact_writes(app: FastAPI, need: Callable[[], SyncService], unavai
                          409: {"description": "already undone, or the item changed since (or was deleted for good)"},
                          **unavailable})
     def undo(undo_id: str, request: Request) -> UndoOut:
-        """Undo one change by its undo id. The undo is a new change: it is refused when the item changed since
-        (nothing later is ever overwritten), and a change is undone at most once, also across a restart."""
+        """Undo one change by its undo id, a merge's too. The undo is a new change: it is refused when the item
+        changed since (nothing later is ever overwritten), and a change is undone at most once, also across a
+        restart. Undoing a merge restores each original and moves the merged contact to Recently deleted."""
+        from ..sources import contacts_merge
         service = need()
         who = actor(request)
+        if contacts_merge.is_merge(service.contacts, undo_id):
+            merged = run(lambda: contacts_merge.undo(service.contacts, undo_id, actor=who))
+            log(_LOGGER, logging.INFO, "contacts merge undone", actor=who, merge_id=undo_id)
+            first = _detail(service, service.contacts.get(merged.originals[0], include_deleted=True))
+            return UndoOut(undo_id=undo_id, contact=first, contact_ids=[*merged.originals, merged.contact_id])
         written = run(lambda: cw.undo(service.contacts, undo_id, actor=who))
         out = answer(service, written, "undo", who)
-        return UndoOut(undo_id=undo_id, contact=out.contact)
+        return UndoOut(undo_id=undo_id, contact=out.contact, contact_ids=[written.contact_id])
+
+    @app.post("/contacts/merge", dependencies=needs("contacts:write"), tags=["sources"], response_model=MergeOut,
+              status_code=201, responses={400: {"description": "fewer than two contacts, one named twice, or "
+                                                               "names_from not among them"},
+                                          **refused, **stale, **unavailable})
+    def merge_contacts(body: MergeIn, request: Request) -> MergeOut:
+        """Merge owned contacts the user chose as one person (never automatic): a new contact holds the first
+        one's names (or names_from's) and every email, phone, address and link of them all; the originals go to
+        Recently deleted, unchanged, so POST /undo/{undo_id} brings them back while nothing changed since. 412 when
+        a contact changed since its etag."""
+        from ..sources import contacts_merge
+        service = need()
+        who = actor(request)
+
+        def write() -> "contacts_merge.Merged":
+            try:
+                return contacts_merge.merge(service.contacts, [(c.id, c.etag) for c in body.contacts],
+                                            names_from=body.names_from, actor=who)
+            except contacts_merge.MergeRefused as e:
+                raise HTTPException(400, str(e)) from None
+
+        merged = run(write)
+        log(_LOGGER, logging.INFO, "contacts merged", actor=who, contact_id=merged.contact_id,
+            merge_id=merged.merge_id, count=len(merged.originals))
+        detail = _detail(service, service.contacts.get(merged.contact_id))
+        return MergeOut(contact=detail, undo_id=merged.merge_id, merged=list(merged.originals))
+
+
+def _routes_imports(app: FastAPI, need: Callable[[], SyncService], unavailable: dict) -> None:
+    """Contact import (sources/importer.py, service/imports.py): an app action, never a tool, so MCP agents (and
+    the assistant) get nothing; contacts:write only."""
+    from fastapi.concurrency import run_in_threadpool
+
+    from ..sources import contacts_write as cw
+    from ..sources import importer
+    from ..sources.import_files import MAX_INPUT, ImportFileError
+    from .imports import ContactImports, NotImportable, PreviewGone, SnapshotFailed
+
+    held: dict[str, ContactImports] = {}
+    lock = threading.Lock()
+    gone = {404: {"description": "no such preview: it expired, was imported already, or the host restarted"}}
+
+    def imports() -> ContactImports:
+        service = need()
+        with lock:
+            if "imports" not in held:
+                held["imports"] = ContactImports(service)
+            return held["imports"]
+
+    def actor(request: Request) -> str:
+        return request.state.principal.name
+
+    def run(work: Callable[[], Any]) -> Any:
+        try:
+            return work()
+        except PreviewGone as e:
+            raise HTTPException(404, str(e)) from None
+        except ImportFileError as e:
+            raise HTTPException(400, str(e)) from None
+        except (importer.LossesNotAccepted, importer.ChoiceError) as e:
+            raise HTTPException(400, str(e)) from None
+        except SnapshotFailed as e:
+            raise HTTPException(503, str(e)) from None
+        except cw.NotFound as e:
+            raise HTTPException(404, str(e)) from None
+        except cw.WriteError as e:  # already undone
+            raise HTTPException(409, str(e)) from None
+
+    body_schema = {"requestBody": {"required": True, "description": "the file's bytes as they are (a .vcf, or a "
+                                                                    ".zip of .vcf files), at most 50 MB",
+                                   "content": {"application/octet-stream": {"schema": {"type": "string",
+                                                                                       "format": "binary"}}}}}
+
+    @app.post("/import/contacts/preview", dependencies=needs("contacts:write"), tags=["imports"],
+              response_model=ImportPreviewOut, status_code=201, openapi_extra=body_schema,
+              responses={400: {"description": "the file cannot be imported at all (not a vCard, a zip that cannot "
+                                              "be read or expands too far); the message says why"},
+                         413: {"description": "the file is larger than 50 MB"}, **unavailable})
+    async def preview_contacts_import(request: Request,
+                                      filename: str = Query(default="", max_length=255,
+                                                            description="the file's name, shown in the history; "
+                                                                        "never opened as a path")
+                                      ) -> ImportPreviewOut:
+        """Read a .vcf (vCard 2.1, 3.0 or 4.0) or a .zip of them, sent as the request body, into a preview held for
+        an hour: counts, every card's status and default action, matches with your contacts and followed ones,
+        the loss report and what changes. Nothing is written. The zip is read in memory, never extracted."""
+        length = request.headers.get("content-length")
+        if length is not None and length.isdigit() and int(length) > MAX_INPUT:
+            raise HTTPException(413, "The file is larger than 50 MB.")
+        chunks, size = [], 0
+        async for chunk in request.stream():
+            size += len(chunk)
+            if size > MAX_INPUT:
+                raise HTTPException(413, "The file is larger than 50 MB.")
+            chunks.append(chunk)
+        service, who = imports(), actor(request)
+        data = b"".join(chunks)
+        out = await run_in_threadpool(run, lambda: service.preview_file(data, filename, who))
+        return ImportPreviewOut(**out)
+
+    @app.post("/import/contacts/from-source/{account_id}/preview", dependencies=needs("contacts:write"),
+              tags=["imports"], response_model=ImportPreviewOut, status_code=201,
+              responses={404: {"description": "no such account"},
+                         409: {"description": "This Mac is never imported; the message says why and what to do "
+                                              "instead"}, **unavailable})
+    def preview_source_import(account_id: str, request: Request) -> ImportPreviewOut:
+        """A preview of importing a copy of a followed iCloud account's contacts (as the mirror holds them, so
+        nothing is lost). Once imported, each followed card is hidden behind its owned copy while the account is
+        still followed; stop_following says the account can be unfollowed. This Mac is never imported (409)."""
+        service, who = imports(), actor(request)
+        try:
+            return ImportPreviewOut(**run(lambda: service.preview_source(account_id, who)))
+        except NotImportable as e:
+            raise HTTPException(409, str(e)) from None
+        except KeyError:
+            raise HTTPException(404, "no such account") from None
+
+    @app.get("/import/previews/{preview_id}", dependencies=needs("contacts:write"), tags=["imports"],
+             response_model=ImportPreviewOut, responses={**gone, **unavailable})
+    def import_preview(preview_id: str) -> ImportPreviewOut:
+        """A preview again, analysed as the host is now."""
+        service = imports()
+        return ImportPreviewOut(**run(lambda: service.get(preview_id)))
+
+    @app.post("/import/previews/{preview_id}/commit", dependencies=needs("contacts:write"), tags=["imports"],
+              response_model=ImportCommittedOut, status_code=201,
+              responses={**gone, 400: {"description": "losses not accepted, or a choice a card cannot take"},
+                         503: {"description": "the snapshot before the import failed: nothing was imported"}})
+    def commit_import(preview_id: str, body: ImportCommitIn, request: Request) -> ImportCommittedOut:
+        """Import the preview as one batch into an owned address book, after a snapshot of the databases. Each card
+        gets its default action unless `choices` names another; nothing is merged. A preview with losses needs
+        accept_losses. Cards that changed both in the input and on the host since an earlier import are reported
+        as conflicts and not written; contacts an earlier import brought in that the input no longer has are
+        reported as missing and kept. POST /imports/{id}/undo undoes the whole import."""
+        service, who = imports(), actor(request)
+        choices = {c.index: c.action for c in body.choices}
+        out = run(lambda: service.commit(preview_id, address_book_id=body.address_book_id, choices=choices,
+                                         accept_losses=body.accept_losses, actor=who))
+        return ImportCommittedOut(**out)
+
+    @app.get("/imports", dependencies=needs("contacts:write"), tags=["imports"], response_model=list[ImportOut],
+             responses=unavailable)
+    def import_history() -> list[ImportOut]:
+        """Every import, the newest first: when, from where, its counts and whether it was undone."""
+        return [ImportOut(**r) for r in imports().history()]
+
+    @app.post("/imports/{import_id}/undo", dependencies=needs("contacts:write"), tags=["imports"],
+              response_model=ImportUndoneOut,
+              responses={404: {"description": "no such import"}, 409: {"description": "already undone"},
+                         **unavailable})
+    def undo_import(import_id: str, request: Request) -> ImportUndoneOut:
+        """Undo a whole import: what it created and nobody changed since goes to Recently deleted, what it updated
+        gets its earlier text back. Anything changed since is kept and listed. Nothing is deleted for good. Works
+        once, also after a restart."""
+        service, who = imports(), actor(request)
+        return ImportUndoneOut(**run(lambda: service.undo(import_id, who)))
 
 
 class _JSONError(HTTPException):

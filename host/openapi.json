@@ -607,6 +607,30 @@
             "description": "the line under the name in the contact list: the organisation, else the first email or phone that is not already the name; none when there is nothing else to say",
             "title": "Caption"
           },
+          "changed_in_source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "for a contact the host owns that was imported from a followed account: that account's id (GET /sources) when its copy changed since the import (\"changed in <source> since import\", to review); null otherwise",
+            "title": "Changed In Source"
+          },
+          "changed_in_source_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "with changed_in_source: that source inside a sentence (\"the iCloud account you@example.com\")",
+            "title": "Changed In Source Label"
+          },
           "company": {
             "default": "",
             "description": "the organisation's name alone (organisation also has the department, after a comma)",
@@ -1133,6 +1157,18 @@
             "description": "the line under the name in the contact list: the organisation, else the first email or phone that is not already the name; none when there is nothing else to say",
             "title": "Caption"
           },
+          "changed_in_source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "for a contact the host owns that was imported from a followed account: that account's id (GET /sources) when its copy changed since the import (\"changed in <source> since import\", to review); null otherwise",
+            "title": "Changed In Source"
+          },
           "created_at": {
             "title": "Created At",
             "type": "string"
@@ -1576,6 +1612,818 @@
         "title": "HTTPValidationError",
         "type": "object"
       },
+      "ImportChoiceIn": {
+        "properties": {
+          "action": {
+            "enum": [
+              "import",
+              "update",
+              "link",
+              "skip"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "index": {
+            "minimum": 0.0,
+            "title": "Index",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "index",
+          "action"
+        ],
+        "title": "ImportChoiceIn",
+        "type": "object"
+      },
+      "ImportCommitIn": {
+        "properties": {
+          "accept_losses": {
+            "default": false,
+            "description": "needed when the preview has losses",
+            "title": "Accept Losses",
+            "type": "boolean"
+          },
+          "address_book_id": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "an owned address book; default the host's \"myData\" one (made if missing)",
+            "title": "Address Book Id"
+          },
+          "choices": {
+            "default": [],
+            "description": "actions other than each card's default",
+            "items": {
+              "$ref": "#/components/schemas/ImportChoiceIn"
+            },
+            "maxItems": 50000,
+            "title": "Choices",
+            "type": "array"
+          }
+        },
+        "title": "ImportCommitIn",
+        "type": "object"
+      },
+      "ImportCommittedOut": {
+        "properties": {
+          "address_book_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address Book Id"
+          },
+          "conflicts": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ImportConflictOut"
+            },
+            "title": "Conflicts",
+            "type": "array"
+          },
+          "counts": {
+            "additionalProperties": true,
+            "description": "as ImportCountsOut, plus undo (removed, reverted, unlinked, kept, gone) once undone",
+            "title": "Counts",
+            "type": "object"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "missing": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ImportMissingOut"
+            },
+            "title": "Missing",
+            "type": "array"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "source_account": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Account"
+          },
+          "started_at": {
+            "title": "Started At",
+            "type": "string"
+          },
+          "status": {
+            "description": "committed or undone",
+            "title": "Status",
+            "type": "string"
+          },
+          "stop_following": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StopFollowingOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "undone_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Undone At"
+          }
+        },
+        "required": [
+          "id",
+          "source",
+          "label",
+          "started_at",
+          "status",
+          "counts"
+        ],
+        "title": "ImportCommittedOut",
+        "type": "object"
+      },
+      "ImportConflictOut": {
+        "properties": {
+          "contact_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contact Id"
+          },
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "index": {
+            "title": "Index",
+            "type": "integer"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "required": [
+          "index",
+          "display_name"
+        ],
+        "title": "ImportConflictOut",
+        "type": "object"
+      },
+      "ImportCountsOut": {
+        "properties": {
+          "cards": {
+            "description": "cards in the input, read or not",
+            "title": "Cards",
+            "type": "integer"
+          },
+          "conflicts": {
+            "description": "cards imported before that changed, the owned copy edited (or merged) since: not written",
+            "title": "Conflicts",
+            "type": "integer"
+          },
+          "contacts": {
+            "description": "cards that are contacts (people and organisations)",
+            "title": "Contacts",
+            "type": "integer"
+          },
+          "created": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "after the commit: contacts created",
+            "title": "Created"
+          },
+          "deleted": {
+            "description": "cards imported before whose owned copy is in Recently deleted",
+            "title": "Deleted",
+            "type": "integer"
+          },
+          "duplicates": {
+            "description": "cards whose email or phone an owned contact already has",
+            "title": "Duplicates",
+            "type": "integer"
+          },
+          "followed_matches": {
+            "description": "cards whose email or phone a followed contact has",
+            "title": "Followed Matches",
+            "type": "integer"
+          },
+          "groups": {
+            "description": "group cards: imported as groups, never listed as contacts",
+            "title": "Groups",
+            "type": "integer"
+          },
+          "groups_created": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Groups Created"
+          },
+          "in_file": {
+            "description": "cards repeated in the input",
+            "title": "In File",
+            "type": "integer"
+          },
+          "linked": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Linked"
+          },
+          "missing": {
+            "description": "contacts earlier imports from this source brought in that the input no longer has (reported, never deleted)",
+            "title": "Missing",
+            "type": "integer"
+          },
+          "new": {
+            "title": "New",
+            "type": "integer"
+          },
+          "not_written": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Not Written"
+          },
+          "skipped": {
+            "description": "cards that could not be read (the loss report says why)",
+            "title": "Skipped",
+            "type": "integer"
+          },
+          "suggestions": {
+            "description": "cards with a contact of the same name only (a suggestion)",
+            "title": "Suggestions",
+            "type": "integer"
+          },
+          "to_import": {
+            "title": "To Import",
+            "type": "integer"
+          },
+          "to_link": {
+            "title": "To Link",
+            "type": "integer"
+          },
+          "to_update": {
+            "title": "To Update",
+            "type": "integer"
+          },
+          "unchanged": {
+            "description": "cards imported before, unchanged",
+            "title": "Unchanged",
+            "type": "integer"
+          },
+          "updated": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated"
+          },
+          "updates": {
+            "description": "cards imported before that changed, the owned copy unedited since",
+            "title": "Updates",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "cards",
+          "contacts",
+          "groups",
+          "skipped",
+          "new",
+          "duplicates",
+          "in_file",
+          "unchanged",
+          "updates",
+          "conflicts",
+          "deleted",
+          "suggestions",
+          "followed_matches",
+          "missing",
+          "to_import",
+          "to_update",
+          "to_link"
+        ],
+        "title": "ImportCountsOut",
+        "type": "object"
+      },
+      "ImportItemOut": {
+        "properties": {
+          "action": {
+            "description": "what the commit does unless chosen otherwise: import, update, link (keep the matching contact of yours and hide the followed copy) or skip",
+            "title": "Action",
+            "type": "string"
+          },
+          "choices": {
+            "description": "the actions this card may be given",
+            "items": {
+              "type": "string"
+            },
+            "title": "Choices",
+            "type": "array"
+          },
+          "converted_from": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "2.1 for a vCard 2.1 stored as 3.0",
+            "title": "Converted From"
+          },
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "entry": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "the zip entry the card came from (a name only)",
+            "title": "Entry"
+          },
+          "index": {
+            "description": "the card's position in the input, from 0",
+            "title": "Index",
+            "type": "integer"
+          },
+          "kind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "individual, org or group; null for a card not read",
+            "title": "Kind"
+          },
+          "matches": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ImportMatchOut"
+            },
+            "title": "Matches",
+            "type": "array"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "conflict: edited, merged or kept_yours; skipped: unreadable, no_end, version, empty, too_many",
+            "title": "Reason"
+          },
+          "status": {
+            "description": "new, duplicate, in_file, unchanged, update, conflict, deleted, skipped",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "index",
+          "display_name",
+          "status",
+          "action",
+          "choices"
+        ],
+        "title": "ImportItemOut",
+        "type": "object"
+      },
+      "ImportMatchOut": {
+        "properties": {
+          "account_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Id"
+          },
+          "contact_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contact Id"
+          },
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "item_index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "for source file: the earlier card's index",
+            "title": "Item Index"
+          },
+          "signals": {
+            "description": "origin, uid, identical, email, phone, name",
+            "items": {
+              "type": "string"
+            },
+            "title": "Signals",
+            "type": "array"
+          },
+          "source": {
+            "description": "mydata (owned), icloud, mac, or file (an earlier card in the same input)",
+            "title": "Source",
+            "type": "string"
+          },
+          "strength": {
+            "description": "same_origin (imported from this card before), strong (same email or phone), suggestion (same name only: never acted on)",
+            "title": "Strength",
+            "type": "string"
+          }
+        },
+        "required": [
+          "display_name",
+          "source",
+          "strength",
+          "signals"
+        ],
+        "title": "ImportMatchOut",
+        "type": "object"
+      },
+      "ImportMissingOut": {
+        "properties": {
+          "contact_id": {
+            "title": "Contact Id",
+            "type": "string"
+          },
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "contact_id",
+          "display_name"
+        ],
+        "title": "ImportMissingOut",
+        "type": "object"
+      },
+      "ImportNoteOut": {
+        "properties": {
+          "code": {
+            "description": "skipped_unreadable, skipped_no_end, skipped_version, skipped_empty, skipped_too_many, nested_zip, encrypted (losses); converted_21, windows_1252, outside_text, other_files (changes)",
+            "title": "Code",
+            "type": "string"
+          },
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "message": {
+            "description": "for the user; holds no contact data",
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "count",
+          "message"
+        ],
+        "title": "ImportNoteOut",
+        "type": "object"
+      },
+      "ImportOut": {
+        "properties": {
+          "address_book_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address Book Id"
+          },
+          "counts": {
+            "additionalProperties": true,
+            "description": "as ImportCountsOut, plus undo (removed, reverted, unlinked, kept, gone) once undone",
+            "title": "Counts",
+            "type": "object"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "source_account": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Account"
+          },
+          "started_at": {
+            "title": "Started At",
+            "type": "string"
+          },
+          "status": {
+            "description": "committed or undone",
+            "title": "Status",
+            "type": "string"
+          },
+          "undone_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Undone At"
+          }
+        },
+        "required": [
+          "id",
+          "source",
+          "label",
+          "started_at",
+          "status",
+          "counts"
+        ],
+        "title": "ImportOut",
+        "type": "object"
+      },
+      "ImportPreviewOut": {
+        "properties": {
+          "account_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Id"
+          },
+          "changes": {
+            "description": "what is stored differently without being lost",
+            "items": {
+              "$ref": "#/components/schemas/ImportNoteOut"
+            },
+            "title": "Changes",
+            "type": "array"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/ImportCountsOut"
+          },
+          "expires_at": {
+            "title": "Expires At",
+            "type": "string"
+          },
+          "id": {
+            "description": "the preview's id, held by the host until expires_at (not across a restart)",
+            "title": "Id",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ImportItemOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "label": {
+            "description": "the file's name, or the source as a heading",
+            "title": "Label",
+            "type": "string"
+          },
+          "losses": {
+            "description": "what in the input will not reach the host; when not empty, commit needs accept_losses",
+            "items": {
+              "$ref": "#/components/schemas/ImportNoteOut"
+            },
+            "title": "Losses",
+            "type": "array"
+          },
+          "missing": {
+            "items": {
+              "$ref": "#/components/schemas/ImportMissingOut"
+            },
+            "title": "Missing",
+            "type": "array"
+          },
+          "needs_acceptance": {
+            "title": "Needs Acceptance",
+            "type": "boolean"
+          },
+          "source": {
+            "description": "file, or icloud for a copy of a followed iCloud account",
+            "title": "Source",
+            "type": "string"
+          },
+          "stop_following": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StopFollowingOut"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "for a copy of a followed account: the app may offer to stop following it"
+          }
+        },
+        "required": [
+          "id",
+          "expires_at",
+          "source",
+          "label",
+          "counts",
+          "losses",
+          "changes",
+          "needs_acceptance",
+          "missing",
+          "items"
+        ],
+        "title": "ImportPreviewOut",
+        "type": "object"
+      },
+      "ImportUndoneOut": {
+        "properties": {
+          "gone": {
+            "description": "contacts already in Recently deleted or deleted for good",
+            "title": "Gone",
+            "type": "integer"
+          },
+          "groups_removed": {
+            "default": 0,
+            "description": "group cards it created, now in Recently deleted with them",
+            "title": "Groups Removed",
+            "type": "integer"
+          },
+          "kept": {
+            "description": "contacts changed since the import: left as they are",
+            "items": {
+              "$ref": "#/components/schemas/ImportMissingOut"
+            },
+            "title": "Kept",
+            "type": "array"
+          },
+          "removed": {
+            "description": "contacts it created, now in Recently deleted",
+            "title": "Removed",
+            "type": "integer"
+          },
+          "reverted": {
+            "description": "contacts it updated, back to their earlier text",
+            "title": "Reverted",
+            "type": "integer"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/ImportOut",
+            "description": "the import as it is now (status undone)"
+          },
+          "unlinked": {
+            "title": "Unlinked",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "summary",
+          "removed",
+          "reverted",
+          "unlinked",
+          "kept",
+          "gone"
+        ],
+        "title": "ImportUndoneOut",
+        "type": "object"
+      },
       "LabeledValue": {
         "properties": {
           "label": {
@@ -1767,6 +2615,89 @@
           "host_bytes"
         ],
         "title": "MemoryOut",
+        "type": "object"
+      },
+      "MergeContactIn": {
+        "properties": {
+          "etag": {
+            "description": "the contact's etag as the user saw it",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Etag",
+            "type": "string"
+          },
+          "id": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "etag"
+        ],
+        "title": "MergeContactIn",
+        "type": "object"
+      },
+      "MergeIn": {
+        "properties": {
+          "contacts": {
+            "description": "the owned contacts to merge, in order",
+            "items": {
+              "$ref": "#/components/schemas/MergeContactIn"
+            },
+            "maxItems": 20,
+            "minItems": 2,
+            "title": "Contacts",
+            "type": "array"
+          },
+          "names_from": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "the contact whose names (and lines) the merged one starts from; default the first",
+            "title": "Names From"
+          }
+        },
+        "required": [
+          "contacts"
+        ],
+        "title": "MergeIn",
+        "type": "object"
+      },
+      "MergeOut": {
+        "properties": {
+          "contact": {
+            "$ref": "#/components/schemas/ContactDetailOut",
+            "description": "the merged contact"
+          },
+          "merged": {
+            "description": "the originals' ids, now in Recently deleted",
+            "items": {
+              "type": "string"
+            },
+            "title": "Merged",
+            "type": "array"
+          },
+          "undo_id": {
+            "description": "POST /undo/{undo_id} undoes the merge while nothing changed since",
+            "title": "Undo Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "contact",
+          "undo_id",
+          "merged"
+        ],
+        "title": "MergeOut",
         "type": "object"
       },
       "MessageIn": {
@@ -2314,7 +3245,7 @@
             "$ref": "#/components/schemas/MemoryOut"
           },
           "mode": {
-            "description": "demo: no source on, the tools serve fake data and the date is pinned; real: a source is on (an account is linked, or This Mac is turned on) and the tools serve the mirrored data, with the real date",
+            "description": "real when a source is on (an account is linked, or This Mac is turned on) or the host owns data (an address book or calendar of its own): the tools serve that data, with the real date; demo otherwise: the tools serve fake data and the date is pinned",
             "enum": [
               "demo",
               "real"
@@ -2371,6 +3302,41 @@
           "conversation_epoch"
         ],
         "title": "StatusOut",
+        "type": "object"
+      },
+      "StopFollowingOut": {
+        "properties": {
+          "account_id": {
+            "title": "Account Id",
+            "type": "string"
+          },
+          "calendars_followed": {
+            "description": "stopping following the account stops following these too; they are not imported yet",
+            "title": "Calendars Followed",
+            "type": "integer"
+          },
+          "contacts_followed": {
+            "title": "Contacts Followed",
+            "type": "integer"
+          },
+          "label": {
+            "description": "the source as a heading",
+            "title": "Label",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "account_id",
+          "label",
+          "contacts_followed",
+          "calendars_followed",
+          "message"
+        ],
+        "title": "StopFollowingOut",
         "type": "object"
       },
       "SyncCounts": {
@@ -2534,7 +3500,16 @@
         "properties": {
           "contact": {
             "$ref": "#/components/schemas/ContactDetailOut",
-            "description": "the contact as it is after the undo"
+            "description": "the contact as it is after the undo (for a merge: the first original, restored)"
+          },
+          "contact_ids": {
+            "default": [],
+            "description": "every contact the undo changed: for a merge, each original (restored) and the merged contact (moved to Recently deleted)",
+            "items": {
+              "type": "string"
+            },
+            "title": "Contact Ids",
+            "type": "array"
           },
           "undo_id": {
             "title": "Undo Id",
@@ -3939,6 +4914,111 @@
         ]
       }
     },
+    "/contacts/merge": {
+      "post": {
+        "description": "Merge owned contacts the user chose as one person (never automatic): a new contact holds the first\none's names (or names_from's) and every email, phone, address and link of them all; the originals go to\nRecently deleted, unchanged, so POST /undo/{undo_id} brings them back while nothing changed since. 412 when\na contact changed since its etag.",
+        "operationId": "merge_contacts",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MergeIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MergeOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "description": "fewer than two contacts, one named twice, or names_from not among them"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "missing or wrong token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
+          },
+          "404": {
+            "description": "no such contact"
+          },
+          "409": {
+            "description": "the contact is followed from a source (change it there), or is in Recently deleted"
+          },
+          "412": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreconditionFailedOut"
+                }
+              }
+            },
+            "description": "the contact changed since the etag sent; `etag` is the current one",
+            "headers": {
+              "ETag": {
+                "description": "the contact's etag",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "421": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "the Host header is not this machine"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "503": {
+            "description": "accounts are not available in this host"
+          }
+        },
+        "summary": "Merge Contacts",
+        "tags": [
+          "sources"
+        ],
+        "x-mydata-scopes": [
+          "contacts:write"
+        ]
+      }
+    },
     "/contacts/{contact_id}": {
       "delete": {
         "description": "Move an owned contact to Recently deleted. It is deleted for good after 30 days (purge_after); until\nthen POST /trash/{id}/restore or the undo id brings it back. Refused with 412 when the contact changed\nsince its etag. Copies in the host's snapshots stay until those expire (within 12 months while the host\nruns).",
@@ -4517,6 +5597,516 @@
         ],
         "x-mydata-scopes": [
           "calendar:read"
+        ]
+      }
+    },
+    "/import/contacts/from-source/{account_id}/preview": {
+      "post": {
+        "description": "A preview of importing a copy of a followed iCloud account's contacts (as the mirror holds them, so\nnothing is lost). Once imported, each followed card is hidden behind its owned copy while the account is\nstill followed; stop_following says the account can be unfollowed. This Mac is never imported (409).",
+        "operationId": "preview_source_import",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "account_id",
+            "required": true,
+            "schema": {
+              "title": "Account Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportPreviewOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "missing or wrong token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
+          },
+          "404": {
+            "description": "no such account"
+          },
+          "409": {
+            "description": "This Mac is never imported; the message says why and what to do instead"
+          },
+          "421": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "the Host header is not this machine"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "503": {
+            "description": "accounts are not available in this host"
+          }
+        },
+        "summary": "Preview Source Import",
+        "tags": [
+          "imports"
+        ],
+        "x-mydata-scopes": [
+          "contacts:write"
+        ]
+      }
+    },
+    "/import/contacts/preview": {
+      "post": {
+        "description": "Read a .vcf (vCard 2.1, 3.0 or 4.0) or a .zip of them, sent as the request body, into a preview held for\nan hour: counts, every card's status and default action, matches with your contacts and followed ones,\nthe loss report and what changes. Nothing is written. The zip is read in memory, never extracted.",
+        "operationId": "preview_contacts_import",
+        "parameters": [
+          {
+            "description": "the file's name, shown in the history; never opened as a path",
+            "in": "query",
+            "name": "filename",
+            "required": false,
+            "schema": {
+              "default": "",
+              "description": "the file's name, shown in the history; never opened as a path",
+              "maxLength": 255,
+              "title": "Filename",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "format": "binary",
+                "type": "string"
+              }
+            }
+          },
+          "description": "the file's bytes as they are (a .vcf, or a .zip of .vcf files), at most 50 MB",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportPreviewOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "description": "the file cannot be imported at all (not a vCard, a zip that cannot be read or expands too far); the message says why"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "missing or wrong token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
+          },
+          "413": {
+            "description": "the file is larger than 50 MB"
+          },
+          "421": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "the Host header is not this machine"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "503": {
+            "description": "accounts are not available in this host"
+          }
+        },
+        "summary": "Preview Contacts Import",
+        "tags": [
+          "imports"
+        ],
+        "x-mydata-scopes": [
+          "contacts:write"
+        ]
+      }
+    },
+    "/import/previews/{preview_id}": {
+      "get": {
+        "description": "A preview again, analysed as the host is now.",
+        "operationId": "import_preview",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "preview_id",
+            "required": true,
+            "schema": {
+              "title": "Preview Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportPreviewOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "missing or wrong token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
+          },
+          "404": {
+            "description": "no such preview: it expired, was imported already, or the host restarted"
+          },
+          "421": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "the Host header is not this machine"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "503": {
+            "description": "accounts are not available in this host"
+          }
+        },
+        "summary": "Import Preview",
+        "tags": [
+          "imports"
+        ],
+        "x-mydata-scopes": [
+          "contacts:write"
+        ]
+      }
+    },
+    "/import/previews/{preview_id}/commit": {
+      "post": {
+        "description": "Import the preview as one batch into an owned address book, after a snapshot of the databases. Each card\ngets its default action unless `choices` names another; nothing is merged. A preview with losses needs\naccept_losses. Cards that changed both in the input and on the host since an earlier import are reported\nas conflicts and not written; contacts an earlier import brought in that the input no longer has are\nreported as missing and kept. POST /imports/{id}/undo undoes the whole import.",
+        "operationId": "commit_import",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "preview_id",
+            "required": true,
+            "schema": {
+              "title": "Preview Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportCommitIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportCommittedOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "description": "losses not accepted, or a choice a card cannot take"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "missing or wrong token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
+          },
+          "404": {
+            "description": "no such preview: it expired, was imported already, or the host restarted"
+          },
+          "421": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "the Host header is not this machine"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "503": {
+            "description": "the snapshot before the import failed: nothing was imported"
+          }
+        },
+        "summary": "Commit Import",
+        "tags": [
+          "imports"
+        ],
+        "x-mydata-scopes": [
+          "contacts:write"
+        ]
+      }
+    },
+    "/imports": {
+      "get": {
+        "description": "Every import, the newest first: when, from where, its counts and whether it was undone.",
+        "operationId": "import_history",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ImportOut"
+                  },
+                  "title": "Response Import History",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "missing or wrong token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
+          },
+          "421": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "the Host header is not this machine"
+          },
+          "503": {
+            "description": "accounts are not available in this host"
+          }
+        },
+        "summary": "Import History",
+        "tags": [
+          "imports"
+        ],
+        "x-mydata-scopes": [
+          "contacts:write"
+        ]
+      }
+    },
+    "/imports/{import_id}/undo": {
+      "post": {
+        "description": "Undo a whole import: what it created and nobody changed since goes to Recently deleted, what it updated\ngets its earlier text back. Anything changed since is kept and listed. Nothing is deleted for good. Works\nonce, also after a restart.",
+        "operationId": "undo_import",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "import_id",
+            "required": true,
+            "schema": {
+              "title": "Import Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportUndoneOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "missing or wrong token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
+          },
+          "404": {
+            "description": "no such import"
+          },
+          "409": {
+            "description": "already undone"
+          },
+          "421": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "the Host header is not this machine"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "503": {
+            "description": "accounts are not available in this host"
+          }
+        },
+        "summary": "Undo Import",
+        "tags": [
+          "imports"
+        ],
+        "x-mydata-scopes": [
+          "contacts:write"
         ]
       }
     },
@@ -5497,7 +7087,7 @@
     },
     "/undo/{undo_id}": {
       "post": {
-        "description": "Undo one change by its undo id. The undo is a new change: it is refused when the item changed since\n(nothing later is ever overwritten), and a change is undone at most once, also across a restart.",
+        "description": "Undo one change by its undo id, a merge's too. The undo is a new change: it is refused when the item\nchanged since (nothing later is ever overwritten), and a change is undone at most once, also across a\nrestart. Undoing a merge restores each original and moves the merged contact to Recently deleted.",
         "operationId": "undo",
         "parameters": [
           {
