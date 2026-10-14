@@ -30,6 +30,7 @@ export 'src/widgets/grouped_section.dart';
 export 'src/widgets/icon_button.dart';
 export 'src/widgets/icon_tile.dart';
 export 'src/widgets/kiwi.dart';
+export 'src/widgets/menu.dart';
 export 'src/widgets/mono_well.dart';
 export 'src/widgets/month_grid.dart';
 export 'src/widgets/multi_select.dart';
