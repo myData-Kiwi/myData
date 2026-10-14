@@ -22,6 +22,8 @@
                                      temporary folder, open it with this code and check it (exit 1: problems)
     mydata backup restore SNAPSHOT [--yes]   put a snapshot back (the host must be stopped; the current
                                      state is snapshotted first)
+    mydata export --out DIR          write the stored vCards and iCalendar text as .vcf and .ics files
+                                     (DIR must be new or empty, and outside the source checkout)
 """
 
 from __future__ import annotations
@@ -399,6 +401,22 @@ def cmd_backup(settings: Settings, ns: argparse.Namespace) -> int:
         return 1
 
 
+def cmd_export(settings: Settings, out: str) -> int:
+    from .sources.export import ExportError, export_raw
+    try:
+        summary = export_raw(settings.home, out)
+    except ExportError as e:
+        print(f"mydata: {e}", file=sys.stderr)
+        return 1
+    cards = sum(c["cards"] for c in summary["contacts"])
+    events = sum(c["resources"] for c in summary["calendars"])
+    print(f"Exported {cards} card(s) from {len(summary['contacts'])} address book(s) and {events} event(s) from "
+          f"{len(summary['calendars'])} calendar(s) to {os.path.abspath(out)}")
+    for skipped in summary["not_exported"]:
+        print(f"Not exported: {skipped['source']} calendar {skipped['calendar']!r}: {skipped['why']}.")
+    return 0
+
+
 def cmd_dev_setup(settings: Settings) -> int:
     """The apps start the host with the command in <home>/app_config.json, and stop it with its stop command
     (to replace a host built from another version). In development that is this checkout's Python running
@@ -452,6 +470,8 @@ def main(argv: list[str] | None = None) -> int:
     rs = bksub.add_parser("restore", help="put a snapshot back (the host must be stopped)")
     rs.add_argument("snapshot")
     rs.add_argument("--yes", action="store_true", help="do not ask to confirm")
+    ex = sub.add_parser("export", help="write the stored contacts and calendars as .vcf and .ics files")
+    ex.add_argument("--out", required=True, help="a new or empty folder outside the source checkout")
     ns = ap.parse_args(argv)
     if ns.cmd == "openapi":
         return cmd_openapi(ns.out)
@@ -469,6 +489,8 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_account(settings, ns)
     if ns.cmd == "backup":
         return cmd_backup(settings, ns)
+    if ns.cmd == "export":
+        return cmd_export(settings, ns.out)
     if ns.cmd == "dev-setup":
         return cmd_dev_setup(settings)
     if ns.cmd == "stop":
