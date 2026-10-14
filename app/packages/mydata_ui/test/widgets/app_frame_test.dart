@@ -124,6 +124,26 @@ void main() {
   );
 
   group('layout', () {
+    testWidgets('a section with a count shows the number after its label and is heard with it', (tester) async {
+      final handle = tester.ensureSemantics();
+      await _pumpFrame(
+        tester,
+        _frame(1100, 600, sections: const [
+          AppSection(icon: Icons.contacts_outlined, label: 'Contacts'),
+          AppSection(icon: Icons.fact_check_outlined, label: 'Review', count: 4),
+          AppSection(icon: Icons.delete_outline_rounded, label: 'Deleted', count: 0),
+        ]),
+      );
+      final c = tester.element(find.byType(AppFrame)).colors;
+      final count = tester.widget<Text>(find.text('4'));
+      expect(count.style!.color, c.inkMuted);
+      expect(count.style!.fontSize, MyDataType.caption.fontSize);
+      expect(tester.getRect(find.text('4')).left, greaterThan(tester.getRect(find.text('Review')).right));
+      expect(find.text('0'), findsNothing);
+      expect(find.bySemanticsLabel('Review, 4'), findsOneWidget);
+      handle.dispose();
+    });
+
     testWidgets('over 1024px: a sidebar-width sidebar on surface with the app name, rows and connection',
         (tester) async {
       await _pumpFrame(tester, _frame(1025, 600));

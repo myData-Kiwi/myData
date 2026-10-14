@@ -54,13 +54,21 @@ abstract final class PhoneType {
 /// One of an app's own top-level sections ("Library", "Albums"), as the frame lists it.
 @immutable
 class AppSection {
-  const AppSection({required this.icon, required this.label});
+  const AppSection({required this.icon, required this.label, this.count});
 
   /// Drawn at `icon` size. The icon set is not drawn yet; pass a Material outlined or rounded icon.
   final IconData icon;
 
   /// One short word in sentence case, so it also fits the rail and the phone tab bar.
   final String label;
+
+  /// How many things wait in the section (myContacts' Review), shown in the sidebar after the label in
+  /// `caption` and `ink-muted`: a number alone, never a red badge (design/components/DuplicatePair, "The
+  /// count"). Null or 0 shows none. Screen readers hear "Review, 4".
+  final int? count;
+
+  /// The label with its count, as screen readers hear it: "Review, 4".
+  String get spoken => (count ?? 0) > 0 ? '$label, $count' : label;
 }
 
 /// The three states of the app's link to the host, shown at the bottom of the sidebar.
@@ -383,7 +391,7 @@ class _SidebarRow extends StatelessWidget {
         scaleOnPress: false,
         hoverFill: current ? c.ink.withValues(alpha: GroupedRow.selectedHoverInk) : c.surfaceHover,
         selected: current,
-        semanticLabel: section.label,
+        semanticLabel: section.spoken,
         child: ExcludeSemantics(
           child: Container(
             height: MyDataSize.controlHeight,
@@ -400,6 +408,10 @@ class _SidebarRow extends StatelessWidget {
                   style: (current ? MyDataType.bodyStrong : MyDataType.body).copyWith(color: fg),
                 ),
               ),
+              if ((section.count ?? 0) > 0) ...[
+                const SizedBox(width: MyDataSpace.s2),
+                Text('${section.count}', style: MyDataType.caption.copyWith(color: c.inkMuted)),
+              ],
             ]),
           ),
         ),
@@ -431,7 +443,7 @@ class _RailItem extends StatelessWidget {
       scaleOnPress: false,
       hoverFill: c.surfaceHover,
       selected: current,
-      semanticLabel: section.label,
+      semanticLabel: section.spoken,
       tooltip: section.label,
       child: ExcludeSemantics(
         child: Padding(
