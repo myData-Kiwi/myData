@@ -2,12 +2,16 @@
 something.
 
 Edits go through icalendar (7.3), written with sorted=False so properties keep their order, and a replaced
-property keeps its place. Before a write is accepted, the new text is read back and compared, component by
-component, with the text that came in: the count of each property (of each value, for EXDATE, RDATE,
-CATEGORIES and RESOURCES) and of each of its parameters. If anything went down that the edit did not remove
-on purpose, the write is refused (PropertyLossError); icalendar has dropped properties before (#1870). The
-text is also compared with the edited object, so a property lost while writing is caught as well. The input
-is counted from its own text, not from icalendar's reading of it, so a line icalendar skips is caught too.
+property keeps its place. Every property the edit did not change (icalendar reads it as it did) is then
+written back as the input wrote it, line for line: icalendar re-escapes and normalises what it re-serialises
+(REQUEST-STATUS's ';', an INTEGER's leading zeros, the commas of an Outlook TZID). Before a write is accepted,
+the new text is read back and compared, component by component, with the text that came in: the count of each
+property (of each value, for EXDATE, RDATE, CATEGORIES and RESOURCES) and of each of its parameters, and the
+value and parameters of every property the edit did not change. If anything went down or changed that the
+edit did not change on purpose, the write is refused (PropertyLossError); icalendar has dropped properties
+before (#1870). The text is also compared with the edited object, so a property lost while writing is caught
+as well. The input is counted from its own text, not from icalendar's reading of it, so a line icalendar
+skips is caught too.
 
 Time zones: the writer stores TZIDs only, written as the event's own DTSTART writes them (an Outlook
 "W. Europe Standard Time" stays that, though icalendar reads it as Europe/Berlin). It never adds a VTIMEZONE;
@@ -192,6 +196,15 @@ def _count(root: _Node) -> Counter:
     return counts
 
 
+def _values(root: _Node) -> dict[tuple, Counter]:
+    """Per (component key, NAME): how many times each value-with-parameters occurs."""
+    out: dict[tuple, Counter] = {}
+    for key, node in _keyed(root).items():
+        for name, _params, _value, _n, norm, _i in node.props:
+            out.setdefault((key, name), Counter())[norm] += 1
+    return out
+
+
 def inventory(text: str) -> Counter:
     """What the text holds, counted from its own lines: per component, each property (each value of
     EXDATE, RDATE, CATEGORIES, RESOURCES) and each of its parameters."""
@@ -204,6 +217,24 @@ def _describe(entry: tuple) -> str:
     return where + ("" if len(entry) == 1 else " " + ";".join(entry[1:]))
 
 
+def _signatures(component) -> dict[str, tuple]:
+    """Per property name, icalendar's reading of each value: its text and parameters, in order."""
+    out: dict[str, list] = {}
+    for name, value in component.property_items(recursive=False, sorted=False):
+        name = name.upper()
+        if name in ("BEGIN", "END"):
+            continue
+        for v in value if isinstance(value, list) else [value]:
+            text = v.to_ical() if hasattr(type(v), "to_ical") else str(v)
+            params = tuple(sorted((k.upper(), str(x)) for k, x in getattr(v, "params", {}).items()))
+            out.setdefault(name, []).append((text, params))
+    return {k: tuple(v) for k, v in out.items()}
+
+
+def _crlf(raw: str) -> str:
+    return re.sub(r"\r\n|\r|\n", "\r\n", raw if raw.endswith(("\r", "\n")) else raw + "\n")
+
+
 # ---------------------------------------------------------------- one edit, checked before it is written
 
 # What the writer reads from a component: icalendar must have read these, and an event holds one of each.
@@ -214,7 +245,8 @@ _ONE = ("DTSTART", "DTEND", "DUE", "DURATION", "RECURRENCE-ID", "UID", "SEQUENCE
 class _Edit:
     """One edit of one resource. Components are known by their key in the input (computed once, kept by
     identity), so allow() is cheap and a component whose key changes (an override moved with its series) is
-    followed."""
+    followed. A component the edit adds is adopted from the one it was copied from, so the lines it shares with
+    that one are written as they came too."""
 
     def __init__(self, text: str):
         self.text = text
@@ -240,16 +272,32 @@ class _Edit:
         _object_tree(self.cal, root)
         self._keys: dict[int, tuple] = {}
         self._held: list = []  # the components keyed, kept alive so their ids stay theirs
+        self._read: dict[tuple, dict[str, tuple]] = {}  # how icalendar read each component's properties
         for key, node in _keyed(root).items():
             self._keys[id(node.ref)] = key
             self._held.append(node.ref)
+            self._read[key] = _signatures(node.ref)
+        self._source: dict[tuple, tuple] = {}  # an adopted component's key -> the key it was copied from
         self.allowed_components: set[tuple] = set()
         self.allowed_props: set[tuple] = set()
         self.renamed: dict[tuple, tuple] = {}
 
     def key(self, component) -> tuple | None:
-        """The component's key in the input; None if the edit added it."""
+        """The component's key in the input (or the one it was adopted under); None if the edit added it
+        without adopting it."""
         return self._keys.get(id(component))
+
+    def adopt(self, component, source) -> None:
+        """A component the edit made as a copy of `source` (and its subcomponents as copies of source's): the
+        lines the copy did not change are written as source's were."""
+        key = ("+", len(self._held))
+        self._keys[id(component)] = key
+        self._held.append(component)
+        source_key = self.key(source)
+        if source_key is not None:
+            self._source[key] = self._source.get(source_key, source_key)
+        for sub, src in zip(component.subcomponents, source.subcomponents):
+            self.adopt(sub, src)
 
     def allow(self, component, prop: str | None = None) -> None:
         """The edit removes this component (prop None) or changes this property: its count may go down."""
@@ -272,18 +320,40 @@ class _Edit:
         return entry if new is None else (new,) + entry[1:]
 
     def render(self, cal) -> str:
-        """cal as text; a component of the input whose key changed is noted in `renamed`."""
+        """cal as text: written by icalendar, then the lines of every property of a component from the input
+        (or adopted from one) that the edit did not change (icalendar's reading of it is as it was) put back as
+        the input wrote them. icalendar re-escapes and normalises
+        values it reads (REQUEST-STATUS's ';', an INTEGER's leading zeros, a TZID's commas); this way an edit
+        changes only what it changed."""
         out = cal.to_ical(sorted=False).decode("utf-8")
-        out_root, _ = _text_tree(out)
+        out_root, out_lines = _text_tree(out)
         obj_root = _Node("")
         _object_tree(cal, obj_root)
         objects = {k: n.ref for k, n in _keyed(obj_root).items()}
-        for after_key in _keyed(out_root):
+        for after_key, node in _keyed(out_root).items():
             ref = objects.get(after_key)
             key = self.key(ref) if ref is not None else None
-            if key is not None and key != after_key:
+            if key is None:
+                continue
+            if cal is self.cal and key[0] != "+" and key != after_key:
                 self.renamed[key] = after_key
-        return out
+            source_key = self._source.get(key, key)
+            source = self.before_keyed.get(source_key)
+            if source is None or source_key not in self._read:
+                continue
+            read, now = self._read[source_key], _signatures(ref)
+            for name in {p[0] for p in node.props}:
+                was, is_ = read.get(name, ()), now.get(name, ())
+                before = [p[5] for p in source.props if p[0] == name]
+                after = [p[5] for p in node.props if p[0] == name]
+                # unchanged, or only added to (what an edit adds comes after what was there); and every line of
+                # it read by icalendar, so line i is value i
+                if (key, name) in self.allowed_props or is_[:len(was)] != was or len(before) != len(was) \
+                        or len(after) != len(is_):
+                    continue  # changed by the edit: written as icalendar writes it, and checked
+                for b, a in zip(before, after):
+                    out_lines[a] = _crlf(self.before_lines[b])
+        return "".join(out_lines)
 
     def result(self) -> str:
         out = self.render(self.cal)
@@ -314,8 +384,10 @@ class _Edit:
 
 def check(before_text: str, after_text: str, *, allowed=lambda entry: False, renamed=lambda entry: entry,
           written_from=None) -> None:
-    """Refuse (PropertyLossError) a written text that lost anything: compared with the text that came in
-    (minus what `allowed` permits, with components `renamed`), and with the object it was written from."""
+    """Refuse (PropertyLossError) a written text that lost or changed anything: compared with the text that
+    came in (minus what `allowed` permits, with components `renamed`), every property, value and parameter
+    must still be there, and every property's value and parameters must read the same; compared with the
+    object it was written from, nothing may be missing."""
     try:
         icalendar.Calendar.from_ical(after_text)
     except Exception as exc:  # noqa: BLE001
@@ -328,6 +400,12 @@ def check(before_text: str, after_text: str, *, allowed=lambda entry: False, ren
         mapped = renamed(entry)
         if after.get(mapped, 0) < n and not allowed(entry):
             lost.append(f"{_describe(entry)} ({n} -> {after.get(mapped, 0)})")
+    after_values = _values(after_root)
+    for (key, name), values in _values(before_root).items():
+        mapped = renamed((key, name))
+        missing = values - after_values.get((mapped[0], name), Counter())
+        if missing and not allowed((key, name)) and after.get(mapped, 0) >= sum(values.values()):
+            lost.append(f"{_describe((key, name))} changed")
     if written_from is not None:
         root = _Node("")
         _object_tree(written_from, root)
@@ -629,12 +707,16 @@ def _remove(parent, component) -> None:
 
 
 def _same_value(a, b) -> bool:
+    """Whether two values of a property (one value, or a list of them) are the same, parameters included."""
     if a is None or b is None:
         return a is None and b is None
-    try:
-        return a.to_ical() == b.to_ical()
-    except AttributeError:
-        return a == b
+    a, b = _as_list(a), _as_list(b)
+
+    def sign(v):
+        text = v.to_ical() if hasattr(type(v), "to_ical") else v
+        return text, tuple(sorted((k.upper(), str(x)) for k, x in getattr(v, "params", {}).items()))
+
+    return len(a) == len(b) and all(sign(x) == sign(y) for x, y in zip(a, b))
 
 
 def _apply(edit: _Edit, component, changes: Mapping[str, object]) -> None:
@@ -678,6 +760,7 @@ def edit_this(text: str, recurrence_id, changes: Mapping[str, object], *, now: d
     if override is None:
         override = _new_override(master, start, _now(now))
         edit.cal.add_component(override)
+        edit.adopt(override, master)
     if "DTSTART" in changes and "DTEND" not in changes and override.get("DTEND") is not None:
         length = _duration(override)
         new_start = _value(override, "DTSTART", changes["DTSTART"])

@@ -536,6 +536,56 @@ def test_moving_the_time_of_any_series_keeps_its_days_and_exceptions(case, minut
 
 # ---------------------------------------------------------------- what an edit does not change, it writes as it came
 
+_ODD = ("BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Example Corp//Odd lines//EN\r\nBEGIN:VTIMEZONE\r\n"
+        "TZID:(UTC+01:00) Amsterdam, Berlin, Bern, Rome, Stockholm, Vienna\r\nBEGIN:STANDARD\r\n"
+        "DTSTART:16011028T030000\r\nRRULE:FREQ=YEARLY;BYDAY=-1SU;BYMONTH=10\r\nTZOFFSETFROM:+0200\r\n"
+        "TZOFFSETTO:+0100\r\nEND:STANDARD\r\nBEGIN:DAYLIGHT\r\nDTSTART:16010325T020000\r\n"
+        "RRULE:FREQ=YEARLY;BYDAY=-1SU;BYMONTH=3\r\nTZOFFSETFROM:+0100\r\nTZOFFSETTO:+0200\r\nEND:DAYLIGHT\r\n"
+        "END:VTIMEZONE\r\nBEGIN:VEVENT\r\nUID:odd@example.org\r\nDTSTAMP:20260101T000000Z\r\n"
+        'DTSTART;TZID="(UTC+01:00) Amsterdam, Berlin, Bern, Rome, Stockholm, Vienna":20261102T090000\r\n'
+        'DTEND;TZID="(UTC+01:00) Amsterdam, Berlin, Bern, Rome, Stockholm, Vienna":20261102T100000\r\n'
+        "RRULE:FREQ=WEEKLY;COUNT=4\r\nSUMMARY:Odd\r\nREQUEST-STATUS:2.0;Success\r\n"
+        "X-CUSTOM-NUM;VALUE=INTEGER:007\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n")
+_ODD_LINES = ["REQUEST-STATUS:2.0;Success\r\n", "X-CUSTOM-NUM;VALUE=INTEGER:007\r\n",
+              "TZID:(UTC+01:00) Amsterdam, Berlin, Bern, Rome, Stockholm, Vienna\r\n"]
+
+
+def test_lines_icalendar_would_rewrite_are_written_as_they_came():
+    berlin = ZoneInfo("Europe/Berlin")
+    edited = ie.edit_all(_ODD, {"SUMMARY": "Renamed"}, now=NOW)
+    this = ie.edit_this(_ODD, datetime(2026, 11, 9, 9, tzinfo=berlin), {"SUMMARY": "Once"}, now=NOW)
+    single = ie.edit_event(_ODD.replace("RRULE:FREQ=WEEKLY;COUNT=4\r\n", ""), {"SUMMARY": "Single"}, now=NOW)
+    for out in (edited, this, single):
+        assert all(line in out for line in _ODD_LINES)
+        assert ie.defined_tzids(out) == [_ODD_LINES[2][5:-2]]
+    assert this.count("REQUEST-STATUS:2.0;Success\r\n") == 2  # the new override is a copy of the master
+    assert "SUMMARY:Renamed\r\n" in edited and "SUMMARY:Single\r\n" in single
+    # unchanged lines of a resource with LF endings come back with the CRLF icalendar writes
+    assert "REQUEST-STATUS:2.0;Success\r\n" in ie.edit_all(_ODD.replace("\r\n", "\n"), {"SUMMARY": "x"}, now=NOW)
+
+
+def test_a_value_that_changed_without_being_declared_is_refused():
+    before = load("auckland-weekly.ics")
+    after = before.replace(r"value with \; semicolon", "value with ; semicolon")
+    with pytest.raises(PropertyLossError, match="X-CUSTOM changed"):
+        ie.check(before, after)
+    with pytest.raises(PropertyLossError, match="LOCATION changed"):
+        ie.check(before, before.replace("LOCATION:Room 1", "LOCATION:Room 2", 1))
+    edit = ie._Edit(before)
+    edit.master()["LOCATION"] = icalendar.vText("Room 3")
+    with pytest.raises(PropertyLossError, match="LOCATION changed"):
+        edit.result()
+
+
+def test_a_field_an_override_set_with_other_parameters_does_not_follow_the_master():
+    text = load("outlook-windows.ics").replace("SUMMARY;LANGUAGE=en-gb:Weekly sync (late)",
+                                                "SUMMARY;LANGUAGE=de:Weekly sync")
+    out = ie.edit_all(text, {"SUMMARY": "Team sync"}, now=NOW)
+    late = event(out, datetime(2026, 4, 6, 10, tzinfo=ZoneInfo("Europe/Berlin")))
+    assert str(late["SUMMARY"]) == "Weekly sync" and late["SUMMARY"].params["LANGUAGE"] == "de"
+    assert str(event(out)["SUMMARY"]) == "Team sync"
+
+
 @pytest.mark.parametrize("line", ["PRIORITY:high", "GEO:abc", "CREATED:2026-01-01", "DTSTAMP:garbage",
                                   "X-FOO;VALUE=DATE:notadate", "SEQUENCE:1.5"])
 def test_a_property_icalendar_cannot_read_is_kept_or_refused_without_its_value(line):
@@ -558,6 +608,8 @@ def test_a_repeated_dtstart_is_refused():
     with pytest.raises(IcsError, match="more than one DTSTART"):
         ie.delete_this(text, datetime(2026, 3, 9, 9, tzinfo=NZ), now=NOW)
 
+
+# ---------------------------------------------------------------- large series
 
 def test_moving_every_event_of_a_series_with_500_overrides_takes_well_under_a_few_seconds():
     berlin = ZoneInfo("Europe/Berlin")
