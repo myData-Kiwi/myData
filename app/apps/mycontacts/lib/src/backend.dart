@@ -4,14 +4,16 @@ import 'dart:typed_data';
 import 'package:mydata_core/mydata_core.dart';
 
 /// What the sources look like now: whether any is on, and a fingerprint that changes whenever one of them
-/// is turned on or off or reads its contacts again, so the app knows when to read the list again.
+/// is turned on or off or reads its contacts again, or the host's own contacts change (an import or its undo
+/// in myData, a write in another window), so the app knows when to read the list again.
 class SourcesState {
   const SourcesState({required this.anyOn, required this.revision});
 
   /// At least one source (This Mac, an iCloud account) is on.
   final bool anyOn;
 
-  /// Changes when a source is turned on or off or its last update changes.
+  /// Changes when a source is turned on or off or its last update changes, or the host's own contacts
+  /// change (`owned_revision`).
   final String revision;
 
   /// The state the host's `GET /sources` answer describes.
@@ -19,7 +21,10 @@ class SourcesState {
     final on = out.sources.where((s) => s.enabled).toList();
     return SourcesState(
       anyOn: on.isNotEmpty,
-      revision: [for (final s in on) '${s.id}:${s.lastUpdate ?? ''}:${s.counts?.contacts ?? ''}'].join('|'),
+      revision: [
+        'owned:${out.ownedRevision}',
+        for (final s in on) '${s.id}:${s.lastUpdate ?? ''}:${s.counts?.contacts ?? ''}',
+      ].join('|'),
     );
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mycontacts/src/app.dart';
+import 'package:mycontacts/src/backend.dart';
 import 'package:mycontacts/src/contact_page.dart';
 import 'package:mycontacts/src/contacts_controller.dart';
 import 'package:mycontacts/src/contacts_view.dart';
@@ -340,6 +341,29 @@ void main() {
       expect(h.backend.contactCalls, listReads + 1, reason: 'the list is read again');
       expect(row('Nina Newcard'), findsOneWidget);
       expect((await h.store.read())[ContactsController.lastOpenedKey], 'c-nina');
+    });
+
+    testWidgets('mycontacts://contacts (myData after an import) reads the list again', (tester) async {
+      desktop(tester);
+      final h = Harness();
+      await tester.pumpWidget(h.app);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Deleted'));
+      await tester.pumpAndSettle();
+      // myData imported a card: the sources did not change, so no poll would read the list again.
+      h.backend.cards = [card(id: 'c-abe', name: 'Abe Newcard', given: 'Abe', family: 'Newcard'), ...h.backend.cards];
+      final listReads = h.backend.contactCalls;
+      h.links.open('mycontacts://contacts');
+      await tester.pumpAndSettle();
+      expect(h.backend.contactCalls, listReads + 1, reason: 'the list is read again');
+      expect(row('Abe Newcard'), findsOneWidget, reason: 'Contacts comes forward with the new contact');
+    });
+
+    test('the sources fingerprint follows the host\'s own contacts, with no source on', () {
+      SourcesState of(String owned) => SourcesState.of(SourcesOut(ownedRevision: owned));
+      expect(of('3.0.1.0.0.0').revision, isNot(of('4.0.1.0.0.0').revision));
+      expect(of('3.0.1.0.0.0').revision, of('3.0.1.0.0.0').revision);
+      expect(of('3.0.1.0.0.0').anyOn, isFalse);
     });
 
     testWidgets('when the host stops, the contacts stay with the time they were read', (tester) async {

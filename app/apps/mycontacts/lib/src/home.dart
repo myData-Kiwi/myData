@@ -150,7 +150,12 @@ class _ContactsHomeState extends State<ContactsHome> {
       if (_section != 0) unawaited(_select(0));
       _contacts.openLink(link);
     }
-    if (link is OpenContactList && _section != 0) unawaited(_select(0));
+    if (link is OpenContactList) {
+      // myData's Done ("Open in myContacts"): the import made contacts this app has not read yet, and may
+      // have hidden followed copies; Review's pairs follow the list.
+      _contacts.readListAgain();
+      if (_section != 0) unawaited(_select(0));
+    }
   }
 
   @override
