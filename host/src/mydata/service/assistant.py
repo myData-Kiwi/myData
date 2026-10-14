@@ -280,14 +280,15 @@ class Assistant:
         """Every request, with the tools called and the outcome: future test data.
 
         Each entry says its mode. In real mode the tool results (the user's mirrored contacts and events)
-        are left out: each call keeps its tool, arguments and status, with only the size of its result, and
-        a reply written by code (the results' headers) is left out too. The request text and a reply the
-        model wrote are kept."""
+        are left out, and so are the argument values, which the model can copy from them: each call keeps
+        its tool and status, the shape of each argument (its name, type and length) and only the size of its
+        result, and a reply written by code (the results' headers) is left out too. The request text and a
+        reply the model wrote are kept. Demo mode logs everything (its data is invented)."""
         mode = self.registry.mode
         entry = {"ts": time.time(), "conversation_id": cid, "mode": mode, **run.to_json()}
         entry.pop("messages", None)
         if mode != "demo":
-            entry = redact_results(entry)
+            entry = redact_real(entry)
         path: Path = private_dir(self.settings.log_dir) / "assistant.jsonl"
         with open_private(path) as fh:
             fh.write(json.dumps(entry, ensure_ascii=False, default=str) + "\n")
@@ -306,10 +307,48 @@ def _result_size(result) -> dict | None:
     return out
 
 
-def redact_results(entry: dict) -> dict:
-    """A request-log entry without the data the tools returned (for real mode)."""
+_JSON_TYPE = {str: "string", bool: "boolean", int: "integer", float: "number", list: "array", dict: "object",
+              type(None): "null"}
+
+
+def value_shape(value) -> dict:
+    """What a value is, without the value: its JSON type, and the length of a string, list or object."""
+    out: dict = {"type": _JSON_TYPE.get(type(value), "other")}
+    if isinstance(value, (str, list, dict)):
+        out["length"] = len(value)
+    return out
+
+
+def arg_shapes(args) -> dict:
+    """Each argument's name with its shape (value_shape), never its value."""
+    if not isinstance(args, dict):
+        return {"_args": value_shape(args)}
+    return {str(k): value_shape(v) for k, v in args.items()}
+
+
+def _text_shape(text: str | None) -> dict | None:
+    return None if text is None else value_shape(text)
+
+
+def _redact_call(c: dict) -> dict:
+    """A call record with no values: argument shapes, the names of resolved and dropped arguments, the size
+    of the result, and the length of an error (a grounding error quotes the value it rejected)."""
+    return {**c, "args": arg_shapes(c.get("args")), "result": _result_size(c.get("result")),
+            "resolved": sorted(c.get("resolved") or {}), "dropped_args": sorted(c.get("dropped_args") or {}),
+            "error": _text_shape(c.get("error"))}
+
+
+def redact_real(entry: dict) -> dict:
+    """A request-log entry without the user's data (for real mode): no tool results and no argument values."""
     entry = dict(entry)
-    entry["calls"] = [{**c, "result": _result_size(c.get("result"))} for c in entry.get("calls", [])]
+    entry["calls"] = [_redact_call(c) for c in entry.get("calls", [])]
+    if entry.get("pending"):
+        p = entry["pending"]
+        entry["pending"] = {"tool": p.get("tool"), "approval_id": p.get("approval_id"),
+                            "args": arg_shapes(p.get("args")), "summary": _text_shape(p.get("summary"))}
+    entry["undo_log"] = len(entry.get("undo_log") or [])
+    entry["model_replies"] = [{**m, "thinking": _text_shape(m.get("thinking"))} if isinstance(m, dict) else m
+                              for m in entry.get("model_replies") or []]
     entry["results"] = [{"tool": r.get("tool"), "kind": r.get("kind"), "items": len(r.get("items") or [])}
                         for r in entry.get("results", [])]
     if entry.get("clarify_options") is not None:
