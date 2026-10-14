@@ -145,6 +145,7 @@ class ContactList extends StatefulWidget {
     this.menuFor,
     this.onReturn,
     this.onDelete,
+    this.searchTrailing,
   });
 
   /// Every contact, in the locale's order. The list filters them itself as the search text changes.
@@ -183,6 +184,13 @@ class ContactList extends StatefulWidget {
 
   /// The delete key while the list has focus; null: the key does nothing here.
   final VoidCallback? onDelete;
+
+  /// Beside the search field, at its end, [searchTrailingGap] from it: the list's "New contact" IconButton
+  /// (design/components/IconButton, "title bars"). Tab reaches it after the search field, before the list.
+  final Widget? searchTrailing;
+
+  /// Between the search field and [searchTrailing].
+  static const searchTrailingGap = MyDataSpace.s2;
 
   /// The search field's placeholder, which is also its accessible name.
   static const searchPlaceholder = 'Search contacts';
@@ -920,11 +928,16 @@ class _ContactListState extends State<ContactList> {
         canRequestFocus: false,
         skipTraversal: true,
         onKeyEvent: _onSearchKey,
-        child: MyDataSearchField(
-          controller: _search,
-          placeholder: ContactList.searchPlaceholder,
-          focusNode: _searchFocus,
-        ),
+        child: widget.searchTrailing == null
+            ? MyDataSearchField(controller: _search, placeholder: ContactList.searchPlaceholder, focusNode: _searchFocus)
+            : Row(children: [
+                Expanded(
+                  child: MyDataSearchField(
+                      controller: _search, placeholder: ContactList.searchPlaceholder, focusNode: _searchFocus),
+                ),
+                const SizedBox(width: ContactList.searchTrailingGap),
+                widget.searchTrailing!,
+              ]),
       ),
     );
 

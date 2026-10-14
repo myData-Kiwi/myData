@@ -267,6 +267,33 @@ void main() {
       expect(deletes, [1]);
     });
 
+    testWidgets('an action beside the search field, after it in the Tab order', (tester) async {
+      final search = FocusNode();
+      addTearDown(search.dispose);
+      await _pump(
+          tester,
+          SizedBox(
+            width: 340,
+            height: 500,
+            child: ContactList(
+              contacts: _people(),
+              selectedId: 'a1',
+              onOpen: (_) {},
+              searchFocusNode: search,
+              searchTrailing: MyDataIconButton(icon: Icons.add_rounded, label: 'New contact', onPressed: () {}),
+            ),
+          ));
+      final field = tester.getRect(find.byType(MyDataSearchField));
+      final button = tester.getRect(find.byType(MyDataIconButton));
+      expect(button.left - field.right, ContactList.searchTrailingGap);
+      expect(button.center.dy, closeTo(field.center.dy, 1));
+      search.requestFocus();
+      await tester.pump();
+      await _key(tester, LogicalKeyboardKey.tab);
+      expect(
+          FocusManager.instance.primaryFocus?.context?.findAncestorWidgetOfExactType<MyDataIconButton>(), isNotNull);
+    });
+
     testWidgets('each enabled Menu item is a custom action of its row', (tester) async {
       final handle = tester.ensureSemantics();
       final selection = MultiSelectController<String>();

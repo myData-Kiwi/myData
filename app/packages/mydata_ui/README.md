@@ -61,5 +61,6 @@ The specs, previews and top-level docs were checked against each other; the owne
 
 - **ContactList takes a `MultiSelectController`** (design/components/MultiSelect) from 600px: ⌘-click, ⇧-click, ⌘A, ⇧ and Option with the arrows, Space and Escape, as the controller does; a run of adjacent selected rows in one letter group shares one ring and its divider takes the selection's fill. Runs do not join across letter groups, whose cards are apart. Phones have no select mode yet.
 - **A row's Menu** (`menuFor`): right-click, Control-click, long-press, Shift-F10 and the context menu key on the row the keyboard is on; the items are the row's custom semantics actions. `onReturn` (Return edits the open row) and `onDelete` (the list's delete key, `AppMenuBar.listDeleteActivator`) belong to the app.
+- **`ContactList.searchTrailing`**: an IconButton beside the search field ("New contact"), the list pane's title bar on desktop.
 - **`AppFrame.phoneTitleActions`**: IconButtons at the end of a phone's large title ("New contact", "More actions"), since a phone has no menu bar.
 - **`Inspector.failureAction`**: a Tonal button under the failure line, for a failure the user can act on from the inspector ("Reload" when the record changed elsewhere). The Inspector spec left "Changed elsewhere" to phase 3.
