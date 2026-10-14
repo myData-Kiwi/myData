@@ -132,7 +132,8 @@ _OUT_KEYS = ("event_id", "calendar_id", "uid", "recurrence_id", "title", "locati
 
 
 def source_of(account_id: str) -> str:
-    """Which kind of source an account id is: "mac" for This Mac, "icloud" for a CalDAV account."""
+    """Which kind of source an account id is: "mac" for This Mac, "icloud" for a CalDAV account. The API has
+    no name for owned calendars yet: their events and coverage say "icloud" too, which is never a limit."""
     return "mac" if account_id == MAC_ID else "icloud"
 
 
@@ -348,17 +349,19 @@ class CalendarStore:
     def coverage(self, start: date, end: date) -> list[dict]:
         """Per source holding calendars, whether it holds every day from start to end (both included).
 
-        A CalDAV account holds everything (covered_start and covered_end None, complete). A source with a
-        window (This Mac) is complete only when the window contains the whole range. This Mac never counts
-        as holding everything: until its first events snapshot is stored it has calendars but no window, and
-        it is then left out here (SyncService.coverage adds a "not_read_yet" or "no_access" entry for it)."""
+        A CalDAV account and the owned calendars hold everything (covered_start and covered_end None,
+        complete). A source with a window (This Mac) is complete only when the window contains the whole
+        range. This Mac never counts as holding everything: until its first events snapshot is stored it has
+        calendars but no window, and it is then left out here (SyncService.coverage adds a "not_read_yet" or "no_access" entry for it)."""
         with self.db.connect() as db:
             windows = db.execute("SELECT account_id, covered_start, covered_end FROM coverage "
                                  "ORDER BY account_id").fetchall()
             bounded = {r["account_id"] for r in windows}
-            unbounded = [r[0] for r in db.execute(  # owned calendars are not a source, and hold every day
-                "SELECT DISTINCT account_id FROM calendars WHERE deleted_at IS NULL AND mode = 'followed' "
-                "ORDER BY account_id").fetchall() if r[0] not in bounded and r[0] != MAC_ID]
+            # Owned calendars (account OWNED_ACCOUNT) are listed too: the host holds every day of them, and
+            # leaving them out would let This Mac's window hide the only copy of an owned event.
+            unbounded = [r[0] for r in db.execute(
+                "SELECT DISTINCT account_id FROM calendars WHERE deleted_at IS NULL ORDER BY account_id").fetchall()
+                if r[0] not in bounded and r[0] != MAC_ID]
         out = [{"source": source_of(a), "account_id": a, "covered_start": None, "covered_end": None,
                 "complete": True} for a in unbounded]
         for r in windows:

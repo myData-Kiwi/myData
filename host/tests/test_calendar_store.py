@@ -328,8 +328,29 @@ def test_delete_account_survives_owned_events(tmp_path):
     s.delete_account(OWNED_ACCOUNT)
     assert owned_rows(tmp_path) == before
     assert titles(between(s, d(2026, 3, 20), d(2026, 3, 21))) == ["Owned picnic (invented)"]
-    assert s.coverage(date(2026, 3, 20), date(2026, 3, 21)) == []  # an owned calendar is not a source
+    # Not a source's (account_ids leaves it out), but it holds every day of its own events.
+    assert s.coverage(date(2026, 3, 20), date(2026, 3, 21)) == [
+        {"source": "icloud", "account_id": OWNED_ACCOUNT, "covered_start": None, "covered_end": None,
+         "complete": True}]
     assert s.account_ids() == [] and b"Floating lunch" not in path.read_bytes()
+
+
+def test_the_macs_window_never_hides_an_owned_event(tmp_path):
+    """The window rule is per source: an owned calendar holds every day, so an owned event outside This Mac's
+    window is still listed, and never reported as outside what the host holds."""
+    from datetime import date
+
+    from mydata.tools.dates import Resolved
+    from mydata.tools.mirror import mirror_tools
+
+    add_owned(tmp_path)  # an owned event on 20 March 2026
+    s = CalendarStore(tmp_path / "calendar.sqlite")
+    mac = s.upsert_calendar("mac", "mac://calendars/cal-1", "Mac home", None)
+    s.replace_occurrences("mac", (date(2026, 6, 1), date(2027, 6, 1)), {mac: []})
+    tool = next(t for t in mirror_tools(None, s, tz=lambda: LONDON, coverage=s.coverage) if t.name == "list_events")
+    out = tool.handler({}, {"date": Resolved(date(2026, 3, 20), date(2026, 3, 20))}, date(2026, 3, 18)).data
+    assert [e["title"] for e in out["events"]] == ["Owned picnic (invented)"]
+    assert out["outside_window"] is True and out["complete_sources"] == ["icloud"]
 
 
 def test_mark_collections_gone(store):
