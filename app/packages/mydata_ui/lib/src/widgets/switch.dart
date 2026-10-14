@@ -7,9 +7,11 @@ import '../accessibility.dart';
 import '../generated/tokens.g.dart';
 import '../motion.dart';
 import '../theme.dart';
+import 'app_frame.dart' show AppLayout, PhoneType;
 import 'icon_tile.dart';
 import 'pressable.dart';
 import 'status.dart';
+import 'toggle_target.dart';
 
 /// An on or off setting that takes effect immediately (design/components/Switch), as a control on its own.
 ///
@@ -213,6 +215,140 @@ class SwitchRow extends StatelessWidget {
       ),
     );
   }
+}
+
+/// A Switch inside a form that has Save and Cancel, such as "All-day" in an event (design/components/Switch,
+/// "In a form"). It looks the same as the settings switch; it sets a value of the thing being edited, which
+/// applies on Save.
+///
+/// - The row is a FormRow: the [title] in `body` and `ink` at the start, sentence case with no full stop,
+///   and the switch at the row's end, `space-3` apart. No [description] unless the effect is not obvious
+///   from the title. The whole row is the target; it is at least `control-height` tall (`row-height` under
+///   600px), with the title at 16px there.
+/// - Hover fills the row with `surface-hover`; a press dims it to 85%. The fill reaches [hoverOutset] past
+///   the row's sides, so the title keeps the form's start edge and is not pressed against the fill's edge
+///   (not in the spec; decided here).
+/// - Keyboard focus draws the `focus` ring around the track. **Space** toggles it; Return is left to the
+///   form. While the form waits for the host ([FormBusy]) it does not flip.
+/// - [onChanged] null disables it: the title and the switch at 45%, with the [disabledReason] in a
+///   `caption` line under the title in full `ink-muted`, not faded. It leaves the Tab order, since its
+///   reason is visible.
+/// - Screen readers: "All-day, switch, off". [announce] gives what the form changes as a result ("Start and
+///   end are now dates"), announced politely once after a flip.
+class FormSwitchRow extends StatelessWidget {
+  const FormSwitchRow({
+    super.key,
+    required this.title,
+    required this.value,
+    required this.onChanged,
+    this.description,
+    this.disabledReason,
+    this.announce,
+    this.focusNode,
+    this.autofocus = false,
+  }) : assert(onChanged != null || disabledReason != null, 'a disabled switch says why (platforms.md)');
+
+  /// The property, in sentence case ("All-day").
+  final String title;
+  final bool value;
+
+  /// Called with the new value. Null disables the row; give the [disabledReason] then.
+  final ValueChanged<bool>? onChanged;
+
+  /// Only when the effect is not obvious from the title.
+  final String? description;
+
+  /// Why it cannot be changed, a full sentence ("This event comes from an invitation and cannot be changed
+  /// here.").
+  final String? disabledReason;
+
+  /// What the form changes as a result of the new value, announced politely; null for nothing.
+  final String? Function(bool value)? announce;
+
+  final FocusNode? focusNode;
+  final bool autofocus;
+
+  /// Between the title and the switch (preview: `.swrow{gap:12px}`).
+  static const gap = MyDataSpace.s3;
+
+  /// How far the hover fill reaches past each side of the row.
+  static const hoverOutset = MyDataSpace.s2;
+
+  void _flip(BuildContext context) {
+    final next = !value;
+    onChanged!(next);
+    final message = announce?.call(next);
+    if (message != null) {
+      SemanticsService.sendAnnouncement(View.of(context), message, Directionality.of(context));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final enabled = onChanged != null;
+    final phone = AppLayout.of(context) == AppLayout.phone;
+    final note = enabled ? description : (disabledReason ?? description);
+    Widget faded(Widget w) => enabled ? w : Opacity(opacity: Pressable.disabledOpacity, child: w);
+    return MergeSemantics(
+      child: Semantics(
+        toggled: value,
+        enabled: enabled,
+        child: ToggleTarget(
+          onToggle: enabled ? () => _flip(context) : null,
+          focusNode: focusNode,
+          autofocus: autofocus,
+          builder: (context, s) => TweenAnimationBuilder<Color?>(
+            tween: ColorTween(end: s.hovered || s.pressed ? c.surfaceHover : c.surfaceHover.withValues(alpha: 0)),
+            duration: MyDataMotion.fast,
+            curve: MyDataMotion.standard,
+            builder: (context, fill, child) =>
+                CustomPaint(painter: _OutsetFill(color: fill!, outset: hoverOutset), child: child),
+            child: AnimatedOpacity(
+              opacity: s.pressed ? MyDataMotion.pressOpacity : 1,
+              duration: s.pressed ? Duration.zero : MyDataMotion.fast,
+              curve: MyDataMotion.standard,
+              child: ConstrainedBox(
+                constraints:
+                    BoxConstraints(minHeight: phone ? MyDataSize.rowHeight : MyDataSize.controlHeight),
+                child: Row(children: [
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        faded(Text(title, style: PhoneType.body(MyDataType.body, phone: phone).copyWith(color: c.ink))),
+                        if (note != null) Text(note, style: MyDataType.caption.copyWith(color: c.inkMuted)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: gap),
+                  faded(FocusRing(visible: s.focused, borderRadius: MyDataRadii.pill, child: SwitchTrack(value: value))),
+                ]),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The form switch row's hover fill: `radius-sm`, reaching [outset] past the row's start and end.
+class _OutsetFill extends CustomPainter {
+  _OutsetFill({required this.color, required this.outset});
+  final Color color;
+  final double outset;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (color.a == 0) return;
+    final rect = Rect.fromLTRB(-outset, 0, size.width + outset, size.height);
+    canvas.drawRRect(MyDataRadii.sm.toRRect(rect), Paint()..color = color);
+  }
+
+  @override
+  bool shouldRepaint(_OutsetFill old) => old.color != color || old.outset != outset;
 }
 
 /// Makes the switch's target at least `control-height` square-ish without growing the drawn track or its
