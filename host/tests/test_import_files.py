@@ -60,6 +60,16 @@ def test_malformed_cards_are_skipped_one_by_one_with_their_reasons():
     assert r.notes == {"outside_text": 1}
 
 
+def test_a_card_naming_a_codec_that_is_no_character_set_is_skipped_alone():
+    r = read_contacts(corpus.read(corpus.ODD_CHARSETS))
+    # In a 2.1 card such a CHARSET is ignored (the value is read as UTF-8: "\\ud800" stays six characters); in a
+    # 3.0 card the parser decodes it to a lone surrogate, which is no text: that card alone is unreadable.
+    assert [c.display_name for c in r.cards] == ["Punycode Name", "Ava\\ud800", "Pat Placeholder"]
+    assert [(s.reason, s.index) for s in r.skipped] == [("unreadable", 2)]
+    for card in r.cards:
+        card.text.encode("utf-8")
+
+
 def test_a_zip_of_several_exports_is_read_in_memory():
     r = read_contacts(corpus.several())
     assert r.entries_read == 3 and r.other_files == 1

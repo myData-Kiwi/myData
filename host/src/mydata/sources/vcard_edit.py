@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import base64
 import binascii
+import codecs
 import quopri
 import re
 import uuid
@@ -123,6 +124,24 @@ def _split_quoted(text: str, sep: str) -> list[str]:
             current.append(ch)
     parts.append("".join(current))
     return parts
+
+
+# Character sets a card may name in CHARSET (Python's codec names, after codecs.lookup). Anything else, such as
+# unicode_escape, punycode or utf-7, is no character set of a card's text: it can raise errors other than
+# UnicodeDecodeError, or decode to text that is not valid Unicode (a lone surrogate), so it is never used.
+_TEXT_CODECS = re.compile(r"(utf-8|utf-16(-le|-be)?|utf-32(-le|-be)?|ascii|iso8859-\d+|cp\d+|mac-[a-z]+|shift_jis|"
+                          r"shift_jis_2004|shift_jisx0213|euc_jp|euc_jis_2004|euc_jisx0213|euc_kr|iso2022_jp(_\w+)?|"
+                          r"iso2022_kr|gb2312|gbk|gb18030|hz|big5|big5hkscs|johab|koi8-[a-z]+|tis-620|kz1048|"
+                          r"ptcp154|hp-roman8)")
+
+
+def text_codec(name: str) -> str | None:
+    """The Python codec for a CHARSET value when it names a character set (see _TEXT_CODECS), else None."""
+    try:
+        codec = codecs.lookup(name.strip())
+    except (LookupError, ValueError, TypeError):
+        return None
+    return codec.name if codec._is_text_encoding and _TEXT_CODECS.fullmatch(codec.name) else None
 
 
 def value_colon(line: str) -> int:
@@ -249,14 +268,15 @@ class Prop:
         return ""
 
     def decoded(self) -> str:
-        """The value with a quoted-printable encoding undone (in its CHARSET, else UTF-8); escapes kept."""
+        """The value with a quoted-printable encoding undone (in its CHARSET when that is a character set
+        (text_codec), else UTF-8, else Latin-1); escapes kept."""
         if self.encoding != "QUOTED-PRINTABLE":
             return self.value
         data = quopri.decodestring(self.value.encode("utf-8"))
-        for charset in [*self.param("CHARSET"), "utf-8"]:
+        for charset in [*(c for c in map(text_codec, self.param("CHARSET")) if c), "utf-8"]:
             try:
                 return data.decode(charset)
-            except (LookupError, UnicodeDecodeError):
+            except UnicodeError:  # UnicodeDecodeError, and the plain UnicodeError some codecs raise
                 continue
         return data.decode("latin-1")
 

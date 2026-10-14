@@ -14,6 +14,8 @@ IMPORT = FIXTURES / "import"
 
 APPLE = IMPORT / "apple-export.vcf"
 MALFORMED = IMPORT / "malformed.vcf"
+# Cards that name a codec that is no character set (punycode, unicode_escape) in CHARSET.
+ODD_CHARSETS = IMPORT / "odd-charsets.vcf"
 GOOGLE = VCARD / "google-3.0.vcf"
 SAMSUNG = VCARD / "samsung-2.1.vcf"
 V4_GROUP = VCARD / "v4-group.vcf"

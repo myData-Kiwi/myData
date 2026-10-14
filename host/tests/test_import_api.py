@@ -121,6 +121,12 @@ def test_choices_and_losses(host, client):
     assert len([c for c in client.get("/contacts", headers=host.auth).json() if c["display_name"].startswith("Ava")]) == 2
 
 
+def test_a_card_with_an_odd_character_set_never_fails_the_file(host, client):
+    r = upload(client, host, corpus.read(corpus.ODD_CHARSETS))
+    assert r.status_code == 201, r.text
+    assert [(x["code"], x["count"]) for x in r.json()["losses"]] == [("skipped_unreadable", 1)]
+
+
 def test_inputs_refused_whole(host, client, monkeypatch):
     r = upload(client, host, corpus.bomb())
     assert r.status_code == 400 and "expands" in r.json()["detail"]

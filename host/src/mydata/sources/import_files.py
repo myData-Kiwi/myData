@@ -28,9 +28,10 @@ from __future__ import annotations
 
 import hashlib
 import io
+import json
 import re
 import zipfile
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 
 from .vcard import card_kind, parse_vcard
 from .vcard_edit import VCard, VCardError, upgrade_21
@@ -259,9 +260,17 @@ def _has_content(card: VCard) -> bool:
 
 
 def read_card(original: str, index: int, entry: str | None = None) -> ReadCard | Skipped:
-    """One card's text as a ReadCard, or why it is skipped."""
+    """One card's text as a ReadCard, or why it is skipped. Never raises: whatever a card holds (an unknown
+    character set, text that is not valid Unicode once decoded), it is skipped as unreadable on its own."""
     if len(original) > MAX_CARD_BYTES:
         return Skipped("too_large", index, entry)
+    try:
+        return _read_card(original, index, entry)
+    except Exception:  # noqa: BLE001 - one card never stops the others; its text is never quoted
+        return Skipped("unreadable", index, entry)
+
+
+def _read_card(original: str, index: int, entry: str | None) -> ReadCard | Skipped:
     try:
         card = VCard.parse(original)
     except VCardError:
@@ -282,12 +291,24 @@ def read_card(original: str, index: int, entry: str | None = None) -> ReadCard |
         except VCardError:
             return Skipped("unreadable", index, entry)
     parsed = parse_vcard(text)
+    if not _is_unicode(original, text, json.dumps(asdict(parsed), ensure_ascii=False)):
+        return Skipped("unreadable", index, entry)  # a lone surrogate, from a codec such as unicode_escape
     uid = parsed.uid.strip()
     return ReadCard(index=index, text=text, original=original, converted_from=converted, kind=card_kind(text),
                     version=VCard.parse(text).version, uid=uid, source_uid=uid or content_key(original),
                     source_hash=raw_hash(original), display_name=parsed.display_name,
                     emails=[e["value"] for e in parsed.emails], phones=[p["value"] for p in parsed.phones],
                     entry=entry)
+
+
+def _is_unicode(*texts: str) -> bool:
+    """Whether every text can be stored as UTF-8 (no lone surrogate)."""
+    try:
+        for text in texts:
+            text.encode("utf-8")
+    except UnicodeEncodeError:
+        return False
+    return True
 
 
 def _trimmed(chunk: str) -> str:
