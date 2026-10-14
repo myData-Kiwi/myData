@@ -500,7 +500,7 @@ def _cards(text: str) -> list[VCard]:
     i, lead = 0, ""
     while i < len(lines):
         unfolded, raw = lines[i]
-        if unfolded.strip().upper() != "BEGIN:VCARD":
+        if unfolded.strip().lstrip("\ufeff").upper() != "BEGIN:VCARD":  # a byte-order mark is not text
             if unfolded.strip():
                 raise VCardError("text outside a vCard")
             lead += raw

@@ -207,6 +207,14 @@ def test_lines_the_editor_cannot_read_are_kept():
     assert "THIS LINE HAS NO COLON\r\n" in out and 'X-EMBEDDED;X-NOTE="a:b;c":value with : colon\r\n' in out
 
 
+def test_a_byte_order_mark_is_kept_and_not_read_as_text():
+    text = "\ufeff" + fixture("apple-group-3.0.vcf", "\r\n")
+    card = VCard.parse(text)
+    assert card.to_text() == text and card.first("FN").text() == "Book club"
+    card.set("FN", "Book group")
+    assert card.to_text(now=NOW).startswith("\ufeffBEGIN:VCARD\r\n")
+
+
 @pytest.mark.parametrize("text, message", [
     ("FN:loose\r\n", "outside a vCard"),
     ("BEGIN:VCARD\r\nVERSION:3.0\r\nFN:A\r\n", "without END:VCARD"),
