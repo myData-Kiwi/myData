@@ -76,6 +76,17 @@ def test_deleted_cards_are_left_out_and_group_cards_kept_apart(home, tmp_path):
     assert "X-ADDRESSBOOKSERVER-KIND:group" in (tmp_path / "export" / entry["groups_file"]).read_text()
 
 
+@pytest.mark.parametrize("line", ["KIND;VALUE=text:group", "item1.X-ADDRESSBOOKSERVER-KIND:group", "kind:Group"])
+def test_the_export_and_the_store_agree_on_group_cards(home, tmp_path, line):
+    """A group the store hides from lists and counts is never exported, nor counted, as a person."""
+    store = ContactsStore(home / "contacts.sqlite")
+    card = GROUP.replace("X-ADDRESSBOOKSERVER-KIND:group", line)
+    store.apply("acc-1", con.BOOK, con.result([Item(href="/1/carddavhome/card/group-1.vcf", etag='"1"', data=card)]))
+    [entry] = export_raw(home, tmp_path / "export")["contacts"]
+    assert entry["cards"] == store.counts("acc-1")["contacts"] and entry["groups"] == 1
+    assert "Book club" not in (tmp_path / "export" / "contacts" / "Card.vcf").read_text()
+
+
 def test_each_calendar_exports_as_one_vcalendar_that_expands_the_same(home, tmp_path):
     out = tmp_path / "export"
     summary = export_raw(home, out)

@@ -29,9 +29,9 @@ from pathlib import Path
 
 from ..service.config import inside_checkout, private_dir, private_file
 from .mac import MAC_ID
+from .vcard import card_kind
 
 PRODID = "-//myData//raw export//EN"
-_GROUP = re.compile(r"^(X-ADDRESSBOOKSERVER-KIND|KIND)\s*:\s*group\s*$", re.IGNORECASE | re.MULTILINE)
 _UNSAFE = re.compile(r'[\x00-\x1f\x7f/\\:*?"<>|]')
 
 
@@ -48,7 +48,8 @@ def _crlf(lines: list[str]) -> str:
 
 
 def is_group_card(raw: str) -> bool:
-    return bool(_GROUP.search(raw.replace("\r\n", "\n")))
+    """The store's own rule (vcard.card_kind), so the export and every app agree on what is a group."""
+    return card_kind(raw) == "group"
 
 
 def components(raw_ics: str) -> list[list[str]]:
