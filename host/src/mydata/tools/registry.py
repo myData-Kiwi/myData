@@ -9,6 +9,11 @@ Registry.invoke. Each tool declares a name, description, argument schema and per
   returns "pending_approval". Only Registry.decide(approval_id, approve=True), which the host calls
   when the user approves, runs it, and it runs exactly the stored arguments, once.
 
+A held call is bound to the mode (demo or real), the conversation epoch and the handler it was held
+with, all three in its digest. Swapping the tools (a switch of mode) or moving the epoch on fails every
+pending approval, and decide() checks the binding again, so a call held over demo data can never run
+over real data.
+
 Validation (unknown tool, unknown or missing arguments) and date resolution also live here, so
 every agent gets the same checks and the same dates.
 """
@@ -81,6 +86,11 @@ class Approval:
     caller: str
     created_at: str
     summary: str
+    # What the call is bound to (all three are in the digest): approving it in another mode, another
+    # conversation epoch or with another handler fails without running anything.
+    mode: str
+    conversation_epoch: int
+    handler: str
     context: dict = field(default_factory=dict)
     status: Literal["pending", "approved", "rejected", "failed"] = "pending"
     decided_at: str | None = None
@@ -118,8 +128,19 @@ class ApprovalError(Exception):
     """An approval id that does not exist or was already decided."""
 
 
-def call_digest(tool: str, args: dict) -> str:
-    return hashlib.sha256(json.dumps([tool, args], sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+def call_digest(tool: str, args: dict, *, mode: str, epoch: int, handler: str) -> str:
+    """The held call and what it is bound to: the tool, its arguments, the mode, the conversation epoch and
+    the handler that would run it."""
+    return hashlib.sha256(json.dumps([tool, args, mode, epoch, handler], sort_keys=True,
+                                     ensure_ascii=False).encode()).hexdigest()
+
+
+def handler_id(tool: Tool) -> str:
+    """Which code a tool runs: the handler's module and qualified name (the demo tools and the mirror's
+    differ)."""
+    h = tool.handler
+    fn = getattr(h, "__func__", h)
+    return f"{getattr(fn, '__module__', '?')}.{getattr(fn, '__qualname__', type(fn).__qualname__)}"
 
 
 def _now() -> str:
@@ -134,8 +155,12 @@ class Registry:
         self._tools: dict[str, Tool] = _catalogue(tools)
         self._today = today
         self.mode = mode
+        # Moved on by every switch of mode (the assistant keeps it: service/assistant.py, modes.py).
+        self.conversation_epoch = 0
         self._lock = threading.Lock()
         self._approvals: dict[str, Approval] = {}
+        # Approvals the host failed (a switch of mode or epoch), not a person: deciding one returns it as is.
+        self._voided: set[str] = set()
         # Pending calls keep their resolved dates, so approving later runs the dates the user saw.
         self._approval_dates: dict[str, dict[str, Resolved]] = {}
         self.undo_log: list[dict] = []
@@ -143,10 +168,11 @@ class Registry:
     # ---------------------------------------------------------------- catalogue
 
     def replace_tools(self, tools: Iterable[Tool], *, today: Callable[[], date] | None = None,
-                      mode: str | None = None) -> None:
+                      mode: str | None = None, epoch: int | None = None) -> None:
         """Swap the tool catalogue in place (the host switching between demo and real data). Everything
-        holding this registry (the assistant, the API, MCP) sees the new tools; approvals and the undo log
-        are kept. A held call whose tool is gone fails when approved instead of running."""
+        holding this registry (the assistant, the API, MCP) sees the new tools. Every pending approval
+        fails, nothing run: it was held over the old tools and data (a demo send_mail must never run in
+        real mode). The undo log is kept."""
         catalogue = _catalogue(tools)
         with self._lock:
             self._tools = catalogue
@@ -154,6 +180,33 @@ class Registry:
                 self._today = today
             if mode is not None:
                 self.mode = mode
+            if epoch is not None:
+                self.conversation_epoch = epoch
+            failed = self._fail_pending(f"the host switched to {self.mode} mode before it was approved, so "
+                                        f"nothing was done")
+        for a in failed:
+            self._audit(a)
+
+    def set_epoch(self, epoch: int) -> None:
+        """Move the conversation epoch on. A change fails every pending approval, nothing run."""
+        with self._lock:
+            if epoch == self.conversation_epoch:
+                return
+            self.conversation_epoch = epoch
+            failed = self._fail_pending("the conversation it belonged to was ended, so nothing was done")
+        for a in failed:
+            self._audit(a)
+
+    def _fail_pending(self, reason: str) -> list[Approval]:
+        """Fail every pending approval. Call with self._lock held."""
+        failed = []
+        for a in self._approvals.values():
+            if a.status == "pending":
+                a.status, a.error, a.decided_at = "failed", reason, _now()
+                self._approval_dates.pop(a.id, None)
+                self._voided.add(a.id)
+                failed.append(copy.deepcopy(a))
+        return failed
 
     def today(self) -> date:
         return self._today()
@@ -267,11 +320,14 @@ class Registry:
 
     def _hold(self, tool: Tool, args: dict, resolved: dict[str, Resolved], caller: str, context: dict) -> Approval:
         frozen = copy.deepcopy(args)
-        approval = Approval(
-            id=secrets.token_urlsafe(16), tool=tool.name, args=frozen, digest=call_digest(tool.name, frozen),
-            caller=caller, created_at=_now(), summary=summarize(tool.name, frozen), context=dict(context),
-        )
         with self._lock:
+            mode, epoch, handler = self.mode, self.conversation_epoch, handler_id(tool)
+            approval = Approval(
+                id=secrets.token_urlsafe(16), tool=tool.name, args=frozen,
+                digest=call_digest(tool.name, frozen, mode=mode, epoch=epoch, handler=handler),
+                caller=caller, created_at=_now(), summary=summarize(tool.name, frozen), mode=mode,
+                conversation_epoch=epoch, handler=handler, context=dict(context),
+            )
             self._approvals[approval.id] = approval
             self._approval_dates[approval.id] = dict(resolved)
         return copy.deepcopy(approval)
@@ -286,11 +342,15 @@ class Registry:
             return [copy.deepcopy(a) for a in self._approvals.values() if status is None or a.status == status]
 
     def decide(self, approval_id: str, approve: bool, *, decided_by: str) -> Approval:
-        """The only way an irreversible tool runs: the user approved this exact stored call."""
+        """The only way an irreversible tool runs: the user approved this exact stored call, in the mode,
+        conversation epoch and handler it was held with. An approval the host failed (a switch) comes back
+        as it is, failed, so the app shows why."""
         with self._lock:
             a = self._approvals.get(approval_id)
             if a is None:
                 raise ApprovalError("no such approval")
+            if a.id in self._voided:
+                return copy.deepcopy(a)
             if a.status != "pending":
                 raise ApprovalError(f"approval already {a.status}")
             # Claim it inside the lock so two concurrent approvals cannot both run the call.
@@ -302,14 +362,21 @@ class Registry:
             self._audit(a)
             return copy.deepcopy(a)
 
-        tool = self._tools.get(a.tool)
+        with self._lock:
+            tool = self._tools.get(a.tool)
+            mode, epoch = self.mode, self.conversation_epoch
         if tool is None:  # the host switched to a mode without this tool after the call was held
             with self._lock:
                 a.status, a.error = "failed", f"{a.tool} is not available any more; nothing was done"
             self._audit(a)
             return copy.deepcopy(a)
-        if call_digest(a.tool, a.args) != a.digest:  # defensive: stored arguments must be untouched
-            a.status, a.error = "failed", "stored call changed after it was held"
+        # Defensive: a switch fails pending approvals, but the binding is checked again here. The stored
+        # arguments must be untouched, and the mode, epoch and handler the same as when the call was held.
+        if call_digest(a.tool, a.args, mode=mode, epoch=epoch, handler=handler_id(tool)) != a.digest:
+            with self._lock:
+                a.status, a.error = "failed", "the call changed, or the host switched mode, after it was held; " \
+                                              "nothing was done"
+            self._audit(a)
             return copy.deepcopy(a)
         inv = Invocation("ok", a.tool, copy.deepcopy(a.args))
         inv = self._run(tool, inv, resolved, self._today())
@@ -324,8 +391,8 @@ class Registry:
         """The record of what ran: the held call is identified by id and digest, not its contents."""
         logger.info("approval decided", extra={"fields": {
             "approval_id": a.id, "tool": a.tool, "caller": a.caller, "decided_by": a.decided_by,
-            "status": a.status, "digest": a.digest, "error": a.error,
-            "conversation_id": a.context.get("conversation_id")}})
+            "status": a.status, "digest": a.digest, "error": a.error, "mode": a.mode,
+            "conversation_epoch": a.conversation_epoch, "conversation_id": a.context.get("conversation_id")}})
 
 
 def _catalogue(tools: Iterable[Tool]) -> dict[str, Tool]:

@@ -142,7 +142,8 @@ def test_real_registry_uses_the_real_date_by_default():
 # ---------------------------------------------------------------- the registry swap
 
 
-def test_replace_tools_keeps_approvals_and_a_held_call_whose_tool_is_gone_fails_without_running():
+def test_replace_tools_fails_pending_approvals_without_running_them():
+    """tests/test_approval_binding.py has the rest: the binding to mode, epoch and handler."""
     registry, spy = spied_registry()
     held = registry.invoke("send_mail", {"to": "sam.example@example.com", "subject": "Hi", "body": "Hello"},
                            caller="test")
@@ -152,7 +153,7 @@ def test_replace_tools_keeps_approvals_and_a_held_call_whose_tool_is_gone_fails_
     assert registry.invoke("send_mail", {"to": "x@example.com", "subject": "s", "body": "b"},
                            caller="test").status == "unknown_tool"
     decided = registry.decide(held.approval.id, True, decided_by="app:myassistant")
-    assert decided.status == "failed" and "not available" in decided.error
+    assert decided.status == "failed" and "switched to real mode" in decided.error
     assert spy.calls == []
 
 

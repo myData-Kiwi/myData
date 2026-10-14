@@ -65,11 +65,19 @@ class Assistant:
         self._conversations: dict[str, list[dict]] = {}
         # The epoch each conversation id seen since the host started belongs to (ended ones included).
         self._epoch_of: dict[str, int] = {}
-        # Moved on by every switch between demo and real mode (modes.py); reported in GET /status.
-        self.conversation_epoch = 0
         self._lock = threading.Lock()
         # One model on one machine: answer one message at a time.
         self._busy = threading.Lock()
+
+    @property
+    def conversation_epoch(self) -> int:
+        """Moved on by every switch between demo and real mode (modes.py); reported in GET /status. Kept by
+        the registry, so that moving it on fails every pending approval (tools/registry.py)."""
+        return self.registry.conversation_epoch
+
+    @conversation_epoch.setter
+    def conversation_epoch(self, epoch: int) -> None:
+        self.registry.set_epoch(epoch)
 
     def warm(self) -> None:
         """Load the model and cache the shared prompt prefix (see engine.request_prefix)."""
@@ -85,6 +93,9 @@ class Assistant:
         """Switch to another mode's tools, date and system prompt (modes.py). Waits for a message being
         answered to finish, so no request sees half of each.
 
+        It also fails every pending approval, nothing run (tools/registry.py): a call held over one mode's
+        data and tools never runs in the other.
+
         A change of mode ends every conversation: their history holds the other mode's tool results. After
         real -> demo (the last account removed) that is the removed account's contacts and events, which
         must go with it; after demo -> real it is fake demo data that the model would take as real. A
@@ -95,16 +106,17 @@ class Assistant:
         with self._busy:
             if epoch is None:
                 epoch = self.conversation_epoch + (1 if mode != self.registry.mode else 0)
-            if mode != self.registry.mode or epoch != self.conversation_epoch:
+            ending = mode != self.registry.mode or epoch != self.conversation_epoch
+            self.registry.replace_tools(tools, today=today, mode=mode, epoch=epoch)
+            if ending:
                 self._end_conversations(epoch, mode)
-            self.registry.replace_tools(tools, today=today, mode=mode)
             self._today = today
             self.today = today
             self.system_prompt = system_prompt
 
     def end_conversations(self, epoch: int) -> None:
         """End every conversation and move to `epoch`, keeping the mode (the mode changed while the host was
-        stopped, so state.json already had the next epoch)."""
+        stopped, so state.json already had the next epoch). A new epoch fails every pending approval."""
         with self._busy:
             self._end_conversations(epoch, self.registry.mode)
 
