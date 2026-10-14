@@ -428,7 +428,7 @@ Name | Type | Description  | Notes
 
 Delete Contact
 
-Move an owned contact to Recently deleted. It is deleted for good after 30 days (purge_after); until then POST /trash/{id}/restore or the undo id brings it back. Copies in the host's snapshots stay until those expire (within 12 months while the host runs).
+Move an owned contact to Recently deleted. It is deleted for good after 30 days (purge_after); until then POST /trash/{id}/restore or the undo id brings it back. Refused with 412 when the contact changed since its etag. Copies in the host's snapshots stay until those expire (within 12 months while the host runs).
 
 ### Example
 ```dart
@@ -442,7 +442,7 @@ import 'package:mydata_client/api.dart';
 
 final api_instance = SourcesApi();
 final contactId = contactId_example; // String | 
-final ifMatch = ifMatch_example; // String | optional: refuse if the contact changed since
+final ifMatch = ifMatch_example; // String | the etag of the contact the user chose to delete
 
 try {
     final result = api_instance.deleteContact(contactId, ifMatch);
@@ -457,7 +457,7 @@ try {
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **contactId** | **String**|  | 
- **ifMatch** | **String**| optional: refuse if the contact changed since | [optional] 
+ **ifMatch** | **String**| the etag of the contact the user chose to delete | [optional] 
 
 ### Return type
 
@@ -528,11 +528,11 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **purgeItem**
-> purgeItem(itemId)
+> purgeItem(itemId, ifMatch)
 
 Purge Item
 
-Delete an item in Recently deleted for good now, with its earlier versions; it cannot be brought back or undone. Copies in the host's snapshots stay until those expire (backups_kept_until).
+Delete an item in Recently deleted for good now, with its earlier versions; it cannot be brought back or undone. Refused with 412 when the item changed since its etag (restored, changed and deleted again elsewhere): look at it again first. The host log records which app asked. Copies in the host's snapshots stay until those expire (backups_kept_until).
 
 ### Example
 ```dart
@@ -546,9 +546,10 @@ import 'package:mydata_client/api.dart';
 
 final api_instance = SourcesApi();
 final itemId = itemId_example; // String | 
+final ifMatch = ifMatch_example; // String | the item's etag as Recently deleted lists it (contact.etag)
 
 try {
-    api_instance.purgeItem(itemId);
+    api_instance.purgeItem(itemId, ifMatch);
 } catch (e) {
     print('Exception when calling SourcesApi->purgeItem: $e\n');
 }
@@ -559,6 +560,7 @@ try {
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **itemId** | **String**|  | 
+ **ifMatch** | **String**| the item's etag as Recently deleted lists it (contact.etag) | [optional] 
 
 ### Return type
 
@@ -674,11 +676,11 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **restoreItem**
-> ContactWriteOut restoreItem(itemId)
+> ContactWriteOut restoreItem(itemId, ifMatch)
 
 Restore Item
 
-Bring an item back from Recently deleted. 404 when it is not there (or was deleted for good).
+Bring an item back from Recently deleted. 404 when it is not there (or was deleted for good); 412 when If-Match is sent and the item changed since.
 
 ### Example
 ```dart
@@ -692,9 +694,10 @@ import 'package:mydata_client/api.dart';
 
 final api_instance = SourcesApi();
 final itemId = itemId_example; // String | 
+final ifMatch = ifMatch_example; // String | optional: the item's etag as Recently deleted lists it; refuse if it changed since
 
 try {
-    final result = api_instance.restoreItem(itemId);
+    final result = api_instance.restoreItem(itemId, ifMatch);
     print(result);
 } catch (e) {
     print('Exception when calling SourcesApi->restoreItem: $e\n');
@@ -706,6 +709,7 @@ try {
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **itemId** | **String**|  | 
+ **ifMatch** | **String**| optional: the item's etag as Recently deleted lists it; refuse if it changed since | [optional] 
 
 ### Return type
 

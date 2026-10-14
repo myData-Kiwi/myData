@@ -584,7 +584,7 @@ class SourcesApi {
 
   /// Delete Contact
   ///
-  /// Move an owned contact to Recently deleted. It is deleted for good after 30 days (purge_after); until then POST /trash/{id}/restore or the undo id brings it back. Copies in the host's snapshots stay until those expire (within 12 months while the host runs).
+  /// Move an owned contact to Recently deleted. It is deleted for good after 30 days (purge_after); until then POST /trash/{id}/restore or the undo id brings it back. Refused with 412 when the contact changed since its etag. Copies in the host's snapshots stay until those expire (within 12 months while the host runs).
   ///
   /// Note: This method returns the HTTP [Response].
   ///
@@ -593,7 +593,7 @@ class SourcesApi {
   /// * [String] contactId (required):
   ///
   /// * [String] ifMatch:
-  ///   optional: refuse if the contact changed since
+  ///   the etag of the contact the user chose to delete
   Future<Response> deleteContactWithHttpInfo(
     String contactId, {
     String? ifMatch,
@@ -630,14 +630,14 @@ class SourcesApi {
 
   /// Delete Contact
   ///
-  /// Move an owned contact to Recently deleted. It is deleted for good after 30 days (purge_after); until then POST /trash/{id}/restore or the undo id brings it back. Copies in the host's snapshots stay until those expire (within 12 months while the host runs).
+  /// Move an owned contact to Recently deleted. It is deleted for good after 30 days (purge_after); until then POST /trash/{id}/restore or the undo id brings it back. Refused with 412 when the contact changed since its etag. Copies in the host's snapshots stay until those expire (within 12 months while the host runs).
   ///
   /// Parameters:
   ///
   /// * [String] contactId (required):
   ///
   /// * [String] ifMatch:
-  ///   optional: refuse if the contact changed since
+  ///   the etag of the contact the user chose to delete
   Future<ContactWriteOut?> deleteContact(
     String contactId, {
     String? ifMatch,
@@ -760,15 +760,19 @@ class SourcesApi {
 
   /// Purge Item
   ///
-  /// Delete an item in Recently deleted for good now, with its earlier versions; it cannot be brought back or undone. Copies in the host's snapshots stay until those expire (backups_kept_until).
+  /// Delete an item in Recently deleted for good now, with its earlier versions; it cannot be brought back or undone. Refused with 412 when the item changed since its etag (restored, changed and deleted again elsewhere): look at it again first. The host log records which app asked. Copies in the host's snapshots stay until those expire (backups_kept_until).
   ///
   /// Note: This method returns the HTTP [Response].
   ///
   /// Parameters:
   ///
   /// * [String] itemId (required):
+  ///
+  /// * [String] ifMatch:
+  ///   the item's etag as Recently deleted lists it (contact.etag)
   Future<Response> purgeItemWithHttpInfo(
     String itemId, {
+    String? ifMatch,
     Future<void>? abortTrigger,
   }) async {
     // ignore: prefer_const_declarations
@@ -780,6 +784,10 @@ class SourcesApi {
     final queryParams = <QueryParam>[];
     final headerParams = <String, String>{};
     final formParams = <String, String>{};
+
+    if (ifMatch != null) {
+      headerParams[r'If-Match'] = parameterToString(ifMatch);
+    }
 
     const contentTypes = <String>[];
 
@@ -797,17 +805,22 @@ class SourcesApi {
 
   /// Purge Item
   ///
-  /// Delete an item in Recently deleted for good now, with its earlier versions; it cannot be brought back or undone. Copies in the host's snapshots stay until those expire (backups_kept_until).
+  /// Delete an item in Recently deleted for good now, with its earlier versions; it cannot be brought back or undone. Refused with 412 when the item changed since its etag (restored, changed and deleted again elsewhere): look at it again first. The host log records which app asked. Copies in the host's snapshots stay until those expire (backups_kept_until).
   ///
   /// Parameters:
   ///
   /// * [String] itemId (required):
+  ///
+  /// * [String] ifMatch:
+  ///   the item's etag as Recently deleted lists it (contact.etag)
   Future<void> purgeItem(
     String itemId, {
+    String? ifMatch,
     Future<void>? abortTrigger,
   }) async {
     final response = await purgeItemWithHttpInfo(
       itemId,
+      ifMatch: ifMatch,
       abortTrigger: abortTrigger,
     );
     if (response.statusCode >= HttpStatus.badRequest) {
@@ -954,15 +967,19 @@ class SourcesApi {
 
   /// Restore Item
   ///
-  /// Bring an item back from Recently deleted. 404 when it is not there (or was deleted for good).
+  /// Bring an item back from Recently deleted. 404 when it is not there (or was deleted for good); 412 when If-Match is sent and the item changed since.
   ///
   /// Note: This method returns the HTTP [Response].
   ///
   /// Parameters:
   ///
   /// * [String] itemId (required):
+  ///
+  /// * [String] ifMatch:
+  ///   optional: the item's etag as Recently deleted lists it; refuse if it changed since
   Future<Response> restoreItemWithHttpInfo(
     String itemId, {
+    String? ifMatch,
     Future<void>? abortTrigger,
   }) async {
     // ignore: prefer_const_declarations
@@ -974,6 +991,10 @@ class SourcesApi {
     final queryParams = <QueryParam>[];
     final headerParams = <String, String>{};
     final formParams = <String, String>{};
+
+    if (ifMatch != null) {
+      headerParams[r'If-Match'] = parameterToString(ifMatch);
+    }
 
     const contentTypes = <String>[];
 
@@ -991,17 +1012,22 @@ class SourcesApi {
 
   /// Restore Item
   ///
-  /// Bring an item back from Recently deleted. 404 when it is not there (or was deleted for good).
+  /// Bring an item back from Recently deleted. 404 when it is not there (or was deleted for good); 412 when If-Match is sent and the item changed since.
   ///
   /// Parameters:
   ///
   /// * [String] itemId (required):
+  ///
+  /// * [String] ifMatch:
+  ///   optional: the item's etag as Recently deleted lists it; refuse if it changed since
   Future<ContactWriteOut?> restoreItem(
     String itemId, {
+    String? ifMatch,
     Future<void>? abortTrigger,
   }) async {
     final response = await restoreItemWithHttpInfo(
       itemId,
+      ifMatch: ifMatch,
       abortTrigger: abortTrigger,
     );
     if (response.statusCode >= HttpStatus.badRequest) {
