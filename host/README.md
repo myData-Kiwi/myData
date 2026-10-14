@@ -20,7 +20,7 @@ uv run pytest -q         # all tests; no model needed
 **Demo and real mode** (`service/modes.py`). With no account the host is in demo mode: the six fake tools over canned data, today pinned to 18 March 2026. With at least one account it is in real mode: the real date and the machine's time zone, and only `find_contact` and `list_events`, over the mirror. Mail, photos and adding events are not offered until they have a real source. `/status` reports the mode. Switching ends every conversation (their history holds the other mode's data), moves the conversation epoch on (kept in `state.json`, reported as `conversation_epoch` in `/status`) and re-warms the model. myAssistant sees the new epoch and says that a new conversation has started; a message to a conversation from an older epoch gets a `reset` event and starts a new one.
 
 **What it serves.** Only `127.0.0.1`, port 47821 by default.
-- `GET /status`: version, model state and download progress.
+- `GET /status`: version, model state and download progress, and `backup`: the newest snapshot, the last restore drill and whether FileVault is on.
 - `POST /assistant/messages`: one message, with the reply streamed as server-sent events. A `result` event says its `mode` ("real" or "demo"); a contact item carries its `id` and an event item its day (`date`), so myAssistant can open a real one in myContacts or myCalendar.
 - `GET /approvals`, `GET /approvals/{id}`, `POST /approvals/{id}`: approvals.
 - `GET /tools`: the tool registry.
@@ -39,10 +39,16 @@ uv run pytest -q         # all tests; no model needed
 - Linux: `~/.local/share/mydata`
 - Windows: `%APPDATA%\myData`
 
-It holds `config.toml`, `app-tokens/`, `agents.json`, `accounts.json`, `contacts.sqlite`, `calendar.sqlite`, `mydatad.pid`, and `logs/`. With an account linked, the mirror and the logs hold real personal data: the host refuses a folder inside the source checkout, `.gitignore` keeps these files out of git anyway, and the feasibility harness refuses to write `results/` from anything but the demo registry. `logs/` holds:
+It holds `config.toml`, `app-tokens/`, `agents.json`, `accounts.json`, `contacts.sqlite`, `calendar.sqlite`, `backups/`, `mydatad.pid`, and `logs/`. With an account linked, the mirror and the logs hold real personal data: the host refuses a folder inside the source checkout, `.gitignore` keeps these files out of git anyway, and the feasibility harness refuses to write `results/` from anything but the demo registry. `logs/` holds:
 - `mydatad.log`: structured JSON lines.
 - `assistant.jsonl`: every assistant request.
 - `ollama.log`: Ollama's output, if the host started Ollama.
+
+**Backups** (`service/backup.py`). A snapshot is a consistent copy of every `*.sqlite` in the host folder, in `backups/<UTC time>/` with a `manifest.json` (sha256, size, schema version and row counts per file). Each copy must pass `integrity_check`.
+- The host takes one every hour while it runs (skipped when nothing changed) and always before a migration. If that snapshot fails, the store is not migrated or opened, and `/status` shows the error.
+- Kept: the newest of each of the last 24 hours, 30 days and 12 months that have one, and every snapshot taken before a migration, before a restore or by hand for at least 90 days.
+- `uv run mydata backup now|list`; `mydata backup verify [SNAPSHOT]` is the restore drill: it restores the snapshot into a temporary folder, opens it with this code (migrations included), runs the integrity, foreign key and search index checks and compares row counts. `mydata backup restore SNAPSHOT` needs the host stopped and snapshots the current state first.
+- `uv run mydata export --out DIR` writes the stored vCards (one `.vcf` per address book) and iCalendar text (one `.ics` per calendar), to a new or empty folder outside the checkout. This Mac's events are not exported: the host holds only their expanded occurrences.
 
 **The permission gate** (`src/mydata/tools/registry.py`). Every agent reaches tools only through the registry: our assistant, MCP clients, anything else.
 - Read tools run.

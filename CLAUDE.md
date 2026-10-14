@@ -14,7 +14,8 @@ Early build. Done:
 - **answer latency** (Part A): results on screen in about 3.5 s instead of 13;
 - **the design system** (Part B): `design/` in Flutter (`mydata_ui`), six themes in light and dark, the theme stored on the host and followed by every app;
 - **real contacts and calendars on the host** (phase 3): a read-only mirror from **This Mac** (macOS Contacts and EventKit, the main path on a Mac host) or from a followed iCloud account (CardDAV, CalDAV; under Advanced, for hosts that are not Macs). See "Contacts and calendars sources";
-- **the myContacts and myCalendar apps** (phase 4): read-only views of the mirror, with links between the apps (`mycontacts://contact/<id>`, `mycalendar://day/<date>`, `mydata://settings/sources`). myAssistant opens a real contact or event result in them when they are installed, and myData's Status lists the apps with their counts and sources.
+- **the myContacts and myCalendar apps** (phase 4): read-only views of the mirror, with links between the apps (`mycontacts://contact/<id>`, `mycalendar://day/<date>`, `mydata://settings/sources`). myAssistant opens a real contact or event result in them when they are installed, and myData's Status lists the apps with their counts and sources;
+- **the safety net** (phase 0a of the owned-data plan): migrations with foreign keys off, snapshots (hourly and before every migration), the restore drill, restore and a raw export. See "Data safety".
 
 **Sync is read-only for now:** the host only reads from its sources, and no app edits a contact or an event. The two modes are described in "Demo and real mode". **Next:** myMail; see "Build order". Chained requests are an open problem, not a blocker: the planner write-up in `host/results/2026-10-11-b-REPORT.md` is the starting point. Answer latency is in "Answer latency" below.
 
@@ -82,10 +83,17 @@ One host per household, clients on every device.
 - One SQLite file per service; binary files on disk.
 - Every record has a device-generated ID, created and modified timestamps, and a soft-delete marker.
 - The host is the source of truth.
-- Backups: Litestream for SQLite, restic for files.
+- Backups: the host's own snapshots of every SQLite file (see "Data safety"). Litestream is deferred (it conflicts with the host's `wal_checkpoint(TRUNCATE)`); restic for files is optional and later.
 - Search: SQLite FTS5 for text, sqlite-vec for embeddings. Index the data; do not train on it.
 - PostgreSQL with pgvector only if multi-user support is ever needed.
 - Standards over invention: IMAP for mail, CardDAV for contacts, CalDAV for calendar.
+
+### Data safety
+
+- **Migrations** run on their own connection with foreign keys off, set before `BEGIN`; then `foreign_key_check` and `integrity_check` must pass, or the migration is rolled back (`sources/_db.py`). With foreign keys on, rebuilding a parent table deleted every child row through `ON DELETE CASCADE`.
+- **Snapshots** (`service/backup.py`): `backups/<UTC time>/` in the host folder, hourly while the host runs and always before a migration. **The host never migrates a file without a snapshot:** stores are opened through `open_store`, which refuses (and reports it in `/status`'s `last_error`) when that snapshot fails. Kept: 24 hourly, 30 daily, 12 monthly, plus 90 days for those taken before a migration or restore, or by hand.
+- **Restore drill:** `mydata backup verify` restores a snapshot into a temporary folder, migrates and checks it, and records the result, which `/status` reports with the last snapshot and FileVault. It runs in the test suite on synthetic data; there is no CI. `mydata backup restore` needs the host stopped. `mydata export --out DIR` writes the stored vCards and ICS outside the checkout.
+- **Develop on a separate host folder.** A branch with a new migration, run against the default folder, migrates the real data (after a snapshot), and an older checkout then refuses the newer file. Run a development host with its own `MYDATA_HOME` (outside the checkout) and port: `MYDATA_HOME=~/mydata-dev uv run mydata run` once to create `~/mydata-dev/config.toml`, set its `[server] port` to something other than 47821, then `MYDATA_HOME=~/mydata-dev uv run mydata dev-setup` so the apps can start it. Point the apps at it with `flutter run --dart-define=MYDATA_HOME=$HOME/mydata-dev`. Tests always use temporary folders.
 
 ### Contacts and calendars sources
 
