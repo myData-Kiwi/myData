@@ -1,0 +1,132 @@
+<!-- @dsCard group="Calendar" height=970 -->
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700&family=Figtree:wght@400;600&family=JetBrains+Mono&display=swap">
+<style>
+body{margin:0;padding:24px;background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:22px}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.btn{height:44px;padding:0 22px;border-radius:var(--radius-control);font:600 15px/1 var(--font-body);border:0;cursor:pointer}
+.primary{background:var(--accent);color:var(--on-accent)}
+.tonal{background:var(--accent-soft);color:var(--accent)}
+.plain{background:transparent;color:var(--accent)}
+.danger{background:var(--danger);color:var(--on-danger)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.card{background:var(--surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-1)}
+.tile{width:36px;height:36px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;flex:none}
+.tile svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.t-accent{background:var(--accent-soft);color:var(--accent)}.t-ok{background:var(--success-soft);color:var(--success)}
+.t-warn{background:var(--warning-soft);color:var(--warning)}.t-info{background:var(--info-soft);color:var(--info)}
+.chipst{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:var(--radius-pill);font:600 13px/1 var(--font-body);white-space:nowrap}
+.cap{font-size:13px;line-height:18px;color:var(--ink-muted)}
+.lbl{font:600 13px/18px var(--font-body);color:var(--ink-muted);margin:0 0 8px 8px}
+.sec{margin-bottom:32px}
+.g{max-width:560px;overflow:hidden}
+.part{padding:20px}
+.name{font:600 13px/18px var(--font-body);color:var(--ink);margin:0 0 8px;display:block}
+input.tf{height:44px;box-sizing:border-box;width:100%;max-width:420px;padding:0 var(--space-4);border:1px solid var(--line-strong);border-radius:var(--radius-md);background:var(--surface);color:var(--ink);font:400 15px var(--font-body);margin-bottom:20px}
+.cp{display:flex;flex-wrap:wrap;gap:8px}
+.sw{width:44px;height:44px;box-sizing:border-box;border:0;padding:0;border-radius:var(--radius-pill);background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none;transition:box-shadow .12s,background-color .12s,transform .12s,opacity .12s}
+.sw:hover,.sw.hv{box-shadow:inset 0 0 0 1px var(--line-strong)}
+.sw:active{opacity:.85;transform:scale(.97)}
+.sw[aria-checked="true"]{background:var(--accent-soft);box-shadow:inset 0 0 0 2px var(--ink)}
+.sw.fc{outline:2px solid var(--focus);outline-offset:2px}
+.disc{width:20px;height:20px;border-radius:var(--radius-pill);background:var(--c,var(--line-strong));display:block}
+.edge{box-shadow:inset 0 0 0 1px var(--line-strong)}
+.cn{font-size:13px;line-height:18px;color:var(--ink-muted);margin-top:8px}
+.strip{display:grid;grid-template-columns:repeat(6,96px);row-gap:8px;justify-items:center;padding:16px;width:max-content;max-width:100%;box-sizing:border-box;overflow-x:auto}
+.strip .h{font-size:13px;line-height:18px;color:var(--ink-muted);text-align:center}
+.cols{display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start}.cols>section{flex:1 1 320px;max-width:560px}
+.narrow{width:358px;max-width:100%}
+/* The palette: the data-* tokens, one value in both modes (README, Tokens). */
+.c-red{--c:var(--data-red)}.c-orange{--c:var(--data-orange)}.c-yellow{--c:var(--data-yellow)}.c-green{--c:var(--data-green)}
+.c-blue{--c:var(--data-blue)}.c-purple{--c:var(--data-purple)}.c-brown{--c:var(--data-brown)}.c-grey{--c:var(--data-grey)}
+.c-cur{--c:#1F1F1F}
+.dlgp{background:var(--surface-raised);border-radius:var(--radius-xl);box-shadow:var(--shadow-2);padding:var(--space-6)}
+.cp.four{display:grid;grid-template-columns:repeat(4,var(--control-height));gap:var(--space-2)}
+</style></head><body>
+<div class="cols">
+<section class="sec" aria-labelledby="h-new">
+<p class="lbl" id="h-new">In the New calendar dialog (live: click, or Tab to the chosen swatch and use the arrow keys)</p>
+<div class="dlgp g"><div>
+<label class="name" for="cal-name">Name</label><input class="tf" id="cal-name" type="text" value="Book club">
+<span class="name" id="cp1-l">Colour</span>
+<div class="cp" role="radiogroup" aria-labelledby="cp1-l" data-name="cp1-n"></div>
+<div class="cn" id="cp1-n" aria-hidden="true"></div>
+</div></div>
+</section>
+<section class="sec" aria-labelledby="h-imp">
+<p class="lbl" id="h-imp">Edit calendar, for a calendar imported with its own colour</p>
+<div class="dlgp g"><div>
+<label class="name" for="cal-name2">Name</label><input class="tf" id="cal-name2" type="text" value="Choir">
+<span class="name" id="cp2-l">Colour</span>
+<div class="cp" role="radiogroup" aria-labelledby="cp2-l" data-name="cp2-n" data-current="1"></div>
+<div class="cn" id="cp2-n" aria-hidden="true"></div>
+</div></div>
+</section>
+</div>
+
+<section class="sec" aria-label="Swatch states" aria-hidden="true">
+<p class="lbl">Swatch states (static)</p>
+<div class="card strip">
+<span class="h">Rest</span><span class="h">Hover</span><span class="h">Chosen</span><span class="h">Focused</span><span class="h">Chosen, focused</span><span class="h">Low contrast: edge (light mode)</span>
+<span class="sw"><span class="disc c-blue"></span></span>
+<span class="sw hv"><span class="disc c-blue"></span></span>
+<span class="sw" aria-checked="true"><span class="disc c-blue"></span></span>
+<span class="sw fc"><span class="disc c-blue"></span></span>
+<span class="sw fc" aria-checked="true"><span class="disc c-blue"></span></span>
+<span class="sw"><span class="disc c-yellow"></span></span>
+</div>
+</section>
+
+<section class="sec narrow" aria-labelledby="h-ph">
+<p class="lbl" id="h-ph">Phone: a grid of four columns; Current colour starts a third row</p>
+<div class="dlgp"><div>
+<span class="name" id="cp3-l">Colour</span>
+<div class="cp four" role="radiogroup" aria-labelledby="cp3-l" data-name="cp3-n" data-current="1"></div>
+<div class="cn" id="cp3-n" aria-hidden="true"></div>
+</div></div>
+</section>
+
+<script>
+(function () {
+  var PAL = [['red', 'Red'], ['orange', 'Orange'], ['yellow', 'Yellow'], ['green', 'Green'], ['blue', 'Blue'], ['purple', 'Purple'], ['brown', 'Brown'], ['grey', 'Grey']];
+  document.querySelectorAll('.cp').forEach(function (g, gi) {
+    var items = PAL.slice(); if (g.dataset.current) items.push(['cur', 'Current colour']);
+    var chosen = g.dataset.current ? items.length - 1 : 4, nameEl = document.getElementById(g.dataset.name);
+    items.forEach(function (c, i) {
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'sw'; b.setAttribute('role', 'radio');
+      b.setAttribute('aria-label', c[1]); b.title = c[1];
+      b.innerHTML = '<span class="disc c-' + c[0] + '" aria-hidden="true"></span>';
+      b.addEventListener('click', function () { pick(i); });
+      b.addEventListener('keydown', function (e) {
+        var d = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0;
+        if (d) { e.preventDefault(); var n = (chosen + d + items.length) % items.length; pick(n); g.children[n].focus(); }
+      });
+      g.appendChild(b);
+    });
+    function pick(i) {
+      chosen = i;
+      [].forEach.call(g.children, function (b, j) { b.setAttribute('aria-checked', j === i ? 'true' : 'false'); b.tabIndex = j === i ? 0 : -1; });
+      nameEl.textContent = items[i][1];
+      edges();
+    }
+    pick(chosen);
+  });
+
+  // DataColour: a swatch with less than 3:1 against the ground it sits on gets a 1px line-strong edge.
+  function rgb(s) { var m = s.match(/[\d.]+/g); return m ? m.map(Number) : null; }
+  function lum(c) { var a = c.slice(0, 3).map(function (v) { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * a[0] + 0.7152 * a[1] + 0.0722 * a[2]; }
+  function ground(el) { for (var p = el.parentElement; p; p = p.parentElement) { var c = rgb(getComputedStyle(p).backgroundColor); if (c && (c.length < 4 || c[3] > 0)) return c; } return [255, 255, 255]; }
+  function edges() {
+    document.querySelectorAll('.disc').forEach(function (el) {
+      var a = lum(rgb(getComputedStyle(el).backgroundColor)), b = lum(ground(el));
+      el.classList.toggle('edge', (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05) < 3);
+    });
+  }
+  edges();
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', edges);
+  new MutationObserver(edges).observe(document.documentElement, { attributes: true });
+})();
+</script>
+</body></html>

@@ -1,0 +1,167 @@
+<!-- @dsCard group="Inputs" height=1080 -->
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700&family=Figtree:wght@400;600&family=JetBrains+Mono&display=swap">
+<style>
+body{margin:0;padding:24px;background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:22px}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.btn{height:44px;padding:0 22px;border-radius:var(--radius-control);font:600 15px/1 var(--font-body);border:0;cursor:pointer}
+.primary{background:var(--accent);color:var(--on-accent)}
+.tonal{background:var(--accent-soft);color:var(--accent)}
+.plain{background:transparent;color:var(--accent)}
+.danger{background:var(--danger);color:var(--on-danger)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.card{background:var(--surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-1)}
+.tile{width:36px;height:36px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;flex:none}
+.tile svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.t-accent{background:var(--accent-soft);color:var(--accent)}.t-ok{background:var(--success-soft);color:var(--success)}
+.t-warn{background:var(--warning-soft);color:var(--warning)}.t-info{background:var(--info-soft);color:var(--info)}
+.chipst{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:var(--radius-pill);font:600 13px/1 var(--font-body);white-space:nowrap}
+.cap{font-size:13px;line-height:18px;color:var(--ink-muted)}
+.lbl{font:600 13px/18px var(--font-body);color:var(--ink-muted);margin:0 0 8px 8px}
+.sec{margin-bottom:24px}
+.cols{display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start}.cols>div{flex:1 1 340px;max-width:480px}
+.g{overflow:hidden}
+.r{display:flex;gap:12px;align-items:center;min-height:56px;box-sizing:border-box;padding:8px 16px;border-top:1px solid var(--line);cursor:pointer;transition:background-color .12s}
+.g>:first-child{border-top:0}
+.r:hover,.r.is-hover{background:var(--surface-hover)}
+.r:active{opacity:.85}
+.r:focus-visible,.r.is-focus{outline:2px solid var(--focus);outline-offset:-2px}
+.r .txt{flex:1;min-width:0}.t{font-weight:600;display:block}.cap.b{display:block}
+.slot{width:36px;height:36px;display:flex;align-items:center;justify-content:center;flex:none}
+.box{width:20px;height:20px;box-sizing:border-box;border-radius:var(--radius-xs);border:1px solid var(--line-strong);background:var(--surface);color:var(--on-accent);display:flex;align-items:center;justify-content:center;flex:none;transition:background-color .12s,border-color .12s}
+.box svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;opacity:0;transition:opacity .12s}
+.box .mx{display:none}
+[aria-checked="true"]>.box,[aria-checked="true"] .box,[aria-checked="mixed"] .box{background:var(--accent);border-color:var(--accent)}
+[aria-checked="true"] .box .ck{opacity:1}
+[aria-checked="mixed"] .box .ck{display:none}
+[aria-checked="mixed"] .box .mx{display:block;opacity:1}
+.opt{display:flex;gap:12px;align-items:flex-start;min-height:44px;box-sizing:border-box;padding:11px 0;cursor:pointer;border-radius:var(--radius-sm)}
+.opt .box{margin-top:1px}
+.opt:hover[aria-checked="false"] .box,.opt.is-hover .box{background:var(--surface-hover)}
+.opt:active{opacity:.85}
+.opt:focus-visible{outline:0}
+.opt:focus-visible .box,.opt.is-focus .box{outline:2px solid var(--focus);outline-offset:2px}
+/* Disabled: the box and label fade; the reason line keeps full ink-muted. */
+.opt[aria-disabled="true"],.r[aria-disabled="true"]{cursor:not-allowed}
+.opt[aria-disabled="true"] .box,.opt[aria-disabled="true"] .lt{opacity:.45}
+.opts{display:flex;flex-direction:column;gap:8px}
+.dlg{padding:20px;background:var(--surface-raised);box-shadow:var(--shadow-2);border-radius:var(--radius-xl);max-width:440px}
+.dlg h3{font:700 22px/28px var(--font-display);letter-spacing:-0.01em;margin:0 0 8px}
+.dlg p{margin:0 0 12px;color:var(--ink-muted)}
+.acts{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;flex-wrap:wrap;align-items:center}
+.states{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px 16px}
+.why{font-size:13px;line-height:18px;color:var(--ink-muted)}
+.foot{display:flex;gap:12px;align-items:center;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}
+.phone{width:360px;max-width:100%;border-radius:var(--radius-xl);background:var(--bg);padding:16px;box-sizing:border-box;box-shadow:var(--shadow-1)}
+.phone .r{font-size:16px}
+.strip{padding:20px;border-radius:var(--radius-lg);background:var(--bg)}
+</style></head><body>
+<div class="cols"><div>
+<section class="sec" aria-labelledby="h-list">
+<p class="lbl" id="h-list">Try it: Import these 6 contacts (select all, rows, Space, ⇧-click)</p>
+<div class="card g" id="imp" role="group" aria-labelledby="h-list">
+<div class="r" id="all" role="checkbox" aria-checked="mixed" tabindex="0"><span class="slot"><span class="box"><svg class="ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 12.5l3.5 3.5 7.5-8"></path></svg><svg class="mx" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 12h9"></path></svg></span></span><span class="txt"><span class="t">All 6 contacts</span><span class="cap b" id="cnt">4 of 6 selected</span></span></div>
+<div id="items" role="group" aria-label="Contacts in the file" tabindex="0">
+<div class="r it" role="checkbox" aria-checked="true" tabindex="-1"><span class="slot"><span class="box"><svg class="ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 12.5l3.5 3.5 7.5-8"></path></svg><svg class="mx" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 12h9"></path></svg></span></span><span class="txt"><span class="t">Ava Fictional</span><span class="cap b">ava@example.org</span></span></div>
+<div class="r it" role="checkbox" aria-checked="true" tabindex="-1"><span class="slot"><span class="box"><svg class="ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 12.5l3.5 3.5 7.5-8"></path></svg><svg class="mx" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 12h9"></path></svg></span></span><span class="txt"><span class="t">Ben Sample</span><span class="cap b">555-0142</span></span></div>
+<div class="r it" role="checkbox" aria-checked="false" tabindex="-1"><span class="slot"><span class="box"><svg class="ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 12.5l3.5 3.5 7.5-8"></path></svg><svg class="mx" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 12h9"></path></svg></span></span><span class="txt"><span class="t">Chloe Example</span><span class="cap b">Possible duplicate of Chloe Example on myData</span></span></div>
+<div class="r it" role="checkbox" aria-checked="true" tabindex="-1"><span class="slot"><span class="box"><svg class="ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 12.5l3.5 3.5 7.5-8"></path></svg><svg class="mx" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 12h9"></path></svg></span></span><span class="txt"><span class="t">Dev Placeholder</span><span class="cap b">dev@example.org</span></span></div>
+<div class="r it" role="checkbox" aria-checked="false" tabindex="-1"><span class="slot"><span class="box"><svg class="ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 12.5l3.5 3.5 7.5-8"></path></svg><svg class="mx" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 12h9"></path></svg></span></span><span class="txt"><span class="t">Eli Testcase</span><span class="cap b">555-0137</span></span></div>
+<div class="r it" role="checkbox" aria-checked="true" tabindex="-1"><span class="slot"><span class="box"><svg class="ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 12.5l3.5 3.5 7.5-8"></path></svg><svg class="mx" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 12h9"></path></svg></span></span><span class="txt"><span class="t">Farah Mock</span><span class="cap b">farah@example.org</span></span></div>
+</div>
+</div>
+<div class="foot"><span class="why" id="why" hidden>Choose at least one contact to import.</span><button class="btn primary" id="go" type="button" aria-describedby="why">Import 4 contacts</button></div>
+<p class="cap" role="status" aria-live="polite" id="said" style="margin:8px 0 0 8px"></p>
+</section>
+</div><div>
+<section class="sec" aria-labelledby="h-dlg">
+<p class="lbl" id="h-dlg">An option in a dialog: unchecked by default</p>
+<div class="dlg" role="dialog" aria-labelledby="d-t">
+<h3 id="d-t">Undo this import?</h3>
+<p>The 48 contacts imported from contacts.vcf on 12 October are moved to Recently deleted.</p>
+<div class="opts">
+<div class="opt" role="checkbox" aria-checked="false" tabindex="0" data-toggle><span class="box"><svg class="ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 12.5l3.5 3.5 7.5-8"></path></svg><svg class="mx" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 12h9"></path></svg></span><span class="txt">Also remove the 3 contacts you changed after the import<span class="cap b">Ava Fictional, Ben Sample and Chloe Example</span></span></div>
+</div>
+<div class="acts"><button class="btn plain" type="button">Cancel</button><button class="btn danger" type="button">Undo import</button></div>
+</div>
+</section>
+<section class="sec" aria-labelledby="h-st">
+<p class="lbl" id="h-st">States</p>
+<div class="card" style="padding:20px">
+<div class="states">
+<div class="opt" role="checkbox" aria-checked="false" tabindex="-1"><span class="box"><svg class="ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 12.5l3.5 3.5 7.5-8"></path></svg><svg class="mx" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 12h9"></path></svg></span><span>Unchecked</span></div>
+<div class="opt" role="checkbox" aria-checked="true" tabindex="-1"><span class="box"><svg class="ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 12.5l3.5 3.5 7.5-8"></path></svg><svg class="mx" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 12h9"></path></svg></span><span>Checked</span></div>
+<div class="opt" role="checkbox" aria-checked="mixed" tabindex="-1"><span class="box"><svg class="ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 12.5l3.5 3.5 7.5-8"></path></svg><svg class="mx" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 12h9"></path></svg></span><span>Mixed</span></div>
+<div class="opt is-hover" role="checkbox" aria-checked="false" tabindex="-1"><span class="box"><svg class="ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 12.5l3.5 3.5 7.5-8"></path></svg><svg class="mx" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 12h9"></path></svg></span><span>Hover</span></div>
+<div class="opt is-focus" role="checkbox" aria-checked="true" tabindex="-1"><span class="box"><svg class="ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 12.5l3.5 3.5 7.5-8"></path></svg><svg class="mx" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 12h9"></path></svg></span><span>Focused</span></div>
+<div class="opt" role="checkbox" aria-checked="true" aria-disabled="true" aria-describedby="dis-why" tabindex="-1"><span class="box"><svg class="ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 12.5l3.5 3.5 7.5-8"></path></svg><svg class="mx" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 12h9"></path></svg></span><span class="txt"><span class="lt">Disabled</span><span class="cap b" id="dis-why">This Mac’s contacts cannot be removed here.</span></span></div>
+</div>
+</div>
+</section>
+</div></div>
+<div class="cols">
+<section class="sec" aria-labelledby="h-gr">
+<p class="lbl" id="h-gr">The mark carries the state (look at it in Graphite, where accent is close to ink)</p>
+<div class="strip">
+<div class="card g">
+<div class="r" role="checkbox" aria-checked="mixed" tabindex="-1"><span class="slot"><span class="box"><svg class="ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 12.5l3.5 3.5 7.5-8"></path></svg><svg class="mx" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 12h9"></path></svg></span></span><span class="txt"><span class="t">All 3 calendars</span><span class="cap b">2 of 3 selected</span></span></div>
+<div class="r" role="checkbox" aria-checked="true" tabindex="-1"><span class="slot"><span class="box"><svg class="ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 12.5l3.5 3.5 7.5-8"></path></svg><svg class="mx" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 12h9"></path></svg></span></span><span class="txt"><span class="t">Family</span><span class="cap b">214 events</span></span></div>
+<div class="r is-hover" role="checkbox" aria-checked="false" tabindex="-1"><span class="slot"><span class="box"><svg class="ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 12.5l3.5 3.5 7.5-8"></path></svg><svg class="mx" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 12h9"></path></svg></span></span><span class="txt"><span class="t">Birthdays</span><span class="cap b">Hover: the row fills, not the box</span></span></div>
+<div class="r" role="checkbox" aria-checked="true" tabindex="-1"><span class="slot"><span class="box"><svg class="ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 12.5l3.5 3.5 7.5-8"></path></svg><svg class="mx" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 12h9"></path></svg></span></span><span class="txt"><span class="t">Book club</span><span class="cap b">36 events</span></span></div>
+</div>
+</div>
+</section>
+<section class="sec" aria-labelledby="h-ph">
+<p class="lbl" id="h-ph">Phone: the row is the target</p>
+<div class="phone">
+<div class="card g">
+<div class="r" role="checkbox" aria-checked="true" tabindex="-1"><span class="slot"><span class="box"><svg class="ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 12.5l3.5 3.5 7.5-8"></path></svg><svg class="mx" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 12h9"></path></svg></span></span><span class="txt"><span class="t">All 2 address books</span><span class="cap b">2 of 2 selected</span></span></div>
+<div class="r" role="checkbox" aria-checked="true" tabindex="-1"><span class="slot"><span class="box"><svg class="ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 12.5l3.5 3.5 7.5-8"></path></svg><svg class="mx" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 12h9"></path></svg></span></span><span class="txt"><span class="t">Contacts</span><span class="cap b">412 contacts</span></span></div>
+<div class="r" role="checkbox" aria-checked="true" tabindex="-1"><span class="slot"><span class="box"><svg class="ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 12.5l3.5 3.5 7.5-8"></path></svg><svg class="mx" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 12h9"></path></svg></span></span><span class="txt"><span class="t">Work</span><span class="cap b">57 contacts</span></span></div>
+</div>
+</div>
+</section>
+</div>
+<script>
+(function () {
+  function toggle(el) { if (el.getAttribute('aria-disabled') === 'true') return; el.setAttribute('aria-checked', el.getAttribute('aria-checked') === 'true' ? 'false' : 'true'); }
+  document.querySelectorAll('[data-toggle]').forEach(function (el) {
+    el.addEventListener('click', function () { toggle(el); });
+    el.addEventListener('keydown', function (e) { if (e.key === ' ') { e.preventDefault(); toggle(el); } });
+  });
+  var all = document.getElementById('all'), box = document.getElementById('items'), cnt = document.getElementById('cnt'), go = document.getElementById('go'), why = document.getElementById('why'), said = document.getElementById('said');
+  var rows = Array.prototype.slice.call(box.querySelectorAll('.it')), cur = 0, last = null;
+  function sync(announce) {
+    var n = rows.filter(function (r) { return r.getAttribute('aria-checked') === 'true'; }).length;
+    all.setAttribute('aria-checked', n === 0 ? 'false' : n === rows.length ? 'true' : 'mixed');
+    cnt.textContent = n + ' of ' + rows.length + ' selected';
+    go.disabled = n === 0; why.hidden = n !== 0;
+    go.textContent = n === 1 ? 'Import 1 contact' : 'Import ' + (n || '') + (n ? ' contacts' : 'contacts');
+    if (announce) said.textContent = cnt.textContent;
+  }
+  function set(i, shift) {
+    var to = rows[i].getAttribute('aria-checked') === 'true' ? 'false' : 'true';
+    if (shift && last !== null) { var a = Math.min(last, i), b = Math.max(last, i); for (var k = a; k <= b; k++) rows[k].setAttribute('aria-checked', to); }
+    else rows[i].setAttribute('aria-checked', to);
+    last = i; sync(true);
+  }
+  function focusRow(i) { cur = Math.max(0, Math.min(rows.length - 1, i)); rows.forEach(function (r, j) { r.tabIndex = j === cur ? 0 : -1; }); rows[cur].focus(); }
+  box.tabIndex = -1; rows[0].tabIndex = 0;
+  rows.forEach(function (r, i) { r.addEventListener('click', function (e) { cur = i; set(i, e.shiftKey); focusRow(i); }); });
+  box.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowDown') { e.preventDefault(); focusRow(cur + 1); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); focusRow(cur - 1); }
+    else if (e.key === 'Home') { e.preventDefault(); focusRow(0); }
+    else if (e.key === 'End') { e.preventDefault(); focusRow(rows.length - 1); }
+    else if (e.key === ' ') { e.preventDefault(); set(cur, e.shiftKey); }
+    else if ((e.metaKey || e.ctrlKey) && e.key === 'a') { e.preventDefault(); rows.forEach(function (r) { r.setAttribute('aria-checked', 'true'); }); sync(true); }
+  });
+  function flipAll() { var to = all.getAttribute('aria-checked') === 'true' ? 'false' : 'true'; rows.forEach(function (r) { r.setAttribute('aria-checked', to); }); sync(true); }
+  all.addEventListener('click', flipAll);
+  all.addEventListener('keydown', function (e) { if (e.key === ' ') { e.preventDefault(); flipAll(); } });
+  sync(false);
+})();
+</script>
+</body></html>

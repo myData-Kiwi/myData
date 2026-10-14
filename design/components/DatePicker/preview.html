@@ -1,0 +1,237 @@
+<!-- @dsCard group="Inputs" height=1560 -->
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700&family=Figtree:wght@400;600&family=JetBrains+Mono&display=swap">
+<style>
+body{margin:0;padding:24px;background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:22px}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.btn{height:44px;padding:0 22px;border-radius:var(--radius-control);font:600 15px/1 var(--font-body);border:0;cursor:pointer}
+.primary{background:var(--accent);color:var(--on-accent)}
+.tonal{background:var(--accent-soft);color:var(--accent)}
+.plain{background:transparent;color:var(--accent)}
+.danger{background:var(--danger);color:var(--on-danger)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.card{background:var(--surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-1)}
+.tile{width:36px;height:36px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;flex:none}
+.tile svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.t-accent{background:var(--accent-soft);color:var(--accent)}.t-ok{background:var(--success-soft);color:var(--success)}
+.t-warn{background:var(--warning-soft);color:var(--warning)}.t-info{background:var(--info-soft);color:var(--info)}
+.chipst{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:var(--radius-pill);font:600 13px/1 var(--font-body);white-space:nowrap}
+.cap{font-size:13px;line-height:18px;color:var(--ink-muted)}
+.lbl{font:600 13px/18px var(--font-body);color:var(--ink-muted);margin:0 0 8px 8px}
+.sec{margin-bottom:40px}
+.fl{font:600 13px/18px var(--font-body);color:var(--ink);display:block;margin-bottom:8px}
+.help{font-size:13px;line-height:18px;color:var(--ink-muted);margin-top:8px;max-width:340px}
+.fd{display:inline-flex;align-items:center;gap:8px;height:44px;box-sizing:border-box;padding:0 12px 0 16px;border:1px solid var(--line-strong);border-radius:var(--radius-md);background:var(--surface);color:var(--ink)}
+.fd input{border:0;outline:0;background:transparent;color:inherit;font:400 15px var(--font-body);width:136px;padding:0}
+.fd svg{width:20px;height:20px;fill:none;stroke:var(--ink-muted);stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.fd:focus-within,.fd.fc{outline:2px solid var(--focus);outline-offset:2px}
+.fd.err{border:2px solid var(--danger);padding:0 11px 0 15px}
+.err-t{color:var(--danger)}
+.fd.dis{opacity:.45}
+.fields{display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start}
+.anchor{position:relative;display:inline-block}
+.pop{background:var(--surface-raised);box-shadow:var(--shadow-2);border-radius:var(--radius-md);padding:12px;width:max-content;margin-top:4px}
+.pop.float{position:absolute;left:0;top:100%;z-index:3}
+.ph{display:flex;align-items:center;gap:4px;margin-bottom:4px}
+.ph h4{flex:1;margin:0 0 0 4px;font:600 17px/24px var(--font-body)}
+.ib{width:44px;height:44px;border:0;padding:0;border-radius:var(--radius-pill);background:transparent;color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none}
+.ib:hover{background:var(--surface-hover)}
+.ib svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.cal{display:grid;grid-template-columns:repeat(7,44px)}
+.wd{height:28px;display:flex;align-items:center;justify-content:center;font-size:13px;line-height:18px;color:var(--ink-muted)}
+.d{width:44px;height:44px;box-sizing:border-box;border-radius:var(--radius-pill);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:box-shadow .12s,background-color .12s}
+.d .n{width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:var(--radius-pill)}
+.d:hover,.d.hv{box-shadow:inset 0 0 0 1px var(--line-strong)}
+.d.out .n{color:var(--ink-muted)}
+.d.today .n{background:var(--accent);color:var(--on-accent);font-weight:600}
+.d.sel{background:var(--accent-soft)}
+.d.sel,.d.sel:hover{box-shadow:inset 0 0 0 2px var(--ink)}
+.d.sel .n{color:var(--ink)}
+.d.sel.today .n{color:var(--on-accent)}
+.d.na{cursor:default}.d.na:hover{box-shadow:none}.d.na .n{opacity:.45}
+.d:focus-visible,.d.fc{outline:2px solid var(--focus);outline-offset:-6px}
+.strip{display:grid;grid-template-columns:repeat(8,88px);row-gap:8px;justify-items:center;padding:16px;width:max-content;max-width:100%;box-sizing:border-box;overflow-x:auto}
+.strip .h{font-size:13px;line-height:18px;color:var(--ink-muted);text-align:center}
+.sels{display:flex;gap:8px;flex:1;margin-right:4px}
+.sl{height:44px;box-sizing:border-box;padding:0 8px 0 12px;border:1px solid var(--line-strong);border-radius:var(--radius-md);background:var(--surface);color:var(--ink);display:flex;align-items:center;gap:4px;font:400 15px var(--font-body)}
+.sl svg{width:20px;height:20px;fill:none;stroke:var(--ink-muted);stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.phone{width:358px;max-width:100%;border-radius:var(--radius-xl);background:var(--bg);box-shadow:0 0 0 1px var(--line);overflow:hidden;position:relative;height:560px}
+.phone .scrim{position:absolute;inset:0;background:var(--scrim)}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--surface-raised);border-radius:var(--radius-xl) var(--radius-xl) 0 0;box-shadow:var(--shadow-2);padding:8px 13px 24px}
+.grab{width:36px;height:4px;border-radius:var(--radius-pill);background:var(--line-strong);margin:0 auto 12px}
+.sh{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;margin-bottom:var(--space-2)}
+.sh h3{margin:0;text-align:center;font:600 17px/24px var(--font-body)}
+.sh .btn{justify-self:start;padding:0 var(--space-2)}
+.form{padding:20px 16px}
+.cols{display:flex;flex-wrap:wrap;gap:40px;align-items:flex-start}
+/* Focus on something already red is ink, not the red focus (design/README.md, "Focus and danger"). */
+.fd.err:focus-within,.fd.err.fc{outline-color:var(--ink)}
+</style></head><body>
+<section class="sec" aria-label="Field states">
+<p class="lbl">The field</p>
+<div class="fields">
+<div><label class="fl" for="f1">Starts</label><span class="fd"><input id="f1" value="Wed 14 Oct 2026" aria-label="Start date"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3"></rect><path d="M3.5 10h17M8 3v4M16 3v4"></path></svg></span></div>
+<div><span class="fl">Focused</span><span class="fd fc"><input value="Wed 14 Oct 2026" aria-label="Focused example" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3"></rect><path d="M3.5 10h17M8 3v4M16 3v4"></path></svg></span></div>
+<div><label class="fl" for="f3">Ends</label><span class="fd err"><input id="f3" value="14/13/2026" aria-invalid="true" aria-describedby="f3h" aria-label="End date"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3"></rect><path d="M3.5 10h17M8 3v4M16 3v4"></path></svg></span><div class="help err-t" id="f3h">That is not a date. Type it like 16/10/2026.</div></div>
+<div><span class="fl">Starts</span><span class="fd dis"><input value="Fri 16 Oct 2026" disabled aria-label="Start date, disabled"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3"></rect><path d="M3.5 10h17M8 3v4M16 3v4"></path></svg></span><div class="help">Events organised by someone else cannot be moved yet.</div></div>
+</div>
+</section>
+
+<section class="sec" aria-label="Open">
+<p class="lbl">Ends, open (live: type a date such as 20/10/2026 or 3 nov and press Return; Up and Down in the field step a day; Option-Down moves into the calendar, where the arrow keys, Page Up and Page Down move and Return picks). Days before the start are unavailable: the arrow keys reach them, but they cannot be picked. In the app a pick closes the popover; here it stays open.</p>
+<div class="fields" style="min-height:450px">
+<div><span class="fl">Starts</span><span class="fd"><input value="Wed 14 Oct 2026" aria-label="Start date" readonly><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3"></rect><path d="M3.5 10h17M8 3v4M16 3v4"></path></svg></span></div>
+<div class="anchor"><label class="fl" for="live-in">Ends</label><span class="fd" id="live-fd"><input id="live-in" value="Fri 16 Oct 2026" aria-label="End date" role="combobox" aria-haspopup="dialog" aria-expanded="true" aria-describedby="live-help"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3"></rect><path d="M3.5 10h17M8 3v4M16 3v4"></path></svg></span><div class="help" id="live-help" hidden></div>
+<div class="pop float" id="live-pop" role="dialog" aria-label="End date, choose a date"></div></div>
+</div>
+</section>
+
+<section class="sec" aria-label="Day marks" aria-hidden="true">
+<p class="lbl">Day marks, MonthGrid's on a round cell (static)</p>
+<div class="card strip">
+<span class="h">Rest</span><span class="h">Hover</span><span class="h">Selected</span><span class="h">Today</span><span class="h">Selected, today</span><span class="h">Outside month</span><span class="h">Unavailable</span><span class="h">Focused, selected</span>
+<span class="d"><span class="n">15</span></span><span class="d hv"><span class="n">15</span></span><span class="d sel"><span class="n">16</span></span><span class="d today"><span class="n">14</span></span><span class="d sel today"><span class="n">14</span></span><span class="d out"><span class="n">2</span></span><span class="d na"><span class="n">12</span></span><span class="d sel fc"><span class="n">16</span></span>
+</div>
+</section>
+
+<div class="cols">
+<section aria-label="Birthday">
+<p class="lbl">Birthday, year optional</p>
+<label class="fl" for="bd">Birthday</label><span class="fd"><input id="bd" value="12 May 1990" aria-label="Birthday"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3"></rect><path d="M3.5 10h17M8 3v4M16 3v4"></path></svg></span>
+<div class="pop" role="dialog" aria-label="Birthday, choose a date">
+<div class="ph"><div class="sels"><span class="sl" role="button" aria-label="Month, May">May<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9l4-4 4 4M8 15l4 4 4-4"></path></svg></span><span class="sl" role="button" aria-label="Year, 1990">1990<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9l4-4 4 4M8 15l4 4 4-4"></path></svg></span></div><button class="ib" type="button" aria-label="Previous month"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button><button class="ib" type="button" aria-label="Next month"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg></button></div>
+<div id="bd-cal"></div>
+</div>
+</section>
+<section aria-label="Phone">
+<p class="lbl">Phone: the same calendar in a sheet</p>
+<div class="phone"><div class="form"><span class="fl">Starts</span><span class="fd"><input value="Wed 14 Oct 2026" aria-label="Start date" readonly tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3"></rect><path d="M3.5 10h17M8 3v4M16 3v4"></path></svg></span></div>
+<div class="scrim"></div>
+<div class="sheet" role="dialog" aria-label="Start date"><div class="grab"></div><div class="sh"><button class="btn plain" type="button">Cancel</button><h3>Start date</h3><span></span></div><div id="ph-cal"></div></div>
+</div>
+</section>
+</div>
+
+<script>
+(function () {
+  var MON = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  var SH = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var WD = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  var WS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  var TODAY = new Date(2026, 9, 14);
+  function same(a, b) { return a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(); }
+  function wd(d) { return (d.getDay() + 6) % 7; }
+  function medium(d) { return WS[wd(d)] + ' ' + d.getDate() + ' ' + SH[d.getMonth()] + ' ' + d.getFullYear(); }
+  function full(d, noYear) { return noYear ? d.getDate() + ' ' + MON[d.getMonth()] : WD[wd(d)] + ' ' + d.getDate() + ' ' + MON[d.getMonth()] + ' ' + d.getFullYear(); }
+  function addDays(d, n) { return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n); }
+  function addMonths(d, n) { var t = new Date(d.getFullYear(), d.getMonth() + n, 1); var last = new Date(t.getFullYear(), t.getMonth() + 1, 0).getDate(); return new Date(t.getFullYear(), t.getMonth(), Math.min(d.getDate(), last)); }
+
+  // Renders the six weeks. opts: {month (Date, any day), sel, focus, min, noYear, live}
+  function grid(opts) {
+    var first = new Date(opts.month.getFullYear(), opts.month.getMonth(), 1);
+    var start = addDays(first, -wd(first));
+    var g = document.createElement('div'); g.className = 'cal'; g.setAttribute('role', 'grid');
+    g.setAttribute('aria-label', opts.noYear ? MON[first.getMonth()] : MON[first.getMonth()] + ' ' + first.getFullYear());
+    var hr = document.createElement('div'); hr.setAttribute('role', 'row'); hr.style.display = 'contents';
+    WS.forEach(function (w, i) { var s = document.createElement('span'); s.className = 'wd'; s.setAttribute('role', 'columnheader'); s.title = WD[i]; s.textContent = w; hr.appendChild(s); });
+    g.appendChild(hr);
+    for (var w = 0; w < 6; w++) {
+      var row = document.createElement('div'); row.setAttribute('role', 'row'); row.style.display = 'contents';
+      for (var i = 0; i < 7; i++) {
+        var d = addDays(start, w * 7 + i), c = document.createElement('div');
+        var na = opts.min && d < opts.min, today = !opts.noYear && same(d, TODAY), sel = same(d, opts.sel);
+        c.className = 'd' + (d.getMonth() !== first.getMonth() ? ' out' : '') + (today ? ' today' : '') + (sel ? ' sel' : '') + (na ? ' na' : '');
+        c.setAttribute('role', 'gridcell');
+        c.setAttribute('aria-selected', sel ? 'true' : 'false');
+        if (na) c.setAttribute('aria-disabled', 'true');
+        c.setAttribute('aria-label', full(d, opts.noYear) + (today ? ', today' : '') + (na ? ', unavailable' : ''));
+        c.tabIndex = opts.live && same(d, opts.focus) ? 0 : -1;
+        c.dataset.t = d.getTime();
+        c.innerHTML = '<span class="n" aria-hidden="true">' + d.getDate() + '</span>';
+        row.appendChild(c);
+      }
+      g.appendChild(row);
+    }
+    return g;
+  }
+  function header(title) {
+    var h = document.createElement('div'); h.className = 'ph';
+    h.innerHTML = '<h4 aria-live="polite">' + title + '</h4><button class="ib" type="button" data-m="-1" aria-label="Previous month"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button><button class="ib" type="button" data-m="1" aria-label="Next month"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg></button>';
+    return h;
+  }
+
+  // Static ones: the birthday (no earliest date) and the phone sheet.
+  document.getElementById('bd-cal').appendChild(grid({ month: new Date(1990, 4, 1), sel: new Date(1990, 4, 12) }));
+  var ph = document.getElementById('ph-cal');
+  ph.appendChild(header('October 2026')); ph.appendChild(grid({ month: TODAY, sel: TODAY }));
+
+  // The live one: Ends, with Starts (14 Oct 2026) as its earliest date.
+  var MIN = new Date(2026, 9, 14);
+  var st = { value: new Date(2026, 9, 16), month: new Date(2026, 9, 1), focus: new Date(2026, 9, 16) };
+  var pop = document.getElementById('live-pop'), input = document.getElementById('live-in'), fd = document.getElementById('live-fd'), help = document.getElementById('live-help');
+  function draw(moveFocus) {
+    pop.innerHTML = '';
+    pop.appendChild(header(MON[st.month.getMonth()] + ' ' + st.month.getFullYear()));
+    pop.appendChild(grid({ month: st.month, sel: st.value, focus: st.focus, min: MIN, live: true }));
+    if (moveFocus) { var f = pop.querySelector('.d[tabindex="0"]'); if (f) f.focus(); }
+  }
+  function setError(msg) {
+    fd.classList.toggle('err', !!msg); help.hidden = !msg; help.textContent = msg || ''; help.className = 'help' + (msg ? ' err-t' : '');
+    input.setAttribute('aria-invalid', msg ? 'true' : 'false');
+  }
+  // A small en-GB reader: day first; "/", ".", "-" or spaces; month as a number or a word; optional year.
+  function parse(t) {
+    t = t.trim().toLowerCase().replace(/^(mon|tue|wed|thu|fri|sat|sun)[a-z]*\.?,?\s*/, '');
+    var p = t.split(/[\s\/.\-]+/).filter(Boolean); if (p.length < 2 || p.length > 3) return null;
+    var day = +p[0], m = /^\d+$/.test(p[1]) ? +p[1] - 1 : SH.findIndex(function (s) { return p[1].indexOf(s.toLowerCase()) === 0; });
+    var y = p.length === 3 ? +p[2] : st.value.getFullYear();
+    if (p.length === 3 && p[2].length === 2) y = 2000 + y;
+    if (!(day >= 1) || m < 0 || m > 11 || !(y > 0)) return null;
+    var d = new Date(y, m, day); return d.getMonth() === m ? d : null;
+  }
+  function commit() {
+    var d = parse(input.value);
+    if (!d) { setError('That is not a date. Type it like ' + st.value.getDate() + '/' + (st.value.getMonth() + 1) + '/' + st.value.getFullYear() + '.'); return; }
+    if (d < MIN) { setError('Ends before it starts. Choose ' + medium(MIN).slice(4) + ' or later.'); return; }
+    setError(null); st.value = st.focus = d; st.month = new Date(d.getFullYear(), d.getMonth(), 1); input.value = medium(d); draw(false);
+  }
+  input.addEventListener('input', function () { var d = parse(input.value); if (d) { st.focus = d; st.month = new Date(d.getFullYear(), d.getMonth(), 1); draw(false); } });
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); commit(); }
+    else if (e.key === 'Escape') { input.value = medium(st.value); setError(null); }
+    else if (e.key === 'ArrowDown' && e.altKey) { e.preventDefault(); st.focus = st.value; st.month = new Date(st.value.getFullYear(), st.value.getMonth(), 1); draw(true); }
+    else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      e.preventDefault(); var d = addDays(st.value, e.key === 'ArrowUp' ? 1 : -1);
+      input.value = medium(d);
+      if (d < MIN) { setError('Ends before it starts. Choose ' + medium(MIN).slice(4) + ' or later.'); return; }
+      setError(null); st.value = st.focus = d; st.month = new Date(d.getFullYear(), d.getMonth(), 1); draw(false);
+    }
+  });
+  input.addEventListener('blur', function (e) { if (!pop.contains(e.relatedTarget)) commit(); });
+  pop.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-m]');
+    if (b) { st.month = addMonths(st.month, +b.dataset.m); st.focus = addMonths(st.focus, +b.dataset.m); draw(false); return; }
+    var c = e.target.closest('.d'); if (!c || c.classList.contains('na')) return;
+    var d = new Date(+c.dataset.t); st.value = st.focus = d; st.month = new Date(d.getFullYear(), d.getMonth(), 1); input.value = medium(d); setError(null); draw(false); input.focus();
+  });
+  pop.addEventListener('keydown', function (e) {
+    var c = e.target.closest('.d'); if (!c) return;
+    var d = new Date(+c.dataset.t), n = null;
+    switch (e.key) {
+      case 'ArrowLeft': n = addDays(d, -1); break; case 'ArrowRight': n = addDays(d, 1); break;
+      case 'ArrowUp': n = addDays(d, -7); break; case 'ArrowDown': n = addDays(d, 7); break;
+      case 'PageUp': n = addMonths(d, e.shiftKey ? -12 : -1); break; case 'PageDown': n = addMonths(d, e.shiftKey ? 12 : 1); break;
+      case 'Home': n = addDays(d, -wd(d)); break; case 'End': n = addDays(d, 6 - wd(d)); break;
+      case 'Enter': case ' ': e.preventDefault(); if (!c.classList.contains('na')) { c.click(); } return;
+      case 'Escape': e.preventDefault(); input.focus(); return;
+      default: return;
+    }
+    e.preventDefault();
+    st.focus = n; st.month = new Date(n.getFullYear(), n.getMonth(), 1); draw(true);
+  });
+  draw(false);
+})();
+</script>
+</body></html>

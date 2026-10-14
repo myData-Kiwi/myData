@@ -1,0 +1,70 @@
+A field for one date in a form. The date can be typed, or picked from a small month calendar that opens under the field.
+
+- **Use it** for a date the user sets in a form: an event's start and end dates, the end date of a repeat, a contact's birthday.
+- **Do not use it** to browse or show a calendar (MonthGrid), for a date and a time (a DatePicker beside a TimePicker), for a range in one control (two DatePickers, "Starts" and "Ends"), or for a relative choice such as "2 days before" (a Select with presets).
+- **Dates only, with no time zone.** An all-day date and a birthday are the same wherever the device is (EventRow). A timed event's date is sent with its time and zone, and the host converts it (TimePicker).
+
+- **The field looks like a TextField** and can be typed into:
+  - the label above in the `label` style and `ink`, `space-2` above the field; optional help `space-2` below in `caption` and `ink-muted`;
+  - `surface` fill, 1px `line-strong` border, `radius-md`, `control-height`, `space-4` padding across, as the Select field;
+  - the value in `body` and `ink`: the locale's medium date with a short weekday and always the year ("Wed 14 Oct 2026");
+  - at the end, a calendar icon at `icon` size in `ink-muted`, `space-2` from the value. It is decoration: the field itself is the target, and the icon shows that a calendar opens;
+  - it is as wide as the longest date in the locale, not the full width of the form.
+- **States of the field:**
+  - Hover: none beyond the text cursor, as TextField.
+  - Focused: the 2px `focus` ring, 2px outside the field, when focus came from the keyboard. It stays while the popover is open. On a field in error the ring is `ink`, so it does not merge with the red border (design/README.md, "Focus and danger").
+  - Disabled: the field at 45% opacity, not focusable, announced as disabled, with the reason as its help, which is not faded, as Select (platforms.md, "Disabled controls"). A field is never disabled without a reason.
+  - Error: below, under Typing.
+- **The popover** opens under the field, aligned to its start, `space-1` below it (above it when there is no room below):
+  - the surface of the Menu and of Select's list: `surface-raised`, `shadow-2`, `radius-md`. Its padding is `space-3`, not the Menu's `space-1`, on purpose: a menu's rows run to its edges, while this holds a header and a grid of round cells that need a margin around them;
+  - at the top, the month and year in the `heading` style, then the IconButtons "Previous month" and "Next month" at the end;
+  - under them, the weekday names in their short form ("Mon"), in `caption` and `ink-muted`. The week starts on the locale's first day, as in MonthGrid;
+  - then six weeks of days, always six, so the popover keeps its size from month to month. Each day is a round cell `control-height` wide and tall, with no dividers. The popover is seven cells wide, 308px plus its padding.
+  - There is no Today button: the calendar always opens at the date in the field, and a new event's date starts at the day selected in myCalendar.
+- **Days reuse MonthGrid's day marks.** The marks are the same: only the cell's shape changes, a circle instead of a rectangle, and there are no events. In the widget, the popover draws its days with MonthGrid's own day cell, with events turned off and a round shape, so the two cannot drift apart.
+  - Today: the day number on a 28px `accent` disc, in `body-strong` and `on-accent`.
+  - Selected (the field's date): an `accent-soft` fill and a 2px `ink` ring inside the cell's edge. The ring is the signal, because in Graphite in light mode `accent-soft` is close to `surface-sunken`. The number is `ink`.
+  - Outside the month: the number in `ink-muted`. It can still be picked, and picking it shows its month.
+  - Hover: a 1px `line-strong` edge inside the cell, with no fill, appearing and going with `fast`. There is no hover edge on the selected day.
+  - Focused: the 2px `focus` ring inside the selection ring, as in MonthGrid, so both show.
+  - Not available: only when the form gives an earliest date (the end date cannot be before the start date). Days before it have their number at 45% opacity and cannot be picked. The arrow keys still land on them, so screen readers hear them ("13 October 2026, unavailable"), and Return does nothing there, as a disabled Menu item (platforms.md, "Disabled controls"). This is the one mark MonthGrid does not have.
+  - When marks meet, each keeps its own, drawn from the bottom up as in MonthGrid: fill, number (with the today disc), selection ring, focus ring.
+  - MonthGrid's "not read" fill never appears here: choosing a date is not limited by what myData reads from a source.
+
+- **Typing:**
+  - It accepts the locale's numeric order ("14/10/2026" in the UK, "10/14/2026" in the US), with "/", ".", "-" or spaces between the parts, and a month written as a word or its short form in the locale's language ("14 Oct 2026", "14 october"). A weekday, if typed, is ignored.
+  - A two-digit year is read in the century nearest to today ("26" is 2026). A date with no year takes the year of the date that was in the field before.
+  - While the popover is open, it follows the typing: as soon as the text reads as a date, the month and selected day move to it.
+  - Return, Tab or leaving the field commits the date and rewrites the text in the medium form, so the user sees what was understood. Escape puts back the date from before the typing.
+  - **Error:** text that is not a date gives TextField's error state (a 2px `danger` border, and the help replaced by the error in `danger`): "That is not a date. Type it like 14/10/2026." The example is in the locale's order and uses the date that was in the field. A date before the earliest allowed one says why, then the first date allowed: "Ends before it starts. Choose 14 Oct 2026 or later." (the repeat's end date: "The repeat ends before the event starts. Choose 14 Oct 2026 or later.") While a field is in error, the form keeps its last good date and cannot be saved (the editor's Save is the Inspector's rule).
+- **Keyboard (desktop):**
+  - Tab reaches the field and does not open the popover. Clicking the field opens the popover and puts the caret in the text.
+  - Up and Down arrows step the date by a day, and the new date is announced, as TimePicker's arrows step its time. Option-Down (Alt-Down elsewhere) opens the popover and moves focus to the field's date in the calendar, as it opens TimePicker's list, so the date and time fields of "Starts", which sit side by side, give each key one meaning. In these fields Option-Down no longer moves the caret to the end of the text; End and ⌘→ still do.
+  - In the calendar: the arrow keys move by a day or a week, Page Up and Page Down by a month, Shift with Page Up and Page Down by a year, and Home and End to the start and end of the week, as in MonthGrid.
+  - **Unlike MonthGrid, focus does not pick.** Return or Space picks the focused day, closes the popover and returns focus to the field. MonthGrid's selection follows focus because it only changes what is shown; here a pick changes the form.
+  - Escape closes the popover without a change and returns focus to the field. Tab moves between the month buttons and the calendar and stays inside the popover until it closes. A click outside closes it, and any typed text is committed as on leaving the field.
+- **Screen readers:**
+  - The field is a text field named by its label. When a date and a time share one label ("Starts"), the date's name is "Start date". Its value is read as the full date ("Wednesday 14 October 2026"), and its hint is "Type a date, press Up or Down arrow to change it by a day, or Option Down arrow to choose from a calendar". It is announced as opening a dialog.
+  - The popover is a dialog named after the field ("Start date, choose a date"). The calendar is a grid named by its month and year. Each day is named by its full date, with "today", "selected" or "unavailable" where they apply ("Wednesday 14 October 2026, today"). It says nothing about events.
+  - Changing the month announces the new month politely ("November 2026"). An error is the field's description and is announced when it appears.
+- **Motion:** the popover fades in over `base` with the `standard` curve and closes with a `fast` fade, as Select's list. Changing the month swaps the days with a `fast` fade and no slide, as MonthGrid. The marks on a day change over `fast`. With reduced motion, everything is a `fast` fade.
+- **Light and dark, Kiwi and Graphite:** only tokens. In Graphite the today disc is near black (white in dark mode) with the number in `on-accent`, and the selection is carried by the `ink` ring. In dark mode `surface-raised` is lighter than `surface`, so the popover separates from the form without its shadow.
+- **Phone (under 600px):** the field is the same, with `body` at 16px, but it is not typed: tapping it opens a picker sheet (Sheet), titled with the field's name ("Start date"), holding the same calendar with its month buttons. Tapping a day picks it and closes the sheet. The cells stay 44px, so the calendar fits a 358px-wide phone. The birthday's month and year Selects (below) sit at the top of the sheet.
+- **Sizes:** the field and the cells are `control-height`. In the Compact density on desktop both are `control-height-compact`. The today disc stays 28px.
+
+- **Birthday (year optional):** the one variant, for myContacts.
+  - A birthday may have no year (FieldRow). The field then shows the day and month only ("12 May"), and typing "12 May" keeps no year instead of taking one.
+  - In the popover, the month and year title is replaced by two Selects, "Month" and "Year", so a year decades back is two choices rather than hundreds of presses. The Year list starts with "No year", then the years from this year back. The previous and next buttons stay.
+  - With "No year", the calendar lays out the month as it falls in the next leap year, only so that 29 February can be chosen. The days' names then leave out the weekday ("12 May").
+  - There is no earliest date, and no weekday in the field: the value is written as FieldRow writes a birthday ("12 May 1990").
+- **Copy:** labels are nouns in sentence case with no full stop ("Starts", "Ends", "Birthday", "Ends on"). Dates are in the locale's medium form with a short weekday and the year, except a birthday, which has no weekday. Errors are sentences with full stops that say what is wrong and what a correct value looks like. Popover names: "Previous month", "Next month", "Month", "Year", "No year".
+- **Token needed:** none. The 28px today disc is MonthGrid's existing size.
+- **Hover against selection in Graphite dark.** The hover edge is 1px `line-strong` (#7C7C7C) and the selection is a 2px `ink` ring over `accent-soft`, which in Graphite dark is barely lighter than `surface-raised` (about 1.1:1), so there the two marks differ only by weight and lightness. MonthGrid's marks are kept unchanged, so the two cannot drift apart, and the widget's goldens include Graphite dark with a hovered day beside the selected one, to be checked on a real screen.
+- **Why the birthday variant is in phase 3:** a birthday without a year is common on imported cards, and a plain DatePicker would invent one, or lose the "no year" birthdays already on the host when edited.
+- **Decided 2026-10-14:** the popover keeps MonthGrid's marks, checked in goldens; the birthday variant (year optional) is built in phase 3.
+
+- **Used by:**
+  - myCalendar edit event: the "Starts" and "Ends" dates, beside their times or alone for an all-day event; Ends has Starts as its earliest date (phase 6).
+  - myCalendar repeat dialog: the "Ends on" date of a custom repeat (phase 6).
+  - myContacts edit contact: "Birthday", year optional (phase 3).
+- You provide the label (and the accessible name when it shares a label with a time), the date or none, the earliest date when there is one, whether the year may be left out, the first day of the week and today's date.

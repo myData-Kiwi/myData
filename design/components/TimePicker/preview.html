@@ -1,0 +1,210 @@
+<!-- @dsCard group="Inputs" height=1700 -->
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700&family=Figtree:wght@400;600&family=JetBrains+Mono&display=swap">
+<style>
+body{margin:0;padding:24px;background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:22px}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.btn{height:44px;padding:0 22px;border-radius:var(--radius-control);font:600 15px/1 var(--font-body);border:0;cursor:pointer}
+.primary{background:var(--accent);color:var(--on-accent)}
+.tonal{background:var(--accent-soft);color:var(--accent)}
+.plain{background:transparent;color:var(--accent)}
+.danger{background:var(--danger);color:var(--on-danger)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.card{background:var(--surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-1)}
+.tile{width:36px;height:36px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;flex:none}
+.tile svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.t-accent{background:var(--accent-soft);color:var(--accent)}.t-ok{background:var(--success-soft);color:var(--success)}
+.t-warn{background:var(--warning-soft);color:var(--warning)}.t-info{background:var(--info-soft);color:var(--info)}
+.chipst{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:var(--radius-pill);font:600 13px/1 var(--font-body);white-space:nowrap}
+.cap{font-size:13px;line-height:18px;color:var(--ink-muted)}
+.lbl{font:600 13px/18px var(--font-body);color:var(--ink-muted);margin:0 0 8px 8px}
+.sec{margin-bottom:40px}
+.fl{font:600 13px/18px var(--font-body);color:var(--ink);display:block;margin-bottom:8px}
+.help{font-size:13px;line-height:18px;color:var(--ink-muted);margin-top:8px;max-width:340px}
+.err-t{color:var(--danger)}
+.fd{display:inline-flex;align-items:center;gap:8px;height:44px;box-sizing:border-box;padding:0 12px 0 16px;border:1px solid var(--line-strong);border-radius:var(--radius-md);background:var(--surface);color:var(--ink);vertical-align:top}
+.fd input{border:0;outline:0;background:transparent;color:inherit;font:400 15px var(--font-body);padding:0}
+.fd.t input{width:72px}.fd.dt input{width:128px}
+.fd svg{width:20px;height:20px;fill:none;stroke:var(--ink-muted);stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.fd:focus-within,.fd.fc{outline:2px solid var(--focus);outline-offset:2px}
+.fd.err{border:2px solid var(--danger);padding:0 11px 0 15px}
+.fd.dis{opacity:.45}
+.fields{display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start}
+.pair{display:flex;gap:8px;flex-wrap:wrap}
+.anchor{position:relative;display:inline-block}
+.list{background:var(--surface-raised);box-shadow:var(--shadow-2);border-radius:var(--radius-md);padding:4px;width:200px;max-height:352px;overflow-y:auto;margin-top:4px;box-sizing:border-box}
+.list.float{position:absolute;left:0;top:100%;z-index:3}
+.opt{display:flex;align-items:center;gap:8px;height:44px;padding:0 12px;border-radius:var(--radius-sm);cursor:pointer}
+.opt:hover,.opt.hl{background:var(--surface-hover)}
+.opt .len{color:var(--ink-muted);flex:1}
+.opt svg{width:20px;height:20px;fill:none;stroke:var(--accent);stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;visibility:hidden;margin-left:auto}
+.opt[aria-selected="true"] svg{visibility:visible}
+.seg{display:inline-flex;padding:4px;gap:2px;border-radius:var(--radius-pill);background:var(--surface-sunken)}
+.seg button{height:36px;padding:0 16px;border:0;border-radius:var(--radius-pill);background:transparent;color:var(--ink-muted);font:400 15px/1 var(--font-body);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:var(--shadow-1)}
+.out{font-size:13px;line-height:18px;color:var(--ink-muted);margin-top:8px}
+.g{max-width:560px;overflow:hidden}
+.part{padding:20px}
+.stack{display:flex;flex-direction:column;gap:20px;align-items:flex-start}
+.name{font:600 13px/18px var(--font-body);color:var(--ink);margin:0 0 8px}
+.sw{appearance:none;-webkit-appearance:none;width:50px;height:30px;border-radius:var(--radius-pill);background:var(--surface-sunken);border:1px solid var(--line-strong);position:relative;cursor:pointer;flex:none;margin:0}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:var(--radius-pill);background:var(--line-strong);transition:transform .12s}
+.sw:checked{background:var(--accent);border-color:var(--accent)}
+.sw:checked::after{transform:translateX(20px);background:var(--on-accent)}
+.swrow{display:flex;align-items:center;gap:12px}
+.sel{display:inline-flex;align-items:center;gap:8px;height:44px;box-sizing:border-box;padding:0 12px 0 16px;border:1px solid var(--line-strong);border-radius:var(--radius-md);background:var(--surface);color:var(--ink);font:400 15px var(--font-body)}
+.sel svg{width:20px;height:20px;fill:none;stroke:var(--ink-muted);stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.cols{display:flex;flex-wrap:wrap;gap:40px;align-items:flex-start}.cols>section{flex:1 1 340px;max-width:560px}
+.phone{width:358px;max-width:100%;border-radius:var(--radius-xl);background:var(--bg);box-shadow:0 0 0 1px var(--line);overflow:hidden;position:relative;height:560px}
+.phone .scrim{position:absolute;inset:0;background:var(--scrim)}
+.sheet{position:absolute;left:0;right:0;bottom:0;top:96px;background:var(--surface-raised);border-radius:var(--radius-xl) var(--radius-xl) 0 0;box-shadow:var(--shadow-2);padding:8px 16px 0;display:flex;flex-direction:column}
+.grab{width:36px;height:4px;border-radius:var(--radius-pill);background:var(--line-strong);margin:0 auto 12px}
+.sh{display:flex;align-items:center;margin-bottom:12px}.sh h3{flex:1;margin:0;text-align:center;font:600 17px/24px var(--font-body)}
+.rows{overflow:hidden;flex:1;margin:12px -16px 0}
+.prow{display:flex;align-items:center;min-height:56px;padding:0 16px;border-top:1px solid var(--line)}
+.prow svg{width:20px;height:20px;fill:none;stroke:var(--accent);stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;margin-left:auto}
+.phone .fd{display:flex}.phone .fd input{flex:1;width:auto}
+.form{padding:20px 16px}
+/* The When group sits straight on the Inspector's surface panel: no card, no GroupedSection. */
+.panel{background:var(--surface);padding:var(--space-5);max-width:400px;box-sizing:border-box}
+.panel.narrowp{max-width:260px}
+.gh{font:600 13px/18px var(--font-body);color:var(--ink-muted);margin:0 0 var(--space-2)}
+.adrow{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);min-height:var(--control-height);cursor:pointer}
+.fi{margin-top:var(--space-4)}
+.tzb{margin-left:calc(-1 * var(--space-4));padding:0 var(--space-4)}
+.pair.col{flex-direction:column;align-items:flex-start;gap:var(--space-2)}
+.clk{display:block}
+/* Focus on something already red is ink, not the red focus (design/README.md, "Focus and danger"). */
+.fd.err:focus-within,.fd.err.fc{outline-color:var(--ink)}
+</style></head><body>
+<section class="sec" aria-label="Field states">
+<p class="lbl">The field</p>
+<div class="fields">
+<div><label class="fl" for="a1">Start time</label><span class="fd t"><input id="a1" value="09:30"><svg class="clk" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.5V12l3 2"></path></svg></span><div class="help">24-hour locale</div></div>
+<div><label class="fl" for="a2">Start time</label><span class="fd t"><input id="a2" value="9:30 am"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.5V12l3 2"></path></svg></span><div class="help">12-hour locale</div></div>
+<div><span class="fl">Focused</span><span class="fd t fc"><input value="09:30" tabindex="-1" aria-label="Focused example"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.5V12l3 2"></path></svg></span></div>
+<div><label class="fl" for="a4">End time</label><span class="fd t err"><input id="a4" value="9:75" aria-invalid="true" aria-describedby="a4h"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.5V12l3 2"></path></svg></span><div class="help err-t" id="a4h">That is not a time. Type it like 9:30 or 21:30.</div></div>
+<div><span class="fl">Start time</span><span class="fd t dis"><input value="14:00" disabled aria-label="Start time, disabled"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.5V12l3 2"></path></svg></span><div class="help">Events organised by someone else cannot be moved yet.</div></div>
+</div>
+</section>
+
+<section class="sec" aria-label="Typing and the list">
+<p class="lbl">Live: the start is 14:00. Type into End time (5, 9.30pm, 2130, 12am…), press Return, step with Up and Down, or pick from the list. The list stays open here.</p>
+<div class="seg" role="group" aria-label="Clock" style="margin:0 0 16px 8px"><button type="button" aria-pressed="true" data-c="24">24-hour locale</button><button type="button" aria-pressed="false" data-c="12">12-hour locale</button></div>
+<div class="fields" style="min-height:440px">
+<div><span class="fl">Start time</span><span class="fd t"><input id="st" value="14:00" readonly aria-label="Start time"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.5V12l3 2"></path></svg></span></div>
+<div class="anchor"><label class="fl" for="en">End time</label><span class="fd t" id="en-fd"><input id="en" value="15:00" role="combobox" aria-expanded="true" aria-controls="en-list" aria-describedby="en-help"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.5V12l3 2"></path></svg></span>
+<div class="help" id="en-help" aria-live="polite"></div>
+<div class="list float" id="en-list" role="listbox" aria-label="End time"></div></div>
+</div>
+</section>
+
+<div class="cols">
+<section class="sec" aria-label="When, in the event editor">
+<p class="lbl">Edit event: the When group on the Inspector's panel (live: try All-day and Set time zone)</p>
+<div class="panel"><div id="when" role="group" aria-labelledby="g-when">
+<p class="gh" id="g-when">When</p>
+<label class="adrow"><span>All-day</span><input class="sw" type="checkbox" id="ad"></label>
+<div class="fi"><p class="name">Starts</p><div class="pair"><span class="fd dt"><input value="Wed 14 Oct 2026" aria-label="Start date"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3"></rect><path d="M3.5 10h17M8 3v4M16 3v4"></path></svg></span><span class="fd t tm"><input value="14:00" aria-label="Start time"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.5V12l3 2"></path></svg></span></div></div>
+<div class="fi"><p class="name">Ends</p><div class="pair"><span class="fd dt"><input value="Wed 14 Oct 2026" aria-label="End date"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3"></rect><path d="M3.5 10h17M8 3v4M16 3v4"></path></svg></span><span class="fd t tm"><input value="15:00" aria-label="End time"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.5V12l3 2"></path></svg></span></div>
+<div class="help tz" hidden>15:00 to 16:00 London time</div></div>
+<div class="fi tz" hidden><p class="name">Time zone</p><span class="sel" role="button" tabindex="0" aria-label="Time zone, New York time">New York time<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9l4-4 4 4M8 15l4 4 4-4"></path></svg></span></div>
+<div class="fi tzb-w"><button class="btn plain tzb" type="button">Set time zone</button></div>
+<div class="fi"><p class="name">Repeat</p><span class="sel" role="button" tabindex="0" aria-label="Repeat, Never">Never<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9l4-4 4 4M8 15l4 4 4-4"></path></svg></span></div>
+</div></div>
+<p class="lbl" style="margin-top:24px">Under 600px, or when the two do not fit side by side: the time goes under the date</p>
+<div class="panel narrowp"><p class="name">Starts</p><div class="pair col"><span class="fd dt"><input value="Wed 14 Oct 2026" aria-label="Start date (narrow example)" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3"></rect><path d="M3.5 10h17M8 3v4M16 3v4"></path></svg></span><span class="fd t"><input value="2:00 pm" aria-label="Start time (narrow example)" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.5V12l3 2"></path></svg></span></div></div>
+</section>
+<section class="sec" aria-label="Phone">
+<p class="lbl">Phone: the time in a sheet</p>
+<div class="phone"><div class="form"><span class="fl">Starts</span><span class="fd t"><input value="14:00" readonly tabindex="-1" aria-label="Start time"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.5V12l3 2"></path></svg></span></div>
+<div class="scrim"></div>
+<div class="sheet" role="dialog" aria-label="Start time"><div class="grab"></div>
+<div class="sh"><button class="btn plain" type="button" style="padding:0 8px">Cancel</button><h3>Start time</h3><button class="btn plain" type="button" style="padding:0 8px">Done</button></div>
+<span class="fd"><input value="14:00" inputmode="text" aria-label="Type a time"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.5V12l3 2"></path></svg></span>
+<div class="rows" role="listbox" aria-label="Start time">
+<div class="prow" role="option" aria-selected="false">13:30</div><div class="prow" role="option" aria-selected="false">13:45</div><div class="prow" role="option" aria-selected="true">14:00<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></div><div class="prow" role="option" aria-selected="false">14:15</div><div class="prow" role="option" aria-selected="false">14:30</div><div class="prow" role="option" aria-selected="false">14:45</div>
+</div></div></div>
+</section>
+</div>
+
+<script>
+(function () {
+  var clock12 = false, START = 14 * 60, end = 15 * 60;
+  var input = document.getElementById('en'), fd = document.getElementById('en-fd'), help = document.getElementById('en-help'), list = document.getElementById('en-list');
+  function fmt(m) {
+    m = ((m % 1440) + 1440) % 1440; var h = Math.floor(m / 60), mm = ('0' + (m % 60)).slice(-2);
+    if (!clock12) return ('0' + h).slice(-2) + ':' + mm;
+    return ((h % 12) || 12) + ':' + mm + (h < 12 ? ' am' : ' pm');
+  }
+  function len(d) { var h = Math.floor(d / 60), m = d % 60; return (h ? h + ' hr' : '') + (h && m ? ' ' : '') + (m ? m + ' min' : ''); }
+  // The rules in README.md, "Typing".
+  function parse(t, isEnd) {
+    t = t.trim().toLowerCase();
+    var mk = t.match(/\s*([ap])\.?\s*(m\.?)?$/), marker = null;
+    if (mk) { marker = mk[1]; t = t.slice(0, mk.index); }
+    var h, m, x;
+    if ((x = t.match(/^(\d{1,2})(?:[:.](\d{2}))?$/))) { h = +x[1]; m = x[2] ? +x[2] : 0; }
+    else if ((x = t.match(/^(\d{3,4})$/))) { h = +x[1].slice(0, -2); m = +x[1].slice(-2); }
+    else return null;
+    if (h > 23 || m > 59) return null;
+    if (marker) { if (h < 1 || h > 12) return null; return (h % 12 + (marker === 'p' ? 12 : 0)) * 60 + m; }
+    if (h >= 13 || !clock12 || h === 0) return h * 60 + m;
+    var am = (h % 12) * 60 + m, pm = am + 720;
+    if (isEnd) { if (am > START) return am; if (pm > START) return pm; return am; }
+    return h === 12 ? pm : am;
+  }
+  function setError(msg) { fd.classList.toggle('err', !!msg); help.textContent = msg || ''; help.className = 'help' + (msg ? ' err-t' : ''); input.setAttribute('aria-invalid', msg ? 'true' : 'false'); }
+  function drawList() {
+    list.innerHTML = '';
+    for (var m = START + 15; m <= START + 1440; m += 15) {
+      var o = document.createElement('div'); o.className = 'opt'; o.setAttribute('role', 'option');
+      o.setAttribute('aria-selected', m === end ? 'true' : 'false'); o.dataset.m = m;
+      o.setAttribute('aria-label', fmt(m) + ', ' + len(m - START).replace('hr', 'hour').replace('min', 'minutes'));
+      o.innerHTML = '<span>' + fmt(m) + '</span><span class="len">' + len(m - START) + '</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>';
+      list.appendChild(o);
+    }
+    var cur = list.querySelector('[data-m="' + (Math.round((end < START ? end + 1440 : end) / 15) * 15) + '"]');
+    if (cur) list.scrollTop = cur.offsetTop - list.clientHeight / 2 + 22;
+  }
+  function commit() {
+    var m = parse(input.value, true);
+    if (m === null) { setError('That is not a time. Type it like 9:30 or 21:30.'); return; }
+    if (m < START) { end = m; input.value = fmt(m); setError('Ends before it starts. Change the end date or time.'); drawList(); return; }
+    end = m; input.value = fmt(m); setError(null); drawList();
+  }
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); commit(); }
+    else if (e.key === 'Escape') { input.value = fmt(end); setError(null); }
+    else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      e.preventDefault(); var up = e.key === 'ArrowUp';
+      end = up ? Math.floor(end / 15) * 15 + 15 : Math.ceil(end / 15) * 15 - 15; end = ((end % 1440) + 1440) % 1440;
+      input.value = fmt(end); setError(end < START ? 'Ends before it starts. Change the end date or time.' : null); drawList();
+    }
+  });
+  input.addEventListener('blur', commit);
+  list.addEventListener('mousedown', function (e) { e.preventDefault(); });
+  list.addEventListener('click', function (e) { var o = e.target.closest('.opt'); if (!o) return; end = +o.dataset.m % 1440; input.value = fmt(end); setError(null); drawList(); input.focus(); });
+  document.querySelectorAll('.seg button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.querySelectorAll('.seg button').forEach(function (o) { o.setAttribute('aria-pressed', o === b ? 'true' : 'false'); });
+      clock12 = b.dataset.c === '12'; document.getElementById('st').value = fmt(START); input.value = fmt(end); setError(null); drawList();
+    });
+  });
+  drawList();
+
+  // The When group: All-day hides the times and the zone; Set time zone shows the zone and the caption.
+  var ad = document.getElementById('ad'), tzb = document.querySelector('.tzb'), tzw = document.querySelector('.tzb-w'), tzOn = false;
+  function when() {
+    document.querySelectorAll('#when .tm').forEach(function (el) { el.hidden = ad.checked; el.style.display = ad.checked ? 'none' : ''; });
+    document.querySelectorAll('#when .tz').forEach(function (el) { el.hidden = ad.checked || !tzOn; });
+    tzw.hidden = ad.checked || tzOn;
+  }
+  ad.addEventListener('change', when);
+  tzb.addEventListener('click', function () { tzOn = true; when(); });
+  when();
+})();
+</script>
+</body></html>

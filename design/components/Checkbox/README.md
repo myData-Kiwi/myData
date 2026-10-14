@@ -1,0 +1,38 @@
+A box the user ticks to include something: an option that goes with an action, or items picked from a list.
+
+- **Checkbox or Switch.** A Switch is a property of a thing that is on or off: it takes effect at once in settings, or on Save in a form ("All-day"). A Checkbox chooses: which items an action applies to ("Import these 12 contacts"), or an extra the action will also do ("Also remove…"). A test: if the sentence is "this is on", it is a Switch; if it is "do this too" or "include this", it is a Checkbox.
+- **Do not use it** for one choice among several (Select or SegmentedControl; myData has no radio buttons), for agreeing to terms (there are none), or to confirm something destructive in place of a dialog (the Danger button confirms).
+
+- **The box** is `icon` (20px) across, a rounded square with `radius-xs` (6px) corners, everywhere: on its own, in a list and in a row:
+  - unchecked: `surface` fill and a 1px `line-strong` edge;
+  - checked: `accent` fill and a check mark in `on-accent`, drawn as an icon (1.75px rounded stroke);
+  - mixed (only on a select-all box, below): `accent` fill and a short dash in `on-accent`.
+  - The mark, not the fill, carries the state, so Graphite (whose `accent` is close to `ink`) and a reader who cannot see the colour lose nothing.
+- **On its own,** the box sits at the start of its label, `space-3` from it, centred on the label's first line:
+  - the label in `body` and `ink`, with an optional second line in `caption` and `ink-muted` that names exactly what it covers ("Ava Fictional, Ben Sample and Chloe Example");
+  - the box and its label are one target, at least `control-height` tall; a click anywhere on either toggles it;
+  - several options stack `space-2` apart, never side by side.
+- **In a list** (the import review, a list of address books): each item is a GroupedList row with the box at its start, centred in an `icon-tile` square where a tile would be, so rows with and without boxes line up. The row is the target, as a GroupedList row that does something. A checked row has no fill: `accent-soft` is the GroupedList's "current item", not "included".
+- **Select all** is the first row of the same group, above a divider: the box, the title "All 12 contacts" in `body-strong`, and a `caption` that counts: "9 of 12 selected". Its box is checked when every item is, unchecked when none is, and mixed otherwise. Pressing it when mixed or unchecked checks every item; pressing it when checked clears every item. Mixed is never a state the user picks directly.
+- **The action that uses the selection** says the count and follows it: "Import 9 contacts". With none selected it is disabled, with the reason beside it ("Choose at least one contact to import."), as platforms.md asks. This is why a Checkbox has no error state: an empty selection disables the action and says why, instead of letting the user press and then scolding.
+- **States:**
+  - Hover: an unchecked box on its own fills with `surface-hover` over `fast`; a checked one does not change. In a list, the row fills with `surface-hover`, as GroupedList.
+  - Pressed: the box (or the row) dims to 85% at once and returns over `fast`, without shrinking.
+  - Focused: the 2px `focus` ring 2px outside the box, following its shape; in a list, around the row.
+  - Disabled: the box and its label at 45% opacity, not focusable, announced as disabled, with the reason in the `caption` line, which is not faded ("This Mac’s contacts cannot be removed here."; platforms.md, "Disabled controls"). A disabled box keeps its state, so the user can see what will happen.
+  - Error: none (see above).
+- **Keyboard:** Tab reaches each checkbox on its own; Space toggles it (Enter is left to the dialog's or form's main button). A list of checkboxes is one Tab stop: Up and Down move between rows, Space toggles the focused row, ⌘A (Control+A elsewhere) checks every row, and Home and End jump to the first and last. Select all is a Tab stop of its own, before the list. ⇧-click, or ⇧-Space, sets every row from the last one changed to this one to this one's new state, for long imports.
+- **Screen readers:** each reads as a checkbox with its label, any caption and its state: "Ava Fictional, ava@example.org, checkbox, checked". Select all reads "All 12 contacts, checkbox, mixed, 9 of 12 selected"; after a change, the new count is announced politely ("12 of 12 selected"). The list is a group named by its heading.
+- **Motion:** the fill and the mark fade in or out over `fast` with the `standard` curve. Nothing moves, so reduced motion changes nothing.
+- **Light and dark, every theme:** only tokens. `line-strong` meets 3:1 on `surface` and `bg` in both modes, so the unchecked edge stays visible; `on-accent` on `accent` meets 4.5:1 in every theme by theming.md's rules.
+- **Phone (under 600px):** the same box; a list row is `row-height` with `body` at 16px; the target is the row. ⇧ and ⌘ shortcuts do not apply. A long import list on a phone gets select all in the same place.
+- **Sizes:** the box is `icon` in every density; on its own its target is at least `control-height` (compact density, when built: `control-height-compact`); in a list, the row is at least `row-height`.
+- **Copy:** sentence case, no full stop on the label. The label says what checking it does, in the positive ("Also remove the 3 contacts you changed after the import", never "Don't keep…"). The safer choice is unchecked by default: an option that removes or sends more than the main action says is never checked for the user. A caption names what it covers, by name or count.
+- **Used by:**
+  - myData import, review step: "Import these 12 contacts", the list with select all, and the Import button that counts (phase 4).
+  - myData import, "What to bring" step: which address books or calendars in the file to bring (phase 4).
+  - myData import history, the Undo import dialog: "Also remove the 3 contacts you changed after the import", unchecked by default (phase 4).
+- **Token:** `radius-xs` (tokens.json, 6px), the step under `radius-sm` (10px, which would make a 20px box a circle). The scale's steps grow by 4, 6 and 8px (10, 14, 20, 28), so the step below 10 is 6. On a 20px box it gives a clearly rounded square that cannot be read as a circle.
+- **Why a square.** On macOS, Windows and Linux a circle is the radio button's shape, so a lone round box in a dialog ("Also remove the 3 contacts you changed after the import") would read as a single radio option. Apple's round marks in Mail, Photos and Reminders are selection or completion marks in lists, mostly on iOS, not form checkboxes.
+- **Decided 2026-10-14:** the checkbox is a rounded square everywhere, in lists too.
+- You provide the label, an optional caption, the state, and what changes it; for a list, the items and the select-all title.

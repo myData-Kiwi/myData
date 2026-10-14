@@ -1,0 +1,58 @@
+A field that shows one value and opens a list to pick another: a phone number's label, an event's calendar, a time zone, a repeat rule.
+
+- **Use it** for one choice from a list that is too long, or too wordy, for a SegmentedControl (more than five options, or options longer than a word or two), and inside a form whose changes apply on Save.
+- **Do not use it** for two to five short options that switch a view (SegmentedControl), for an on or off value (Switch), for several values at once (TokenField, or Checkboxes in a list), for actions (a Menu: a Select only ever sets its own value), or for a free value with suggestions (a TextField; a Select's value is always one of its items or, where allowed, a custom label).
+
+- **Closed, the field looks like a TextField** so a form reads as one set of inputs:
+  - the label above in the `label` style and `ink`, `space-2` above the field; optional help `space-2` below in `caption` and `ink-muted`;
+  - `surface` fill, 1px `line-strong` border, `radius-md`, `control-height`, `space-4` padding across;
+  - the value in `body` and `ink`, cut short with an ellipsis if it does not fit; with no value, a placeholder in `ink-muted` that names the choice ("No calendar"), never "Select…";
+  - at the end, an up-and-down chevron at `icon` size in `ink-muted`, `space-2` from the value. It is the one sign that the field opens a list rather than taking typing.
+- **A leading mark, when the items have one:** the calendar picker puts the calendar's DataColour dot (8px) before the name, `space-2` from it, with DataColour's edge rule. The dot is never the only sign of which calendar: the name is always there.
+- **In a repeatable form row** (FormRow), the label picker of a phone, email or address sits beside its value with no label of its own above it. Its accessible name says what it labels ("Label for phone 1"). It is as wide as its longest preset label; a longer custom label is cut short with an ellipsis and shown in full in its tooltip.
+
+- **Open, the list** is a popover under the field (above it when there is no room below):
+  - `surface-raised` with `shadow-2` and `radius-md`, `space-1` padding inside; at least as wide as the field and no wider than the window allows;
+  - one row per item, `control-height` tall, `space-3` padding across, `body` in `ink`, with the same leading mark as the field (dot) where the items have one;
+  - the current value has a check mark at the row's end in `accent`;
+  - the highlighted row is filled with `surface-hover` and `radius-sm`, inset by the list's `space-1` padding; a row reached with the arrow keys also gets the 2px `focus` ring inside its shape, because the fill alone is too faint on `surface-raised` (Menu);
+  - a 1px `line` divider, with `space-1` above and below, separates groups of items, for example the presets from "Custom label…";
+  - it shows about eight rows, then scrolls with the platform's scroll bar. On opening, it is scrolled so the current value is in view.
+  - It uses the Menu's panel and rows, but it is a list box, not a menu, and behaves as one where they differ: Up and Down stop at the ends rather than going round, and Tab moves focus on rather than back (below).
+- **The long-list variant (type to filter)** is for lists over about 15 items, today only time zones:
+  - the open list starts with a search field: the borderless `surface-sunken` pill from TextField, inside the list's padding. It takes focus when the list opens, and its placeholder names what it searches ("Search time zones").
+  - Typing filters the rows below it on every keystroke, matching the start of any word in the item's title or caption, ignoring case and accents. The first match is highlighted, so Enter picks it.
+  - Above the results, while the search is empty, a short "Suggested" group: for time zones, this device's zone and the zones already used in this event. It disappears once the user types.
+  - With no match, one line in `ink-muted` in place of the rows: "No time zones match “Aukl”". It is not a row and cannot be picked.
+  - The closed field names a zone as TimePicker does ("Auckland time"). A time zone row has the city in `body` and, as its `caption` line in `ink-muted`, the region and the offset today: "New Zealand, GMT+13". Two-line rows are `row-height` tall.
+- **Custom label** (the phone, email and address label pickers only): the last item, after a divider, is "Custom label…". Choosing it turns the field into a TextField in place, with the current label selected; Enter keeps it, Escape returns the previous label. A custom label already on the record appears among the presets, so nothing on an imported card is ever hidden or replaced by opening the picker.
+- **The current value is always in the list,** even when it is not a preset: an imported label such as "iPhone" or "Home fax", or a repeat rule the presets cannot express ("Every 2nd Tuesday"), is shown as an item above the presets. Opening the list and closing it changes nothing.
+
+- **States:**
+  - Hover: the closed field's fill becomes `surface-hover` over `fast`; the border is unchanged.
+  - Pressed: the field dims to 85% at once and returns over `fast`, without shrinking (it is a field, not a button).
+  - Focused: the 2px `focus` ring, 2px outside the field, when focus came from the keyboard. While the list is open, the field keeps its ring and the highlight moves in the list. On a field in error the ring is `ink` (design/README.md, "Focus and danger").
+  - Open: as above; the chevron does not turn.
+  - Disabled: the field at 45% opacity, not focusable, announced as disabled. The reason is the help text under it, which is not faded ("Events organised by someone else cannot be moved to another calendar yet."), so it may leave the Tab order (platforms.md, "Disabled controls"). A field is never disabled without a reason.
+  - Error: a 2px `danger` border and the help replaced by the error in `danger`, as TextField. The only case today is a value that no longer exists: "That calendar was deleted. Choose another." A Select always starts with a valid value (the default calendar, the device's zone, "Never"), so "nothing chosen" is not an error a user meets.
+- **Keyboard (desktop):**
+  - Closed and focused: Space, Enter, Down, Up and Option-Down (Alt-Down elsewhere) open the list. Option-Down opens every field's list or popover in a form (DatePicker, TimePicker); a Select also opens on plain Down and Up because it takes no typing, so those keys have nothing else to do. Typing letters picks the next item that starts with them (type-ahead), without opening the list, and the new value is announced.
+  - Open: Up and Down move the highlight and stop at the ends, as list boxes do (a Menu goes round; the difference is deliberate, because a list of values has a first and a last and a menu of actions is short); Home and End jump to the first and last; Page Up and Page Down move by a screen. Typing letters moves the highlight to the next match (the search field takes them in the long-list variant). Enter or Space picks the highlighted item and closes. Escape closes and keeps the old value. Tab closes, keeps the old value and moves focus on, because a Select is a field in a form (a Menu, which is passing, returns focus to its opener instead). A click outside closes and keeps the old value.
+  - After closing, focus is back on the field.
+- **Screen readers:** the closed field is a pop-up button that reads its label and value: "Calendar, Book club, pop-up button". The open list is a list box; each item reads its title, caption, whether it is chosen and its position ("Auckland, New Zealand, GMT+13, 3 of 12"). The long-list variant announces the number of matches politely after typing stops ("4 time zones"). Picking announces the new value.
+- **Motion:** the list fades in and grows from the field's edge over `base` with the `standard` curve; it closes with a `fast` fade. The highlight moves at once. With reduced motion, the list appears and goes with a `fast` fade only.
+- **Light and dark, every theme:** only tokens; the check mark is `accent`, which in Graphite is close to `ink`, so the check mark, not its colour, says which item is chosen. The highlight is `surface-hover`, never `accent-soft`, so a highlighted row is never mistaken for the chosen one in any theme.
+- **Phone (under 600px):** the field is the same, with `body` at 16px. Tapping it opens a picker sheet (Sheet) titled with the field's label, listing the items as rows `row-height` tall with the check mark on the chosen one; tapping a row picks it and closes the sheet. The long-list variant opens a pushed full-screen page instead, with the search pill at the top and the keyboard up. Custom label turns the sheet into a text field with Cancel and Done in its header (Sheet). Type-ahead does not apply.
+- **Sizes:** `control-height` closed, `control-height` rows open (`row-height` for two-line rows). The compact density, when it is built, uses `control-height-compact` for the field and its rows on desktop.
+- **Copy:** the label in sentence case with no full stop ("Calendar", "Time zone", "Repeat"). Items in sentence case with no full stop ("Every weekday", "Mobile"). An item that asks for more input before it takes effect ends with an ellipsis: "Custom label…", "Custom…". The placeholder names the empty value ("No calendar"). Errors are sentences, with full stops, that say what to do.
+- **Presets in use:**
+  - Phone label: Mobile, Home, Work, Other, then "Custom label…". Email: Home, Work, Other, then "Custom label…". Address: Home, Work, Other, then "Custom label…".
+  - Repeat: Never, Every day, Every weekday, Every week, Every 2 weeks, Every month, Every year, then "Custom…", which opens the Custom repeat dialog (Dialog's one exception; phase 6). The week and month presets repeat on the event's own weekday and date.
+  - Calendar: every calendar the user can add events to, owned calendars only, each with its dot and name, in the order of the calendar list.
+- **Used by:**
+  - myContacts edit contact: the label picker of each phone, email and address row.
+  - myCalendar edit event: Calendar (with dots), Repeat, and Time zone (long-list variant, shown only when the user asks for a zone or the event already has one).
+  - myData import: the address book or calendar the import goes into (phase 4).
+  - myMail compose: the From account (phase 7).
+- **Tokens:** `surface-hover` for the closed field's hover and the list's highlight (tokens.json).
+- You provide the label, the items (each with a title and, where needed, a caption and a dot colour), the chosen item, whether a custom label is allowed, any help or error text, and what happens on a pick.

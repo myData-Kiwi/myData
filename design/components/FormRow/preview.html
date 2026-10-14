@@ -1,0 +1,254 @@
+<!-- @dsCard group="Inputs" height=2300 -->
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700&family=Figtree:wght@400;600&family=JetBrains+Mono&display=swap">
+<style>
+body{margin:0;padding:24px;background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:22px}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.btn{height:44px;padding:0 22px;border-radius:var(--radius-control);font:600 15px/1 var(--font-body);border:0;cursor:pointer}
+.primary{background:var(--accent);color:var(--on-accent)}
+.tonal{background:var(--accent-soft);color:var(--accent)}
+.plain{background:transparent;color:var(--accent)}
+.danger{background:var(--danger);color:var(--on-danger)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.card{background:var(--surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-1)}
+.tile{width:36px;height:36px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;flex:none}
+.tile svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.t-accent{background:var(--accent-soft);color:var(--accent)}.t-ok{background:var(--success-soft);color:var(--success)}
+.t-warn{background:var(--warning-soft);color:var(--warning)}.t-info{background:var(--info-soft);color:var(--info)}
+.chipst{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:var(--radius-pill);font:600 13px/1 var(--font-body);white-space:nowrap}
+.cap{font-size:13px;line-height:18px;color:var(--ink-muted)}
+.lbl{font:600 13px/18px var(--font-body);color:var(--ink-muted);margin:0 0 8px 8px}
+.sec{margin-bottom:40px}
+.note{margin:0 0 16px 8px;max-width:720px}
+.ic{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+/* holder (the Inspector's bar, shown only for context) */
+.bar{display:flex;align-items:center;gap:8px;margin:0 0 16px}
+.bar h2{flex:1;margin:0 0 0 8px;font:700 22px/28px var(--font-display);letter-spacing:-0.01em}
+/* form and groups */
+.form{max-width:var(--inspector-width)}
+.gh{font:600 13px/18px var(--font-body);color:var(--ink-muted);margin:0 0 8px 8px}
+.grp{margin-bottom:24px}
+.part{padding:20px}
+.fld{display:flex;flex-direction:column}
+.lab{font:600 13px/18px var(--font-body);color:var(--ink)}
+.st .fld+.fld,.st .fld+.rep,.st .rep+.fld{margin-top:20px}
+.st .lab{margin-bottom:8px}
+input.in,textarea.in{height:44px;box-sizing:border-box;width:100%;min-width:0;padding:0 16px;border:1px solid var(--line-strong);border-radius:var(--radius-md);background:var(--surface);color:var(--ink);font:400 15px var(--font-body)}
+textarea.in{height:auto;padding:12px 16px;line-height:22px;resize:none;display:block;overflow-y:hidden}
+.help{font-size:13px;line-height:18px;color:var(--ink-muted);margin-top:8px}
+.err input.in{border:2px solid var(--danger);padding:0 15px}.err .help{color:var(--danger)}
+.ferr{display:flex;gap:8px;align-items:flex-start;color:var(--danger);font-size:13px;line-height:18px;margin-bottom:16px}
+.sel{height:44px;box-sizing:border-box;display:flex;align-items:center;gap:8px;padding:0 12px 0 16px;border:1px solid var(--line-strong);border-radius:var(--radius-md);background:var(--surface);color:var(--ink);font:400 15px/22px var(--font-body);cursor:pointer;text-align:left;margin:0;white-space:nowrap}
+.sel:hover{background:var(--surface-hover)}
+.sel .v{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.sel .ic{color:var(--ink-muted)}
+.sel.full{width:100%}
+.dot{width:8px;height:8px;border-radius:var(--radius-pill);background:var(--c,var(--line-strong));flex:none}
+.rep{display:flex;gap:8px;align-items:flex-start}
+.rep+.rep{margin-top:12px}
+.rep .val{flex:1;min-width:0}
+.rep>.sel{min-width:104px;flex:none}
+.ib{width:44px;height:44px;border:0;border-radius:var(--radius-pill);background:transparent;color:var(--ink-muted);display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none;padding:0}
+.ib:hover{background:var(--surface-hover)}
+.ib:active{opacity:.85}
+.add{display:inline-flex;align-items:center;gap:8px;margin-top:12px;padding:0 16px 0 12px;margin-left:-12px}
+.rep.gone{opacity:0;transition:opacity .24s}
+.two{display:flex;gap:8px}.two>*{flex:1;min-width:0}
+.swrow{display:flex;align-items:center;gap:12px;min-height:44px;cursor:pointer}
+.swrow .t{flex:1}
+.sw{appearance:none;-webkit-appearance:none;width:50px;height:30px;border-radius:var(--radius-pill);background:var(--surface-sunken);border:1px solid var(--line-strong);position:relative;cursor:pointer;flex:none;margin:0}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:var(--radius-pill);background:var(--line-strong);transition:transform .12s}
+.sw:checked{background:var(--accent);border-color:var(--accent)}
+.sw:checked::after{transform:translateX(20px);background:var(--on-accent)}
+[hidden]{display:none!important}
+/* tokens (TokenField, simplified) */
+.tf{display:flex;flex-wrap:wrap;gap:4px;min-height:44px;box-sizing:border-box;padding:3px;border:1px solid var(--line-strong);border-radius:var(--radius-md);background:var(--surface)}
+.tok{display:inline-flex;align-items:center;height:36px;padding:0 0 0 12px;border-radius:var(--radius-pill);background:var(--surface-sunken);white-space:nowrap}
+.tok .ib{width:36px;height:36px}
+.typ{flex:1 1 120px;min-width:120px;height:36px;border:0;background:transparent;color:var(--ink);font:400 15px var(--font-body);padding:0 12px;outline:none}
+.typ::placeholder{color:var(--ink-muted)}
+.st .addline{display:block}
+.vr{display:flex;gap:8px;align-items:flex-start;flex:1;min-width:0}
+/* the ground: an Inspector's panel holds the groups straight, with no cards (Inspector spec) */
+.panel{background:var(--surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-1);padding:20px}
+.panel .grp.card{background:transparent;box-shadow:none;border-radius:0}
+.panel .part{padding:0}
+.panel .gh{margin:0 0 8px}
+.panel .grp{margin-bottom:24px}
+.st.panel .fld+.fld,.st.panel .fld+.rep,.st.panel .rep+.fld,.phone .fld+.fld{margin-top:16px}
+.foot{display:flex;gap:8px;justify-content:flex-end;padding-top:16px}
+.rm{color:var(--danger)}.rm:hover{background:var(--danger-soft)}
+.cols{display:flex;flex-wrap:wrap;gap:40px;align-items:flex-start}.cols>div{flex:1 1 360px;max-width:520px}
+.phone{width:360px;max-width:100%;border-radius:var(--radius-xl);background:var(--surface);padding:16px;box-sizing:border-box;box-shadow:var(--shadow-1)}
+.phone .grp.card{background:transparent;box-shadow:none;border-radius:0}
+.phone .part{padding:0}
+.phone .grp{margin-bottom:24px}
+.phone .gh{margin:0 0 8px}
+.phone input.in,.phone .sel,.phone .typ{font-size:16px}
+.phone .bar h2{font-size:22px}
+/* Focus on something already red is ink, not the red focus (design/README.md, "Focus and danger"). */
+.danger:focus-visible,.danger.fr,.dz:focus-visible,.plain-danger:focus-visible{outline-color:var(--ink)}
+.err input.in:focus-visible,.err .sel:focus-visible,.rm:focus-visible{outline-color:var(--ink)}
+</style></head><body>
+
+<section class="sec" aria-labelledby="h-lc">
+<p class="lbl" id="h-lc">Desktop, in an Inspector at <code>inspector-width</code>: edit contact, labels stacked above fields. Try Add phone, the remove buttons, and leaving the email field</p>
+<div class="form st panel">
+<div class="bar"><h2 style="margin:0">Edit contact</h2></div>
+<div>
+<p class="gh" id="g-name">Name</p>
+<div class="grp card" role="group" aria-labelledby="g-name"><div class="part">
+<div class="fld"><label class="lab" for="c-first">First name</label><div class="ctl"><input class="in" id="c-first" type="text" value="Ava"></div></div>
+<div class="fld"><label class="lab" for="c-last">Last name</label><div class="ctl"><input class="in" id="c-last" type="text" value="Fictional"></div></div>
+<div class="fld"><label class="lab" for="c-co">Company</label><div class="ctl"><input class="in" id="c-co" type="text" value="Example Ltd"></div></div>
+</div></div>
+<p class="gh" id="g-ph">Phone</p>
+<div class="grp card" role="group" aria-labelledby="g-ph"><div class="part" data-rep="phone">
+<div class="rep"><button class="sel" type="button" aria-haspopup="listbox" aria-label="Label for phone 1, Mobile"><span class="v">Mobile</span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9.5l4-4 4 4M8 14.5l4 4 4-4"></path></svg></button><span class="vr"><input class="in val" type="tel" value="+1 555-0142" aria-label="Mobile, phone number"><button class="ib rm" type="button" aria-label="Remove mobile number" title="Remove mobile number"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"></circle><path d="M8.5 12h7"></path></svg></button></span></div>
+<div class="rep"><button class="sel" type="button" aria-haspopup="listbox" aria-label="Label for phone 2, Work"><span class="v">Work</span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9.5l4-4 4 4M8 14.5l4 4 4-4"></path></svg></button><span class="vr"><input class="in val" type="tel" value="+1 555-0137" aria-label="Work, phone number"><button class="ib rm" type="button" aria-label="Remove work number" title="Remove work number"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"></circle><path d="M8.5 12h7"></path></svg></button></span></div>
+<div class="addline"><button class="btn plain add" type="button" data-add><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6v12M6 12h12"></path></svg>Add phone</button></div>
+</div></div>
+<p class="gh" id="g-em">Email</p>
+<div class="grp card" role="group" aria-labelledby="g-em"><div class="part" data-rep="email">
+<div class="rep err"><button class="sel" type="button" aria-haspopup="listbox" aria-label="Label for email 1, Home"><span class="v">Home</span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9.5l4-4 4 4M8 14.5l4 4 4-4"></path></svg></button><span class="vr"><span class="val"><input class="in em" type="email" value="ava@example" aria-label="Home, email address" aria-invalid="true" aria-describedby="e-help"><span class="help" id="e-help" style="display:block">That email address is incomplete. It looks like name@example.org.</span></span><button class="ib rm" type="button" aria-label="Remove home email" title="Remove home email"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"></circle><path d="M8.5 12h7"></path></svg></button></span></div>
+<div class="addline"><button class="btn plain add" type="button" data-add><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6v12M6 12h12"></path></svg>Add email</button></div>
+</div></div>
+<p class="gh" id="g-gr">Groups</p>
+<div class="grp card" role="group" aria-labelledby="g-gr"><div class="part">
+<div class="fld solo"><div class="ctl"><div class="tf" role="group" aria-labelledby="g-gr"><span class="tok">Family<button class="ib" type="button" aria-label="Remove Family"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"></path></svg></button></span><span class="tok">Book club<button class="ib" type="button" aria-label="Remove Book club"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"></path></svg></button></span><input class="typ" type="text" aria-label="Add a group"></div></div></div>
+</div></div>
+<p class="gh" id="g-nt">Notes</p>
+<div class="grp card" role="group" aria-labelledby="g-nt"><div class="part">
+<div class="fld solo"><div class="ctl"><textarea class="in grow" id="c-notes" rows="3" placeholder="Add notes" aria-labelledby="g-nt">Met at the example meetup.
+Prefers calls in the morning.</textarea></div></div>
+</div></div>
+</div>
+<div class="foot"><button class="btn plain" type="button">Cancel</button><button class="btn primary" type="button">Save</button></div>
+</div>
+</section>
+
+<div class="cols"><div>
+<section class="sec" aria-labelledby="h-st">
+<p class="lbl" id="h-st">In an Inspector: edit event. Try All-day, and type in Notes</p>
+<div class="st panel">
+<div class="bar"><h2 style="margin:0">Edit event</h2></div>
+<p class="gh" id="g-ev">Event</p>
+<div class="grp card" role="group" aria-labelledby="g-ev"><div class="part">
+<div class="fld"><label class="lab" for="e-title">Title</label><input class="in" id="e-title" type="text" value="Dentist"></div>
+<div class="fld"><label class="lab" for="e-loc">Location</label><input class="in" id="e-loc" type="text" value="12 Sample Street, Exampleton"></div>
+</div></div>
+<p class="gh" id="g-when">When</p>
+<div class="grp card" role="group" aria-labelledby="g-when"><div class="part">
+<label class="swrow"><span class="t">All-day</span><input class="sw" id="allday" type="checkbox" aria-label="All-day"></label>
+<div class="fld" style="margin-top:16px"><span class="lab" id="l-s">Starts</span><div class="two"><input class="in" type="text" value="Tue 20 Oct 2026" aria-labelledby="l-s" aria-label="Start date"><input class="in tm" type="text" value="09:00" aria-label="Start time"></div></div>
+<div class="fld"><span class="lab" id="l-e">Ends</span><div class="two"><input class="in" type="text" value="Tue 20 Oct 2026" aria-label="End date"><input class="in tm" type="text" value="09:30" aria-label="End time"></div><div class="help">Date and time fields have their own phase 6 specs; these are stand-ins.</div></div>
+<div class="fld"><span class="lab" id="l-rep">Repeat</span><button class="sel full" type="button" aria-haspopup="listbox" aria-labelledby="l-rep r-v"><span class="v" id="r-v">Never</span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9.5l4-4 4 4M8 14.5l4 4 4-4"></path></svg></button></div>
+</div></div>
+<p class="gh" id="g-cal">Calendar</p>
+<div class="grp card" role="group" aria-labelledby="g-cal"><div class="part">
+<div class="fld solo"><button class="sel full" type="button" aria-haspopup="listbox" aria-labelledby="g-cal c-v"><span class="dot" style="--c:var(--data-blue)"></span><span class="v" id="c-v">Personal</span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9.5l4-4 4 4M8 14.5l4 4 4-4"></path></svg></button></div>
+</div></div>
+<p class="gh" id="g-en">Notes</p>
+<div class="grp card" role="group" aria-labelledby="g-en"><div class="part">
+<div class="fld solo"><textarea class="in grow" id="e-notes" rows="3" placeholder="Add notes" aria-labelledby="g-en"></textarea><div class="help">Grows to twelve lines, then scrolls.</div></div>
+</div></div>
+<div class="foot"><button class="btn plain" type="button">Cancel</button><button class="btn primary" type="button">Save</button></div>
+</div>
+</section>
+</div><div>
+<section class="sec" aria-labelledby="h-ph">
+<p class="lbl" id="h-ph">Phone, in the Inspector&rsquo;s sheet: repeatable rows keep the label beside the value</p>
+<div class="phone st">
+<div class="bar"><button class="btn plain" type="button" style="padding:0 8px">Cancel</button><h2 style="text-align:center;margin:0">Edit</h2><button class="btn primary" type="button" style="padding:0 16px">Save</button></div>
+<p class="gh" id="p-ph">Phone</p>
+<div class="grp card" role="group" aria-labelledby="p-ph"><div class="part" data-rep="phone">
+<div class="rep"><button class="sel" type="button" aria-haspopup="dialog" aria-label="Label for phone 1, Mobile"><span class="v">Mobile</span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9.5l4-4 4 4M8 14.5l4 4 4-4"></path></svg></button><span class="vr"><input class="in val" type="tel" value="+1 555-0142" aria-label="Mobile, phone number"><button class="ib rm" type="button" aria-label="Remove mobile number"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"></circle><path d="M8.5 12h7"></path></svg></button></span></div>
+<div class="addline"><button class="btn plain add" type="button" data-add><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6v12M6 12h12"></path></svg>Add phone</button></div>
+</div></div>
+<p class="gh" id="p-em">Email</p>
+<div class="grp card" role="group" aria-labelledby="p-em"><div class="part" data-rep="email">
+<div class="addline"><button class="btn plain add" type="button" data-add><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6v12M6 12h12"></path></svg>Add email</button></div>
+</div></div>
+</div>
+</section>
+<section class="sec" aria-labelledby="h-fe">
+<p class="lbl" id="h-fe">A rule about the whole form, after Save</p>
+<div class="st panel">
+<p class="gh" id="g-n2">Name</p>
+<div class="grp card" role="group" aria-labelledby="g-n2"><div class="part">
+<p class="ferr" role="alert"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7.5v5.5M12 16v.5"></path></svg><span>Not saved. A contact needs a name, a company, a phone number or an email address.</span></p>
+<div class="fld"><label class="lab" for="n2-first">First name</label><input class="in" id="n2-first" type="text"></div>
+</div></div>
+</div>
+</section>
+</div></div>
+
+<p class="cap" role="status" aria-live="polite" id="said" style="margin-left:8px"></p>
+<script>
+(function () {
+  var said = document.getElementById('said');
+  var presets = { phone: ['Mobile', 'Home', 'Work', 'Other'], email: ['Home', 'Work', 'Other'] };
+  var kinds = { phone: ['phone number', 'number', 'tel'], email: ['email address', 'email', 'email'] };
+  function chev() { return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9.5l4-4 4 4M8 14.5l4 4 4-4"></path></svg>'; }
+  function minus() { return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"></circle><path d="M8.5 12h7"></path></svg>'; }
+  function wireRemove(btn) {
+    btn.addEventListener('click', function () {
+      var row = btn.closest('.rep'), part = row.parentNode, label = row.querySelector('.sel .v').textContent;
+      var next = row.nextElementSibling && row.nextElementSibling.classList.contains('rep') ? row.nextElementSibling : null;
+      var prev = row.previousElementSibling && row.previousElementSibling.classList.contains('rep') ? row.previousElementSibling : null;
+      var kind = part.getAttribute('data-rep');
+      row.classList.add('gone');
+      setTimeout(function () {
+        row.remove();
+        var target = next ? next.querySelector('input') : prev ? prev.querySelector('input') : part.querySelector('[data-add]');
+        target.focus();
+      }, 240);
+      said.textContent = label + ' ' + kinds[kind][1] + ' removed';
+    });
+  }
+  document.querySelectorAll('.rm').forEach(wireRemove);
+  document.querySelectorAll('[data-add]').forEach(function (add) {
+    add.addEventListener('click', function () {
+      var part = add.closest('[data-rep]'), kind = part.getAttribute('data-rep');
+      var used = Array.prototype.map.call(part.querySelectorAll('.rep .sel .v'), function (v) { return v.textContent; });
+      var label = presets[kind].filter(function (p) { return used.indexOf(p) < 0; })[0] || 'Other';
+      var n = part.querySelectorAll('.rep').length + 1;
+      var row = document.createElement('div'); row.className = 'rep';
+      row.innerHTML = '<button class="sel" type="button" aria-haspopup="listbox" aria-label="Label for ' + kind + ' ' + n + ', ' + label + '"><span class="v">' + label + '</span>' + chev() + '</button>' +
+        '<span class="vr"><input class="in val" type="' + kinds[kind][2] + '" aria-label="' + label + ', ' + kinds[kind][0] + '"><button class="ib rm" type="button" aria-label="Remove ' + label.toLowerCase() + ' ' + kinds[kind][1] + '" title="Remove ' + label.toLowerCase() + ' ' + kinds[kind][1] + '">' + minus() + '</button></span>';
+      part.insertBefore(row, add.closest('.addline'));
+      wireRemove(row.querySelector('.rm'));
+      row.querySelector('input').focus();
+      said.textContent = kinds[kind][0].charAt(0).toUpperCase() + kinds[kind][0].slice(1) + ' added';
+    });
+  });
+  document.querySelectorAll('input.em').forEach(function (inp) {
+    var row = inp.closest('.rep'), help = row.querySelector('.help'), shown = true;
+    function ok(v) { return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.trim()) || v.trim() === ''; }
+    function check() {
+      var good = ok(inp.value);
+      row.classList.toggle('err', !good); inp.setAttribute('aria-invalid', good ? 'false' : 'true');
+      help.hidden = good; shown = !good;
+    }
+    inp.addEventListener('blur', check);
+    inp.addEventListener('input', function () { if (shown) check(); });
+  });
+  var allday = document.getElementById('allday');
+  allday.addEventListener('change', function () {
+    document.querySelectorAll('.tm').forEach(function (t) { t.hidden = allday.checked; });
+    said.textContent = allday.checked ? 'Start and end are now dates' : 'Start and end now have times';
+  });
+  function grow(t) {
+    var cs = getComputedStyle(t), line = parseFloat(cs.lineHeight), pad = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom) + parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth);
+    t.style.height = 'auto';
+    var lines = Math.round((t.scrollHeight - pad + parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth)) / line);
+    lines = Math.max(3, Math.min(12, lines));
+    t.style.height = (lines * line + pad) + 'px';
+    t.style.overflowY = t.scrollHeight > t.clientHeight + 1 ? 'auto' : 'hidden';
+  }
+  document.querySelectorAll('textarea.grow').forEach(function (t) { grow(t); t.addEventListener('input', function () { grow(t); }); });
+})();
+</script>
+</body></html>

@@ -1,0 +1,223 @@
+<!-- @dsCard group="Inputs" height=1080 -->
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700&family=Figtree:wght@400;600&family=JetBrains+Mono&display=swap">
+<style>
+body{margin:0;padding:24px;background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:22px}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.btn{height:44px;padding:0 22px;border-radius:var(--radius-control);font:600 15px/1 var(--font-body);border:0;cursor:pointer}
+.primary{background:var(--accent);color:var(--on-accent)}
+.tonal{background:var(--accent-soft);color:var(--accent)}
+.plain{background:transparent;color:var(--accent)}
+.danger{background:var(--danger);color:var(--on-danger)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.card{background:var(--surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-1)}
+.tile{width:36px;height:36px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;flex:none}
+.tile svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.t-accent{background:var(--accent-soft);color:var(--accent)}.t-ok{background:var(--success-soft);color:var(--success)}
+.t-warn{background:var(--warning-soft);color:var(--warning)}.t-info{background:var(--info-soft);color:var(--info)}
+.chipst{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:var(--radius-pill);font:600 13px/1 var(--font-body);white-space:nowrap}
+.cap{font-size:13px;line-height:18px;color:var(--ink-muted)}
+.lbl{font:600 13px/18px var(--font-body);color:var(--ink-muted);margin:0 0 8px 8px}
+.sec{margin-bottom:24px}
+.cols{display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start}.cols>div{flex:1 1 340px;max-width:440px}
+.lab{font:600 13px/18px var(--font-body);color:var(--ink);display:block;margin-bottom:8px}
+.help{font-size:13px;line-height:18px;color:var(--ink-muted);margin-top:8px}
+.tf{display:flex;flex-wrap:wrap;gap:4px;min-height:44px;max-height:176px;overflow:auto;box-sizing:border-box;padding:3px;border:1px solid var(--line-strong);border-radius:var(--radius-md);background:var(--surface);cursor:text}
+.tf.is-focus,.tf:focus-within{outline:2px solid var(--focus);outline-offset:2px}
+.tf:has(.tok:focus){outline:0}
+.err .tf{border:2px solid var(--danger);padding:2px}.err .help{color:var(--danger)}
+.tf.off{opacity:.45;cursor:not-allowed}
+.tok{display:inline-flex;align-items:center;gap:4px;height:36px;max-width:100%;box-sizing:border-box;padding:0 0 0 12px;border-radius:var(--radius-pill);background:var(--surface-sunken);color:var(--ink);font:400 15px/1 var(--font-body);white-space:nowrap;outline:none}
+.tok .tv{overflow:hidden;text-overflow:ellipsis}
+.tok.sel,.tok:focus{background:var(--accent-soft);outline:2px solid var(--focus);outline-offset:2px}
+.tok.bad{background:var(--danger-soft);color:var(--danger);padding-left:8px}
+.tok.bad.sel,.tok.bad:focus{background:var(--danger-soft)}
+.tok.off{padding-right:12px}
+.x{position:relative;width:36px;height:36px;border:0;border-radius:var(--radius-pill);background:transparent;color:var(--ink-muted);display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none;padding:0}
+.x::before{content:"";position:absolute;inset:-4px}
+.x:hover,.x.is-hover{background:var(--surface)}
+.x:active{opacity:.85}
+.tok.bad .x{color:var(--danger)}
+.ic{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.typ{flex:1 1 120px;min-width:120px;height:36px;border:0;background:transparent;color:var(--ink);font:400 15px var(--font-body);padding:0 12px;outline:none}
+.typ::placeholder{color:var(--ink-muted)}
+.anchor{position:relative}
+.pop{background:var(--surface-raised);box-shadow:var(--shadow-2);border-radius:var(--radius-md);padding:4px;margin-top:4px;box-sizing:border-box}
+.anchor .pop{position:absolute;left:0;right:0;top:100%;z-index:2}
+.pop[hidden]{display:none}
+.opt{display:flex;align-items:center;gap:8px;min-height:44px;padding:0 12px;border-radius:var(--radius-sm);cursor:pointer;box-sizing:border-box}
+.opt.two{min-height:56px}
+.opt .ot{flex:1;min-width:0}.opt .ot .cap{display:block}
+.opt.hi,.opt:hover{background:var(--surface-hover)}
+.opt.hi{outline:2px solid var(--focus);outline-offset:-2px}
+.live{min-height:260px}
+.phone{width:360px;max-width:100%;border-radius:var(--radius-xl);background:var(--bg);padding:16px;box-sizing:border-box;box-shadow:var(--shadow-1)}
+.phone .tok,.phone .typ{font-size:16px}
+.phone .list{margin-top:8px}
+.phone .opt{min-height:56px;border-radius:0;border-top:1px solid var(--line)}
+.phone .opt:first-child{border-top:0}
+.strip{padding:20px;border-radius:var(--radius-lg);background:var(--bg)}
+/* Focus on something already red is ink, not the red focus (design/README.md, "Focus and danger"). */
+.err .tf.is-focus,.err .tf:focus-within,.tok.bad.sel,.tok.bad:focus{outline-color:var(--ink)}
+</style></head><body>
+<div class="cols"><div>
+<section class="sec live" aria-labelledby="h-live">
+<p class="lbl" id="h-live">Try it: type and press Enter or comma; Backspace twice; arrows; the ×</p>
+<div class="anchor" data-tokens>
+<span class="lab" id="l-grp">Groups</span>
+<div class="tf" role="group" aria-labelledby="l-grp">
+<span class="tok" tabindex="-1"><span class="tv">Family</span><button class="x" type="button" tabindex="-1" aria-label="Remove Family"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"></path></svg></button></span>
+<span class="tok" tabindex="-1"><span class="tv">Book club</span><button class="x" type="button" tabindex="-1" aria-label="Remove Book club"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"></path></svg></button></span>
+<input class="typ" type="text" placeholder="Add a group" aria-label="Add a group" aria-autocomplete="list" aria-controls="sg-grp" aria-expanded="false">
+</div>
+<div class="pop" id="sg-grp" role="listbox" aria-label="Suggestions" hidden></div>
+<div class="help" id="st-grp" role="status" aria-live="polite"></div>
+</div>
+</section>
+<section class="sec" aria-labelledby="h-sug">
+<p class="lbl" id="h-sug">Suggestions while typing “wo”</p>
+<span class="lab">Groups</span>
+<div class="tf is-focus" role="group" aria-label="Groups">
+<span class="tok"><span class="tv">Family</span><button class="x" type="button" aria-label="Remove Family"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"></path></svg></button></span>
+<input class="typ" type="text" value="wo" aria-label="Add a group">
+</div>
+<div class="pop" role="listbox" aria-label="Suggestions">
+<div class="opt hi" role="option" aria-selected="true"><span class="ot">Work</span></div>
+<div class="opt" role="option" aria-selected="false"><span class="ot">Woodwork class</span></div>
+<div class="opt" role="option" aria-selected="false"><span class="ot">New group “wo”</span></div>
+</div>
+</section>
+</div><div>
+<section class="sec" aria-labelledby="h-states">
+<p class="lbl" id="h-states">States</p>
+<span class="lab">Selected token (after one Backspace) and hover on a ×</span>
+<div class="tf" role="group" aria-label="Groups">
+<span class="tok"><span class="tv">Family</span><button class="x is-hover" type="button" aria-label="Remove Family"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"></path></svg></button></span>
+<span class="tok sel"><span class="tv">Book club</span><button class="x" type="button" aria-label="Remove Book club"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"></path></svg></button></span>
+<input class="typ" type="text" aria-label="Add a group">
+</div>
+<div class="err" style="margin-top:20px">
+<span class="lab" id="l-to">To (myMail, later)</span>
+<div class="tf" role="group" aria-labelledby="l-to" aria-describedby="h-to">
+<span class="tok" title="ava@example.org"><span class="tv">Ava Fictional</span><button class="x" type="button" aria-label="Remove Ava Fictional"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"></path></svg></button></span>
+<span class="tok bad" aria-invalid="true"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7.5v5.5M12 16v.5"></path></svg><span class="tv">ben@example</span><button class="x" type="button" aria-label="Remove ben@example"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"></path></svg></button></span>
+<input class="typ" type="text" aria-label="Add a recipient">
+</div>
+<div class="help" id="h-to">ben@example is not a complete address. It looks like name@example.org.</div>
+</div>
+<div style="margin-top:20px">
+<span class="lab">Recipient suggestions (myMail, later)</span>
+<div class="pop" role="listbox" aria-label="Suggestions">
+<div class="opt two hi" role="option" aria-selected="true"><span class="ot">Ava Fictional<span class="cap">ava@example.org</span></span></div>
+<div class="opt two" role="option" aria-selected="false"><span class="ot">Ava Fictional<span class="cap">ava.home@example.net</span></span></div>
+</div>
+</div>
+<div style="margin-top:20px">
+<span class="lab">Disabled</span>
+<div class="tf off" role="group" aria-label="Groups" aria-disabled="true" aria-describedby="h-off">
+<span class="tok off"><span class="tv">Family</span></span><span class="tok off"><span class="tv">Book club</span></span>
+</div>
+<div class="help" id="h-off">Groups from this Mac cannot be changed here.</div>
+</div>
+</section>
+</div></div>
+<div class="cols">
+<section class="sec" aria-labelledby="h-gr">
+<p class="lbl" id="h-gr">A selected token has the ring as well as the fill: in light mode the fill barely differs from a token at rest, in every theme</p>
+<div class="strip">
+<span class="lab">Groups</span>
+<div class="tf" role="group" aria-label="Groups">
+<span class="tok"><span class="tv">Family</span><button class="x" type="button" aria-label="Remove Family"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"></path></svg></button></span>
+<span class="tok sel"><span class="tv">Book club</span><button class="x" type="button" aria-label="Remove Book club"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"></path></svg></button></span>
+<span class="tok"><span class="tv">Neighbours on Sample Street</span><button class="x" type="button" aria-label="Remove Neighbours on Sample Street"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"></path></svg></button></span>
+<input class="typ" type="text" aria-label="Add a group">
+</div>
+</div>
+</section>
+<section class="sec" aria-labelledby="h-ph">
+<p class="lbl" id="h-ph">Phone: suggestions sit in the page, under the field</p>
+<div class="phone">
+<span class="lab">Groups</span>
+<div class="tf is-focus" role="group" aria-label="Groups">
+<span class="tok"><span class="tv">Family</span><button class="x" type="button" aria-label="Remove Family"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"></path></svg></button></span>
+<input class="typ" type="text" value="bo" aria-label="Add a group">
+</div>
+<div class="card list" role="listbox" aria-label="Suggestions">
+<div class="opt" role="option" aria-selected="false"><span class="ot">Book club</span></div>
+<div class="opt" role="option" aria-selected="false"><span class="ot">New group “bo”</span></div>
+</div>
+</div>
+</section>
+</div>
+<script>
+document.querySelectorAll('[data-tokens]').forEach(function (root) {
+  var field = root.querySelector('.tf'), input = root.querySelector('.typ'), list = root.querySelector('.pop'), status = root.querySelector('[role=status]');
+  var known = ['Family', 'Book club', 'Work', 'Woodwork class', 'Neighbours on Sample Street', 'Choir'];
+  var removed = [], hi = 0, items = [];
+  function tokens() { return Array.prototype.slice.call(field.querySelectorAll('.tok')); }
+  function values() { return tokens().map(function (t) { return t.querySelector('.tv').textContent; }); }
+  function say(s) { status.textContent = s; }
+  function select(t) { tokens().forEach(function (o) { o.classList.remove('sel'); }); if (t) { t.classList.add('sel'); t.focus(); } }
+  function make(v) {
+    var t = document.createElement('span'); t.className = 'tok'; t.tabIndex = -1;
+    t.innerHTML = '<span class="tv"></span><button class="x" type="button" tabindex="-1"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"></path></svg></button>';
+    t.querySelector('.tv').textContent = v; t.querySelector('.x').setAttribute('aria-label', 'Remove ' + v);
+    wire(t); return t;
+  }
+  function add(v) {
+    v = v.trim(); if (!v) return;
+    var dup = tokens().filter(function (t) { return t.querySelector('.tv').textContent.toLowerCase() === v.toLowerCase(); })[0];
+    if (dup) { say(v + ' is already added'); dup.classList.add('sel'); setTimeout(function () { dup.classList.remove('sel'); }, 700); return; }
+    field.insertBefore(make(v), input); say('Added ' + v);
+  }
+  function remove(t) { var v = t.querySelector('.tv').textContent; removed.push(v); t.remove(); say('Removed ' + v); input.focus(); }
+  function wire(t) {
+    t.querySelector('.x').addEventListener('click', function (e) { e.stopPropagation(); remove(t); });
+    t.addEventListener('keydown', function (e) {
+      var all = tokens(), i = all.indexOf(t);
+      if (e.key === 'Backspace' || e.key === 'Delete') { e.preventDefault(); remove(t); }
+      else if (e.key === 'ArrowLeft') { e.preventDefault(); if (i > 0) select(all[i - 1]); }
+      else if (e.key === 'ArrowRight') { e.preventDefault(); if (i < all.length - 1) select(all[i + 1]); else { select(null); input.focus(); } }
+      else if (e.key === 'Escape') { select(null); input.focus(); }
+    });
+    t.addEventListener('blur', function () { t.classList.remove('sel'); });
+  }
+  tokens().forEach(wire);
+  function render() {
+    var q = input.value.trim().toLowerCase(), have = values().map(function (v) { return v.toLowerCase(); });
+    if (!q) { list.hidden = true; input.setAttribute('aria-expanded', 'false'); return; }
+    items = known.filter(function (k) { return have.indexOf(k.toLowerCase()) < 0 && k.toLowerCase().split(' ').some(function (w) { return w.indexOf(q) === 0; }); });
+    if (known.map(function (k) { return k.toLowerCase(); }).indexOf(q) < 0) items.push({ create: input.value.trim() });
+    hi = 0; list.innerHTML = '';
+    items.forEach(function (it, i) {
+      var o = document.createElement('div'); o.className = 'opt' + (i === hi ? ' hi' : ''); o.setAttribute('role', 'option');
+      o.textContent = typeof it === 'string' ? it : 'New group “' + it.create + '”';
+      o.addEventListener('mousedown', function (e) { e.preventDefault(); take(i); });
+      list.appendChild(o);
+    });
+    list.hidden = false; input.setAttribute('aria-expanded', 'true');
+  }
+  function take(i) { var it = items[i]; add(typeof it === 'string' ? it : it.create); input.value = ''; render(); }
+  input.addEventListener('input', render);
+  input.addEventListener('keydown', function (e) {
+    var open = !list.hidden;
+    if (open && e.key === 'ArrowDown') { e.preventDefault(); hi = Math.min(items.length - 1, hi + 1); }
+    else if (open && e.key === 'ArrowUp') { e.preventDefault(); hi = Math.max(0, hi - 1); }
+    else if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); if (open) take(hi); else if (input.value.trim()) { add(input.value); input.value = ''; } return; }
+    else if (e.key === 'Escape' && open) { list.hidden = true; return; }
+    else if ((e.key === 'Backspace' || e.key === 'ArrowLeft') && input.selectionStart === 0 && input.selectionEnd === 0) { var all = tokens(); if (all.length) { e.preventDefault(); select(all[all.length - 1]); } return; }
+    else if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !input.value && removed.length) { e.preventDefault(); add(removed.pop()); return; }
+    else return;
+    Array.prototype.forEach.call(list.children, function (o, j) { o.classList.toggle('hi', j === hi); });
+  });
+  input.addEventListener('paste', function (e) {
+    var text = (e.clipboardData || window.clipboardData).getData('text');
+    if (/[,;\n]/.test(text)) { e.preventDefault(); text.split(/[,;\n]/).forEach(add); }
+  });
+  input.addEventListener('blur', function () { if (input.value.trim()) { add(input.value); input.value = ''; } list.hidden = true; });
+  field.addEventListener('mousedown', function (e) { if (e.target === field) { e.preventDefault(); input.focus(); } });
+});
+</script>
+</body></html>

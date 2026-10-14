@@ -1,0 +1,49 @@
+A field that holds several values as removable tokens, added by typing or by picking a suggestion: a contact's groups now, a message's recipients later.
+
+- **Use it** when a record has a short, open set of values the user names or picks from many: the groups a contact is in, the people a message goes to.
+- **Do not use it** for one value (Select or TextField), for picking several items out of a list on screen (Checkboxes in a list, or MultiSelect, with ⌘-click and ⇧-click), or for a fixed handful of on or off options (Checkboxes). Tokens are not status chips: a Badge states a status and cannot be pressed; a token is a value the user can remove.
+
+- **The field** is a TextField that grows:
+  - the label above in the `label` style and `ink`, `space-2` above; help or error `space-2` below in `caption`, as TextField;
+  - `surface` fill, 1px `line-strong` border, `radius-md`; at least `control-height` tall, with `space-1` padding down and across, so a token sits `space-1` inside the border;
+  - tokens flow in reading order, `space-1` apart, and wrap onto new lines; the field grows a line at a time, up to four lines, then scrolls inside, keeping the typing point in view;
+  - after the last token, the typing point: plain text in `body` and `ink` with `space-3` padding at its start, taking the rest of the line (a new line when less than about a third is left). Its placeholder, shown only while the field has no tokens, names what to add ("Add a group").
+- **A token** is a pill, `control-height-compact` tall, `radius-pill`, `surface-sunken`, with the value in `body` and `ink`, `space-3` padding at its start:
+  - at its end, a remove button: an × icon at `icon` size in `ink-muted`. Its visible part stays inside the pill; its target is `control-height` square, centred on the icon, and may overlap the field's padding, never another token's text. Its accessible name is "Remove" and the value: "Remove Book club". It is **not a Tab stop**: ten recipients would otherwise be ten extra stops. Keyboard users remove a token by selecting it and pressing Backspace or Delete; screen readers get "Remove" as the token's action.
+  - A long value is cut short with an ellipsis at the field's width and shown in full in its tooltip.
+  - **Selected** (with the arrow keys or Backspace, below): `accent-soft` fill with `ink` text, and the focus ring around the pill. Selection is never the fill alone. A selected invalid token keeps its `danger-soft` fill, and its ring is `ink`, not the red `focus`, so the ring never merges with the red-tinted pill (design/README.md, "Focus and danger").
+  - **Invalid** (a value the field's rule refuses, such as an incomplete address): `danger-soft` fill, `danger` text and ×, and an alert icon at `icon` size before the value, `space-2` from the pill's start. The field's border becomes 2px `danger` and the error text names the token and what a correct value looks like: "ben@example is not a complete address. It looks like name@example.org." With several invalid tokens: "2 addresses are not complete. Fix or remove them." The token stays, so the user can fix it rather than retype it: double-click, or Enter on a selected token, turns it back into text at the typing point.
+- **Suggestions** open under the field while the user types, in the Select's open list (`surface-raised`, `shadow-2`, `radius-md`, rows `control-height` tall, the highlight `surface-hover`, with the focus ring inside it when reached with the keys, as Menu):
+  - they match the start of any word, ignoring case and accents, and leave out values already in the field;
+  - the first match is highlighted, so Enter takes it;
+  - where the field allows new values, the last row offers one: New group “Book club 2”. It is the only row when nothing matches;
+  - each row shows what the token will show; where the value needs telling apart, a `caption` line (for recipients later: the address under the name). Two-line rows are `row-height` tall.
+  - With nothing typed, no list is open: suggestions are not a browser. Down with nothing typed opens the full list, for keyboard users who want to browse.
+- **Adding:**
+  - Enter or a comma turns the highlighted suggestion into a token, or the typed text when nothing is highlighted. Tab and leaving the field turn the typed text **as typed** into a token, never the highlighted suggestion, so a key that moves focus never puts in a value the user did not see chosen; Tab then moves focus on. Typing is never lost silently.
+  - Pasting text with commas, semicolons or line breaks makes one token per part, in order; empty parts are dropped.
+  - A value already in the field is not added twice: the existing token is selected briefly and screen readers hear "Book club is already added".
+  - A new token checks against the field's rule at once; an invalid one is still added, in its invalid state.
+- **Removing:**
+  - The × removes that token. Focus goes to the typing point.
+  - Backspace at the start of an empty typing point selects the last token; Backspace or Delete again removes it. This two-step stops one keystroke too many from deleting a token unseen.
+  - Left and Right move the selection between tokens, toward the start and the end of the line; in right-to-left languages the keys mirror, so Left still moves toward the visual left. Moving toward the end past the last token returns to the typing point. Escape clears the selection, after any open suggestion list has closed (platforms.md, "Which handler gets a key first").
+  - ⌘Z (Control+Z elsewhere) undoes typing first, as in any text field. Only when the typing point has nothing left to undo does it bring back the last removed token. When the field has neither, ⌘Z goes on to the record's undo (platforms.md).
+- **States:**
+  - Hover: the field's fill does not change (it is a text field); a token's × shows a `surface` circle behind it, `icon-tile` across (the pill itself is `surface-sunken`, so the circle is the lighter ground in light mode and the raised one in dark).
+  - Pressed: the × dims to 85% at once and returns over `fast`.
+  - Focused: the 2px `focus` ring around the whole field while the typing point has focus; around one token while that token is selected. While the field is in error, the ring around it is `ink`, as on any red element (design/README.md, "Focus and danger").
+  - Disabled: 45% opacity, tokens without their ×, not focusable, with the reason as help text.
+  - Error: as above. An error is about tokens, never about the typed text, which is not checked until it becomes a token.
+- **Screen readers:** the field is a group with its label and a count: "Groups, 3 groups". The tokens are options in a list box inside it, so the arrow keys' selection is announced ("Book club, selected, 2 of 3"). Each token reads its value, and "invalid" with the error when it is invalid; "Remove" is offered as its action, not as a separate stop. The typing point is a text field with suggestions ("autocomplete, list"); the number of suggestions is announced politely after typing stops ("2 suggestions"). Adding and removing are announced: "Added Book club", "Removed Book club".
+- **Motion:** a new token fades in over `fast` while the field makes room for it; a removed token fades out over `fast` and the ones after it close up over `fast` with the `standard` curve. The suggestion list opens and closes as the Select's. With reduced motion, tokens appear and go with a `fast` fade and the rest jump into place.
+- **Light and dark, every theme:** only tokens. In light mode, in every theme, the selected fill (`accent-soft`) and the token's rest fill (`surface-sunken`) differ by only 1.00 to 1.06:1, so the fill cannot show selection anywhere; the focus ring around the pill carries it. (In dark mode they differ by about 1.4:1.)
+- **Phone (under 600px):** the same field, `body` at 16px, full width. Suggestions show as rows directly under the field, inside the page, not as a popover over the keyboard. The return key adds a token. A selected token's × stays the way to remove it; Backspace works as on desktop with a hardware keyboard.
+- **Sizes:** the field at least `control-height`; tokens `control-height-compact`. Compact density (when built) keeps the tokens at `control-height-compact` and the field at least `control-height-compact` plus its padding.
+- **Copy:** the label in sentence case, no full stop ("Groups"). The placeholder starts with a verb ("Add a group"). The new-value row reads New group “…”, with the typed text in curly quotes. Errors are full sentences, with the full stop.
+- **Recipients, later (phase 7):** myMail's To, Cc and Bcc fields are TokenFields with contact suggestions (name with the address as caption, one row per address, recent addresses after contacts) and an address rule. A token shows the contact's name when the address belongs to a contact, and the address otherwise; the address is in its tooltip and accessible name. Nothing here is specific to mail: the suggestions, the rule and what a token shows are passed in. Recipient-only behaviour (Cc and Bcc hidden until asked for, dragging a token between fields) is designed with the compose pane, not here.
+- **Used by:**
+  - myContacts edit contact: the Groups field (owned groups as suggestions, a new group can be made by typing).
+  - myMail compose: To, Cc and Bcc (phase 7).
+- **Token needed:** none.
+- You provide the label, the values, where suggestions come from, whether a new value may be made, the rule that marks a value invalid with its error text, and any help.
