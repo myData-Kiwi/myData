@@ -7,8 +7,10 @@ notes and only part of each card, so the copy would not be faithful (the owned-d
 **Preview (analyse) writes nothing.** For each card it decides a status and a default action:
 
 - new: nothing like it on the host. Default: import.
-- duplicate: an owned contact has the same email address or phone number (a strong signal: an exact email, lower
-  case, or the same number in E.164 through phonenumbers) and the same name (or one of the two has none). Default:
+- duplicate: an owned contact has the same UID, or the same email address or phone number (a strong signal: an
+  exact email, lower case, or the same number in E.164 through phonenumbers) and the same name (or one of the two
+  has none). A card imported anyway when an owned card holds its UID gets a new UID (the card as received is kept
+  in its origin), so no two owned cards share one. Default:
   skip, since nothing is ever merged automatically; the user may import it as a new contact anyway. For a copy of
   a followed account, when exactly one owned contact matches, the default is link: keep that contact and hide the
   followed copy (an origin row that writes nothing to the contact); when several cards would link the same
@@ -58,6 +60,7 @@ import locale
 import os
 import re
 import sqlite3
+import uuid
 from dataclasses import dataclass, field
 
 import phonenumbers
@@ -69,6 +72,7 @@ from .contacts_store import _VISIBLE, ContactsStore, card_fields, http_etag
 from .contacts_write import (BOOK_URL, NotFound, UndoRefused, WriteError, _baseline, _book, _clock, _set_deleted,
                              _write_text, stamp)
 from .import_files import SKIP_REASONS, ReadCard, ReadResult
+from .vcard_edit import Raw, VCard
 
 FILE, ICLOUD = "file", "icloud"
 ACTIONS = ("import", "update", "link", "skip")
@@ -208,6 +212,15 @@ def _existing(db: sqlite3.Connection, region: str | None) -> list[tuple[sqlite3.
                       [p["value"] for p in json.loads(r["phones"])], region)) for r in rows]
 
 
+def _owned_uids(db: sqlite3.Connection) -> dict[str, list[sqlite3.Row]]:
+    """Every UID an owned card holds (contacts and groups, live or in Recently deleted): {uid: rows}."""
+    out: dict[str, list[sqlite3.Row]] = {}
+    for r in db.execute("SELECT id, uid, display_name, kind, deleted_at FROM contacts WHERE account_id = ? AND uid != ''",
+                        (owned.OWNED_ACCOUNT,)):
+        out.setdefault(r["uid"], []).append(r)
+    return out
+
+
 def _origins(db: sqlite3.Connection, source: ImportSource) -> dict[str, sqlite3.Row]:
     """The newest live origin per source UID for this source, with the owned row it points to (if any) and the
     label of the import that wrote it."""
@@ -273,7 +286,10 @@ def analyse(db: sqlite3.Connection, source: ImportSource, read: ReadResult, *,
     by_email: dict[str, list[int]] = {}
     by_phone: dict[str, list[int]] = {}
     by_name: dict[str, list[int]] = {}
-    for n, (_row, keys) in enumerate(existing):
+    by_uid: dict[str, list[int]] = {}  # owned contacts only
+    for n, (row, keys) in enumerate(existing):
+        if row["account_id"] == owned.OWNED_ACCOUNT and row["uid"]:
+            by_uid.setdefault(row["uid"], []).append(n)
         for e in keys.emails:
             by_email.setdefault(e, []).append(n)
         for p in keys.phones:
@@ -281,6 +297,7 @@ def analyse(db: sqlite3.Connection, source: ImportSource, read: ReadResult, *,
         if keys.name:
             by_name.setdefault(keys.name, []).append(n)
     origins = _origins(db, source)
+    owned_uids = _owned_uids(db)
     present = {c.source_uid for c in read.cards}
     candidates = _unpaired(origins, source, present, region)
     claimed: set[str] = set()  # contacts a card without a UID was paired with
@@ -325,8 +342,15 @@ def analyse(db: sqlite3.Connection, source: ImportSource, read: ReadResult, *,
                 item.status, item.action, item.choices, item.reason = "conflict", "skip", ("skip",), "edited"
             continue
         if card.kind == "group":
+            same = [r for r in owned_uids.get(card.uid, ()) if r["kind"] == "group" and r["deleted_at"] is None]
+            if card.uid and same:  # imported again it would be a second group with that UID
+                item.status, item.action, item.choices = "duplicate", "skip", ("skip", "import")
+                item.matches.append(Match(same[0]["display_name"], "mydata", "strong", ["uid"],
+                                          contact_id=same[0]["id"], account_id=owned.OWNED_ACCOUNT))
             continue
         strong: dict[int, list[str]] = {}
+        for n in by_uid.get(card.uid, ()) if card.uid else ():
+            strong.setdefault(n, []).append("uid")
         for e in keys.emails:
             for n in by_email.get(e, ()):
                 strong.setdefault(n, []).append("email")
@@ -342,7 +366,9 @@ def analyse(db: sqlite3.Connection, source: ImportSource, read: ReadResult, *,
             signals = sorted(set(strong.get(n, []))) + (["name"] if keys.name and keys.name == other.name else [])
             # A shared email or number is a strong match only when the names agree (or one has none): a family
             # landline or a switchboard is no sign that two people are one.
-            is_strong = n in strong and (keys.name is None or other.name is None or keys.name == other.name)
+            # The same UID is the same card, whatever its name is now.
+            is_strong = n in strong and ("uid" in strong[n] or keys.name is None or other.name is None
+                                         or keys.name == other.name)
             if is_strong and row["account_id"] == owned.OWNED_ACCOUNT:
                 owned_strong.append(row["id"])
             item.matches.append(Match(row["display_name"], _source_of(row["account_id"]),
@@ -512,6 +538,9 @@ class Committed:
     missing: list[dict]
 
 
+_ORIGINAL = object()  # _origin: the origin text _original() gives
+
+
 def _revision(db, object_id: str, rev: int, raw: str | None, op: str, actor: str, batch: str | None, at: str) -> None:
     db.execute("INSERT INTO revisions (object_id, rev, raw, op, actor, batch_id, at) VALUES (?, ?, ?, ?, ?, ?, ?)",
                (object_id, rev, raw, op, actor, batch, at))
@@ -528,11 +557,18 @@ def _undo_entry(db, object_id: str, op: str, actor: str, rev: int, prior_rev: in
 
 
 def _origin(db, object_id: str, import_id: str, source: ImportSource, card: ReadCard, rev: int, action: str,
-            prior_rev: int | None) -> None:
+            prior_rev: int | None, *, original: str | bytes | None = _ORIGINAL) -> None:
     db.execute("INSERT INTO origins (object_id, import_id, source_kind, source_uid, source_hash, source_raw, "
                "imported_rev, source_account, action, prior_rev) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-               (object_id, import_id, source.kind, card.source_uid, card.source_hash, _original(card), rev,
-                source.account, action, prior_rev))
+               (object_id, import_id, source.kind, card.source_uid, card.source_hash,
+                _original(card) if original is _ORIGINAL else original, rev, source.account, action, prior_rev))
+
+
+def _with_uid(text: str, uid: str) -> str:
+    """The card with another UID; every other line as it was."""
+    card = VCard.parse(text)
+    card.set("UID", Raw(uid))
+    return card.to_text(bump_rev=False)
 
 
 def _original(card: ReadCard) -> str | bytes | None:
@@ -567,6 +603,7 @@ def commit(store: ContactsStore, source: ImportSource, read: ReadResult, *, choi
     by = f"import:{import_id}"
     with store.db.transaction() as db:
         plan = analyse(db, source, read, region=region)
+        owned_uids = _owned_uids(db)
         if plan.losses and not accept_losses:
             raise LossesNotAccepted("Some of the file cannot be imported (see the loss report). Accept that to "
                                     "import the rest.")
@@ -601,17 +638,24 @@ def commit(store: ContactsStore, source: ImportSource, read: ReadResult, *, choi
             if action == "import":
                 row_id = new_id()
                 href = f"{row_id}.vcf"
-                fields = card_fields(None, card.text)
+                text, original = card.text, _original(card)
+                if card.uid and card.uid in owned_uids:
+                    # An owned card already holds this UID (the user chose to import it anyway): the new one gets a
+                    # UID of its own, so groups and CardDAV never see two cards as one; the card as received is
+                    # kept with its origin.
+                    text = _with_uid(card.text, f"urn:uuid:{uuid.uuid4()}")
+                    original = card.raw if card.raw is not None else card.original
+                fields = card_fields(None, text)
                 fields["etag"] = http_etag(1, fields["raw_sha256"])
                 columns = ["id", "account_id", "address_book_id", "collection_url", "href", *fields, "rev",
                            "created_at", "modified_at"]
                 db.execute(f"INSERT INTO contacts ({', '.join(columns)}) VALUES ({', '.join('?' * len(columns))})",
                            [row_id, owned.OWNED_ACCOUNT, book_id, book_url, href, *fields.values(), 1, when, when])
-                _revision(db, row_id, 1, card.text, "import", by, import_id, when)
+                _revision(db, row_id, 1, text, "import", by, import_id, when)
                 _change(db, book_id, row_id, href, "add", when)
                 if card.kind != "group":
                     _undo_entry(db, row_id, "create", actor, 1, None, when)
-                _origin(db, row_id, import_id, source, card, 1, "create", None)
+                _origin(db, row_id, import_id, source, card, 1, "create", None, original=original)
                 done["groups_created" if card.kind == "group" else "created"] += 1
             elif action == "update":
                 row = db.execute("SELECT * FROM contacts WHERE id = ?", (item.target,)).fetchone()

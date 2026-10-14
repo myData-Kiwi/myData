@@ -413,6 +413,33 @@ def test_two_cards_for_one_contact_of_yours_are_not_linked_by_default(followed):
     assert [i.action for i in sams if "link" in i.choices] and {i.action for i in sams} == {"skip"}
 
 
+def test_the_same_uid_from_another_source_is_never_a_silent_second_card(followed):
+    same = ("BEGIN:VCARD\r\nVERSION:3.0\r\nUID:same-uid@example.org\r\nFN:Kim Invented\r\nEND:VCARD\r\n")
+    commit(followed, FILE_SOURCE, file_with(same))
+    [kim] = [r for r in owned_rows(followed) if r["uid"] == "same-uid@example.org"]
+    followed.apply(ACCOUNT, con.BOOK, con.result([con.Item(href="/1/carddavhome/card/kim.vcf", etag='"1"',
+                                                           data=same.replace("Kim Invented", "Kim Renamed"))]))
+    source = ImportSource(ICLOUD, ACCOUNT, "iCloud account")
+    plan = preview(followed, source, copy_of(followed, ACCOUNT))
+    [item] = [i for i in plan.items if i.display_name == "Kim Renamed"]
+    assert (item.status, item.action, item.target) == ("duplicate", "link", kim["id"])
+    assert [(m.contact_id, m.strength, m.signals) for m in item.matches] == [(kim["id"], "strong", ["uid"])]
+    # Imported anyway: a UID of its own, the card as received kept with its origin.
+    done = commit(followed, source, copy_of(followed, ACCOUNT), choices={item.index: "import"})
+    assert done.counts["linked"] == 0
+    uids = [r["uid"] for r in owned_rows(followed)]
+    assert len(uids) == len(set(uids)) and uids.count("same-uid@example.org") == 1
+    [renamed] = [r for r in owned_rows(followed) if r["display_name"] == "Kim Renamed"]
+    assert renamed["uid"].startswith("urn:uuid:") and "FN:Kim Renamed\r\n" in renamed["raw_vcard"]
+    with followed.db.connect() as db:
+        raw = db.execute("SELECT source_raw, source_uid FROM origins WHERE object_id = ?", (renamed["id"],)).fetchone()
+    assert raw["source_uid"] == "same-uid@example.org" and "UID:same-uid@example.org" in raw["source_raw"]
+    # Its followed copy is still shadowed (matched by the source's UID, never the stored one).
+    found = [followed.get(m["id"]) for m in followed.find_by_name("Kim")]
+    assert sorted((c["display_name"], c["account_id"]) for c in found) == [("Kim Invented", "local"),
+                                                                           ("Kim Renamed", "local")]
+
+
 def test_this_mac_rows_are_never_shadowed_by_a_file(followed):
     mac = con.Collection(url="mac://contacts/c1", kind="contacts", display_name="Mac")
     followed.apply("mac", mac, con.result([con.item("ava-fictional.vcf", href="ava-mac")]))
