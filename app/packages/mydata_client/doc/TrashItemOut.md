@@ -8,6 +8,7 @@ import 'package:mydata_client/api.dart';
 ## Properties
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
+**backupsKeptUntil** | **String** | YYYY-MM-DD: copies of it in the host's snapshots are kept until this day if it is deleted for good now, while the host keeps running (the apps say so before deleting it for good) | 
 **contact** | [**ContactOut**](ContactOut.md) | for kind contact | [optional] 
 **deletedAt** | **String** |  | 
 **id** | **String** |  | 

@@ -87,6 +87,7 @@ Class | Method | HTTP request | Description
 *SourcesApi* | [**createContact**](doc//SourcesApi.md#createcontact) | **POST** /contacts | Create Contact
 *SourcesApi* | [**deleteContact**](doc//SourcesApi.md#deletecontact) | **DELETE** /contacts/{contact_id} | Delete Contact
 *SourcesApi* | [**events**](doc//SourcesApi.md#events) | **GET** /events | Events
+*SourcesApi* | [**purgeItem**](doc//SourcesApi.md#purgeitem) | **DELETE** /trash/{item_id} | Purge Item
 *SourcesApi* | [**removeAccount**](doc//SourcesApi.md#removeaccount) | **DELETE** /accounts/{account_id} | Remove Account
 *SourcesApi* | [**requestMacAccess**](doc//SourcesApi.md#requestmacaccess) | **POST** /sources/mac/request-access | Request Mac Access
 *SourcesApi* | [**restoreItem**](doc//SourcesApi.md#restoreitem) | **POST** /trash/{item_id}/restore | Restore Item

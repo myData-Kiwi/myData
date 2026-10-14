@@ -13,6 +13,7 @@ part of openapi.api;
 class TrashItemOut {
   /// Returns a new [TrashItemOut] instance.
   TrashItemOut({
+    required this.backupsKeptUntil,
     this.contact,
     required this.deletedAt,
     required this.id,
@@ -20,6 +21,9 @@ class TrashItemOut {
     required this.purgeAfter,
     required this.title,
   });
+
+  /// YYYY-MM-DD: copies of it in the host's snapshots are kept until this day if it is deleted for good now, while the host keeps running (the apps say so before deleting it for good)
+  String backupsKeptUntil;
 
   /// for kind contact
   ContactOut? contact;
@@ -41,6 +45,7 @@ class TrashItemOut {
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is TrashItemOut &&
+          other.backupsKeptUntil == backupsKeptUntil &&
           other.contact == contact &&
           other.deletedAt == deletedAt &&
           other.id == id &&
@@ -51,6 +56,7 @@ class TrashItemOut {
   @override
   int get hashCode =>
       // ignore: unnecessary_parenthesis
+      (backupsKeptUntil.hashCode) +
       (contact == null ? 0 : contact!.hashCode) +
       (deletedAt.hashCode) +
       (id.hashCode) +
@@ -60,10 +66,11 @@ class TrashItemOut {
 
   @override
   String toString() =>
-      'TrashItemOut[contact=$contact, deletedAt=$deletedAt, id=$id, kind=$kind, purgeAfter=$purgeAfter, title=$title]';
+      'TrashItemOut[backupsKeptUntil=$backupsKeptUntil, contact=$contact, deletedAt=$deletedAt, id=$id, kind=$kind, purgeAfter=$purgeAfter, title=$title]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
+    json[r'backups_kept_until'] = this.backupsKeptUntil;
     if (this.contact != null) {
       json[r'contact'] = this.contact;
     } else {
@@ -88,6 +95,10 @@ class TrashItemOut {
       // Note 1: the values aren't checked for validity beyond being non-null.
       // Note 2: this code is stripped in release mode!
       assert(() {
+        assert(json.containsKey(r'backups_kept_until'),
+            'Required key "TrashItemOut[backups_kept_until]" is missing from JSON.');
+        assert(json[r'backups_kept_until'] != null,
+            'Required key "TrashItemOut[backups_kept_until]" has a null value in JSON.');
         assert(json.containsKey(r'deleted_at'),
             'Required key "TrashItemOut[deleted_at]" is missing from JSON.');
         assert(json[r'deleted_at'] != null,
@@ -112,6 +123,7 @@ class TrashItemOut {
       }());
 
       return TrashItemOut(
+        backupsKeptUntil: mapValueOfType<String>(json, r'backups_kept_until')!,
         contact: ContactOut.fromJson(json[r'contact']),
         deletedAt: mapValueOfType<String>(json, r'deleted_at')!,
         id: mapValueOfType<String>(json, r'id')!,
@@ -174,6 +186,7 @@ class TrashItemOut {
 
   /// The list of required keys that must be present in a JSON.
   static const requiredKeys = <String>{
+    'backups_kept_until',
     'deleted_at',
     'id',
     'kind',

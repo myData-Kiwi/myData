@@ -758,6 +758,63 @@ class SourcesApi {
     return null;
   }
 
+  /// Purge Item
+  ///
+  /// Delete an item in Recently deleted for good now, with its earlier versions; it cannot be brought back or undone. Copies in the host's snapshots stay until those expire (backups_kept_until).
+  ///
+  /// Note: This method returns the HTTP [Response].
+  ///
+  /// Parameters:
+  ///
+  /// * [String] itemId (required):
+  Future<Response> purgeItemWithHttpInfo(
+    String itemId, {
+    Future<void>? abortTrigger,
+  }) async {
+    // ignore: prefer_const_declarations
+    final path = r'/trash/{item_id}'.replaceAll('{item_id}', itemId);
+
+    // ignore: prefer_final_locals
+    Object? postBody;
+
+    final queryParams = <QueryParam>[];
+    final headerParams = <String, String>{};
+    final formParams = <String, String>{};
+
+    const contentTypes = <String>[];
+
+    return apiClient.invokeAPI(
+      path,
+      'DELETE',
+      queryParams,
+      postBody,
+      headerParams,
+      formParams,
+      contentTypes.isEmpty ? null : contentTypes.first,
+      abortTrigger: abortTrigger,
+    );
+  }
+
+  /// Purge Item
+  ///
+  /// Delete an item in Recently deleted for good now, with its earlier versions; it cannot be brought back or undone. Copies in the host's snapshots stay until those expire (backups_kept_until).
+  ///
+  /// Parameters:
+  ///
+  /// * [String] itemId (required):
+  Future<void> purgeItem(
+    String itemId, {
+    Future<void>? abortTrigger,
+  }) async {
+    final response = await purgeItemWithHttpInfo(
+      itemId,
+      abortTrigger: abortTrigger,
+    );
+    if (response.statusCode >= HttpStatus.badRequest) {
+      throw ApiException(response.statusCode, await _decodeBodyBytes(response));
+    }
+  }
+
   /// Remove Account
   ///
   /// Unlink an account: its mirrored contacts and calendars and its Keychain item are deleted. Copies in the host's snapshots stay until they expire (within 12 months while the host runs). Nothing changes at the provider. With no account left the host returns to demo mode.

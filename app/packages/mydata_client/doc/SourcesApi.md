@@ -19,6 +19,7 @@ Method | HTTP request | Description
 [**createContact**](SourcesApi.md#createcontact) | **POST** /contacts | Create Contact
 [**deleteContact**](SourcesApi.md#deletecontact) | **DELETE** /contacts/{contact_id} | Delete Contact
 [**events**](SourcesApi.md#events) | **GET** /events | Events
+[**purgeItem**](SourcesApi.md#purgeitem) | **DELETE** /trash/{item_id} | Purge Item
 [**removeAccount**](SourcesApi.md#removeaccount) | **DELETE** /accounts/{account_id} | Remove Account
 [**requestMacAccess**](SourcesApi.md#requestmacaccess) | **POST** /sources/mac/request-access | Request Mac Access
 [**restoreItem**](SourcesApi.md#restoreitem) | **POST** /trash/{item_id}/restore | Restore Item
@@ -514,6 +515,54 @@ Name | Type | Description  | Notes
 ### Return type
 
 [**EventsOut**](EventsOut.md)
+
+### Authorization
+
+[bearer](../README.md#bearer)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **purgeItem**
+> purgeItem(itemId)
+
+Purge Item
+
+Delete an item in Recently deleted for good now, with its earlier versions; it cannot be brought back or undone. Copies in the host's snapshots stay until those expire (backups_kept_until).
+
+### Example
+```dart
+import 'package:mydata_client/api.dart';
+// TODO Configure HTTP Bearer authorization: bearer
+// Case 1. Use String Token
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearer').setAccessToken('YOUR_ACCESS_TOKEN');
+// Case 2. Use Function which generate token.
+// String yourTokenGeneratorFunction() { ... }
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearer').setAccessToken(yourTokenGeneratorFunction);
+
+final api_instance = SourcesApi();
+final itemId = itemId_example; // String | 
+
+try {
+    api_instance.purgeItem(itemId);
+} catch (e) {
+    print('Exception when calling SourcesApi->purgeItem: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **itemId** | **String**|  | 
+
+### Return type
+
+void (empty response body)
 
 ### Authorization
 
