@@ -8,6 +8,9 @@ binding again. Invented data only.
 from __future__ import annotations
 
 import dataclasses
+import threading
+
+import pytest
 
 from starlette.testclient import TestClient
 
@@ -21,7 +24,8 @@ from mydata.service.sync import SyncService
 from mydata.sources.accounts import Accounts
 from mydata.sources.secrets import MemorySecretStore
 from mydata.tools import ToolResult
-from mydata.tools.registry import call_digest, handler_id
+from mydata.tools import registry as registry_module
+from mydata.tools.registry import ModeRefused, call_digest, handler_id
 
 from service_helpers import ASSISTANT_TOKEN, SEND_TO_NISHA, TODAY, ReadyModels, Scripted, spied_registry
 
@@ -163,3 +167,74 @@ def test_rejecting_a_failed_approval_leaves_it_failed():
     registry.set_epoch(1)
     a = registry.decide(approval_id, False, decided_by="app:mydata")
     assert a.status == "failed" and a.decided_by is None and spy.calls == []
+
+
+# ---------------------------------------------------------------- a switch during a call
+
+
+def _switch_soon(registry, mode: str):
+    """Start a switch to `mode` in another thread and give it time to land, as a racing refresh would."""
+    tools = [registry.get(n) for n in registry.names()]
+    t = threading.Thread(target=lambda: registry.replace_tools(tools, mode=mode))
+    t.start()
+    t.join(0.3)
+    return t
+
+
+def test_a_switch_during_an_approved_run_waits_for_it(monkeypatch):
+    """decide() checks the binding and then runs: a switch landing between the two must wait, so the held
+    call runs wholly in the mode it was held in (or not at all), never in the new one."""
+    registry, _ = spied_registry()
+    seen = []
+
+    def handler(args, dates, today):
+        seen.append(registry.mode)
+        return ToolResult({"status": "sent"})
+
+    registry.replace_tools([dataclasses.replace(registry.get(n), handler=handler) if n == "send_mail"
+                            else registry.get(n) for n in registry.names()])
+    held = registry.invoke("send_mail", ARGS, caller="test").approval
+    switches = []
+    real_digest = registry_module.call_digest
+
+    def racing_digest(*a, **k):  # decide's check of the binding: a switch to real starts right after it
+        out = real_digest(*a, **k)
+        switches.append(_switch_soon(registry, "real"))
+        return out
+
+    monkeypatch.setattr(registry_module, "call_digest", racing_digest)
+    decided = registry.decide(held.id, True, decided_by="user")
+    (switch,) = switches
+    switch.join(5)
+    assert not switch.is_alive() and registry.mode == "real"
+    assert decided.status == "approved" and seen == ["demo"]
+
+
+def test_an_agent_call_cannot_run_over_real_data_after_a_switch():
+    """MCP refuses agents in real mode inside the registry: the check and the run are one step, so a switch
+    to real between them waits, and a call after it is refused without running."""
+    registry, _ = spied_registry()
+    seen = []
+
+    def handler(args, dates, today):
+        seen.append(registry.mode)
+        return ToolResult({"matches": []})
+
+    registry.replace_tools([dataclasses.replace(registry.get(n), handler=handler) if n == "find_contact"
+                            else registry.get(n) for n in registry.names()])
+    validate = registry.validate
+    switches = []
+
+    def racing_validate(*a, **k):
+        switches.append(_switch_soon(registry, "real"))
+        return validate(*a, **k)
+
+    registry.validate = racing_validate
+    inv = registry.invoke("find_contact", {"name": "Nisha"}, caller="agent:test", modes=("demo",))
+    switches[0].join(5)
+    assert inv.status == "ok" and seen == ["demo"] and registry.mode == "real"
+
+    registry.validate = validate
+    with pytest.raises(ModeRefused):
+        registry.invoke("find_contact", {"name": "Nisha"}, caller="agent:test", modes=("demo",))
+    assert seen == ["demo"]

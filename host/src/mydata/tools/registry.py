@@ -12,7 +12,8 @@ Registry.invoke. Each tool declares a name, description, argument schema and per
 A held call is bound to the mode (demo or real), the conversation epoch and the handler it was held
 with, all three in its digest. Swapping the tools (a switch of mode) or moving the epoch on fails every
 pending approval, and decide() checks the binding again, so a call held over demo data can never run
-over real data.
+over real data. A switch waits for the calls running (invoke, and decide from its check of the binding
+to the end of the run), and no call starts while a switch is under way: a call runs wholly in one mode.
 
 Validation (unknown tool, unknown or missing arguments) and date resolution also live here, so
 every agent gets the same checks and the same dates.
@@ -26,6 +27,7 @@ import json
 import logging
 import secrets
 import threading
+from contextlib import contextmanager
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime, timezone
 from typing import Any, Callable, Iterable, Literal
@@ -128,6 +130,47 @@ class ApprovalError(Exception):
     """An approval id that does not exist or was already decided."""
 
 
+class ModeRefused(Exception):
+    """invoke(modes=...) in a mode the caller may not use (an MCP agent in real mode)."""
+
+
+class _SwitchLock:
+    """Calls share it; a switch of mode or epoch takes it alone. Not re-entrant for a switch: a tool
+    handler must never switch the mode."""
+
+    def __init__(self):
+        self._cond = threading.Condition()
+        self._calls = 0
+        self._switching = False
+
+    @contextmanager
+    def call(self):
+        with self._cond:
+            while self._switching:
+                self._cond.wait()
+            self._calls += 1
+        try:
+            yield
+        finally:
+            with self._cond:
+                self._calls -= 1
+                if not self._calls:
+                    self._cond.notify_all()
+
+    @contextmanager
+    def switch(self):
+        with self._cond:
+            while self._switching or self._calls:
+                self._cond.wait()
+            self._switching = True
+        try:
+            yield
+        finally:
+            with self._cond:
+                self._switching = False
+                self._cond.notify_all()
+
+
 def call_digest(tool: str, args: dict, *, mode: str, epoch: int, handler: str) -> str:
     """The held call and what it is bound to: the tool, its arguments, the mode, the conversation epoch and
     the handler that would run it."""
@@ -158,6 +201,8 @@ class Registry:
         # Moved on by every switch of mode (the assistant keeps it: service/assistant.py, modes.py).
         self.conversation_epoch = 0
         self._lock = threading.Lock()
+        # Taken before self._lock, never after it.
+        self._switch = _SwitchLock()
         self._approvals: dict[str, Approval] = {}
         # Approvals the host failed (a switch of mode or epoch), not a person: deciding one returns it as is.
         self._voided: set[str] = set()
@@ -174,7 +219,7 @@ class Registry:
         fails, nothing run: it was held over the old tools and data (a demo send_mail must never run in
         real mode). The undo log is kept."""
         catalogue = _catalogue(tools)
-        with self._lock:
+        with self._switch.switch(), self._lock:
             self._tools = catalogue
             if today is not None:
                 self._today = today
@@ -189,7 +234,7 @@ class Registry:
 
     def set_epoch(self, epoch: int) -> None:
         """Move the conversation epoch on. A change fails every pending approval, nothing run."""
-        with self._lock:
+        with self._switch.switch(), self._lock:
             if epoch == self.conversation_epoch:
                 return
             self.conversation_epoch = epoch
@@ -280,21 +325,27 @@ class Registry:
         return Invocation("ok", name, args, resolved={k: v.to_json() for k, v in resolved.items()}), resolved
 
     def invoke(self, name: str, raw_args: Any, *, caller: str, today: date | None = None,
-               context: dict | None = None) -> Invocation:
-        """Validate and run a call. Irreversible tools are held for approval instead of run."""
-        today = today or self._today()
-        inv, resolved = self.validate(name, raw_args, today)
-        if inv.status == "ok":
-            tool = self._tools[name]
-            if tool.permission == "irreversible":
-                inv.status = "pending_approval"
-                inv.approval = self._hold(tool, inv.args, resolved, caller, context or {})
-            else:
-                inv = self._run(tool, inv, resolved, today)
+               context: dict | None = None, modes: Iterable[str] | None = None) -> Invocation:
+        """Validate and run a call. Irreversible tools are held for approval instead of run. modes: the
+        modes this caller may use; in another, ModeRefused is raised and nothing runs. The check and the
+        run are one step: a switch of mode waits for the call to end."""
+        with self._switch.call():
+            if modes is not None and self.mode not in modes:
+                raise ModeRefused(self.mode)
+            today = today or self._today()
+            inv, resolved = self.validate(name, raw_args, today)
+            if inv.status == "ok":
+                tool = self._tools[name]
+                if tool.permission == "irreversible":
+                    inv.status = "pending_approval"
+                    inv.approval = self._hold(tool, inv.args, resolved, caller, context or {})
+                else:
+                    inv = self._run(tool, inv, resolved, today)
+            mode = self.mode
         # Audit: which tool, by whom, how it ended. Argument values stay out of the log, and in real mode so
         # does the error's text, which can quote one ("could not understand the date 'the day of ...'").
         logger.info("tool call", extra={"fields": {
-            "tool": name, "caller": caller, "status": inv.status, "error": log_error(inv.error, self.mode),
+            "tool": name, "caller": caller, "status": inv.status, "error": log_error(inv.error, mode),
             "approval_id": inv.approval.id if inv.approval else None}})
         return inv
 
@@ -362,7 +413,11 @@ class Registry:
         if not approve:
             self._audit(a)
             return copy.deepcopy(a)
+        # From the check of the binding to the end of the run, no switch can land: it waits.
+        with self._switch.call():
+            return self._run_approved(a, resolved)
 
+    def _run_approved(self, a: Approval, resolved: dict[str, Resolved]) -> Approval:
         with self._lock:
             tool = self._tools.get(a.tool)
             mode, epoch = self.mode, self.conversation_epoch

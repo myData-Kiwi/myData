@@ -26,6 +26,7 @@ from mcp.server.transport_security import TransportSecuritySettings
 
 from .. import __version__
 from ..tools import Registry
+from ..tools.registry import ModeRefused
 
 LOCAL_HOSTS = ["127.0.0.1", "localhost", "[::1]", "127.0.0.1:*", "localhost:*", "[::1]:*"]
 LOCAL_ORIGINS = ["http://127.0.0.1:*", "http://localhost:*", "http://[::1]:*"]
@@ -68,14 +69,17 @@ def build_mcp(registry: Registry) -> StreamableHTTPSessionManager:
                            ) -> types.CallToolResult:
         principal = _principal(ctx)
         caller = principal.label if principal else "mcp"
-        if _shut_out(registry, principal):
+        # The registry checks the mode and runs the call as one step, so a switch to real mode cannot land
+        # between an agent's check and its run.
+        modes = None if getattr(principal, "kind", None) == "app" else ("demo",)
+        try:
+            inv = await anyio.to_thread.run_sync(
+                lambda: registry.invoke(params.name, params.arguments or {}, caller=caller, modes=modes))
+        except ModeRefused:
             logger.info("tool call", extra={"fields": {"tool": params.name, "caller": caller,
                                                        "status": "refused", "error": "real data"}})
             return types.CallToolResult(content=[types.TextContent(text=json.dumps(
                 {"status": "refused", "error": REAL_DATA_REFUSED}))], is_error=True)
-        try:
-            inv = await anyio.to_thread.run_sync(
-                lambda: registry.invoke(params.name, params.arguments or {}, caller=caller))
         except Exception as e:  # a bug in a tool or the resolver is an error result, never a crashed request
             logger.exception("mcp tool call failed")
             return types.CallToolResult(content=[types.TextContent(text=json.dumps(
