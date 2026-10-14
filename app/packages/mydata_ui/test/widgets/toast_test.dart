@@ -125,6 +125,37 @@ void main() {
       await tester.pumpAndSettle();
     });
 
+    testWidgets('a ToastArea that goes away (an inspector closing) gives the toast back the whole host',
+        (tester) async {
+      final controller = ToastController();
+      addTearDown(controller.dispose);
+      Widget host({required bool area}) => themedFrame(
+            themeMatrix.first,
+            SizedBox(
+              width: 640,
+              height: 360,
+              child: ToastHost(
+                controller: controller,
+                child: Stack(children: [
+                  const SizedBox.expand(),
+                  if (area) const Positioned(left: 0, top: 0, bottom: 0, width: 320, child: ToastArea()),
+                ]),
+              ),
+            ),
+            padding: EdgeInsets.zero,
+          );
+      await tester.pumpWidget(host(area: true));
+      controller.show('Contact added');
+      await tester.pumpAndSettle();
+      expect(tester.getCenter(find.text('Contact added')).dx, closeTo(160, 1));
+      await tester.pumpWidget(host(area: false));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(tester.getCenter(find.text('Contact added')).dx, closeTo(320, 1));
+      await tester.pump(const Duration(seconds: 9));
+      await tester.pumpAndSettle();
+    });
+
     testWidgets('a new toast replaces the one showing at once', (tester) async {
       final controller = ToastController();
       addTearDown(controller.dispose);

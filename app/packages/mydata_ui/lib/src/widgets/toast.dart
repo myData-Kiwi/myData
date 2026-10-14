@@ -177,7 +177,9 @@ class _ToastAreaState extends State<ToastArea> {
 
   @override
   void dispose() {
-    _host?._setArea(this, null);
+    final host = _host;
+    // The tree is locked while an element unmounts: the host forgets the area once this frame is built.
+    if (host != null) WidgetsBinding.instance.addPostFrameCallback((_) => host._setArea(this, null));
     super.dispose();
   }
 
