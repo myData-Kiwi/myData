@@ -261,6 +261,12 @@ void main() {
       expect(sorted.map((e) => e.title), ['Holiday', 'Also all day', 'No start', 'Early', 'Late']);
     });
 
+    testWidgets('Previous month and Next month are IconButtons, named and tooltipped', (tester) async {
+      await _pump(tester, _desktop());
+      expect(tester.widgetList<MyDataIconButton>(find.byType(MyDataIconButton)).map((b) => b.label),
+          [MonthGrid.previousMonthLabel, MonthGrid.nextMonthLabel]);
+    });
+
     testWidgets('every cell is named and the selected one is announced as selected', (tester) async {
       final handle = tester.ensureSemantics();
       await _pump(tester, _desktop());

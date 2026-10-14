@@ -7,6 +7,7 @@ import '../generated/tokens.g.dart';
 import '../theme.dart';
 import 'group_frame.dart';
 import 'grouped_list.dart';
+import 'icon_button.dart';
 import 'pressable.dart';
 
 /// What kind of value a [FieldRow] shows. The order is the order of the groups on a contact's page
@@ -390,8 +391,8 @@ class _Link extends StatelessWidget {
   }
 }
 
-/// The plain icon button that copies: `control-height` square, round, a copy icon in `ink-muted` that
-/// becomes a check once copied; `surface-hover` on hover (IconButton).
+/// The button that copies: the [MyDataIconButton] in its quiet tone, a copy icon in `ink-muted` that becomes
+/// a check once copied, its tooltip then [FieldRow.copiedLabel], which screen readers also hear as its value.
 class _CopyButton extends StatelessWidget {
   const _CopyButton({required this.name, required this.copied, required this.onPressed});
 
@@ -400,32 +401,19 @@ class _CopyButton extends StatelessWidget {
   final VoidCallback onPressed;
 
   @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    return Tooltip(
-      message: copied ? FieldRow.copiedLabel : name,
-      excludeFromSemantics: true,
-      child: MergeSemantics(
+  Widget build(BuildContext context) => MergeSemantics(
         child: Semantics(
           value: copied ? FieldRow.copiedLabel : null,
-          child: Pressable(
+          child: MyDataIconButton(
+            icon: Icons.content_copy_outlined,
+            label: name,
+            tone: IconButtonTone.quiet,
+            done: copied,
+            doneLabel: FieldRow.copiedLabel,
             onPressed: onPressed,
-            borderRadius: MyDataRadii.pill,
-            hoverFill: c.surfaceHover,
-            semanticLabel: name,
-            child: SizedBox.square(
-              dimension: MyDataSize.controlHeight,
-              child: Icon(
-                copied ? Icons.check_rounded : Icons.content_copy_outlined,
-                size: MyDataSize.icon,
-                color: c.inkMuted,
-              ),
-            ),
           ),
         ),
-      ),
-    );
-  }
+      );
 }
 
 /// A group of [FieldRow]s: a [GroupedList]'s look (`surface`, `radius-lg`, `shadow-1`, full-width `line`

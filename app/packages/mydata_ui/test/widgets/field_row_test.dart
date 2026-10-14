@@ -41,8 +41,10 @@ Finder _copyButton(Finder row) => find.descendant(of: row, matching: find.byType
 IconData? _copyIcon(WidgetTester tester, Finder row) =>
     tester.widget<Icon>(find.descendant(of: _copyButton(row), matching: find.byType(Icon))).icon;
 
-String _tooltip(WidgetTester tester, Finder row) =>
-    tester.widget<Tooltip>(find.descendant(of: row, matching: find.byType(Tooltip))).message!;
+String _tooltip(WidgetTester tester, Finder row) {
+  final t = tester.widget<Tooltip>(find.descendant(of: row, matching: find.byType(Tooltip)));
+  return t.message ?? t.richMessage!.toPlainText();
+}
 
 /// A contact's page as in the preview: the left column holds Phone, Email and Address; the right column
 /// Birthday, Links and Notes. The work number has just been copied.

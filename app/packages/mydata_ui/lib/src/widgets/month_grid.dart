@@ -10,6 +10,7 @@ import '../motion.dart';
 import '../theme.dart';
 import 'button.dart';
 import 'data_colour.dart';
+import 'icon_button.dart';
 import 'pressable.dart';
 
 /// One event on one day of a [MonthGrid]: what the cell needs to draw it and to name its calendar.
@@ -498,12 +499,12 @@ class _Header extends StatelessWidget {
       buttons: Row(mainAxisSize: MainAxisSize.min, children: [
         Button(label: MonthGrid.todayLabel, onPressed: onToday),
         const SizedBox(width: MonthGrid.headerGap),
-        _IconButton(
+        MyDataIconButton(
             icon: rtl ? Icons.chevron_right_rounded : Icons.chevron_left_rounded,
             label: MonthGrid.previousMonthLabel,
             onPressed: onPrevious),
         const SizedBox(width: MonthGrid.headerGap),
-        _IconButton(
+        MyDataIconButton(
             icon: rtl ? Icons.chevron_left_rounded : Icons.chevron_right_rounded,
             label: MonthGrid.nextMonthLabel,
             onPressed: onNext),
@@ -623,26 +624,6 @@ class _RenderHeaderLayout extends RenderBox
 
   @override
   void paint(PaintingContext context, Offset offset) => defaultPaint(context, offset);
-}
-
-/// A plain icon-only button, `control-height` square, its icon in `ink` (preview: `.ib`).
-class _IconButton extends StatelessWidget {
-  const _IconButton({required this.icon, required this.label, required this.onPressed});
-  final IconData icon;
-  final String label;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) => Pressable(
-        onPressed: onPressed,
-        borderRadius: MyDataRadii.control,
-        // IconButton's hover (design/components/IconButton): the circle fills with `surface-hover`.
-        hoverFill: context.colors.surfaceHover,
-        semanticLabel: label,
-        child: SizedBox.square(
-            dimension: MyDataSize.controlHeight,
-            child: Center(child: Icon(icon, size: MyDataSize.icon, color: context.colors.ink))),
-      );
 }
 
 /// The weekday headings and the six weeks of cells, on one grouped-list group.
