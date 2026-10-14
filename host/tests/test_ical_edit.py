@@ -751,3 +751,22 @@ def test_a_new_start_and_end_give_overrides_that_kept_the_length_the_new_one():
     old, new = ie.edit_following(text, datetime(2026, 3, 9, 9, tzinfo=NZ), {
         "DTSTART": datetime(2026, 3, 9, 13, tzinfo=NZ), "DTEND": datetime(2026, 3, 9, 15, tzinfo=NZ)}, now=NOW)
     assert {datetime.fromisoformat(e) - datetime.fromisoformat(s) for s, e, *_ in occ(new)} == {timedelta(hours=2)}
+
+
+# ---------------------------------------------------------------- an edit keeps the event's zone
+
+def test_a_new_start_given_in_utc_or_without_a_zone_keeps_the_series_zone():
+    text = load("auckland-weekly.ics")
+    ten_nz = datetime(2026, 3, 2, 10, tzinfo=NZ)
+    for given in (ten_nz.astimezone(UTC), ten_nz.astimezone(timezone(timedelta(hours=1))), ten_nz.replace(tzinfo=None)):
+        out = ie.edit_all(text, {"DTSTART": given}, now=NOW)
+        assert "DTSTART;TZID=Pacific/Auckland:20260302T100000\r\n" in out
+        # every occurrence at 10:00 on both sides of the clock change; 03-23's own move to 11:00 is kept
+        assert set(t[6:] for t in local_times(out)) == {"10:00+1300", "10:00+1200", "11:00+1300"}
+    out = ie.edit_this(text, datetime(2026, 4, 13, 9, tzinfo=NZ), {"DTSTART": datetime(2026, 4, 13, 0, tzinfo=UTC)},
+                       now=NOW)
+    assert "DTSTART;TZID=Pacific/Auckland:20260413T120000\r\n" in out
+    # another named zone is a move to it
+    out = ie.edit_event(load("zones-without-vtimezone.ics").split("BEGIN:VEVENT\nUID:unknown")[0] + "END:VCALENDAR\n",
+                        {"DTSTART": datetime(2026, 3, 20, 9, tzinfo=ZoneInfo("America/New_York"))}, now=NOW)
+    assert "DTSTART;TZID=America/New_York:20260320T090000\r\n" in out

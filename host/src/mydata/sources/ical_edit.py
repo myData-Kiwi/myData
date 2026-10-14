@@ -497,6 +497,19 @@ def _date_prop(value, template_prop, *, multi: bool = False):
     return prop
 
 
+def _own_zone(value, current):
+    """A new DTSTART, DTEND or DUE in the event's own zone, unless the caller names another: a floating value
+    is a wall time in it (UTC for a UTC event), and one in UTC or at a fixed offset (an ISO time ending in Z
+    or +01:00) is the same moment in it. A value in another named zone (a ZoneInfo) moves the event there."""
+    if not (_is_dt(value) and _is_dt(current)) or current.tzinfo is None:
+        return value
+    if value.tzinfo is None:
+        return value.replace(tzinfo=current.tzinfo)
+    if not _is_utc(current) and (_is_utc(value) or getattr(value.tzinfo, "key", None) is None):
+        return value.astimezone(current.tzinfo)
+    return value
+
+
 def _first_dt(prop):
     return prop.dts[0].dt if hasattr(prop, "dts") else prop.dt
 
@@ -690,6 +703,8 @@ def _value(component, name: str, value):
         return value
     if isinstance(value, (date, datetime)) and name in ("DTSTART", "DTEND", "DUE", "RECURRENCE-ID"):
         template = component.get(name) or component.get("DTSTART")
+        if template is not None:
+            value = _own_zone(value, template.dt)
         return _date_prop(value, template)
     if name == "RRULE":
         return icalendar.vRecur.from_ical(value) if isinstance(value, str) else icalendar.vRecur(value)
