@@ -63,10 +63,14 @@ class PairVersion {
     this.givenName = '',
     this.familyName = '',
     this.photo,
+    this.personName,
   });
 
   /// The column header: the contact's name, or where this version is ("In the file", "In myData").
   final String name;
+
+  /// The person's name for the avatar's initials when [name] says where the version is; null uses [name].
+  final String? personName;
 
   /// How it came and when: "Added 2 Oct 2026", "Imported 14 Oct 2026", "Changed in iCloud 20 Oct 2026".
   final String caption;
@@ -361,7 +365,7 @@ class _DuplicatePairState extends State<DuplicatePair> {
               child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 if (col.version != null) ...[
                   Avatar(
-                    name: col.version!.name,
+                    name: col.version!.personName ?? col.version!.name,
                     givenName: col.version!.givenName,
                     familyName: col.version!.familyName,
                     photo: col.version!.photo,
