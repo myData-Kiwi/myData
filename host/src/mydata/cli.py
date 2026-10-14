@@ -24,7 +24,8 @@
                                      state is snapshotted first)
     mydata db check-migration        try this host's migrations on copies of the databases and compare every
                                      row (the files themselves are only read; exit 1: problems)
-    mydata export --out DIR          write the stored vCards and iCalendar text as .vcf and .ics files
+    mydata export --out DIR [--vcard 4.0] [--raw]   write the contacts and calendars as .vcf (vCard 3.0
+                                     unless --vcard 4.0) and .ics files; --raw writes the stored text as it is
                                      (DIR must be new or empty, and outside the source checkout)
 """
 
@@ -441,10 +442,10 @@ def cmd_db(settings: Settings, ns: argparse.Namespace) -> int:
     return 1 if any(r["problems"] for r in results) else 0
 
 
-def cmd_export(settings: Settings, out: str) -> int:
-    from .sources.export import ExportError, export_raw
+def cmd_export(settings: Settings, out: str, *, raw: bool = False, vcard: str = "3.0") -> int:
+    from .sources.export import ExportError, export
     try:
-        summary = export_raw(settings.home, out)
+        summary = export(settings.home, out, style="raw" if raw else "clean", vcard_version=vcard)
     except ExportError as e:
         print(f"mydata: {e}", file=sys.stderr)
         return 1
@@ -453,8 +454,17 @@ def cmd_export(settings: Settings, out: str) -> int:
         return 1
     cards = sum(c["cards"] for c in summary["contacts"])
     events = sum(c["resources"] for c in summary["calendars"])
+    what = "the stored text as it is" if raw else f"vCard {vcard}"
     print(f"Exported {cards} card(s) from {len(summary['contacts'])} address book(s) and {events} event(s) from "
-          f"{len(summary['calendars'])} calendar(s) to {os.path.abspath(out)}")
+          f"{len(summary['calendars'])} calendar(s) to {os.path.abspath(out)} ({what})")
+    for book in summary["contacts"]:
+        if book.get("as_stored"):
+            print(f"Address book {book['name']!r}: {book['as_stored']} card(s) could not be read, so they were "
+                  f"written as stored.")
+    for cal in summary["calendars"]:
+        if cal.get("zones_unknown"):
+            print(f"Calendar {cal['name']!r}: no zone data for {', '.join(cal['zones_unknown'])}; those events keep "
+                  f"their zone name without a definition.")
     for skipped in summary["not_exported"]:
         print(f"Not exported: {skipped['source']} calendar {skipped['calendar']!r}: {skipped['why']}.")
     return 0
@@ -518,6 +528,8 @@ def main(argv: list[str] | None = None) -> int:
     dbsub.add_parser("check-migration", help="try this host's migrations on copies of the databases")
     ex = sub.add_parser("export", help="write the stored contacts and calendars as .vcf and .ics files")
     ex.add_argument("--out", required=True, help="a new or empty folder outside the source checkout")
+    ex.add_argument("--vcard", choices=("3.0", "4.0"), default="3.0", help="the vCard version (default 3.0)")
+    ex.add_argument("--raw", action="store_true", help="write the stored text as it is, nothing converted")
     ns = ap.parse_args(argv)
     if ns.cmd == "openapi":
         return cmd_openapi(ns.out)
@@ -538,7 +550,7 @@ def main(argv: list[str] | None = None) -> int:
     if ns.cmd == "db":
         return cmd_db(settings, ns)
     if ns.cmd == "export":
-        return cmd_export(settings, ns.out)
+        return cmd_export(settings, ns.out, raw=ns.raw, vcard=ns.vcard)
     if ns.cmd == "dev-setup":
         return cmd_dev_setup(settings)
     if ns.cmd == "stop":

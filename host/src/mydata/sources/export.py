@@ -1,16 +1,26 @@
-"""The raw export: the stored vCard and iCalendar text, written as files another app can import.
+"""The export: the stored vCard and iCalendar text, written as files another app can import.
 
-    <out>/contacts/<address book>.vcf          every card of one address book, as stored
-    <out>/contacts/<address book> (groups).vcf iCloud group cards, kept apart: imported into Contacts they
+    <out>/contacts/<address book>.vcf          every card of one address book
+    <out>/contacts/<address book> (groups).vcf group cards, kept apart: imported into Contacts they
                                                would become contacts named after the group
     <out>/calendars/<calendar>.ics             one VCALENDAR per calendar: every VEVENT (with its overrides
-                                               and alarms) as stored, each VTIMEZONE once
+                                               and alarms), each VTIMEZONE once
     <out>/export.json                          what each file holds, and what was not exported
 
 One file per address book and per calendar is what Contacts (File, Import) and Calendar (File, Import)
 take in one go; a folder of single-object files would need one import per file. Lines are copied as
 stored (folding included); only line endings become CRLF. A calendar's own properties (its PRODID, METHOD)
 are replaced by the export's, plus X-WR-CALNAME with the calendar's name.
+
+Two styles:
+- **clean** (the default): every card in one vCard version (3.0 unless asked for 4.0), converted with the
+  line editor (vcard_edit.convert), which changes only the lines that differ between versions; a card it
+  cannot read is written as stored and counted. Each calendar gets a VTIMEZONE, generated from the zone data
+  (ical_edit.vtimezone, 1970 to 2038), for every TZID its events use and no stored resource defines: the
+  host stores TZIDs only for what it writes itself, and Outlook names ("W. Europe Standard Time") are
+  mapped to their zone. A TZID no zone data knows is listed in export.json. Every calendar file is read
+  back and compared with what went into it; anything lost stops the export (ExportError).
+- **raw**: the stored text as it is, nothing converted or added.
 
 Not exported: rows marked deleted, and This Mac's events, which the host holds only as expanded
 occurrences (no rule, no original event): export those from Calendar itself. This Mac's cards are the
@@ -27,11 +37,18 @@ import re
 import sqlite3
 from pathlib import Path
 
+from collections import Counter
+
 from ..service.config import inside_checkout, private_dir, private_file
+from . import ical_edit
 from .mac import MAC_ID
+from .owned import OWNED_ACCOUNT
 from .vcard import card_kind
+from .vcard_edit import VCardError, convert
 
 PRODID = "-//myData//raw export//EN"
+STYLES = ("clean", "raw")
+VCARD_VERSIONS = ("3.0", "4.0")
 _UNSAFE = re.compile(r'[\x00-\x1f\x7f/\\:*?"<>|]')
 
 
@@ -153,7 +170,73 @@ def _file_name(name: str, fallback: str, used: set[str]) -> str:
 
 
 def _source(account_id: str) -> str:
+    if account_id == OWNED_ACCOUNT:
+        return "myData"
     return "This Mac" if account_id == MAC_ID else "iCloud"
+
+
+def clean_card(raw: str, version: str) -> tuple[str, str]:
+    """One stored card for the clean export, and what was done: "kept" (already that version), "converted",
+    or "as stored" (a card the line editor cannot read)."""
+    text = _crlf(_lines(raw))
+    try:
+        out = convert(text, version)
+    except VCardError:
+        return text, "as stored"
+    return out, "kept" if out == text else "converted"
+
+
+def _strip_ordinals(counts: Counter) -> Counter:
+    """Counts with each component's ordinal left out, so two resources holding the same UID add up."""
+    out: Counter = Counter()
+    for entry, n in counts.items():
+        key = tuple(part[:-1] for part in entry[0])
+        out[(key,) + entry[1:]] += n
+    return out
+
+
+def _check_calendar(raws: list[str], merged: str) -> None:
+    """Every event, override and alarm of the stored resources is in the merged file, with every property
+    and parameter (calendar-level properties and VTIMEZONEs, which are merged, aside)."""
+    try:
+        written = _strip_ordinals(ical_edit.inventory(merged))
+        stored: Counter = Counter()
+        for raw in raws:
+            stored.update(_strip_ordinals(ical_edit.inventory(raw)))
+    except Exception as exc:  # noqa: BLE001 - an unreadable stored resource
+        raise ExportError(f"a calendar could not be read back: {type(exc).__name__}") from exc
+    lost = []
+    for entry, n in stored.items():
+        path = entry[0]
+        if len(path) < 2 or path[1][0] == "VTIMEZONE":
+            continue
+        if written.get(entry, 0) < n:
+            lost.append(" ".join(str(x) for x in entry[1:]) or path[-1][0])
+    if lost:
+        raise ExportError("the calendar file would lose " + ", ".join(sorted(set(lost))) + "; nothing was exported")
+
+
+def clean_calendar(raws: list[str], name: str) -> tuple[str, list[str], list[str]]:
+    """The merged calendar with a generated VTIMEZONE for each TZID the events use and nothing defines.
+    Returns (text, the TZIDs given a VTIMEZONE, the TZIDs no zone data knows)."""
+    merged = merge_calendar(raws, name)
+    defined = set(ical_edit.defined_tzids(merged))
+    added, missing, zones = [], [], []
+    for tzid in ical_edit.referenced_tzids(merged):
+        if tzid in defined:
+            continue
+        zone = ical_edit.vtimezone(tzid)
+        if zone is None:
+            missing.append(tzid)
+            continue
+        added.append(tzid)
+        zones.extend(_lines(zone))
+    if zones:
+        lines = _lines(merged)
+        header = next(i for i, line in enumerate(lines) if line.upper().startswith("BEGIN:") and i > 0)
+        merged = _crlf(lines[:header] + zones + lines[header:])
+    _check_calendar(raws, merged)
+    return merged, added, missing
 
 
 def _write(path: Path, text: str) -> None:
@@ -183,15 +266,37 @@ def check_destination(out: Path) -> Path:
 
 
 def export_raw(home: Path, out: Path) -> dict:
-    """Write the raw export of the host folder's contacts and calendars into `out`. Returns the summary
-    that is also written as export.json."""
+    """The raw export (the stored text as it is) of the host folder into `out`."""
+    return export(home, out, style="raw")
+
+
+def export(home: Path, out: Path, *, style: str = "clean", vcard_version: str = "3.0") -> dict:
+    """Write the host folder's contacts and calendars into `out` (see the module docstring). Returns the
+    summary that is also written as export.json. Every file is made and checked before the first is
+    written, so a refused export leaves the folder as it was."""
+    if style not in STYLES:
+        raise ExportError(f"unknown export style {style!r}")
+    if vcard_version not in VCARD_VERSIONS:
+        raise ExportError(f"vCard {vcard_version} cannot be written; choose 3.0 or 4.0")
     out = check_destination(out)
-    summary: dict = {"format": 1, "contacts": [], "calendars": [], "not_exported": []}
-    private_dir(out)
+    clean = style == "clean"
+    summary: dict = {"format": 2, "style": style, "vcard_version": vcard_version if clean else None,
+                     "contacts": [], "calendars": [], "not_exported": []}
+    files: dict[str, str] = {}  # path inside `out` -> text
+
+    def cards_text(raws: list[str], done: Counter) -> str:
+        if not clean:
+            return "".join(_crlf(_lines(c)) for c in raws)
+        texts = []
+        for raw in raws:
+            text, how = clean_card(raw, vcard_version)
+            texts.append(text)
+            done[how] += 1
+        return "".join(texts)
+
     db = _connect(Path(home) / "contacts.sqlite")
     if db is not None:
         try:
-            folder = private_dir(out / "contacts")
             used: set[str] = set()
             for book in db.execute("SELECT id, account_id, name FROM address_books WHERE deleted_at IS NULL "
                                    "ORDER BY account_id, name, id"):
@@ -203,18 +308,20 @@ def export_raw(home: Path, out: Path) -> dict:
                 stem = _file_name(book["name"], "Address book", used)
                 entry = {"file": f"contacts/{stem}.vcf", "name": book["name"], "source": _source(book["account_id"]),
                          "cards": len(people)}
-                _write(folder / f"{stem}.vcf", "".join(_crlf(_lines(c)) for c in people))
+                done: Counter = Counter()
+                files[entry["file"]] = cards_text(people, done)
                 if groups:
                     gstem = _file_name(f"{book['name']} (groups)", "Groups", used)
-                    _write(folder / f"{gstem}.vcf", "".join(_crlf(_lines(c)) for c in groups))
                     entry.update(groups_file=f"contacts/{gstem}.vcf", groups=len(groups))
+                    files[entry["groups_file"]] = cards_text(groups, done)
+                if clean:
+                    entry.update(converted=done["converted"], as_stored=done["as stored"])
                 summary["contacts"].append(entry)
         finally:
             db.close()
     db = _connect(Path(home) / "calendar.sqlite")
     if db is not None:
         try:
-            folder = private_dir(out / "calendars")
             used = set()
             for cal in db.execute("SELECT id, account_id, name FROM calendars WHERE deleted_at IS NULL "
                                   "ORDER BY account_id, name, id"):
@@ -230,10 +337,23 @@ def export_raw(home: Path, out: Path) -> dict:
                     "SELECT raw_ics FROM events WHERE calendar_id = ? AND deleted_at IS NULL ORDER BY range_start, id",
                     (cal["id"],))]
                 stem = _file_name(cal["name"], "Calendar", used)
-                _write(folder / f"{stem}.ics", merge_calendar(raws, cal["name"]))
-                summary["calendars"].append({"file": f"calendars/{stem}.ics", "name": cal["name"],
-                                             "source": _source(cal["account_id"]), "resources": len(raws)})
+                entry = {"file": f"calendars/{stem}.ics", "name": cal["name"], "source": _source(cal["account_id"]),
+                         "resources": len(raws)}
+                if clean:
+                    text, added, unknown = clean_calendar(raws, cal["name"])
+                    entry.update(zones_added=added, zones_unknown=unknown)
+                else:
+                    text = merge_calendar(raws, cal["name"])
+                files[entry["file"]] = text
+                summary["calendars"].append(entry)
         finally:
             db.close()
+    private_dir(out)
+    for kind in ("contacts", "calendars"):
+        if (kind == "contacts" and (Path(home) / "contacts.sqlite").is_file()) or \
+                (kind == "calendars" and (Path(home) / "calendar.sqlite").is_file()):
+            private_dir(out / kind)
+    for rel, text in files.items():
+        _write(out / rel, text)
     _write(out / "export.json", json.dumps(summary, indent=2, ensure_ascii=False) + "\n")
     return summary
