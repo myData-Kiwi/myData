@@ -270,4 +270,24 @@ void main() {
     expect(second.top, greaterThan(first.top));
     expect(second.top - first.bottom, MyDataSpace.s2);
   });
+
+  testWidgets('disabled with a reason: focusable but inert, the reason as its hint', (tester) async {
+    final handle = tester.ensureSemantics();
+    await tester.pumpWidget(themedFrame(
+      themeMatrix.first,
+      const Button(label: 'Undo import', onPressed: null, disabledReason: 'The host cannot be reached.'),
+    ));
+    expect(
+      tester.getSemantics(find.byType(Button)),
+      isSemantics(
+        label: 'Undo import',
+        hint: 'The host cannot be reached.',
+        isButton: true,
+        hasEnabledState: true,
+        isEnabled: false,
+        isFocusable: true,
+      ),
+    );
+    handle.dispose();
+  });
 }

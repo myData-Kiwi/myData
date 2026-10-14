@@ -66,6 +66,7 @@ class Button extends StatelessWidget {
     this.icon,
     this.focusNode,
     this.autofocus = false,
+    this.disabledReason,
   });
 
   /// What pressing it does: a verb and its object, in sentence case.
@@ -83,6 +84,11 @@ class Button extends StatelessWidget {
 
   final FocusNode? focusNode;
   final bool autofocus;
+
+  /// Why the button is disabled, a full sentence, when no text beside it says so: it then stays focusable
+  /// but inert, and its reason is its hint (Pressable, design/platforms.md "Disabled controls"). Only read
+  /// while [onPressed] is null.
+  final String? disabledReason;
 
   /// Space on each side of the label. The preview's 22px lies halfway between `space-5` and `space-6`;
   /// `space-5` (20px) is used.
@@ -109,6 +115,7 @@ class Button extends StatelessWidget {
       autofocus: autofocus,
       semanticLabel: label,
       danger: variant.isRed,
+      disabledReason: disabledReason,
       child: ExcludeSemantics(
         child: Container(
           height: MyDataSize.controlHeight,
