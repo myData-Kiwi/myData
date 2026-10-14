@@ -436,3 +436,56 @@ def test_a_write_and_its_revision_change_and_undo_rows_commit_together(store, mo
         cw.create(store, {"given_name": "Pip"}, actor="mycontacts")
     monkeypatch.setattr(sqlite3, "connect", real_connect)
     assert {t: rows(store, f"SELECT * FROM {t}") for t in before} == before
+
+
+def _written_around(store: ContactsStore, contact_id: str, text: str) -> None:
+    """An owned card's text changed by a writer other than contacts_write (an import writing again through the
+    store): the store moves rev on, but records no revision."""
+    with store.db.connect() as db:
+        row = db.execute("SELECT * FROM contacts WHERE id = ?", (contact_id,)).fetchone()
+    with store.db.transaction() as db:
+        ContactsStore._upsert_card(db, row["account_id"], row["address_book_id"], row["collection_url"], row["href"],
+                                   "", text, cw.stamp(T0))
+
+
+def test_undo_never_goes_back_past_a_change_written_around_the_writer(store):
+    w = cw.create(store, AVA, actor="mycontacts")
+    first = store.get(w.contact_id)["raw_vcard"]
+    with_note = first.replace("END:VCARD", "NOTE:from the import\r\nEND:VCARD")
+    _written_around(store, w.contact_id, with_note)
+    assert store.get(w.contact_id)["rev"] == 2
+    e = cw.update(store, w.contact_id, {"job_title": "Inventor"}, if_match=etag(store, w.contact_id),
+                  actor="mycontacts")
+    cw.undo(store, e.undo_id, actor="mycontacts")
+    after = store.get(w.contact_id)
+    assert after["raw_vcard"] == with_note and after["note"] == "from the import" and "TITLE" not in after["raw_vcard"]
+    assert [(r["rev"], r["op"]) for r in rows(store, "SELECT rev, op FROM revisions WHERE object_id = ? ORDER BY rev",
+                                              w.contact_id)] == [(1, "create"), (2, "baseline"), (3, "update"),
+                                                                 (4, "undo")]
+
+
+def test_undo_is_refused_when_the_text_it_would_go_back_to_was_not_recorded(store):
+    """A revision missing between the text found and the edit (written around the writer, recorded by nothing):
+    the undo refuses rather than going back too far."""
+    w = cw.create(store, AVA, actor="mycontacts")
+    e = cw.update(store, w.contact_id, {"job_title": "Inventor"}, if_match=etag(store, w.contact_id),
+                  actor="mycontacts")
+    with store.db.transaction() as db:  # as if rev 1 -> 2 had happened around the writer, unrecorded
+        db.execute("UPDATE revisions SET rev = 3 WHERE object_id = ? AND rev = 2", (w.contact_id,))
+        db.execute("UPDATE undo_log SET rev = 3, prior_rev = 2 WHERE id = ?", (e.undo_id,))
+        db.execute("UPDATE contacts SET rev = 3 WHERE id = ?", (w.contact_id,))
+    before = store.get(w.contact_id)["raw_vcard"]
+    with pytest.raises(cw.UndoRefused, match="not kept"):
+        cw.undo(store, e.undo_id, actor="mycontacts")
+    assert store.get(w.contact_id)["raw_vcard"] == before
+
+
+def test_a_deleted_and_restored_card_needs_no_new_baseline(store):
+    w = cw.create(store, AVA, actor="mycontacts")
+    cw.delete(store, w.contact_id, actor="mycontacts")
+    cw.restore(store, w.contact_id, actor="mycontacts")
+    e = cw.update(store, w.contact_id, {"nickname": "Avi"}, if_match=etag(store, w.contact_id), actor="mycontacts")
+    cw.undo(store, e.undo_id, actor="mycontacts")
+    assert store.get(w.contact_id)["nickname"] == ""
+    assert "baseline" not in [r["op"] for r in rows(store, "SELECT op FROM revisions WHERE object_id = ?",
+                                                     w.contact_id)]

@@ -131,11 +131,18 @@ def _book(db: sqlite3.Connection, at: str) -> tuple[str, bool]:
 
 
 def _baseline(db: sqlite3.Connection, row: sqlite3.Row) -> None:
-    """A card written before it had revisions (none of ours: an owned row made some other way) gets its current
-    text as a first revision, so an undo always finds the text to go back to."""
-    if db.execute("SELECT 1 FROM revisions WHERE object_id = ? LIMIT 1", (row["id"],)).fetchone() is None:
-        db.execute("INSERT INTO revisions (object_id, rev, raw, op, actor, at) VALUES (?, ?, ?, 'baseline', "
-                   "'unknown', ?)", (row["id"], row["rev"], row["raw_vcard"], row["modified_at"]))
+    """A card whose current text no revision holds gets it as a revision at its current `rev`, so an undo
+    always finds the text to go back to. That is a card written before it had revisions, or one whose text an
+    owned-row writer other than this module changed (an import writing again through the store): without
+    this, undoing the next edit would go back past that change and lose it."""
+    latest = db.execute("SELECT rev, raw FROM revisions WHERE object_id = ? AND raw IS NOT NULL ORDER BY rev DESC "
+                        "LIMIT 1", (row["id"],)).fetchone()
+    if latest is not None and owned.raw_hash(latest["raw"]) == row["raw_sha256"]:
+        return
+    # A revision already at this rev (a delete, a restore) keeps its operation and gains the text it stands at.
+    db.execute("INSERT INTO revisions (object_id, rev, raw, op, actor, at) VALUES (?, ?, ?, 'baseline', 'unknown', ?) "
+               "ON CONFLICT (object_id, rev) DO UPDATE SET raw = excluded.raw",
+               (row["id"], row["rev"], row["raw_vcard"], row["modified_at"]))
 
 
 def _record(db: sqlite3.Connection, row_id: str, book_id: str, href: str, rev: int, raw: str | None, op: str,
@@ -284,9 +291,14 @@ def undo(store: ContactsStore, undo_id: str, *, actor: str) -> Written:
             raise UndoRefused("This contact changed since, so this cannot be undone.")
         op = entry["op"]
         if op == "update":
-            prior = db.execute("SELECT raw FROM revisions WHERE object_id = ? AND rev <= ? AND raw IS NOT NULL "
+            prior = db.execute("SELECT rev, raw FROM revisions WHERE object_id = ? AND rev <= ? AND raw IS NOT NULL "
                                "ORDER BY rev DESC LIMIT 1", (row["id"], entry["prior_rev"])).fetchone()
-            if prior is None:
+            # Every revision from that text up to the one the edit started from must be recorded (a delete or a
+            # restore keeps the text); a gap is a change written around this module, which undo would lose.
+            recorded = 0 if prior is None else db.execute(
+                "SELECT COUNT(*) FROM revisions WHERE object_id = ? AND rev > ? AND rev <= ?",
+                (row["id"], prior["rev"], entry["prior_rev"])).fetchone()[0]
+            if prior is None or recorded != entry["prior_rev"] - prior["rev"]:
                 raise UndoRefused("The earlier version of this contact is not kept, so this cannot be undone.")
             rev = _write_text(db, row, prior["raw"], when)
             raw, change = prior["raw"], "modify"
