@@ -37,7 +37,8 @@ create). The caller takes a snapshot first (service/imports.py).
 
 **Undo** (undo_import) reverts the whole batch, forward: a contact it created and nobody changed since goes to
 Recently deleted; one it updated and nobody changed since gets its earlier text back; a link is dropped. Anything
-changed since is reported and left as it is. Nothing is ever hard-deleted, and the undo is persisted (the
+changed since is reported and left as it is, and so is anything already in Recently deleted; their origins stay,
+since they are still copies of those cards. Nothing is ever hard-deleted, and the undo is persisted (the
 imports row's status), so it works after a restart, once.
 
 **Importing again** never makes a duplicate of what an earlier import brought in (origins), updates only what
@@ -584,12 +585,17 @@ def undo_import(store: ContactsStore, import_id: str, *, actor: str) -> Undone:
         kept: list[dict] = []
         for o in rows:
             row = db.execute("SELECT * FROM contacts WHERE id = ?", (o["object_id"],)).fetchone()
+            # Only what the undo takes back loses its origin. A contact it keeps (changed since, or in Recently
+            # deleted, which the user may restore) is still a copy of that card: its origin keeps shadowing the
+            # followed copy, and importing again still knows it.
             if o["action"] == "link":
                 unlinked += 1
             elif row is None or row["deleted_at"] is not None:
                 gone += 1
+                continue
             elif row["rev"] != o["imported_rev"]:
                 kept.append({"contact_id": row["id"], "display_name": row["display_name"]})
+                continue
             elif o["action"] == "create":
                 rev = _set_deleted(db, row, True, at)
                 _revision(db, row["id"], rev, None, "undo", f"undo-import:{actor}", import_id, when)
@@ -604,6 +610,7 @@ def undo_import(store: ContactsStore, import_id: str, *, actor: str) -> Undone:
                                    "ORDER BY rev DESC LIMIT 1", (row["id"], o["prior_rev"])).fetchone()
                 if prior is None:
                     kept.append({"contact_id": row["id"], "display_name": row["display_name"]})
+                    continue
                 else:
                     rev = _write_text(db, row, prior["raw"], when)
                     # The text is again what the import before this one wrote, and nobody changed it since (else

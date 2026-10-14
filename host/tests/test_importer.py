@@ -310,6 +310,28 @@ def test_a_person_imported_from_a_followed_account_is_found_once(followed):
     assert followed.find_by_name("Ava")[0]["id"] != owned_ava["id"]
 
 
+def test_undoing_an_import_keeps_the_origins_of_the_contacts_it_keeps(followed):
+    source = ImportSource(ICLOUD, ACCOUNT, "iCloud account")
+    done = commit(followed, source, copy_of(followed, ACCOUNT))
+    [ava] = followed.find_by_name("Ava")
+    cw.update(followed, ava["id"], {"nickname": "Avi B"}, if_match=followed.get(ava["id"])["http_etag"],
+              actor="mycontacts")
+    [sam, _sam2] = [c for c in followed.list() if c["display_name"] == "Sam Sample"]
+    cw.delete(followed, sam["id"], if_match=sam["http_etag"], actor="mycontacts")
+    undone = importer.undo_import(followed, done.import_id, actor="mydata")
+    assert [k["contact_id"] for k in undone.kept] == [ava["id"]] and undone.gone == 1
+    # Ava is still the copy of the followed card: it alone is found, and importing again sees it.
+    assert [m["id"] for m in followed.find_by_name("Ava")] == [ava["id"]]
+    again = preview(followed, source, copy_of(followed, ACCOUNT))
+    by_name = {}
+    for i in again.items:
+        by_name.setdefault(i.display_name, []).append((i.status, i.reason, i.target))
+    assert by_name["Ava Fictional"] == [("unchanged", None, ava["id"])]
+    # The Sam deleted before the undo is still known (restoring it is the way back); the other went with the undo.
+    assert sorted(by_name["Sam Sample"], key=str) == sorted([("unchanged", None, sam["id"]), ("new", None, None)],
+                                                            key=str)
+
+
 def test_a_contact_of_yours_can_be_kept_instead_of_the_followed_copy(followed):
     mine = cw.create(followed, {"given_name": "Ava", "family_name": "Mine",
                                 "emails": [{"value": "ava@example.com"}]}, actor="mycontacts").contact_id
