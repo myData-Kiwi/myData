@@ -331,6 +331,33 @@ void main() {
       expect(reloads, 1);
     });
 
+    testWidgets('showFailure replaces the line, as a failed save shows it', (tester) async {
+      final key = GlobalKey<InspectorState>();
+      await _pumpWide(
+          tester,
+          InspectorLayout(
+            content: const SizedBox.expand(),
+            inspector: Inspector(
+              key: key,
+              title: 'Edit contact',
+              form: MyDataTextField(label: 'Name', controller: TextEditingController(text: 'Ava')),
+              changed: true,
+              discardMessage: 'Your changes to Ava Fictional are not saved.',
+              savingAnnouncement: 'Saving Ava Fictional',
+              onSave: () async => 'Ava Fictional changed since you opened it.',
+              onClosed: (_) {},
+            ),
+          ));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+      key.currentState!.showFailure('Ava Fictional is no longer on your host.');
+      await tester.pumpAndSettle();
+      expect(find.text('Ava Fictional changed since you opened it.'), findsNothing);
+      expect(find.text('Ava Fictional is no longer on your host.'), findsOneWidget);
+      expect(Focus.of(tester.element(find.text('Save'))).hasPrimaryFocus, isTrue);
+    });
+
     testWidgets('a wrong field: nothing is sent and focus moves to it', (tester) async {
       final firstNode = FocusNode();
       addTearDown(firstNode.dispose);

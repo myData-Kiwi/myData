@@ -275,6 +275,17 @@ class InspectorState extends State<Inspector> {
     unawaited(SemanticsService.sendAnnouncement(view, failure, direction, assertiveness: Assertiveness.assertive));
   }
 
+  /// Replaces the failure line with [message], as a failed save shows it (read at once, focus on Save): for
+  /// what the holder learns afterwards, such as why [Inspector.failureAction] could not help ("It is no
+  /// longer on your host"). Nothing happens while saving or once closed.
+  void showFailure(String message) {
+    if (_saving || _closed || !mounted) return;
+    setState(() => _failure = message);
+    _saveNode.requestFocus();
+    unawaited(SemanticsService.sendAnnouncement(View.of(context), message, Directionality.of(context),
+        assertiveness: Assertiveness.assertive));
+  }
+
   /// Leave: asks "Discard changes?" first when there are changes. Completes with true when the inspector
   /// closed (the holder may go on: open the other record, change section), false when the user kept
   /// editing or a save is in progress.
