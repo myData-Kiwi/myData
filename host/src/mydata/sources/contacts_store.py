@@ -143,6 +143,8 @@ _FTS_SECURE_DELETE = sqlite3.sqlite_version_info >= (3, 42, 0)
 
 
 class ContactsStore:
+    MIGRATIONS = _MIGRATIONS  # read by service/backup.open_store to snapshot before a migration
+
     def __init__(self, path: Path):
         self.db = Database(path, _MIGRATIONS)
         if _FTS_SECURE_DELETE:
