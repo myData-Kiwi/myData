@@ -293,6 +293,7 @@ class CheckboxList extends StatefulWidget {
     this.countLabel = defaultCountLabel,
     this.focusNode,
     this.folded = false,
+    this.shown,
   });
 
   /// The group's heading, which also names it for screen readers ("Contacts in the file").
@@ -313,6 +314,11 @@ class CheckboxList extends StatefulWidget {
   /// contacts (125)") can be unticked at once. The holder puts its disclosure ("Show all 125") under it.
   final bool folded;
 
+  /// Draws only the first [shown] rows (null: every row), so a list of thousands builds a page at a time; the
+  /// holder puts its "Show 200 more" under it. As when [folded], select all and ⌘A act on every item, and the
+  /// keys move among the rows drawn.
+  final int? shown;
+
   static String defaultCountLabel(int checked, int total) => '$checked of $total selected';
 
   @override
@@ -326,8 +332,9 @@ class _CheckboxListState extends State<CheckboxList> {
   int _cursor = 0;
   int? _lastChanged;
   bool _focusVisible = false;
-  int? _hovered;
-  int? _pressed;
+
+  /// How many rows are drawn.
+  int get _drawn => math.min(widget.items.length, math.max(0, widget.shown ?? widget.items.length));
 
   @override
   void dispose() {
@@ -373,7 +380,7 @@ class _CheckboxListState extends State<CheckboxList> {
   }
 
   int? _step(int from, int direction) {
-    for (var i = from + direction; i >= 0 && i < widget.items.length; i += direction) {
+    for (var i = from + direction; i >= 0 && i < _drawn; i += direction) {
       if (widget.items[i].enabled) return i;
     }
     return null;
@@ -392,7 +399,7 @@ class _CheckboxListState extends State<CheckboxList> {
     } else if (key == LogicalKeyboardKey.home) {
       to = _step(-1, 1);
     } else if (key == LogicalKeyboardKey.end) {
-      to = _step(widget.items.length, -1);
+      to = _step(_drawn, -1);
     } else if (key == LogicalKeyboardKey.space) {
       _toggle(_cursor, range: k.isShiftPressed);
       setState(() => _focusVisible = true);
@@ -433,7 +440,8 @@ class _CheckboxListState extends State<CheckboxList> {
   @override
   Widget build(BuildContext context) {
     final items = widget.items;
-    if (_cursor >= items.length || (items.isNotEmpty && !items[_cursor].enabled)) {
+    final drawn = _drawn;
+    if (_cursor >= drawn || (drawn > 0 && !items[_cursor].enabled)) {
       _cursor = _step(-1, 1) ?? 0;
     }
     final checked = _checked;
@@ -445,8 +453,8 @@ class _CheckboxListState extends State<CheckboxList> {
       BorderRadius shapeOf(int i) => BorderRadius.only(
             topLeft: i == 0 ? part.topLeft : Radius.zero,
             topRight: i == 0 ? part.topRight : Radius.zero,
-            bottomLeft: i == items.length - 1 ? part.bottomLeft : Radius.zero,
-            bottomRight: i == items.length - 1 ? part.bottomRight : Radius.zero,
+            bottomLeft: i == drawn - 1 ? part.bottomLeft : Radius.zero,
+            bottomRight: i == drawn - 1 ? part.bottomRight : Radius.zero,
           );
       return Focus(
         focusNode: _focus,
@@ -459,7 +467,7 @@ class _CheckboxListState extends State<CheckboxList> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            for (var i = 0; i < items.length; i++) ...[
+            for (var i = 0; i < drawn; i++) ...[
               if (i > 0) Container(height: GroupFrame.dividerWidth, color: c.line),
               GroupPartShape(
                 borderRadius: shapeOf(i),
@@ -468,10 +476,6 @@ class _CheckboxListState extends State<CheckboxList> {
                   focused: _focus.hasFocus && _focusVisible && i == _cursor,
                   // The list is one focus node; screen readers follow the row the keys are on.
                   semanticsFocused: _focus.hasFocus && i == _cursor,
-                  hovered: _hovered == i,
-                  pressed: _pressed == i,
-                  onHover: (v) => setState(() => _hovered = v ? i : (_hovered == i ? null : _hovered)),
-                  onPressDown: (v) => setState(() => _pressed = v ? i : null),
                   onTap: () => _press(i),
                   current: i == _cursor,
                 ),
@@ -489,7 +493,7 @@ class _CheckboxListState extends State<CheckboxList> {
           value: checked == 0 ? false : (checked == items.length ? true : null),
           onToggle: items.any((i) => i.enabled) ? () => _all() : null,
         ),
-      if (items.isNotEmpty && !widget.folded) rows,
+      if (drawn > 0 && !widget.folded) rows,
     ];
     return Semantics(
       container: true,
@@ -535,15 +539,13 @@ class _SelectAllRow extends StatelessWidget {
   }
 }
 
-class _CheckboxListRow extends StatelessWidget {
+/// One row of a [CheckboxList]. Its hover and press are its own, so moving the mouse over a long list
+/// rebuilds one row, not the list.
+class _CheckboxListRow extends StatefulWidget {
   const _CheckboxListRow({
     required this.item,
     required this.focused,
     required this.semanticsFocused,
-    required this.hovered,
-    required this.pressed,
-    required this.onHover,
-    required this.onPressDown,
     required this.onTap,
     this.current = false,
   });
@@ -555,15 +557,34 @@ class _CheckboxListRow extends StatelessWidget {
 
   /// The keys are on this row while the list has focus (with or without the ring).
   final bool semanticsFocused;
-  final bool hovered;
-  final bool pressed;
-  final ValueChanged<bool> onHover;
-  final ValueChanged<bool> onPressDown;
   final VoidCallback onTap;
+
+  @override
+  State<_CheckboxListRow> createState() => _CheckboxListRowState();
+}
+
+class _CheckboxListRowState extends State<_CheckboxListRow> {
+  bool _hovered = false;
+  bool _pressed = false;
+
+  void _hover(bool v) {
+    if (_hovered != v) setState(() => _hovered = v);
+  }
+
+  void _press(bool v) {
+    if (_pressed != v) setState(() => _pressed = v);
+  }
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final item = widget.item;
+    final focused = widget.focused;
+    final semanticsFocused = widget.semanticsFocused;
+    final onTap = widget.onTap;
+    final current = widget.current;
+    final hovered = _hovered;
+    final pressed = _pressed;
     final enabled = item.enabled;
     final note = item.disabledReason ?? item.caption;
     final target = MergeSemantics(
@@ -575,14 +596,14 @@ class _CheckboxListRow extends StatelessWidget {
         onTap: enabled ? onTap : null,
         child: MouseRegion(
           cursor: enabled ? SystemMouseCursors.click : MouseCursor.defer,
-          onEnter: enabled ? (_) => onHover(true) : null,
-          onExit: enabled ? (_) => onHover(false) : null,
+          onEnter: enabled ? (_) => _hover(true) : null,
+          onExit: enabled ? (_) => _hover(false) : null,
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             excludeFromSemantics: true,
-            onTapDown: enabled ? (_) => onPressDown(true) : null,
-            onTapUp: enabled ? (_) => onPressDown(false) : null,
-            onTapCancel: enabled ? () => onPressDown(false) : null,
+            onTapDown: enabled ? (_) => _press(true) : null,
+            onTapUp: enabled ? (_) => _press(false) : null,
+            onTapCancel: enabled ? () => _press(false) : null,
             onTap: enabled ? onTap : null,
             child: _RowShell(
               shape: GroupPartShape.of(context),

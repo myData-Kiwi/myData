@@ -446,4 +446,58 @@ void main() {
     await tester.tap(find.text('All 2 contacts'));
     expect(got, [false, false]);
   });
+
+  testWidgets('shown: a list of thousands draws only its first rows; select all still acts on every item',
+      (tester) async {
+    List<bool>? got;
+    tester.view.physicalSize = const Size(800, 600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final items = [
+      for (var i = 0; i < 5000; i++) CheckboxListItem(title: 'Ava Fictional $i', checked: true),
+    ];
+    await tester.pumpWidget(themedFrame(
+      themeMatrix.first,
+      SingleChildScrollView(
+        child: SizedBox(
+          width: 600,
+          child: CheckboxList(
+            heading: 'New contacts (5,000)',
+            selectAllTitle: 'All 5,000 contacts',
+            shown: 200,
+            items: items,
+            onChanged: (v) => got = v,
+          ),
+        ),
+      ),
+    ));
+    // 200 rows and select all: the build stays bounded, whatever the list's length.
+    expect(find.byType(CheckboxBox), findsNWidgets(201));
+    expect(find.text('Ava Fictional 199', skipOffstage: false), findsOneWidget);
+    expect(find.text('Ava Fictional 200', skipOffstage: false), findsNothing);
+    await tester.tap(find.text('All 5,000 contacts'));
+    expect(got, hasLength(5000));
+    expect(got!.every((v) => !v), isTrue);
+  });
+
+  testWidgets('shown: End stops at the last row drawn', (tester) async {
+    List<bool>? got;
+    await tester.pumpWidget(themedFrame(
+      themeMatrix.first,
+      SizedBox(
+        width: 420,
+        child: CheckboxList(
+          heading: 'Contacts in the file',
+          shown: 2,
+          items: _items(const [false, false, false, false]),
+          onChanged: (v) => got = v,
+        ),
+      ),
+    ));
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.sendKeyEvent(LogicalKeyboardKey.end);
+    await tester.sendKeyEvent(LogicalKeyboardKey.space);
+    await tester.pump();
+    expect(got, [false, true, false, false]);
+  });
 }
