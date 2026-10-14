@@ -926,6 +926,9 @@ class SourceOut(BaseModel):
 
 class SourcesOut(BaseModel):
     sources: list[SourceOut]
+    owned_revision: str = Field(default="", description="changes whenever the host's own contacts may have changed "
+                                                         "(a write, an import or its undo, a merge, a settled review), "
+                                                         "so an app reads its list again; counts only, no values")
 
 
 class MacSourceIn(BaseModel):
@@ -1358,7 +1361,7 @@ def _routes_mac(app: FastAPI, need: Callable[[], SyncService]) -> None:
             if service.mac.enabled:  # what it mirrored now; a source that is off holds nothing
                 mac_row["counts"] = SyncCounts(**service.contacts.counts(MAC_ID), **service.calendar.counts(MAC_ID))
             rows.append(SourceOut(**mac_row, backups_kept_until=kept_until().isoformat()))
-        return SourcesOut(sources=[*rows, *icloud_rows(service)])
+        return SourcesOut(sources=[*rows, *icloud_rows(service)], owned_revision=service.contacts.owned_revision())
 
     @app.put("/sources/mac", dependencies=needs("sources:manage"), tags=["sources"], response_model=SourceOut,
              responses={**not_mac, 400: {"description": "the body is not valid"}})

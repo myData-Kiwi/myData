@@ -3897,6 +3897,12 @@
       },
       "SourcesOut": {
         "properties": {
+          "owned_revision": {
+            "default": "",
+            "description": "changes whenever the host's own contacts may have changed (a write, an import or its undo, a merge, a settled review), so an app reads its list again; counts only, no values",
+            "title": "Owned Revision",
+            "type": "string"
+          },
           "sources": {
             "items": {
               "$ref": "#/components/schemas/SourceOut"

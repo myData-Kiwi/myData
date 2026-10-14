@@ -13,26 +13,34 @@ part of openapi.api;
 class SourcesOut {
   /// Returns a new [SourcesOut] instance.
   SourcesOut({
+    this.ownedRevision = '',
     this.sources = const [],
   });
+
+  /// changes whenever the host's own contacts may have changed (a write, an import or its undo, a merge, a settled review), so an app reads its list again; counts only, no values
+  String ownedRevision;
 
   List<SourceOut> sources;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is SourcesOut && _deepEquality.equals(other.sources, sources);
+      other is SourcesOut &&
+          other.ownedRevision == ownedRevision &&
+          _deepEquality.equals(other.sources, sources);
 
   @override
   int get hashCode =>
       // ignore: unnecessary_parenthesis
-      (sources.hashCode);
+      (ownedRevision.hashCode) + (sources.hashCode);
 
   @override
-  String toString() => 'SourcesOut[sources=$sources]';
+  String toString() =>
+      'SourcesOut[ownedRevision=$ownedRevision, sources=$sources]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
+    json[r'owned_revision'] = this.ownedRevision;
     json[r'sources'] = this.sources;
     return json;
   }
@@ -56,6 +64,7 @@ class SourcesOut {
       }());
 
       return SourcesOut(
+        ownedRevision: mapValueOfType<String>(json, r'owned_revision') ?? '',
         sources: SourceOut.listFromJson(json[r'sources']),
       );
     }

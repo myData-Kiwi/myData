@@ -703,7 +703,7 @@ def test_on_other_systems_this_mac_is_absent_not_broken(make_host):
     h = make_host(platform="linux")
     assert h.sources.mac is None
     with Client(h) as c:
-        assert c.get("/sources") == {"sources": []}
+        assert c.get("/sources")["sources"] == []
         assert c.get("/status")["mac_available"] is False
         for method, path, body in (("PUT", "/sources/mac", {"enabled": True}),
                                    ("POST", "/sources/mac/request-access", {"what": "contacts"}),

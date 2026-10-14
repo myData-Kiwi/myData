@@ -459,6 +459,19 @@ class ContactsStore:
                                f"AND {_VISIBLE}", (account_id,)).fetchone()[0]
         return {"address_books": books, "contacts": cards}
 
+    def owned_revision(self) -> str:
+        """A fingerprint that changes whenever what the apps list from the host's own contacts may have changed: any
+        write (changes), an import or its undo (origins, which also hide followed copies; imports), and a decision
+        or its undo (a kept or saved followed change, not the same person). Counts and the last change token only,
+        never a value, so it is cheap to read on every poll."""
+        with self.db.connect() as db:
+            row = db.execute(
+                "SELECT (SELECT COALESCE(MAX(token), 0) FROM changes), (SELECT COUNT(*) FROM origins), "
+                "(SELECT COUNT(*) FROM imports), (SELECT COUNT(*) FROM imports WHERE status = 'undone'), "
+                "(SELECT COUNT(*) FROM decisions), (SELECT COUNT(*) FROM decisions WHERE undone_at IS NOT NULL)"
+            ).fetchone()
+        return ".".join(str(v) for v in row)
+
     # ------------------------------------------------------------------ reading
 
     def address_books(self) -> list[dict]:

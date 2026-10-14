@@ -91,6 +91,34 @@ def test_preview_commit_history_and_undo(host, client):
     assert client.post("/imports/no-such/undo", headers=bearer(host, "mydata")).status_code == 404
 
 
+def test_the_owned_revision_moves_on_with_every_change_an_app_lists(host, client):
+    """GET /sources' owned_revision: myContacts reads its list again when it changes, so an import, its undo, a write
+    and a decision made in another app show without a link. Nothing in it is a value."""
+    mine = bearer(host, "mycontacts")
+
+    def revision() -> str:
+        return client.get("/sources", headers=mine).json()["owned_revision"]
+
+    seen = [revision()]
+    preview = upload(client, host, corpus.several()).json()
+    assert revision() == seen[-1]  # a preview writes nothing
+    done = client.post(f"/import/previews/{preview['id']}/commit", headers=bearer(host, "mydata"), json={}).json()
+    seen.append(revision())
+    client.post(f"/imports/{done['id']}/undo", headers=bearer(host, "mydata"))
+    seen.append(revision())
+    a = client.post("/contacts", headers=mine, json={"given_name": "Ava", "family_name": "Fictional"}).json()
+    seen.append(revision())
+    b = client.post("/contacts", headers=mine, json={"given_name": "Ava", "family_name": "Fictional"}).json()
+    seen.append(revision())
+    marked = client.post("/contacts/not-duplicates", headers=mine,
+                         json={"ids": [a["contact"]["id"], b["contact"]["id"]]}).json()
+    seen.append(revision())
+    client.post(f"/undo/{marked['undo_id']}", headers=mine)
+    seen.append(revision())
+    assert len(set(seen)) == len(seen), seen
+    assert all(re.fullmatch(r"[0-9.]+", r) for r in seen)
+
+
 def test_importing_the_same_file_again_adds_nothing(host, client):
     data = corpus.read(corpus.APPLE)
     first = upload(client, host, data).json()
