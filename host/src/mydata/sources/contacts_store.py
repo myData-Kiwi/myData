@@ -7,9 +7,9 @@ deleted upstream gets the soft-delete marker; removing an account hard-deletes i
 
 Every address book is followed (a copy of a source) or owned (the host holds the only copy; see
 sources/owned.py, whose triggers keep it from being deleted). Hard deletes here only ever touch followed
-address books. Each card records its kind (`kind`: individual, group or org), its vCard version as
-received, a sha256 of its raw text (`raw_sha256`; `etag` stays the source's ETag) and `rev`, which goes
-up by one whenever its raw text changes.
+address books. Each card records its kind (`kind`: a group card, as iCloud sends groups, is never listed,
+counted or found as a contact), its vCard version as received, a sha256 of its raw text (`raw_sha256`;
+`etag` stays the source's ETag) and `rev`, which goes up by one whenever its raw text changes.
 
 The "This Mac" source (account_id "mac") is stored the same way: one synthetic address book per
 Contacts container (url mac://contacts/<container id>) and a vCard generated from what the helper read
@@ -127,6 +127,9 @@ _MIGRATIONS = {
         *owned.protection(*owned.CONTACTS),
     ],
 }
+
+# Cards that are people or organisations: a group card is kept (and exported) but never shown as a contact.
+_PEOPLE = "kind != 'group'"
 
 _PUBLIC_FIELDS = (
     "id", "account_id", "address_book_id", "collection_url", "href", "etag", "uid", "display_name", "full_name",
@@ -311,8 +314,8 @@ class ContactsStore:
     def photo(self, contact_id: str) -> tuple[bytes, str] | None:
         """The contact's photo (bytes, media type), JPEG or PNG; None when it has none or is unknown."""
         with self.db.connect() as db:
-            row = db.execute("SELECT raw_vcard, has_photo FROM contacts WHERE id = ? AND deleted_at IS NULL",
-                             (contact_id,)).fetchone()
+            row = db.execute(f"SELECT raw_vcard, has_photo FROM contacts WHERE id = ? AND deleted_at IS NULL "
+                             f"AND {_PEOPLE}", (contact_id,)).fetchone()
         if row is None or not row["has_photo"]:
             return None
         return card_photo(row["raw_vcard"])
@@ -329,8 +332,8 @@ class ContactsStore:
         with self.db.connect() as db:
             books = db.execute("SELECT COUNT(*) FROM address_books WHERE account_id = ? AND deleted_at IS NULL",
                                (account_id,)).fetchone()[0]
-            cards = db.execute("SELECT COUNT(*) FROM contacts WHERE account_id = ? AND deleted_at IS NULL",
-                               (account_id,)).fetchone()[0]
+            cards = db.execute(f"SELECT COUNT(*) FROM contacts WHERE account_id = ? AND deleted_at IS NULL "
+                               f"AND {_PEOPLE}", (account_id,)).fetchone()[0]
         return {"address_books": books, "contacts": cards}
 
     # ------------------------------------------------------------------ reading
@@ -339,7 +342,8 @@ class ContactsStore:
         with self.db.connect() as db:
             rows = db.execute(
                 "SELECT b.id, b.account_id, b.url, b.name, b.color, "
-                "(SELECT COUNT(*) FROM contacts c WHERE c.address_book_id = b.id AND c.deleted_at IS NULL) AS count "
+                f"(SELECT COUNT(*) FROM contacts c WHERE c.address_book_id = b.id AND c.deleted_at IS NULL "
+                f"AND c.{_PEOPLE}) AS count "
                 "FROM address_books b WHERE b.deleted_at IS NULL ORDER BY b.name COLLATE NOCASE, b.url"
             ).fetchall()
         return [dict(r) for r in rows]
@@ -351,16 +355,17 @@ class ContactsStore:
         with self.db.connect() as db:
             db.create_collation("MYDATA_NAME", compare_names)
             rows = db.execute(
-                "SELECT * FROM contacts WHERE deleted_at IS NULL "
+                f"SELECT * FROM contacts WHERE deleted_at IS NULL AND {_PEOPLE} "
                 "ORDER BY display_name COLLATE MYDATA_NAME, id LIMIT ? OFFSET ?",
                 (limit, offset),
             ).fetchall()
         return [_row(r) for r in rows]
 
     def get(self, contact_id: str, *, include_deleted: bool = False) -> dict | None:
-        """One contact with its raw vCard, or None (also None when soft-deleted, unless asked)."""
+        """One contact with its raw vCard, or None (also None when soft-deleted, unless asked, and for a group
+        card, which is not a contact)."""
         with self.db.connect() as db:
-            row = db.execute("SELECT * FROM contacts WHERE id = ?", (contact_id,)).fetchone()
+            row = db.execute(f"SELECT * FROM contacts WHERE id = ? AND {_PEOPLE}", (contact_id,)).fetchone()
         if row is None or (row["deleted_at"] is not None and not include_deleted):
             return None
         return _row(row, raw=True)
@@ -394,7 +399,7 @@ class ContactsStore:
         with self.db.connect() as db:
             return db.execute(
                 "SELECT c.* FROM contacts_fts JOIN contacts c ON c.seq = contacts_fts.rowid "
-                "WHERE contacts_fts MATCH ? AND c.deleted_at IS NULL "
+                f"WHERE contacts_fts MATCH ? AND c.deleted_at IS NULL AND c.{_PEOPLE} "
                 "ORDER BY bm25(contacts_fts), c.display_name COLLATE NOCASE, c.id LIMIT ?",
                 (expr, limit),
             ).fetchall()

@@ -111,7 +111,14 @@ def test_contacts_v1_gains_modes_kinds_versions_and_hashes(tmp_path):
     assert {c["version"] for c in cards} == {"3.0", "4.0"}
     for table in ("revisions", "changes", "imports", "origins", "meta", "purge_permits"):
         assert _added(path, table) == []
-    assert {c["display_name"] for c in store.list()} >= {"Ava Fictional", "Kim Invented", "Example Library"}
+    # The group cards are kept, and no longer shown or found as contacts.
+    names = {c["display_name"] for c in store.list()}
+    assert "Ava Fictional" in names and "Kim Invented" in names and "Example Library" in names
+    assert not names & {"Book club", "Choir (example)"}
+    assert store.find_by_name("Book club") == [] and store.search("choir") == []
+    assert store.counts("acc-1")["contacts"] == len([c for c in cards if c["account_id"] == "acc-1"
+                                                     and c["deleted_at"] is None and c["uid"] not in
+                                                     ("group-book-club@example.org", "urn:uuid:group-choir-1")])
 
 
 def test_calendar_v2_gains_modes_and_hashes(tmp_path):

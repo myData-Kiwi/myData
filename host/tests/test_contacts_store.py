@@ -265,6 +265,57 @@ def test_mark_collections_gone_survives_owned_contacts(store, tmp_path):
     assert [b["name"] for b in store.address_books()] == ["Kept (owned)"]
 
 
+# ---------------------------------------------------------------- group cards
+
+GROUP_3 = ("BEGIN:VCARD\r\nVERSION:3.0\r\nN:Book club;;;;\r\nFN:Book club\r\nX-ADDRESSBOOKSERVER-KIND:group\r\n"
+           "UID:group-book-club@example.org\r\n"
+           "X-ADDRESSBOOKSERVER-MEMBER:urn:uuid:3F1C0F0E-0000-4000-8000-00000000A001\r\nEND:VCARD\r\n")
+GROUP_4 = ("BEGIN:VCARD\nVERSION:4.0\nKIND:group\nFN:Sam fans\nUID:urn:uuid:group-sam-fans\n"
+           "MEMBER:urn:uuid:sam-1@example.org\nEND:VCARD\n")
+ORG_4 = "BEGIN:VCARD\nVERSION:4.0\nKIND:org\nFN:Example Library\nUID:urn:uuid:org-library-1\nEND:VCARD\n"
+
+
+@pytest.fixture
+def with_groups(store):
+    store.apply("acc-1", BOOK, result([Item(href="/1/carddavhome/card/g3.vcf", etag='"g3"', data=GROUP_3),
+                                       Item(href="/1/carddavhome/card/g4.vcf", etag='"g4"', data=GROUP_4),
+                                       Item(href="/1/carddavhome/card/o4.vcf", etag='"o4"', data=ORG_4)]))
+    return store
+
+
+def test_group_cards_are_kept_but_never_shown_counted_or_found_as_contacts(with_groups):
+    store = with_groups
+    with store.db.connect() as db:
+        kinds = dict(db.execute("SELECT display_name, kind FROM contacts").fetchall())
+        groups = [r[0] for r in db.execute("SELECT id FROM contacts WHERE kind = 'group'")]
+    assert kinds["Book club"] == kinds["Sam fans"] == "group" and kinds["Example Library"] == "org"
+    assert kinds["Ava Fictional"] == "individual" and len(groups) == 2
+    names = [c["display_name"] for c in store.list()]
+    assert "Book club" not in names and "Sam fans" not in names and "Example Library" in names
+    assert len(names) == len(ALL) + 1
+    assert store.counts("acc-1")["contacts"] == len(ALL) + 1
+    assert store.address_books()[0]["count"] == len(ALL) + 1
+    assert store.search("book club") == [] and store.search("fans") == []
+    assert store.find_by_name("Book club") == []
+    assert [f["name"] for f in store.find_by_name("Sam")] == ["Sam Sample", "Sam Sample"]  # not "Sam fans"
+    assert all(store.get(g) is None and store.photo(g) is None for g in groups)
+
+
+def test_find_contact_never_answers_with_a_group(with_groups):
+    from mydata.tools.mirror import mirror_registry
+    registry = mirror_registry(with_groups, None)
+    assert registry.invoke("find_contact", {"name": "Book club"}, caller="test").result["matches"] == []
+    found = registry.invoke("find_contact", {"name": "Example Library"}, caller="test").result["matches"]
+    assert [m["name"] for m in found] == ["Example Library"]  # an organisation card is a contact
+
+
+def test_a_card_that_becomes_a_group_leaves_the_list(store):
+    zoe = by_name(store, "Zoë Exämple")
+    regrouped = card("zoe-example-v4.vcf").replace("BEGIN:VCARD\n", "BEGIN:VCARD\nKIND:group\n", 1)
+    store.apply("acc-1", BOOK, result([Item(href=zoe["href"], etag='"9"', data=regrouped)]))
+    assert store.get(zoe["id"]) is None and "Zoë Exämple" not in [c["display_name"] for c in store.list()]
+
+
 def test_database_file_is_private_and_versioned(tmp_path):
     path = tmp_path / "contacts.sqlite"
     ContactsStore(path)
