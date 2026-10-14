@@ -5,6 +5,7 @@ corpora only (tests/fixtures/ics)."""
 
 from __future__ import annotations
 
+import time
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -531,3 +532,25 @@ def test_moving_the_time_of_any_series_keeps_its_days_and_exceptions(case, minut
     out = ie.edit_all(text, {"DTSTART": new}, now=NOW)
     assert _days(out, zone) == _days(text, zone)
     assert ("EXDATE" in out) == ("EXDATE" in text)
+
+
+# ---------------------------------------------------------------- large series
+
+def test_moving_every_event_of_a_series_with_500_overrides_takes_well_under_a_few_seconds():
+    berlin = ZoneInfo("Europe/Berlin")
+    lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Example Corp//Many//EN", "BEGIN:VEVENT",
+             "UID:many@example.org", "DTSTAMP:20260101T000000Z", "DTSTART;TZID=Europe/Berlin:20260101T090000",
+             "DTEND;TZID=Europe/Berlin:20260101T100000", "RRULE:FREQ=DAILY;COUNT=1000", "SUMMARY:Daily",
+             "END:VEVENT"]
+    for i in range(500):
+        day = datetime(2026, 1, 1, 9) + timedelta(days=2 * i)
+        lines += ["BEGIN:VEVENT", "UID:many@example.org", "DTSTAMP:20260101T000000Z",
+                  f"RECURRENCE-ID;TZID=Europe/Berlin:{day:%Y%m%dT%H%M%S}", f"DTSTART;TZID=Europe/Berlin:{day:%Y%m%dT%H%M%S}",
+                  f"DTEND;TZID=Europe/Berlin:{day + timedelta(hours=1):%Y%m%dT%H%M%S}", f"SUMMARY:Changed {i}",
+                  "END:VEVENT"]
+    text = "\r\n".join(lines + ["END:VCALENDAR"]) + "\r\n"
+    started = time.monotonic()
+    out = ie.edit_all(text, {"DTSTART": datetime(2026, 1, 1, 10, tzinfo=berlin)}, now=NOW)
+    assert time.monotonic() - started < 5
+    assert out.count("BEGIN:VEVENT") == 501 and "SUMMARY:Changed 499\r\n" in out
+    assert event(out, datetime(2026, 1, 3, 10, tzinfo=berlin))["DTSTART"].dt.hour == 10

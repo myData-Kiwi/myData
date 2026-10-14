@@ -78,20 +78,38 @@ class _Node:
 
     def __init__(self, name: str, ref=None):
         self.name = name
-        self.props: list[tuple[str, list[str], str, int]] = []  # (NAME, PARAM NAMES, value, values counted)
+        # (NAME, PARAM NAMES, value, values counted, the value with its parameters, index of the line or None)
+        self.props: list[tuple[str, list[str], str, int, tuple, int | None]] = []
         self.children: list[_Node] = []
         self.ref = ref  # the icalendar component, for a tree made from one
 
 
+def _lines(text: str) -> list[str]:
+    """Each content line with its folded continuations and line endings, as written (blank lines left out)."""
+    out: list[str] = []
+    for phys in re.findall(r"[^\r\n]*(?:\r\n|\n|\r)|[^\r\n]+\Z", text):
+        if out and phys[:1] in (" ", "\t"):
+            out[-1] += phys
+        elif phys.strip():
+            out.append(phys)
+    return out
+
+
 def _unfold(text: str) -> list[str]:
-    return [line for line in re.split(r"\r\n|\r|\n", re.sub(r"(?:\r\n|\r|\n)[ \t]", "", text)) if line.strip()]
+    return [re.sub(r"(?:\r\n|\r|\n)[ \t]", "", line).rstrip("\r\n") for line in _lines(text)]
 
 
-def _text_tree(text: str) -> _Node:
+def _norm(prop) -> tuple:
+    """A property's value and parameters, compared without their order, quoting or the case of their names."""
+    return prop.value, tuple(sorted(((n or "").upper(), tuple(v)) for n, v in prop.params))
+
+
+def _text_tree(text: str) -> tuple[_Node, list[str]]:
+    lines = _lines(text)
     root = _Node("")
     stack = [root]
-    for line in _unfold(text):
-        prop = parse_line(line)
+    for i, raw in enumerate(lines):
+        prop = parse_line(re.sub(r"(?:\r\n|\r|\n)[ \t]", "", raw).rstrip("\r\n"))
         if prop is None:
             continue
         key = prop.key
@@ -104,8 +122,9 @@ def _text_tree(text: str) -> _Node:
                 stack.pop()
         else:
             values = len([v for v in split_unescaped(prop.value, ",") if v.strip()]) if key in _MULTI else 1
-            stack[-1].props.append((key, [(n or "").upper() for n, _v in prop.params], prop.value, values))
-    return root
+            stack[-1].props.append((key, [(n or "").upper() for n, _v in prop.params], prop.value, values,
+                                    _norm(prop), i))
+    return root, lines
 
 
 def _object_tree(component, root: _Node | None = None) -> _Node:
@@ -124,7 +143,7 @@ def _object_tree(component, root: _Node | None = None) -> _Node:
             text = v.to_ical() if hasattr(v, "to_ical") else str(v)
             text = text.decode("utf-8") if isinstance(text, bytes) else str(text)
             params = [p.upper() for p in getattr(v, "params", {}).keys()]
-            node.props.append((name.upper(), params, text, n if name.upper() in _MULTI else 1))
+            node.props.append((name.upper(), params, text, n if name.upper() in _MULTI else 1, (), None))
     for sub in component.subcomponents:
         node.children.append(_object_tree(sub))
     if root is not None:
@@ -134,7 +153,7 @@ def _object_tree(component, root: _Node | None = None) -> _Node:
 
 def _ident(node: _Node) -> tuple:
     def first(name: str) -> str:
-        return next((unescape_text(v).strip() for n, _p, v, _c in node.props if n == name), "")
+        return next((unescape_text(p[2]).strip() for p in node.props if p[0] == name), "")
 
     if node.name in _IDENTIFIED:
         return node.name, first("UID"), first("RECURRENCE-ID").upper()
@@ -165,7 +184,7 @@ def _count(root: _Node) -> Counter:
     counts: Counter = Counter()
     for key, node in _keyed(root).items():
         counts[(key,)] += 1
-        for name, params, _value, n in node.props:
+        for name, params, _value, n, _norm_, _i in node.props:
             counts[(key, name)] += n
             for p in params:
                 counts[(key, name, p)] += 1
@@ -175,7 +194,7 @@ def _count(root: _Node) -> Counter:
 def inventory(text: str) -> Counter:
     """What the text holds, counted from its own lines: per component, each property (each value of
     EXDATE, RDATE, CATEGORIES, RESOURCES) and each of its parameters."""
-    return _count(_text_tree(text))
+    return _count(_text_tree(text)[0])
 
 
 def _describe(entry: tuple) -> str:
@@ -187,53 +206,72 @@ def _describe(entry: tuple) -> str:
 # ---------------------------------------------------------------- one edit, checked before it is written
 
 class _Edit:
+    """One edit of one resource. Components are known by their key in the input (computed once, kept by
+    identity), so allow() is cheap and a component whose key changes (an override moved with its series) is
+    followed."""
+
     def __init__(self, text: str):
         self.text = text
-        self.before = inventory(text)
+        self.before_root, self.before_lines = _text_tree(text)
+        self.before_keyed = _keyed(self.before_root)
+        self.before = _count(self.before_root)
         try:
             self.cal = icalendar.Calendar.from_ical(text)
         except Exception as exc:  # noqa: BLE001 - icalendar raises several types for bad input
             raise IcsError("not a readable iCalendar resource") from exc
         if not isinstance(self.cal, icalendar.Calendar):
             raise IcsError("not a VCALENDAR")
-        self.allowed: set[tuple] = set()
-        self.renamed: dict[tuple, tuple] = {}
-
-    # Keys of the components as they are now (before a change, they match the input's keys).
-    def key(self, component) -> tuple:
         root = _Node("")
         _object_tree(self.cal, root)
+        self._keys: dict[int, tuple] = {}
+        self._held: list = []  # the components keyed, kept alive so their ids stay theirs
         for key, node in _keyed(root).items():
-            if node.ref is component:
-                return key
-        raise IcsError("that component is not in this calendar")
+            self._keys[id(node.ref)] = key
+            self._held.append(node.ref)
+        self.allowed_components: set[tuple] = set()
+        self.allowed_props: set[tuple] = set()
+        self.renamed: dict[tuple, tuple] = {}
+
+    def key(self, component) -> tuple | None:
+        """The component's key in the input; None if the edit added it."""
+        return self._keys.get(id(component))
 
     def allow(self, component, prop: str | None = None) -> None:
         """The edit removes this component (prop None) or changes this property: its count may go down."""
         key = self.key(component)
-        self.allowed.add((key,) if prop is None else (key, prop.upper()))
-
-    def rename(self, old: tuple, component) -> None:
-        self.renamed[old] = self.key(component)
+        if key is None:
+            return  # added by the edit: nothing of it was in the input
+        if prop is None:
+            self.allowed_components.add(key)
+        else:
+            self.allowed_props.add((key, prop.upper()))
 
     def _permitted(self, entry: tuple) -> bool:
         key = entry[0]
-        for allowed in self.allowed:
-            if len(allowed) == 1 and key[:len(allowed[0])] == allowed[0]:
-                return True
-            if len(allowed) == 2 and len(entry) >= 2 and key == allowed[0] and entry[1] == allowed[1]:
-                return True
-        return False
+        if any(key[:i] in self.allowed_components for i in range(1, len(key) + 1)):
+            return True
+        return len(entry) >= 2 and (key, entry[1]) in self.allowed_props
 
     def _map(self, entry: tuple) -> tuple:
-        key = entry[0]
-        for old, new in self.renamed.items():
-            if key[:len(old)] == old:
-                return (new + key[len(old):],) + entry[1:]
-        return entry
+        new = self.renamed.get(entry[0])
+        return entry if new is None else (new,) + entry[1:]
+
+    def render(self, cal) -> str:
+        """cal as text; a component of the input whose key changed is noted in `renamed`."""
+        out = cal.to_ical(sorted=False).decode("utf-8")
+        out_root, _ = _text_tree(out)
+        obj_root = _Node("")
+        _object_tree(cal, obj_root)
+        objects = {k: n.ref for k, n in _keyed(obj_root).items()}
+        for after_key in _keyed(out_root):
+            ref = objects.get(after_key)
+            key = self.key(ref) if ref is not None else None
+            if key is not None and key != after_key:
+                self.renamed[key] = after_key
+        return out
 
     def result(self) -> str:
-        out = self.cal.to_ical(sorted=False).decode("utf-8")
+        out = self.render(self.cal)
         check(self.text, out, allowed=self._permitted, renamed=self._map, written_from=self.cal)
         return out
 
@@ -267,11 +305,13 @@ def check(before_text: str, after_text: str, *, allowed=lambda entry: False, ren
         icalendar.Calendar.from_ical(after_text)
     except Exception as exc:  # noqa: BLE001
         raise PropertyLossError("the written text does not read back") from exc
-    after = inventory(after_text)
+    before_root, _ = _text_tree(before_text)
+    after_root, _ = _text_tree(after_text)
+    after = _count(after_root)
     lost = []
-    for entry, n in inventory(before_text).items():
+    for entry, n in _count(before_root).items():
         mapped = renamed(entry)
-        if after.get(mapped, 0) < n and not (allowed(entry) or allowed(mapped)):
+        if after.get(mapped, 0) < n and not allowed(entry):
             lost.append(f"{_describe(entry)} ({n} -> {after.get(mapped, 0)})")
     if written_from is not None:
         root = _Node("")
@@ -756,7 +796,6 @@ def edit_all(text: str, changes: Mapping[str, object], *, exceptions: str = "kee
                 edit.allow(master, "RRULE")
                 rule["UNTIL"] = [_add_wall(until[0], delta)]
         for o in edit.overrides():
-            old_key = edit.key(o)
             edit.allow(o, "RECURRENCE-ID")
             rid = o["RECURRENCE-ID"]
             unmoved = _same(o["DTSTART"].dt, rid.dt) if o.get("DTSTART") is not None else False
@@ -768,7 +807,6 @@ def edit_all(text: str, changes: Mapping[str, object], *, exceptions: str = "kee
                 _set(o, "DTSTART", _date_prop(_add_wall(o["DTSTART"].dt, delta), o["DTSTART"]))
                 if length is not None:
                     _set(o, "DTEND", _date_prop(_end(o["DTSTART"].dt, length), o["DTEND"]))
-            edit.rename(old_key, o)
             _touch(edit, o, now, timing=True)
 
     # Exceptions that were occurrences before and are not now: refuse, or drop them when asked.
