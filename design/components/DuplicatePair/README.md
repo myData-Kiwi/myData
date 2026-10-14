@@ -1,14 +1,14 @@
 Two versions of a contact side by side, with the fields that differ marked, so the user can tell whether they are the same person and what merging them gives. One component, three uses: comparing during an import, merging two contacts, and reviewing a contact that changed in a followed account after it was imported.
 
-**Status: decided 2026-10-14** (phase 4; the owner's review, "Decisions", at the end). The host has built merge (`POST /contacts/merge`, undone with `POST /undo/{id}`) and the "changed since import" flag on a contact (`changed_in_source`). It has not built the list of possible duplicates, "not the same person", a merge preview, a card's values in an import preview, or a way to read and settle a followed change; each use below says which it needs (host gaps at the end, numbered as in ImportFlow's H1 to H8). **Built first:** Merge from a multi-selection in myContacts, once the merge preview (H6c) exists, and the flag's Notice without its Review button. The Review section comes after H6a and H7.
+**Status: decided 2026-10-14** (phase 4; the owner's review, "Decisions", at the end). The host has built merge (`POST /contacts/merge`, undone with `POST /undo/{id}`) and the "changed since import" flag on a contact (`changed_in_source`). Since then it has built the list of possible duplicates, "not the same person", the merge preview, a card's values in an import preview and a way to read and settle a followed change (host gaps at the end, numbered as in ImportFlow's H1 to H8, all built 2026-10-14); each use below says which it relies on. **Built first:** Merge from a multi-selection in myContacts, once the merge preview (H6c) exists, and the flag's Notice without its Review button. The Review section comes after H6a and H7.
 
 ## Uses
 
 | Mode | Where | Columns | Actions | Host |
 |---|---|---|---|---|
-| **Compare** (read-only) | myData, Import, Review: under a duplicate row, after "Compare" (ImportFlow) | "In the file", "In myData" | None. The row's checkbox decides | Needs H3 (the file's values) |
-| **Merge** | myContacts: Edit > Merge Contacts… for two to twenty selected contacts (first, with H6c); later the Review section's "Possible duplicates" | The contacts, then "After merging" | "Merge" (filled); "Not the same person" (plain) only in Review | Merge built; the list needs H6a, "Not the same person" H6b, "After merging" H6c |
-| **Changes** | myContacts, the Review section, "Changed since import", and the contact page's Notice | "In myData", "In iCloud now", then "After" | "Save changes" (filled), "Keep mine" (plain) | Needs H7 |
+| **Compare** (read-only) | myData, Import, Review: under a duplicate row, after "Compare" (ImportFlow) | "In the file", "In myData" | None. The row's checkbox decides | H3 (the file's values), built |
+| **Merge** | myContacts: Edit > Merge Contacts… for two to twenty selected contacts (first, with H6c); later the Review section's "Possible duplicates" | The contacts, then "After merging" | "Merge" (filled); "Not the same person" (plain) only in Review | Built: Merge, the list (H6a), "Not the same person" (H6b), "After merging" (H6c) |
+| **Changes** | myContacts, the Review section, "Changed since import", and the contact page's Notice | "In myData", "In iCloud now", then "After" | "Save changes" (filled), "Keep mine" (plain) | H7, built |
 
 Only contacts myData owns are merged or changed. A followed contact is never one side of a merge (the host refuses it): a followed copy of an imported contact is hidden by the shadowing rule (plan 2(a)), not offered as a duplicate.
 
@@ -30,10 +30,10 @@ Only contacts myData owns are merged or changed. A followed contact is never one
 
 ## What the actions do
 
-- **Merge** (myContacts; `POST /contacts/merge` with each contact's id and the etag the user saw, in order, and `names_from`): one transaction on the host. It makes **a new contact** and moves the originals to Recently deleted, where restoring one on its own takes it out of the merge. The new contact has a new id, so links to the originals (`mycontacts://contact/<id>`) open them in Recently deleted (following them to the merged contact needs H6d). After it, the merged contact is selected and a Toast says "Contacts merged" with Undo; when the host reports something left out (`left_out`, property names and counts only), the toast says it too, in words: "Contacts merged. 1 birthday and 1 job title were left out." Undo (`POST /undo/{undo_id}`) puts the originals back exactly as they were and moves the merged contact to Recently deleted. Edit, Undo names it "Undo Merge Contacts". As with every undo, a merged contact edited since cannot be unmerged: "Not undone. Ava Fictional was changed after that." (Toast). In the Review list the pair leaves the list and selection moves to the next pair.
-- **Not the same person** (needs H6b): the host records that these two are different people, so the pair is never suggested again, even after another import, until the user undoes it (Decisions, 5). Toast "Marked as different people" with Undo. Nothing on either contact changes.
-- **Save changes** (Changes, needs H7): writes the "After" column into myData's copy as a new revision, as an edit in myContacts would (If-Match; Undo toast "Changes saved"), and clears the "changed since import" mark until the followed copy changes again. A value the user kept from myData's side stays.
-- **Keep mine** (needs H7): clears the mark without changing the contact. Toast "Kept your version" with Undo, which brings the mark back.
+- **Merge** (myContacts; `POST /contacts/merge` with each contact's id and the etag the user saw, in order, and `names_from`): one transaction on the host. It makes **a new contact** and moves the originals to Recently deleted, where restoring one on its own takes it out of the merge. The new contact has a new id, so links to the originals (`mycontacts://contact/<id>`) open them in Recently deleted (following them to the merged contact uses their `merged_into`, H6d). After it, the merged contact is selected and a Toast says "Contacts merged" with Undo; when the host reports something left out (`left_out`, property names and counts only), the toast says it too, in words: "Contacts merged. 1 birthday and 1 job title were left out." Undo (`POST /undo/{undo_id}`) puts the originals back exactly as they were and moves the merged contact to Recently deleted. Edit, Undo names it "Undo Merge Contacts". As with every undo, a merged contact edited since cannot be unmerged: "Not undone. Ava Fictional was changed after that." (Toast). In the Review list the pair leaves the list and selection moves to the next pair.
+- **Not the same person** (H6b): the host records that these two are different people, so the pair is never suggested again, even after another import, until the user undoes it (Decisions, 5). Toast "Marked as different people" with Undo. Nothing on either contact changes.
+- **Save changes** (Changes, H7): writes the "After" column into myData's copy as a new revision, as an edit in myContacts would (If-Match; Undo toast "Changes saved"), and clears the "changed since import" mark until the followed copy changes again. A value the user kept from myData's side stays.
+- **Keep mine** (H7): clears the mark without changing the contact. Toast "Kept your version" with Undo, which brings the mark back.
 - Three or more contacts are merged in one go from a multi-selection (the host takes up to twenty); in the Review list, a third is offered as a new pair once the first two are one.
 
 ## Merge from a multi-selection (built first, with H6c)
@@ -51,11 +51,11 @@ Only contacts myData owns are merged or changed. A followed contact is never one
 - The detail pane is the DuplicatePair for the selected row, in Merge or Changes mode, under a title in `display-lg` that names the question: "Same person?" (Merge) or "Changed in iCloud" (Changes).
 - **Empty:** the pane and list are replaced by a centred title "Nothing to review" and one sentence in `ink-muted`: "When two contacts look like the same person, or a contact changes in an account myData follows, it shows here." There is no button, so it is not an EmptyState (which always has one) and has no kiwi.
 - **The count** shows in the section's title ("Review, 4") and in the sidebar as a count after the label, in `caption` and `ink-muted`; a number alone, never a red badge.
-- Until H6a and H7 exist, the section is not built: Merge lives in Edit, and the changed contacts are found by their Notice.
+- H6a and H7 are built; until the section itself is, Merge lives in Edit, and the changed contacts are found by their Notice.
 
 ## The contact page flag ("changed since import")
 
-- On a contact page (myContacts), between the ContactHeader and the fields, a Notice (`info`), shown when the contact's `changed_in_source` is set: "This contact changed in the iCloud account ava@example.org after you imported it." (`changed_in_source_label`). With H7, it ends in a plain button "Review", which opens the Review section on that contact (Changes mode); until then it has no button and adds: "Its changes are not shown here yet; you can see them in Contacts on your Mac or iPhone." On a phone, the same Notice under the header.
+- On a contact page (myContacts), between the ContactHeader and the fields, a Notice (`info`), shown when the contact's `changed_in_source` is set: "This contact changed in the iCloud account ava@example.org after you imported it." (`changed_in_source_label`). Once the Review section exists (H7 is built), it ends in a plain button "Review", which opens the Review section on that contact (Changes mode); until then it has no button and adds: "Its changes are not shown here yet; you can see them in Contacts on your Mac or iPhone." On a phone, the same Notice under the header.
 - In the contact list, the row's caption is unchanged and there is no mark; the Notice is on the page only, so the list stays calm (Decisions, 4).
 - The Notice goes when the user saves the changes or keeps theirs (H7), or stops following the account.
 
@@ -108,14 +108,14 @@ Only tokens. The band is `surface-sunken` inside a `surface` card: a darker stri
 
 ## Host gaps
 
-Numbered with ImportFlow's list (H1 to H8); H1, H2, H4, H5 and H8 concern the import only.
+Numbered with ImportFlow's list (H1 to H8); H1, H2, H4, H5 and H8 concern the import only. All are built (2026-10-14); the import routes need `contacts:import` (myData and the command only), while merging, "not the same person" and settling a followed change need `contacts:write` (myContacts too).
 
-- **H3.** An import preview's card values (`GET /import/previews/{id}/items/{index}`), for Compare (ImportFlow).
-- **H6a.** `GET /contacts/duplicates`: pairs of owned contacts with their reason and strength, for the Review list.
-- **H6b.** `POST /contacts/not-duplicates` (both ids), kept on the host, honoured by later imports and the list, undoable.
-- **H6c.** A merge preview (`POST /contacts/merge` with `dry_run`, or `POST /contacts/merge/preview`): the merged contact and `left_out` with the values' kinds, written nowhere, for the "After merging" column.
-- **H6d.** A merged original's `merged_into` on `GET /contacts/{id}`, so a link to it can open the merged contact.
-- **H7.** For "changed since import": the followed copy's values beside the owned one (`GET /contacts/{id}/followed-changes`), and a way to settle it (save the chosen values through `PATCH`, then clear the mark; or clear it alone, undoable).
+- **H3 (built).** An import preview's card values (`GET /import/previews/{id}/items/{index}`), for Compare (ImportFlow).
+- **H6a (built).** `GET /contacts/duplicates`: pairs of owned contacts with their reason and strength, for the Review list.
+- **H6b (built).** `POST /contacts/not-duplicates` (both ids), kept on the host, honoured by later imports and the list, undoable.
+- **H6c (built).** A merge preview (`POST /contacts/merge/preview`): the merged contact and `left_out` with the values' kinds, written nowhere, for the "After merging" column.
+- **H6d (built).** A merged original's `merged_into` on `GET /contacts/{id}`, so a link to it can open the merged contact.
+- **H7 (built).** For "changed since import": the followed copy's values beside the owned one (`GET /contacts/{id}/followed-changes`), and a way to settle it (`POST /contacts/{id}/followed-changes/save` with the chosen values, If-Match, clearing the mark; or `.../keep`, clearing it alone; both undoable).
 
 ## Decisions
 
