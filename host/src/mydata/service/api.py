@@ -1094,7 +1094,7 @@ def _routes_contact_writes(app: FastAPI, need: Callable[[], SyncService], unavai
     def answer(service: SyncService, written: "cw.Written", op: str, who: str, response: Response | None = None
                ) -> ContactWriteOut:
         log(_LOGGER, logging.INFO, "contact written", op=op, actor=who, contact_id=written.contact_id)
-        if written.book_created:  # the first owned data: the host switches to real mode, as turning a source on does
+        if written.book_created:  # owned data appeared: the host switches to real mode, as turning a source on does
             service.owned_data_changed()
         detail = _detail(service, service.contacts.get(written.contact_id, include_deleted=True))
         if response is not None:
@@ -1195,6 +1195,7 @@ def _routes_contact_writes(app: FastAPI, need: Callable[[], SyncService], unavai
         except cw.WriteError as e:
             raise HTTPException(409, str(e)) from None
         log(_LOGGER, logging.INFO, "contact purged", actor=who, contact_id=item_id)
+        service.owned_data_changed()  # owned data was purged: the mode follows what is left
         return Response(status_code=204)
 
     @app.post("/trash/{item_id}/restore", dependencies=needs("contacts:write"), tags=["sources"],

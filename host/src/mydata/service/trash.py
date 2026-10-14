@@ -41,6 +41,7 @@ class TrashExpiry:
             return 0
         if gone:
             log(logger, logging.INFO, "deleted for good after 30 days in Recently deleted", contacts=gone)
+            self.sources.owned_data_changed()  # owned data was purged: the mode follows what is left
         return gone
 
     def start(self) -> None:

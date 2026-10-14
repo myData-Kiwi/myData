@@ -27,7 +27,12 @@ def _expire(host, client):
     purge_after = datetime.fromisoformat(client.get("/trash", headers=host.auth).json()[0]["purge_after"])
     early = TrashExpiry(host.sources, clock=lambda: purge_after - timedelta(minutes=1))
     assert early.run_once() == 0 and len(client.get("/trash", headers=host.auth).json()) == 1
+    refreshed = []
+    real = host.sources.owned_data_changed
+    host.sources.owned_data_changed = lambda: (refreshed.append(1), real())[1]
     assert TrashExpiry(host.sources, clock=lambda: purge_after).run_once() == 1
+    assert refreshed == [1]  # the mode follows what is left
+    del host.sources.owned_data_changed
     assert client.get("/trash", headers=host.auth).json() == []
     assert client.post(f"/trash/{contact['id']}/restore", headers=host.auth).status_code == 404
     assert client.get("/status", headers=host.auth).json()["mode"] == "real"  # the address book stays

@@ -196,8 +196,10 @@ class SyncService:
                 or owned.has_owned(self.home / CALENDAR_FILE, owned.CALENDAR[0]))
 
     def owned_data_changed(self) -> None:
-        """Owned data appeared (the first owned address book was made): the host may switch to real mode, as it
-        does when a source is turned on (ModeController.refresh, through on_accounts_changed)."""
+        """Owned data appeared (the owned address book was made or brought back) or was purged: the host may
+        switch mode, as it does when a source is turned on or off (ModeController.refresh, through
+        on_accounts_changed). The owned address book stays when its contacts are purged, and an owned book
+        counts as owned data, so a purge leaves the host in real mode today."""
         if self.on_accounts_changed is not None:
             try:
                 self.on_accounts_changed()

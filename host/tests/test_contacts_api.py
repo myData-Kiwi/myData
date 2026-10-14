@@ -302,3 +302,23 @@ def test_a_delete_for_good_is_logged_with_the_app_that_asked(host, client, caplo
                          ).status_code == 204
     [purged] = [r for r in caplog.records if r.getMessage() == "contact purged"]
     assert purged.fields == {"actor": "mycontacts", "contact_id": contact["id"]}
+
+
+def test_a_book_brought_back_switches_to_real_mode_and_purges_refresh_the_mode(host, client, monkeypatch):
+    contact = create(client, host).json()["contact"]
+    with host.sources.contacts.db.transaction() as db:  # nothing deletes the owned book yet; as if something had
+        db.execute("UPDATE address_books SET deleted_at = '2026-10-14T09:30:00+00:00' WHERE mode = 'owned'")
+    host.sources.owned_data_changed()
+    assert client.get("/status", headers=host.auth).json()["mode"] == "demo"
+    create(client, host, {"company": "Example Library"})
+    assert client.get("/status", headers=host.auth).json()["mode"] == "real"
+    refreshed = []
+    real = host.sources.owned_data_changed
+    monkeypatch.setattr(host.sources, "owned_data_changed", lambda: (refreshed.append(1), real())[1])
+    auth = bearer(host, "mycontacts")
+    client.delete(f"/contacts/{contact['id']}", headers={**auth, "If-Match": contact["etag"]})
+    [item] = client.get("/trash", headers=auth).json()
+    client.delete(f"/trash/{contact['id']}", headers={**auth, "If-Match": item["contact"]["etag"]})
+    assert refreshed == [1]
+    # The owned address book stays, and counts as owned data: still real.
+    assert client.get("/status", headers=host.auth).json()["mode"] == "real"

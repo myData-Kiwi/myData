@@ -96,7 +96,9 @@ class UndoRefused(WriteError):
 class Written:
     contact_id: str
     undo_id: str | None  # None when nothing changed (an edit that changed no line)
-    book_created: bool = False  # the first owned address book was created: the host may switch to real mode
+    # The owned address book was created, or brought back after it was deleted: owned data appeared, so the
+    # host may switch to real mode.
+    book_created: bool = False
 
 
 # ---------------------------------------------------------------- helpers
@@ -117,12 +119,14 @@ def _row(db: sqlite3.Connection, contact_id: str) -> sqlite3.Row:
 
 
 def _book(db: sqlite3.Connection, at: str) -> tuple[str, bool]:
-    """The owned address book (created on first need) and whether it was created now."""
+    """The owned address book (created on first need) and whether it was created or brought back now (a deleted
+    book does not count as owned data: owned.has_owned)."""
     row = db.execute("SELECT id, deleted_at FROM address_books WHERE account_id = ? AND url = ? AND mode = ?",
                      (owned.OWNED_ACCOUNT, BOOK_URL, owned.OWNED)).fetchone()
     if row is not None:
         if row["deleted_at"] is not None:
             db.execute("UPDATE address_books SET deleted_at = NULL, modified_at = ? WHERE id = ?", (at, row["id"]))
+            return row["id"], True
         return row["id"], False
     book_id = new_id()
     db.execute("INSERT INTO address_books (id, account_id, url, name, mode, created_at, modified_at) "
