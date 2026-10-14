@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:file_selector/file_selector.dart';
@@ -18,12 +19,23 @@ abstract class PickedFile {
 
   /// Its bytes.
   Future<Uint8List> read();
+
+  /// Deletes the copy a drop made for it in the temporary folder, if it is one; the user's own files are
+  /// never touched.
+  Future<void> discard() async {}
 }
 
 /// An [XFile] from the system's chooser or a drop.
-class XPickedFile implements PickedFile {
-  XPickedFile(this.file, {this.isDirectory = false});
+class XPickedFile extends PickedFile {
+  XPickedFile(this.file, {this.isDirectory = false, this.dropped = false, this.tempRoot});
   final XFile file;
+
+  /// It came from a drop: a file promised by another app (a card dragged out of Contacts, an attachment
+  /// from Mail) is written by desktop_drop to `<temporary folder>/Drops/<time>/`, and never deleted there.
+  final bool dropped;
+
+  /// The temporary folder desktop_drop writes into; null is the system's (tests pass their own).
+  final String? tempRoot;
 
   @override
   final bool isDirectory;
@@ -36,10 +48,37 @@ class XPickedFile implements PickedFile {
 
   @override
   Future<Uint8List> read() => file.readAsBytes();
+
+  /// The `Drops/<time>` folder holding this file, when it is one desktop_drop made in the temporary folder;
+  /// null for any other file, such as one dropped from the Finder, which stays where it is.
+  String? dropFolder() {
+    if (!dropped || isDirectory || file.path.isEmpty) return null;
+    try {
+      final root = Directory(tempRoot ?? Directory.systemTemp.path).resolveSymbolicLinksSync();
+      final folder = File(File(file.path).resolveSymbolicLinksSync()).parent;
+      final drops = folder.parent;
+      if (drops.uri.pathSegments.where((s) => s.isNotEmpty).lastOrNull != 'Drops') return null;
+      if (drops.parent.path != root) return null;
+      return folder.path;
+    } on FileSystemException {
+      return null;
+    }
+  }
+
+  @override
+  Future<void> discard() async {
+    final folder = dropFolder();
+    if (folder == null) return;
+    try {
+      await Directory(folder).delete(recursive: true);
+    } on FileSystemException {
+      // Already gone, or not ours to delete: the system empties its temporary folder in time.
+    }
+  }
 }
 
 /// A file held in memory (tests, and a retry of a file already read).
-class MemoryFile implements PickedFile {
+class MemoryFile extends PickedFile {
   MemoryFile(this.name, this.bytes, {this.isDirectory = false});
 
   @override
