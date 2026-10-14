@@ -15,13 +15,17 @@ class ImportNoteOut {
   ImportNoteOut({
     required this.code,
     required this.count,
+    this.entries = const [],
     required this.message,
   });
 
-  /// skipped_unreadable, skipped_no_end, skipped_version, skipped_empty, skipped_too_many, nested_zip, encrypted (losses); converted_21, windows_1252, outside_text, other_files (changes)
+  /// skipped_unreadable, skipped_no_end, skipped_version, skipped_empty, skipped_too_large, skipped_too_many, guessed_charset, outside_text, unreadable_entry, nested_zip, encrypted, unsupported_compression (losses); converted_21, declared_charset, other_files (changes)
   String code;
 
   int count;
+
+  /// unreadable_entry: the names of the files in the zip not read
+  List<String> entries;
 
   /// for the user; holds no contact data
   String message;
@@ -32,21 +36,26 @@ class ImportNoteOut {
       other is ImportNoteOut &&
           other.code == code &&
           other.count == count &&
+          _deepEquality.equals(other.entries, entries) &&
           other.message == message;
 
   @override
   int get hashCode =>
       // ignore: unnecessary_parenthesis
-      (code.hashCode) + (count.hashCode) + (message.hashCode);
+      (code.hashCode) +
+      (count.hashCode) +
+      (entries.hashCode) +
+      (message.hashCode);
 
   @override
   String toString() =>
-      'ImportNoteOut[code=$code, count=$count, message=$message]';
+      'ImportNoteOut[code=$code, count=$count, entries=$entries, message=$message]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
     json[r'code'] = this.code;
     json[r'count'] = this.count;
+    json[r'entries'] = this.entries;
     json[r'message'] = this.message;
     return json;
   }
@@ -80,6 +89,11 @@ class ImportNoteOut {
       return ImportNoteOut(
         code: mapValueOfType<String>(json, r'code')!,
         count: mapValueOfType<int>(json, r'count')!,
+        entries: json[r'entries'] is Iterable
+            ? (json[r'entries'] as Iterable)
+                .cast<String>()
+                .toList(growable: false)
+            : const [],
         message: mapValueOfType<String>(json, r'message')!,
       );
     }

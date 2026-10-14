@@ -31,13 +31,13 @@ class ImportMatchOut {
   /// for source file: the earlier card's index
   int? itemIndex;
 
-  /// origin, uid, identical, email, phone, name
+  /// origin, changed (a card with no UID that changed since it was imported), uid, identical, email, phone, name
   List<String> signals;
 
   /// mydata (owned), icloud, mac, or file (an earlier card in the same input)
   String source_;
 
-  /// same_origin (imported from this card before), strong (same email or phone), suggestion (same name only: never acted on)
+  /// same_origin (imported from this card before), strong (same email or phone, and the same name or none), suggestion (the same name only, or an email or phone shared under another name: never acted on)
   String strength;
 
   @override

@@ -52,7 +52,7 @@ class ImportCountsOut {
   /// cards imported before whose owned copy is in Recently deleted
   int deleted;
 
-  /// cards whose email or phone an owned contact already has
+  /// cards whose email or phone an owned contact of the same name already has
   int duplicates;
 
   /// cards whose email or phone a followed contact has

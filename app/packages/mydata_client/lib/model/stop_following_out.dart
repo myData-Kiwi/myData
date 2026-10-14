@@ -15,7 +15,9 @@ class StopFollowingOut {
   StopFollowingOut({
     required this.accountId,
     required this.calendarsFollowed,
+    this.contactsChanged = 0,
     required this.contactsFollowed,
+    this.contactsLinked = 0,
     required this.label,
     required this.message,
   });
@@ -25,7 +27,14 @@ class StopFollowingOut {
   /// stopping following the account stops following these too; they are not imported yet
   int calendarsFollowed;
 
+  /// its contacts changed since they were imported (the copy on myData is older)
+  int contactsChanged;
+
+  /// its contacts with no copy on myData (skipped, not imported yet): stopping following removes them from myData
   int contactsFollowed;
+
+  /// its contacts hidden behind a contact of yours kept instead (link), which may hold details yours does not
+  int contactsLinked;
 
   /// the source as a heading
   String label;
@@ -38,7 +47,9 @@ class StopFollowingOut {
       other is StopFollowingOut &&
           other.accountId == accountId &&
           other.calendarsFollowed == calendarsFollowed &&
+          other.contactsChanged == contactsChanged &&
           other.contactsFollowed == contactsFollowed &&
+          other.contactsLinked == contactsLinked &&
           other.label == label &&
           other.message == message;
 
@@ -47,19 +58,23 @@ class StopFollowingOut {
       // ignore: unnecessary_parenthesis
       (accountId.hashCode) +
       (calendarsFollowed.hashCode) +
+      (contactsChanged.hashCode) +
       (contactsFollowed.hashCode) +
+      (contactsLinked.hashCode) +
       (label.hashCode) +
       (message.hashCode);
 
   @override
   String toString() =>
-      'StopFollowingOut[accountId=$accountId, calendarsFollowed=$calendarsFollowed, contactsFollowed=$contactsFollowed, label=$label, message=$message]';
+      'StopFollowingOut[accountId=$accountId, calendarsFollowed=$calendarsFollowed, contactsChanged=$contactsChanged, contactsFollowed=$contactsFollowed, contactsLinked=$contactsLinked, label=$label, message=$message]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
     json[r'account_id'] = this.accountId;
     json[r'calendars_followed'] = this.calendarsFollowed;
+    json[r'contacts_changed'] = this.contactsChanged;
     json[r'contacts_followed'] = this.contactsFollowed;
+    json[r'contacts_linked'] = this.contactsLinked;
     json[r'label'] = this.label;
     json[r'message'] = this.message;
     return json;
@@ -102,7 +117,9 @@ class StopFollowingOut {
       return StopFollowingOut(
         accountId: mapValueOfType<String>(json, r'account_id')!,
         calendarsFollowed: mapValueOfType<int>(json, r'calendars_followed')!,
+        contactsChanged: mapValueOfType<int>(json, r'contacts_changed') ?? 0,
         contactsFollowed: mapValueOfType<int>(json, r'contacts_followed')!,
+        contactsLinked: mapValueOfType<int>(json, r'contacts_linked') ?? 0,
         label: mapValueOfType<String>(json, r'label')!,
         message: mapValueOfType<String>(json, r'message')!,
       );

@@ -54,6 +54,7 @@ doc/MacSourceIn.md
 doc/MemoryOut.md
 doc/MergeContactIn.md
 doc/MergeIn.md
+doc/MergeLeftOutOut.md
 doc/MergeOut.md
 doc/MessageIn.md
 doc/ModelOut.md
@@ -141,6 +142,7 @@ lib/model/mac_source_in.dart
 lib/model/memory_out.dart
 lib/model/merge_contact_in.dart
 lib/model/merge_in.dart
+lib/model/merge_left_out_out.dart
 lib/model/merge_out.dart
 lib/model/message_in.dart
 lib/model/model_out.dart
@@ -214,6 +216,7 @@ test/mac_source_in_test.dart
 test/memory_out_test.dart
 test/merge_contact_in_test.dart
 test/merge_in_test.dart
+test/merge_left_out_out_test.dart
 test/merge_out_test.dart
 test/message_in_test.dart
 test/model_out_test.dart

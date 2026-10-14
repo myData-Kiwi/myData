@@ -13,7 +13,7 @@ Name | Type | Description | Notes
 **contacts** | **int** | cards that are contacts (people and organisations) | 
 **created** | **int** | after the commit: contacts created | [optional] 
 **deleted** | **int** | cards imported before whose owned copy is in Recently deleted | 
-**duplicates** | **int** | cards whose email or phone an owned contact already has | 
+**duplicates** | **int** | cards whose email or phone an owned contact of the same name already has | 
 **followedMatches** | **int** | cards whose email or phone a followed contact has | 
 **groups** | **int** | group cards: imported as groups, never listed as contacts | 
 **groupsCreated** | **int** |  | [optional] 

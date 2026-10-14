@@ -14,12 +14,16 @@ class MergeOut {
   /// Returns a new [MergeOut] instance.
   MergeOut({
     required this.contact,
+    this.leftOut = const [],
     this.merged = const [],
     required this.undoId,
   });
 
   /// the merged contact
   ContactDetailOut contact;
+
+  /// what the others hold that the merged contact does not (a different value of a property it has its own of, or what kind of card it is): names and counts only. The originals keep it until they are deleted for good
+  List<MergeLeftOutOut> leftOut;
 
   /// the originals' ids, now in Recently deleted
   List<String> merged;
@@ -32,21 +36,26 @@ class MergeOut {
       identical(this, other) ||
       other is MergeOut &&
           other.contact == contact &&
+          _deepEquality.equals(other.leftOut, leftOut) &&
           _deepEquality.equals(other.merged, merged) &&
           other.undoId == undoId;
 
   @override
   int get hashCode =>
       // ignore: unnecessary_parenthesis
-      (contact.hashCode) + (merged.hashCode) + (undoId.hashCode);
+      (contact.hashCode) +
+      (leftOut.hashCode) +
+      (merged.hashCode) +
+      (undoId.hashCode);
 
   @override
   String toString() =>
-      'MergeOut[contact=$contact, merged=$merged, undoId=$undoId]';
+      'MergeOut[contact=$contact, leftOut=$leftOut, merged=$merged, undoId=$undoId]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
     json[r'contact'] = this.contact;
+    json[r'left_out'] = this.leftOut;
     json[r'merged'] = this.merged;
     json[r'undo_id'] = this.undoId;
     return json;
@@ -80,6 +89,7 @@ class MergeOut {
 
       return MergeOut(
         contact: ContactDetailOut.fromJson(json[r'contact'])!,
+        leftOut: MergeLeftOutOut.listFromJson(json[r'left_out']),
         merged: json[r'merged'] is Iterable
             ? (json[r'merged'] as Iterable)
                 .cast<String>()

@@ -84,6 +84,7 @@ part 'model/mac_source_in.dart';
 part 'model/memory_out.dart';
 part 'model/merge_contact_in.dart';
 part 'model/merge_in.dart';
+part 'model/merge_left_out_out.dart';
 part 'model/merge_out.dart';
 part 'model/message_in.dart';
 part 'model/model_out.dart';

@@ -78,6 +78,7 @@ Class | Method | HTTP request | Description
 *HostApi* | [**shutdownHost**](doc//HostApi.md#shutdownhost) | **POST** /shutdown | Shutdown Host
 *HostApi* | [**status**](doc//HostApi.md#status) | **GET** /status | Status
 *ImportsApi* | [**commitImport**](doc//ImportsApi.md#commitimport) | **POST** /import/previews/{preview_id}/commit | Commit Import
+*ImportsApi* | [**discardImportPreview**](doc//ImportsApi.md#discardimportpreview) | **DELETE** /import/previews/{preview_id} | Discard Import Preview
 *ImportsApi* | [**importHistory**](doc//ImportsApi.md#importhistory) | **GET** /imports | Import History
 *ImportsApi* | [**importPreview**](doc//ImportsApi.md#importpreview) | **GET** /import/previews/{preview_id} | Import Preview
 *ImportsApi* | [**previewContactsImport**](doc//ImportsApi.md#previewcontactsimport) | **POST** /import/contacts/preview | Preview Contacts Import
@@ -158,6 +159,7 @@ Class | Method | HTTP request | Description
  - [MemoryOut](doc//MemoryOut.md)
  - [MergeContactIn](doc//MergeContactIn.md)
  - [MergeIn](doc//MergeIn.md)
+ - [MergeLeftOutOut](doc//MergeLeftOutOut.md)
  - [MergeOut](doc//MergeOut.md)
  - [MessageIn](doc//MessageIn.md)
  - [ModelOut](doc//ModelOut.md)

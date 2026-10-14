@@ -298,6 +298,8 @@ class ApiClient {
           return MergeContactIn.fromJson(value);
         case 'MergeIn':
           return MergeIn.fromJson(value);
+        case 'MergeLeftOutOut':
+          return MergeLeftOutOut.fromJson(value);
         case 'MergeOut':
           return MergeOut.fromJson(value);
         case 'MessageIn':

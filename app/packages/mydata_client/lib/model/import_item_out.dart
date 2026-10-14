@@ -47,7 +47,7 @@ class ImportItemOut {
 
   List<ImportMatchOut> matches;
 
-  /// conflict: edited, merged or kept_yours; skipped: unreadable, no_end, version, empty, too_many
+  /// conflict: edited, merged or kept_yours; skipped: unreadable, no_end, version, empty, too_large (cards past the first 50000 are counted only, with no item)
   String? reason;
 
   /// new, duplicate, in_file, unchanged, update, conflict, deleted, skipped

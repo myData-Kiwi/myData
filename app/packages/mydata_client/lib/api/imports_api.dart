@@ -92,6 +92,64 @@ class ImportsApi {
     return null;
   }
 
+  /// Discard Import Preview
+  ///
+  /// Drop a preview the app cancelled, with the file's contents the host holds for it. Only the app that made it can drop it.
+  ///
+  /// Note: This method returns the HTTP [Response].
+  ///
+  /// Parameters:
+  ///
+  /// * [String] previewId (required):
+  Future<Response> discardImportPreviewWithHttpInfo(
+    String previewId, {
+    Future<void>? abortTrigger,
+  }) async {
+    // ignore: prefer_const_declarations
+    final path =
+        r'/import/previews/{preview_id}'.replaceAll('{preview_id}', previewId);
+
+    // ignore: prefer_final_locals
+    Object? postBody;
+
+    final queryParams = <QueryParam>[];
+    final headerParams = <String, String>{};
+    final formParams = <String, String>{};
+
+    const contentTypes = <String>[];
+
+    return apiClient.invokeAPI(
+      path,
+      'DELETE',
+      queryParams,
+      postBody,
+      headerParams,
+      formParams,
+      contentTypes.isEmpty ? null : contentTypes.first,
+      abortTrigger: abortTrigger,
+    );
+  }
+
+  /// Discard Import Preview
+  ///
+  /// Drop a preview the app cancelled, with the file's contents the host holds for it. Only the app that made it can drop it.
+  ///
+  /// Parameters:
+  ///
+  /// * [String] previewId (required):
+  Future<void> discardImportPreview(
+    String previewId, {
+    Future<void>? abortTrigger,
+  }) async {
+    final response = await discardImportPreviewWithHttpInfo(
+      previewId,
+      abortTrigger: abortTrigger,
+    );
+    if (response.statusCode >= HttpStatus.badRequest) {
+      throw ApiException(response.statusCode, await _decodeBodyBytes(response));
+    }
+  }
+
   /// Import History
   ///
   /// Every import, the newest first: when, from where, its counts and whether it was undone.
@@ -152,7 +210,7 @@ class ImportsApi {
 
   /// Import Preview
   ///
-  /// A preview again, analysed as the host is now.
+  /// A preview again, analysed as the host is now. Only the app that made it can read it.
   ///
   /// Note: This method returns the HTTP [Response].
   ///
@@ -190,7 +248,7 @@ class ImportsApi {
 
   /// Import Preview
   ///
-  /// A preview again, analysed as the host is now.
+  /// A preview again, analysed as the host is now. Only the app that made it can read it.
   ///
   /// Parameters:
   ///

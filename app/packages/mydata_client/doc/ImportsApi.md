@@ -10,6 +10,7 @@ All URIs are relative to *http://127.0.0.1:47821*
 Method | HTTP request | Description
 ------------- | ------------- | -------------
 [**commitImport**](ImportsApi.md#commitimport) | **POST** /import/previews/{preview_id}/commit | Commit Import
+[**discardImportPreview**](ImportsApi.md#discardimportpreview) | **DELETE** /import/previews/{preview_id} | Discard Import Preview
 [**importHistory**](ImportsApi.md#importhistory) | **GET** /imports | Import History
 [**importPreview**](ImportsApi.md#importpreview) | **GET** /import/previews/{preview_id} | Import Preview
 [**previewContactsImport**](ImportsApi.md#previewcontactsimport) | **POST** /import/contacts/preview | Preview Contacts Import
@@ -68,6 +69,54 @@ Name | Type | Description  | Notes
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **discardImportPreview**
+> discardImportPreview(previewId)
+
+Discard Import Preview
+
+Drop a preview the app cancelled, with the file's contents the host holds for it. Only the app that made it can drop it.
+
+### Example
+```dart
+import 'package:mydata_client/api.dart';
+// TODO Configure HTTP Bearer authorization: bearer
+// Case 1. Use String Token
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearer').setAccessToken('YOUR_ACCESS_TOKEN');
+// Case 2. Use Function which generate token.
+// String yourTokenGeneratorFunction() { ... }
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearer').setAccessToken(yourTokenGeneratorFunction);
+
+final api_instance = ImportsApi();
+final previewId = previewId_example; // String | 
+
+try {
+    api_instance.discardImportPreview(previewId);
+} catch (e) {
+    print('Exception when calling ImportsApi->discardImportPreview: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **previewId** | **String**|  | 
+
+### Return type
+
+void (empty response body)
+
+### Authorization
+
+[bearer](../README.md#bearer)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **importHistory**
 > List<ImportOut> importHistory()
 
@@ -118,7 +167,7 @@ This endpoint does not need any parameter.
 
 Import Preview
 
-A preview again, analysed as the host is now.
+A preview again, analysed as the host is now. Only the app that made it can read it.
 
 ### Example
 ```dart
