@@ -291,9 +291,10 @@ class Registry:
                 inv.approval = self._hold(tool, inv.args, resolved, caller, context or {})
             else:
                 inv = self._run(tool, inv, resolved, today)
-        # Audit: which tool, by whom, how it ended. Argument values stay out of the log.
+        # Audit: which tool, by whom, how it ended. Argument values stay out of the log, and in real mode so
+        # does the error's text, which can quote one ("could not understand the date 'the day of ...'").
         logger.info("tool call", extra={"fields": {
-            "tool": name, "caller": caller, "status": inv.status, "error": inv.error,
+            "tool": name, "caller": caller, "status": inv.status, "error": log_error(inv.error, self.mode),
             "approval_id": inv.approval.id if inv.approval else None}})
         return inv
 
@@ -391,8 +392,18 @@ class Registry:
         """The record of what ran: the held call is identified by id and digest, not its contents."""
         logger.info("approval decided", extra={"fields": {
             "approval_id": a.id, "tool": a.tool, "caller": a.caller, "decided_by": a.decided_by,
-            "status": a.status, "digest": a.digest, "error": a.error, "mode": a.mode,
+            "status": a.status, "digest": a.digest, "mode": a.mode,
+            "error": log_error(a.error, "demo" if a.mode == self.mode == "demo" else "real"),
             "conversation_epoch": a.conversation_epoch, "conversation_id": a.context.get("conversation_id")}})
+
+
+def log_error(error: str | None, mode: str) -> str | dict | None:
+    """An error as the host log may keep it. In demo mode, the text. In real mode only its kind and length:
+    a bad date quotes the phrase, and a handler's exception text can hold a value from the user's data."""
+    if error is None or mode == "demo":
+        return error
+    kind = error.split(":", 1)[0] if ":" in error and error.split(":", 1)[0].isidentifier() else None
+    return {"kind": kind, "length": len(error)}
 
 
 def _catalogue(tools: Iterable[Tool]) -> dict[str, Tool]:
