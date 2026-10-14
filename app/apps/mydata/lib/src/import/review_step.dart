@@ -33,6 +33,15 @@ class _ReviewStepState extends State<ReviewStep> {
   bool _showAllSkipped = false;
   final _importNode = FocusNode(debugLabel: 'Import');
 
+  /// A long list is drawn a page at a time ("Show 200 more"), so a file of thousands of cards never builds
+  /// thousands of rows at once.
+  static const page = 200;
+
+  /// How many rows each list draws, by its kind; [page] at first.
+  final _shown = <String, int>{};
+
+  int _shownOf(String list) => _shown[list] ?? page;
+
   ImportController get _c => widget.controller;
 
   @override
@@ -57,12 +66,16 @@ class _ReviewStepState extends State<ReviewStep> {
       },
       child: Focus(
         skipTraversal: true,
-        child: StepPage(
-          title: ImportText.reviewTitle,
-          titleFocus: widget.titleFocus,
-          subtitle: ImportText.readLine(p, vcardFiles: _c.entries.length, email: _c.emailOf(_c.previewAccount)),
-          footer: _footer(p),
-          children: _c.expired ? [_expired(p)] : _sections(p),
+        // While the import is saved, nothing on the page can change what was sent.
+        child: FormBusy(
+          busy: _c.committing,
+          child: StepPage(
+            title: ImportText.reviewTitle,
+            titleFocus: widget.titleFocus,
+            subtitle: ImportText.readLine(p, vcardFiles: _c.entries.length, email: _c.emailOf(_c.previewAccount)),
+            footer: _footer(p),
+            children: _c.expired ? [_expired(p)] : _sections(p),
+          ),
         ),
       ),
     );
@@ -87,7 +100,7 @@ class _ReviewStepState extends State<ReviewStep> {
     final working = c.committing;
     if (c.nothingByDefault && c.nothingToImport) {
       return StepFooter(
-        reason: ImportText.nothingToImport,
+        reason: p.source_ == 'icloud' ? ImportText.nothingToImportAccount : ImportText.nothingToImport,
         failure: c.reviewFailure,
         buttons: [
           Button(label: ImportText.cancel, variant: ButtonVariant.plain, onPressed: () => unawaited(c.cancelReview())),
@@ -161,14 +174,16 @@ class _ReviewStepState extends State<ReviewStep> {
     }
     final dup = c.rowsIn(RowGroup.duplicates);
     if (dup.isNotEmpty) {
-      out.add(_list(ImportText.duplicatesHeading(dup.length), dup, compare: true));
+      out.add(_list('duplicates', ImportText.duplicatesHeading(dup.length), dup, compare: true));
       out.add(_note(ImportText.duplicatesNote));
     }
     final upd = c.rowsIn(RowGroup.updates);
-    if (upd.isNotEmpty) out.add(_list(ImportText.updatesHeading(upd.length), upd));
+    if (upd.isNotEmpty) out.add(_list('updates', ImportText.updatesHeading(upd.length), upd));
     final already = [for (final r in c.rowsIn(RowGroup.already)) if (r.tickable) r];
     final quiet = c.rowsIn(RowGroup.quiet);
-    if (already.isNotEmpty) out.add(_list(ImportText.alreadyHeading(already.length), already, compare: true));
+    if (already.isNotEmpty) {
+      out.add(_list('already', ImportText.alreadyHeading(already.length), already, compare: true));
+    }
     if (quiet.isNotEmpty) {
       out.add(_note(ImportText.leftOutLine(
         quiet.where((r) => r.item.status == 'unchanged').length,
@@ -177,16 +192,20 @@ class _ReviewStepState extends State<ReviewStep> {
     }
     final conflicts = c.rowsIn(RowGroup.conflicts);
     if (conflicts.isNotEmpty) {
+      final shown = _shownOf('conflicts');
       out.add(GroupedSection(
         heading: ImportText.conflictsHeading(conflicts.length),
         parts: [
-          for (final r in conflicts) TextRowPart(ImportText.conflict(r.item.reason), title: r.item.displayName),
+          for (final r in conflicts.take(shown))
+            TextRowPart(ImportText.conflict(r.item.reason), title: r.item.displayName),
         ],
       ));
+      if (conflicts.length > shown) out.add(_more('conflicts', conflicts.length));
     }
     final fresh = [for (final r in c.rowsIn(RowGroup.fresh)) if (r.tickable) r];
     if (fresh.isNotEmpty) {
-      out.add(_list(ImportText.newHeading(fresh.length), fresh, folded: !_showAllNew));
+      out.add(_list('fresh', ImportText.newHeading(fresh.length), fresh, folded: !_showAllNew));
+      if (_showAllNew && fresh.length > _shownOf('fresh')) out.add(_more('fresh', fresh.length));
       out.add(Align(
         alignment: AlignmentDirectional.centerStart,
         child: Semantics(
@@ -194,13 +213,29 @@ class _ReviewStepState extends State<ReviewStep> {
           child: Button(
             label: _showAllNew ? ImportText.hideAll : ImportText.showAll(fresh.length),
             variant: ButtonVariant.plain,
-            onPressed: () => setState(() => _showAllNew = !_showAllNew),
+            onPressed: () => setState(() {
+              _showAllNew = !_showAllNew;
+              _shown.remove('fresh');
+            }),
           ),
         ),
       ));
     }
     if (p.missing.isNotEmpty) out.add(_missing(p.missing));
     return out;
+  }
+
+  /// "Show 200 more" under a list drawn a page at a time.
+  Widget _more(String list, int total) {
+    final left = total - _shownOf(list);
+    return Align(
+      alignment: AlignmentDirectional.centerStart,
+      child: Button(
+        label: ImportText.showMore(left < page ? left : page),
+        variant: ButtonVariant.plain,
+        onPressed: () => setState(() => _shown[list] = _shownOf(list) + page),
+      ),
+    );
   }
 
   Widget _note(String text) => Padding(
@@ -211,14 +246,11 @@ class _ReviewStepState extends State<ReviewStep> {
   /// The summary: one row per kind with a count, rows with nothing left out; at most three tile colours.
   Widget? _summary(ImportPreviewOut p) {
     final c = _c;
-    final fresh = c.rowsIn(RowGroup.fresh).where(c.isTicked).length;
-    final dup = c.rowsIn(RowGroup.duplicates).where(c.isTicked).length;
-    final upd = c.rowsIn(RowGroup.updates).where(c.isTicked).length;
-    final linked = c.rowsIn(RowGroup.already).where((r) => c.actionOf(r) == 'link').length;
-    final already = [
-      ...c.rowsIn(RowGroup.already),
-      ...c.rowsIn(RowGroup.quiet),
-    ].where((r) => c.actionOf(r) == 'skip' || c.actionOf(r) == 'link').length;
+    final fresh = c.tickedIn(RowGroup.fresh);
+    final dup = c.tickedIn(RowGroup.duplicates);
+    final upd = c.tickedIn(RowGroup.updates);
+    final linked = c.linkedAlready;
+    final already = c.alreadyKept;
     final conflicts = c.rowsIn(RowGroup.conflicts).length;
     final skipped = p.counts.skipped;
     final rows = <GroupedRow>[
@@ -273,15 +305,27 @@ class _ReviewStepState extends State<ReviewStep> {
   Widget _losses(ImportPreviewOut p) {
     final c = _c;
     final skipped = c.rowsIn(RowGroup.skipped);
-    final shown = _showAllSkipped ? skipped : skipped.take(5).toList();
+    final rest = skipped.skip(5).take(_shownOf('skipped')).toList();
+    final style = MyDataType.body.copyWith(color: context.colors.ink);
     final parts = <Widget>[
-      for (final r in shown) TextRowPart(ImportText.skippedCard(r.item)),
+      for (final r in skipped.take(5)) TextRowPart(ImportText.skippedCard(r.item)),
       if (skipped.length > 5)
+        // A disclosure: the rest open under it, in place, a page at a time.
         DisclosurePart(
           title: _showAllSkipped ? ImportText.hideAll : ImportText.showMore(skipped.length - 5),
-          open: false,
-          onToggle: () => setState(() => _showAllSkipped = !_showAllSkipped),
-          child: const SizedBox.shrink(),
+          open: _showAllSkipped,
+          onToggle: () => setState(() {
+            _showAllSkipped = !_showAllSkipped;
+            _shown.remove('skipped');
+          }),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            for (final r in rest)
+              Padding(
+                padding: const EdgeInsets.only(bottom: MyDataSpace.s2),
+                child: Text(ImportText.skippedCard(r.item), style: style),
+              ),
+            if (skipped.length - 5 > rest.length) _more('skipped', skipped.length - 5),
+          ]),
         ),
       for (final l in p.losses)
         if (ImportText.loss(l) case final text?) TextRowPart(text),
@@ -314,20 +358,15 @@ class _ReviewStepState extends State<ReviewStep> {
     if (p.source_ == 'icloud') {
       out.add(Notice(message: ImportText.shadowAccount(p.counts.contacts, c.emailOf(c.previewAccount))));
     } else if (p.counts.followedMatches > 0) {
-      out.add(Notice(message: ImportText.shadowFile(p.counts.followedMatches, _hiddenFrom(p))));
+      out.add(Notice(message: ImportText.shadowFile(p.counts.followedMatches, _hiddenFrom())));
     }
     return out;
   }
 
   /// Where the followed copies a file hides are read from: "this Mac", "the iCloud account …", or both.
-  String _hiddenFrom(ImportPreviewOut p) {
-    final accounts = <String>{
-      for (final i in p.items)
-        for (final m in i.matches)
-          if (m.hides && m.accountId != null) m.accountId!,
-    };
-    final mac = p.items.any((i) => i.matches.any((m) => m.hides && m.source_ == 'mac'));
-    final icloud = accounts.where((a) => a != 'mac').toList();
+  String _hiddenFrom() {
+    final mac = _c.hiddenFromMac;
+    final icloud = _c.hiddenFromAccounts.toList();
     if (mac && icloud.isEmpty) return 'this Mac';
     if (!mac && icloud.length == 1) {
       final email = _c.emailOf(icloud.single);
@@ -337,39 +376,61 @@ class _ReviewStepState extends State<ReviewStep> {
   }
 
   /// A list with its select-all row and its rows' ticks; Compare beside each row when [compare].
-  Widget _list(String heading, List<ReviewRow> rows, {bool compare = false, bool folded = false}) {
+  ///
+  /// [list] names the list for its page count: only its first rows are drawn, with "Show 200 more" under it,
+  /// so a long file builds a page of rows at a time.
+  Widget _list(String list, String heading, List<ReviewRow> rows, {bool compare = false, bool folded = false}) {
     final c = _c;
     final phone = AppLayout.isPhone(context);
-    return CheckboxList(
+    final shown = _shownOf(list);
+    final more = !folded && rows.length > shown && list != 'fresh';
+    final checkboxes = CheckboxList(
       heading: heading,
       selectAllTitle: ImportText.allContacts(rows.length),
       folded: folded,
+      shown: shown,
       items: [
-        for (final r in rows)
-          CheckboxListItem(
-            title: r.item.displayName,
-            caption: _caption(r),
+        for (var n = 0; n < rows.length; n++)
+          _item(rows[n], drawn: n < shown && !folded, compare: compare, phone: phone),
+      ],
+      onChanged: (v) => c.setTickedAll(rows, v),
+    );
+    if (!more) return checkboxes;
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      checkboxes,
+      const SizedBox(height: MyDataSpace.s2),
+      _more(list, rows.length),
+    ]);
+  }
+
+  /// One row's item; the Compare button and its comparison only for a row that is drawn.
+  CheckboxListItem _item(ReviewRow r, {required bool drawn, required bool compare, required bool phone}) {
+    final c = _c;
+    final comparing = c.isComparing(r);
+    final name = r.item.displayName;
+    return CheckboxListItem(
+            title: name,
+            caption: drawn ? _caption(r) : null,
             checked: c.isTicked(r),
             disabledReason: c.canTick(r) ? null : (r.tickable ? 'Its file in the zip is left out.' : null),
-            trailing: compare && r.ownMatch != null
+            trailing: drawn && compare && r.ownMatch != null
                 ? Semantics(
-                    expanded: c.isComparing(r),
+                    expanded: comparing,
                     child: Button(
-                      label: c.isComparing(r) && !phone ? ImportText.hideComparison : ImportText.compare,
+                      label: comparing && !phone ? ImportText.hideComparison : ImportText.compare,
+                      // "Compare Ben Sample, button, collapsed" (ImportFlow, Screen readers).
+                      semanticLabel: '${comparing && !phone ? ImportText.hideComparison : ImportText.compare} $name',
                       variant: ButtonVariant.plain,
                       onPressed: () => phone ? unawaited(_compareSheet(r)) : c.toggleCompare(r),
                     ),
                   )
                 : null,
-            below: compare && !phone && c.isComparing(r)
+            below: drawn && compare && !phone && comparing
                 ? Padding(
                     padding: const EdgeInsets.fromLTRB(MyDataSpace.s4, 0, MyDataSpace.s4, MyDataSpace.s4),
                     child: _comparison(r),
                   )
                 : null,
-          ),
-      ],
-      onChanged: (v) => c.setTickedAll(rows, v),
     );
   }
 
@@ -414,7 +475,11 @@ class _ReviewStepState extends State<ReviewStep> {
         if (contact != null)
           ContactPair.ofContact(contact, name: ImportText.inMyData, caption: _added(contact))
         else
-          PairVersion(name: ImportText.inMyData, caption: r.ownMatch?.displayName ?? '', fields: const {}),
+          PairVersion(
+            name: ImportText.inMyData,
+            caption: state.contactGone ? ImportText.contactGone : (r.ownMatch?.displayName ?? ''),
+            fields: const {},
+          ),
       ],
     );
   }
@@ -451,9 +516,17 @@ class _ReviewStepState extends State<ReviewStep> {
         DisclosurePart(
           title: _showAllMissing ? ImportText.hideAll : ImportText.showAll(missing.length),
           open: _showAllMissing,
-          onToggle: () => setState(() => _showAllMissing = !_showAllMissing),
+          onToggle: () => setState(() {
+            _showAllMissing = !_showAllMissing;
+            _shown.remove('missing');
+          }),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            for (final m in missing) Text(m.displayName, style: MyDataType.body.copyWith(color: c.ink)),
+            for (final m in missing.take(_shownOf('missing')))
+              Text(m.displayName, style: MyDataType.body.copyWith(color: c.ink)),
+            if (missing.length > _shownOf('missing')) ...[
+              const SizedBox(height: MyDataSpace.s2),
+              _more('missing', missing.length),
+            ],
           ]),
         ),
       ],

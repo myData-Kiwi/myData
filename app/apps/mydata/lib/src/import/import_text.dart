@@ -48,6 +48,18 @@ abstract final class ImportText {
   static const caption = 'A vCard file (.vcf) from Apple, Google or Samsung, or a .zip of them. Up to 50 MB.';
   static const hostDown = 'The host cannot be reached. Import works when it is running.';
 
+  /// Why a file cannot be chosen, or another copy read, while an account's copy is being read.
+  static const accountBeingRead = 'A copy of an account is being read. Choose a file when it is done.';
+  static const copyBeingRead = 'This copy is being read.';
+  static const anotherBeingRead = 'Another import is being read. Try again when it is done.';
+
+  /// A drop that delivered no file (a promised file the app it came from did not hand over).
+  static const dropEmpty = 'The file could not be taken from where it was dragged. Save it to a folder first, '
+      'then drop it here or choose it.';
+
+  /// The system's file chooser did not open.
+  static const chooserFailed = 'The file chooser did not open. Try again, or drop the file here.';
+
   static const whereHeading = 'Where to get a file';
   static const fromAccountHeading = 'From an account myData follows';
   static const historyHeading = 'Earlier imports';
@@ -302,7 +314,8 @@ abstract final class ImportText {
       if (inFile > 0) '${grouped(inFile)} repeated in it',
     ];
     if (parts.isEmpty) return '';
-    return parts.length == 1 ? '${parts.single[0].toUpperCase()}${parts.single.substring(1)}, ${unchanged + inFile == 1 ? 'is' : 'are'} left out.'
+    return parts.length == 1
+        ? '${parts.single[0].toUpperCase()}${parts.single.substring(1)} ${unchanged + inFile == 1 ? 'is' : 'are'} left out.'
         : '${parts[0][0].toUpperCase()}${parts[0].substring(1)}, and ${parts[1]}, are left out.';
   }
 
@@ -325,6 +338,9 @@ abstract final class ImportText {
   static const inFile = 'In the file';
   static const inMyData = 'In myData';
   static const compareFailed = 'The comparison could not be read. The host did not answer.';
+
+  /// Compare's "In myData" column when that contact was deleted for good since the review was read.
+  static const contactGone = 'No longer in myData: it was deleted for good.';
 
   /// The caption of a match row, from the match's signals.
   static String matchCaption(ImportItemOut item, ImportMatchOut m, {bool linkDefault = false, bool twoLink = false}) {
@@ -363,6 +379,7 @@ abstract final class ImportText {
   static const readCopyAgain = 'Read the copy again';
   static const chooseOne = 'Choose at least one contact to import.';
   static const nothingToImport = 'Nothing in this file needs importing.';
+  static const nothingToImportAccount = 'Nothing in this copy of the account needs importing.';
 
   static const expired = 'This review is no longer held by the host. It keeps one for an hour, and not across a '
       'restart. Choose the file again.';
@@ -381,6 +398,11 @@ abstract final class ImportText {
       'Nothing changed. Check that the host’s disk has free space, then press Import again.';
   static const commitChanged =
       'Some contacts changed in myData while you were reviewing. Check the review again, then press Import.';
+
+  /// The commit's 400 `losses_not_accepted`: what will not come in changed (read again), so it must be
+  /// accepted again.
+  static const commitLosses = 'What this import will not bring changed while you were reviewing. Check it again, '
+      'tick “Import without what is listed above”, then press Import.';
 
   // ------------------------------------------------------------------------------------------------------
   // Done.
@@ -411,7 +433,7 @@ abstract final class ImportText {
   static const importMore = 'Import more';
   static const openFailed = 'myData could not open myContacts. Open it yourself.';
 
-  static String keepFollowingTitle(String email) => 'Keep following the iCloud account $email?';
+  static String keepFollowingTitle(String? email) => 'Keep following ${_theAccount(email)}?';
   static const keepFollowingShadow = 'myData now shows your imported copy of each contact and hides the one it '
       'follows, so each person is found once (in myContacts, in search and in the assistant’s answers).';
   static const keepFollowingChanges = 'While you follow the account, a contact that changes in iCloud after today is '
@@ -426,7 +448,7 @@ abstract final class ImportText {
       'of yours, which may lack some of their details.';
   static const stopFollowing = 'Stop following';
   static const keepFollowing = 'Keep following';
-  static String stopFollowingTitle(String email) => 'Stop following $email?';
+  static String stopFollowingTitle(String? email) => 'Stop following ${email ?? 'the iCloud account'}?';
   static String stopFollowingBody({required int imported, required int calendars, required String? keptUntil}) {
     final cal = calendars == 0
         ? ''
@@ -441,16 +463,25 @@ abstract final class ImportText {
   static String backupsKept(String isoDay) => RemoveAccountText.backupsKept(isoDay);
 
   static const stoppingWork = 'Stopping…';
-  static String stopFailed(String email) =>
-      'myData did not stop following $email. The host did not answer. Check that it is running, then try again.';
+  static String stopFailed(String? email) => 'myData did not stop following ${email ?? 'the iCloud account'}. The '
+      'host did not answer. Check that it is running, then try again.';
 
   // ------------------------------------------------------------------------------------------------------
   // History and Undo import.
   // ------------------------------------------------------------------------------------------------------
 
-  /// The history row's title: the file's name, or "Copy of the iCloud account …".
+  /// The history row's title: the file's name, or "Copy of the iCloud account …". Once the account is not
+  /// followed any more, its address comes from the host's label ("iCloud account ava@example.org").
   static String historyTitle(ImportOut i, {String? email}) =>
-      i.source_ == 'icloud' ? 'Copy of the iCloud account ${email ?? i.label}' : i.label;
+      i.source_ == 'icloud' ? 'Copy of ${_theAccount(email ?? accountEmail(i.label))}' : i.label;
+
+  /// The address in the host's heading for an account ("iCloud account ava@example.org"); null without one.
+  static String? accountEmail(String label) {
+    const prefix = 'iCloud account ';
+    if (!label.startsWith(prefix)) return null;
+    final email = label.substring(prefix.length).trim();
+    return email.isEmpty ? null : email;
+  }
 
   /// "14 Oct 2026. 125 added, 3 updated, 2 could not be read." and, once undone, "Undone 15 Oct 2026: 122
   /// moved to Recently deleted, 3 changed since were kept."

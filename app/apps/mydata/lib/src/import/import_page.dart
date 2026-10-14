@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/material.dart';
@@ -54,7 +55,9 @@ class ImportPage extends StatefulWidget {
 }
 
 class _ImportPageState extends State<ImportPage> {
-  final _titleFocus = FocusNode(debugLabel: 'Import title');
+  // Focus moves to the title when the step changes, but it is not a Tab stop (it has no ring and does
+  // nothing): Tab from it reaches the step's first control.
+  final _titleFocus = FocusNode(debugLabel: 'Import title', skipTraversal: true);
   final _chooseFocus = FocusNode(debugLabel: 'Choose file');
   final _retryFocus = FocusNode(debugLabel: 'Try again');
   final _macRowKey = GlobalKey();
@@ -62,7 +65,6 @@ class _ImportPageState extends State<ImportPage> {
   final _open = <String>{};
   bool _dragging = false;
   int _stepSerial = 0;
-  int _linkSerial = 0;
   String? _lastError;
   String? _lastUndone;
 
@@ -72,9 +74,9 @@ class _ImportPageState extends State<ImportPage> {
   void initState() {
     super.initState();
     _stepSerial = _c.stepSerial;
-    _linkSerial = _c.linkSerial;
     _c.addListener(_changed);
-    if (_c.linkSerial > 0 && widget.macHost) _open.add(ImportText.places.first.title);
+    // Only a link not seen yet opens "Contacts on a Mac": a later visit from the sidebar opens none.
+    if (_c.takeLink() && widget.macHost) _open.add(ImportText.places.first.title);
     unawaited(_c.loadHistory());
     unawaited(_c.refreshPreview());
   }
@@ -103,10 +105,7 @@ class _ImportPageState extends State<ImportPage> {
   void _changed() {
     if (!mounted) return;
     setState(() {});
-    if (_c.linkSerial != _linkSerial) {
-      _linkSerial = _c.linkSerial;
-      if (widget.macHost) setState(() => _open.add(ImportText.places.first.title));
-    }
+    if (_c.takeLink() && widget.macHost) setState(() => _open.add(ImportText.places.first.title));
     if (_c.stepSerial != _stepSerial) {
       _stepSerial = _c.stepSerial;
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -143,7 +142,7 @@ class _ImportPageState extends State<ImportPage> {
   String _title() => switch (_c.step) {
         ImportStep.choose => ImportText.chooseTitle,
         ImportStep.review => ImportText.reviewTitle,
-        ImportStep.importing => ImportText.importingTitle(_c.toImport + _c.toUpdate),
+        ImportStep.importing => ImportText.importingTitle(_c.toImport + _c.toUpdate + _c.toLink),
         ImportStep.done => _doneTitle(),
       };
 
@@ -172,9 +171,10 @@ class _ImportPageState extends State<ImportPage> {
             onDragExited: (_) => setState(() => _dragging = false),
             onDragDone: (d) {
               setState(() => _dragging = false);
-              unawaited(_c.useFiles([
-                for (final f in d.files) XPickedFile(f, isDirectory: f is DropItemDirectory),
-              ]));
+              unawaited(_c.useFiles(
+                [for (final f in d.files) XPickedFile(f, isDirectory: f is DropItemDirectory, dropped: true)],
+                dropped: true,
+              ));
             },
             child: keyed,
           );
@@ -189,10 +189,12 @@ class _ImportPageState extends State<ImportPage> {
     final c = _c;
     final reachable = c.reachable;
     final DropZoneState state;
-    if (!reachable) {
-      state = DropZoneState.disabled;
-    } else if (c.readingName != null) {
+    // A file being read stays "Reading" with its Cancel even when a poll briefly misses the host: the request
+    // is still pending, and its own answer says what happened.
+    if (c.readingName != null) {
       state = DropZoneState.reading;
+    } else if (!reachable || c.readingAccount != null) {
+      state = DropZoneState.disabled;
     } else if (_dragging) {
       state = DropZoneState.dragging;
     } else if (c.fileError != null) {
@@ -212,7 +214,7 @@ class _ImportPageState extends State<ImportPage> {
           onCancel: c.cancelReading,
           error: c.fileError,
           onRetry: c.fileErrorRetry && c.lastFile != null ? () => unawaited(c.retry()) : null,
-          disabledReason: ImportText.hostDown,
+          disabledReason: reachable ? ImportText.accountBeingRead : ImportText.hostDown,
           chooseFocusNode: _chooseFocus,
           retryFocusNode: _retryFocus,
         ),
@@ -267,6 +269,11 @@ class _ImportPageState extends State<ImportPage> {
               Button(
                 label: ImportText.importCopy,
                 onPressed: !c.reachable || busy ? null : () => unawaited(c.readAccount(a)),
+                disabledReason: !c.reachable
+                    ? ImportText.hostDown
+                    : c.readingAccount == a.id
+                        ? ImportText.copyBeingRead
+                        : (busy ? ImportText.anotherBeingRead : null),
               ),
             ],
           ),
@@ -312,6 +319,7 @@ class _ImportPageState extends State<ImportPage> {
                   label: ImportText.undoImport,
                   variant: ButtonVariant.plainDanger,
                   onPressed: c.reachable ? () => unawaited(_confirmUndo(i)) : null,
+                  disabledReason: c.reachable ? null : ImportText.hostDown,
                 ),
             ],
           ),
@@ -328,11 +336,14 @@ class _ImportPageState extends State<ImportPage> {
         context: context,
         builder: (_) => MyDataDialog(
           title: ImportText.undoTitle,
-          message: [
-            ImportText.undoBody,
-            if (i.source_ == 'icloud') ImportText.undoAccount,
-            ImportText.undoCannot,
-          ].join(' '),
+          // The spec's sentences as paragraphs: the rule, the account's copies, then what cannot be undone.
+          message: ImportText.undoBody,
+          content: Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
+            for (final (n, line) in [if (i.source_ == 'icloud') ImportText.undoAccount, ImportText.undoCannot].indexed) ...[
+              if (n > 0) const SizedBox(height: MyDataSpace.s4),
+              Text(line, style: MyDataType.body.copyWith(color: context.colors.ink)),
+            ],
+          ]),
           confirmLabel: ImportText.undoImport,
           destructive: true,
           workingLabel: ImportText.undoing,
@@ -379,11 +390,14 @@ class _ImportPageState extends State<ImportPage> {
     final c = _c;
     final r = c.result;
     if (r == null) return const SizedBox.shrink();
-    final rows = <GroupedRow>[
+    final rows = <Widget>[
       if (c.resultCount('updated') > 0) GroupedRow(title: ImportText.doneUpdated(c.resultCount('updated'))),
       if (c.resultCount('linked') > 0) GroupedRow(title: ImportText.doneLinked(c.resultCount('linked'))),
       if (c.doneLeftOut > 0) GroupedRow(title: ImportText.doneLeftOut(c.doneLeftOut)),
-      if (c.doneSkipped > 0) GroupedRow(title: ImportText.doneSkipped(c.doneSkipped)),
+      if (c.doneSkipped > 0)
+        c.doneSkippedRows.isEmpty && c.doneLosses.every((l) => ImportText.loss(l) == null)
+            ? GroupedRow(title: ImportText.doneSkipped(c.doneSkipped))
+            : _skippedDisclosure(),
       if (c.doneDuplicates > 0)
         GroupedRow(title: ImportText.doneDuplicates(c.doneDuplicates), subtitle: ImportText.doneDuplicatesCaption),
       if (r.conflicts.isNotEmpty)
@@ -397,7 +411,11 @@ class _ImportPageState extends State<ImportPage> {
     final buttons = [
       if (contacts)
         Button(label: ImportText.openInMyContacts, variant: ButtonVariant.filled, onPressed: () => unawaited(_openContacts())),
-      Button(label: ImportText.undoImport, onPressed: c.reachable ? () => unawaited(_undoFromDone(r)) : null),
+      Button(
+        label: ImportText.undoImport,
+        onPressed: c.reachable ? () => unawaited(_undoFromDone(r)) : null,
+        disabledReason: c.reachable ? null : ImportText.hostDown,
+      ),
       Button(
         label: ImportText.importMore,
         variant: contacts ? ButtonVariant.plain : ButtonVariant.filled,
@@ -406,8 +424,7 @@ class _ImportPageState extends State<ImportPage> {
     ];
     final phone = AppLayout.isPhone(context);
     final children = <Widget>[
-      if (rows.isNotEmpty) GroupedList(rows: rows),
-      if (c.doneSkipped > 0 && c.doneSkippedRows.isNotEmpty) _skippedDisclosure(),
+      if (rows.isNotEmpty) GroupedSection(parts: rows),
       phone
           ? Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               for (var i = 0; i < buttons.length; i++) ...[if (i > 0) const SizedBox(height: ButtonRow.gap), buttons[i]],
@@ -420,24 +437,27 @@ class _ImportPageState extends State<ImportPage> {
 
   bool _showWhich = false;
 
-  /// "Show which": the cards that could not be read, as the loss report listed them.
-  Widget _skippedDisclosure() => GroupedSection(
-        heading: ImportText.lossHeading,
-        parts: [
-          DisclosurePart(
-            title: ImportText.showWhich,
-            open: _showWhich,
-            onToggle: () => setState(() => _showWhich = !_showWhich),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              for (final row in _c.doneSkippedRows)
-                Text(ImportText.skippedCard(row.item), style: MyDataType.body.copyWith(color: context.colors.ink)),
-              for (final l in _c.doneLosses)
-                if (ImportText.loss(l) case final text?)
-                  Text(text, style: MyDataType.body.copyWith(color: context.colors.ink)),
-            ]),
-          ),
-        ],
+  /// The row "2 cards could not be read" with "Show which": the loss report as it was, under it in place.
+  Widget _skippedDisclosure() => DisclosurePart(
+        title: ImportText.doneSkipped(_c.doneSkipped),
+        action: _showWhich ? ImportText.hideAll : ImportText.showWhich,
+        open: _showWhich,
+        onToggle: () => setState(() => _showWhich = !_showWhich),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          for (final row in _c.doneSkippedRows.take(_skippedShown))
+            Text(ImportText.skippedCard(row.item), style: MyDataType.body.copyWith(color: context.colors.ink)),
+          if (_c.doneSkippedRows.length > _skippedShown)
+            Button(
+              label: ImportText.showMore(math.min(200, _c.doneSkippedRows.length - _skippedShown)),
+              variant: ButtonVariant.plain,
+              onPressed: () => setState(() => _skippedShown += 200),
+            ),
+          for (final l in _c.doneLosses)
+            if (ImportText.loss(l) case final text?) Text(text, style: MyDataType.body.copyWith(color: context.colors.ink)),
+        ]),
       );
+
+  int _skippedShown = 200;
 
   Future<void> _openContacts() async {
     final ok = await widget.openLink(const OpenContactList()).catchError((Object _) => false);
@@ -459,7 +479,7 @@ class _ImportPageState extends State<ImportPage> {
   /// "Keep following the iCloud account …?" after a copy of a followed account.
   Widget _keepFollowing(StopFollowingOut s) {
     final c = context.colors;
-    final email = _c.emailOf(s.accountId) ?? s.label;
+    final email = _c.emailOf(s.accountId) ?? ImportText.accountEmail(s.label);
     final lines = [
       ImportText.keepFollowingShadow,
       ImportText.keepFollowingChanges,
@@ -467,6 +487,7 @@ class _ImportPageState extends State<ImportPage> {
       if (s.contactsFollowed > 0) ImportText.keepFollowingLeft(s.contactsFollowed),
       if (s.contactsLinked > 0) ImportText.keepFollowingLinked(s.contactsLinked),
     ];
+    // The question in `heading` over a GroupedSection holding its sentences and buttons (ImportFlow, Done).
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       const SizedBox(height: MyDataSpace.s4),
       Semantics(
@@ -474,10 +495,9 @@ class _ImportPageState extends State<ImportPage> {
         child: Text(ImportText.keepFollowingTitle(email), style: MyDataType.heading.copyWith(color: c.ink)),
       ),
       const SizedBox(height: MyDataSpace.s3),
-      Container(
-        padding: GroupedContentPart.padding,
-        decoration: BoxDecoration(color: c.surface, borderRadius: MyDataRadii.lg, boxShadow: context.shadows.shadow1),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      GroupedSection(parts: [
+        GroupedContentPart(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           for (var i = 0; i < lines.length; i++) ...[
             if (i > 0) const SizedBox(height: MyDataSpace.s2),
             Text(lines[i], style: MyDataType.body.copyWith(color: c.ink)),
@@ -487,13 +507,14 @@ class _ImportPageState extends State<ImportPage> {
             Button(label: ImportText.stopFollowing, onPressed: () => unawaited(_stopFollowing(s, email))),
             Button(label: ImportText.keepFollowing, variant: ButtonVariant.plain, onPressed: _c.keepFollowing),
           ]),
-        ]),
-      ),
+          ]),
+        ),
+      ]),
     ]);
   }
 
   /// Settings' own Dialog for removing an account, with the import's sentences and the backups day (H8).
-  Future<void> _stopFollowing(StopFollowingOut s, String email) => showRemoveAccountDialog(
+  Future<void> _stopFollowing(StopFollowingOut s, String? email) => showRemoveAccountDialog(
         context: context,
         title: ImportText.stopFollowingTitle(email),
         message: ImportText.stopFollowingBody(

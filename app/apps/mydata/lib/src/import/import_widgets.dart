@@ -168,9 +168,14 @@ class DisclosurePart extends StatelessWidget {
     required this.onToggle,
     required this.child,
     this.focusNode,
+    this.action,
   });
 
   final String title;
+
+  /// A word before the chevron saying what opening does, when the title is a fact ("2 cards could not be
+  /// read" … "Show which").
+  final String? action;
   final bool open;
   final VoidCallback onToggle;
   final Widget child;
@@ -189,7 +194,7 @@ class DisclosurePart extends StatelessWidget {
           scaleOnPress: false,
           hoverFill: c.surfaceHover,
           focusNode: focusNode,
-          semanticLabel: title,
+          semanticLabel: action == null ? title : '$title, $action',
           child: ExcludeSemantics(
             child: ConstrainedBox(
               constraints: const BoxConstraints(minHeight: MyDataSize.rowHeight),
@@ -197,6 +202,11 @@ class DisclosurePart extends StatelessWidget {
                 padding: GroupedRow.padding,
                 child: Row(children: [
                   Expanded(child: Text(title, style: MyDataType.bodyStrong.copyWith(color: c.ink))),
+                  if (action != null) ...[
+                    const SizedBox(width: MyDataSpace.s3),
+                    Text(action!, style: MyDataType.caption.copyWith(color: c.inkMuted)),
+                    const SizedBox(width: MyDataSpace.s1),
+                  ],
                   AnimatedRotation(
                     turns: open ? 0.25 : 0,
                     duration: MyDataMotion.reduced(context) ? Duration.zero : MyDataMotion.fast,

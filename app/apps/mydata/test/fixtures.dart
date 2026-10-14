@@ -390,6 +390,9 @@ class FakeImports {
   /// While set, a file preview waits for it (the host still reading).
   Completer<void>? previewGate;
 
+  /// While set, an account copy's preview waits for it.
+  Completer<void>? accountGate;
+
   /// Previews held, by id.
   final held = <String, ImportPreviewOut>{};
 
@@ -405,6 +408,9 @@ class FakeImports {
   /// The commit's answer, or its refusal.
   ImportCommittedOut? commitResult;
   (int, String?)? commitRefusal;
+
+  /// The commit is saved, then its answer is lost (the host was replaced as it answered).
+  bool loseCommitAnswer = false;
   Completer<void>? commitGate;
 
   /// The answer to a preview read again after a refused commit.
@@ -436,6 +442,7 @@ class FakeImports {
     }
     final source = RegExp(r'^/import/contacts/from-source/([^/]+)/preview$').firstMatch(path);
     if (m == 'POST' && source != null) {
+      await accountGate?.future;
       final p = byAccount[source.group(1)];
       if (p == null) return json({'detail': 'This Mac is never imported.'}, 409);
       held[p.id] = p;
@@ -469,6 +476,7 @@ class FakeImports {
         ),
         ...history,
       ];
+      if (loseCommitAnswer) throw http.ClientException('the host stopped answering');
       return json(out.toJson(), 201);
     }
     final preview = RegExp(r'^/import/previews/([^/]+)$').firstMatch(path);
@@ -608,12 +616,13 @@ ImportCommittedOut committed({
   List<ImportConflictOut> conflicts = const [],
   List<ImportMissingOut> missing = const [],
   StopFollowingOut? stopFollowing,
+  String startedAt = '2026-10-14T09:30:00',
 }) => ImportCommittedOut(
   id: id,
   label: label,
   source_: source,
   sourceAccount: account,
-  startedAt: '2026-10-14T09:30:00',
+  startedAt: startedAt,
   status: 'committed',
   counts: {'created': created, 'updated': updated, 'linked': linked, 'skipped': skipped},
   conflicts: conflicts,

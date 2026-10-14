@@ -4,9 +4,12 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mydata/src/app.dart';
+import 'package:mydata/src/import/import_controller.dart';
 import 'package:mydata/src/import/import_files.dart';
+import 'package:mydata/src/import/import_page.dart';
 import 'package:mydata/src/import/import_text.dart';
 import 'package:mydata/src/shell.dart';
 import 'package:mydata_core/mydata_core.dart';
@@ -22,8 +25,12 @@ MemoryFile vcf(String name, [String text = 'BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Ava
 class FakeChooser {
   PickedFile? next;
   int calls = 0;
+
+  /// The system's chooser does not open.
+  bool fail = false;
   Future<PickedFile?> call() async {
     calls++;
+    if (fail) throw StateError('the chooser did not open');
     return next;
   }
 }
@@ -666,6 +673,367 @@ void main() {
       await tester.sendKeyUpEvent(LogicalKeyboardKey.control);
       await settle(tester);
       expect(host.requests.where((r) => r.contains('/commit')), hasLength(1));
+    });
+  });
+
+  group('Review fixes', () {
+    ContactDetailOut benInMyData() => ContactDetailOut.fromJson({
+          'id': 'c-ben',
+          'account_id': 'local',
+          'address_book_id': 'book-mydata',
+          'created_at': '2026-10-02T09:00:00',
+          'modified_at': '2026-10-02T09:00:00',
+          'display_name': 'Ben Sample',
+          'full_name': 'Ben Sample',
+          'editable': true,
+          'etag': '"1-c-ben"',
+          'fields': [],
+          'sort_letter': 'B',
+          'source': 'mydata',
+          'source_label': 'myData',
+        })!;
+    ImportCardOut benCard() => ImportCardOut(
+          index: 1,
+          kind: 'individual',
+          displayName: 'Ben Sample',
+          fullName: 'Ben Sample',
+          phones: [LabeledValue(label: 'Mobile', value: '555-0177')],
+          fields: [],
+        );
+
+    ImportController controllerOf(WidgetTester tester) =>
+        tester.widget<ImportPage>(find.byType(ImportPage)).controller;
+
+    testWidgets('a contact deleted for good since the review: Compare says so, and the review stays', (tester) async {
+      final host = FakeHost();
+      host.imports
+        ..nextPreview = mixedPreview()
+        ..cards[1] = benCard();
+      await pumpImport(tester, host);
+      await choose(tester, vcf('contacts.vcf'));
+      await tester.tap(find.widgetWithText(Button, ImportText.compare).first);
+      await settle(tester);
+      expect(host.requests, contains('GET /contacts/c-ben'));
+      expect(find.text(ImportText.expired), findsNothing);
+      expect(find.text(ImportText.contactGone), findsOneWidget);
+      expect(find.text(ImportText.reviewTitle), findsOneWidget);
+      expect(find.widgetWithText(Button, ImportText.importN(3)), findsOneWidget, reason: 'the ticks are kept');
+    });
+
+    testWidgets('Compare names its contact for screen readers', (tester) async {
+      final handle = tester.ensureSemantics();
+      final host = FakeHost();
+      host.imports
+        ..nextPreview = mixedPreview()
+        ..cards[1] = benCard()
+        ..contacts['c-ben'] = benInMyData();
+      await pumpImport(tester, host);
+      await choose(tester, vcf('contacts.vcf'));
+      expect(find.bySemanticsLabel('Compare Ben Sample'), findsOneWidget);
+      expect(find.bySemanticsLabel('Compare Dev Placeholder'), findsOneWidget);
+      await tester.tap(find.widgetWithText(Button, ImportText.compare).first);
+      await settle(tester);
+      expect(find.bySemanticsLabel('Hide comparison Ben Sample'), findsOneWidget);
+      handle.dispose();
+    });
+
+    testWidgets('the step title takes focus but is not a Tab stop', (tester) async {
+      await pumpImport(tester, FakeHost());
+      final title = tester.widget<Focus>(
+          find.ancestor(of: find.text(ImportText.chooseTitle), matching: find.byType(Focus)).first);
+      expect(title.focusNode!.skipTraversal, isTrue);
+    });
+
+    testWidgets('"Show 3 more" is a disclosure: collapsed, then expanded with the rows under it', (tester) async {
+      final handle = tester.ensureSemantics();
+      final host = FakeHost();
+      host.imports.nextPreview = previewOf([
+        importItem(0, 'Ava Fictional'),
+        for (var i = 1; i <= 8; i++) importItem(i, '', status: 'skipped', action: 'skip', choices: ['skip'], reason: 'empty'),
+      ], losses: [ImportNoteOut(code: 'skipped_empty', count: 8, message: '8 empty cards')]);
+      await pumpImport(tester, host);
+      await choose(tester, vcf('contacts.vcf'));
+      expect(tester.getSemantics(find.text(ImportText.showMore(3))), isSemantics(isExpanded: false, hasExpandedState: true));
+      expect(find.text('Card 9 is empty.'), findsNothing);
+      await tapText(tester, ImportText.showMore(3));
+      expect(tester.getSemantics(find.text(ImportText.hideAll)), isSemantics(isExpanded: true, hasExpandedState: true));
+      expect(tester.getRect(find.text('Card 9 is empty.')).top, greaterThan(tester.getRect(find.text(ImportText.hideAll)).bottom));
+      handle.dispose();
+    });
+
+    testWidgets('an undo refused as already done announces no earlier undo\'s counts', (tester) async {
+      final host = FakeHost();
+      ImportOut row(String id) => ImportOut(
+            id: id,
+            label: '$id.vcf',
+            source_: 'file',
+            startedAt: '2026-10-14T09:00:00',
+            status: 'committed',
+            counts: {'created': 2},
+          );
+      host.imports
+        ..history = [row('imp-a'), row('imp-b')]
+        ..undoResult = ImportUndoneOut(removed: 122, reverted: 0, unlinked: 0, gone: 0, kept: [], summary: row('imp-a'));
+      await pumpImport(tester, host);
+      await tester.tap(find.widgetWithText(Button, ImportText.undoImport).first);
+      await settle(tester);
+      await tester.tap(find.widgetWithText(Button, ImportText.undoImport).last);
+      await settle(tester);
+      expect(tester.takeAnnouncements().map((a) => a.message), contains(startsWith('Import undone. 122')));
+      host.imports.undoConflict = true;
+      await tester.tap(find.widgetWithText(Button, ImportText.undoImport).first);
+      await settle(tester);
+      await tester.tap(find.widgetWithText(Button, ImportText.undoImport).last);
+      await settle(tester);
+      expect(find.text(ImportText.undoneChip), findsNWidgets(2));
+      expect(tester.takeAnnouncements().map((a) => a.message), isNot(contains(startsWith('Import undone'))));
+    });
+
+    testWidgets('Done: "Show which" is on the unreadable row; Undo import\'s sentences are paragraphs',
+        (tester) async {
+      final host = FakeHost();
+      host.imports
+        ..nextPreview = mixedPreview()
+        ..commitResult = committed(created: 1, skipped: 1);
+      await pumpImport(tester, host);
+      await choose(tester, vcf('contacts.vcf'));
+      await tapText(tester, ImportText.acceptLabel);
+      await tapText(tester, ImportText.importN(3));
+      expect(find.text(ImportText.lossHeading), findsNothing, reason: 'no separate section');
+      final row = find.text(ImportText.doneSkipped(1));
+      expect(tester.getRect(find.text(ImportText.showWhich)).center.dy, closeTo(tester.getRect(row).center.dy, 1));
+      await tapText(tester, ImportText.showWhich);
+      expect(find.text('Card 5 ends before END:VCARD; the file may be cut short.'), findsOneWidget);
+      await tapText(tester, ImportText.undoImport);
+      expect(find.text(ImportText.undoBody), findsOneWidget);
+      expect(find.text(ImportText.undoCannot), findsOneWidget);
+    });
+
+    test('edge-case sentences', () {
+      expect(ImportText.leftOutLine(6, 0), '6 unchanged since you imported this file are left out.');
+      expect(ImportText.leftOutLine(1, 0), '1 unchanged since you imported this file is left out.');
+      expect(ImportText.leftOutLine(6, 2), '6 unchanged since you imported this file, and 2 repeated in it, are left out.');
+      // The account is no longer followed: its address comes from the host's label.
+      final copy = ImportOut(
+        id: 'imp-1',
+        label: 'iCloud account ava@example.org',
+        source_: 'icloud',
+        sourceAccount: 'acct-ava',
+        startedAt: '2026-10-14T09:00:00',
+        status: 'committed',
+      );
+      expect(ImportText.historyTitle(copy), 'Copy of the iCloud account ava@example.org');
+      expect(ImportText.historyTitle(copy, email: 'ava@example.org'), 'Copy of the iCloud account ava@example.org');
+      expect(ImportText.keepFollowingTitle(ImportText.accountEmail('iCloud account ava@example.org')),
+          'Keep following the iCloud account ava@example.org?');
+      expect(ImportText.keepFollowingTitle(ImportText.accountEmail('iCloud account')), 'Keep following the iCloud account?');
+    });
+
+    testWidgets('an account copy kept wholly as yours is "Importing 2 contacts", and says nothing needs importing '
+        'when nothing does', (tester) async {
+      final host = FakeHost(accounts: [icloudSource('ava@example.org', counts: SyncCounts(contacts: 2))]);
+      host.imports
+        ..byAccount['acct-ava'] = previewOf([
+          importItem(0, 'Ava Fictional', status: 'duplicate', action: 'link', choices: ['link', 'skip', 'import']),
+          importItem(1, 'Ben Sample', status: 'duplicate', action: 'link', choices: ['link', 'skip', 'import']),
+        ], source: 'icloud', accountId: 'acct-ava')
+        ..commitGate = Completer<void>()
+        ..commitResult = committed(linked: 2, source: 'icloud', account: 'acct-ava');
+      await pumpImport(tester, host);
+      await tapText(tester, ImportText.importCopy);
+      await tester.tap(find.widgetWithText(Button, ImportText.keepN(2)));
+      await tester.pump(const Duration(milliseconds: 1100));
+      expect(find.text(ImportText.importingTitle(2)), findsOneWidget);
+      host.imports.commitGate!.complete();
+      await settle(tester);
+
+      host.imports.byAccount['acct-ava'] = previewOf([
+        importItem(0, 'Ava Fictional', status: 'unchanged', action: 'skip', choices: ['skip']),
+      ], source: 'icloud', accountId: 'acct-ava', id: 'pv-2');
+      await tapText(tester, ImportText.importMore);
+      await tapText(tester, ImportText.importCopy);
+      expect(find.text(ImportText.nothingToImportAccount), findsOneWidget);
+    });
+
+    testWidgets('a commit refused for losses not accepted says so, not that contacts changed', (tester) async {
+      final host = FakeHost();
+      host.imports
+        ..nextPreview = previewOf([importItem(0, 'Ava Fictional')])
+        ..commitRefusal = (400, 'losses_not_accepted');
+      await pumpImport(tester, host);
+      await choose(tester, vcf('contacts.vcf'));
+      await tapText(tester, ImportText.importN(1));
+      expect(find.text(ImportText.commitLosses), findsOneWidget);
+      expect(find.text(ImportText.commitChanged), findsNothing);
+    });
+
+    testWidgets('disabled controls say why: Undo import with the host down, Import a copy while another is read',
+        (tester) async {
+      final handle = tester.ensureSemantics();
+      final host = FakeHost(accounts: [
+        icloudSource('ava@example.org', counts: SyncCounts(contacts: 2)),
+        icloudSource('ben@example.org', counts: SyncCounts(contacts: 3)),
+      ]);
+      host.imports.history = [
+        ImportOut(id: 'imp-0', label: 'a.vcf', source_: 'file', startedAt: '2026-10-14T09:00:00', status: 'committed'),
+      ];
+      final c = await pumpImport(tester, host);
+      // Reading one account's copy: the other's button, and the file zone, say why they wait.
+      final gate = Completer<void>();
+      host.imports.byAccount['acct-ava'] = previewOf([importItem(0, 'Ava Fictional')], source: 'icloud', accountId: 'acct-ava');
+      host.imports.accountGate = gate;
+      await tester.tap(find.widgetWithText(Button, ImportText.importCopy).first);
+      await tester.pump();
+      expect(tester.getSemantics(find.widgetWithText(Button, ImportText.importCopy).last),
+          isSemantics(label: ImportText.importCopy, hint: ImportText.anotherBeingRead, isEnabled: false, hasEnabledState: true));
+      expect(find.text(ImportText.accountBeingRead), findsOneWidget);
+      // Choose file… opens nothing while the copy is read.
+      chooser.next = vcf('contacts.vcf');
+      await tester.tap(find.widgetWithText(Button, DropZone.defaultChooseLabel), warnIfMissed: false);
+      await tester.pump();
+      expect(chooser.calls, 0);
+      gate.complete();
+      await settle(tester);
+      await tapText(tester, ImportText.cancel);
+      c
+        ..phase = HostPhase.lost
+        ..notifyListeners();
+      await settle(tester);
+      expect(tester.getSemantics(find.widgetWithText(Button, ImportText.undoImport)),
+          isSemantics(label: ImportText.undoImport, hint: ImportText.hostDown, isEnabled: false, hasEnabledState: true));
+      handle.dispose();
+    });
+
+    testWidgets('a chooser that fails and a drop with no file both say so', (tester) async {
+      final host = FakeHost();
+      await pumpImport(tester, host);
+      final c = controllerOf(tester);
+      await c.useFiles(const [], dropped: true);
+      await settle(tester);
+      expect(find.text(ImportText.dropEmpty), findsOneWidget);
+      chooser.fail = true;
+      await tapText(tester, DropZone.defaultChooseLabel);
+      expect(find.text(ImportText.chooserFailed), findsOneWidget);
+    });
+
+    testWidgets('a file chosen as the host went away is kept for Try again', (tester) async {
+      final host = FakeHost();
+      host.imports.nextPreview = previewOf([importItem(0, 'Ava Fictional')]);
+      final hc = await pumpImport(tester, host);
+      final c = controllerOf(tester);
+      hc.phase = HostPhase.lost;
+      await c.useFiles([vcf('contacts.vcf')]);
+      hc
+        ..phase = HostPhase.running
+        ..notifyListeners();
+      await settle(tester);
+      expect(find.text(ImportText.notRead('contacts.vcf')), findsOneWidget);
+      await tapText(tester, DropZone.retryLabel);
+      expect(find.text(ImportText.reviewTitle), findsOneWidget);
+    });
+
+    testWidgets('Contacts on a Mac opens for a new link only, not on every later visit', (tester) async {
+      final links = StreamController<MyDataLink>();
+      addTearDown(links.close);
+      final host = FakeHost(status: statusWith(ModelOutStateEnum.ready, macAvailable: true), mac: macSource());
+      await pumpImport(tester, host, links: links.stream, openSection: false);
+      links.add(const OpenMyDataImport());
+      await settle(tester);
+      expect(find.text(ImportText.places.first.steps.first), findsOneWidget);
+      await tapText(tester, 'Status');
+      await tapText(tester, ImportText.section);
+      expect(find.text(ImportText.places.first.steps.first), findsNothing);
+      links.add(const OpenMyDataImport());
+      await settle(tester);
+      expect(find.text(ImportText.places.first.steps.first), findsOneWidget);
+    });
+
+    testWidgets('a host restart during Review shows Expired at once, and the history is read again',
+        (tester) async {
+      final host = FakeHost();
+      host.imports.nextPreview = mixedPreview();
+      final hc = await pumpImport(tester, host);
+      await choose(tester, vcf('contacts.vcf'));
+      final historyReads = host.requests.where((r) => r == 'GET /imports').length;
+      // Another app replaced the host: its uptime starts again, and the preview is gone with it.
+      host.imports.gone.add('pv-1');
+      host.status.uptimeSeconds = 2;
+      await hc.refresh();
+      await settle(tester);
+      expect(find.text(ImportText.expired), findsOneWidget);
+      expect(host.requests.where((r) => r == 'GET /imports').length, greaterThan(historyReads));
+    });
+
+    testWidgets('the host coming back reads the history it could not read before', (tester) async {
+      final host = FakeHost();
+      host.imports.history = [
+        ImportOut(id: 'imp-0', label: 'earlier.vcf', source_: 'file', startedAt: '2026-10-14T09:00:00', status: 'committed'),
+      ];
+      host.imports.down = true;
+      final hc = await pumpImport(tester, host);
+      expect(find.text('earlier.vcf'), findsNothing);
+      hc.phase = HostPhase.lost;
+      hc.notifyListeners();
+      host.imports.down = false;
+      hc
+        ..phase = HostPhase.running
+        ..notifyListeners();
+      await settle(tester);
+      expect(find.text('earlier.vcf'), findsOneWidget);
+    });
+
+    testWidgets('a commit whose answer was lost after it was saved shows Done, not Import again', (tester) async {
+      final host = FakeHost();
+      host.imports
+        ..nextPreview = previewOf([importItem(0, 'Ava Fictional'), importItem(1, 'Ben Sample')])
+        ..commitResult = committed(created: 2, startedAt: DateTime.now().toUtc().toIso8601String())
+        ..loseCommitAnswer = true;
+      await pumpImport(tester, host);
+      await choose(tester, vcf('contacts.vcf'));
+      await tapText(tester, ImportText.importN(2));
+      expect(find.text(ImportText.commitNoAnswer), findsNothing);
+      expect(find.text('Imported 2 contacts into myData'), findsOneWidget);
+      expect(find.widgetWithText(Button, ImportText.undoImport), findsOneWidget);
+    });
+
+    testWidgets('while the import is saved the ticks cannot change, and leaving and coming back keeps Review',
+        (tester) async {
+      final host = FakeHost();
+      host.imports
+        ..nextPreview = previewOf([importItem(0, 'Ava Fictional'), importItem(1, 'Ben Sample')])
+        ..commitGate = Completer<void>()
+        ..commitRefusal = (503, null);
+      await pumpImport(tester, host);
+      await choose(tester, vcf('contacts.vcf'));
+      await tapText(tester, ImportText.showAll(2));
+      await tester.tap(find.widgetWithText(Button, ImportText.importN(2)));
+      await tester.pump();
+      final c = controllerOf(tester);
+      final rows = c.rowsIn(RowGroup.fresh);
+      c.setTickedAll(rows, [false, false]);
+      expect(c.toImport, 2, reason: 'select all does nothing while the commit runs');
+      await c.refreshPreview();
+      expect(c.expired, isFalse, reason: 'the host has the preview out while it saves');
+      host.imports.commitGate!.complete();
+      await settle(tester);
+      expect(find.text(ImportText.commitNoBackup), findsOneWidget);
+      expect(find.text(ImportText.expired), findsNothing);
+    });
+
+    testWidgets('a file of 5,000 new contacts draws a page of rows at a time', (tester) async {
+      final host = FakeHost();
+      host.imports.nextPreview = previewOf([for (var i = 0; i < 5000; i++) importItem(i, 'Ava Fictional $i')]);
+      await pumpImport(tester, host);
+      await choose(tester, vcf('contacts.vcf'));
+      await tapText(tester, ImportText.showAll(5000));
+      expect(find.byType(CheckboxBox, skipOffstage: false), findsNWidgets(201));
+      await tapText(tester, ImportText.showMore(200));
+      expect(find.byType(CheckboxBox, skipOffstage: false), findsNWidgets(401));
+      // Select all still acts on every contact.
+      await tester.ensureVisible(find.text(ImportText.allContacts(5000)));
+      await tester.tap(find.text(ImportText.allContacts(5000)));
+      await settle(tester);
+      expect(find.widgetWithText(Button, ImportText.importN(0)), findsOneWidget);
     });
   });
 }
