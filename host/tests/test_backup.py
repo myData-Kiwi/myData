@@ -404,3 +404,17 @@ def test_the_timer_starts_and_stops(home):
         time.sleep(0.05)
     service.stop()
     assert [s.manifest["reason"] for s in list_snapshots(home)] == ["hourly"]
+
+
+def test_stores_are_opened_only_through_the_snapshot_hook():
+    """Constructing a store migrates its file: outside backup.py (open_store, and the drill's temporary
+    copies) no host code may do it directly."""
+    import re
+    from pathlib import Path
+
+    src = Path(backup.__file__).parents[1]
+    direct = re.compile(r"\b(ContactsStore|CalendarStore)\(|\bDatabase\(")
+    allowed = {"service/backup.py", "sources/_db.py", "sources/contacts_store.py", "sources/calendar_store.py"}
+    found = [f"{p.relative_to(src)}:{n}" for p in src.rglob("*.py") if str(p.relative_to(src)) not in allowed
+             for n, line in enumerate(p.read_text().splitlines(), 1) if direct.search(line)]
+    assert found == []
