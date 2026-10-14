@@ -476,6 +476,22 @@ def test_a_merged_contact_keeps_shadowing_after_its_originals_are_deleted_for_go
     assert len(followed.find_by_name("Sam")) == 2  # the followed copies are shown again
 
 
+def test_restoring_one_merged_original_takes_it_out_of_the_merge(followed):
+    source = ImportSource(ICLOUD, ACCOUNT, "iCloud account")
+    commit(followed, source, copy_of(followed, ACCOUNT))
+    sams = [c for c in followed.list() if c["display_name"] == "Sam Sample"]
+    merged = merge_.merge(followed, [(c["id"], c["http_etag"]) for c in sams], actor="mycontacts")
+    first = followed.get(sams[0]["id"], include_deleted=True)
+    cw.restore(followed, first["id"], if_match=first["http_etag"], actor="mycontacts")
+    with followed.db.connect() as db:
+        assert db.execute("SELECT merged_into FROM contacts WHERE id = ?", (first["id"],)).fetchone()[0] is None
+    with pytest.raises(cw.UndoRefused):
+        merge_.undo(followed, merged.merge_id, actor="mycontacts")
+    # Deleted again, it no longer hides its followed copy through the merged card.
+    cw.delete(followed, first["id"], if_match=followed.get(first["id"])["http_etag"], actor="mycontacts")
+    assert sorted(followed.get(c["id"])["account_id"] for c in followed.find_by_name("Sam")) == [ACCOUNT, "local"]
+
+
 def test_merging_needs_no_contact_data_in_its_record(store):
     a, b = _two(store)
     merged = merge_.merge(store, [(a, store.get(a)["http_etag"]), (b, store.get(b)["http_etag"])], actor="mycontacts")

@@ -279,6 +279,9 @@ def restore(store: ContactsStore, contact_id: str, *, if_match: str | None = Non
         _check_etag(row, if_match)
         _baseline(db, row)
         rev = _set_deleted(db, row, False, at)
+        # A merged original brought back on its own is a contact again, no longer part of the merge (whose undo is
+        # then refused): its origins stop counting for the merged card, and deleting it again hides nothing.
+        db.execute("UPDATE contacts SET merged_into = NULL WHERE id = ?", (contact_id,))
         undo_id = _record(db, contact_id, row["address_book_id"], row["href"], rev, None, "restore", "add", actor,
                           when, undo_op="restore")
     return Written(contact_id, undo_id)
