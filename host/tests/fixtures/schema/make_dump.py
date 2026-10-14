@@ -5,7 +5,9 @@ schema, and commit the files it writes; never edit a released dump. test_schema_
 dump into a file built by the released migrations up to N, migrates it with today's code and compares every
 field of every row. The data is invented only: the DAV fixtures in tests/fixtures/dav, the fake This Mac
 data (tests/fake_mac), a few extra cards (groups, an organisation, a soft-deleted card) and, from the schema
-that has them on, owned collections (tests/owned_data.py).
+that has them on, owned collections (tests/owned_data.py) and, from the schema with the undo log, an owned
+contact written, changed and deleted through sources/contacts_write.py, with its revisions, changes and undo
+log rows.
 
 A dump holds INSERT statements for the stores' own tables, never the schema, schema_version or a search
 index (the migrations build those, and the insert triggers fill the index). A text value holding a carriage
@@ -32,7 +34,8 @@ from mydata.sources.mac.protocol import Occurrence, _contact  # noqa: E402
 import synthetic_home  # noqa: E402
 import test_contacts_store as con  # noqa: E402
 
-TABLES = {"contacts.sqlite": ("address_books", "contacts"),
+# Tables a schema does not have yet are left out of its dump.
+TABLES = {"contacts.sqlite": ("address_books", "contacts", "revisions", "changes", "undo_log"),
           "calendar.sqlite": ("calendars", "events", "occurrences", "coverage")}
 
 CRLF = "\r\n"
@@ -74,6 +77,17 @@ def populate(home: Path) -> None:
     if modes:
         import owned_data
         owned_data.add_owned(home)
+    with contacts.db.connect() as db:
+        undo = db.execute("SELECT 1 FROM sqlite_master WHERE name = 'undo_log'").fetchone() is not None
+    if undo:
+        from mydata.sources import contacts_write as cw
+        written = cw.create(contacts, {"given_name": "Wren", "family_name": "Written", "emails": [
+            {"label": "home", "value": "wren@example.org"}], "phones": [{"label": "mobile", "value": "+1 555 0177"}]},
+            actor="mycontacts")
+        current = contacts.get(written.contact_id)["http_etag"]
+        cw.update(contacts, written.contact_id, {"nickname": "Wee, Wren", "birthday": "--02-29"}, if_match=current,
+                  actor="mycontacts")
+        cw.delete(contacts, written.contact_id, actor="mydata")
 
 
 def literal(value, hexed: bool = False) -> str:
@@ -91,7 +105,8 @@ def dump(path: Path, tables: tuple[str, ...]) -> tuple[int, str]:
     try:
         version = db.execute("SELECT MAX(version) FROM schema_version").fetchone()[0]
         lines = []
-        for table in tables:
+        present = {r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
+        for table in (t for t in tables if t in present):
             columns = [r[1] for r in db.execute(f'PRAGMA table_info("{table}")')]
             for row in db.execute(f'SELECT {", ".join(columns)} FROM "{table}" ORDER BY rowid'):
                 lines.append(f'INSERT INTO "{table}" ({", ".join(columns)}) VALUES '

@@ -19,6 +19,7 @@ import unicodedata
 from typing import Any
 
 from .mac import MAC_ID
+from .owned import OWNED_ACCOUNT
 
 # ---------------------------------------------------------------- sources
 
@@ -27,13 +28,18 @@ def source_heading(account_id: str, email: str | None) -> str:
     """The source as a heading (the calendar list's group): "This Mac", "iCloud account you@example.com"."""
     if account_id == MAC_ID:
         return "This Mac"
+    if account_id == OWNED_ACCOUNT:
+        return "myData"
     return f"iCloud account {email}" if email else "iCloud account"
 
 
 def source_in_sentence(account_id: str, email: str | None) -> str:
-    """The source inside a sentence (ContactHeader, Notice): "this Mac", "the iCloud account you@example.com"."""
+    """The source inside a sentence (ContactHeader, Notice): "this Mac", "the iCloud account you@example.com", or
+    "myData" for data the host owns (the only copy is on this host)."""
     if account_id == MAC_ID:
         return "this Mac"
+    if account_id == OWNED_ACCOUNT:
+        return "myData"
     return f"the iCloud account {email}" if email else "an iCloud account"
 
 

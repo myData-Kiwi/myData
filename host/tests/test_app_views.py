@@ -88,8 +88,8 @@ def test_each_app_reads_what_it_shows_and_never_stops_the_host(home):
 
 
 def test_mycontacts_and_mycalendar_tokens_only_read(home):
-    """myContacts and myCalendar never write: their scopes reach no route that changes anything, so their
-    tokens cannot approve (or even list) held calls, mint an agent token, link or remove an account,
+    """myContacts writes only the contacts the host owns (tests/test_contacts_api.py) and myCalendar writes
+    nothing: their scopes reach no other route that changes anything, so their tokens cannot approve (or even list) held calls, mint an agent token, link or remove an account,
     change This Mac (or ask macOS for access), change settings, talk to the assistant or use /mcp.
     myAssistant's token can approve and the myData app's can change sources (the routes answer something
     other than 403)."""

@@ -42,6 +42,12 @@ ROUTE_SCOPES = {
     ("GET", "/contacts"): ("contacts:read",),
     ("GET", "/contacts/{contact_id}"): ("contacts:read",),
     ("GET", "/contacts/{contact_id}/photo"): ("contacts:read",),
+    ("POST", "/contacts"): ("contacts:write",),
+    ("PATCH", "/contacts/{contact_id}"): ("contacts:write",),
+    ("DELETE", "/contacts/{contact_id}"): ("contacts:write",),
+    ("GET", "/trash"): ("contacts:read",),
+    ("POST", "/trash/{item_id}/restore"): ("contacts:write",),
+    ("POST", "/undo/{undo_id}"): ("contacts:write",),
     ("GET", "/calendars"): ("calendar:read",),
     ("GET", "/events"): ("calendar:read",),
     ("GET", "/sources"): ("sources:read",),
@@ -56,13 +62,13 @@ ROUTE_SCOPES = {
     ("PUT", "/sources/mac/reader"): ("sources:manage",),
 }
 
-# Each app's scopes, as agreed in the owned-data plan (phase 0c). contacts:write and calendar:write are
-# reserved: only the myData app and the command hold them, and no route uses them yet.
+# Each app's scopes, as agreed in the owned-data plan (phase 0c; myContacts gains contacts:write with editing,
+# phase 3). calendar:write is reserved: only the myData app and the command hold it, and no route uses it yet.
 EXPECTED_SCOPES = {
     "mydata": {"status", "admin", "approve", "contacts:read", "contacts:write", "calendar:read", "calendar:write",
                "sources:read", "sources:manage", "shutdown", "mcp"},
     "myassistant": {"status", "assistant", "approve", "contacts:read", "calendar:read"},
-    "mycontacts": {"status", "contacts:read", "sources:read"},
+    "mycontacts": {"status", "contacts:read", "contacts:write", "sources:read"},
     "mycalendar": {"status", "calendar:read", "sources:read"},
     "cli": set(SCOPES),
 }
@@ -97,13 +103,14 @@ def test_every_route_declares_a_scope_and_the_table_names_every_route(tmp_path):
 
 def test_every_scope_is_used_or_reserved():
     used = {s for scopes in ROUTE_SCOPES.values() for s in scopes} | {"mcp"}
-    assert set(SCOPES) - used == {"contacts:write", "calendar:write"}
+    assert set(SCOPES) - used == {"calendar:write"}
 
 
 def test_each_app_has_exactly_its_scopes():
     assert {app: set(s) for app, s in APP_SCOPES.items()} == EXPECTED_SCOPES
     assert set(LIFETIME_APPS) == {"mydata", "cli"}
-    assert "contacts:write" not in APP_SCOPES["mycontacts"]  # phase 3, not yet
+    assert "contacts:write" in APP_SCOPES["mycontacts"]  # editing contacts, phase 3
+    assert "contacts:write" not in APP_SCOPES["mycalendar"] and "contacts:write" not in APP_SCOPES["myassistant"]
 
 
 def _call(c: TestClient, method: str, path: str, token: str):

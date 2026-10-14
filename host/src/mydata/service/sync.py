@@ -195,6 +195,15 @@ class SyncService:
         return (owned.has_owned(self.home / CONTACTS_FILE, owned.CONTACTS[0])
                 or owned.has_owned(self.home / CALENDAR_FILE, owned.CALENDAR[0]))
 
+    def owned_data_changed(self) -> None:
+        """Owned data appeared (the first owned address book was made): the host may switch to real mode, as it
+        does when a source is turned on (ModeController.refresh, through on_accounts_changed)."""
+        if self.on_accounts_changed is not None:
+            try:
+                self.on_accounts_changed()
+            except Exception:
+                logger.exception("switching mode after owned data appeared failed")
+
     def coverage(self, start: date, end: date) -> list[dict]:
         """Per source holding calendars: does it hold every day from start to end? (CalendarStore.coverage,
         plus This Mac when it is on but the store holds no window for it yet: before its first events

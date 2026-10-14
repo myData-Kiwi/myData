@@ -607,6 +607,12 @@
             "description": "the line under the name in the contact list: the organisation, else the first email or phone that is not already the name; none when there is nothing else to say",
             "title": "Caption"
           },
+          "company": {
+            "default": "",
+            "description": "the organisation's name alone (organisation also has the department, after a comma)",
+            "title": "Company",
+            "type": "string"
+          },
           "created_at": {
             "title": "Created At",
             "type": "string"
@@ -622,10 +628,20 @@
             ],
             "title": "Deleted At"
           },
+          "department": {
+            "default": "",
+            "title": "Department",
+            "type": "string"
+          },
           "display_name": {
             "description": "the name to show: never empty (organisation, email or phone when the card has no name)",
             "title": "Display Name",
             "type": "string"
+          },
+          "editable": {
+            "description": "true for a contact the host owns, which the apps may change and delete; false for one followed from a source (change it there)",
+            "title": "Editable",
+            "type": "boolean"
           },
           "emails": {
             "default": [],
@@ -634,6 +650,11 @@
             },
             "title": "Emails",
             "type": "array"
+          },
+          "etag": {
+            "description": "the contact's current version, to send back as If-Match when changing it; it changes with every change, a delete or restore included",
+            "title": "Etag",
+            "type": "string"
           },
           "family_name": {
             "default": "",
@@ -672,8 +693,24 @@
             "title": "Job Title",
             "type": "string"
           },
+          "middle_name": {
+            "default": "",
+            "description": "for the edit form, as are the four fields below",
+            "title": "Middle Name",
+            "type": "string"
+          },
           "modified_at": {
             "title": "Modified At",
+            "type": "string"
+          },
+          "name_prefix": {
+            "default": "",
+            "title": "Name Prefix",
+            "type": "string"
+          },
+          "name_suffix": {
+            "default": "",
+            "title": "Name Suffix",
             "type": "string"
           },
           "nickname": {
@@ -692,6 +729,18 @@
             "title": "Notes Included",
             "type": "boolean"
           },
+          "on_phone": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "false for a contact the host owns: it is on myData only, not on any phone yet. Null for a followed one (the source decides where it is)",
+            "title": "On Phone"
+          },
           "organisation": {
             "default": "",
             "title": "Organisation",
@@ -704,6 +753,18 @@
             },
             "title": "Phones",
             "type": "array"
+          },
+          "purge_after": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "for a contact in Recently deleted: when it is deleted for good (UTC)",
+            "title": "Purge After"
           },
           "raw_vcard": {
             "anyOf": [
@@ -723,16 +784,17 @@
             "type": "string"
           },
           "source": {
-            "description": "where the contact comes from",
+            "description": "where the contact comes from: mydata for a contact the host owns (made in an app; the only copy is on this host)",
             "enum": [
               "mac",
-              "icloud"
+              "icloud",
+              "mydata"
             ],
             "title": "Source",
             "type": "string"
           },
           "source_label": {
-            "description": "the source inside a sentence: \"this Mac\" or \"the iCloud account <email>\" (\"From this Mac. Change it in Contacts.\")",
+            "description": "the source inside a sentence: \"this Mac\", \"the iCloud account <email>\" (\"From this Mac. Change it in Contacts.\") or \"myData\" for a contact the host owns",
             "title": "Source Label",
             "type": "string"
           },
@@ -752,6 +814,8 @@
           "address_book_id",
           "display_name",
           "source",
+          "etag",
+          "editable",
           "sort_letter",
           "created_at",
           "modified_at",
@@ -827,6 +891,207 @@
         "title": "ContactFieldGroup",
         "type": "object"
       },
+      "ContactIn": {
+        "description": "A contact's editable fields. Creating: every field is optional, but a name, company, nickname, email or\nphone is needed. Changing (PATCH): a field left out keeps its value; null, \"\" or [] clears it; a list\nreplaces the contact's list (values whose label and text are unchanged are kept as they are). Only the\ncard's lines whose values change are written.",
+        "properties": {
+          "addresses": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/PostalAddressIn"
+                },
+                "maxItems": 1000,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Addresses"
+          },
+          "birthday": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "YYYY-MM-DD, or --MM-DD when the year is not known",
+            "title": "Birthday"
+          },
+          "company": {
+            "anyOf": [
+              {
+                "maxLength": 20000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Company"
+          },
+          "department": {
+            "anyOf": [
+              {
+                "maxLength": 20000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Department"
+          },
+          "emails": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/LabeledValueIn"
+                },
+                "maxItems": 1000,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Emails"
+          },
+          "family_name": {
+            "anyOf": [
+              {
+                "maxLength": 20000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Family Name"
+          },
+          "given_name": {
+            "anyOf": [
+              {
+                "maxLength": 20000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Given Name"
+          },
+          "job_title": {
+            "anyOf": [
+              {
+                "maxLength": 20000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Job Title"
+          },
+          "middle_name": {
+            "anyOf": [
+              {
+                "maxLength": 20000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Middle Name"
+          },
+          "name_prefix": {
+            "anyOf": [
+              {
+                "maxLength": 20000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name Prefix"
+          },
+          "name_suffix": {
+            "anyOf": [
+              {
+                "maxLength": 20000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name Suffix"
+          },
+          "nickname": {
+            "anyOf": [
+              {
+                "maxLength": 20000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nickname"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 40000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "may hold line breaks",
+            "title": "Note"
+          },
+          "phones": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/LabeledValueIn"
+                },
+                "maxItems": 1000,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phones"
+          },
+          "urls": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/LabeledValueIn"
+                },
+                "maxItems": 1000,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Urls"
+          }
+        },
+        "title": "ContactIn",
+        "type": "object"
+      },
       "ContactOut": {
         "properties": {
           "account_id": {
@@ -888,6 +1153,11 @@
             "title": "Display Name",
             "type": "string"
           },
+          "editable": {
+            "description": "true for a contact the host owns, which the apps may change and delete; false for one followed from a source (change it there)",
+            "title": "Editable",
+            "type": "boolean"
+          },
           "emails": {
             "default": [],
             "items": {
@@ -895,6 +1165,11 @@
             },
             "title": "Emails",
             "type": "array"
+          },
+          "etag": {
+            "description": "the contact's current version, to send back as If-Match when changing it; it changes with every change, a delete or restore included",
+            "title": "Etag",
+            "type": "string"
           },
           "family_name": {
             "default": "",
@@ -940,6 +1215,18 @@
             "title": "Notes Included",
             "type": "boolean"
           },
+          "on_phone": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "false for a contact the host owns: it is on myData only, not on any phone yet. Null for a followed one (the source decides where it is)",
+            "title": "On Phone"
+          },
           "organisation": {
             "default": "",
             "title": "Organisation",
@@ -953,16 +1240,29 @@
             "title": "Phones",
             "type": "array"
           },
+          "purge_after": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "for a contact in Recently deleted: when it is deleted for good (UTC)",
+            "title": "Purge After"
+          },
           "sort_letter": {
             "description": "the contact list's letter group: the first letter of display_name without accents, upper case; \"#\" when it does not start with a letter (digits, symbols, Chinese, Japanese kanji or Korean characters)",
             "title": "Sort Letter",
             "type": "string"
           },
           "source": {
-            "description": "where the contact comes from",
+            "description": "where the contact comes from: mydata for a contact the host owns (made in an app; the only copy is on this host)",
             "enum": [
               "mac",
-              "icloud"
+              "icloud",
+              "mydata"
             ],
             "title": "Source",
             "type": "string"
@@ -974,11 +1274,38 @@
           "address_book_id",
           "display_name",
           "source",
+          "etag",
+          "editable",
           "sort_letter",
           "created_at",
           "modified_at"
         ],
         "title": "ContactOut",
+        "type": "object"
+      },
+      "ContactWriteOut": {
+        "properties": {
+          "contact": {
+            "$ref": "#/components/schemas/ContactDetailOut",
+            "description": "the contact as it is now (deleted_at set after a delete)"
+          },
+          "undo_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "POST /undo/{undo_id} undoes this change; null when nothing changed",
+            "title": "Undo Id"
+          }
+        },
+        "required": [
+          "contact"
+        ],
+        "title": "ContactWriteOut",
         "type": "object"
       },
       "CoverageOut": {
@@ -1202,6 +1529,28 @@
         "title": "EventsOut",
         "type": "object"
       },
+      "FieldErrorsOut": {
+        "properties": {
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "fields": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "one message per field that is not valid, by its path in the body (\"emails[1].value\"); never the value itself",
+            "title": "Fields",
+            "type": "object"
+          }
+        },
+        "required": [
+          "detail",
+          "fields"
+        ],
+        "title": "FieldErrorsOut",
+        "type": "object"
+      },
       "GuardError": {
         "properties": {
           "detail": {
@@ -1243,6 +1592,38 @@
           "value"
         ],
         "title": "LabeledValue",
+        "type": "object"
+      },
+      "LabeledValueIn": {
+        "properties": {
+          "label": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "mobile, iphone, home, work, main, fax, pager, other, school, homepage, homefax, workfax or otherfax (any case, or as the apps show them: \"Home fax\"), or any text, kept as typed",
+            "title": "Label"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "maxLength": 20000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "an empty value is left out",
+            "title": "Value"
+          }
+        },
+        "title": "LabeledValueIn",
         "type": "object"
       },
       "MacCalendarOut": {
@@ -1513,6 +1894,105 @@
           }
         },
         "title": "PostalAddress",
+        "type": "object"
+      },
+      "PostalAddressIn": {
+        "properties": {
+          "country": {
+            "anyOf": [
+              {
+                "maxLength": 20000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "locality": {
+            "anyOf": [
+              {
+                "maxLength": 20000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "the city or town",
+            "title": "Locality"
+          },
+          "postal_code": {
+            "anyOf": [
+              {
+                "maxLength": 20000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Postal Code"
+          },
+          "region": {
+            "anyOf": [
+              {
+                "maxLength": 20000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Region"
+          },
+          "street": {
+            "anyOf": [
+              {
+                "maxLength": 20000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "may hold line breaks",
+            "title": "Street"
+          }
+        },
+        "title": "PostalAddressIn",
+        "type": "object"
+      },
+      "PreconditionFailedOut": {
+        "properties": {
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "etag": {
+            "description": "the contact's current etag",
+            "title": "Etag",
+            "type": "string"
+          }
+        },
+        "required": [
+          "detail",
+          "etag"
+        ],
+        "title": "PreconditionFailedOut",
         "type": "object"
       },
       "Progress": {
@@ -1994,6 +2474,72 @@
           "permission"
         ],
         "title": "ToolOut",
+        "type": "object"
+      },
+      "TrashItemOut": {
+        "properties": {
+          "contact": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ContactOut"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "for kind contact"
+          },
+          "deleted_at": {
+            "title": "Deleted At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "const": "contact",
+            "description": "what the item is (events come later)",
+            "title": "Kind",
+            "type": "string"
+          },
+          "purge_after": {
+            "description": "when it is deleted for good (UTC)",
+            "title": "Purge After",
+            "type": "string"
+          },
+          "title": {
+            "description": "the item's name as the apps show it",
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "title",
+          "deleted_at",
+          "purge_after"
+        ],
+        "title": "TrashItemOut",
+        "type": "object"
+      },
+      "UndoOut": {
+        "properties": {
+          "contact": {
+            "$ref": "#/components/schemas/ContactDetailOut",
+            "description": "the contact as it is after the undo"
+          },
+          "undo_id": {
+            "title": "Undo Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "undo_id",
+          "contact"
+        ],
+        "title": "UndoOut",
         "type": "object"
       },
       "ValidationError": {
@@ -3291,11 +3837,224 @@
         "x-mydata-scopes": [
           "contacts:read"
         ]
+      },
+      "post": {
+        "description": "Create a contact the host owns, in its \"myData\" address book (made with the first contact, which also\nswitches the host to real mode). It is on myData only, not on any phone yet (on_phone false).",
+        "operationId": "create_contact",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContactIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactWriteOut"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "the contact's etag",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldErrorsOut"
+                }
+              }
+            },
+            "description": "a field is not valid; `fields` says which and why"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "missing or wrong token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
+          },
+          "421": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "the Host header is not this machine"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "503": {
+            "description": "accounts are not available in this host"
+          }
+        },
+        "summary": "Create Contact",
+        "tags": [
+          "sources"
+        ],
+        "x-mydata-scopes": [
+          "contacts:write"
+        ]
       }
     },
     "/contacts/{contact_id}": {
+      "delete": {
+        "description": "Move an owned contact to Recently deleted. It is deleted for good after 30 days (purge_after); until\nthen POST /trash/{id}/restore or the undo id brings it back. Copies in the host's snapshots stay until\nthose expire (within 12 months while the host runs).",
+        "operationId": "delete_contact",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "contact_id",
+            "required": true,
+            "schema": {
+              "title": "Contact Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "optional: refuse if the contact changed since",
+            "in": "header",
+            "name": "If-Match",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "optional: refuse if the contact changed since",
+              "title": "If-Match"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactWriteOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "missing or wrong token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
+          },
+          "404": {
+            "description": "no such contact"
+          },
+          "409": {
+            "description": "the contact is followed from a source (change it there), or is in Recently deleted"
+          },
+          "412": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreconditionFailedOut"
+                }
+              }
+            },
+            "description": "the contact changed since the etag sent; `etag` is the current one",
+            "headers": {
+              "ETag": {
+                "description": "the contact's etag",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "421": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "the Host header is not this machine"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "503": {
+            "description": "accounts are not available in this host"
+          }
+        },
+        "summary": "Delete Contact",
+        "tags": [
+          "sources"
+        ],
+        "x-mydata-scopes": [
+          "contacts:write"
+        ]
+      },
       "get": {
-        "description": "One contact, for its page: the fields grouped by kind, the job title and where the card comes from.",
+        "description": "One contact, for its page: the fields grouped by kind, the job title and where the card comes from;\nwhether it can be changed here, and its etag (also the ETag header).",
         "operationId": "contact",
         "parameters": [
           {
@@ -3329,7 +4088,15 @@
                 }
               }
             },
-            "description": "Successful Response"
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "the contact's etag",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "401": {
             "content": {
@@ -3384,6 +4151,156 @@
         ],
         "x-mydata-scopes": [
           "contacts:read"
+        ]
+      },
+      "patch": {
+        "description": "Change an owned contact. Only the fields in the body change (null clears one), and of the card only\nthe lines whose values change are written. Refused with 412 when the contact changed since its etag.",
+        "operationId": "update_contact",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "contact_id",
+            "required": true,
+            "schema": {
+              "title": "Contact Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "the etag the change was made from",
+            "in": "header",
+            "name": "If-Match",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "the etag the change was made from",
+              "title": "If-Match"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContactIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactWriteOut"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "the contact's etag",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldErrorsOut"
+                }
+              }
+            },
+            "description": "a field is not valid; `fields` says which and why"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "missing or wrong token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
+          },
+          "404": {
+            "description": "no such contact"
+          },
+          "409": {
+            "description": "the contact is followed from a source (change it there), or is in Recently deleted"
+          },
+          "412": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreconditionFailedOut"
+                }
+              }
+            },
+            "description": "the contact changed since the etag sent; `etag` is the current one",
+            "headers": {
+              "ETag": {
+                "description": "the contact's etag",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "421": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "the Host header is not this machine"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "428": {
+            "description": "If-Match is missing"
+          },
+          "503": {
+            "description": "accounts are not available in this host"
+          }
+        },
+        "summary": "Update Contact",
+        "tags": [
+          "sources"
+        ],
+        "x-mydata-scopes": [
+          "contacts:write"
         ]
       }
     },
@@ -4241,6 +5158,263 @@
         ],
         "x-mydata-scopes": [
           "admin"
+        ]
+      }
+    },
+    "/trash": {
+      "get": {
+        "description": "Recently deleted: what was deleted in the apps, the most recent first, with when each is deleted for\ngood. Copies in the host's snapshots stay until those expire.",
+        "operationId": "trash",
+        "parameters": [
+          {
+            "description": "what to list",
+            "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "const": "contact",
+              "default": "contact",
+              "description": "what to list",
+              "title": "Kind",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TrashItemOut"
+                  },
+                  "title": "Response Trash",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "missing or wrong token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
+          },
+          "421": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "the Host header is not this machine"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "503": {
+            "description": "accounts are not available in this host"
+          }
+        },
+        "summary": "Trash",
+        "tags": [
+          "sources"
+        ],
+        "x-mydata-scopes": [
+          "contacts:read"
+        ]
+      }
+    },
+    "/trash/{item_id}/restore": {
+      "post": {
+        "description": "Bring an item back from Recently deleted. 404 when it is not there (or was deleted for good).",
+        "operationId": "restore_item",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "item_id",
+            "required": true,
+            "schema": {
+              "title": "Item Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactWriteOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "missing or wrong token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
+          },
+          "404": {
+            "description": "no such contact"
+          },
+          "409": {
+            "description": "the contact is followed from a source (change it there), or is in Recently deleted"
+          },
+          "421": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "the Host header is not this machine"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "503": {
+            "description": "accounts are not available in this host"
+          }
+        },
+        "summary": "Restore Item",
+        "tags": [
+          "sources"
+        ],
+        "x-mydata-scopes": [
+          "contacts:write"
+        ]
+      }
+    },
+    "/undo/{undo_id}": {
+      "post": {
+        "description": "Undo one change by its undo id. The undo is a new change: it is refused when the item changed since\n(nothing later is ever overwritten), and a change is undone at most once, also across a restart.",
+        "operationId": "undo",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "undo_id",
+            "required": true,
+            "schema": {
+              "title": "Undo Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UndoOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "missing or wrong token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
+          },
+          "404": {
+            "description": "no such undo id"
+          },
+          "409": {
+            "description": "already undone, or the item changed since (or was deleted for good)"
+          },
+          "421": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "the Host header is not this machine"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "503": {
+            "description": "accounts are not available in this host"
+          }
+        },
+        "summary": "Undo",
+        "tags": [
+          "sources"
+        ],
+        "x-mydata-scopes": [
+          "contacts:write"
         ]
       }
     }

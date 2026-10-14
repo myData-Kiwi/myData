@@ -1,6 +1,6 @@
-"""The contacts mirror: <home>/contacts.sqlite.
+"""The contacts store: <home>/contacts.sqlite.
 
-Read-only copies of the user's address books. Each vCard is one row, keyed by (account, address book
+Copies of the user's address books, and the contacts the host owns. Each vCard is one row, keyed by (account, address book
 URL, href); the raw card is kept beside the parsed fields. Duplicates are kept as they are. A card
 deleted upstream gets the soft-delete marker; removing an account hard-deletes its rows. Sync state
 (sync token, ctag, etags) is stored per address book in the same file.
@@ -10,6 +10,10 @@ sources/owned.py, whose triggers keep it from being deleted). Hard deletes here 
 address books. Each card records its kind (`kind`: a group card, as iCloud sends groups, is never listed,
 counted or found as a contact), its vCard version as received, a sha256 of its raw text (`raw_sha256`;
 `etag` stays the source's ETag) and `rev`, which goes up by one whenever its raw text changes.
+
+Owned cards are written only by sources/contacts_write.py (create, edit, Recently deleted, undo): their `rev`
+also goes up on a delete or restore, and their `etag` column holds the API's etag (http_etag), since they
+have no source. The undo log (`undo_log`) is in this file too.
 
 The "This Mac" source (account_id "mac") is stored the same way: one synthetic address book per
 Contacts container (url mac://contacts/<container id>) and a vCard generated from what the helper read
@@ -124,6 +128,22 @@ _MIGRATIONS = {
         *owned.shared_tables(),
         *owned.protection(*owned.CONTACTS),
     ],
+    # Editing owned contacts (sources/contacts_write.py): the persisted undo log. Additive only.
+    3: [
+        """CREATE TABLE undo_log (
+            id TEXT PRIMARY KEY,
+            object_id TEXT NOT NULL,
+            op TEXT NOT NULL CHECK (op IN ('create', 'update', 'delete', 'restore')),
+            actor TEXT NOT NULL,
+            rev INTEGER NOT NULL,
+            prior_rev INTEGER,
+            at TEXT NOT NULL,
+            undone_at TEXT,
+            undone_by TEXT,
+            undone_rev INTEGER
+        )""",
+        "CREATE INDEX undo_log_object ON undo_log (object_id)",
+    ],
 }
 
 # Cards that are people or organisations: a group card is kept (and exported) but never shown as a contact.
@@ -148,6 +168,20 @@ def fts_query(text: str, columns: Iterable[str] | None = None) -> str | None:
     return terms
 
 
+def http_etag(rev: int, raw_sha256: str) -> str:
+    """A card's ETag as the API gives it (and as an owned card's `etag` column holds it): its revision and
+    the start of its text's sha256, quoted. It changes with every write, a delete or restore included."""
+    return f'"{rev}-{raw_sha256[:16]}"'
+
+
+def source_of(account_id: str) -> str:
+    """Which kind of source a card's account is: "mac" (This Mac), "mydata" (owned: the host holds the only
+    copy) or "icloud" (a CardDAV account)."""
+    if account_id == MAC_ID:
+        return "mac"
+    return "mydata" if account_id == owned.OWNED_ACCOUNT else "icloud"
+
+
 def _row(row: sqlite3.Row, *, raw: bool = False) -> dict:
     out = {k: row[k] for k in _PUBLIC_FIELDS}
     out["emails"] = json.loads(row["emails"])
@@ -155,8 +189,13 @@ def _row(row: sqlite3.Row, *, raw: bool = False) -> dict:
     out["addresses"] = json.loads(row["addresses"])
     out["has_photo"] = bool(row["has_photo"])
     # Where the card came from, and whether its notes were read (never on a Mac: see sources/mac).
-    out["source"] = "mac" if row["account_id"] == MAC_ID else "icloud"
+    out["source"] = source_of(row["account_id"])
     out["notes_included"] = row["account_id"] != MAC_ID
+    # Owned cards (always under the owned account id: sources/owned.py) are the ones the apps may change.
+    out["editable"] = row["account_id"] == owned.OWNED_ACCOUNT
+    out["http_etag"] = http_etag(row["rev"], row["raw_sha256"])
+    out["rev"] = row["rev"]
+    out["purge_after"] = row["purge_after"]
     if raw:
         out["raw_vcard"] = row["raw_vcard"]
     return out
@@ -169,6 +208,8 @@ _FTS_SECURE_DELETE = sqlite3.sqlite_version_info >= (3, 42, 0)
 
 class ContactsStore:
     MIGRATIONS = _MIGRATIONS  # read by service/backup.open_store to snapshot before a migration
+    # The writer's clock (sources/contacts_write.py): None is the real time; tests set a fixed one.
+    clock = None
 
     def __init__(self, path: Path):
         self.db = Database(path, self.MIGRATIONS)
@@ -204,31 +245,7 @@ class ContactsStore:
 
     @staticmethod
     def _upsert_card(db, account_id, book_id, collection_url, href, etag, data, stamp) -> None:
-        card = parse_vcard(data)
-        fields = {
-            "etag": etag or "",
-            "uid": card.uid,
-            "display_name": card.display_name,
-            "full_name": card.full_name,
-            "given_name": card.given_name,
-            "family_name": card.family_name,
-            "nickname": card.nickname,
-            "organisation": card.organisation,
-            "emails": json.dumps(card.emails, ensure_ascii=False),
-            "phones": json.dumps(card.phones, ensure_ascii=False),
-            "addresses": json.dumps(card.addresses, ensure_ascii=False),
-            "birthday": card.birthday,
-            "note": card.note,
-            "has_photo": int(card.has_photo),
-            "raw_vcard": data,
-            "raw_sha256": owned.raw_hash(data),
-            "kind": card_kind(data),
-            "version": card_version(data),
-            "search_emails": " ".join(e["value"] for e in card.emails),
-            "search_phones": " ".join(
-                [p["value"] for p in card.phones] + [f for p in card.phones for f in phone_search_forms(p["value"])]
-            ),
-        }
+        fields = card_fields(etag, data)
         existing = db.execute(
             "SELECT id, etag, raw_vcard, deleted_at FROM contacts WHERE account_id = ? AND collection_url = ? AND href = ?",
             (account_id, collection_url, href),
@@ -377,8 +394,10 @@ class ContactsStore:
         return [_row(r) for r in self._match(expr, _bounded(limit))]
 
     def find_by_name(self, name: str) -> list[dict]:
-        """Contacts whose name matches every word of `name` as a prefix (for the find_contact tool).
-        Duplicates come back as separate matches. A possessive "'s" is ignored."""
+        """Contacts whose name matches every word of `name` as a prefix (for the find_contact tool), owned and
+        followed alike. Duplicates come back as separate matches. A possessive "'s" is ignored."""
+        # TODO(phase 4, contact import): an owned copy imported from a source that is still followed shadows the
+        # followed card (origins by source UID), so find_contact gives one match per person.
         cleaned = re.sub(r"['’]s\b", "", name)
         expr = fts_query(cleaned, _NAME_COLUMNS)
         if expr is None:
@@ -401,6 +420,36 @@ class ContactsStore:
                 "ORDER BY bm25(contacts_fts), c.display_name COLLATE NOCASE, c.id LIMIT ?",
                 (expr, limit),
             ).fetchall()
+
+
+def card_fields(etag: str | None, data: str) -> dict:
+    """Every column a card's raw text decides (the parsed fields, the search columns, its hash, kind and
+    version), with its etag: for the mirror's upsert and the owned-contact writer alike."""
+    card = parse_vcard(data)
+    return {
+        "etag": etag or "",
+        "uid": card.uid,
+        "display_name": card.display_name,
+        "full_name": card.full_name,
+        "given_name": card.given_name,
+        "family_name": card.family_name,
+        "nickname": card.nickname,
+        "organisation": card.organisation,
+        "emails": json.dumps(card.emails, ensure_ascii=False),
+        "phones": json.dumps(card.phones, ensure_ascii=False),
+        "addresses": json.dumps(card.addresses, ensure_ascii=False),
+        "birthday": card.birthday,
+        "note": card.note,
+        "has_photo": int(card.has_photo),
+        "raw_vcard": data,
+        "raw_sha256": owned.raw_hash(data),
+        "kind": card_kind(data),
+        "version": card_version(data),
+        "search_emails": " ".join(e["value"] for e in card.emails),
+        "search_phones": " ".join(
+            [p["value"] for p in card.phones] + [f for p in card.phones for f in phone_search_forms(p["value"])]
+        ),
+    }
 
 
 def _bounded(limit: int) -> int:

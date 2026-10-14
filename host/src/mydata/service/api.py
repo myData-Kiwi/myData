@@ -22,6 +22,12 @@
   GET  /contacts               mirrored contacts, listed or searched
   GET  /contacts/{id}          one contact (the raw vCard only with ?raw=1)
   GET  /contacts/{id}/photo    the contact's photo (JPEG or PNG), or 404
+  POST /contacts               create a contact the host owns (in its "myData" address book)
+  PATCH /contacts/{id}         change an owned contact; If-Match with its etag is required
+  DELETE /contacts/{id}        move an owned contact to Recently deleted (purged after 30 days)
+  GET  /trash                  what is in Recently deleted, and when each item is purged
+  POST /trash/{id}/restore     bring an item back from Recently deleted
+  POST /undo/{id}              undo one change (as a new change; refused if the item changed since)
   GET  /calendars              mirrored calendars
   GET  /events                 events between two dates, recurring ones expanded, and what each source holds
   GET  /sources                every source: This Mac (on a Mac host only) and the linked iCloud accounts
@@ -39,6 +45,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import os
 import threading
 import time
@@ -48,7 +55,7 @@ from typing import Any, Callable, Literal
 
 import psutil
 
-from fastapi import Depends, FastAPI, HTTPException, Query, Request
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 from fastapi.encoders import jsonable_encoder
@@ -63,13 +70,15 @@ from .assistant import Assistant
 from .auth import SCOPES, Authenticator
 from ..sources._db import MigrationError
 from .backup import BackupError, BackupService
-from .logs import LAST_ERROR
+from .logs import LAST_ERROR, log
 from .state import HostState
 from .mcp import build_mcp
 from .model import ModelManager
 from .security import GuardMiddleware
 from .sync import SyncService
 from .version import code_changed
+
+_LOGGER = logging.getLogger("mydata.api")
 
 # ---------------------------------------------------------------- scopes
 
@@ -324,9 +333,20 @@ class ContactOut(BaseModel):
     note: str = ""
     has_photo: bool = False
     # Required, not defaulted: OpenAPI Generator's Dart output cannot compile a defaulted enum.
-    source: Literal["mac", "icloud"] = Field(description="where the contact comes from")
+    source: Literal["mac", "icloud", "mydata"] = Field(description="where the contact comes from: mydata for a "
+                                                                   "contact the host owns (made in an app; the only "
+                                                                   "copy is on this host)")
     notes_included: bool = Field(default=True, description="false when the source never reads notes (This Mac): "
                                                            "show no Notes field")
+    etag: str = Field(description="the contact's current version, to send back as If-Match when changing it; it "
+                                  "changes with every change, a delete or restore included")
+    editable: bool = Field(description="true for a contact the host owns, which the apps may change and delete; "
+                                       "false for one followed from a source (change it there)")
+    on_phone: bool | None = Field(default=None, description="false for a contact the host owns: it is on myData "
+                                                            "only, not on any phone yet. Null for a followed one "
+                                                            "(the source decides where it is)")
+    purge_after: str | None = Field(default=None, description="for a contact in Recently deleted: when it is "
+                                                              "deleted for good (UTC)")
     sort_letter: str = Field(description="the contact list's letter group: the first letter of display_name "
                                          "without accents, upper case; \"#\" when it does not start with a letter "
                                          "(digits, symbols, Chinese, Japanese kanji or Korean characters)")
@@ -356,9 +376,16 @@ class ContactFieldGroup(BaseModel):
 
 
 class ContactDetailOut(ContactOut):
-    source_label: str = Field(description="the source inside a sentence: \"this Mac\" or \"the iCloud account "
-                                          "<email>\" (\"From this Mac. Change it in Contacts.\")")
+    source_label: str = Field(description="the source inside a sentence: \"this Mac\", \"the iCloud account "
+                                          "<email>\" (\"From this Mac. Change it in Contacts.\") or \"myData\" "
+                                          "for a contact the host owns")
     job_title: str = ""
+    middle_name: str = Field(default="", description="for the edit form, as are the four fields below")
+    name_prefix: str = ""
+    name_suffix: str = ""
+    company: str = Field(default="", description="the organisation's name alone (organisation also has the "
+                                                 "department, after a comma)")
+    department: str = ""
     urls: list[LabeledValue] = Field(default=[], description="web addresses as the source wrote them; never "
                                                             "trusted to say what they open")
     fields: list[ContactFieldGroup] = Field(description="the contact's values for its page, grouped by kind in this "
@@ -366,6 +393,79 @@ class ContactDetailOut(ContactOut):
                                                         "with no values is left out; note only when the source reads "
                                                         "notes and the note is not empty (never for This Mac)")
     raw_vcard: str | None = Field(default=None, description="the card as the server sent it; only with ?raw=1")
+
+
+class LabeledValueIn(BaseModel):
+    label: str | None = Field(default=None, max_length=1000, description="mobile, iphone, home, work, main, fax, "
+                                                                         "pager, other, school, homepage, homefax, "
+                                                                         "workfax or otherfax (any case, or as the "
+                                                                         "apps show them: \"Home fax\"), or any "
+                                                                         "text, kept as typed")
+    value: str | None = Field(default=None, max_length=20000, description="an empty value is left out")
+
+
+class PostalAddressIn(BaseModel):
+    label: str | None = Field(default=None, max_length=1000)
+    street: str | None = Field(default=None, max_length=20000, description="may hold line breaks")
+    locality: str | None = Field(default=None, max_length=20000, description="the city or town")
+    region: str | None = Field(default=None, max_length=20000)
+    postal_code: str | None = Field(default=None, max_length=20000)
+    country: str | None = Field(default=None, max_length=20000)
+
+
+class ContactIn(BaseModel):
+    """A contact's editable fields. Creating: every field is optional, but a name, company, nickname, email or
+    phone is needed. Changing (PATCH): a field left out keeps its value; null, "" or [] clears it; a list
+    replaces the contact's list (values whose label and text are unchanged are kept as they are). Only the
+    card's lines whose values change are written."""
+    given_name: str | None = Field(default=None, max_length=20000)
+    family_name: str | None = Field(default=None, max_length=20000)
+    middle_name: str | None = Field(default=None, max_length=20000)
+    name_prefix: str | None = Field(default=None, max_length=20000)
+    name_suffix: str | None = Field(default=None, max_length=20000)
+    nickname: str | None = Field(default=None, max_length=20000)
+    company: str | None = Field(default=None, max_length=20000)
+    department: str | None = Field(default=None, max_length=20000)
+    job_title: str | None = Field(default=None, max_length=20000)
+    birthday: str | None = Field(default=None, max_length=100, description="YYYY-MM-DD, or --MM-DD when the year is "
+                                                                          "not known")
+    note: str | None = Field(default=None, max_length=40000, description="may hold line breaks")
+    phones: list[LabeledValueIn] | None = Field(default=None, max_length=1000)
+    emails: list[LabeledValueIn] | None = Field(default=None, max_length=1000)
+    urls: list[LabeledValueIn] | None = Field(default=None, max_length=1000)
+    addresses: list[PostalAddressIn] | None = Field(default=None, max_length=1000)
+
+
+class FieldErrorsOut(BaseModel):
+    detail: str
+    fields: dict[str, str] = Field(description="one message per field that is not valid, by its path in the body "
+                                               "(\"emails[1].value\"); never the value itself")
+
+
+class PreconditionFailedOut(BaseModel):
+    detail: str
+    etag: str = Field(description="the contact's current etag")
+
+
+class ContactWriteOut(BaseModel):
+    contact: ContactDetailOut = Field(description="the contact as it is now (deleted_at set after a delete)")
+    undo_id: str | None = Field(default=None, description="POST /undo/{undo_id} undoes this change; null when "
+                                                          "nothing changed")
+
+
+class UndoOut(BaseModel):
+    undo_id: str
+    contact: ContactDetailOut = Field(description="the contact as it is after the undo")
+
+
+class TrashItemOut(BaseModel):
+    id: str
+    # Required, not defaulted: OpenAPI Generator's Dart output cannot compile a defaulted enum.
+    kind: Literal["contact"] = Field(description="what the item is (events come later)")
+    title: str = Field(description="the item's name as the apps show it")
+    deleted_at: str
+    purge_after: str = Field(description="when it is deleted for good (UTC)")
+    contact: ContactOut | None = Field(default=None, description="for kind contact")
 
 
 class CalendarOut(BaseModel):
@@ -688,6 +788,10 @@ def create_app(auth: Authenticator, registry: Registry, models: ModelManager, as
         which names files and versions only, and is also in /status's last_error."""
         return JSONResponse(status_code=503, content={"detail": str(exc)})
 
+    async def json_error(_request: Request, exc: _JSONError) -> JSONResponse:
+        return JSONResponse(status_code=exc.status_code, content=exc.content, headers=exc.headers)
+
+    app.add_exception_handler(_JSONError, json_error)
     app.add_exception_handler(BackupError, store_unavailable)
     app.add_exception_handler(MigrationError, store_unavailable)
 
@@ -778,24 +882,21 @@ def _routes_sources(app: FastAPI, need: Callable[[], SyncService], current_mode:
 
     @app.get("/contacts/{contact_id}", dependencies=needs("contacts:read"),
              tags=["sources"], response_model=ContactDetailOut,
-             responses={404: {"description": "no such contact"}, **unavailable})
-    def contact(contact_id: str, raw: bool = Query(default=False, description="include the raw vCard")
-                ) -> ContactDetailOut:
-        """One contact, for its page: the fields grouped by kind, the job title and where the card comes from."""
-        from ..sources.vcard import parse_vcard
-        from ..sources.views import contact_fields, source_in_sentence
+             responses={200: {"headers": {"ETag": {"description": "the contact's etag", "schema": {"type": "string"}}}},
+                        404: {"description": "no such contact"}, **unavailable})
+    def contact(contact_id: str, response: Response,
+                raw: bool = Query(default=False, description="include the raw vCard")) -> ContactDetailOut:
+        """One contact, for its page: the fields grouped by kind, the job title and where the card comes from;
+        whether it can be changed here, and its etag (also the ETag header)."""
         service = need()
         row = service.contacts.get(contact_id)
         if row is None:
             raise HTTPException(404, "no such contact")
-        card = parse_vcard(row["raw_vcard"])
-        row = _list_view(row)
-        row.update(source_label=source_in_sentence(row["account_id"], service.account_emails().get(row["account_id"])),
-                   job_title=card.job_title, urls=card.urls,
-                   fields=contact_fields(row, urls=card.urls, notes_included=row["notes_included"]))
-        if not raw:
-            row.pop("raw_vcard", None)
-        return ContactDetailOut(**row)
+        out = _detail(service, row, raw=raw)
+        response.headers["ETag"] = out.etag
+        return out
+
+    _routes_contact_writes(app, need, unavailable)
 
     @app.get("/calendars", dependencies=needs("calendar:read"),
              tags=["sources"], response_model=list[CalendarOut], responses=unavailable)
@@ -940,10 +1041,154 @@ def _routes_mac(app: FastAPI, need: Callable[[], SyncService]) -> None:
 
 
 def _list_view(row: dict) -> dict:
-    """A mirrored contact with what the contact list shows: its letter group and caption."""
+    """A contact with what the contact list shows: its letter group and caption, its etag, and whether it is on
+    a phone (an owned one is not, yet)."""
     from ..sources.views import contact_caption, sort_letter
     return {**row, "sort_letter": sort_letter(row["display_name"]),
-            "caption": contact_caption(row["display_name"], row["organisation"], row["emails"], row["phones"])}
+            "caption": contact_caption(row["display_name"], row["organisation"], row["emails"], row["phones"]),
+            "etag": row["http_etag"], "on_phone": False if row["editable"] else None}
+
+
+def _detail(service: SyncService, row: dict, *, raw: bool = False) -> ContactDetailOut:
+    """A contact for its page (GET /contacts/{id} and the answers of the writes)."""
+    from ..sources import contact_form
+    from ..sources.vcard import parse_vcard
+    from ..sources.vcard_edit import VCard, VCardError
+    from ..sources.views import contact_fields, source_in_sentence
+    card = parse_vcard(row["raw_vcard"])
+    try:
+        form = contact_form.read(VCard.parse(row["raw_vcard"]))
+    except VCardError:
+        form = {}
+    row = _list_view(row)
+    row.update(source_label=source_in_sentence(row["account_id"], service.account_emails().get(row["account_id"])),
+               job_title=card.job_title, urls=card.urls,
+               fields=contact_fields(row, urls=card.urls, notes_included=row["notes_included"]),
+               **{k: form.get(k, "") for k in ("middle_name", "name_prefix", "name_suffix", "company", "department")})
+    if not raw:
+        row.pop("raw_vcard", None)
+    return ContactDetailOut(**row)
+
+
+def _routes_contact_writes(app: FastAPI, need: Callable[[], SyncService], unavailable: dict) -> None:
+    """Creating, changing and deleting the contacts the host owns, Recently deleted, and undo
+    (sources/contacts_write.py). Followed contacts are never changed: 409."""
+    from ..sources import contacts_write as cw
+    from ..sources.contact_form import FormError
+
+    etag_header = {"ETag": {"description": "the contact's etag", "schema": {"type": "string"}}}
+    refused = {404: {"description": "no such contact"},
+               409: {"description": "the contact is followed from a source (change it there), or is in Recently "
+                                    "deleted"}}
+    invalid = {400: {"model": FieldErrorsOut, "description": "a field is not valid; `fields` says which and why"}}
+    stale = {412: {"model": PreconditionFailedOut, "headers": etag_header,
+                   "description": "the contact changed since the etag sent; `etag` is the current one"}}
+
+    def actor(request: Request) -> str:
+        return request.state.principal.name
+
+    def answer(service: SyncService, written: "cw.Written", op: str, who: str, response: Response | None = None
+               ) -> ContactWriteOut:
+        log(_LOGGER, logging.INFO, "contact written", op=op, actor=who, contact_id=written.contact_id)
+        if written.book_created:  # the first owned data: the host switches to real mode, as turning a source on does
+            service.owned_data_changed()
+        detail = _detail(service, service.contacts.get(written.contact_id, include_deleted=True))
+        if response is not None:
+            response.headers["ETag"] = detail.etag
+        return ContactWriteOut(contact=detail, undo_id=written.undo_id)
+
+    def run(write: Callable[[], "cw.Written"]) -> "cw.Written":
+        try:
+            return write()
+        except FormError as e:
+            raise _JSONError(400, {"detail": "Some fields are not valid.", "fields": e.fields}) from None
+        except cw.PreconditionFailed as e:
+            raise _JSONError(412, {"detail": str(e), "etag": e.etag}, headers={"ETag": e.etag}) from None
+        except cw.NotFound as e:
+            raise HTTPException(404, str(e)) from None
+        except cw.WriteError as e:  # followed, in the trash, cannot be undone
+            raise HTTPException(409, str(e)) from None
+
+    @app.post("/contacts", dependencies=needs("contacts:write"), tags=["sources"], response_model=ContactWriteOut,
+              status_code=201, responses={201: {"headers": etag_header}, **invalid, **unavailable})
+    def create_contact(body: ContactIn, request: Request, response: Response) -> ContactWriteOut:
+        """Create a contact the host owns, in its "myData" address book (made with the first contact, which also
+        switches the host to real mode). It is on myData only, not on any phone yet (on_phone false)."""
+        service = need()
+        who = actor(request)
+        written = run(lambda: cw.create(service.contacts, body.model_dump(exclude_unset=True), actor=who))
+        return answer(service, written, "create", who, response)
+
+    @app.patch("/contacts/{contact_id}", dependencies=needs("contacts:write"), tags=["sources"],
+               response_model=ContactWriteOut,
+               responses={200: {"headers": etag_header}, **invalid, **refused, **stale,
+                          428: {"description": "If-Match is missing"}, **unavailable})
+    def update_contact(contact_id: str, body: ContactIn, request: Request, response: Response,
+                       if_match: str | None = Header(default=None, alias="If-Match",
+                                                     description="the etag the change was made from")
+                       ) -> ContactWriteOut:
+        """Change an owned contact. Only the fields in the body change (null clears one), and of the card only
+        the lines whose values change are written. Refused with 412 when the contact changed since its etag."""
+        if not if_match:
+            raise HTTPException(428, "Send the contact's etag as If-Match.")
+        service = need()
+        who = actor(request)
+        written = run(lambda: cw.update(service.contacts, contact_id, body.model_dump(exclude_unset=True),
+                                        if_match=if_match, actor=who))
+        return answer(service, written, "update", who, response)
+
+    @app.delete("/contacts/{contact_id}", dependencies=needs("contacts:write"), tags=["sources"],
+                response_model=ContactWriteOut, responses={**refused, **stale, **unavailable})
+    def delete_contact(contact_id: str, request: Request,
+                       if_match: str | None = Header(default=None, alias="If-Match",
+                                                     description="optional: refuse if the contact changed since")
+                       ) -> ContactWriteOut:
+        """Move an owned contact to Recently deleted. It is deleted for good after 30 days (purge_after); until
+        then POST /trash/{id}/restore or the undo id brings it back. Copies in the host's snapshots stay until
+        those expire (within 12 months while the host runs)."""
+        service = need()
+        who = actor(request)
+        written = run(lambda: cw.delete(service.contacts, contact_id, if_match=if_match, actor=who))
+        return answer(service, written, "delete", who)
+
+    @app.get("/trash", dependencies=needs("contacts:read"), tags=["sources"], response_model=list[TrashItemOut],
+             responses=unavailable)
+    def trash(kind: Literal["contact"] = Query(default="contact", description="what to list")) -> list[TrashItemOut]:
+        """Recently deleted: what was deleted in the apps, the most recent first, with when each is deleted for
+        good. Copies in the host's snapshots stay until those expire."""
+        rows = cw.trash(need().contacts)
+        return [TrashItemOut(id=r["id"], kind="contact", title=r["display_name"], deleted_at=r["deleted_at"],
+                             purge_after=r["purge_after"] or "", contact=ContactOut(**_list_view(r))) for r in rows]
+
+    @app.post("/trash/{item_id}/restore", dependencies=needs("contacts:write"), tags=["sources"],
+              response_model=ContactWriteOut, responses={**refused, **unavailable})
+    def restore_item(item_id: str, request: Request) -> ContactWriteOut:
+        """Bring an item back from Recently deleted. 404 when it is not there (or was deleted for good)."""
+        service = need()
+        who = actor(request)
+        written = run(lambda: cw.restore(service.contacts, item_id, actor=who))
+        return answer(service, written, "restore", who)
+
+    @app.post("/undo/{undo_id}", dependencies=needs("contacts:write"), tags=["sources"], response_model=UndoOut,
+              responses={404: {"description": "no such undo id"},
+                         409: {"description": "already undone, or the item changed since (or was deleted for good)"},
+                         **unavailable})
+    def undo(undo_id: str, request: Request) -> UndoOut:
+        """Undo one change by its undo id. The undo is a new change: it is refused when the item changed since
+        (nothing later is ever overwritten), and a change is undone at most once, also across a restart."""
+        service = need()
+        who = actor(request)
+        written = run(lambda: cw.undo(service.contacts, undo_id, actor=who))
+        out = answer(service, written, "undo", who)
+        return UndoOut(undo_id=undo_id, contact=out.contact)
+
+
+class _JSONError(HTTPException):
+    """An HTTPException whose body is `content` as it is (not wrapped in "detail")."""
+
+    def __init__(self, status: int, content: dict, headers: dict | None = None):
+        super().__init__(status, content.get("detail", ""), headers=headers)
+        self.content = content
 
 
 def _status_rows(need: Callable[[], SyncService]) -> list[dict]:

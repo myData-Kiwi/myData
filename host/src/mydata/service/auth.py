@@ -43,7 +43,7 @@ SCOPES = {
     "assistant": "talk to the assistant, and ask the host to get the model ready again",
     "approve": "list held calls and approve or reject them",
     "contacts:read": "the contacts the host holds",
-    "contacts:write": "change contacts (nothing uses it yet)",
+    "contacts:write": "create, change and delete the contacts the host owns, restore them, and undo those changes",
     "calendar:read": "the calendars and events the host holds",
     "calendar:write": "change calendars and events (nothing uses it yet)",
     "sources:read": "the sources, linked accounts and their sync status",
@@ -56,8 +56,7 @@ APP_SCOPES: dict[str, frozenset[str]] = {
     "mydata": frozenset({"status", "admin", "approve", "contacts:read", "contacts:write", "calendar:read",
                          "calendar:write", "sources:read", "sources:manage", "shutdown", "mcp"}),
     "myassistant": frozenset({"status", "assistant", "approve", "contacts:read", "calendar:read"}),
-    # contacts:write comes with editing contacts (phase 3), not before.
-    "mycontacts": frozenset({"status", "contacts:read", "sources:read"}),
+    "mycontacts": frozenset({"status", "contacts:read", "contacts:write", "sources:read"}),
     "mycalendar": frozenset({"status", "calendar:read", "sources:read"}),
     "cli": frozenset(SCOPES),
 }
