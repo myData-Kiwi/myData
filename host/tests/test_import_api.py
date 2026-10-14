@@ -112,10 +112,10 @@ def test_choices_and_losses(host, client):
     assert ava["matches"][0]["source"] == "mydata" and ava["matches"][0]["signals"] == ["email", "name"]
     url = f"/import/previews/{preview['id']}/commit"
     r = client.post(url, headers=bearer(host, "mydata"), json={})
-    assert r.status_code == 400 and "loss report" in r.json()["detail"]
+    assert r.status_code == 400 and "loss report" in r.json()["detail"] and r.json()["code"] == "losses_not_accepted"
     r = client.post(url, headers=bearer(host, "mydata"),
                     json={"accept_losses": True, "choices": [{"index": 0, "action": "update"}]})
-    assert r.status_code == 400 and "Card 0 can only be" in r.json()["detail"]
+    assert r.status_code == 400 and "Card 0 can only be" in r.json()["detail"] and r.json()["code"] == "choice_refused"
     r = client.post(url, headers=bearer(host, "mydata"),
                     json={"accept_losses": True, "choices": [{"index": 0, "action": "import"}]})
     assert r.status_code == 201 and r.json()["counts"]["created"] == 4  # Ava as new, the org, Sam, Robin
@@ -135,8 +135,11 @@ def test_a_file_label_holds_no_control_or_format_characters():
 
 def test_inputs_refused_whole(host, client, monkeypatch):
     r = upload(client, host, corpus.bomb())
-    assert r.status_code == 400 and "expands" in r.json()["detail"]
-    assert upload(client, host, b"not a vcard at all").status_code == 400
+    assert r.status_code == 400 and "expands" in r.json()["detail"] and r.json()["code"] == "zip_entry_too_big"
+    r = upload(client, host, b"not a vcard at all")
+    assert r.status_code == 400 and r.json() == {"detail": "No vCard was found in the file.", "code": "no_vcard"}
+    r = upload(client, host, corpus.zipped({"notes.txt": b"hello"}), filename="takeout.zip")
+    assert r.status_code == 400 and r.json()["code"] == "zip_no_vcard"
     r = upload(client, host, corpus.traversal(), filename="../../evil.zip")
     assert r.status_code == 201 and r.json()["label"] == "evil.zip" and r.json()["counts"]["cards"] == 8
 
@@ -146,10 +149,10 @@ def test_a_file_over_the_cap_is_refused_before_it_is_read(tmp_path, monkeypatch)
     host = Host(tmp_path, FakeDav())
     with TestClient(host.app, base_url="http://127.0.0.1") as c:
         r = upload(c, host, corpus.over_cap(5000))
-        assert r.status_code == 413
+        assert r.status_code == 413 and r.json()["code"] == "too_big"
         r = c.post("/import/contacts/preview", headers=bearer(host, "mydata"),
                    content=iter([corpus.over_cap(5000)]))  # streamed, no Content-Length
-        assert r.status_code == 413
+        assert r.status_code == 413 and r.json()["code"] == "too_big"
 
 
 def test_nothing_is_imported_when_the_snapshot_fails(host, client, monkeypatch):

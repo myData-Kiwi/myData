@@ -4,7 +4,7 @@ Accepted: a .vcf (one card or many; vCard 2.1, 3.0 or 4.0) or a .zip of .vcf fil
 several Contacts.app exports zipped). Everything is read in memory; nothing is written to disk, so a zip
 entry's name ("../../etc/passwd", "/abs/path.vcf") is only ever a label and is never opened as a path.
 
-Caps, each refused with ImportFileError (a message for the user, no content):
+Caps, each refused with ImportFileError (a message for the user, no content, and a code: REFUSALS):
 - MAX_INPUT bytes uploaded;
 - for a zip: at most MAX_ENTRIES entries in its directory, MAX_EXPANDED bytes read out of it in all, each entry
   read through a bounded read (a header that understates an entry's size is never trusted), and no entry that
@@ -71,8 +71,20 @@ SKIP_REASONS = {
 }
 
 
+# Why a whole file is refused (ImportFileError.code), so an app can write its own sentence for each.
+REFUSALS = ("too_big", "zip_too_big", "zip_entry_too_big", "zip_too_many", "zip_unreadable", "zip_no_vcard",
+            "no_vcard", "utf16_unreadable")
+
+
 class ImportFileError(Exception):
-    """The file cannot be imported at all. The message is for the user and holds no content."""
+    """The file cannot be imported at all. The message is for the user and holds no content; `code` (REFUSALS)
+    says which case it is."""
+
+    def __init__(self, message: str, code: str):
+        if code not in REFUSALS:
+            raise ValueError(code)
+        super().__init__(message)
+        self.code = code
 
 
 @dataclass
@@ -128,7 +140,7 @@ def is_zip(data: bytes) -> bool:
 def read_contacts(data: bytes) -> ReadResult:
     """Every card in a .vcf or a .zip of them (see the module docstring)."""
     if len(data) > MAX_INPUT:
-        raise ImportFileError(f"The file is larger than {MAX_INPUT // (1024 * 1024)} MB.")
+        raise ImportFileError(f"The file is larger than {MAX_INPUT // (1024 * 1024)} MB.", "too_big")
     result = ReadResult()
     if is_zip(data):
         for name, payload in _zip_vcards(data, result):
@@ -144,14 +156,14 @@ def read_contacts(data: bytes) -> ReadResult:
             elif payload.strip():
                 result.unread_entries.append(name)  # no card at all: the whole file is a loss, not stray text
         if result.entries_read == 0 and not result.unread_entries:
-            raise ImportFileError("The zip holds no vCard (.vcf) file.")
+            raise ImportFileError("The zip holds no vCard (.vcf) file.", "zip_no_vcard")
     else:
         _found, outside = _read_payload(data, result, entry=None)
         if outside:
             result.note("outside_text", outside)
         result.entries_read = 1
     if not result.cards and not result.skipped:
-        raise ImportFileError("No vCard was found in the file.")
+        raise ImportFileError("No vCard was found in the file.", "no_vcard")
     return result
 
 
@@ -160,9 +172,9 @@ def _zip_vcards(data: bytes, result: ReadResult):
         archive = zipfile.ZipFile(io.BytesIO(data))
         infos = archive.infolist()
     except (zipfile.BadZipFile, zipfile.LargeZipFile, ValueError, OSError):
-        raise ImportFileError("The zip file cannot be read.") from None
+        raise ImportFileError("The zip file cannot be read.", "zip_unreadable") from None
     if len(infos) > MAX_ENTRIES:
-        raise ImportFileError(f"The zip holds more than {MAX_ENTRIES} files.")
+        raise ImportFileError(f"The zip holds more than {MAX_ENTRIES} files.", "zip_too_many")
     budget = MAX_EXPANDED
     for info in infos:
         if info.is_dir():
@@ -188,13 +200,15 @@ def _zip_vcards(data: bytes, result: ReadResult):
             with archive.open(info) as fh:
                 payload = fh.read(cap + 1)
         except (zipfile.BadZipFile, NotImplementedError, RuntimeError, ValueError, OSError, EOFError):
-            raise ImportFileError("A file in the zip cannot be read.") from None
+            raise ImportFileError("A file in the zip cannot be read.", "zip_unreadable") from None
         except Exception:  # noqa: BLE001 - zlib errors and the like: the archive is damaged
-            raise ImportFileError("A file in the zip cannot be read.") from None
+            raise ImportFileError("A file in the zip cannot be read.", "zip_unreadable") from None
         if len(payload) > cap:
             if cap == budget:
-                raise ImportFileError(f"The zip expands to more than {MAX_EXPANDED // (1024 * 1024)} MB.")
-            raise ImportFileError("A file in the zip expands far more than a vCard does; it was not read.")
+                raise ImportFileError(f"The zip expands to more than {MAX_EXPANDED // (1024 * 1024)} MB.",
+                                      "zip_too_big")
+            raise ImportFileError("A file in the zip expands far more than a vCard does; it was not read.",
+                                  "zip_entry_too_big")
         budget -= len(payload)
         yield name, payload
 
@@ -223,7 +237,7 @@ def _read_payload(data: bytes, result: ReadResult, *, entry: str | None) -> tupl
         try:
             text = data.decode(utf16)
         except UnicodeDecodeError:
-            raise ImportFileError("The file's text cannot be read (UTF-16).") from None
+            raise ImportFileError("The file's text cannot be read (UTF-16).", "utf16_unreadable") from None
         return _read_text(text, result, entry=entry)
     try:
         return _read_text(data.decode("utf-8-sig"), result, entry=entry)

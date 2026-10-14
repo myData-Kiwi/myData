@@ -2382,6 +2382,26 @@
         "title": "ImportPreviewOut",
         "type": "object"
       },
+      "ImportRefusedOut": {
+        "properties": {
+          "code": {
+            "description": "a whole file refused (400, 413): too_big (over 50 MB), zip_too_big (the zip expands to over 200 MB), zip_entry_too_big (a file in the zip expands far more than a vCard does), zip_too_many (over 10,000 files in the zip), zip_unreadable, zip_no_vcard (no .vcf in the zip), no_vcard (no vCard in the file), utf16_unreadable. A commit refused (400): losses_not_accepted, choice_refused (a choice a card cannot take now: read the preview again)",
+            "title": "Code",
+            "type": "string"
+          },
+          "detail": {
+            "description": "for logs and the command line; the apps write their own sentence from code",
+            "title": "Detail",
+            "type": "string"
+          }
+        },
+        "required": [
+          "detail",
+          "code"
+        ],
+        "title": "ImportRefusedOut",
+        "type": "object"
+      },
       "ImportUndoneOut": {
         "properties": {
           "gone": {
@@ -5779,7 +5799,14 @@
             "description": "Successful Response"
           },
           "400": {
-            "description": "the file cannot be imported at all (not a vCard, a zip that cannot be read or expands too far); the message says why"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportRefusedOut"
+                }
+              }
+            },
+            "description": "the file cannot be imported at all (not a vCard, a zip that cannot be read or expands too far); `code` says which"
           },
           "401": {
             "content": {
@@ -5802,7 +5829,14 @@
             "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
           },
           "413": {
-            "description": "the file is larger than 50 MB"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportRefusedOut"
+                }
+              }
+            },
+            "description": "the file is larger than 50 MB (code too_big)"
           },
           "421": {
             "content": {
@@ -6029,7 +6063,14 @@
             "description": "Successful Response"
           },
           "400": {
-            "description": "losses not accepted, or a choice a card cannot take"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportRefusedOut"
+                }
+              }
+            },
+            "description": "losses not accepted, or a choice a card cannot take (code)"
           },
           "401": {
             "content": {

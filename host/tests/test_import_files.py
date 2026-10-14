@@ -125,8 +125,9 @@ def test_a_zip_with_names_that_leave_the_folder_is_read_and_nothing_is_written(t
 def test_a_zip_bomb_is_refused_without_expanding_it():
     data = corpus.bomb()
     assert len(data) < 2 * 1024 * 1024
-    with pytest.raises(ImportFileError, match="expands"):
+    with pytest.raises(ImportFileError, match="expands") as refused:
         read_contacts(data)
+    assert refused.value.code == "zip_entry_too_big"
 
 
 @pytest.mark.parametrize("compression", [zipfile.ZIP_BZIP2, zipfile.ZIP_LZMA])
@@ -147,14 +148,16 @@ def test_bzip2_and_lzma_entries_are_never_expanded(compression):
 def test_a_zip_expanding_past_the_total_cap_is_refused(monkeypatch):
     monkeypatch.setattr(import_files, "MAX_EXPANDED", 2000)
     monkeypatch.setattr(import_files, "MAX_RATIO", 10_000)
-    with pytest.raises(ImportFileError, match="expands to more than"):
+    with pytest.raises(ImportFileError, match="expands to more than") as refused:
         read_contacts(corpus.several())
+    assert refused.value.code == "zip_too_big"
 
 
 def test_a_zip_with_too_many_entries_is_refused(monkeypatch):
     monkeypatch.setattr(import_files, "MAX_ENTRIES", 2)
-    with pytest.raises(ImportFileError, match="more than 2 files"):
+    with pytest.raises(ImportFileError, match="more than 2 files") as refused:
         read_contacts(corpus.several())
+    assert refused.value.code == "zip_too_many"
 
 
 def test_nested_and_encrypted_entries_are_reported_not_read():
@@ -215,8 +218,9 @@ def test_cards_past_the_limit_are_counted_not_kept(monkeypatch):
 
 def test_a_file_over_the_cap_is_refused(monkeypatch):
     monkeypatch.setattr(import_files, "MAX_INPUT", 10_000)
-    with pytest.raises(ImportFileError, match="larger than"):
+    with pytest.raises(ImportFileError, match="larger than") as refused:
         read_contacts(corpus.over_cap(10_000))
+    assert refused.value.code == "too_big"
 
 
 def test_text_encodings():
@@ -243,7 +247,15 @@ def test_each_card_is_decoded_on_its_own():
                                                                                                    "declared_charset"]
 
 
-def test_inputs_that_are_not_contacts_are_refused():
-    for data in (b"", b"just some text\n", corpus.zipped({"notes.txt": b"hello"}), b"PK\x03\x04broken"):
-        with pytest.raises(ImportFileError):
+def test_inputs_that_are_not_contacts_are_refused_with_a_code_each():
+    cases = [(b"", "no_vcard"), (b"just some text\n", "no_vcard"), (corpus.zipped({"notes.txt": b"hello"}),
+             "zip_no_vcard"), (b"PK\x03\x04broken", "zip_unreadable"),
+             (b"\xff\xfe" + b"B\x00E\x00G\x00\x00\xd8", "utf16_unreadable")]  # a lone UTF-16 surrogate
+    for data, code in cases:
+        with pytest.raises(ImportFileError) as refused:
             read_contacts(data)
+        assert refused.value.code == code, (data[:8], refused.value.code)
+    assert set(import_files.REFUSALS) == {"too_big", "zip_too_big", "zip_entry_too_big", "zip_too_many",
+                                          "zip_unreadable", "zip_no_vcard", "no_vcard", "utf16_unreadable"}
+    with pytest.raises(ValueError):
+        ImportFileError("An unknown case.", "no_such_code")

@@ -611,6 +611,16 @@ class ImportPreviewOut(BaseModel):
                                                                               "the app may offer to stop following it")
 
 
+class ImportRefusedOut(BaseModel):
+    detail: str = Field(description="for logs and the command line; the apps write their own sentence from code")
+    code: str = Field(description="a whole file refused (400, 413): too_big (over 50 MB), zip_too_big (the zip "
+                                  "expands to over 200 MB), zip_entry_too_big (a file in the zip expands far more "
+                                  "than a vCard does), zip_too_many (over 10,000 files in the zip), zip_unreadable, "
+                                  "zip_no_vcard (no .vcf in the zip), no_vcard (no vCard in the file), "
+                                  "utf16_unreadable. A commit refused (400): losses_not_accepted, choice_refused "
+                                  "(a choice a card cannot take now: read the preview again)")
+
+
 class ImportChoiceIn(BaseModel):
     index: int = Field(ge=0)
     action: Literal["import", "update", "link", "skip"]
@@ -1498,9 +1508,11 @@ def _routes_imports(app: FastAPI, need: Callable[[], SyncService], unavailable: 
         except PreviewGone as e:
             raise HTTPException(404, str(e)) from None
         except ImportFileError as e:
-            raise HTTPException(400, str(e)) from None
-        except (importer.LossesNotAccepted, importer.ChoiceError) as e:
-            raise HTTPException(400, str(e)) from None
+            raise _JSONError(413 if e.code == "too_big" else 400, {"detail": str(e), "code": e.code}) from None
+        except importer.LossesNotAccepted as e:
+            raise _JSONError(400, {"detail": str(e), "code": "losses_not_accepted"}) from None
+        except importer.ChoiceError as e:
+            raise _JSONError(400, {"detail": str(e), "code": "choice_refused"}) from None
         except SnapshotFailed as e:
             raise HTTPException(503, str(e)) from None
         except cw.NotFound as e:
@@ -1515,9 +1527,11 @@ def _routes_imports(app: FastAPI, need: Callable[[], SyncService], unavailable: 
 
     @app.post("/import/contacts/preview", dependencies=needs("contacts:import"), tags=["imports"],
               response_model=ImportPreviewOut, status_code=201, openapi_extra=body_schema,
-              responses={400: {"description": "the file cannot be imported at all (not a vCard, a zip that cannot "
-                                              "be read or expands too far); the message says why"},
-                         413: {"description": "the file is larger than 50 MB"}, **unavailable})
+              responses={400: {"model": ImportRefusedOut,
+                                "description": "the file cannot be imported at all (not a vCard, a zip that cannot "
+                                               "be read or expands too far); `code` says which"},
+                         413: {"model": ImportRefusedOut, "description": "the file is larger than 50 MB (code "
+                                                                         "too_big)"}, **unavailable})
     async def preview_contacts_import(request: Request,
                                       filename: str = Query(default="", max_length=255,
                                                             description="the file's name, shown in the history; "
@@ -1527,13 +1541,14 @@ def _routes_imports(app: FastAPI, need: Callable[[], SyncService], unavailable: 
         an hour: counts, every card's status and default action, matches with your contacts and followed ones,
         the loss report and what changes. Nothing is written. The zip is read in memory, never extracted."""
         length = request.headers.get("content-length")
+        too_big = _JSONError(413, {"detail": "The file is larger than 50 MB.", "code": "too_big"})
         if length is not None and length.isdigit() and int(length) > MAX_INPUT:
-            raise HTTPException(413, "The file is larger than 50 MB.")
+            raise too_big
         chunks, size = [], 0
         async for chunk in request.stream():
             size += len(chunk)
             if size > MAX_INPUT:
-                raise HTTPException(413, "The file is larger than 50 MB.")
+                raise too_big
             chunks.append(chunk)
         service, who = imports(), actor(request)
         data = b"".join(chunks)
@@ -1575,7 +1590,8 @@ def _routes_imports(app: FastAPI, need: Callable[[], SyncService], unavailable: 
 
     @app.post("/import/previews/{preview_id}/commit", dependencies=needs("contacts:import"), tags=["imports"],
               response_model=ImportCommittedOut, status_code=201,
-              responses={**gone, 400: {"description": "losses not accepted, or a choice a card cannot take"},
+              responses={**gone, 400: {"model": ImportRefusedOut,
+                                       "description": "losses not accepted, or a choice a card cannot take (code)"},
                          503: {"description": "the snapshot before the import failed: nothing was imported"}})
     def commit_import(preview_id: str, body: ImportCommitIn, request: Request) -> ImportCommittedOut:
         """Import the preview as one batch into an owned address book, after a snapshot of the databases. Each card
