@@ -8,7 +8,8 @@ data (tests/fake_mac) and a few extra cards (groups, an organisation, a soft-del
 
 A dump holds INSERT statements for the stores' own tables, never the schema, schema_version or a search
 index (the migrations build those, and the insert triggers fill the index). A text value holding a carriage
-return is written as hex (CAST(X'..' AS TEXT)) so git cannot change its line endings."""
+return is written as hex (CAST(X'..' AS TEXT)) so git cannot change its line endings, and so is every
+search_phones value: its digit forms side by side read as one long real-looking number to test_privacy."""
 
 from __future__ import annotations
 
@@ -72,12 +73,12 @@ def populate(home: Path) -> None:
         db.execute("UPDATE events SET deleted_at = modified_at WHERE href LIKE '%custom-tz.ics'")
 
 
-def literal(value) -> str:
+def literal(value, hexed: bool = False) -> str:
     if value is None:
         return "NULL"
     if isinstance(value, (int, float)):
         return repr(value)
-    if "\r" in value:
+    if "\r" in value or hexed:
         return f"CAST(X'{value.encode('utf-8').hex().upper()}' AS TEXT)"
     return "'" + value.replace("'", "''") + "'"
 
@@ -91,7 +92,7 @@ def dump(path: Path, tables: tuple[str, ...]) -> tuple[int, str]:
             columns = [r[1] for r in db.execute(f'PRAGMA table_info("{table}")')]
             for row in db.execute(f'SELECT {", ".join(columns)} FROM "{table}" ORDER BY rowid'):
                 lines.append(f'INSERT INTO "{table}" ({", ".join(columns)}) VALUES '
-                             f'({", ".join(literal(v) for v in row)});')
+                             f'({", ".join(literal(v, c == "search_phones") for c, v in zip(columns, row))});')
     finally:
         db.close()
     return version, "\n".join(lines) + "\n"
