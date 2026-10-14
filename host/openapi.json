@@ -1612,6 +1612,175 @@
         "title": "HTTPValidationError",
         "type": "object"
       },
+      "ImportCardOut": {
+        "properties": {
+          "addresses": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/PostalAddress"
+            },
+            "title": "Addresses",
+            "type": "array"
+          },
+          "birthday": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "YYYY-MM-DD, or --MM-DD when the year is not known",
+            "title": "Birthday"
+          },
+          "company": {
+            "default": "",
+            "title": "Company",
+            "type": "string"
+          },
+          "converted_from": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "2.1 for a vCard 2.1, shown as it would be stored (3.0)",
+            "title": "Converted From"
+          },
+          "department": {
+            "default": "",
+            "title": "Department",
+            "type": "string"
+          },
+          "display_name": {
+            "description": "never empty (organisation, email or phone when the card has no name)",
+            "title": "Display Name",
+            "type": "string"
+          },
+          "emails": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/LabeledValue"
+            },
+            "title": "Emails",
+            "type": "array"
+          },
+          "entry": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "the zip entry it came from (a name only)",
+            "title": "Entry"
+          },
+          "family_name": {
+            "default": "",
+            "title": "Family Name",
+            "type": "string"
+          },
+          "fields": {
+            "description": "the values grouped as a contact's page shows them: phone, email, address, birthday, url, note",
+            "items": {
+              "$ref": "#/components/schemas/ContactFieldGroup"
+            },
+            "title": "Fields",
+            "type": "array"
+          },
+          "full_name": {
+            "default": "",
+            "title": "Full Name",
+            "type": "string"
+          },
+          "given_name": {
+            "default": "",
+            "title": "Given Name",
+            "type": "string"
+          },
+          "has_photo": {
+            "default": false,
+            "title": "Has Photo",
+            "type": "boolean"
+          },
+          "index": {
+            "description": "the card's position in the input, from 0",
+            "title": "Index",
+            "type": "integer"
+          },
+          "job_title": {
+            "default": "",
+            "title": "Job Title",
+            "type": "string"
+          },
+          "kind": {
+            "description": "individual, org or group",
+            "title": "Kind",
+            "type": "string"
+          },
+          "middle_name": {
+            "default": "",
+            "title": "Middle Name",
+            "type": "string"
+          },
+          "name_prefix": {
+            "default": "",
+            "title": "Name Prefix",
+            "type": "string"
+          },
+          "name_suffix": {
+            "default": "",
+            "title": "Name Suffix",
+            "type": "string"
+          },
+          "nickname": {
+            "default": "",
+            "title": "Nickname",
+            "type": "string"
+          },
+          "note": {
+            "default": "",
+            "title": "Note",
+            "type": "string"
+          },
+          "organisation": {
+            "default": "",
+            "description": "the company and, after a comma, the department",
+            "title": "Organisation",
+            "type": "string"
+          },
+          "phones": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/LabeledValue"
+            },
+            "title": "Phones",
+            "type": "array"
+          },
+          "urls": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/LabeledValue"
+            },
+            "title": "Urls",
+            "type": "array"
+          }
+        },
+        "required": [
+          "display_name",
+          "kind",
+          "fields",
+          "index"
+        ],
+        "title": "ImportCardOut",
+        "type": "object"
+      },
       "ImportChoiceIn": {
         "properties": {
           "action": {
@@ -6144,6 +6313,97 @@
           }
         },
         "summary": "Commit Import",
+        "tags": [
+          "imports"
+        ],
+        "x-mydata-scopes": [
+          "contacts:import"
+        ]
+      }
+    },
+    "/import/previews/{preview_id}/items/{index}": {
+      "get": {
+        "description": "One card of a preview with its values, in the shape of a contact's page, to compare it with a contact\nit matches (\"In the file\" beside \"In myData\"). Only the app that made the preview can read it.",
+        "operationId": "import_preview_item",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "preview_id",
+            "required": true,
+            "schema": {
+              "title": "Preview Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "index",
+            "required": true,
+            "schema": {
+              "title": "Index",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportCardOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "missing or wrong token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
+          },
+          "404": {
+            "description": "no such preview (it expired, was imported already, or the host restarted), or no card was read at that index (a skipped card has no values)"
+          },
+          "421": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "the Host header is not this machine"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "503": {
+            "description": "accounts are not available in this host"
+          }
+        },
+        "summary": "Import Preview Item",
         "tags": [
           "imports"
         ],

@@ -585,6 +585,40 @@ class ImportItemOut(BaseModel):
     matches: list[ImportMatchOut] = []
 
 
+class CardValuesOut(BaseModel):
+    """A card's values as a contact's page shows them (ContactDetailOut's fields), for a card that is not a contact
+    on the host: a card in an import preview, or the contact a merge would make."""
+    display_name: str = Field(description="never empty (organisation, email or phone when the card has no name)")
+    full_name: str = ""
+    given_name: str = ""
+    family_name: str = ""
+    middle_name: str = ""
+    name_prefix: str = ""
+    name_suffix: str = ""
+    nickname: str = ""
+    organisation: str = Field(default="", description="the company and, after a comma, the department")
+    company: str = ""
+    department: str = ""
+    job_title: str = ""
+    emails: list[LabeledValue] = []
+    phones: list[LabeledValue] = []
+    addresses: list[PostalAddress] = []
+    urls: list[LabeledValue] = []
+    birthday: str | None = Field(default=None, description="YYYY-MM-DD, or --MM-DD when the year is not known")
+    note: str = ""
+    has_photo: bool = False
+    kind: str = Field(description="individual, org or group")
+    fields: list[ContactFieldGroup] = Field(description="the values grouped as a contact's page shows them: phone, "
+                                                        "email, address, birthday, url, note")
+
+
+class ImportCardOut(CardValuesOut):
+    index: int = Field(description="the card's position in the input, from 0")
+    entry: str | None = Field(default=None, description="the zip entry it came from (a name only)")
+    converted_from: str | None = Field(default=None, description="2.1 for a vCard 2.1, shown as it would be stored "
+                                                                 "(3.0)")
+
+
 class ImportMissingOut(BaseModel):
     contact_id: str
     display_name: str
@@ -1589,6 +1623,20 @@ def _routes_imports(app: FastAPI, need: Callable[[], SyncService], unavailable: 
         """A preview again, analysed as the host is now. Only the app that made it can read it."""
         service, who = imports(), actor(request)
         return ImportPreviewOut(**run(lambda: service.get(preview_id, who)))
+
+    @app.get("/import/previews/{preview_id}/items/{index}", dependencies=needs("contacts:import"), tags=["imports"],
+             response_model=ImportCardOut,
+             responses={404: {"description": "no such preview (it expired, was imported already, or the host "
+                                             "restarted), or no card was read at that index (a skipped card has "
+                                             "no values)"}, **unavailable})
+    def import_preview_item(preview_id: str, index: int, request: Request) -> ImportCardOut:
+        """One card of a preview with its values, in the shape of a contact's page, to compare it with a contact
+        it matches ("In the file" beside "In myData"). Only the app that made the preview can read it."""
+        service, who = imports(), actor(request)
+        try:
+            return ImportCardOut(**run(lambda: service.card(preview_id, index, who)))
+        except KeyError:
+            raise HTTPException(404, "There is no readable card at that index in this preview.") from None
 
     @app.delete("/import/previews/{preview_id}", dependencies=needs("contacts:import"), tags=["imports"],
                 status_code=204, responses={**gone, **unavailable})

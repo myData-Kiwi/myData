@@ -136,6 +136,28 @@ def test_an_export_from_contacts_on_a_mac_without_notes_needs_the_loss_accepted(
     assert r.status_code == 201 and r.json()["counts"]["created"] == 3
 
 
+def test_a_preview_card_has_its_values_for_compare(host, client):
+    preview = upload(client, host, corpus.read(corpus.APPLE) + corpus.read(corpus.MALFORMED) + corpus.read(
+        corpus.SAMSUNG)).json()
+    url = f"/import/previews/{preview['id']}/items"
+    r = client.get(f"{url}/0", headers=bearer(host, "mydata"))
+    assert r.status_code == 200, r.text
+    ava = r.json()
+    assert (ava["index"], ava["display_name"], ava["company"], ava["department"]) == (
+        0, "Ava Fictional", "Example Widgets", "Research")
+    assert [e["value"] for e in ava["emails"]] == ["ava@example.org"] and ava["birthday"] == "--03-18"
+    assert ava["has_photo"] is True and ava["kind"] == "individual" and ava["converted_from"] is None
+    assert [g["kind"] for g in ava["fields"]] == ["phone", "email", "address", "birthday", "note"]
+    skipped = next(i["index"] for i in preview["items"] if i["status"] == "skipped")
+    assert client.get(f"{url}/{skipped}", headers=bearer(host, "mydata")).status_code == 404
+    assert client.get(f"{url}/9999", headers=bearer(host, "mydata")).status_code == 404
+    assert client.get(f"{url}/0", headers=bearer(host, "cli")).status_code == 404  # another app's preview
+    assert client.get(f"{url}/0", headers=bearer(host, "mycontacts")).status_code == 403
+    samsung = next(i for i in preview["items"] if i["converted_from"] == "2.1")
+    zoe = client.get(f"{url}/{samsung['index']}", headers=bearer(host, "mydata")).json()
+    assert zoe["converted_from"] == "2.1" and zoe["display_name"] == samsung["display_name"]
+
+
 def test_a_card_with_an_odd_character_set_never_fails_the_file(host, client):
     r = upload(client, host, corpus.read(corpus.ODD_CHARSETS))
     assert r.status_code == 201, r.text
@@ -422,7 +444,9 @@ def test_the_logs_hold_no_imported_data(host, client, caplog):
     client.post(f"/imports/{done['id']}/undo", headers=bearer(host, "mydata"))
     copy = client.post(f"/import/contacts/from-source/{account}/preview", headers=bearer(host, "mydata")).json()
     client.post(f"/import/previews/{copy['id']}/commit", headers=bearer(host, "mydata"), json={})
-    upload(client, host, corpus.read(corpus.MALFORMED))
+    again = upload(client, host, corpus.read(corpus.MALFORMED) + corpus.read(corpus.APPLE)).json()
+    readable = next(i["index"] for i in again["items"] if i["status"] != "skipped")
+    assert client.get(f"/import/previews/{again['id']}/items/{readable}", headers=bearer(host, "mydata")).json()
     messages = [r.getMessage() for r in caplog.records]
     assert {"contacts import previewed", "contacts imported", "contacts import undone"} <= set(messages)
     # httpx's records are the test client's own requests (the host sets httpx to WARNING, and its access log

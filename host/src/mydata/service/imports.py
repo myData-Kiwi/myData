@@ -28,6 +28,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 
 from ..sources import importer
+from ..sources.card_values import card_values
 from ..sources.import_files import ReadCard, ReadResult, read_card, read_contacts
 from ..sources.importer import FILE, ICLOUD, ImportSource
 from ..sources.mac import MAC_ID
@@ -172,6 +173,20 @@ class ContactImports:
     def get(self, preview_id: str, actor: str) -> dict:
         """The preview again, as the host is now (an edit since may have changed a card's status)."""
         return self.describe(self._held(preview_id, actor))
+
+    def card(self, preview_id: str, index: int, actor: str) -> dict:
+        """One card of a preview with its values, as a contact's page shows them (Compare): the card as it would be
+        stored (a vCard 2.1 converted). KeyError when no card was read at that position (none there, or skipped).
+        Never logged."""
+        held = self._held(preview_id, actor)
+        by_index = held.extra.get("by_index")
+        if by_index is None:
+            by_index = held.extra["by_index"] = {c.index: c for c in held.read.cards}
+        card = by_index.get(index)
+        if card is None:
+            raise KeyError(index)
+        return {**card_values(card.text), "index": card.index, "entry": card.entry,
+                "converted_from": card.converted_from}
 
     def discard(self, preview_id: str, actor: str) -> None:
         """Drop a preview the app cancelled, with the file's contents it holds."""
