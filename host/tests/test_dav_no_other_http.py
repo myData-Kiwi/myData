@@ -71,10 +71,50 @@ def network_uses(tree: ast.AST) -> list[tuple[int, str]]:
     return uses(tree, BANNED)
 
 
+def _aliases(tree: ast.AST) -> dict[str, str]:
+    """Local name -> the module or name it was imported as: `import os as o` (o -> os), `from os import
+    system as run` (run -> os.system). Module-wide, ignoring scopes; relative imports are the host's own."""
+    out: dict[str, str] = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for a in node.names:
+                if a.asname:
+                    out[a.asname] = a.name
+        elif isinstance(node, ast.ImportFrom) and node.module and node.level == 0:
+            for a in node.names:
+                if a.name != "*":
+                    out[a.asname or a.name] = f"{node.module}.{a.name}"
+    return out
+
+
+def _import_call(node: ast.AST) -> str | None:
+    """The module named by `importlib.import_module("x")`, `import_module("x")` or `__import__("x")`."""
+    if isinstance(node, ast.Call) and _dotted(node.func) in ("importlib.import_module", "import_module",
+                                                              "__import__") \
+            and node.args and isinstance(node.args[0], ast.Constant) and isinstance(node.args[0].value, str):
+        return node.args[0].value
+    return None
+
+
+def _qualified(node: ast.AST, aliases: dict[str, str]) -> str | None:
+    """The dotted name an expression reaches, through import aliases and `__import__("x")`."""
+    parts = []
+    while isinstance(node, ast.Attribute):
+        parts.append(node.attr)
+        node = node.value
+    if isinstance(node, ast.Name):
+        head = aliases.get(node.id, node.id)
+    elif (head := _import_call(node)) is None:
+        return None
+    return ".".join([head, *reversed(parts)])
+
+
 def uses(tree: ast.AST, banned) -> list[tuple[int, str]]:
-    """(line, banned entry) for every runtime use of a banned module or function: imported, reached
-    through an attribute, or imported by name through importlib."""
+    """(line, banned entry) for every runtime use of a banned module or function: imported (also with `*`),
+    reached through an attribute (also of an alias), imported by name through importlib or __import__, or
+    fetched with getattr. It catches mistakes, not a determined author: code can always hide a name."""
     found: list[tuple[int, str]] = []
+    aliases = _aliases(tree)
 
     def visit(node: ast.AST) -> None:
         if isinstance(node, ast.If) and _is_type_checking(node.test):
@@ -86,21 +126,26 @@ def uses(tree: ast.AST, banned) -> list[tuple[int, str]]:
                 if b := _banned(alias.name, banned):
                     found.append((node.lineno, b))
         elif isinstance(node, ast.ImportFrom) and node.module and node.level == 0:
-            names = [node.module] + [f"{node.module}.{a.name}" for a in node.names]
+            if any(a.name == "*" for a in node.names):  # `from os import *` brings os.system in
+                if hit := _banned(node.module, banned) or next(
+                        (b for b in banned if b.startswith(node.module + ".")), None):
+                    found.append((node.lineno, hit))
+            names = [node.module] + [f"{node.module}.{a.name}" for a in node.names if a.name != "*"]
             for n in names:
                 if b := _banned(n, banned):
                     found.append((node.lineno, b))
                     break
         elif isinstance(node, ast.Attribute):
-            dotted = _dotted(node)
+            dotted = _qualified(node, aliases)
             if dotted and (b := _banned(dotted, banned)) and "." in b:  # urllib.request.urlopen after `import urllib`
                 found.append((node.lineno, b))
         elif isinstance(node, ast.Call):
-            fn = _dotted(node.func)
-            if fn in ("importlib.import_module", "import_module", "__import__") and node.args \
-                    and isinstance(node.args[0], ast.Constant) and isinstance(node.args[0].value, str):
-                if b := _banned(node.args[0].value, banned):
-                    found.append((node.lineno, b))
+            if (name := _import_call(node)) and (b := _banned(name, banned)):
+                found.append((node.lineno, b))
+            elif _dotted(node.func) == "getattr" and len(node.args) >= 2 and isinstance(node.args[1], ast.Constant) \
+                    and isinstance(node.args[1].value, str) and (obj := _qualified(node.args[0], aliases)) \
+                    and (b := _banned(f"{obj}.{node.args[1].value}", banned)):
+                found.append((node.lineno, b))
         for child in ast.iter_child_nodes(node):
             visit(child)
 
