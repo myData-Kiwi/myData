@@ -486,14 +486,18 @@ def _add_wall(value, delta: timedelta):
 
 
 def _date_prop(value, template_prop, *, multi: bool = False):
-    """A property value written like template_prop: its value type, and its TZID text when it has one."""
+    """A property value written like template_prop: its value type, and its TZID text when it has one. A
+    TZID icalendar cannot resolve (no VTIMEZONE, not a zone it knows) reads as a floating time; a floating
+    value written like it keeps that TZID."""
     tzid = template_prop.params.get("TZID") if template_prop is not None else None
     prop = vDDDLists([value]) if multi else vDDDTypes(value)
     if not _is_dt(value):
         prop.params["VALUE"] = "DATE"  # vDDDLists leaves it out, and the type must match DTSTART's
-    if tzid and _is_dt(value) and value.tzinfo is not None and not _is_utc(value) and \
-            _zone(value) == _zone(_first_dt(template_prop)):
-        prop.params["TZID"] = tzid
+    if tzid and _is_dt(value) and not _is_utc(value):
+        current = _first_dt(template_prop)
+        if (value.tzinfo is not None and _zone(value) == _zone(current)) or \
+                (value.tzinfo is None and _is_dt(current) and current.tzinfo is None):
+            prop.params["TZID"] = tzid
     return prop
 
 
@@ -525,11 +529,16 @@ def _duration(event) -> timedelta | None:
     return _wall(end) - _wall(start)
 
 
-def _end(start, length: timedelta):
-    """start + length, as _duration measures it, written in start's zone. Across the hour skipped in spring
+def _end(start, length: timedelta, end_prop=None):
+    """start + length, as _duration measures it, written in start's zone, or in the zone of end_prop (the DTEND
+    it replaces) when that is another (a flight's end in the arrival zone). Across the hour skipped in spring
     the end is the exact length later, never before the start, as wall-clock adding would make it."""
     if _is_dt(start) and start.tzinfo is not None:
-        return (start.astimezone(timezone.utc) + length).astimezone(start.tzinfo)
+        end = (start.astimezone(timezone.utc) + length).astimezone(start.tzinfo)
+        own = end_prop.dt if end_prop is not None else None
+        if _is_dt(own) and own.tzinfo is not None and _zone(own) != _zone(end):
+            end = end.astimezone(own.tzinfo)
+        return end
     return _add_wall(start, length)
 
 
@@ -784,8 +793,8 @@ def edit_this(text: str, recurrence_id, changes: Mapping[str, object], *, now: d
     if "DTSTART" in changes and "DTEND" not in changes and override.get("DTEND") is not None:
         length = _duration(override)
         new_start = _value(override, "DTSTART", changes["DTSTART"])
-        changes["DTEND"] = _date_prop(_end(new_start.dt, length) if length is not None else new_start.dt,
-                                      override["DTEND"])
+        changes["DTEND"] = _date_prop(_end(new_start.dt, length, override["DTEND"]) if length is not None
+                                      else new_start.dt, override["DTEND"])
     _apply(edit, override, changes)
     _touch(edit, override, _now(now), timing=bool(_TIMING & changes.keys()))
     return edit.result()
@@ -802,7 +811,7 @@ def _new_override(master, start, now: datetime):
             override["DTSTART"] = _date_prop(start, master["DTSTART"])
             override["RECURRENCE-ID"] = _date_prop(start, master["DTSTART"])
         elif name == "DTEND":
-            override["DTEND"] = _date_prop(_end(start, length), master["DTEND"])
+            override["DTEND"] = _date_prop(_end(start, length, master["DTEND"]), master["DTEND"])
         else:
             override[name] = copy.deepcopy(master[name])
     for sub in master.subcomponents:
@@ -888,7 +897,7 @@ def edit_all(text: str, changes: Mapping[str, object], *, exceptions: str = "kee
     if "DTSTART" in changes:
         new_start = _value(master, "DTSTART", changes["DTSTART"]).dt
         if "DTEND" not in changes and master.get("DTEND") is not None:
-            changes["DTEND"] = _date_prop(_end(new_start, old_length), master["DTEND"])
+            changes["DTEND"] = _date_prop(_end(new_start, old_length, master["DTEND"]), master["DTEND"])
     delta = _wall(new_start) - _wall(old_start)
     time_only = (_is_dt(old_start) and _is_dt(new_start) and _zone(old_start) == _zone(new_start)
                  and _wall(old_start).date() == _wall(new_start).date() and delta != timedelta(0))
@@ -918,7 +927,7 @@ def edit_all(text: str, changes: Mapping[str, object], *, exceptions: str = "kee
                     length = _duration(master)
                 _set(o, "DTSTART", _date_prop(shift(o["DTSTART"].dt), o["DTSTART"]))
                 if length is not None:
-                    _set(o, "DTEND", _date_prop(_end(o["DTSTART"].dt, length), o["DTEND"]))
+                    _set(o, "DTEND", _date_prop(_end(o["DTSTART"].dt, length, o["DTEND"]), o["DTEND"]))
             _touch(edit, o, now, timing=True)
 
     # Exceptions that were occurrences before and are not now: refuse, or drop them when asked.
@@ -946,7 +955,7 @@ def edit_all(text: str, changes: Mapping[str, object], *, exceptions: str = "kee
         if old_length is not None and "DTEND" in changes and o.get("DTEND") is not None and \
                 _duration(o) == old_length != _duration(master):
             edit.allow(o, "DTEND")
-            _set(o, "DTEND", _date_prop(_end(o["DTSTART"].dt, _duration(master)), o["DTEND"]))
+            _set(o, "DTEND", _date_prop(_end(o["DTSTART"].dt, _duration(master), o["DTEND"]), o["DTEND"]))
     _touch(edit, master, now, timing=bool(_TIMING & changes.keys()))
     return edit.result()
 
@@ -1074,7 +1083,7 @@ def edit_following(text: str, recurrence_id, changes: Mapping[str, object], *, e
     _set(new_master, "DTSTART", _date_prop(start, master["DTSTART"]))
     length = _duration(master)
     if master.get("DTEND") is not None:
-        _set(new_master, "DTEND", _date_prop(_end(start, length), master["DTEND"]))
+        _set(new_master, "DTEND", _date_prop(_end(start, length, master["DTEND"]), master["DTEND"]))
     _set(new_master, SPLIT_FROM, old_uid)
     _set(new_master, "SEQUENCE", 0)
     stamp = vDDDTypes(now.astimezone(timezone.utc).replace(microsecond=0))

@@ -770,3 +770,33 @@ def test_a_new_start_given_in_utc_or_without_a_zone_keeps_the_series_zone():
     out = ie.edit_event(load("zones-without-vtimezone.ics").split("BEGIN:VEVENT\nUID:unknown")[0] + "END:VCALENDAR\n",
                         {"DTSTART": datetime(2026, 3, 20, 9, tzinfo=ZoneInfo("America/New_York"))}, now=NOW)
     assert "DTSTART;TZID=America/New_York:20260320T090000\r\n" in out
+
+
+_UNKNOWN_ZONE = ("BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Example Corp//Unknown zone//EN\r\nBEGIN:VEVENT\r\n"
+                 "UID:unknown-zone-series@example.org\r\nDTSTAMP:20260101T000000Z\r\n"
+                 "DTSTART;TZID=Custom Zone/Nowhere:20260105T090000\r\nDTEND;TZID=Custom Zone/Nowhere:20260105T100000\r\n"
+                 "RRULE:FREQ=WEEKLY;COUNT=4\r\nSUMMARY:Weekly\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n")
+
+
+def test_a_zone_icalendar_cannot_resolve_is_kept_on_every_date_the_writer_adds():
+    rid = datetime(2026, 1, 12, 9)
+    assert "EXDATE;TZID=Custom Zone/Nowhere:20260112T090000\r\n" in ie.delete_this(_UNKNOWN_ZONE, rid, now=NOW)
+    this = ie.edit_this(_UNKNOWN_ZONE, rid, {"SUMMARY": "Once"}, now=NOW)
+    assert "RECURRENCE-ID;TZID=Custom Zone/Nowhere:20260112T090000\r\n" in this
+    assert "DTEND;TZID=Custom Zone/Nowhere:20260112T100000\r\n" in this
+    moved = ie.edit_all(_UNKNOWN_ZONE, {"DTSTART": datetime(2026, 1, 5, 10)}, now=NOW)
+    assert "DTSTART;TZID=Custom Zone/Nowhere:20260105T100000\r\n" in moved
+    assert "DTEND;TZID=Custom Zone/Nowhere:20260105T110000\r\n" in moved
+
+
+def test_a_moved_start_keeps_the_end_in_its_own_zone():
+    flight = ("BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Example Corp//Flight//EN\r\nBEGIN:VEVENT\r\n"
+              "UID:flight@example.org\r\nDTSTAMP:20260101T000000Z\r\nDTSTART;TZID=America/New_York:20261102T180000\r\n"
+              "DTEND;TZID=Europe/London:20261103T060000\r\nRRULE:FREQ=WEEKLY;COUNT=3\r\nSUMMARY:Flight\r\n"
+              "END:VEVENT\r\nEND:VCALENDAR\r\n")
+    ny = ZoneInfo("America/New_York")
+    this = ie.edit_this(flight, datetime(2026, 11, 9, 18, tzinfo=ny), {"DTSTART": datetime(2026, 11, 9, 19, tzinfo=ny)},
+                        now=NOW)
+    assert "DTEND;TZID=Europe/London:20261110T070000\r\n" in this
+    every = ie.edit_all(flight, {"DTSTART": datetime(2026, 11, 2, 17, tzinfo=ny)}, now=NOW)
+    assert "DTEND;TZID=Europe/London:20261103T050000\r\n" in every
