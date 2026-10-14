@@ -2,7 +2,9 @@
 sources may be imported (sources/importer.py does the work).
 
 - **Previews** live in this process only, for PREVIEW_TTL seconds (at most MAX_PREVIEWS at a time; the oldest
-  goes first, before a new input is read). One input is read at a time. A preview id that expired, was committed, or was made before the host restarted is gone
+  goes first, before a new input is read). One input is read at a time. A preview belongs to the app that made it:
+  another app gets PreviewGone, as for an unknown id. The app discards one it cancels (discard), and a commit takes
+  it out before it writes, so two commits of one preview never both run. A preview id that expired, was committed, or was made before the host restarted is gone
   (PreviewGone): the app reads the file again. Nothing is written for a preview.
 - **Commit** takes a snapshot of the databases first ("always before an import", the owned-data plan 3.4),
   and refuses (SnapshotFailed, nothing imported) if contacts.sqlite cannot be copied. One import runs at a time.
@@ -146,18 +148,35 @@ class ContactImports:
         for key in [k for k, h in self._previews.items() if h.expires <= now]:
             del self._previews[key]
 
-    def _held(self, preview_id: str) -> Held:
+    def _held(self, preview_id: str, actor: str, *, take: bool = False) -> Held:
+        """The preview, held for the app that made it (another app gets PreviewGone, as for an unknown id); with
+        take, it is also taken out, so no second commit or read finds it."""
         with self._lock:
             self._expire(self.clock())
             held = self._previews.get(preview_id)
+            if held is not None and held.actor != actor:
+                held = None
+            if held is not None and take:
+                del self._previews[preview_id]
         if held is None:
             raise PreviewGone("This preview is no longer held (it expired, was imported already, or the host "
                               "restarted). Choose the file again.")
         return held
 
-    def get(self, preview_id: str) -> dict:
+    def _give_back(self, held: Held) -> None:
+        """A commit that wrote nothing (refused) leaves its preview held, unless it expired meanwhile."""
+        with self._lock:
+            if held.expires > self.clock():
+                self._previews[held.id] = held
+
+    def get(self, preview_id: str, actor: str) -> dict:
         """The preview again, as the host is now (an edit since may have changed a card's status)."""
-        return self.describe(self._held(preview_id))
+        return self.describe(self._held(preview_id, actor))
+
+    def discard(self, preview_id: str, actor: str) -> None:
+        """Drop a preview the app cancelled, with the file's contents it holds."""
+        self._held(preview_id, actor, take=True)
+        log(logger, logging.INFO, "contacts import preview discarded", preview_id=preview_id, actor=actor)
 
     def describe(self, held: Held) -> dict:
         store = self.sources.contacts
@@ -201,22 +220,27 @@ class ContactImports:
 
     def commit(self, preview_id: str, *, address_book_id: str | None, choices: dict[int, str], accept_losses: bool,
                actor: str) -> dict:
-        held = self._held(preview_id)
         with self._write_lock:
-            if importer.losses_of(held.read) and not accept_losses:
-                raise importer.LossesNotAccepted("Some of the file cannot be imported (see the loss report). "
-                                                 "Accept that to import the rest.")
-            store = self.sources.contacts
+            # Taken out first, so a second commit of the same preview finds nothing; given back if this one is
+            # refused before anything is written.
+            held = self._held(preview_id, actor, take=True)
             try:
-                snap = self._snapshot()
-            except BackupError as e:
-                log(logger, logging.ERROR, "the snapshot before an import failed; nothing was imported",
-                    preview_id=preview_id)
-                raise SnapshotFailed(f"The snapshot before the import failed ({e}). Nothing was imported.") from None
-            done = importer.commit(store, held.source, held.read, choices=choices, address_book_id=address_book_id,
-                                   accept_losses=accept_losses, actor=actor)
-            with self._lock:
-                self._previews.pop(preview_id, None)
+                if importer.losses_of(held.read) and not accept_losses:
+                    raise importer.LossesNotAccepted("Some of the file cannot be imported (see the loss report). "
+                                                     "Accept that to import the rest.")
+                store = self.sources.contacts
+                try:
+                    snap = self._snapshot()
+                except BackupError as e:
+                    log(logger, logging.ERROR, "the snapshot before an import failed; nothing was imported",
+                        preview_id=preview_id)
+                    raise SnapshotFailed(f"The snapshot before the import failed ({e}). Nothing was "
+                                         "imported.") from None
+                done = importer.commit(store, held.source, held.read, choices=choices,
+                                       address_book_id=address_book_id, accept_losses=accept_losses, actor=actor)
+            except BaseException:
+                self._give_back(held)
+                raise
         log(logger, logging.INFO, "contacts imported", import_id=done.import_id, preview_id=preview_id,
             source=held.source.kind, actor=actor, snapshot=getattr(snap, "name", None),
             **{k: v for k, v in done.counts.items() if isinstance(v, int)})

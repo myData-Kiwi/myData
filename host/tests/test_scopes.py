@@ -53,6 +53,7 @@ ROUTE_SCOPES = {
     ("POST", "/import/contacts/preview"): ("contacts:write",),
     ("POST", "/import/contacts/from-source/{account_id}/preview"): ("contacts:write",),
     ("GET", "/import/previews/{preview_id}"): ("contacts:write",),
+    ("DELETE", "/import/previews/{preview_id}"): ("contacts:write",),
     ("POST", "/import/previews/{preview_id}/commit"): ("contacts:write",),
     ("GET", "/imports"): ("contacts:write",),
     ("POST", "/imports/{import_id}/undo"): ("contacts:write",),

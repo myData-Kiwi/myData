@@ -179,6 +179,37 @@ def test_a_restart_drops_previews_and_keeps_imports_undoable(tmp_path):
         assert r.status_code == 200 and r.json()["removed"] == 3 and r.json()["groups_removed"] == 1
 
 
+def test_a_preview_belongs_to_the_app_that_made_it_and_can_be_discarded(host, client):
+    preview = upload(client, host, corpus.read(corpus.GOOGLE)).json()
+    url = f"/import/previews/{preview['id']}"
+    assert client.get(url, headers=bearer(host, "mydata")).status_code == 404
+    assert client.post(f"{url}/commit", headers=bearer(host, "mydata"), json={}).status_code == 404
+    assert client.delete(url, headers=bearer(host, "mydata")).status_code == 404
+    assert client.get(url, headers=bearer(host, "mycontacts")).status_code == 200
+    assert client.delete(url, headers=bearer(host, "mycontacts")).status_code == 204
+    assert client.get(url, headers=bearer(host, "mycontacts")).status_code == 404
+    assert client.delete(url, headers=bearer(host, "mycontacts")).status_code == 404
+    assert client.get("/imports", headers=host.auth).json() == []
+
+
+def test_a_commit_takes_its_preview_before_it_writes(host):
+    imports = imports_service.ContactImports(host.sources)
+    preview = imports.preview_file(corpus.read(corpus.GOOGLE), "contacts.vcf", "mycontacts")
+    seen = []
+
+    def snapshot():
+        try:
+            imports.get(preview["id"], "mycontacts")
+            seen.append("still held")
+        except imports_service.PreviewGone:
+            seen.append("gone")
+    imports._snapshot = snapshot
+    imports.commit(preview["id"], address_book_id=None, choices={}, accept_losses=False, actor="mycontacts")
+    assert seen == ["gone"]  # a second commit of it, now, would find nothing
+    with pytest.raises(imports_service.PreviewGone):
+        imports.commit(preview["id"], address_book_id=None, choices={}, accept_losses=False, actor="mycontacts")
+
+
 def test_previews_expire(tmp_path, monkeypatch):
     monkeypatch.setattr(imports_service, "PREVIEW_TTL", 0.0)  # expired as soon as it is made
     host = Host(tmp_path, FakeDav())

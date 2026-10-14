@@ -32,7 +32,8 @@
   POST /contacts/merge         merge owned contacts into one (the originals go to Recently deleted; undo restores them)
   POST /import/contacts/preview              read a .vcf or .zip (the raw bytes) into a preview; nothing is written
   POST /import/contacts/from-source/{id}/preview   a preview of a copy of a followed iCloud account (never This Mac)
-  GET  /import/previews/{id}   a preview again, as the host is now
+  GET  /import/previews/{id}   a preview again, as the host is now (only for the app that made it)
+  DELETE /import/previews/{id}  drop a preview the app cancelled
   POST /import/previews/{id}/commit          import it as one batch, after a snapshot
   GET  /imports                the imports, newest first
   POST /imports/{id}/undo      undo a whole import (what was changed since is kept and reported)
@@ -1558,10 +1559,19 @@ def _routes_imports(app: FastAPI, need: Callable[[], SyncService], unavailable: 
 
     @app.get("/import/previews/{preview_id}", dependencies=needs("contacts:write"), tags=["imports"],
              response_model=ImportPreviewOut, responses={**gone, **unavailable})
-    def import_preview(preview_id: str) -> ImportPreviewOut:
-        """A preview again, analysed as the host is now."""
-        service = imports()
-        return ImportPreviewOut(**run(lambda: service.get(preview_id)))
+    def import_preview(preview_id: str, request: Request) -> ImportPreviewOut:
+        """A preview again, analysed as the host is now. Only the app that made it can read it."""
+        service, who = imports(), actor(request)
+        return ImportPreviewOut(**run(lambda: service.get(preview_id, who)))
+
+    @app.delete("/import/previews/{preview_id}", dependencies=needs("contacts:write"), tags=["imports"],
+                status_code=204, responses={**gone, **unavailable})
+    def discard_import_preview(preview_id: str, request: Request) -> Response:
+        """Drop a preview the app cancelled, with the file's contents the host holds for it. Only the app that made
+        it can drop it."""
+        service, who = imports(), actor(request)
+        run(lambda: service.discard(preview_id, who))
+        return Response(status_code=204)
 
     @app.post("/import/previews/{preview_id}/commit", dependencies=needs("contacts:write"), tags=["imports"],
               response_model=ImportCommittedOut, status_code=201,

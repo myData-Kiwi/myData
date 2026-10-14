@@ -5838,8 +5838,81 @@
       }
     },
     "/import/previews/{preview_id}": {
+      "delete": {
+        "description": "Drop a preview the app cancelled, with the file's contents the host holds for it. Only the app that made\nit can drop it.",
+        "operationId": "discard_import_preview",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "preview_id",
+            "required": true,
+            "schema": {
+              "title": "Preview Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "missing or wrong token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
+          },
+          "404": {
+            "description": "no such preview: it expired, was imported already, or the host restarted"
+          },
+          "421": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "the Host header is not this machine"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "503": {
+            "description": "accounts are not available in this host"
+          }
+        },
+        "summary": "Discard Import Preview",
+        "tags": [
+          "imports"
+        ],
+        "x-mydata-scopes": [
+          "contacts:write"
+        ]
+      },
       "get": {
-        "description": "A preview again, analysed as the host is now.",
+        "description": "A preview again, analysed as the host is now. Only the app that made it can read it.",
         "operationId": "import_preview",
         "parameters": [
           {
