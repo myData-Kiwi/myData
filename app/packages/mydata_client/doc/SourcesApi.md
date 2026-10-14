@@ -690,7 +690,7 @@ Name | Type | Description  | Notes
 
 Merge Contacts
 
-Merge owned contacts the user chose as one person (never automatic): a new contact holds the first one's names (or names_from's), every email, phone, address and link of them all, and every other property it has no value of; what it cannot take (a second job title or birthday, another photo) is listed in left_out. The originals go to Recently deleted, unchanged, so POST /undo/{undo_id} brings them back while nothing changed since. 412 when a contact changed since its etag.
+Merge owned contacts the user chose as one person (never automatic): a new contact holds the names of the one changed most recently (or names_from's), every email, phone, address and link of them all, and every other property it has no value of; what it cannot take (a second job title or birthday, another photo) is listed in left_out. The originals go to Recently deleted, unchanged, so POST /undo/{undo_id} brings them back while nothing changed since. 412 when a contact changed since its etag.
 
 ### Example
 ```dart

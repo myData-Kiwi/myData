@@ -20,7 +20,7 @@ class MergeIn {
   /// the owned contacts to merge, in order
   List<MergeContactIn> contacts;
 
-  /// the contact whose names (and lines) the merged one starts from; default the first
+  /// the contact whose names (and lines) the merged one starts from; default the one changed most recently (the preview's newest)
   String? namesFrom;
 
   @override

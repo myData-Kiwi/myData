@@ -56,7 +56,7 @@ class ImportCountsOut {
   /// cards whose email or phone an owned contact of the same name already has
   int duplicates;
 
-  /// a file's cards that hide a followed contact once imported (the same name and the same email or phone, emails in lower case and phones in E.164): each person is then one result. Matches with hides say which. 0 for a copy of an account (it hides its own cards)
+  /// a file's cards that hide a followed contact once imported (the same name and the same email or phone, emails in lower case and phones in E.164) with the default choices (imported, updated or found unchanged): each person is then one result. Matches with hides say which. 0 for a copy of an account (it hides its own cards)
   int followedMatches;
 
   /// group cards: imported as groups, never listed as contacts

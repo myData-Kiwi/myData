@@ -29,7 +29,7 @@ class ImportMatchOut {
 
   String displayName;
 
-  /// a followed contact (This Mac, an iCloud account) this file's card hides once imported, so the person is found once; shown again if the imported contact is deleted or the import undone
+  /// a followed contact (This Mac, an iCloud account) this file's card hides once imported, so the person is found once; shown again if the imported contact is deleted or the import undone. For a card skipped by default (a duplicate), only if it is imported
   bool hides;
 
   /// for source file: the earlier card's index

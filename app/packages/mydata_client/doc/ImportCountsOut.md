@@ -14,7 +14,7 @@ Name | Type | Description | Notes
 **created** | **int** | after the commit: contacts created | [optional] 
 **deleted** | **int** | cards imported before whose owned copy is in Recently deleted | 
 **duplicates** | **int** | cards whose email or phone an owned contact of the same name already has | 
-**followedMatches** | **int** | a file's cards that hide a followed contact once imported (the same name and the same email or phone, emails in lower case and phones in E.164): each person is then one result. Matches with hides say which. 0 for a copy of an account (it hides its own cards) | 
+**followedMatches** | **int** | a file's cards that hide a followed contact once imported (the same name and the same email or phone, emails in lower case and phones in E.164) with the default choices (imported, updated or found unchanged): each person is then one result. Matches with hides say which. 0 for a copy of an account (it hides its own cards) | 
 **groups** | **int** | group cards: imported as groups, never listed as contacts | 
 **groupsCreated** | **int** |  | [optional] 
 **hidden** | **int** | after the commit of a file: followed contacts now hidden behind the contacts it wrote (or found unchanged) | [optional] 

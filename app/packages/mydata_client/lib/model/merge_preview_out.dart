@@ -28,7 +28,7 @@ class MergePreviewOut {
   /// the contact whose name and details it starts from
   String namesFrom;
 
-  /// the contact changed most recently: the default for names_from
+  /// the contact changed most recently: names_from when none is sent
   String newest;
 
   @override

@@ -11,7 +11,7 @@ Name | Type | Description | Notes
 **accountId** | **String** |  | [optional] 
 **contactId** | **String** |  | [optional] 
 **displayName** | **String** |  | 
-**hides** | **bool** | a followed contact (This Mac, an iCloud account) this file's card hides once imported, so the person is found once; shown again if the imported contact is deleted or the import undone | [optional] [default to false]
+**hides** | **bool** | a followed contact (This Mac, an iCloud account) this file's card hides once imported, so the person is found once; shown again if the imported contact is deleted or the import undone. For a card skipped by default (a duplicate), only if it is imported | [optional] [default to false]
 **itemIndex** | **int** | for source file: the earlier card's index | [optional] 
 **signals** | **List<String>** | origin, changed (a card with no UID that changed since it was imported), uid, identical, email, phone, name | [default to const []]
 **source_** | **String** | mydata (owned), icloud, mac, or file (an earlier card in the same input) | 
