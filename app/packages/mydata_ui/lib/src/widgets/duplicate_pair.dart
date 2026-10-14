@@ -292,6 +292,7 @@ class _DuplicatePairState extends State<DuplicatePair> {
             header: true,
             child: Text(widget.after!.title, style: MyDataType.label.copyWith(color: c.inkMuted)),
           ));
+          children.add(Text(widget.after!.caption, style: MyDataType.caption.copyWith(color: c.inkMuted)));
           children.add(const SizedBox(height: MyDataSpace.s2));
           final afterOnly = [_Column.after(widget.after!)];
           for (final f in rows) {
