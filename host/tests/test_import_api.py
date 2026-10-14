@@ -302,6 +302,14 @@ def test_stop_following_says_what_is_not_on_mydata(host, client):
     assert stop["message"].startswith("Keep following") and "1 of its contact(s) are not on myData" in stop["message"]
 
 
+def test_a_followed_card_deleted_upstream_is_not_read_as_deleted(host, client):
+    account = _follow(host)
+    [ava] = [c for c in client.get("/contacts", headers=host.auth).json() if c["display_name"] == "Ava Fictional"]
+    host.sources.contacts.apply(account, con.BOOK, con.result(deleted=["/1/carddavhome/card/ava-fictional.vcf"]))
+    r = client.get(f"/contacts/{ava['id']}", headers=host.auth, params={"include_deleted": True})
+    assert r.status_code == 404  # only a contact of yours is in Recently deleted
+
+
 def test_this_mac_is_never_imported(host, client):
     r = client.post("/import/contacts/from-source/mac/preview", headers=bearer(host, "mydata"))
     assert r.status_code == 409 and "never imported" in r.json()["detail"] and "Export vCard" in r.json()["detail"]
@@ -473,12 +481,19 @@ def test_merge_and_undo_through_the_api(host, client):
     assert r.status_code == 201, r.text
     merged = r.json()
     assert merged["contact"]["display_name"] == "Ava Fictional" and merged["merged"] == [a["id"], b["id"]]
+    # A link to an original finds the contact it went into.
+    assert client.get(f"/contacts/{a['id']}", headers=auth).status_code == 404
+    r = client.get(f"/contacts/{a['id']}", headers=auth, params={"include_deleted": True})
+    assert r.status_code == 200 and r.json()["merged_into"] == merged["contact"]["id"] and r.json()["deleted_at"]
+    assert {t["contact"]["merged_into"] for t in client.get("/trash", headers=auth).json()} == {merged["contact"]["id"]}
+    assert merged["contact"]["merged_into"] is None
     assert [p["value"] for p in merged["contact"]["phones"]] == ["+1 202 555 0100"]
     assert [c["id"] for c in client.get("/contacts", headers=auth).json()] == [merged["contact"]["id"]]
     r = client.post(f"/undo/{merged['undo_id']}", headers=auth)
     assert r.status_code == 200, r.text
     assert set(r.json()["contact_ids"]) == {a["id"], b["id"], merged["contact"]["id"]}
     assert {c["id"] for c in client.get("/contacts", headers=auth).json()} == {a["id"], b["id"]}
+    assert client.get(f"/contacts/{a['id']}", headers=auth).json()["merged_into"] is None
     assert client.post(f"/undo/{merged['undo_id']}", headers=auth).status_code == 409
 
 

@@ -357,6 +357,9 @@ class ContactOut(BaseModel):
                                                             "(the source decides where it is)")
     purge_after: str | None = Field(default=None, description="for a contact in Recently deleted: when it is "
                                                               "deleted for good (UTC)")
+    merged_into: str | None = Field(default=None, description="for a contact in Recently deleted because it was "
+                                                              "merged: the contact it went into, which a link to it "
+                                                              "can open instead; null otherwise")
     changed_in_source: str | None = Field(default=None, description="for a contact the host owns that was imported "
                                                                     "from a followed account: that account's id "
                                                                     "(GET /sources) when its copy changed since the "
@@ -1237,12 +1240,17 @@ def _routes_sources(app: FastAPI, need: Callable[[], SyncService], current_mode:
              responses={200: {"headers": {"ETag": {"description": "the contact's etag", "schema": {"type": "string"}}}},
                         404: {"description": "no such contact"}, **unavailable})
     def contact(contact_id: str, response: Response,
-                raw: bool = Query(default=False, description="include the raw vCard")) -> ContactDetailOut:
+                raw: bool = Query(default=False, description="include the raw vCard"),
+                include_deleted: bool = Query(default=False, description="also a contact of yours in Recently "
+                                                                         "deleted (deleted_at set): a link to a "
+                                                                         "merged original finds merged_into")
+                ) -> ContactDetailOut:
         """One contact, for its page: the fields grouped by kind, the job title and where the card comes from;
-        whether it can be changed here, and its etag (also the ETag header)."""
+        whether it can be changed here, and its etag (also the ETag header). A contact in Recently deleted is 404
+        unless include_deleted; one that was merged says which contact it went into (merged_into)."""
         service = need()
-        row = service.contacts.get(contact_id)
-        if row is None:
+        row = service.contacts.get(contact_id, include_deleted=include_deleted)
+        if row is None or (row["deleted_at"] is not None and not row["editable"]):
             raise HTTPException(404, "no such contact")
         out = _detail(service, row, raw=raw)
         response.headers["ETag"] = out.etag

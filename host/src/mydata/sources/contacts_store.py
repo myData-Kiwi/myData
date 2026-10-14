@@ -294,6 +294,8 @@ def _row(row: sqlite3.Row, *, raw: bool = False) -> dict:
     out["http_etag"] = http_etag(row["rev"], row["raw_sha256"])
     out["rev"] = row["rev"]
     out["purge_after"] = row["purge_after"]
+    # A merged original (in Recently deleted): the contact it went into (sources/contacts_merge.py).
+    out["merged_into"] = row["merged_into"]
     out["changed_in_source"] = None  # set by _annotated for owned rows (ContactsStore.changed_in_source)
     if raw:
         out["raw_vcard"] = row["raw_vcard"]

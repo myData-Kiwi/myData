@@ -857,6 +857,18 @@
             "title": "Job Title",
             "type": "string"
           },
+          "merged_into": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "for a contact in Recently deleted because it was merged: the contact it went into, which a link to it can open instead; null otherwise",
+            "title": "Merged Into"
+          },
           "middle_name": {
             "default": "",
             "description": "for the edit form, as are the four fields below",
@@ -1370,6 +1382,18 @@
           "id": {
             "title": "Id",
             "type": "string"
+          },
+          "merged_into": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "for a contact in Recently deleted because it was merged: the contact it went into, which a link to it can open instead; null otherwise",
+            "title": "Merged Into"
           },
           "modified_at": {
             "title": "Modified At",
@@ -6111,7 +6135,7 @@
         ]
       },
       "get": {
-        "description": "One contact, for its page: the fields grouped by kind, the job title and where the card comes from;\nwhether it can be changed here, and its etag (also the ETag header).",
+        "description": "One contact, for its page: the fields grouped by kind, the job title and where the card comes from;\nwhether it can be changed here, and its etag (also the ETag header). A contact in Recently deleted is 404\nunless include_deleted; one that was merged says which contact it went into (merged_into).",
         "operationId": "contact",
         "parameters": [
           {
@@ -6132,6 +6156,18 @@
               "default": false,
               "description": "include the raw vCard",
               "title": "Raw",
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "also a contact of yours in Recently deleted (deleted_at set): a link to a merged original finds merged_into",
+            "in": "query",
+            "name": "include_deleted",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "also a contact of yours in Recently deleted (deleted_at set): a link to a merged original finds merged_into",
+              "title": "Include Deleted",
               "type": "boolean"
             }
           }
