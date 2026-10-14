@@ -44,3 +44,4 @@ export 'src/widgets/switch.dart';
 export 'src/widgets/tabs.dart';
 export 'src/widgets/text_field.dart';
 export 'src/widgets/theme_picker.dart';
+export 'src/widgets/token_field.dart';
