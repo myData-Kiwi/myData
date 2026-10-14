@@ -17,7 +17,8 @@ expansions of a rolling window, not records the user made). `coverage` holds eac
 the days it holds. A CalDAV account holds everything, so it has no coverage row.
 
 Every calendar is followed (a copy of a source) or owned (the host holds the only copy; see
-sources/owned.py, whose triggers keep it from being deleted). Each resource records a sha256 of its raw text (`raw_sha256`;
+sources/owned.py, whose triggers keep it from being deleted). Hard deletes here, the occurrence snapshots
+included, only ever touch followed calendars. Each resource records a sha256 of its raw text (`raw_sha256`;
 `etag` stays the source's ETag) and `rev`, which goes up by one whenever its raw text changes.
 """
 
@@ -224,12 +225,11 @@ class CalendarStore:
             retire_collections(db, "calendars", "events", "calendar_id", account_id, set(present_urls), now())
 
     def delete_account(self, account_id: str) -> None:
-        """Hard-delete everything mirrored from one account (events, calendars, sync state)."""
+        """Hard-delete everything mirrored from one account (events, occurrences, calendars, sync state, its
+        window). Only the account's followed calendars go; an owned one is never touched."""
         with self.db.transaction() as db:
-            db.execute("DELETE FROM occurrences WHERE account_id = ?", (account_id,))
+            _delete_followed(db, owned.followed_ids(db, "calendars", account_id))
             db.execute("DELETE FROM coverage WHERE account_id = ?", (account_id,))
-            db.execute("DELETE FROM events WHERE account_id = ?", (account_id,))
-            db.execute("DELETE FROM calendars WHERE account_id = ?", (account_id,))
         self.db.checkpoint()
 
     def purge(self, *, calendar_ids: Iterable[str] = (), event_ids: Iterable[str] = ()) -> dict[str, int]:
@@ -242,11 +242,11 @@ class CalendarStore:
         return gone
 
     def account_ids(self) -> list[str]:
-        """Every account with rows in this file (to find data left by an account that no longer exists)."""
+        """Every account with followed calendars or a window in this file (to find data left by an account that
+        was removed). Owned calendars are not a source's: they never count."""
         with self.db.connect() as db:
-            rows = db.execute("SELECT account_id FROM calendars UNION SELECT account_id FROM events "
-                              "UNION SELECT account_id FROM occurrences UNION SELECT account_id FROM coverage"
-                              ).fetchall()
+            rows = db.execute("SELECT account_id FROM calendars WHERE mode = 'followed' "
+                              "UNION SELECT account_id FROM coverage").fetchall()
         return sorted(r[0] for r in rows)
 
     def counts(self, account_id: str) -> dict[str, int]:
@@ -277,19 +277,13 @@ class CalendarStore:
         return {r["url"]: r["id"] for r in rows}
 
     def delete_calendars(self, account_id: str, urls: Iterable[str]) -> int:
-        """Hard-delete these calendars of the account and everything in them. Returns how many went."""
+        """Hard-delete these followed calendars of the account and everything in them. Returns how many went."""
         urls = list(urls)
         if not urls:
             return 0
         with self.db.transaction() as db:
-            ids = [r["id"] for r in db.execute(
-                f"SELECT id FROM calendars WHERE account_id = ? AND url IN ({', '.join('?' * len(urls))})",
-                [account_id, *urls]).fetchall()]
-            if ids:
-                marks = ", ".join("?" * len(ids))
-                db.execute(f"DELETE FROM occurrences WHERE calendar_id IN ({marks})", ids)
-                db.execute(f"DELETE FROM events WHERE calendar_id IN ({marks})", ids)
-                db.execute(f"DELETE FROM calendars WHERE id IN ({marks})", ids)
+            ids = owned.followed_ids(db, "calendars", account_id, urls)
+            _delete_followed(db, ids)
         if ids:
             self.db.checkpoint()
         return len(ids)
@@ -298,14 +292,20 @@ class CalendarStore:
                             by_calendar: Mapping[str, Sequence]) -> dict[str, int]:
         """Make the account's occurrences exactly `by_calendar` ({calendar id: [Occurrence]}), and record
         `window` (first and last day, both included) as the days it holds. Unchanged rows keep their id;
-        rows not in the snapshot are deleted. Returns {"added", "changed", "removed"}."""
+        rows not in the snapshot are deleted. Only the account's followed calendars take occurrences, and only
+        their rows are ever deleted. Returns {"added", "changed", "removed"}."""
         stamp = now()
         counts = {"added": 0, "changed": 0, "removed": 0}
         with self.db.transaction() as db:
+            followed = set(owned.followed_ids(db, "calendars", account_id))
             existing = {(r["calendar_id"], r["external_id"], r["occurrence_date"]): r for r in db.execute(
-                "SELECT * FROM occurrences WHERE account_id = ?", (account_id,)).fetchall()}
+                "SELECT * FROM occurrences WHERE account_id = ?", (account_id,)).fetchall()
+                if r["calendar_id"] in followed}
             seen: set[tuple] = set()
             for calendar_id, items in by_calendar.items():
+                if calendar_id not in followed:  # never into an owned calendar, nor another account's
+                    log.warning("occurrences for a calendar that is not the source's were left out")
+                    continue
                 for o in items:
                     key = (calendar_id, o.external_id, o.occurrence_date)
                     if key in seen:
@@ -340,7 +340,8 @@ class CalendarStore:
     def clear_occurrences(self, account_id: str) -> None:
         """Delete the account's occurrences and its window (its access was taken away)."""
         with self.db.transaction() as db:
-            db.execute("DELETE FROM occurrences WHERE account_id = ?", (account_id,))
+            for calendar_id in owned.followed_ids(db, "calendars", account_id):
+                db.execute("DELETE FROM occurrences WHERE calendar_id = ?", (calendar_id,))
             db.execute("DELETE FROM coverage WHERE account_id = ?", (account_id,))
         self.db.checkpoint()
 
@@ -355,9 +356,9 @@ class CalendarStore:
             windows = db.execute("SELECT account_id, covered_start, covered_end FROM coverage "
                                  "ORDER BY account_id").fetchall()
             bounded = {r["account_id"] for r in windows}
-            unbounded = [r[0] for r in db.execute(
-                "SELECT DISTINCT account_id FROM calendars WHERE deleted_at IS NULL ORDER BY account_id").fetchall()
-                if r[0] not in bounded and r[0] != MAC_ID]
+            unbounded = [r[0] for r in db.execute(  # owned calendars are not a source, and hold every day
+                "SELECT DISTINCT account_id FROM calendars WHERE deleted_at IS NULL AND mode = 'followed' "
+                "ORDER BY account_id").fetchall() if r[0] not in bounded and r[0] != MAC_ID]
         out = [{"source": source_of(a), "account_id": a, "covered_start": None, "covered_end": None,
                 "complete": True} for a in unbounded]
         for r in windows:
@@ -458,6 +459,14 @@ class CalendarStore:
                         "end": end_s, "all_day": all_day, "time_zone": None if all_day else r["time_zone"],
                         "source": source_of(r["account_id"]), "_sort": a_start})
         return out
+
+
+def _delete_followed(db, calendar_ids: list[str]) -> None:
+    """Hard-delete these calendars and everything in them: ids from owned.followed_ids, never anything else."""
+    for calendar_id in calendar_ids:
+        db.execute("DELETE FROM occurrences WHERE calendar_id = ?", (calendar_id,))
+        db.execute("DELETE FROM events WHERE calendar_id = ?", (calendar_id,))
+        db.execute("DELETE FROM calendars WHERE id = ?", (calendar_id,))
 
 
 def _soft_delete(db, account_id: str, collection_url: str, href: str, stamp: str) -> None:

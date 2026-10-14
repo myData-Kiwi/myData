@@ -6,9 +6,10 @@ deleted upstream gets the soft-delete marker; removing an account hard-deletes i
 (sync token, ctag, etags) is stored per address book in the same file.
 
 Every address book is followed (a copy of a source) or owned (the host holds the only copy; see
-sources/owned.py, whose triggers keep it from being deleted). Each card records its kind (`kind`:
-individual, group or org), its vCard version as received, a sha256 of its raw text (`raw_sha256`;
-`etag` stays the source's ETag) and `rev`, which goes up by one whenever its raw text changes.
+sources/owned.py, whose triggers keep it from being deleted). Hard deletes here only ever touch followed
+address books. Each card records its kind (`kind`: individual, group or org), its vCard version as
+received, a sha256 of its raw text (`raw_sha256`; `etag` stays the source's ETag) and `rev`, which goes
+up by one whenever its raw text changes.
 
 The "This Mac" source (account_id "mac") is stored the same way: one synthetic address book per
 Contacts container (url mac://contacts/<container id>) and a vCard generated from what the helper read
@@ -262,12 +263,20 @@ class ContactsStore:
     def delete_account(self, account_id: str) -> None:
         """Hard-delete everything mirrored from one account (cards, address books, sync state), leaving no
         readable trace in the file: the full-text index is rewritten too (its old segments would otherwise
-        keep the names, emails and phone numbers until a merge), and secure_delete zeroes the freed pages."""
+        keep the names, emails and phone numbers until a merge), and secure_delete zeroes the freed pages.
+        Only the account's followed address books go; an owned one is never touched."""
         with self.db.transaction() as db:
-            db.execute("DELETE FROM contacts WHERE account_id = ?", (account_id,))
-            db.execute("DELETE FROM address_books WHERE account_id = ?", (account_id,))
-            db.execute("INSERT INTO contacts_fts (contacts_fts) VALUES ('optimize')")
+            self._delete_followed(db, owned.followed_ids(db, "address_books", account_id))
         self.db.checkpoint()
+
+    @staticmethod
+    def _delete_followed(db, book_ids: list[str]) -> None:
+        """Hard-delete these address books and their cards: ids from owned.followed_ids, never anything else."""
+        for book_id in book_ids:
+            db.execute("DELETE FROM contacts WHERE address_book_id = ?", (book_id,))
+            db.execute("DELETE FROM address_books WHERE id = ?", (book_id,))
+        if book_ids:
+            db.execute("INSERT INTO contacts_fts (contacts_fts) VALUES ('optimize')")
 
     def purge(self, *, address_book_ids: Iterable[str] = (), contact_ids: Iterable[str] = ()) -> dict[str, int]:
         """Hard-delete cards, and address books with every card in them, owned ones included (owned.purge).
@@ -287,21 +296,17 @@ class ContactsStore:
         return {r["url"]: r["id"] for r in rows}
 
     def delete_collections(self, account_id: str, urls: Iterable[str]) -> int:
-        """Hard-delete these address books of the account and their cards, as delete_account does for a
-        whole account (the full-text index is rewritten too). Returns how many address books went."""
+        """Hard-delete these followed address books of the account and their cards, as delete_account does for
+        a whole account (the full-text index is rewritten too). Returns how many address books went."""
         urls = list(urls)
         if not urls:
             return 0
-        marks = ", ".join("?" * len(urls))
         with self.db.transaction() as db:
-            gone = db.execute(f"SELECT COUNT(*) FROM address_books WHERE account_id = ? AND url IN ({marks})",
-                              [account_id, *urls]).fetchone()[0]
-            db.execute(f"DELETE FROM contacts WHERE account_id = ? AND collection_url IN ({marks})",
-                       [account_id, *urls])
-            db.execute(f"DELETE FROM address_books WHERE account_id = ? AND url IN ({marks})", [account_id, *urls])
-            db.execute("INSERT INTO contacts_fts (contacts_fts) VALUES ('optimize')")
-        self.db.checkpoint()
-        return gone
+            gone = owned.followed_ids(db, "address_books", account_id, urls)
+            self._delete_followed(db, gone)
+        if gone:
+            self.db.checkpoint()
+        return len(gone)
 
     def photo(self, contact_id: str) -> tuple[bytes, str] | None:
         """The contact's photo (bytes, media type), JPEG or PNG; None when it has none or is unknown."""
@@ -313,9 +318,10 @@ class ContactsStore:
         return card_photo(row["raw_vcard"])
 
     def account_ids(self) -> list[str]:
-        """Every account with rows in this file (to find data left by an account that no longer exists)."""
+        """Every account with followed address books in this file (to find data left by an account that was
+        removed). Owned address books are not a source's: they never count."""
         with self.db.connect() as db:
-            rows = db.execute("SELECT account_id FROM address_books UNION SELECT account_id FROM contacts").fetchall()
+            rows = db.execute("SELECT DISTINCT account_id FROM address_books WHERE mode = 'followed'").fetchall()
         return sorted(r[0] for r in rows)
 
     def counts(self, account_id: str) -> dict[str, int]:

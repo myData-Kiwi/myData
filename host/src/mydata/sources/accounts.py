@@ -6,6 +6,9 @@ host. The password is never in it: it lives in the SecretStore (the macOS Keycha
 f"account:{id}", and is stored only after the provider's verify check has passed.
 
 Removing an account deletes its secret and, through the caller's on_remove hook, its mirrored data.
+Its id is first recorded in <home>/accounts-removed.json (ids and times only): the host deletes data
+left behind for an account only when that file says the account was removed (SyncService._purge_orphans),
+never merely because accounts.json does not list it.
 """
 
 from __future__ import annotations
@@ -51,6 +54,7 @@ class Account:
 class Accounts:
     def __init__(self, home: Path, secrets: SecretStore):
         self.path = home / "accounts.json"
+        self.removed_path = home / "accounts-removed.json"
         self._secrets = secrets
         self._lock = threading.Lock()
 
@@ -68,19 +72,29 @@ class Accounts:
         return [Account(**{k: v for k, v in raw.items() if k in names}) for raw in json.loads(text or "[]")]
 
     def _save(self, accounts: list[Account]) -> None:
-        self.path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
-        fd, tmp = tempfile.mkstemp(dir=self.path.parent, prefix=".accounts.")
+        self._write(self.path, [asdict(a) for a in accounts])
+
+    def _write(self, path: Path, data) -> None:
+        path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=".accounts.")
         try:
             if not sys.platform.startswith("win"):
                 os.fchmod(fd, 0o600)
             with os.fdopen(fd, "w") as fh:
-                json.dump([asdict(a) for a in accounts], fh, indent=2)
+                json.dump(data, fh, indent=2)
                 fh.flush()
                 os.fsync(fh.fileno())
-            os.replace(tmp, self.path)
+            os.replace(tmp, path)
         finally:
             if os.path.exists(tmp):
                 os.unlink(tmp)
+
+    def _load_removed(self) -> list[dict]:
+        try:
+            data = json.loads(self.removed_path.read_text() or "[]")
+        except FileNotFoundError:
+            return []
+        return [r for r in data if isinstance(r, dict) and isinstance(r.get("id"), str)]
 
     # ---------------------------------------------------------------- reads
 
@@ -90,6 +104,12 @@ class Accounts:
 
     def get(self, account_id: str) -> Account | None:
         return next((a for a in self.list() if a.id == account_id), None)
+
+    def removed_ids(self) -> set[str]:
+        """The ids of every account removed from this host (by the host or the mydata command). Ids are
+        random and never reused, so one listed here is never a live account's."""
+        with self._lock:
+            return {r["id"] for r in self._load_removed()}
 
     def password(self, account_id: str) -> str:
         """The account's password, from the SecretStore only. KeyError if the account or its secret is gone."""
@@ -138,11 +158,16 @@ class Accounts:
         return account
 
     def remove(self, account_id: str, *, on_remove: Callable[[Account], None]) -> Account:
-        """Delete the account's mirrored data (on_remove, run first so a failure leaves the account in place
-        to retry), then its secret, then its entry. KeyError if there is no such account."""
+        """Record the removal (accounts-removed.json), delete the account's mirrored data (on_remove, run
+        before the entry goes so a failure leaves the account in place to retry), then its secret, then its
+        entry. KeyError if there is no such account."""
         account = self.get(account_id)
         if account is None:
             raise KeyError(f"no account with id {account_id!r}")
+        with self._lock:
+            removed = self._load_removed()
+            if account_id not in {r["id"] for r in removed}:
+                self._write(self.removed_path, [*removed, {"id": account_id, "removed_at": _now()}])
         on_remove(account)
         self._secrets.delete(secret_key(account_id))
         with self._lock:

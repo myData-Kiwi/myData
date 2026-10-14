@@ -13,6 +13,7 @@ __pycache__/
 *.sqlite-journal
 *.sqlite3
 accounts.json
+accounts-removed.json
 agents.json
 state.json
 app-tokens/

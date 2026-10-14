@@ -159,3 +159,18 @@ def purge(db: sqlite3.Connection, store: tuple[str, str, str], *, collection_ids
     finally:
         db.execute("DELETE FROM purge_permits")
     return gone
+
+
+def followed_ids(db: sqlite3.Connection, collections: str, account_id: str,
+                 urls: Iterable[str] | None = None) -> list[str]:
+    """The ids of the account's followed collections (of these URLs, when given): the only collections the
+    mirror's hard deletes may touch. Never an owned one, whatever its account id."""
+    sql = f"SELECT id FROM {collections} WHERE account_id = ? AND mode = '{FOLLOWED}'"
+    params: list = [account_id]
+    if urls is not None:
+        urls = list(urls)
+        if not urls:
+            return []
+        sql += f" AND url IN ({', '.join('?' * len(urls))})"
+        params += urls
+    return [r[0] for r in db.execute(sql, params)]

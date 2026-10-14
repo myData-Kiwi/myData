@@ -13,6 +13,9 @@ import pytest
 from mydata.sources.calendar_store import CalendarStore
 from mydata.sources.dav.discovery import Collection
 from mydata.sources.dav.sync import CollectionState, Item, SyncResult
+from mydata.sources.owned import OWNED_ACCOUNT
+from owned_data import CALENDAR_URL as OWNED_CALENDAR_URL
+from owned_data import add_owned, owned_rows
 
 FIXTURES = Path(__file__).parent / "fixtures" / "dav" / "calendar"
 HOME = Collection(url="https://cal.example.com/1/calendars/home/", kind="calendar", display_name="Home",
@@ -298,10 +301,50 @@ def test_delete_account_hard_deletes(tmp_path):
     assert b"Floating lunch" not in path.read_bytes()
 
 
+def test_delete_account_survives_owned_events(tmp_path):
+    """Twin of test_delete_account_hard_deletes: an owned calendar in the same file comes through every hard
+    delete unchanged, This Mac's occurrence paths included."""
+    from datetime import date
+
+    from mydata.sources.mac.protocol import Occurrence
+
+    path = tmp_path / "calendar.sqlite"
+    ids = add_owned(tmp_path)
+    s = CalendarStore(path)
+    s.apply("acc-1", HOME, result([item("floating.ics")]))
+    mac = s.upsert_calendar("mac", "mac://calendars/cal-1", "Mac home", None)
+    occ = Occurrence("cal-1", "ext-1", "2026-03-20", "2026-03-20", "2026-03-21", True, None, "Mac day (invented)",
+                     "", "", False, False)
+    before = owned_rows(tmp_path)
+    # Occurrences go only into the source's own followed calendars: one aimed at the owned calendar is left out.
+    assert s.replace_occurrences("mac", (date(2026, 1, 1), date(2026, 12, 31)),
+                                 {mac: [occ], ids["calendars"][0]: [occ]})["added"] == 1
+    assert s.replace_occurrences("mac", (date(2026, 1, 1), date(2026, 12, 31)), {})["removed"] == 1
+    s.clear_occurrences("mac")
+    s.clear_occurrences(OWNED_ACCOUNT)
+    assert s.delete_calendars(OWNED_ACCOUNT, [OWNED_CALENDAR_URL]) == 0
+    assert s.delete_calendars("mac", ["mac://calendars/cal-1"]) == 1
+    s.delete_account("acc-1")
+    s.delete_account(OWNED_ACCOUNT)
+    assert owned_rows(tmp_path) == before
+    assert titles(between(s, d(2026, 3, 20), d(2026, 3, 21))) == ["Owned picnic (invented)"]
+    assert s.coverage(date(2026, 3, 20), date(2026, 3, 21)) == []  # an owned calendar is not a source
+    assert s.account_ids() == [] and b"Floating lunch" not in path.read_bytes()
+
+
 def test_mark_collections_gone(store):
     store.mark_collections_gone("acc-1", [WORK.url])
     assert [c["name"] for c in store.calendars()] == ["Work"]
     assert titles(between(store, d(2026, 3, 20), d(2026, 3, 21))) == ["Call with Example GmbH"]
+
+
+def test_mark_collections_gone_survives_owned_events(store, tmp_path):
+    add_owned(tmp_path)
+    before = owned_rows(tmp_path)
+    store.mark_collections_gone("acc-1", [])
+    store.mark_collections_gone(OWNED_ACCOUNT, [])
+    assert owned_rows(tmp_path) == before
+    assert [c["name"] for c in store.calendars()] == ["Kept (owned)"]
 
 
 def test_raw_hash_and_rev_follow_the_raw_resource(store):

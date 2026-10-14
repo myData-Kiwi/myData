@@ -11,9 +11,10 @@ import pytest
 from mydata.sources import owned
 from mydata.sources.calendar_store import CalendarStore
 from mydata.sources.contacts_store import ContactsStore
+from mydata.sources.owned import OWNED_ACCOUNT, followed_ids
 
 import test_contacts_store as con
-from owned_data import WORDS, add_owned, owned_rows
+from owned_data import BOOK_URL, WORDS, add_owned, owned_rows
 
 ABORT = "owned data is never"
 
@@ -143,6 +144,24 @@ def test_a_failed_purge_rolls_back_with_its_permits(home):
             db.execute("INSERT INTO address_books (id) VALUES (NULL)")  # fails: everything rolls back
     assert owned_rows(path) == before
     assert _raw_one(path / "contacts.sqlite", "SELECT COUNT(*) FROM purge_permits") == 0
+
+
+def test_followed_ids_never_name_an_owned_collection(home):
+    path, _, contacts, _ = home
+    with contacts.db.connect() as db:
+        assert followed_ids(db, "address_books", OWNED_ACCOUNT) == []
+        assert followed_ids(db, "address_books", OWNED_ACCOUNT, [BOOK_URL]) == []
+        assert len(followed_ids(db, "address_books", "acc-1")) == 1
+        assert followed_ids(db, "address_books", "acc-1", []) == []
+    assert contacts.account_ids() == ["acc-1"]
+    assert CalendarStore(path / "calendar.sqlite").account_ids() == []
+
+
+def test_a_source_never_writes_into_the_owned_account(home):
+    _, _, contacts, _ = home
+    from mydata.sources.dav.discovery import Collection
+    with pytest.raises(ValueError, match="owned"):
+        contacts.apply(OWNED_ACCOUNT, Collection(BOOK_URL, "contacts", "x"), con.result())
 
 
 def _raw_one(path, sql, params=()):

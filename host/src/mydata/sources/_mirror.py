@@ -1,17 +1,21 @@
 """Collection bookkeeping shared by the contacts and calendar mirrors: one row per synced collection
-holding its name, colour and sync state; soft-deleting what upstream no longer has."""
+holding its name, colour and sync state; soft-deleting what upstream no longer has. Everything here is
+about followed collections (sources/owned.py); none of it ever touches an owned one."""
 
 from __future__ import annotations
 
 import json
 
 from ._db import new_id
+from .owned import OWNED_ACCOUNT
 from .dav.discovery import Collection
 from .dav.sync import CollectionState
 
 def upsert_collection(db, table: str, account_id: str, collection: Collection, state: CollectionState,
                        stamp: str) -> str:
     """Create or refresh a collection row (name, colour, sync state) and return its device-generated id."""
+    if account_id == OWNED_ACCOUNT:
+        raise ValueError("a source's collections never use the owned data's account id")
     etags = json.dumps(dict(state.etags or {}), ensure_ascii=False, sort_keys=True)
     row = db.execute(f"SELECT id FROM {table} WHERE account_id = ? AND url = ?", (account_id, collection.url)).fetchone()
     if row is None:
@@ -52,7 +56,7 @@ def soft_delete_missing(db, table: str, account_id: str, collection_url: str, pr
 
 def retire_collections(db, table: str, items: str, fk: str, account_id: str, present: set[str], stamp: str) -> None:
     rows = db.execute(
-        f"SELECT id, url FROM {table} WHERE account_id = ? AND deleted_at IS NULL", (account_id,)
+        f"SELECT id, url FROM {table} WHERE account_id = ? AND mode = 'followed' AND deleted_at IS NULL", (account_id,)
     ).fetchall()
     for r in rows:
         if r["url"] in present:

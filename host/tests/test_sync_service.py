@@ -21,6 +21,7 @@ from mydata.sources.accounts import Accounts, secret_key
 from mydata.sources.dav.client import DavError
 from mydata.sources.providers import VerificationError
 from mydata.sources.secrets import MemorySecretStore
+from owned_data import add_owned, owned_rows
 
 MIN = 60.0
 
@@ -92,6 +93,19 @@ def test_two_accounts_are_kept_apart_and_removing_one_hard_deletes_only_its_data
     assert sources.contacts.account_ids() == [a.id] and sources.calendar.account_ids() == [a.id]
     assert secrets.keys() == [secret_key(a.id)]
     assert [s["account_id"] for s in sources.status()] == [a.id]
+
+
+def test_removing_an_account_survives_owned_data(tmp_path):
+    """Twin of the test above: owned contacts and calendars in the same files come through it unchanged."""
+    sources, fake, _ = make(tmp_path)
+    a = add(sources)
+    sources.sync_account(a.id)
+    add_owned(tmp_path)
+    before = owned_rows(tmp_path)
+    sources.remove_account(a.id)
+    assert owned_rows(tmp_path) == before
+    assert sources.contacts.account_ids() == [] and sources.calendar.account_ids() == []
+    assert sorted(c["display_name"] for c in sources.contacts.list()) == ["Olive Owned", "Pip Keepsake"]
 
 
 def test_adding_with_a_wrong_password_stores_nothing(tmp_path):
@@ -230,6 +244,26 @@ def test_removing_the_account_mid_sync_leaves_no_data(tmp_path):
     assert sources.status() == [] and secrets.keys() == []
 
 
+def test_removing_the_account_mid_sync_survives_owned_data(tmp_path):
+    fake = FakeDav()
+    box = {}
+
+    def handler(request):
+        if box.get("armed") and request.url.host == fake.calendar_host and "removed" not in box:
+            box["removed"] = True
+            box["sources"].remove_account(box["id"])
+        return fake.transport.handle_request(request)
+
+    add_owned(tmp_path)
+    before = owned_rows(tmp_path)
+    sources, _, _ = make(tmp_path, fake, transport=httpx.MockTransport(handler))
+    account = add(sources)
+    box.update(sources=sources, id=account.id, armed=True)
+    sources.sync_account(account.id)
+    assert box["removed"] and sources.contacts.account_ids() == []
+    assert owned_rows(tmp_path) == before
+
+
 def test_data_left_by_a_removal_elsewhere_is_purged(tmp_path):
     sources, fake, secrets = make(tmp_path)
     account = add(sources)
@@ -240,6 +274,44 @@ def test_data_left_by_a_removal_elsewhere_is_purged(tmp_path):
     assert sources.contacts.account_ids() == [account.id]
     sources.check_accounts()
     assert sources.contacts.account_ids() == [] and sources.calendar.account_ids() == []
+
+
+def test_data_left_by_a_removal_elsewhere_is_purged_and_owned_data_survives(tmp_path):
+    sources, fake, secrets = make(tmp_path)
+    account = add(sources)
+    sources.check_accounts()
+    sources.sync_account(account.id)
+    add_owned(tmp_path)
+    before = owned_rows(tmp_path)
+    Accounts(tmp_path, secrets).remove(account.id, on_remove=lambda a: None)
+    sources.check_accounts()
+    assert sources.contacts.account_ids() == [] and owned_rows(tmp_path) == before
+
+
+def test_only_accounts_known_to_be_removed_are_purged(tmp_path):
+    """An allow-list: data of an account that accounts.json merely no longer lists (the file lost or
+    replaced, say) is kept until the account is recorded as removed; so is anything that is not an account."""
+    sources, fake, secrets = make(tmp_path)
+    account = add(sources)
+    sources.sync_account(account.id)
+    sources.check_accounts()
+    (tmp_path / "accounts.json").write_text("[]")  # not a removal: the account just is not listed
+    sources.check_accounts()
+    assert sources.contacts.account_ids() == [account.id] and sources.calendar.account_ids() == [account.id]
+    assert sources.accounts.removed_ids() == set()
+    (tmp_path / "accounts-removed.json").write_text(json.dumps([{"id": account.id, "removed_at": "x"}]))
+    sources._purge_orphans()  # now it is known to be removed
+    assert sources.contacts.account_ids() == [] and sources.calendar.account_ids() == []
+
+
+def test_a_removal_is_recorded_before_the_data_is_deleted(tmp_path):
+    sources, fake, secrets = make(tmp_path)
+    account = add(sources)
+    seen = []
+    Accounts(tmp_path, secrets).remove(account.id, on_remove=lambda a: seen.append(sources.accounts.removed_ids()))
+    assert seen == [{account.id}] and sources.accounts.removed_ids() == {account.id}
+    assert json.loads((tmp_path / "accounts-removed.json").read_text())[0]["id"] == account.id
+    assert oct((tmp_path / "accounts-removed.json").stat().st_mode & 0o777) == "0o600"
 
 
 # ---------------------------------------------------------------- the thread

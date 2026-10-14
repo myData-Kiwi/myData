@@ -305,3 +305,24 @@ def test_cli_remove_data_hook_deletes_rows_with_the_stores(tmp_path, monkeypatch
     (tmp_path / "calendar.sqlite").touch()
     cli._remove_account_data(settings, account)
     assert calls == [("contacts.sqlite", "a1"), ("calendar.sqlite", "a1")]
+
+
+def test_cli_remove_data_hook_survives_owned_data(tmp_path):
+    """Twin of the test above, with the real stores: the account's followed data goes, owned data stays."""
+    from mydata.service.config import load_settings
+    from mydata.sources.calendar_store import CalendarStore
+    from mydata.sources.contacts_store import ContactsStore
+    from owned_data import add_owned, owned_rows
+
+    import test_calendar_store as cal
+    import test_contacts_store as con
+
+    ContactsStore(tmp_path / "contacts.sqlite").apply("a1", con.BOOK, con.result([con.item("ava-fictional.vcf")]))
+    CalendarStore(tmp_path / "calendar.sqlite").apply("a1", cal.HOME, cal.result([cal.item("floating.ics")]))
+    add_owned(tmp_path)
+    before = owned_rows(tmp_path)
+    account = Account(id="a1", provider="icloud", email=EMAIL, created_at="2026-01-01T00:00:00+00:00", label="iCloud")
+    cli._remove_account_data(load_settings(tmp_path), account)
+    assert owned_rows(tmp_path) == before
+    assert ContactsStore(tmp_path / "contacts.sqlite").account_ids() == []
+    assert CalendarStore(tmp_path / "calendar.sqlite").account_ids() == []

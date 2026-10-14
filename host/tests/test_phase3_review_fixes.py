@@ -112,6 +112,21 @@ def test_removing_an_account_leaves_no_contact_or_event_words_in_the_files(tmp_p
         assert db.execute("SELECT COUNT(*) FROM contacts_fts").fetchone()[0] == 0
 
 
+def test_removing_an_account_survives_owned_data_and_its_words(tmp_path):
+    from owned_data import WORDS, add_owned, owned_rows
+
+    sources, account = _service(tmp_path, FakeDav())
+    sources.sync_account(account.id)
+    add_owned(tmp_path)
+    before = owned_rows(tmp_path)
+    sources.remove_account(account.id)
+    assert owned_rows(tmp_path) == before
+    raw = b"".join(p.read_bytes() for p in tmp_path.iterdir() if p.name.startswith(("contacts.sqlite",
+                                                                                   "calendar.sqlite")))
+    assert b"madeup" not in raw.lower() and all(w in raw for w in WORDS)
+    assert [c["display_name"] for c in sources.contacts.search("keepsake")] == ["Pip Keepsake"]
+
+
 # ---------------------------------------------------------------- 2. no collection URL (DSID) in the logs
 
 

@@ -107,7 +107,7 @@ CHECKOUT = source_checkout()
 needs_git = pytest.mark.skipif(CHECKOUT is None or shutil.which("git") is None, reason="not a git checkout")
 
 IGNORED = ["host/contacts.sqlite", "host/calendar.sqlite", "host/tests/contacts.sqlite", "contacts.sqlite-wal",
-           "host/calendar.sqlite-shm", "host/accounts.json", "host/tests/some-home/accounts.json", "logs/mydatad.log",
+           "host/calendar.sqlite-shm", "host/accounts.json", "host/tests/some-home/accounts.json", "host/accounts-removed.json", "logs/mydatad.log",
            "host/logs/assistant.jsonl", "host/some-home/logs/mydatad.log.1", "host/mydatad.log",
            "host/app-tokens/mydata", "host/state.json", "host/agents.json", "host/mydatad.pid",
            "host/backups/20261013T120000Z/manifest.json", "host/some-home/backups/last_verify.json"]

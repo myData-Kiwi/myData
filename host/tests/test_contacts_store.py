@@ -12,7 +12,10 @@ import pytest
 from mydata.sources.contacts_store import ContactsStore, fts_query
 from mydata.sources.dav.discovery import Collection
 from mydata.sources.dav.sync import CollectionState, Item, SyncResult
+from mydata.sources.owned import OWNED_ACCOUNT
 from mydata.sources.vcard import parse_vcard
+from owned_data import BOOK_URL as OWNED_BOOK_URL
+from owned_data import add_owned, owned_rows
 
 FIXTURES = Path(__file__).parent / "fixtures" / "dav" / "contacts"
 BOOK = Collection(url="https://contacts.example.com/1/carddavhome/card/", kind="contacts", display_name="Card")
@@ -219,9 +222,47 @@ def test_delete_account_hard_deletes_rows_index_and_state(tmp_path):
     assert b"ava@example.com" not in path.read_bytes()  # secure_delete + checkpoint: nothing left in the file
 
 
+def test_delete_account_survives_owned_contacts(tmp_path):
+    """Twin of the test above: an owned address book in the same file (even one whose cards were written
+    with the removed account's id) comes through every hard delete unchanged."""
+    path = tmp_path / "contacts.sqlite"
+    add_owned(tmp_path)
+    s = ContactsStore(path)
+    s.apply("acc-1", BOOK, result([item("ava-fictional.vcf")]))
+    before = owned_rows(tmp_path)
+    s.delete_account("acc-1")
+    s.delete_account(OWNED_ACCOUNT)  # the owned data's own account id deletes nothing
+    assert s.delete_collections(OWNED_ACCOUNT, [OWNED_BOOK_URL]) == 0
+    assert owned_rows(tmp_path) == before
+    assert sorted(c["display_name"] for c in s.list()) == ["Olive Owned", "Pip Keepsake"]
+    assert s.search("olive")[0]["display_name"] == "Olive Owned"  # its index rows were not touched
+    assert s.account_ids() == []
+    assert b"ava@example.com" not in path.read_bytes() and b"olive@example.org" in path.read_bytes()
+
+
+def test_delete_collections_deletes_only_followed_books(tmp_path):
+    add_owned(tmp_path)
+    s = ContactsStore(tmp_path / "contacts.sqlite")
+    s.apply("acc-1", BOOK, result([item("ava-fictional.vcf")]))
+    s.apply("acc-1", OTHER_BOOK, result([item("zoe-example-v4.vcf", href="/1/work/zoe.vcf")]))
+    before = owned_rows(tmp_path)
+    assert s.delete_collections("acc-1", [BOOK.url, OWNED_BOOK_URL]) == 1
+    assert owned_rows(tmp_path) == before
+    assert {c["display_name"] for c in s.list()} == {"Zoë Exämple", "Olive Owned", "Pip Keepsake"}
+
+
 def test_mark_collections_gone(store):
     store.mark_collections_gone("acc-1", [])
     assert store.list() == [] and store.address_books() == []
+
+
+def test_mark_collections_gone_survives_owned_contacts(store, tmp_path):
+    add_owned(tmp_path)
+    before = owned_rows(tmp_path)
+    store.mark_collections_gone("acc-1", [])
+    store.mark_collections_gone(OWNED_ACCOUNT, [])
+    assert owned_rows(tmp_path) == before
+    assert [b["name"] for b in store.address_books()] == ["Kept (owned)"]
 
 
 def test_database_file_is_private_and_versioned(tmp_path):

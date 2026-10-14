@@ -22,6 +22,11 @@ Removing an account deletes its mirrored data under the same lock every write to
 and a sync re-checks that its account still exists before each write, so a sync running at the time
 cannot bring the data back.
 
+Data left behind by a removal (the mydata command removing an account while a sync was writing) is
+deleted only for accounts positively known to be removed (Accounts.removed_ids), and only from their
+followed collections: never because an account is merely missing from accounts.json, and never an owned
+collection (sources/owned.py).
+
 Each account's last status (last_success, last_error, last_attempt, counts) is kept in state.json under
 "sync", so it survives a restart. On a Mac host the service also owns the "This Mac" source
 (sources/mac), which writes into the same stores under the same data lock; its rows (account_id "mac")
@@ -43,6 +48,7 @@ from ..sources.accounts import Account, Accounts
 from ..sources.calendar_store import CalendarStore
 from ..sources.contacts_store import ContactsStore
 from ..sources.mac import MAC_ID
+from ..sources.owned import OWNED_ACCOUNT
 from .backup import open_store
 from .logs import log
 from .state import HostState
@@ -308,14 +314,18 @@ class SyncService:
                 logger.exception("switching mode after an account change failed")
 
     def _purge_orphans(self) -> None:
-        """Delete data whose account no longer exists (removed by the mydata command mid-sync). The
-        accounts are read under the data lock: every write checks its account exists under the same lock,
-        so data written for an account added meanwhile is never mistaken for an orphan."""
+        """Delete data left by a removed account (removed by the mydata command mid-sync). An allow-list: only
+        accounts recorded as removed (Accounts.removed_ids) that accounts.json no longer lists, and from them
+        only followed collections (store.delete_account). An id that is merely unknown (This Mac's, the
+        owned data's, an accounts.json that went missing) is never deleted. The accounts are read under the
+        data lock: every write checks its account exists under the same lock, so data written for an account
+        added meanwhile is never mistaken for an orphan."""
         with self._data_lock:
             current = {a.id for a in self.accounts.list()}
+            removed = self.accounts.removed_ids() - current - {MAC_ID, OWNED_ACCOUNT}
             for store in self._existing_stores():
                 for account_id in store.account_ids():
-                    if account_id not in current and account_id != MAC_ID:
+                    if account_id in removed:
                         store.delete_account(account_id)
                         log(logger, logging.INFO, "deleted data of a removed account", account_id=account_id)
 

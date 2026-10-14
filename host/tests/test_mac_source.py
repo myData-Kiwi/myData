@@ -24,6 +24,7 @@ from mydata.sources.accounts import Accounts
 from mydata.sources.mac import MAC_ID
 from mydata.sources.mac.socket import socket_path
 
+from owned_data import add_owned, owned_rows
 from service_helpers import TODAY, Host, call, parse_sse
 
 pytestmark = pytest.mark.skipif(not hasattr(socket, "AF_UNIX"), reason="needs Unix sockets")
@@ -105,6 +106,13 @@ def on(c: Client, mac: FakeMac) -> None:
 
 
 ALL_NAMES = ["Acme Plumbing (Example)", "Ava Q Fictional", "Sam Example", "Sam Example"]
+OWNED_NAMES = ["Olive Owned", "Pip Keepsake"]  # tests/owned_data.py
+
+
+def _owned(home):
+    """Owned contacts and a calendar in the host folder before the host starts (the "survives" twins)."""
+    add_owned(home)
+    return owned_rows(home)
 
 
 # ---------------------------------------------------------------- permission
@@ -204,6 +212,20 @@ def test_access_taken_away_deletes_what_was_read(make_host):
         mac.helper.send({"type": "status", **mac.status})
         assert wait(lambda: c.names() == [])
         assert len(c.get("/calendars")) == 3  # calendars are still allowed
+
+
+def test_access_taken_away_survives_owned_data(make_host, home):
+    before = _owned(home)
+    mac = FakeMac("authorized", "fullAccess")
+    h = make_host(mac)
+    with Client(h) as c:
+        on(c, mac)
+        assert wait(lambda: len(c.names()) == 4 + 2 and len(c.get("/calendars")) == 3 + 1)
+        mac.status.update(contacts="denied", calendars="denied")
+        mac.helper.send({"type": "status", **mac.status})
+        assert wait(lambda: sorted(c.names()) == OWNED_NAMES)
+        assert wait(lambda: [x["name"] for x in c.get("/calendars")] == ["Kept (owned)"])
+    assert owned_rows(home) == before
 
 
 # ---------------------------------------------------------------- data in, through the stores, tools and API
@@ -315,6 +337,22 @@ def test_choosing_accounts_and_calendars_deletes_what_is_left_out(make_host):
         assert wait(lambda: len(c.names()) == 4 and len(c.get("/calendars")) == 3)
 
 
+def test_choosing_accounts_and_calendars_survives_owned_data(make_host, home):
+    before = _owned(home)
+    mac = FakeMac("authorized", "fullAccess")
+    h = make_host(mac)
+    with Client(h) as c:
+        on(c, mac)
+        assert wait(lambda: len(c.names()) == 4 + 2 and len(c.get("/calendars")) == 3 + 1 and c.mac()["window"])
+        c.put("/sources/mac", {"calendars": [data.HOME], "contact_containers": [data.LOCAL_CONTAINER]})
+        assert sorted(x["name"] for x in c.get("/calendars")) == ["Home", "Kept (owned)"]
+        assert wait(lambda: mac.helper.last_read["calendars"] == [data.HOME])
+        assert wait(lambda: sorted(c.names()) == sorted(["Acme Plumbing (Example)", "Sam Example", *OWNED_NAMES]))
+        titles = lambda: [e["title"] for e in c.get("/events?start=2026-03-16&end=2026-03-31")["events"]]  # noqa: E731
+        assert wait(lambda: titles() == ["Owned picnic (invented)", "Dinner with Ava (invented)", "Lake trip"])
+    assert owned_rows(home) == before
+
+
 def test_a_change_on_the_mac_reaches_the_host(make_host):
     mac = FakeMac("authorized", "fullAccess")
     h = make_host(mac)
@@ -360,6 +398,21 @@ def test_turning_off_stops_the_reader_and_deletes_everything(make_host, home):
             assert b"Fictional" not in raw and b"Dinner" not in raw and b"Example Bistro" not in raw, name
         time.sleep(0.2)
         assert len(mac.launches) == 1  # nothing starts it again
+
+
+def test_turning_off_survives_owned_data(make_host, home):
+    before = _owned(home)
+    mac = FakeMac("authorized", "fullAccess")
+    h = make_host(mac)
+    with Client(h) as c:
+        on(c, mac)
+        assert wait(lambda: len(c.names()) == 4 + 2 and c.mac()["window"])
+        c.put("/sources/mac", {"enabled": False})
+        assert sorted(c.names()) == OWNED_NAMES and [x["name"] for x in c.get("/calendars")] == ["Kept (owned)"]
+        assert [e["title"] for e in c.get("/events?start=2026-03-16&end=2026-03-31")["events"]] == [
+            "Owned picnic (invented)"]
+        assert MAC_ID not in h.sources.contacts.account_ids() and MAC_ID not in h.sources.calendar.account_ids()
+    assert owned_rows(home) == before
 
 
 def test_host_stop_quits_the_reader_and_a_crashed_reader_is_started_again(make_host):
@@ -463,6 +516,21 @@ def test_mac_rows_are_never_taken_for_a_removed_accounts_leftovers(make_host):
                                                         "password": fake_dav.PASSWORD})
         c.c.delete(f"/accounts/{r.json()['id']}", headers=h.auth)
         assert len(c.names()) == 4 and c.get("/status")["mode"] == "real"  # This Mac is still on
+
+
+def test_removing_an_account_beside_this_mac_survives_owned_data(make_host, home):
+    before = _owned(home)
+    mac = FakeMac("authorized", "fullAccess")
+    h = make_host(mac)
+    with Client(h) as c:
+        on(c, mac)
+        assert wait(lambda: len(c.names()) == 4 + 2)
+        r = c.c.post("/accounts", headers=h.auth, json={"provider": "icloud", "email": fake_dav.USERNAME,
+                                                        "password": fake_dav.PASSWORD})
+        h.sources.sync_account(r.json()["id"])
+        c.c.delete(f"/accounts/{r.json()['id']}", headers=h.auth)
+        assert len(c.names()) == 4 + 2
+    assert owned_rows(home) == before
 
 
 # ---------------------------------------------------------------- the window rule, through the assistant

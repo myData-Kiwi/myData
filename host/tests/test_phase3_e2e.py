@@ -146,3 +146,30 @@ def test_link_sync_read_ask_and_remove(host):
     assert host.secrets.keys() == []
     assert host.sources.contacts.account_ids() == [] and host.sources.calendar.account_ids() == []
     assert host.sources.status() == []
+
+
+def test_link_sync_and_remove_survives_owned_data(tmp_path, monkeypatch):
+    """Twin of the test above with owned contacts and a calendar on the host from the start: linking and
+    removing an account leaves them as they were."""
+    from owned_data import add_owned, owned_rows
+
+    monkeypatch.setenv("TZ", "Pacific/Auckland")
+    add_owned(tmp_path)
+    before = owned_rows(tmp_path)
+    host = Host(tmp_path, FakeDav())
+    host.sources.poll = 0.05
+    host.sources.start()
+    try:
+        with TestClient(host.app, base_url="http://127.0.0.1") as c:
+            get = lambda path: c.get(path, headers=host.auth)  # noqa: E731
+            r = c.post("/accounts", headers=host.auth, json={"provider": "icloud", "email": fake_dav.USERNAME,
+                                                              "password": fake_dav.PASSWORD})
+            account_id = r.json()["id"]
+            assert _wait(lambda: (get("/sync").json()["accounts"] or [{}])[0].get("last_success"))
+            assert len(get("/contacts").json()) == 6 + 2
+            assert c.delete(f"/accounts/{account_id}", headers=host.auth).status_code == 200
+            assert [x["display_name"] for x in get("/contacts").json()] == ["Olive Owned", "Pip Keepsake"]
+            assert [x["name"] for x in get("/calendars").json()] == ["Kept (owned)"]
+    finally:
+        host.sources.stop()
+    assert owned_rows(tmp_path) == before
