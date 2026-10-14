@@ -290,4 +290,15 @@ void main() {
     );
     handle.dispose();
   });
+
+  testWidgets('a semantic label names what the button acts on', (tester) async {
+    final handle = tester.ensureSemantics();
+    await tester.pumpWidget(themedFrame(
+      themeMatrix.first,
+      Button(label: 'Compare', semanticLabel: 'Compare Ben Sample', variant: ButtonVariant.plain, onPressed: () {}),
+    ));
+    expect(tester.getSemantics(find.byType(Button)), isSemantics(label: 'Compare Ben Sample', isButton: true));
+    expect(find.text('Compare'), findsOneWidget);
+    handle.dispose();
+  });
 }

@@ -67,6 +67,7 @@ class Button extends StatelessWidget {
     this.focusNode,
     this.autofocus = false,
     this.disabledReason,
+    this.semanticLabel,
   });
 
   /// What pressing it does: a verb and its object, in sentence case.
@@ -89,6 +90,10 @@ class Button extends StatelessWidget {
   /// but inert, and its reason is its hint (Pressable, design/platforms.md "Disabled controls"). Only read
   /// while [onPressed] is null.
   final String? disabledReason;
+
+  /// What screen readers hear instead of [label], when the label alone does not say what the button acts
+  /// on: one "Compare" per row reads "Compare Ben Sample".
+  final String? semanticLabel;
 
   /// Space on each side of the label. The preview's 22px lies halfway between `space-5` and `space-6`;
   /// `space-5` (20px) is used.
@@ -113,7 +118,7 @@ class Button extends StatelessWidget {
       borderRadius: MyDataRadii.control,
       focusNode: focusNode,
       autofocus: autofocus,
-      semanticLabel: label,
+      semanticLabel: semanticLabel ?? label,
       danger: variant.isRed,
       disabledReason: disabledReason,
       child: ExcludeSemantics(
