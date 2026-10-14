@@ -11,6 +11,7 @@ import 'package:mycontacts/src/contact_editor.dart';
 import 'package:mycontacts/src/contact_form.dart';
 import 'package:mycontacts/src/contact_page.dart';
 import 'package:mycontacts/src/contacts_controller.dart';
+import 'package:mycontacts/src/trash_view.dart';
 import 'package:mydata_core/mydata_core.dart';
 import 'package:mydata_ui/mydata_ui.dart';
 
@@ -452,6 +453,42 @@ void main() {
     });
   });
 
+  group('Recently deleted', () {
+    testWidgets('restore with Undo, and delete permanently after a Dialog naming the backups', (tester) async {
+      desktop(tester);
+      final backend = ownedBackend();
+      await tester.pumpWidget(app(backend));
+      await tester.pumpAndSettle();
+      await tester.tap(row('Pip Owned'));
+      await tester.sendKeyEvent(LogicalKeyboardKey.delete);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Deleted'));
+      await tester.pumpAndSettle();
+      expect(find.text(TrashView.title), findsOneWidget);
+      expect(find.text('Deleted on 14 October 2026. It is deleted for good on 13 November 2026, unless you '
+          'restore it.'), findsOneWidget);
+      await tester.tap(find.widgetWithText(Button, TrashView.restoreLabel));
+      await tester.pumpAndSettle();
+      expect(backend.writes.last, 'restore c-pip');
+      expect(toast('Contact restored'), findsOneWidget);
+      expect(find.text(TrashView.emptyTitle), findsOneWidget);
+
+      await tester.tap(find.descendant(of: find.byType(ToastHost), matching: find.text('Undo')));
+      await tester.pumpAndSettle();
+      expect(toast('Contact moved back to Recently deleted'), findsOneWidget);
+      await tester.tap(find.widgetWithText(Button, TrashView.purgeLabel));
+      await tester.pumpAndSettle();
+      expect(find.text('Delete Pip Owned permanently?'), findsOneWidget);
+      expect(find.text('It is deleted for good. This cannot be undone. Copies in your host\'s backups are kept until '
+          '1 October 2027.'), findsOneWidget);
+      await tester.tap(find.descendant(of: find.byType(MyDataDialog), matching: find.text('Delete permanently')));
+      await tester.pumpAndSettle();
+      expect(backend.writes.last, 'purge c-pip');
+      expect(find.text(TrashView.emptyTitle), findsOneWidget);
+      await outlastToast(tester);
+    });
+  });
+
   group('the menu bar', () {
     List<Map<Object?, Object?>> sent = [];
 
@@ -486,7 +523,7 @@ void main() {
       expect(edit.firstWhere((i) => i.label == 'Undo').enabled, isFalse);
       expect(edit.firstWhere((i) => i.label == 'Edit Contact').enabled, isTrue);
       expect(edit.firstWhere((i) => i.label == 'Delete Contact').enabled, isTrue);
-      expect(items('View').map((i) => i.label), contains('Contacts'));
+      expect(items('View').map((i) => i.label), containsAll(['Contacts', 'Recently Deleted']));
 
       await tester.tap(find.byType(MoreActionsButton));
       await tester.pumpAndSettle();

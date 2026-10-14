@@ -9,18 +9,19 @@ import 'contact_actions.dart';
 import 'contact_page.dart';
 import 'contacts_controller.dart';
 import 'contacts_view.dart';
+import 'trash_view.dart';
 
 /// The app's screen, in its frame: a panel for every state of the host, an EmptyState while there are no
-/// contacts, and the contacts once there are some.
+/// contacts, the contacts once there are some, and Recently deleted.
 ///
-/// The frame's one section is Contacts. At the bottom of the sidebar it says how the host
+/// The frame's sections are Contacts and Recently deleted. At the bottom of the sidebar it says how the host
 /// is: starting, connected (with a link that opens myData), or unreachable (with Retry). Contacts already
 /// read stay on screen while the host cannot be reached, with the time they were read. The web build, which
 /// cannot reach a host, shows only its panel, without the frame.
 ///
 /// The menu bar (macOS; the same keys with Control on Windows and Linux) has New Contact ⌘N, Save ⌘S, Undo
-/// and Redo named from the action, Edit Contact ⌘E, Delete Contact ⌘⌫ ("Delete 3 Contacts…") and the section
-/// ⌘1 (design/platforms.md). A phone has "New contact" and "More actions" (Undo) in its large
+/// and Redo named from the action, Edit Contact ⌘E, Delete Contact ⌘⌫ ("Delete 3 Contacts…") and the two
+/// sections ⌘1 and ⌘2 (design/platforms.md). A phone has "New contact" and "More actions" (Undo) in its large
 /// title instead. Toasts sit at the bottom of the content area.
 class ContactsHome extends StatefulWidget {
   const ContactsHome({
@@ -53,6 +54,7 @@ class ContactsHome extends StatefulWidget {
   static const appName = 'myContacts';
   static const sections = [
     AppSection(icon: Icons.contacts_outlined, label: 'Contacts'),
+    AppSection(icon: Icons.delete_outline_rounded, label: 'Deleted'),
   ];
 
   static const noSourceTitle = 'No contacts yet';
@@ -158,7 +160,7 @@ class _ContactsHomeState extends State<ContactsHome> {
       view: [
         for (var i = 0; i < ContactsHome.sections.length; i++)
           AppMenuItem(
-            title: 'Contacts',
+            title: i == 0 ? 'Contacts' : 'Recently Deleted',
             shortcut: AppMenuBar.sectionShortcut(i + 1),
             onSelected: () => unawaited(_select(i)),
           ),
@@ -288,6 +290,9 @@ class _ContactsHomeState extends State<ContactsHome> {
 
   Widget _running() {
     final contacts = _contacts;
+    if (_section == 1) {
+      return TrashView(controller: contacts, toasts: _toasts, onShowContacts: () => unawaited(_select(0)));
+    }
     // A new contact's inspector, even while there are no contacts yet.
     if (contacts.editing != null && !AppLayout.isPhone(context)) return _view();
     if (contacts.loadFailed) {

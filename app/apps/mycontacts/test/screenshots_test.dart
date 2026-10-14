@@ -117,6 +117,22 @@ void main() {
     await settle(tester);
   });
 
+  // Recently deleted, with Pip and Quinn in it and Pip's pane.
+  screenMatrix('recently_deleted', (t) => app(t, lastOpened: 'c-pip', backend: owned()), before: (tester) async {
+    await settle(tester);
+    for (final name in ['Quinn Owned', 'Pip Owned']) {
+      await tester.tap(find.descendant(of: find.byType(ContactList), matching: find.text(name)));
+      await settle(tester);
+      await tester.sendKeyEvent(LogicalKeyboardKey.delete);
+      await settle(tester);
+    }
+    await tester.tap(find.text('Deleted'));
+    await settle(tester);
+    // The toasts' time runs out, so the page is shown alone.
+    await tester.pump(const Duration(seconds: 9));
+    await settle(tester);
+  });
+
   // The list with a contact selected in the middle of it; its page beside it.
   screenMatrix('contacts_list', (t) => app(t, lastOpened: 'c-jun'), before: settle);
 
