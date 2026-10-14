@@ -28,9 +28,9 @@ RANGE=THISANDFUTURE, which few clients read.
   occurrences stay deleted and changed and the last one stays in. An edit that leaves an
   EXDATE or override on a time that is no longer an occurrence (a new date, zone or rule) is refused unless
   the caller passes exceptions="drop", which removes them.
-- edit_following: the series is split. The old one ends before the occurrence (COUNT recounted, else UNTIL:
-  in UTC for zoned and UTC times, local for floating times, a date for all-day events); the new one is a new
-  resource with a new UID, X-MYDATA-SPLIT-FROM naming the old UID, and the EXDATEs, RDATEs and overrides from
+- edit_following: the series is split. The old one ends before the occurrence (COUNT recounted when DTSTART
+  is one of the rule's starts, else UNTIL: in UTC for zoned and UTC times, local for floating times, a date for
+  all-day events); the new one is a new resource with a new UID, X-MYDATA-SPLIT-FROM naming the old UID, and the EXDATEs, RDATEs and overrides from
   that occurrence on. Then the changes are made to it as edit_all makes them.
 
 A field of an override that equals the master's old value follows the master's change (it was not changed for
@@ -669,6 +669,13 @@ def _rule_starts_before(master, start) -> int:
     return n
 
 
+def _dtstart_on_rule(master) -> bool:
+    """Whether DTSTART is the rule's first start (BYDAY=MO with DTSTART on a Tuesday is not)."""
+    template = master["DTSTART"].dt
+    first = next(iter(_rule(master)), None)
+    return first is not None and _same(_from_du(first, template), template)
+
+
 def _is_rule_start(master, start) -> bool:
     rule = _rule(master)
     if rule is None:
@@ -1070,7 +1077,13 @@ def edit_following(text: str, recurrence_id, changes: Mapping[str, object], *, e
     if old_rule.get("COUNT"):
         before = _rule_starts_before(master, start)
         rule["COUNT"] = [int(old_rule["COUNT"][0]) - before]
-        old_rule["COUNT"] = [before]
+        if _dtstart_on_rule(master):
+            old_rule["COUNT"] = [before]
+        else:
+            # DTSTART is not one of the rule's starts: RFC 5545 readers count it in COUNT and dateutil does
+            # not, so the old series ends with UNTIL, which both read alike (never COUNT=0)
+            old_rule.pop("COUNT", None)
+            old_rule["UNTIL"] = [_until_before(start, template)]
     else:
         old_rule.pop("UNTIL", None)
         old_rule["UNTIL"] = [_until_before(start, template)]

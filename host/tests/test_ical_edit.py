@@ -813,3 +813,14 @@ def test_a_new_end_replaces_a_duration_and_a_new_duration_an_end():
     assert override.get("DURATION") is None and event(this).get("DURATION") is not None
     out = ie.edit_all(load("auckland-weekly.ics"), {"DURATION": timedelta(hours=2)}, now=NOW)
     assert event(out).get("DTEND") is None and "DURATION:PT2H" in out
+
+
+def test_splitting_a_count_series_whose_start_is_not_on_the_rule_ends_it_with_until():
+    text = ("BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Example Corp//Off rule//EN\r\nBEGIN:VEVENT\r\n"
+            "UID:off-rule@example.org\r\nDTSTAMP:20260101T000000Z\r\nDTSTART;TZID=Pacific/Auckland:20261103T090000\r\n"
+            "RRULE:FREQ=WEEKLY;COUNT=4;BYDAY=MO\r\nSUMMARY:Weekly\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n")
+    assert local_times(text)[:2] == ["11-03 09:00+1300", "11-09 09:00+1300"]
+    for rid in (datetime(2026, 11, 9, 9, tzinfo=NZ), datetime(2026, 11, 16, 9, tzinfo=NZ)):
+        old, new = ie.edit_following(text, rid, {}, now=NOW)
+        assert "COUNT=0" not in old and "COUNT" not in event(old)["RRULE"] and "UNTIL=" in old
+        assert occ(old, new) == occ(text)
