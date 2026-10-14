@@ -23,6 +23,7 @@ export 'src/widgets/empty_state.dart';
 export 'src/widgets/event_row.dart';
 export 'src/widgets/field_row.dart';
 export 'src/widgets/floating_bar.dart';
+export 'src/widgets/form_row.dart';
 export 'src/widgets/form_scope.dart';
 export 'src/widgets/grouped_list.dart';
 export 'src/widgets/grouped_section.dart';
