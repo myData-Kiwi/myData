@@ -1,4 +1,4 @@
-<!-- @dsCard group="Inputs" height=140 -->
+<!-- @dsCard group="Inputs" height=420 -->
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700&family=Figtree:wght@400;600&family=JetBrains+Mono&display=swap">
@@ -20,13 +20,19 @@ body{margin:0;padding:24px;background:var(--bg);color:var(--ink);font-family:var
 .chipst{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:var(--radius-pill);font:600 13px/1 var(--font-body);white-space:nowrap}
 .cap{font-size:13px;line-height:18px;color:var(--ink-muted)}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px}
-label{font:600 13px/18px var(--font-body);color:var(--ink);display:block;margin-bottom:6px}
-input{height:44px;box-sizing:border-box;width:100%;padding:0 14px;border:1px solid var(--line-strong);border-radius:var(--radius-md);background:var(--surface);color:var(--ink);font:400 15px var(--font-body)}
-.help{font-size:13px;line-height:18px;color:var(--ink-muted);margin-top:6px}
+label{font:600 13px/18px var(--font-body);color:var(--ink);display:block;margin-bottom:var(--space-2)}
+input{height:44px;box-sizing:border-box;width:100%;padding:0 var(--space-4);border:1px solid var(--line-strong);border-radius:var(--radius-md);background:var(--surface);color:var(--ink);font:400 15px var(--font-body)}
+.help{font-size:13px;line-height:18px;color:var(--ink-muted);margin-top:var(--space-2)}
 .err input{border:2px solid var(--danger)}.err .help{color:var(--danger)}
+textarea{box-sizing:border-box;width:100%;padding:var(--space-3) var(--space-4);border:1px solid var(--line-strong);border-radius:var(--radius-md);background:var(--surface);color:var(--ink);font:400 15px/22px var(--font-body);resize:none;display:block}
+.ml{margin-top:var(--space-6);max-width:520px}
+/* Focus on something already red is ink, not the red focus (design/README.md, "Focus and danger"). */
+.err input:focus-visible,.err input.fc{outline:2px solid var(--ink);outline-offset:2px}
 </style></head><body>
 <div class="grid">
 <div><label for="s-folder">Folder for your data</label><input id="s-folder" type="text" value="/Users/you/myData"><div class="help">Photos, mail and backups are stored here.</div></div>
 <div class="err"><label for="s-host">Host address</label><input id="s-host" type="text" value="192.168.1" aria-invalid="true" aria-describedby="s-host-help"><div class="help" id="s-host-help">That address is incomplete. It looks like 192.168.1.20.</div></div>
+<div class="err"><label for="s-host2">Host address, focused in error: the ring is ink</label><input class="fc" id="s-host2" type="text" value="192.168.1" aria-invalid="true" aria-describedby="s-host2-help"><div class="help" id="s-host2-help">That address is incomplete. It looks like 192.168.1.20.</div></div>
 </div>
+<div class="ml"><label for="s-notes">Notes</label><textarea id="s-notes" rows="3" placeholder="Add notes">Met at the example.org meetup. Prefers mail to calls.</textarea><div class="help">Notes are kept on your host with the contact.</div></div>
 </body></html>

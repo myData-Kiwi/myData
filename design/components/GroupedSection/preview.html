@@ -50,6 +50,8 @@ input{height:44px;box-sizing:border-box;width:100%;max-width:420px;padding:0 14p
 .swt[aria-checked=true]{box-shadow:0 0 0 2px var(--ink)}
 .disc{width:22px;height:22px;border-radius:50%;background:var(--d);display:grid;place-items:center;flex:none}
 .disc svg{width:12px;height:12px;fill:none;stroke:var(--od);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+/* Focus on something already red is ink, not the red focus (design/README.md, "Focus and danger"). */
+.danger:focus-visible,.danger.fr,.dz:focus-visible,.plain-danger:focus-visible{outline-color:var(--ink)}
 </style></head><body>
 <section class="sec" aria-labelledby="h-app">
 <p class="lbl" id="h-app">Appearance</p>

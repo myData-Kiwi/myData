@@ -36,6 +36,8 @@ input{height:44px;box-sizing:border-box;width:100%;max-width:420px;padding:0 14p
 .narrow{max-width:340px;margin-top:24px}
 .narrow .r{flex-wrap:wrap}.narrow .r .txt{flex:1 1 200px}.narrow .end{margin-left:48px}
 .dz{color:var(--danger)}
+/* Focus on something already red is ink, not the red focus (design/README.md, "Focus and danger"). */
+.danger:focus-visible,.danger.fr,.dz:focus-visible,.plain-danger:focus-visible{outline-color:var(--ink)}
 </style></head><body>
 <p class="lbl">Agents</p>
 <div class="card g">

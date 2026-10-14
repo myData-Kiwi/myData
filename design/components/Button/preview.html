@@ -20,6 +20,8 @@ body{margin:0;padding:24px;background:var(--bg);color:var(--ink);font-family:var
 .chipst{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:var(--radius-pill);font:600 13px/1 var(--font-body);white-space:nowrap}
 .cap{font-size:13px;line-height:18px;color:var(--ink-muted)}
 
+/* Focus on something already red is ink, not the red focus (design/README.md, "Focus and danger"). */
+.danger:focus-visible,.danger.fr,.dz:focus-visible,.plain-danger:focus-visible{outline-color:var(--ink)}
 </style></head><body>
 <div class="row">
 <button class="btn primary" type="button">Approve and send</button>
