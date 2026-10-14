@@ -23,7 +23,9 @@ CASES = sorted((m["store"], int(m["v"])) for p in DUMPS.glob("*.sql")
                if (m := re.fullmatch(r"(?P<store>\w+)-v(?P<v>\d+)\.sql", p.name)))
 
 # What migration 2 of contacts.sqlite reads from each card that is not a plain individual (make_dump.py).
-KINDS = {"group-book-club@example.org": "group", "urn:uuid:group-choir-1": "group", "urn:uuid:org-library-1": "org"}
+# Apple's company cards (X-ABShowAs:COMPANY, from the iCloud fixtures and the fake Mac) are orgs too.
+KINDS = {"group-book-club@example.org": "group", "urn:uuid:group-choir-1": "group", "urn:uuid:org-library-1": "org",
+         "contact-acme-0003": "org", "00000000-0000-4000-8000-00000000a003": "org"}
 
 
 def test_every_store_has_a_dump_of_its_current_schema():

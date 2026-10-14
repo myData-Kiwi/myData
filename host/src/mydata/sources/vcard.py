@@ -321,13 +321,16 @@ def _scan(text: str) -> ParsedContact:
 
 def card_kind(text: str) -> str:
     """What the card describes: "group" (KIND:group in 4.0, or Apple's X-ADDRESSBOOKSERVER-KIND:group, the
-    way iCloud sends a group in 3.0), "org" (KIND:org), else "individual" (also for KIND:location and
-    values this host does not know: shown as a contact, as before kinds were read)."""
-    kinds = {_unescape(value).strip().lower() for name, _params, value in _properties(text)
+    way iCloud sends a group in 3.0), "org" (KIND:org, or Apple's X-ABShowAs:COMPANY, the way iCloud and
+    This Mac mark a company), else "individual" (also for KIND:location and values this host does not know:
+    shown as a contact, as before kinds were read)."""
+    props = _properties(text)
+    kinds = {_unescape(value).strip().lower() for name, _params, value in props
              if name in ("KIND", "X-ADDRESSBOOKSERVER-KIND")}
     if "group" in kinds:
         return "group"
-    if kinds & {"org", "organization"}:
+    if kinds & {"org", "organization"} or any(
+            name == "X-ABSHOWAS" and _unescape(value).strip().lower() == "company" for name, _params, value in props):
         return "org"
     return "individual"
 

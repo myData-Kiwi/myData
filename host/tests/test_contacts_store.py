@@ -283,6 +283,20 @@ def with_groups(store):
     return store
 
 
+def test_apple_company_cards_are_orgs():
+    """iCloud and This Mac mark a company with X-ABShowAs:COMPANY in a 3.0 card, never with KIND."""
+    from mydata.sources.mac.cards import to_vcard
+    from mydata.sources.mac.protocol import MacContact
+    from mydata.sources.vcard import card_kind
+
+    icloud = ("BEGIN:VCARD\r\nVERSION:3.0\r\nPRODID:-//Apple Inc.//iOS 18.0//EN\r\nN:;;;;\r\n"
+              "FN:Example Bakery\r\nORG:Example Bakery;\r\nX-ABShowAs:COMPANY\r\n"
+              "UID:urn:uuid:org-bakery-1\r\nEND:VCARD\r\n")
+    assert card_kind(icloud) == card_kind(icloud.replace("X-ABShowAs:COMPANY", "x-abshowas:company")) == "org"
+    assert card_kind(to_vcard(MacContact("m1", organisation="Example Bakery", kind="organisation"))) == "org"
+    assert card_kind(to_vcard(MacContact("m2", given_name="Ava", organisation="Example Bakery"))) == "individual"
+
+
 def test_group_cards_are_kept_but_never_shown_counted_or_found_as_contacts(with_groups):
     store = with_groups
     with store.db.connect() as db:
