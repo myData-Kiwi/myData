@@ -20,7 +20,23 @@ Early build. Done:
 - **tokens, approvals and logging** (phase 0c): scopes per app token, approvals bound to mode and epoch, argument shapes only in the real-mode request log, and scans for mail libraries, `osascript` and `subprocess`. See "Tokens" and "Demo and real mode";
 - **writers and export** (phase 1): a vCard line editor and an ICS writer with a property guard and the four edits of a repeating event, as library code with tests (no route uses them yet), and a clean export. See "Writing contacts and events".
 
-**Sync is read-only for now:** the host only reads from its sources, and no app edits a contact or an event. The two modes are described in "Demo and real mode". **Next:** myMail; see "Build order". Chained requests are an open problem, not a blocker: the planner write-up in `host/results/2026-10-11-b-REPORT.md` is the starting point. Answer latency is in "Answer latency" below.
+**New direction (2026-10-13): the host owns the data.** See "Direction: the host owns the data". Today sources are still only followed (read-only) and no app edits anything yet; the safety work that must come first (snapshots, safe migrations, owned-data protection, token scopes, the lossless writers) is done. The two modes are described in "Demo and real mode". **Next:** phase 2 of the plan, the form components, spec first; see "Build order". Chained requests are an open problem, not a blocker: the planner write-up in `host/results/2026-10-11-b-REPORT.md` is the starting point. Answer latency is in "Answer latency" below.
+
+## Direction: the host owns the data (decided 2026-10-13)
+
+The full plan, with the research behind it, is `docs/2026-10-13-own-data-plan.md`; where it and this file differ, this file wins. The host becomes the owner of contacts, calendars and a full mail archive: data is **imported** once from Apple, Google, Samsung or Microsoft, then created and edited in myContacts and myCalendar, and myMail receives and sends.
+
+**The owner's decisions:**
+- **Phones: both an iPhone (iCloud) and an Android (Samsung).** The end state is the host **serving CardDAV/CalDAV** (our own minimal server on its own loopback port, per-device passwords; Radicale and Xandikos only as test references), reached by the iPhone as an "Other" account and by Android through DAVx5, once remote access exists.
+- **Until then, nothing is written to iCloud, Google or the Mac.** New items are labelled "On myData only, not on your phone yet". Followed sources stay read-only; an imported account can still be followed, and the imported (owned) copy then shadows the followed one (one result per person in `find_contact`).
+- **Imports come from files first** (`.vcf`, `.ics`, mbox: Contacts.app and Calendar.app exports, Google export or Takeout, Samsung `.vcf`), with a preview, a loss report, de-duplication suggestions (never automatic merges) and undo. This Mac stays followed only: its occurrences and note-less cards are not a faithful copy, so it is never imported.
+- **Mail: myMail** (not myEmail). Received on a Mac through Mail.app by Apple Events, from a helper nested in myData.app (the spike showed the Automation prompt names the parent app, and Mail reaches every account, including the Microsoft one that Mail's own store does not hold). Mail's store with Full Disk Access is not used: no prompt, the whole disk, and Apple announced on 2 Oct 2026 that it will tighten it. The standby route is IMAP per provider; for the Microsoft account, OAuth with a device code. A mail server on the host for an own domain is not realistic from a home connection.
+- **Full mail archive:** nothing is purged; mail gone at the provider is only marked deleted.
+- **Pressing Send in myMail counts as approval**, but only once the app-to-host channel is hardened so a token alone cannot send; a ~10 s undo window (a restart inside it returns the message to drafts) and an hourly limit. Sends the assistant proposes always show an approval card.
+- **Order:** contacts editing and import, mail receiving, calendar editing and import, mail sending, then CardDAV/CalDAV serving and remote access.
+- **Backups:** Time Machine (external disk or NAS) holds the off-machine copy of the host's snapshots; the live `*.sqlite*` files are to be excluded from it.
+
+**Proposed defaults, not yet confirmed by the owner:** deleting in an app is a soft delete with Undo and "Recently deleted" for 30 days (an assistant's or agent's delete still needs approval); events organised by someone else are read-only until invitations exist; alerts on owned events stay hidden until something can ring them; real mode means "a source is on or the host owns data" (built).
 
 ## Ground rules
 
@@ -126,7 +142,7 @@ Library code only (phase 1): nothing calls it on real data yet; the editing rout
 Read-only mirrors in `contacts.sqlite` and `calendar.sqlite` (`host/src/mydata/sources/`). The user turns each source on or off in the myData app (Settings, Sources); turning one off deletes what it mirrored from the mirror. **Copies stay in the host's snapshots until they expire:** by the first day of the same month next year (`backup.kept_until`), while the host keeps running. The CLI and the API docs say so; the myData app's turn-off and remove dialogs do not yet.
 
 - **Group cards** (iCloud's `X-ADDRESSBOOKSERVER-KIND:group`, vCard 4's `KIND:group`) are stored with `kind = 'group'` and never listed, counted, searched or found by `find_contact`; the export keeps them in a separate file.
-- **Read-only for now.** No source ever writes back: the iCloud client sends only PROPFIND, REPORT, OPTIONS and GET, and the Mac helper has no write calls. Writing back (and the host as a CardDAV/CalDAV server) is a later decision.
+- **Followed sources stay read-only.** No source ever writes back: the iCloud client sends only PROPFIND, REPORT, OPTIONS and GET, and the Mac helper has no write calls. Writing back to a provider is not planned; owned data reaches other devices through the host's own CardDAV/CalDAV server (see "Direction").
 - **Nothing goes around these two paths.** Static scans of the host's sources: no HTTP client outside `DavClient.request` and a localhost allow-list; no `smtplib`, `imaplib`, `poplib` or `ssl` outside one mail module (none yet: `MAIL_ALLOWED` is empty) (`test_dav_no_other_http.py`); only an allow-list of modules, each with its reason and the programs it may start (never through a shell), may start a program, nothing may load native code (`ctypes`, `cffi`, PyObjC and Apple's frameworks) or use `posix` or `webbrowser`, and no source mentions `osascript` or AppleScript (`test_no_way_around_the_helper.py`). The scans see through import aliases, `import *` and `getattr`; they catch accidental use, not code written to hide a call.
 - **Why This Mac is the default on a Mac host:** it uses the normal system permission prompt, so no password reaches myData, and it covers every account on the Mac (iCloud, Google, Exchange). Asking for an app-specific password is not acceptable as the main path, and Apple rejects sign-ins that use an address other than the Apple Account email (for example a custom domain).
 
@@ -321,18 +337,23 @@ Full report: `host/results/2026-10-12-a-REPORT.md`. Measured on battery, with BT
 3. ~~Answer latency~~: done (Part A, 2026-10-12): results shown by code, the model kept warm. Open items are listed under "Answer latency".
 4. ~~Design system~~: done (Part B): `design/` implemented in `mydata_ui`, the theme stored on the host, both apps restyled.
 5. ~~myContacts and myCalendar~~: done. The host side, with This Mac (Contacts, EventKit) as the main source on a Mac and iCloud (CardDAV, CalDAV) under Advanced, replacing the fake contact and calendar tools in real mode; then the two read-only apps in `app/apps`, the links between the apps, myAssistant's results opening in them, and the apps on myData's Status. myCalendar shows the window limit that `/events` reports.
-6. **Next:** myMail (IMAP sync, FTS5 search), replacing the fake mail tools.
+6. **The host owns the data** (`docs/2026-10-13-own-data-plan.md`, section 4):
+   - ~~0a safety net~~: done (snapshots, restore drill, safe migrations, export).
+   - ~~0b additive schema~~: done (owned and followed collections, revisions, changes, origins, triggers that keep owned rows, group cards fixed).
+   - ~~0c tokens and approvals~~: done (scopes per app, approvals bound to mode and epoch, real-mode logs keep shapes only, wider scans).
+   - ~~1 writers and export~~: done (the lossless vCard and ICS writers, `.vcf`/`.ics` export).
+   - **Next: 2**, the form components (dialog, inspector, menu, select, text area, checkbox, toast with undo, icon button, multi-select): specs and previews in `design/` for the owner first.
+   - 3 contacts editing; 4 contact import; 5 mail receiving (myMail, read-only); 6 calendar editing and import; 7 mail sending; 8 assistant write tools (new frozen request set first); 9 CardDAV/CalDAV serving; 10 remote access; 11 API imports and IMAP (Advanced).
 7. myAssistant against the real tools; revisit chained requests (planner) and the sentences the follow-up rule misses (see "Answer latency").
    - **Real-mode tool descriptions:** in real mode `find_contact` and `list_events` still use the descriptions measured on the demo set, which mention mail. New descriptions need a new frozen request set and a measurement before they replace them.
    - **Outside agents and real data:** MCP agents are blocked from real data (in real mode they get no tools). Later: a per-agent permission, granted in the myData app, off by default, with a warning that the data may leave this machine.
 8. myPhotos (import, CLIP index, faces). The largest piece; expect 6 to 8 weekends.
-9. Phone clients and remote access (the host is localhost-only until then).
+9. Phone clients (remote access itself is phase 10 of item 6).
 10. Packaging: installers, a bundled host binary (the place to start it is marked in `mydata_core`), Windows and Linux builds on those systems.
 
 ## Open questions
 
 - Licence: MIT or AGPL.
-- Whether to reuse existing servers (for example Radicale for CardDAV and CalDAV) or write them.
 - Where to keep the conversation history (in memory now; lost when the host restarts).
 - Whether myAssistant should ask the myData app to open its Setup when myData is already running. Today `--setup` only works on a cold start of myData.
 - **Releasing on macOS** (not needed for development). It needs the paid Apple Developer Program, for:
