@@ -382,6 +382,42 @@ void main() {
       await tester.pumpAndSettle();
     }, variant: TargetPlatformVariant.only(TargetPlatform.linux));
 
+    testWidgets('a second Ctrl+Z while the toast\'s undo runs is the toast\'s: the app\'s Undo does not run',
+        (tester) async {
+      final controller = ToastController();
+      addTearDown(controller.dispose);
+      var toastUndos = 0, appUndos = 0;
+      final undo = Completer<UndoResult>();
+      await tester.pumpWidget(themedFrame(
+        themeMatrix.first,
+        AppMenuBar(
+          appName: 'myContacts',
+          undoAction: 'Delete Contact',
+          onUndo: () => appUndos++,
+          child: _area(controller),
+        ),
+      ));
+      controller.show('Contact deleted', undo: () {
+        toastUndos++;
+        return undo.future;
+      });
+      await tester.pumpAndSettle();
+      Focus.of(tester.element(find.text('Share'))).requestFocus();
+      await tester.pump();
+      for (var i = 0; i < 2; i++) {
+        await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+        await tester.sendKeyEvent(LogicalKeyboardKey.keyZ);
+        await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+        await tester.pump();
+      }
+      expect((toastUndos, appUndos), (1, 0));
+      undo.complete(const UndoResult('Contact restored'));
+      await tester.pumpAndSettle();
+      expect(find.text('Contact restored'), findsOneWidget);
+      await tester.pump(MyDataMotion.toastDuration);
+      await tester.pumpAndSettle();
+    }, variant: TargetPlatformVariant.only(TargetPlatform.linux));
+
     testWidgets('on desktop it is announced, not also a live region, so it is read once', (tester) async {
       final handle = tester.ensureSemantics();
       final controller = ToastController();

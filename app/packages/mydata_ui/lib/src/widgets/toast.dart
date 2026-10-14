@@ -346,13 +346,15 @@ class _ToastHostState extends State<ToastHost> with SingleTickerProviderStateMix
     return _undoFromKey();
   }
 
-  /// ⌘Z, from the host's own handler or the menu bar's: false when the toast cannot undo now.
+  /// ⌘Z, from the host's own handler or the menu bar's: false when the toast cannot undo now. While its undo
+  /// runs the press is still the toast's and does nothing, so a second press (or key repeat) never falls
+  /// through to the app's Undo and takes back the same change again.
   bool _undoFromKey() {
     if (!mounted) return false;
     final t = _controller.current;
-    if (t == null || t.undo == null || _undoing || editableTextAtFocus() != null) return false;
+    if (t == null || t.undo == null || editableTextAtFocus() != null) return false;
     if (!(ModalRoute.of(context)?.isCurrent ?? true)) return false;
-    unawaited(_undo());
+    if (!_undoing) unawaited(_undo());
     return true;
   }
 
