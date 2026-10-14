@@ -25,6 +25,7 @@ from mydata.sources.accounts import Accounts
 from mydata.sources.contacts_store import ContactsStore
 from mydata.sources.secrets import MemorySecretStore
 from mydata.service.sync import SyncService
+from mydata.sources._db import MigrationError
 
 from synthetic_home import count, populate
 
@@ -291,7 +292,7 @@ def test_a_failing_migration_takes_one_snapshot_however_often_it_is_tried(home):
     logging.getLogger().addHandler(LAST_ERROR)
     try:
         for _ in range(5):
-            with pytest.raises(sqlite3.IntegrityError):
+            with pytest.raises(MigrationError):
                 open_store(BrokenNextContactsStore, home, "contacts.sqlite")
         [snap] = list_snapshots(home)
         message = LAST_ERROR.last["message"]
@@ -304,16 +305,16 @@ def test_a_failing_migration_takes_one_snapshot_however_often_it_is_tried(home):
     # The file changed meanwhile: the old snapshot no longer holds it, so a new one is taken.
     with ContactsStore(home / "contacts.sqlite").db.transaction() as db:
         db.execute("UPDATE address_books SET name = 'Renamed'")
-    with pytest.raises(sqlite3.IntegrityError):
+    with pytest.raises(MigrationError):
         open_store(BrokenNextContactsStore, home, "contacts.sqlite")
     assert len(list_snapshots(home)) == 2
 
 
 def test_a_snapshot_too_old_to_be_kept_long_is_not_used_again(home, monkeypatch):
-    with pytest.raises(sqlite3.IntegrityError):
+    with pytest.raises(MigrationError):
         open_store(BrokenNextContactsStore, home, "contacts.sqlite")
     monkeypatch.setattr(backup, "_utc", lambda now=None: datetime.now(timezone.utc) + backup.REUSE_FOR)
-    with pytest.raises(sqlite3.IntegrityError):
+    with pytest.raises(MigrationError):
         open_store(BrokenNextContactsStore, home, "contacts.sqlite")
     assert len(list_snapshots(home)) == 2
 
@@ -327,7 +328,7 @@ def test_the_sync_service_does_not_retry_a_failed_store_on_every_access(home, mo
     clock = [1000.0]
     sources = SyncService(home, Accounts(home, MemorySecretStore()), platform="linux", clock=lambda: clock[0])
     for _ in range(10):
-        with pytest.raises(sqlite3.IntegrityError):
+        with pytest.raises(MigrationError):
             sources.contacts
     assert len(calls) == 1 and len(list_snapshots(home)) == 1
     assert sources.calendar.calendars()  # the other store is not affected
@@ -573,3 +574,32 @@ def test_stores_are_opened_only_through_the_snapshot_hook():
     found = [f"{p.relative_to(src)}:{n}" for p in src.rglob("*.py") if str(p.relative_to(src)) not in allowed
              for n, line in enumerate(p.read_text().splitlines(), 1) if direct.search(line)]
     assert found == []
+
+
+def test_the_host_starts_and_reports_a_store_it_cannot_open(home, monkeypatch):
+    """Real mode, a contacts migration that fails and a calendar file that is not a database: the host is
+    still built, /status answers with the error, and the mirror's routes and tools say what is wrong."""
+    import fake_dav
+    import mydata.service.sync as sync
+    from service_helpers import Host
+    from starlette.testclient import TestClient
+
+    Accounts(home, MemorySecretStore()).add("icloud", "ava.fictional@example.org", "invented-pw",
+                                            verify=lambda e, p: None)
+    monkeypatch.setattr(sync, "ContactsStore", BrokenNextContactsStore)
+    (home / "calendar.sqlite").write_bytes(b"not a database at all" * 100)
+    LAST_ERROR.last = None
+    logging.getLogger().addHandler(LAST_ERROR)
+    try:
+        host = Host(home, fake_dav.FakeDav())
+        assert host.modes.mode == "real"
+        assert list_snapshots(home) == []  # building the host opened no store
+        client = TestClient(host.app, base_url="http://127.0.0.1")
+        r = client.get("/contacts", headers=host.auth)
+        assert r.status_code == 503 and "contacts.sqlite could not be updated" in r.json()["detail"]
+        st = client.get("/status", headers=host.auth)
+        assert st.status_code == 200 and "contacts.sqlite could not be updated" in st.json()["last_error"]["message"]
+        result = host.assistant.registry.invoke("find_contact", {"name": "Ava"}, caller="test")
+        assert result.status == "error" and "MigrationError" in result.error
+    finally:
+        logging.getLogger().removeHandler(LAST_ERROR)

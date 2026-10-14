@@ -90,8 +90,10 @@ class ModeController:
     def spec(self, mode: Mode) -> ModeSpec:
         if mode == "demo":
             return self._demo
-        tools = mirror_tools(self.sync.contacts, self.sync.calendar, tz=self._real_tz,
-                             coverage=getattr(self.sync, "coverage", None))
+        # The stores are opened when a tool first reads them, never here: a store that cannot be opened (its
+        # migration refused or rolled back) then fails that tool call, not the host's start.
+        tools = mirror_tools(_Opened(lambda: self.sync.contacts), _Opened(lambda: self.sync.calendar),
+                             tz=self._real_tz, coverage=getattr(self.sync, "coverage", None))
         return ModeSpec("real", tuple(tools), self._real_today, REAL_SYSTEM_PROMPT)
 
     def refresh(self) -> Mode:
@@ -122,6 +124,16 @@ class ModeController:
             except Exception:
                 logger.exception("after switching mode")
         return want
+
+
+class _Opened:
+    """A store, opened through `get` on each use (SyncService keeps it open once it is)."""
+
+    def __init__(self, get: Callable[[], object]):
+        self._get = get
+
+    def __getattr__(self, name: str):
+        return getattr(self._get(), name)
 
 
 class _MemoryEpochs:

@@ -51,7 +51,7 @@ from pathlib import Path
 from typing import Callable, Iterable
 
 from .. import __version__
-from ..sources._db import Database, check, table_counts
+from ..sources._db import Database, MigrationError, check, table_counts
 from .config import private_dir, private_file
 from .logs import log
 
@@ -416,7 +416,7 @@ def open_store(cls, home: Path, filename: str):
     (MigrationRefused, logged as an error, so /status shows it) rather than migrate unprotected.
 
     A migration that fails is rolled back, logged as an error naming the snapshot taken before it, and
-    raised. Trying again later takes no second snapshot while the file is unchanged and the newest snapshot
+    raised as MigrationError. Trying again later takes no second snapshot while the file is unchanged and the newest snapshot
     taken before a migration, younger than REUSE_FOR, still holds it exactly."""
     path = Path(home) / filename
     pending = Database.pending(path, cls.MIGRATIONS)
@@ -442,10 +442,11 @@ def open_store(cls, home: Path, filename: str):
     try:
         return cls(path)
     except Exception as e:
-        log(logger, logging.ERROR, f"{filename} could not be updated from schema version {current} to {target} "
-            f"({type(e).__name__}: {e}). The update was rolled back and the file is as it was; snapshot "
-            f"{snap.name} holds it as it was before.", file=filename, snapshot=snap.name)
-        raise
+        message = (f"{filename} could not be updated from schema version {current} to {target} "
+                   f"({type(e).__name__}: {e}). The update was rolled back and the file is as it was; snapshot "
+                   f"{snap.name} holds it as it was before.")
+        log(logger, logging.ERROR, message, file=filename, snapshot=snap.name)
+        raise MigrationError(message) from None
 
 
 def _holding(home: Path, filename: str, version: int) -> Snapshot | None:

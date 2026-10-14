@@ -58,7 +58,8 @@ from ..tools import ApprovalError, Registry
 from .appearance import DEFAULT_THEME, THEME_IDS, THEMES
 from .assistant import Assistant
 from .auth import LIFETIME_APPS, Authenticator
-from .backup import BackupService
+from ..sources._db import MigrationError
+from .backup import BackupError, BackupService
 from .logs import LAST_ERROR
 from .state import HostState
 from .mcp import build_mcp
@@ -637,6 +638,14 @@ def create_app(auth: Authenticator, registry: Registry, models: ModelManager, as
         """FastAPI's 422, without the submitted values: a rejected body can hold a password."""
         errors = [{k: v for k, v in e.items() if k != "input"} for e in exc.errors()]
         return JSONResponse(status_code=422, content={"detail": jsonable_encoder(errors)})
+
+    async def store_unavailable(_request: Request, exc: Exception) -> JSONResponse:
+        """A store that could not be opened (its migration refused or rolled back): 503 with the message,
+        which names files and versions only, and is also in /status's last_error."""
+        return JSONResponse(status_code=503, content={"detail": str(exc)})
+
+    app.add_exception_handler(BackupError, store_unavailable)
+    app.add_exception_handler(MigrationError, store_unavailable)
 
     _routes_sources(app, need_sources, current_mode)
     app.router.routes.append(Route("/mcp", endpoint=_mcp_endpoint(session_manager)))
