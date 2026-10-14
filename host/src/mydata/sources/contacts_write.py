@@ -29,7 +29,8 @@ Delete is soft: `deleted_at` is set and `purge_after` is 30 days later. expire_t
 daily) purges cards past their date through purge permits (owned.purge), with their revisions, which hold
 their text, and purge_now() does the same for one card when the user deletes it for good from Recently
 deleted (only at the etag the user saw there, so a card restored, changed and deleted again elsewhere is
-never purged unseen); the change feed and undo log rows hold no contact data and stay. The host log records
+never purged unseen); its `origins` rows go too (an imported vCard 2.1 keeps its original text there); the
+change feed, undo log and merges rows hold no contact data and stay. The host log records
 who purged what (ids only). Copies in the host's snapshots stay until those expire (backup.kept_until).
 
 Group cards are not contacts here (they are never found by id), so they are never written; a contact's
@@ -349,6 +350,7 @@ def purge_now(store: ContactsStore, contact_id: str, *, if_match: str) -> None:
             raise PreconditionFailed("This contact changed since it was read. Look at it again first.", current)
         owned.purge(db, owned.CONTACTS, row_ids=[contact_id])
         db.execute("DELETE FROM revisions WHERE object_id = ?", (contact_id,))
+        db.execute("DELETE FROM origins WHERE object_id = ?", (contact_id,))
         db.execute("INSERT INTO contacts_fts (contacts_fts) VALUES ('optimize')")
     store.db.checkpoint()
 
@@ -365,6 +367,7 @@ def expire_trash(store: ContactsStore, now: datetime | None = None) -> int:
             return 0
         gone = owned.purge(db, owned.CONTACTS, row_ids=ids)["rows"]
         db.executemany("DELETE FROM revisions WHERE object_id = ?", [(i,) for i in ids])
+        db.executemany("DELETE FROM origins WHERE object_id = ?", [(i,) for i in ids])
         db.execute("INSERT INTO contacts_fts (contacts_fts) VALUES ('optimize')")
     store.db.checkpoint()
     return gone

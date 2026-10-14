@@ -58,7 +58,7 @@ def test_a_snapshot_copies_every_database_with_a_manifest(home):
     contacts = by_file["contacts.sqlite"]
     assert contacts["schema_version"] == max(ContactsStore.MIGRATIONS)
     assert contacts["row_counts"] == {"address_books": 1, "contacts": count(home / "contacts.sqlite", "contacts"),
-                                      **{t: 0 for t in ("changes", "imports", "meta", "origins", "purge_permits",
+                                      **{t: 0 for t in ("changes", "imports", "merges", "meta", "origins", "purge_permits",
                                                         "revisions", "undo_log")}}
     assert by_file["calendar.sqlite"]["row_counts"]["events"] == count(home / "calendar.sqlite", "events") == 6
     for f in m["files"]:

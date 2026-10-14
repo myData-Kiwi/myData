@@ -15,6 +15,12 @@ Owned cards are written only by sources/contacts_write.py (create, edit, Recentl
 also goes up on a delete or restore, and their `etag` column holds the API's etag (http_etag), since they
 have no source. The undo log (`undo_log`) is in this file too.
 
+Imports (sources/importer.py) write owned cards with an `origins` row naming where each came from (source kind,
+account, UID). The shadowing rule (_SHADOWED): a followed card an owned contact was imported from, matched by
+account and UID and never by the followed row's id, is left out of lists, counts, search and find_contact while
+that owned contact is live (or was merged, `merged_into`, into one that is: sources/contacts_merge.py). An owned
+contact whose followed copy changed since the import carries `changed_in_source`.
+
 The "This Mac" source (account_id "mac") is stored the same way: one synthetic address book per
 Contacts container (url mac://contacts/<container id>) and a vCard generated from what the helper read
 (sources/mac/cards.py), which holds no note.
@@ -144,10 +150,51 @@ _MIGRATIONS = {
         )""",
         "CREATE INDEX undo_log_object ON undo_log (object_id)",
     ],
+    # Contact import (sources/importer.py) and merges (sources/contacts_merge.py). Additive only.
+    4: [
+        # The live contact a merged (soft-deleted) card went into: its origins still shadow their followed copies.
+        "ALTER TABLE contacts ADD COLUMN merged_into TEXT",
+        "ALTER TABLE origins ADD COLUMN source_account TEXT NOT NULL DEFAULT ''",
+        # create (the import made the row), update (it changed an earlier import's row), link (an owned row the
+        # user kept instead of the followed copy: nothing written to it)
+        "ALTER TABLE origins ADD COLUMN action TEXT NOT NULL DEFAULT 'create'",
+        "ALTER TABLE origins ADD COLUMN prior_rev INTEGER",
+        "ALTER TABLE origins ADD COLUMN undone_at TEXT",
+        "CREATE INDEX origins_account ON origins (source_account, source_uid)",
+        "CREATE INDEX origins_import ON origins (import_id)",
+        "ALTER TABLE imports ADD COLUMN actor TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE imports ADD COLUMN source_account TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE imports ADD COLUMN address_book_id TEXT",
+        "ALTER TABLE imports ADD COLUMN undone_at TEXT",
+        "ALTER TABLE imports ADD COLUMN undone_by TEXT",
+        """CREATE TABLE merges (
+            id TEXT PRIMARY KEY,
+            merged_id TEXT NOT NULL,
+            merged_rev INTEGER NOT NULL,
+            originals TEXT NOT NULL,
+            links TEXT NOT NULL DEFAULT '{}',
+            actor TEXT NOT NULL,
+            at TEXT NOT NULL,
+            undone_at TEXT,
+            undone_by TEXT
+        )""",
+    ],
 }
 
 # Cards that are people or organisations: a group card is kept (and exported) but never shown as a contact.
 _PEOPLE = "kind != 'group'"
+
+# The shadowing rule (the owned-data plan, 2(a)): a followed card that an owned contact was imported from (an
+# origin naming the same account and UID, never the followed row's id) is hidden from lists, counts, search and
+# find_contact while that owned contact is live, or was merged into one that is. `c` is the followed row.
+_SHADOWED = f"""(c.account_id != '{owned.OWNED_ACCOUNT}' AND c.uid != '' AND EXISTS (
+    SELECT 1 FROM origins o JOIN contacts oc ON oc.id = o.object_id
+    WHERE o.source_account = c.account_id AND o.source_uid = c.uid AND o.source_kind != 'file'
+    AND o.undone_at IS NULL
+    AND (oc.deleted_at IS NULL OR (oc.merged_into IS NOT NULL AND EXISTS (
+        SELECT 1 FROM contacts m WHERE m.id = oc.merged_into AND m.deleted_at IS NULL)))))"""
+# A card shown as a contact: a person or organisation, not shadowed by an owned copy.
+_VISIBLE = f"c.{_PEOPLE} AND NOT {_SHADOWED}"
 
 _PUBLIC_FIELDS = (
     "id", "account_id", "address_book_id", "collection_url", "href", "etag", "uid", "display_name", "full_name",
@@ -196,6 +243,7 @@ def _row(row: sqlite3.Row, *, raw: bool = False) -> dict:
     out["http_etag"] = http_etag(row["rev"], row["raw_sha256"])
     out["rev"] = row["rev"]
     out["purge_after"] = row["purge_after"]
+    out["changed_in_source"] = None  # set by _annotated for owned rows (ContactsStore.changed_in_source)
     if raw:
         out["raw_vcard"] = row["raw_vcard"]
     return out
@@ -301,7 +349,12 @@ class ContactsStore:
         Only for the trash expiry and "Forget", which do not exist yet. Leaves no readable trace, as
         delete_account does."""
         with self.db.transaction() as db:
-            gone = owned.purge(db, owned.CONTACTS, collection_ids=address_book_ids, row_ids=contact_ids)
+            book_ids, contact_ids = list(address_book_ids), list(contact_ids)
+            for book_id in book_ids:
+                contact_ids += [r[0] for r in db.execute("SELECT id FROM contacts WHERE address_book_id = ?",
+                                                         (book_id,))]
+            gone = owned.purge(db, owned.CONTACTS, collection_ids=book_ids, row_ids=contact_ids)
+            db.executemany("DELETE FROM origins WHERE object_id = ?", [(i,) for i in contact_ids])
             db.execute("INSERT INTO contacts_fts (contacts_fts) VALUES ('optimize')")
         self.db.checkpoint()
         return gone
@@ -343,12 +396,13 @@ class ContactsStore:
         return sorted(r[0] for r in rows)
 
     def counts(self, account_id: str) -> dict[str, int]:
-        """How many address books and contacts (not soft-deleted) the account has in the mirror."""
+        """How many address books and contacts (not soft-deleted) the account has in the mirror. A card shadowed
+        by an owned copy imported from it is not counted (_SHADOWED)."""
         with self.db.connect() as db:
             books = db.execute("SELECT COUNT(*) FROM address_books WHERE account_id = ? AND deleted_at IS NULL",
                                (account_id,)).fetchone()[0]
-            cards = db.execute(f"SELECT COUNT(*) FROM contacts WHERE account_id = ? AND deleted_at IS NULL "
-                               f"AND {_PEOPLE}", (account_id,)).fetchone()[0]
+            cards = db.execute(f"SELECT COUNT(*) FROM contacts c WHERE c.account_id = ? AND c.deleted_at IS NULL "
+                               f"AND {_VISIBLE}", (account_id,)).fetchone()[0]
         return {"address_books": books, "contacts": cards}
 
     # ------------------------------------------------------------------ reading
@@ -358,32 +412,33 @@ class ContactsStore:
             rows = db.execute(
                 "SELECT b.id, b.account_id, b.url, b.name, b.color, "
                 f"(SELECT COUNT(*) FROM contacts c WHERE c.address_book_id = b.id AND c.deleted_at IS NULL "
-                f"AND c.{_PEOPLE}) AS count "
+                f"AND {_VISIBLE}) AS count "
                 "FROM address_books b WHERE b.deleted_at IS NULL ORDER BY b.name COLLATE NOCASE, b.url"
             ).fetchall()
         return [dict(r) for r in rows]
 
     def list(self, limit: int = 500, offset: int = 0) -> list[dict]:
         """Contacts by name, ignoring case and accents (views.sort_key), so a letter group is never split by
-        an accented name: SQLite's NOCASE folds ASCII only and would put "Émile" after "Zed"."""
+        an accented name: SQLite's NOCASE folds ASCII only and would put "Émile" after "Zed". A followed card an
+        owned contact was imported from is left out (_SHADOWED)."""
         limit, offset = _bounded(limit), max(int(offset), 0)
         with self.db.connect() as db:
             db.create_collation("MYDATA_NAME", compare_names)
             rows = db.execute(
-                f"SELECT * FROM contacts WHERE deleted_at IS NULL AND {_PEOPLE} "
-                "ORDER BY display_name COLLATE MYDATA_NAME, id LIMIT ? OFFSET ?",
+                f"SELECT c.* FROM contacts c WHERE c.deleted_at IS NULL AND {_VISIBLE} "
+                "ORDER BY c.display_name COLLATE MYDATA_NAME, c.id LIMIT ? OFFSET ?",
                 (limit, offset),
             ).fetchall()
-        return [_row(r) for r in rows]
+            return _annotated(db, rows)
 
     def get(self, contact_id: str, *, include_deleted: bool = False) -> dict | None:
         """One contact with its raw vCard, or None (also None when soft-deleted, unless asked, and for a group
         card, which is not a contact)."""
         with self.db.connect() as db:
             row = db.execute(f"SELECT * FROM contacts WHERE id = ? AND {_PEOPLE}", (contact_id,)).fetchone()
-        if row is None or (row["deleted_at"] is not None and not include_deleted):
-            return None
-        return _row(row, raw=True)
+            if row is None or (row["deleted_at"] is not None and not include_deleted):
+                return None
+            return _annotated(db, [row], raw=True)[0]
 
     def search(self, query: str, limit: int = 50) -> list[dict]:
         """Full-text search over names, nickname, organisation, emails and phones. Every word must match,
@@ -391,13 +446,14 @@ class ContactsStore:
         expr = fts_query(query)
         if expr is None:
             return []
-        return [_row(r) for r in self._match(expr, _bounded(limit))]
+        with self.db.connect() as db:
+            return _annotated(db, self._match(expr, _bounded(limit), db))
 
     def find_by_name(self, name: str) -> list[dict]:
         """Contacts whose name matches every word of `name` as a prefix (for the find_contact tool), owned and
-        followed alike. Duplicates come back as separate matches. A possessive "'s" is ignored."""
-        # TODO(phase 4, contact import): an owned copy imported from a source that is still followed shadows the
-        # followed card (origins by source UID), so find_contact gives one match per person.
+        followed alike. Duplicates come back as separate matches, but a followed card an owned contact was
+        imported from is not one (_SHADOWED: one match per person imported from a source still followed). A
+        possessive "'s" is ignored."""
         cleaned = re.sub(r"['’]s\b", "", name)
         expr = fts_query(cleaned, _NAME_COLUMNS)
         if expr is None:
@@ -412,14 +468,59 @@ class ContactsStore:
             for r in self._match(expr, 50)
         ]
 
-    def _match(self, expr: str, limit: int) -> list[sqlite3.Row]:
+    def _match(self, expr: str, limit: int, db: sqlite3.Connection | None = None) -> list[sqlite3.Row]:
+        if db is None:
+            with self.db.connect() as own:
+                return self._match(expr, limit, own)
+        return db.execute(
+            "SELECT c.* FROM contacts_fts JOIN contacts c ON c.seq = contacts_fts.rowid "
+            f"WHERE contacts_fts MATCH ? AND c.deleted_at IS NULL AND {_VISIBLE} "
+            "ORDER BY bm25(contacts_fts), c.display_name COLLATE NOCASE, c.id LIMIT ?",
+            (expr, limit),
+        ).fetchall()
+
+    def changed_in_source(self, contact_ids: Iterable[str]) -> dict[str, str]:
+        """{owned contact id: followed account id} for owned contacts imported from a followed source whose
+        followed copy changed after the import (its text's hash is not the one the import recorded)."""
         with self.db.connect() as db:
-            return db.execute(
-                "SELECT c.* FROM contacts_fts JOIN contacts c ON c.seq = contacts_fts.rowid "
-                f"WHERE contacts_fts MATCH ? AND c.deleted_at IS NULL AND c.{_PEOPLE} "
-                "ORDER BY bm25(contacts_fts), c.display_name COLLATE NOCASE, c.id LIMIT ?",
-                (expr, limit),
-            ).fetchall()
+            return changed_in_source(db, list(contact_ids))
+
+
+def changed_in_source(db: sqlite3.Connection, ids: list[str]) -> dict[str, str]:
+    """See ContactsStore.changed_in_source. An owned contact's origins are its own and those of the cards merged
+    into it; for each (account, UID) only the newest origin counts (a later import from the source moved it on)."""
+    out: dict[str, str] = {}
+    for start in range(0, len(ids), 400):
+        chunk = ids[start:start + 400]
+        marks = ", ".join("?" * len(chunk))
+        rows = db.execute(
+            "WITH objects(owner, object_id) AS ("
+            f"  SELECT id, id FROM contacts WHERE id IN ({marks})"
+            f"  UNION ALL SELECT merged_into, id FROM contacts WHERE merged_into IN ({marks})), "
+            "latest AS (SELECT o.source_account, o.source_uid, MAX(o.rowid) AS rid FROM origins o "
+            "  JOIN objects ON objects.object_id = o.object_id "
+            "  WHERE o.source_kind != 'file' AND o.undone_at IS NULL GROUP BY o.source_account, o.source_uid) "
+            "SELECT DISTINCT objects.owner, o.source_account FROM latest JOIN origins o ON o.rowid = latest.rid "
+            "JOIN objects ON objects.object_id = o.object_id "
+            "JOIN contacts f ON f.account_id = o.source_account AND f.uid = o.source_uid AND f.deleted_at IS NULL "
+            f"WHERE f.account_id != '{owned.OWNED_ACCOUNT}' AND f.raw_sha256 != o.source_hash",
+            [*chunk, *chunk]).fetchall()
+        for owner, account in rows:
+            out.setdefault(owner, account)
+    return out
+
+
+def _annotated(db: sqlite3.Connection, rows: list[sqlite3.Row], *, raw: bool = False) -> list[dict]:
+    """Rows as _row gives them, owned ones with `changed_in_source` (the followed account whose copy changed
+    since the import, or None)."""
+    owned_ids = [r["id"] for r in rows if r["account_id"] == owned.OWNED_ACCOUNT]
+    changed = changed_in_source(db, owned_ids) if owned_ids else {}
+    out = []
+    for r in rows:
+        item = _row(r, raw=raw)
+        item["changed_in_source"] = changed.get(r["id"])
+        out.append(item)
+    return out
 
 
 def card_fields(etag: str | None, data: str) -> dict:

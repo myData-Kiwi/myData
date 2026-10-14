@@ -7,7 +7,8 @@ field of every row. The data is invented only: the DAV fixtures in tests/fixture
 data (tests/fake_mac), a few extra cards (groups, an organisation, a soft-deleted card) and, from the schema
 that has them on, owned collections (tests/owned_data.py) and, from the schema with the undo log, an owned
 contact written, changed and deleted through sources/contacts_write.py, with its revisions, changes and undo
-log rows.
+log rows; and, from the schema with imports and merges, a file import (vCard 2.1, undone), a copy of a followed
+account imported into owned contacts, and a merge of two of them.
 
 A dump holds INSERT statements for the stores' own tables, never the schema, schema_version or a search
 index (the migrations build those, and the insert triggers fill the index). A text value holding a carriage
@@ -35,7 +36,8 @@ import synthetic_home  # noqa: E402
 import test_contacts_store as con  # noqa: E402
 
 # Tables a schema does not have yet are left out of its dump.
-TABLES = {"contacts.sqlite": ("address_books", "contacts", "revisions", "changes", "undo_log"),
+TABLES = {"contacts.sqlite": ("address_books", "contacts", "revisions", "changes", "undo_log", "imports", "origins",
+                               "merges"),
           "calendar.sqlite": ("calendars", "events", "occurrences", "coverage")}
 
 CRLF = "\r\n"
@@ -88,6 +90,27 @@ def populate(home: Path) -> None:
         cw.update(contacts, written.contact_id, {"nickname": "Wee, Wren", "birthday": "--02-29"}, if_match=current,
                   actor="mycontacts")
         cw.delete(contacts, written.contact_id, actor="mydata")
+    with contacts.db.connect() as db:
+        merges = db.execute("SELECT 1 FROM sqlite_master WHERE name = 'merges'").fetchone() is not None
+    if merges:
+        _imports_and_merges(contacts)
+
+
+def _imports_and_merges(contacts) -> None:
+    from mydata.sources import contacts_merge, importer
+    from mydata.sources.import_files import ReadResult, read_card, read_contacts
+    samsung = read_contacts((HERE.parent / "vcard" / "samsung-2.1.vcf").read_bytes())
+    done = importer.commit(contacts, importer.ImportSource("file", "", "samsung.vcf"), samsung, actor="mycontacts",
+                           region="US")
+    importer.undo_import(contacts, done.import_id, actor="mydata")
+    copy = ReadResult(entries_read=1)
+    with contacts.db.connect() as db:
+        for row in importer.followed_cards(db, "acc-1"):
+            copy.cards.append(read_card(row["raw_vcard"], len(copy.cards)))
+    importer.commit(contacts, importer.ImportSource("icloud", "acc-1", "iCloud account"), copy, actor="mydata",
+                    region="US")
+    sams = [c for c in contacts.list() if c["display_name"] == "Sam Sample" and c["account_id"] == "local"]
+    contacts_merge.merge(contacts, [(c["id"], c["http_etag"]) for c in sams], actor="mycontacts")
 
 
 def literal(value, hexed: bool = False) -> str:

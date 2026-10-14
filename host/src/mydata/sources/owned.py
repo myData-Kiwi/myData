@@ -23,9 +23,9 @@ before it commits. Only these may call purge(): the trash expiry (contacts_write
 item in Recently deleted for good when the user asks (contacts_write.purge_now, only at the etag the user saw,
 and logged with who asked) and "Forget" (later).
 
-The other tables added with modes are empty until the writers and the import exist: `revisions` (each
-version of an owned row's raw text), `changes` (the change feed), `imports`, `origins` (where an imported
-row came from, keyed by the source's UID and never by a followed row's id) and `meta`.
+The other tables added with modes: `revisions` (each version of an owned row's raw text), `changes` (the change
+feed), `imports` and `origins` (where an imported row came from, keyed by the source's UID and never by a
+followed row's id; written by sources/importer.py) and `meta`.
 
 Times in every new table are text in the unit the existing columns use: ISO 8601 in UTC to the second,
 as _db.now() writes them ("2026-10-13T09:30:00+00:00").
