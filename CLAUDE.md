@@ -182,6 +182,7 @@ Read-only mirrors in `contacts.sqlite` and `calendar.sqlite` (`host/src/mydata/s
   - The host starts it with `open` (LaunchServices), never by running the binary, and only from a path inside a validly signed myData app with the same signing identity. It talks JSON lines over `<home>/run/reader.sock` (folder 0700, socket 0600, one connection at a time).
   - **Read-only:** all framework access is behind one Swift protocol with no write method; a host test scans the helper's sources for write calls.
   - **Permission** is asked only when the user presses Allow in the myData app, never at login.
+  - **Access taken away** (denied, restricted, calendars write-only) deletes that kind's copy. "Not asked yet" keeps it, unread until the user allows again: macOS reports it whenever myData's signing identity changes, as on every ad hoc rebuild (found 2026-10-14, when a rebuild emptied the copy).
   - The user chooses which contact accounts and calendars are included (all by default).
   - **Contact notes are never read** (they need an entitlement Apple grants on request); the API says `notes_included: false`. Photos are read when allowed, otherwise the apps show initials.
   - **Events:** EventKit gives only expanded occurrences, so the Mac source keeps a rolling window, one year back and two years ahead, read in pieces of at most 4 years. An occurrence is keyed by (calendar, external id, occurrence date), so one event in two calendars is two rows.
