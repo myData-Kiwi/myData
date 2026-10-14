@@ -128,6 +128,11 @@ def test_a_card_with_an_odd_character_set_never_fails_the_file(host, client):
     assert [(x["code"], x["count"]) for x in r.json()["losses"]] == [("skipped_unreadable", 1)]
 
 
+def test_a_file_label_holds_no_control_or_format_characters():
+    assert imports_service.file_label("C:\\Users\\x\\Ava\u202e\u200bfdp.vcf\x85\x00") == "Avafdp.vcf"
+    assert imports_service.file_label("\u202e\u2066") == "Contacts file"
+
+
 def test_inputs_refused_whole(host, client, monkeypatch):
     r = upload(client, host, corpus.bomb())
     assert r.status_code == 400 and "expands" in r.json()["detail"]

@@ -364,8 +364,10 @@ def _settle_origins(db: sqlite3.Connection, ids: list[str]) -> None:
     """Before the cards `ids` are purged: the origins they hold (their own, and those held for originals merged
     into them) go with them, except those of a card merged into one that stays (merged_into, followed past cards
     purged now): the merged card holds them from now on (`held_by`), without the original's text (source_raw), so
-    it keeps shadowing the followed copies and importing again still knows them (contacts_store._SHADOWED)."""
+    it keeps shadowing the followed copies and importing again still knows them (contacts_store._SHADOWED). An
+    import of a file with nothing left on the host stops naming the file (_forget_label)."""
     purged = set(ids)
+    imports: set[str] = set()  # imports that lost an origin
     for contact_id in ids:
         successor, seen = contact_id, {contact_id}
         while successor in purged:
@@ -379,8 +381,33 @@ def _settle_origins(db: sqlite3.Connection, ids: list[str]) -> None:
             db.execute("UPDATE origins SET held_by = ?, source_raw = NULL WHERE held_by = ? OR (held_by IS NULL "
                        "AND object_id = ?)", (successor, contact_id, contact_id))
         else:
+            imports.update(r[0] for r in db.execute(
+                "SELECT import_id FROM origins WHERE held_by = ? OR (held_by IS NULL AND object_id = ?)",
+                (contact_id, contact_id)))
             db.execute("DELETE FROM origins WHERE held_by = ? OR (held_by IS NULL AND object_id = ?)",
                        (contact_id, contact_id))
+    for import_id in imports:
+        _forget_label(db, import_id)
+
+
+_MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+
+
+def _forget_label(db: sqlite3.Connection, import_id: str) -> None:
+    """Once nothing an import of a file brought in is on the host any more, its history row stops naming the file:
+    exports are named after people ("Ava Fictional.vcf"), and the history would keep that name after the contact
+    was deleted for good. It becomes "Contacts file, <the day it was imported>"."""
+    if db.execute("SELECT 1 FROM origins WHERE import_id = ? LIMIT 1", (import_id,)).fetchone() is not None:
+        return
+    row = db.execute("SELECT started_at FROM imports WHERE id = ? AND source = 'file'", (import_id,)).fetchone()
+    if row is None:
+        return
+    try:
+        day = datetime.fromisoformat(row["started_at"])
+        label = f"Contacts file, {day.day} {_MONTHS[day.month - 1]} {day.year}"
+    except ValueError:
+        label = "Contacts file"
+    db.execute("UPDATE imports SET label = ? WHERE id = ?", (label, import_id))
 
 
 def expire_trash(store: ContactsStore, now: datetime | None = None) -> int:

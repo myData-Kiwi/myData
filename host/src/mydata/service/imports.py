@@ -20,6 +20,7 @@ import re
 import secrets
 import threading
 import time
+import unicodedata
 from collections import OrderedDict
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -66,9 +67,10 @@ class Held:
 
 
 def file_label(filename: str) -> str:
-    """The file's name as the history shows it: its last path part, without control characters, at most 200."""
+    """The file's name as the history shows it: its last path part, without control or format characters (C0 and
+    C1 controls, bidirectional overrides such as U+202E, zero-width characters), at most 200 characters."""
     name = re.split(r"[\\/]", filename or "")[-1]
-    name = re.sub(r"[\x00-\x1f\x7f]", "", name).strip()[:200]
+    name = "".join(ch for ch in name if unicodedata.category(ch) not in ("Cc", "Cf", "Cs", "Co")).strip()[:200]
     return name or "Contacts file"
 
 

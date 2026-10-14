@@ -330,6 +330,20 @@ def test_purging_an_imported_contact_removes_its_origin(store):
     assert b"Zo\xc3\xab" not in (store.db.path.read_bytes())
 
 
+def test_a_file_named_after_a_person_is_forgotten_once_its_contacts_are_deleted_for_good(store):
+    named = ImportSource(FILE, "", "Ava Fictional.vcf")
+    done = commit(store, named, file_with(AVA))
+    other = commit(store, ImportSource(FILE, "", "Sam Sample.vcf"), file_with(SAM))
+    ava, sam = owned_rows(store)
+    cw.delete(store, ava["id"], actor="mycontacts")
+    assert importer.get_import(store, done.import_id)["label"] == "Ava Fictional.vcf"  # restorable: kept
+    cw.purge_now(store, ava["id"], if_match=store.get(ava["id"], include_deleted=True)["http_etag"])
+    day = datetime.fromisoformat(importer.get_import(store, done.import_id)["started_at"])
+    assert importer.get_import(store, done.import_id)["label"] == f"Contacts file, {day.day} {day:%b} {day.year}"
+    assert importer.get_import(store, other.import_id)["label"] == "Sam Sample.vcf"
+    assert b"Ava Fictional" not in store.db.path.read_bytes()
+
+
 # ---------------------------------------------------------------- the shadowing rule
 
 def test_a_person_imported_from_a_followed_account_is_found_once(followed):
