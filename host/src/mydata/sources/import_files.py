@@ -13,7 +13,9 @@ Caps, each refused with ImportFileError (a message for the user, no content):
 
 Each card is cut out of the text on its own, so one malformed card never stops the others: a card without
 END:VCARD, one the line parser rejects, an unsupported VERSION or a vCard 2.1 that cannot be converted is
-skipped with its reason, and text outside any card is reported once. A card far larger than a contact (over
+skipped with its reason, and lines of text outside any card are counted as a loss (a card whose BEGIN:VCARD is
+misspelt is among them). A .vcf in a zip with no card in it at all (one in an encoding not read) is reported by
+name as a loss. A card far larger than a contact (over
 MAX_CARD_BYTES, MAX_CARD_LINES content lines or MAX_CARD_TEXT of text besides photos) is skipped before it is
 parsed, and cards past the first MAX_CARDS are only counted, so memory stays a small multiple of the input.
 
@@ -21,7 +23,8 @@ vCard 2.1 (Samsung): the line reader joins quoted-printable soft breaks, then vc
 3.0 (values decoded in their CHARSET); the import keeps the 2.1 text as the original (origins.source_raw).
 3.0 and 4.0 are kept exactly as received.
 
-Text: UTF-8 (a byte-order mark is dropped), UTF-16 with a byte-order mark, else Windows-1252 (reported).
+Text: UTF-8 (a byte-order mark is dropped), UTF-16 with a byte-order mark or, without one, with a zero byte at
+every other position, else Windows-1252 (reported).
 """
 
 from __future__ import annotations
@@ -98,9 +101,10 @@ class Skipped:
 class ReadResult:
     cards: list[ReadCard] = field(default_factory=list)
     skipped: list[Skipped] = field(default_factory=list)
-    # Notes about the file that lose nothing ("windows_1252", "outside_text") and ones that do ("nested_zip",
-    # "encrypted"): {code: count}
+    # Notes about the file that lose nothing ("windows_1252") and ones that do ("outside_text": lines outside any
+    # card, "nested_zip", "encrypted", "too_many"): {code: count}
     notes: dict[str, int] = field(default_factory=dict)
+    unread_entries: list[str] = field(default_factory=list)  # .vcf files in a zip with no card that could be read
     entries_read: int = 0  # .vcf files read (1 for a plain .vcf)
     other_files: int = 0  # files in a zip that are not vCards (calendars, photos): not read
 
@@ -119,12 +123,24 @@ def read_contacts(data: bytes) -> ReadResult:
     result = ReadResult()
     if is_zip(data):
         for name, payload in _zip_vcards(data, result):
-            _read_text(_decode(payload, result), result, entry=name)
-            result.entries_read += 1
-        if result.entries_read == 0:
+            try:
+                text = _decode(payload, result)
+            except ImportFileError:
+                result.unread_entries.append(name)
+                continue
+            found, outside = _read_text(text, result, entry=name)
+            if found:
+                result.entries_read += 1
+                if outside:
+                    result.note("outside_text", outside)
+            elif payload.strip():
+                result.unread_entries.append(name)  # no card at all: the whole file is a loss, not stray text
+        if result.entries_read == 0 and not result.unread_entries:
             raise ImportFileError("The zip holds no vCard (.vcf) file.")
     else:
-        _read_text(_decode(data, result), result, entry=None)
+        _found, outside = _read_text(_decode(data, result), result, entry=None)
+        if outside:
+            result.note("outside_text", outside)
         result.entries_read = 1
     if not result.cards and not result.skipped:
         raise ImportFileError("No vCard was found in the file.")
@@ -175,10 +191,31 @@ def _zip_vcards(data: bytes, result: ReadResult):
         yield name, payload
 
 
+def _utf16_without_bom(data: bytes) -> str | None:
+    """"utf-16-le" or "utf-16-be" when text has no byte-order mark but a zero byte at every other position (ASCII
+    text in UTF-16, as Windows tools write it), else None."""
+    sample = data[:4096]
+    if len(sample) < 4 or len(sample) % 2:
+        return None
+    half = len(sample) // 2
+    odd, even = sample[1::2].count(0), sample[0::2].count(0)
+    if odd >= half * 0.6 and even <= half * 0.05:
+        return "utf-16-le"
+    if even >= half * 0.6 and odd <= half * 0.05:
+        return "utf-16-be"
+    return None
+
+
 def _decode(data: bytes, result: ReadResult) -> str:
     if data.startswith((b"\xff\xfe", b"\xfe\xff")):
         try:
             return data.decode("utf-16")
+        except UnicodeDecodeError:
+            raise ImportFileError("The file's text cannot be read (UTF-16).") from None
+    utf16 = _utf16_without_bom(data)
+    if utf16:
+        try:
+            return data.decode(utf16)
         except UnicodeDecodeError:
             raise ImportFileError("The file's text cannot be read (UTF-16).") from None
     try:
@@ -199,11 +236,12 @@ _PHYSICAL = re.compile(r"[^\r\n]*(?:\r\n|\n|\r)|[^\r\n]+\Z")
 
 def _chunks(text: str):
     """(kind, text) for each part of the text: ("card", one card from BEGIN:VCARD to its END:VCARD),
-    ("open", a card with no END:VCARD), ("outside", non-blank text outside any card). Cards are cut out by
+    ("open", a card with no END:VCARD), and last ("outside", n): n lines outside any card that are not blank or
+    a PRODID or VERSION line (lost: "BEGIN: VCARD" misspelt makes its card such lines). Cards are cut out by
     offset, so a very long card is never held twice as a list of its lines."""
     start: int | None = None  # where the current card begins
     depth = 0
-    outside = False
+    outside = 0
     qp = qp_open = False  # the line is quoted-printable; it ends in a soft break ("="), so the next continues it
     for match in _PHYSICAL.finditer(text):
         phys = match.group(0)
@@ -212,8 +250,8 @@ def _chunks(text: str):
         if start is None:
             if line == "BEGIN:VCARD":
                 start, depth, qp = match.start(), 0, False
-            elif line:
-                outside = True
+            elif line and not line.startswith(("PRODID:", "VERSION:")):
+                outside += 1
             continue
         content = phys.rstrip("\r\n")
         if qp_open or content[:1] in (" ", "\t"):
@@ -242,7 +280,7 @@ def _chunks(text: str):
     if start is not None:
         yield "open", text[start:]
     if outside:
-        yield "outside", ""
+        yield "outside", outside
 
 
 _IGNORED_IN_HASH = ("REV", "PRODID")
@@ -329,11 +367,14 @@ def _trimmed(chunk: str) -> str:
     return chunk[start:] if start > 0 else chunk
 
 
-def _read_text(text: str, result: ReadResult, *, entry: str | None) -> None:
+def _read_text(text: str, result: ReadResult, *, entry: str | None) -> tuple[int, int]:
+    """Read the cards of one text into `result`: (cards found, read or skipped; lines outside any card)."""
+    found = outside = 0
     for kind, chunk in _chunks(text):
         if kind == "outside":
-            result.note("outside_text")
+            outside = chunk
             continue
+        found += 1
         index = len(result.cards) + len(result.skipped)
         if index >= MAX_CARDS:
             result.note("too_many")  # counted, never cut out or kept: the input may hold millions
@@ -343,3 +384,4 @@ def _read_text(text: str, result: ReadResult, *, entry: str | None) -> None:
             continue
         read = read_card(_trimmed(chunk), index, entry)
         (result.skipped if isinstance(read, Skipped) else result.cards).append(read)
+    return found, outside

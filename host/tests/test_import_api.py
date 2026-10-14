@@ -105,7 +105,8 @@ def test_choices_and_losses(host, client):
                 json={"given_name": "Ava", "emails": [{"value": "ava@example.org"}]})
     preview = upload(client, host, corpus.read(corpus.APPLE) + corpus.read(corpus.MALFORMED)).json()
     assert preview["needs_acceptance"] is True
-    assert {loss["code"] for loss in preview["losses"]} == {"skipped_no_end", "skipped_version", "skipped_empty"}
+    assert {loss["code"] for loss in preview["losses"]} == {"skipped_no_end", "skipped_version", "skipped_empty",
+                                                            "outside_text"}
     ava = preview["items"][0]
     assert (ava["status"], ava["action"], ava["choices"]) == ("duplicate", "skip", ["skip", "import"])
     assert ava["matches"][0]["source"] == "mydata" and ava["matches"][0]["signals"] == ["email"]

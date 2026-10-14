@@ -527,10 +527,12 @@ class ImportCountsOut(BaseModel):
 
 class ImportNoteOut(BaseModel):
     code: str = Field(description="skipped_unreadable, skipped_no_end, skipped_version, skipped_empty, "
-                                  "skipped_too_large, skipped_too_many, nested_zip, encrypted, unsupported_compression (losses); "
-                                  "converted_21, windows_1252, outside_text, other_files (changes)")
+                                  "skipped_too_large, skipped_too_many, outside_text, unreadable_entry, nested_zip, "
+                                  "encrypted, unsupported_compression (losses); converted_21, windows_1252, "
+                                  "other_files (changes)")
     count: int
     message: str = Field(description="for the user; holds no contact data")
+    entries: list[str] = Field(default=[], description="unreadable_entry: the names of the files in the zip not read")
 
 
 class ImportMatchOut(BaseModel):

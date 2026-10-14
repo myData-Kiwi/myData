@@ -11,7 +11,7 @@ import zipfile
 import pytest
 
 import import_corpus as corpus
-from mydata.sources import import_files
+from mydata.sources import import_files, importer
 from mydata.sources.contacts_store import card_fields
 from mydata.sources.import_files import ImportFileError, content_key, read_contacts
 
@@ -57,7 +57,7 @@ def test_malformed_cards_are_skipped_one_by_one_with_their_reasons():
     assert [c.display_name for c in r.cards] == ["Robin Readable"]
     assert [(s.reason, s.index) for s in r.skipped] == [("no_end", 1), ("version", 2), ("empty", 3), ("no_end", 4),
                                                         ("empty", 5), ("no_end", 6)]
-    assert r.notes == {"outside_text": 1}
+    assert r.notes == {"outside_text": 2}  # the first line, and the END:VCARD left over from the nested card
 
 
 def test_a_card_naming_a_codec_that_is_no_character_set_is_skipped_alone():
@@ -84,6 +84,27 @@ def test_a_soft_break_followed_by_spaces_is_still_a_soft_break():
             "END:VCARD\r\n")
     [pat] = read_contacts(card.encode()).cards
     assert "NOTE:onetwo\r\n" in pat.text
+
+
+def test_text_outside_any_card_is_counted_as_a_loss():
+    misspelt = "BEGIN: VCARD\r\nVERSION:3.0\r\nFN:Ava Fictional\r\nEMAIL:ava@example.org\r\nEND:VCARD\r\n"
+    r = read_contacts(("PRODID:-//Example//EN\r\n\r\n" + misspelt + corpus.read(corpus.GOOGLE).decode()).encode())
+    assert len(r.cards) == 2 and r.notes == {"outside_text": 4}  # the misspelt card's lines, not VERSION or PRODID
+    losses, changes = importer._report(r)
+    assert [(x["code"], x["count"]) for x in losses] == [("outside_text", 4)] and changes == []
+
+
+def test_a_zip_entry_with_no_card_is_a_loss_by_name():
+    utf16_no_bom = corpus.read(corpus.GOOGLE).decode().encode("utf-16-le")
+    data = corpus.zipped({"a.vcf": corpus.read(corpus.APPLE), "b.vcf": utf16_no_bom,
+                          "c.vcf": corpus.read(corpus.GOOGLE).decode().encode("utf-16-be"),
+                          "notes.vcf": b"just some text\r\n", "bad.vcf": b"\xff\xfe\x00\xd8"})
+    r = read_contacts(data)
+    assert [c.entry for c in r.cards].count("b.vcf") == 2 and [c.entry for c in r.cards].count("c.vcf") == 2
+    assert r.unread_entries == ["notes.vcf", "bad.vcf"] and r.notes == {}
+    losses, _changes = importer._report(r)
+    assert [(x["code"], x["count"], x.get("entries")) for x in losses] == [
+        ("unreadable_entry", 2, ["notes.vcf", "bad.vcf"])]
 
 
 def test_a_zip_of_several_exports_is_read_in_memory():

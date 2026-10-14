@@ -342,6 +342,8 @@ def _missing(db: sqlite3.Connection, source: ImportSource, present: set[str]) ->
 
 
 _LOSS_NOTES = {
+    "outside_text": "{n} line(s) of text outside any card were not read (a card whose BEGIN:VCARD line is written "
+                    "differently would be among them).",
     "nested_zip": "{n} zip file(s) inside the zip were not read.",
     "encrypted": "{n} encrypted file(s) in the zip were not read.",
     "unsupported_compression": "{n} file(s) in the zip are compressed in a way myData does not read (only stored "
@@ -349,7 +351,6 @@ _LOSS_NOTES = {
 }
 _CHANGE_NOTES = {
     "windows_1252": "The file was not UTF-8; it was read as Windows-1252 text.",
-    "outside_text": "Text outside any card was ignored.",
 }
 
 
@@ -371,6 +372,10 @@ def _report(read: ReadResult) -> tuple[list[dict], list[dict]]:
     for code, template in _LOSS_NOTES.items():
         if read.notes.get(code):
             losses.append({"code": code, "count": read.notes[code], "message": template.format(n=read.notes[code])})
+    if read.unread_entries:
+        n = len(read.unread_entries)
+        losses.append({"code": "unreadable_entry", "count": n, "entries": list(read.unread_entries),
+                       "message": f"{n} vCard file(s) in the zip hold no card myData can read; they were not read."})
     changes: list[dict] = []
     converted = sum(1 for c in read.cards if c.converted_from == "2.1")
     if converted:

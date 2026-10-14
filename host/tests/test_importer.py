@@ -183,8 +183,9 @@ def test_cards_repeated_in_the_file_can_only_be_skipped(store):
 def test_a_file_with_losses_needs_them_accepted(store):
     read = read_contacts(corpus.read(corpus.MALFORMED))
     plan = preview(store, FILE_SOURCE, read)
-    assert [loss["code"] for loss in plan.losses] == ["skipped_no_end", "skipped_version", "skipped_empty"]
-    assert sum(loss["count"] for loss in plan.losses) == 6
+    assert [loss["code"] for loss in plan.losses] == ["skipped_no_end", "skipped_version", "skipped_empty",
+                                                      "outside_text"]
+    assert sum(loss["count"] for loss in plan.losses if loss["code"].startswith("skipped_")) == 6
     with pytest.raises(importer.LossesNotAccepted):
         commit(store, FILE_SOURCE, read)
     assert owned_rows(store) == []
