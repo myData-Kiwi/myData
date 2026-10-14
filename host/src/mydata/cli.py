@@ -16,6 +16,12 @@
     mydata account add icloud [--email EMAIL]   link an iCloud account (read-only mirror of contacts and calendars)
     mydata account list                         list linked accounts
     mydata account remove ID [--yes]            unlink an account and delete its mirrored data
+    mydata backup now                take a snapshot of the databases now (the host also takes one hourly)
+    mydata backup list               list the snapshots and the last restore drill
+    mydata backup verify [SNAPSHOT]  the restore drill: restore a snapshot (the newest by default) into a
+                                     temporary folder, open it with this code and check it (exit 1: problems)
+    mydata backup restore SNAPSHOT [--yes]   put a snapshot back (the host must be stopped; the current
+                                     state is snapshotted first)
 """
 
 from __future__ import annotations
@@ -317,6 +323,82 @@ def cmd_account(settings: Settings, ns: argparse.Namespace) -> int:
     return 0
 
 
+def _size(n: int) -> str:
+    for unit in ("bytes", "KB", "MB", "GB"):
+        if n < 1024 or unit == "GB":
+            return f"{n} {unit}" if unit == "bytes" else f"{n:.1f} {unit}"
+        n /= 1024
+    return str(n)
+
+
+def cmd_backup(settings: Settings, ns: argparse.Namespace) -> int:
+    from .service import backup
+    home = settings.home
+    try:
+        if ns.action == "now":
+            snap = backup.take_snapshot(home, "manual")
+            if snap is None:
+                print("Nothing to back up: the host folder holds no databases yet.")
+                return 0
+            backup.prune(home)
+            files = ", ".join(f"{f['file']} ({_size(f['size'])})" for f in snap.manifest["files"])
+            print(f"Took snapshot {snap.name}: {files}\n  in {snap.path}")
+            return 0
+        if ns.action == "list":
+            snaps = backup.list_snapshots(home)
+            if not snaps:
+                print("No snapshots yet (mydata backup now takes one; the host takes one every hour).")
+            for s in snaps:
+                try:
+                    m = s.manifest
+                    files = m.get("files", [])
+                    print(f"{s.name}  {m.get('reason', '?'):13}  {len(files)} file(s)  "
+                          f"{_size(sum(f.get('size', 0) for f in files))}")
+                except (OSError, ValueError):
+                    print(f"{s.name}  (manifest unreadable)")
+            last = backup.last_verify(home)
+            if last:
+                print(f"Last restore drill: {last.get('at')} on {last.get('snapshot')}: "
+                      f"{'passed' if last.get('ok') else 'FAILED'}")
+            return 0
+        if ns.action == "verify":
+            result = backup.verify(home, ns.snapshot)
+            if result["ok"]:
+                print(f"Snapshot {result['snapshot']} restores cleanly: every database opened with this host, "
+                      f"passed its checks and has the row counts in its manifest.")
+                return 0
+            print(f"Snapshot {result['snapshot']} did not pass the restore drill:", file=sys.stderr)
+            for problem in result["problems"]:
+                print(f"  - {problem}", file=sys.stderr)
+            return 1
+        # restore
+        if daemon_pid(settings):
+            print("mydata: the host is running; stop it first (mydata stop, or Quit in the myData app)",
+                  file=sys.stderr)
+            return 1
+        snap = backup.find_snapshot(home, ns.snapshot)
+        if not ns.yes:
+            try:
+                answer = input(f"Replace the databases in {home} with snapshot {snap.name}? The current ones are "
+                               f"snapshotted first. [y/N] ")
+            except (EOFError, KeyboardInterrupt):
+                answer = ""
+            if answer.strip().lower() not in ("y", "yes"):
+                print("Not restored.")
+                return 1
+        out = backup.restore(home, snap.name)
+        print(f"Restored {', '.join(out['restored'])} from snapshot {out['snapshot']}.")
+        if out["before"]:
+            print(f"The state it replaced is snapshot {out['before']} (mydata backup restore {out['before']} "
+                  f"puts it back).")
+        if out["untouched"]:
+            print(f"Not in the snapshot, so left as they are: {', '.join(out['untouched'])}.")
+        return 0
+    except backup.BackupError as e:
+        print(f"mydata: {e}", file=sys.stderr)
+        return 1
+
+
 def cmd_dev_setup(settings: Settings) -> int:
     """The apps start the host with the command in <home>/app_config.json, and stop it with its stop command
     (to replace a host built from another version). In development that is this checkout's Python running
@@ -361,6 +443,15 @@ def main(argv: list[str] | None = None) -> int:
     rm = acsub.add_parser("remove", help="unlink an account and delete its mirrored data")
     rm.add_argument("ref", metavar="ID")
     rm.add_argument("--yes", action="store_true", help="do not ask to confirm")
+    bk = sub.add_parser("backup", help="snapshots of the databases")
+    bksub = bk.add_subparsers(dest="action", required=True)
+    bksub.add_parser("now", help="take a snapshot now")
+    bksub.add_parser("list", help="list the snapshots")
+    bksub.add_parser("verify", help="restore a snapshot into a temporary folder and check it").add_argument(
+        "snapshot", nargs="?", help="a snapshot name (default: the newest)")
+    rs = bksub.add_parser("restore", help="put a snapshot back (the host must be stopped)")
+    rs.add_argument("snapshot")
+    rs.add_argument("--yes", action="store_true", help="do not ask to confirm")
     ns = ap.parse_args(argv)
     if ns.cmd == "openapi":
         return cmd_openapi(ns.out)
@@ -376,6 +467,8 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_agent(settings, ns)
     if ns.cmd == "account":
         return cmd_account(settings, ns)
+    if ns.cmd == "backup":
+        return cmd_backup(settings, ns)
     if ns.cmd == "dev-setup":
         return cmd_dev_setup(settings)
     if ns.cmd == "stop":
