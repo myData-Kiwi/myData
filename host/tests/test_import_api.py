@@ -102,14 +102,14 @@ def test_importing_the_same_file_again_adds_nothing(host, client):
 
 def test_choices_and_losses(host, client):
     client.post("/contacts", headers=bearer(host, "mycontacts"),
-                json={"given_name": "Ava", "emails": [{"value": "ava@example.org"}]})
+                json={"given_name": "Ava", "family_name": "Fictional", "emails": [{"value": "ava@example.org"}]})
     preview = upload(client, host, corpus.read(corpus.APPLE) + corpus.read(corpus.MALFORMED)).json()
     assert preview["needs_acceptance"] is True
     assert {loss["code"] for loss in preview["losses"]} == {"skipped_no_end", "skipped_version", "skipped_empty",
                                                             "outside_text"}
     ava = preview["items"][0]
     assert (ava["status"], ava["action"], ava["choices"]) == ("duplicate", "skip", ["skip", "import"])
-    assert ava["matches"][0]["source"] == "mydata" and ava["matches"][0]["signals"] == ["email"]
+    assert ava["matches"][0]["source"] == "mydata" and ava["matches"][0]["signals"] == ["email", "name"]
     url = f"/import/previews/{preview['id']}/commit"
     r = client.post(url, headers=bearer(host, "mycontacts"), json={})
     assert r.status_code == 400 and "loss report" in r.json()["detail"]
@@ -215,6 +215,18 @@ def _follow(host) -> str:
     return account.id
 
 
+def test_stop_following_says_what_is_not_on_mydata(host, client):
+    account = _follow(host)
+    auth = bearer(host, "mycontacts")
+    preview = client.post(f"/import/contacts/from-source/{account}/preview", headers=auth).json()
+    first = preview["items"][0]["index"]
+    done = client.post(f"/import/previews/{preview['id']}/commit", headers=auth,
+                       json={"choices": [{"index": first, "action": "skip"}]}).json()
+    stop = done["stop_following"]
+    assert stop["contacts_followed"] == 1 and stop["contacts_linked"] == 0
+    assert stop["message"].startswith("Keep following") and "1 of its contact(s) are not on myData" in stop["message"]
+
+
 def test_this_mac_is_never_imported(host, client):
     r = client.post("/import/contacts/from-source/mac/preview", headers=bearer(host, "mycontacts"))
     assert r.status_code == 409 and "never imported" in r.json()["detail"] and "Export vCard" in r.json()["detail"]
@@ -231,9 +243,10 @@ def test_a_person_imported_from_icloud_while_still_followed_is_found_once(host, 
     preview = r.json()
     assert preview["source"] == "icloud" and preview["account_id"] == account
     stop = preview["stop_following"]
-    assert stop["account_id"] == account and stop["contacts_followed"] == 7 and "stop following" in stop["message"]
+    assert stop["account_id"] == account and stop["contacts_followed"] == 7 and "Keep following" in stop["message"]
     done = client.post(f"/import/previews/{preview['id']}/commit", headers=auth, json={}).json()
     assert done["counts"]["created"] == 7 and done["stop_following"]["contacts_followed"] == 0
+    assert done["stop_following"]["message"].startswith("You can stop following")
     listed = client.get("/contacts", headers=auth).json()
     assert len(listed) == 7 and {c["source"] for c in listed} == {"mydata"}
     events = parse_sse(client.post("/assistant/messages", headers=host.assistant_auth,

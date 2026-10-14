@@ -8,10 +8,12 @@ notes and only part of each card, so the copy would not be faithful (the owned-d
 
 - new: nothing like it on the host. Default: import.
 - duplicate: an owned contact has the same email address or phone number (a strong signal: an exact email, lower
-  case, or the same number in E.164 through phonenumbers). Default: skip, since nothing is ever merged
-  automatically; the user may import it as a new contact anyway. For a copy of a followed account, when exactly
-  one owned contact matches, the default is link: keep that contact and hide the followed copy (an origin row
-  that writes nothing to the contact).
+  case, or the same number in E.164 through phonenumbers) and the same name (or one of the two has none). Default:
+  skip, since nothing is ever merged automatically; the user may import it as a new contact anyway. For a copy of
+  a followed account, when exactly one owned contact matches, the default is link: keep that contact and hide the
+  followed copy (an origin row that writes nothing to the contact); when several cards would link the same
+  contact, none does by default (the user chooses). A shared email or number under another name (a family
+  landline, a switchboard) is only a suggestion: the card stays new.
 - in_file: a card with the same UID (or, without a UID, the same content) came earlier in the input. Skip only.
 - unchanged / update / conflict / deleted: the card was imported before (an origin with the same source and
   UID, or content key when it has none). Unchanged: nothing to do. Update: the card changed and nobody edited
@@ -61,6 +63,7 @@ import phonenumbers
 
 from . import owned
 from ._db import new_id
+from .contacts_store import _SHADOWED as _SHADOWED_SQL
 from .contacts_store import _VISIBLE, ContactsStore, card_fields, http_etag
 from .contacts_write import (BOOK_URL, NotFound, UndoRefused, WriteError, _baseline, _book, _clock, _set_deleted,
                              _write_text, stamp)
@@ -247,7 +250,7 @@ def analyse(db: sqlite3.Connection, source: ImportSource, read: ReadResult, *,
     origins = _origins(db, source)
     seen_uid: dict[str, int] = {}
     earlier: list[tuple[int, str, _Keys]] = []  # (index, name, keys) of contact cards earlier in the input
-    linked: set[str] = set()
+    linked: dict[str, list[Item]] = {}  # owned contact: the cards that could be linked to it
     items: list[Item] = []
     for card in read.cards:
         keys = _keys(card.display_name, card.emails, card.phones, region)
@@ -295,7 +298,9 @@ def analyse(db: sqlite3.Connection, source: ImportSource, read: ReadResult, *,
             if source.kind != FILE and row["account_id"] == source.account:
                 continue  # the account being copied: its cards are this input (matched as cards in it, below)
             signals = sorted(set(strong.get(n, []))) + (["name"] if keys.name and keys.name == other.name else [])
-            is_strong = n in strong
+            # A shared email or number is a strong match only when the names agree (or one has none): a family
+            # landline or a switchboard is no sign that two people are one.
+            is_strong = n in strong and (keys.name is None or other.name is None or keys.name == other.name)
             if is_strong and row["account_id"] == owned.OWNED_ACCOUNT:
                 owned_strong.append(row["id"])
             item.matches.append(Match(row["display_name"], _source_of(row["account_id"]),
@@ -304,8 +309,9 @@ def analyse(db: sqlite3.Connection, source: ImportSource, read: ReadResult, *,
         for index, name, other in earlier:
             signals = _signals(keys, other)
             if signals:
-                item.matches.append(Match(name, "file", "suggestion" if signals == ["name"] else "strong", signals,
-                                          item_index=index))
+                agree = keys.name is None or other.name is None or keys.name == other.name
+                item.matches.append(Match(name, "file", "strong" if agree and signals != ["name"] else "suggestion",
+                                          signals, item_index=index))
         earlier.append((card.index, card.display_name, keys))
         rank = {"same_origin": 0, "strong": 1, "suggestion": 2}
         item.matches.sort(key=lambda m: (rank[m.strength], m.source != "mydata"))
@@ -315,9 +321,10 @@ def analyse(db: sqlite3.Connection, source: ImportSource, read: ReadResult, *,
             if source.kind != FILE and len(set(owned_strong)) == 1:
                 item.choices = ("link", "skip", "import")
                 item.target = owned_strong[0]
-                if item.target not in linked:
-                    item.action = "link"
-                    linked.add(item.target)
+                linked.setdefault(item.target, []).append(item)
+    for candidates in linked.values():
+        if len(candidates) == 1:  # one card for that contact: keep it by default; several: the user chooses
+            candidates[0].action = "link"
     for skipped in read.skipped:
         items.append(Item(index=skipped.index if skipped.index is not None else -1, kind="", display_name="",
                           status="skipped", action="skip", choices=("skip",), reason=skipped.reason))
@@ -359,6 +366,30 @@ _CHANGE_NOTES = {
     "declared_charset": "Some cards were not UTF-8; they were read in the character set each one names and are "
                         "stored as UTF-8.",
 }
+
+
+def followed_left(db: sqlite3.Connection, account_id: str) -> dict[str, int]:
+    """What stopping following an account would take off the host now: `followed` (its contacts with no owned copy:
+    skipped, never imported, or imported and undone), `linked` (followed cards hidden behind a contact the user
+    kept instead, which may hold details that contact does not) and `changed` (followed cards hidden behind an
+    owned copy that changed in the source since the import)."""
+    rows = db.execute(f"SELECT c.uid, c.raw_sha256, {_SHADOWED_SQL} AS shadowed FROM contacts c JOIN address_books b "
+                      "ON b.id = c.address_book_id WHERE c.account_id = ? AND b.mode = ? AND c.deleted_at IS NULL "
+                      "AND b.deleted_at IS NULL AND c.kind != 'group'", (account_id, owned.FOLLOWED)).fetchall()
+    latest: dict[str, sqlite3.Row] = {}
+    for o in db.execute("SELECT source_uid, source_hash, action FROM origins WHERE source_account = ? AND "
+                        "source_kind != 'file' AND undone_at IS NULL ORDER BY rowid", (account_id,)):
+        latest[o["source_uid"]] = o
+    out = {"followed": 0, "linked": 0, "changed": 0}
+    for r in rows:
+        origin = latest.get(r["uid"])
+        if not r["shadowed"] or origin is None:
+            out["followed"] += 1
+        elif origin["action"] == "link":
+            out["linked"] += 1
+        elif origin["source_hash"] != r["raw_sha256"]:
+            out["changed"] += 1
+    return out
 
 
 def losses_of(read: ReadResult) -> list[dict]:

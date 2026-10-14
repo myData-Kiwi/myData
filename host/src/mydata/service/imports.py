@@ -7,8 +7,9 @@ sources may be imported (sources/importer.py does the work).
 - **Commit** takes a snapshot of the databases first ("always before an import", the owned-data plan 3.4),
   and refuses (SnapshotFailed, nothing imported) if contacts.sqlite cannot be copied. One import runs at a time.
 - **Import a copy of a followed source:** an iCloud account's cards go through the same preview and commit.
-  This Mac is never imported (NotImportable, with the reason). The answer says the account can now be
-  unfollowed (stop_following), which the app offers; nothing stops following by itself.
+  This Mac is never imported (NotImportable, with the reason). The answer says whether the account can now be
+  unfollowed without losing anything (stop_following: how many of its contacts are not on myData, kept as one of
+  yours, or changed since), which the app offers; nothing stops following by itself.
 - **Logs** hold ids, kinds and counts only: never a card, a name, the file's name or its size per card.
 """
 
@@ -168,17 +169,30 @@ class ContactImports:
     def _stop_following(self, source: ImportSource) -> dict | None:
         if source.kind != ICLOUD:
             return None
-        contacts = self.sources.contacts.counts(source.account)
+        with self.sources.contacts.db.connect() as db:
+            left = importer.followed_left(db, source.account)
         try:
             calendars = self.sources.calendar.counts(source.account).get("calendars", 0)
         except Exception:  # noqa: BLE001 - the calendar file failing must not stop a contacts import
             calendars = 0
-        message = (f"You can stop following {source.label}: its contacts are on myData now, and stopping removes only "
-                   "the followed copy, never yours.")
+        if not any(left.values()):
+            message = (f"You can stop following {source.label}: its contacts are on myData now, and stopping removes "
+                       "only the followed copy, never yours.")
+        else:
+            parts = []
+            if left["followed"]:
+                parts.append(f"{left['followed']} of its contact(s) are not on myData")
+            if left["linked"]:
+                parts.append(f"{left['linked']} are kept as a contact of yours whose details may differ")
+            if left["changed"]:
+                parts.append(f"{left['changed']} changed in {source.label} since they were imported")
+            message = (f"Keep following {source.label} for now: " + "; ".join(parts) + ". Stopping following it "
+                       "would take those details off myData; import or review them first.")
         if calendars:
             message += (f" It would also stop following its {calendars} calendar(s), which are not imported yet; "
                         "keep following it for them.")
-        return {"account_id": source.account, "label": source.label, "contacts_followed": contacts["contacts"],
+        return {"account_id": source.account, "label": source.label, "contacts_followed": left["followed"],
+                "contacts_linked": left["linked"], "contacts_changed": left["changed"],
                 "calendars_followed": calendars, "message": message}
 
     # ---------------------------------------------------------------- commit, undo, history

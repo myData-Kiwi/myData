@@ -504,7 +504,7 @@ class ImportCountsOut(BaseModel):
     groups: int = Field(description="group cards: imported as groups, never listed as contacts")
     skipped: int = Field(description="cards that could not be read (the loss report says why)")
     new: int
-    duplicates: int = Field(description="cards whose email or phone an owned contact already has")
+    duplicates: int = Field(description="cards whose email or phone an owned contact of the same name already has")
     in_file: int = Field(description="cards repeated in the input")
     unchanged: int = Field(description="cards imported before, unchanged")
     updates: int = Field(description="cards imported before that changed, the owned copy unedited since")
@@ -538,8 +538,9 @@ class ImportNoteOut(BaseModel):
 class ImportMatchOut(BaseModel):
     display_name: str
     source: str = Field(description="mydata (owned), icloud, mac, or file (an earlier card in the same input)")
-    strength: str = Field(description="same_origin (imported from this card before), strong (same email or phone), "
-                                      "suggestion (same name only: never acted on)")
+    strength: str = Field(description="same_origin (imported from this card before), strong (same email or phone, "
+                                      "and the same name or none), suggestion (the same name only, or an email or "
+                                      "phone shared under another name: never acted on)")
     signals: list[str] = Field(description="origin, uid, identical, email, phone, name")
     contact_id: str | None = None
     account_id: str | None = None
@@ -570,7 +571,12 @@ class ImportMissingOut(BaseModel):
 class StopFollowingOut(BaseModel):
     account_id: str
     label: str = Field(description="the source as a heading")
-    contacts_followed: int
+    contacts_followed: int = Field(description="its contacts with no copy on myData (skipped, not imported yet): "
+                                               "stopping following removes them from myData")
+    contacts_linked: int = Field(default=0, description="its contacts hidden behind a contact of yours kept instead "
+                                                        "(link), which may hold details yours does not")
+    contacts_changed: int = Field(default=0, description="its contacts changed since they were imported (the "
+                                                         "copy on myData is older)")
     calendars_followed: int = Field(description="stopping following the account stops following these too; they "
                                                 "are not imported yet")
     message: str

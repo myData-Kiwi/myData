@@ -334,7 +334,7 @@ def test_undoing_an_import_keeps_the_origins_of_the_contacts_it_keeps(followed):
 
 
 def test_a_contact_of_yours_can_be_kept_instead_of_the_followed_copy(followed):
-    mine = cw.create(followed, {"given_name": "Ava", "family_name": "Mine",
+    mine = cw.create(followed, {"given_name": "Ava", "family_name": "Fictional", "nickname": "Mine",
                                 "emails": [{"value": "ava@example.com"}]}, actor="mycontacts").contact_id
     assert len(followed.find_by_name("Ava")) == 2
     source = ImportSource(ICLOUD, ACCOUNT, "iCloud account")
@@ -349,6 +349,37 @@ def test_a_contact_of_yours_can_be_kept_instead_of_the_followed_copy(followed):
     assert [m["id"] for m in followed.find_by_name("Ava")] == [mine] and followed.get(mine)["raw_vcard"] == raw
     importer.undo_import(followed, done.import_id, actor="mydata")
     assert len(followed.find_by_name("Ava")) == 2 and followed.get(mine)["raw_vcard"] == raw
+
+
+def test_a_number_shared_under_another_name_is_only_a_suggestion(followed):
+    ava = cw.create(followed, {"given_name": "Ava", "family_name": "Fictional",
+                               "phones": [{"value": "+1 202 555 0100"}]}, actor="mycontacts").contact_id
+    ben = ("BEGIN:VCARD\r\nVERSION:3.0\r\nUID:ben-1@example.org\r\nFN:Ben Other\r\nTEL:+1 202 555 0100\r\n"
+           "NOTE:Only Ben has this.\r\nEND:VCARD\r\n")
+    plan = preview(followed, FILE_SOURCE, file_with(ben))
+    [item] = plan.items
+    assert (item.status, item.action) == ("new", "import")
+    assert [(m.contact_id, m.strength, m.signals) for m in item.matches] == [(ava, "suggestion", ["phone"])]
+    assert plan.counts["duplicates"] == 0 and plan.counts["suggestions"] == 1
+    # From a followed account: never linked behind Ava by default, so Ben's card is not hidden.
+    followed.apply(ACCOUNT, con.BOOK, con.result([con.Item(href="/1/carddavhome/card/ben.vcf", etag='"1"',
+                                                           data=ben)]))
+    source = ImportSource(ICLOUD, ACCOUNT, "iCloud account")
+    plan = preview(followed, source, copy_of(followed, ACCOUNT))
+    [item] = [i for i in plan.items if i.display_name == "Ben Other"]
+    assert (item.status, item.action, item.target) == ("new", "import", None)
+    done = commit(followed, source, copy_of(followed, ACCOUNT))
+    assert done.counts["linked"] == 0 and {m["name"] for m in followed.find_by_name("Ben")} == {"Ben Other"}
+
+
+def test_two_cards_for_one_contact_of_yours_are_not_linked_by_default(followed):
+    cw.create(followed, {"given_name": "Sam", "family_name": "Sample", "emails": [{"value": "sam.sample@example.com"}]},
+              actor="mycontacts")
+    source = ImportSource(ICLOUD, ACCOUNT, "iCloud account")
+    plan = preview(followed, source, copy_of(followed, ACCOUNT))
+    sams = [i for i in plan.items if i.display_name == "Sam Sample"]
+    assert len(sams) == 2 and all(i.status == "duplicate" for i in sams)
+    assert [i.action for i in sams if "link" in i.choices] and {i.action for i in sams} == {"skip"}
 
 
 def test_this_mac_rows_are_never_shadowed_by_a_file(followed):

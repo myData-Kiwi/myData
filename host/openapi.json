@@ -1858,7 +1858,7 @@
             "type": "integer"
           },
           "duplicates": {
-            "description": "cards whose email or phone an owned contact already has",
+            "description": "cards whose email or phone an owned contact of the same name already has",
             "title": "Duplicates",
             "type": "integer"
           },
@@ -2135,7 +2135,7 @@
             "type": "string"
           },
           "strength": {
-            "description": "same_origin (imported from this card before), strong (same email or phone), suggestion (same name only: never acted on)",
+            "description": "same_origin (imported from this card before), strong (same email or phone, and the same name or none), suggestion (the same name only, or an email or phone shared under another name: never acted on)",
             "title": "Strength",
             "type": "string"
           }
@@ -3324,8 +3324,21 @@
             "title": "Calendars Followed",
             "type": "integer"
           },
+          "contacts_changed": {
+            "default": 0,
+            "description": "its contacts changed since they were imported (the copy on myData is older)",
+            "title": "Contacts Changed",
+            "type": "integer"
+          },
           "contacts_followed": {
+            "description": "its contacts with no copy on myData (skipped, not imported yet): stopping following removes them from myData",
             "title": "Contacts Followed",
+            "type": "integer"
+          },
+          "contacts_linked": {
+            "default": 0,
+            "description": "its contacts hidden behind a contact of yours kept instead (link), which may hold details yours does not",
+            "title": "Contacts Linked",
             "type": "integer"
           },
           "label": {
