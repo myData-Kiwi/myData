@@ -23,8 +23,11 @@ vCard 2.1 (Samsung): the line reader joins quoted-printable soft breaks, then vc
 3.0 (values decoded in their CHARSET); the import keeps the 2.1 text as the original (origins.source_raw).
 3.0 and 4.0 are kept exactly as received.
 
-Text: UTF-8 (a byte-order mark is dropped), UTF-16 with a byte-order mark or, without one, with a zero byte at
-every other position, else Windows-1252 (reported).
+Text: UTF-8 (a byte-order mark is dropped) or UTF-16 (with a byte-order mark or, without one, with a zero byte at
+every other position) is decoded whole. Any other file is decoded card by card, so one stray byte never changes
+how the other cards read: UTF-8, else the character set the card names (CHARSET=, as older phones write
+Shift_JIS), else a guess (Windows-1252, then Latin-1), reported as a loss, with the card's bytes kept as its
+original (origins.source_raw).
 """
 
 from __future__ import annotations
@@ -37,7 +40,7 @@ import zipfile
 from dataclasses import asdict, dataclass, field
 
 from .vcard import card_kind, parse_vcard
-from .vcard_edit import VCard, VCardError, upgrade_21
+from .vcard_edit import VCard, VCardError, text_codec, upgrade_21
 
 MAX_INPUT = 50 * 1024 * 1024
 MAX_EXPANDED = 200 * 1024 * 1024
@@ -88,6 +91,7 @@ class ReadCard:
     emails: list[str] = field(default_factory=list)
     phones: list[str] = field(default_factory=list)
     entry: str | None = None  # the zip entry it came from (its name, as a label only)
+    raw: bytes | None = None  # the card's bytes as received, when its text was decoded by a guess (_decode_card)
 
 
 @dataclass
@@ -101,8 +105,9 @@ class Skipped:
 class ReadResult:
     cards: list[ReadCard] = field(default_factory=list)
     skipped: list[Skipped] = field(default_factory=list)
-    # Notes about the file that lose nothing ("windows_1252") and ones that do ("outside_text": lines outside any
-    # card, "nested_zip", "encrypted", "too_many"): {code: count}
+    # Notes about the file that lose nothing ("declared_charset": cards decoded in the character set they name)
+    # and ones that do ("guessed_charset": cards decoded by a guess, "outside_text": lines outside any card,
+    # "nested_zip", "encrypted", "too_many"): {code: count}
     notes: dict[str, int] = field(default_factory=dict)
     unread_entries: list[str] = field(default_factory=list)  # .vcf files in a zip with no card that could be read
     entries_read: int = 0  # .vcf files read (1 for a plain .vcf)
@@ -124,11 +129,10 @@ def read_contacts(data: bytes) -> ReadResult:
     if is_zip(data):
         for name, payload in _zip_vcards(data, result):
             try:
-                text = _decode(payload, result)
+                found, outside = _read_payload(payload, result, entry=name)
             except ImportFileError:
                 result.unread_entries.append(name)
                 continue
-            found, outside = _read_text(text, result, entry=name)
             if found:
                 result.entries_read += 1
                 if outside:
@@ -138,7 +142,7 @@ def read_contacts(data: bytes) -> ReadResult:
         if result.entries_read == 0 and not result.unread_entries:
             raise ImportFileError("The zip holds no vCard (.vcf) file.")
     else:
-        _found, outside = _read_text(_decode(data, result), result, entry=None)
+        _found, outside = _read_payload(data, result, entry=None)
         if outside:
             result.note("outside_text", outside)
         result.entries_read = 1
@@ -206,29 +210,51 @@ def _utf16_without_bom(data: bytes) -> str | None:
     return None
 
 
-def _decode(data: bytes, result: ReadResult) -> str:
-    if data.startswith((b"\xff\xfe", b"\xfe\xff")):
-        try:
-            return data.decode("utf-16")
-        except UnicodeDecodeError:
-            raise ImportFileError("The file's text cannot be read (UTF-16).") from None
-    utf16 = _utf16_without_bom(data)
+def _read_payload(data: bytes, result: ReadResult, *, entry: str | None) -> tuple[int, int]:
+    """Read one file's cards (see _read_text). UTF-16 (ImportFileError when it is not valid) and UTF-8 are
+    decoded whole; any other text card by card (_decode_card), so one card in another encoding never changes
+    how the others read."""
+    utf16 = "utf-16" if data.startswith((b"\xff\xfe", b"\xfe\xff")) else _utf16_without_bom(data)
     if utf16:
         try:
-            return data.decode(utf16)
+            text = data.decode(utf16)
         except UnicodeDecodeError:
             raise ImportFileError("The file's text cannot be read (UTF-16).") from None
+        return _read_text(text, result, entry=entry)
     try:
-        return data.decode("utf-8-sig")
+        return _read_text(data.decode("utf-8-sig"), result, entry=entry)
     except UnicodeDecodeError:
         pass
+    if data.startswith(b"\xef\xbb\xbf"):
+        data = data[3:]
+    # Latin-1 maps each byte to one character, so the cards are cut where they are in the bytes (the lines that
+    # open and close them are ASCII), and each card's own bytes come back exactly with .encode("latin-1").
+    return _read_text(data.decode("latin-1"), result, entry=entry, by_card=True)
+
+
+_CHARSET = re.compile(rb"""CHARSET="?([A-Za-z0-9_.:-]+)""", re.IGNORECASE)
+
+
+def _decode_card(raw: bytes) -> tuple[str, str]:
+    """(text, how) for one card's bytes: "utf-8"; "declared", in the character set the card names (CHARSET=, as
+    vCard 2.1 from older phones writes Shift_JIS or ISO-8859-x text); else "guessed": Windows-1252, or Latin-1
+    for the bytes Windows-1252 leaves undefined."""
     try:
-        text = data.decode("cp1252")
+        return raw.decode("utf-8"), "utf-8"
     except UnicodeDecodeError:
-        raise ImportFileError("The file is not text in an encoding myData reads (UTF-8, UTF-16 or "
-                              "Windows-1252).") from None
-    result.note("windows_1252")
-    return text
+        pass
+    for name in dict.fromkeys(m.group(1).decode("ascii") for m in _CHARSET.finditer(raw)):
+        codec = text_codec(name)
+        if codec is None or b"BEGIN:VCARD\r\n".decode(codec, "replace") != "BEGIN:VCARD\r\n":
+            continue  # only a character set that reads ASCII as ASCII can decode a whole card (not UTF-16)
+        try:
+            return raw.decode(codec), "declared"
+        except UnicodeError:
+            continue
+    try:
+        return raw.decode("cp1252"), "guessed"
+    except UnicodeDecodeError:
+        return raw.decode("latin-1"), "guessed"
 
 
 _PHYSICAL = re.compile(r"[^\r\n]*(?:\r\n|\n|\r)|[^\r\n]+\Z")
@@ -367,8 +393,9 @@ def _trimmed(chunk: str) -> str:
     return chunk[start:] if start > 0 else chunk
 
 
-def _read_text(text: str, result: ReadResult, *, entry: str | None) -> tuple[int, int]:
-    """Read the cards of one text into `result`: (cards found, read or skipped; lines outside any card)."""
+def _read_text(text: str, result: ReadResult, *, entry: str | None, by_card: bool = False) -> tuple[int, int]:
+    """Read the cards of one text into `result`: (cards found, read or skipped; lines outside any card). With
+    by_card, `text` is bytes as Latin-1 and each card is decoded on its own (_decode_card)."""
     found = outside = 0
     for kind, chunk in _chunks(text):
         if kind == "outside":
@@ -382,6 +409,14 @@ def _read_text(text: str, result: ReadResult, *, entry: str | None) -> tuple[int
         if kind == "open":
             result.skipped.append(Skipped("no_end", index, entry))
             continue
-        read = read_card(_trimmed(chunk), index, entry)
+        chunk, raw, how = _trimmed(chunk), None, "utf-8"
+        if by_card:
+            raw = chunk.encode("latin-1")
+            chunk, how = _decode_card(raw)
+        read = read_card(chunk, index, entry)
+        if isinstance(read, ReadCard) and how != "utf-8":
+            result.note(f"{how}_charset")
+            if how == "guessed":
+                read.raw = raw  # kept as the original (origins.source_raw): the guess may be wrong
         (result.skipped if isinstance(read, Skipped) else result.cards).append(read)
     return found, outside

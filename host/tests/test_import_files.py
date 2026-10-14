@@ -224,7 +224,23 @@ def test_text_encodings():
     assert read_contacts(b"\xef\xbb\xbf" + card.encode()).cards[0].display_name == "Zoë Example"
     assert read_contacts(card.encode("utf-16")).cards[0].display_name == "Zoë Example"
     r = read_contacts(card.encode("cp1252"))
-    assert r.cards[0].display_name == "Zoë Example" and r.notes == {"windows_1252": 1}
+    assert r.cards[0].display_name == "Zoë Example" and r.notes == {"guessed_charset": 1}
+    assert r.cards[0].raw == card.encode("cp1252")  # the bytes kept: the guess may be wrong
+
+
+def test_each_card_is_decoded_on_its_own():
+    utf8 = "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Zoë Fictional\r\nEND:VCARD\r\n".encode()
+    latin = "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:René Sample\r\nEND:VCARD\r\n".encode("latin-1")
+    sjis = "BEGIN:VCARD\r\nVERSION:2.1\r\nN;CHARSET=SHIFT_JIS:架空;花子\r\nFN;CHARSET=SHIFT_JIS:架空\r\nEND:VCARD\r\n"
+    undefined = b"BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Pat \x81 Placeholder\r\nEND:VCARD\r\n"  # not in cp1252
+    r = read_contacts(utf8 + latin + sjis.encode("shift_jis") + undefined)
+    assert [c.display_name for c in r.cards] == ["Zoë Fictional", "René Sample", "架空", "Pat \x81 Placeholder"]
+    assert "FN:架空\r\n" in r.cards[2].text and "CHARSET" not in r.cards[2].text
+    assert r.notes == {"guessed_charset": 2, "declared_charset": 1}
+    assert [c.raw is not None for c in r.cards] == [False, True, False, True]
+    losses, changes = importer._report(r)
+    assert [x["code"] for x in losses] == ["guessed_charset"] and [x["code"] for x in changes] == ["converted_21",
+                                                                                                   "declared_charset"]
 
 
 def test_inputs_that_are_not_contacts_are_refused():

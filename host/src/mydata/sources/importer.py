@@ -342,6 +342,8 @@ def _missing(db: sqlite3.Connection, source: ImportSource, present: set[str]) ->
 
 
 _LOSS_NOTES = {
+    "guessed_charset": "{n} card(s) were not UTF-8 and named no character set myData reads; they were read as "
+                       "Windows-1252, so some letters may be wrong. Each one's original bytes are kept.",
     "outside_text": "{n} line(s) of text outside any card were not read (a card whose BEGIN:VCARD line is written "
                     "differently would be among them).",
     "nested_zip": "{n} zip file(s) inside the zip were not read.",
@@ -350,7 +352,8 @@ _LOSS_NOTES = {
                                "and deflated); they were not read.",
 }
 _CHANGE_NOTES = {
-    "windows_1252": "The file was not UTF-8; it was read as Windows-1252 text.",
+    "declared_charset": "Some cards were not UTF-8; they were read in the character set each one names and are "
+                        "stored as UTF-8.",
 }
 
 
@@ -449,8 +452,16 @@ def _origin(db, object_id: str, import_id: str, source: ImportSource, card: Read
             prior_rev: int | None) -> None:
     db.execute("INSERT INTO origins (object_id, import_id, source_kind, source_uid, source_hash, source_raw, "
                "imported_rev, source_account, action, prior_rev) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-               (object_id, import_id, source.kind, card.source_uid, card.source_hash,
-                card.original if card.converted_from else None, rev, source.account, action, prior_rev))
+               (object_id, import_id, source.kind, card.source_uid, card.source_hash, _original(card), rev,
+                source.account, action, prior_rev))
+
+
+def _original(card: ReadCard) -> str | bytes | None:
+    """What origins.source_raw keeps: a card's bytes as received when its text was decoded by a guess (a blob),
+    a vCard 2.1's text (stored as 3.0), else nothing (the stored text is the card as received)."""
+    if card.raw is not None:
+        return card.raw
+    return card.original if card.converted_from else None
 
 
 def _target_book(db: sqlite3.Connection, address_book_id: str | None, at: str) -> tuple[str, str, bool]:

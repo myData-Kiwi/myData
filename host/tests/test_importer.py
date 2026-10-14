@@ -146,6 +146,16 @@ def test_importing_again_updates_unedited_cards_reports_conflicts_and_missing(st
     assert store.get(sam["id"]) is not None  # missing from the file: reported, never deleted
 
 
+def test_a_card_decoded_by_a_guess_keeps_its_bytes_as_received(store):
+    latin = "BEGIN:VCARD\r\nVERSION:3.0\r\nUID:rene@example.org\r\nFN:René Sample\r\nEND:VCARD\r\n".encode("latin-1")
+    read = read_contacts(latin + AVA.encode())
+    commit(store, FILE_SOURCE, read, accept_losses=True)
+    with store.db.connect() as db:
+        raws = [r[0] for r in db.execute("SELECT source_raw FROM origins ORDER BY rowid")]
+    assert raws == [latin, None]
+    assert [r["display_name"] for r in owned_rows(store)] == ["René Sample", "Ava Fictional"]
+
+
 def test_duplicates_of_owned_contacts_are_skipped_by_default_and_never_merged(store):
     cw.create(store, {"given_name": "Ava", "family_name": "Fictional",
                       "emails": [{"value": "AVA@example.org"}]}, actor="mycontacts")
