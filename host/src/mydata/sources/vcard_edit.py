@@ -363,7 +363,8 @@ class _Line:
 
 def _logical_lines(text: str, *, keep_fold_space: bool = False) -> list[tuple[str, str]]:
     """(unfolded line, original text with endings) for each content line. A folded line (the next one starts
-    with a space or tab) and a vCard 2.1 quoted-printable soft break (a value line ending in "=") are joined;
+    with a space or tab) and a vCard 2.1 quoted-printable soft break (a value line ending in "=", spaces after it
+    ignored as RFC 2045 says) are joined;
     a blank line is kept with the line before it. Unfolding drops the space or tab that starts a folded line
     (3.0, 4.0), or keeps it with keep_fold_space (2.1 folds as RFC 822 does: the line break alone goes)."""
     out: list[_Line] = []
@@ -372,7 +373,7 @@ def _logical_lines(text: str, *, keep_fold_space: bool = False) -> list[tuple[st
         content = phys.rstrip("\r\n")
         if out and qp_open:
             line = out[-1]
-            line.pieces[-1] = line.pieces[-1][:-1]
+            line.pieces[-1] = line.pieces[-1].rstrip(" \t")[:-1]  # the soft break, and spaces after it (RFC 2045)
             line.add(content, phys)
         elif out and content[:1] in (" ", "\t"):
             line = out[-1]
@@ -392,7 +393,7 @@ def _logical_lines(text: str, *, keep_fold_space: bool = False) -> list[tuple[st
             line.add(content, phys)
             out.append(line)
             qp = line.is_qp()
-        qp_open = qp and content.endswith("=")
+        qp_open = qp and content.rstrip(" \t").endswith("=")
     return [("".join(line.pieces), "".join(line.raws)) for line in out]
 
 

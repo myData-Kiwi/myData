@@ -70,6 +70,22 @@ def test_a_card_naming_a_codec_that_is_no_character_set_is_skipped_alone():
         card.text.encode("utf-8")
 
 
+def test_a_value_line_that_starts_like_begin_or_end_never_cuts_a_card():
+    folded = "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Ava Fictional\r\nNOTE:Book club\r\n BEGIN:at nine\r\nEND:VCARD\r\n"
+    soft = ("BEGIN:VCARD\r\nVERSION:2.1\r\nN:Sample;Sam\r\nNOTE;ENCODING=QUOTED-PRINTABLE:Book club=\r\n"
+            "Begin: at nine=\r\nEnd: at ten\r\nEND:VCARD\r\n")
+    r = read_contacts((folded + soft).encode())
+    assert r.skipped == [] and [c.display_name for c in r.cards] == ["Ava Fictional", "Sam Sample"]
+    assert r.cards[0].text == folded and "NOTE:Book clubBegin: at nineEnd: at ten\r\n" in r.cards[1].text
+
+
+def test_a_soft_break_followed_by_spaces_is_still_a_soft_break():
+    card = ("BEGIN:VCARD\r\nVERSION:2.1\r\nN:Placeholder;Pat\r\nNOTE;ENCODING=QUOTED-PRINTABLE:one= \t\r\ntwo\r\n"
+            "END:VCARD\r\n")
+    [pat] = read_contacts(card.encode()).cards
+    assert "NOTE:onetwo\r\n" in pat.text
+
+
 def test_a_zip_of_several_exports_is_read_in_memory():
     r = read_contacts(corpus.several())
     assert r.entries_read == 3 and r.other_files == 1

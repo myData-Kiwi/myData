@@ -204,16 +204,28 @@ def _chunks(text: str):
     start: int | None = None  # where the current card begins
     depth = 0
     outside = False
+    qp = qp_open = False  # the line is quoted-printable; it ends in a soft break ("="), so the next continues it
     for match in _PHYSICAL.finditer(text):
         phys = match.group(0)
         # Only the start of a line decides (BEGIN:/END:); a long value line is never copied whole to read it.
         line = (phys if len(phys) <= 256 else phys[:256]).strip().lstrip("\ufeff").upper()
         if start is None:
             if line == "BEGIN:VCARD":
-                start, depth = match.start(), 0
+                start, depth, qp = match.start(), 0, False
             elif line:
                 outside = True
             continue
+        content = phys.rstrip("\r\n")
+        if qp_open or content[:1] in (" ", "\t"):
+            # A folded line or a quoted-printable continuation is part of a value ("BEGIN: at nine" in a note), never
+            # a line that opens or closes a card; as vcard_edit._logical_lines joins them.
+            if not qp_open:
+                qp = qp or "QUOTED-PRINTABLE" in line  # the parameter may be on a folded part of the name
+            qp_open = qp and content.rstrip(" \t").endswith("=")
+            continue
+        colon = line.find(":")
+        qp = "QUOTED-PRINTABLE" in (line[:colon] if colon >= 0 else line)
+        qp_open = qp and content.rstrip(" \t").endswith("=")
         if line == "BEGIN:VCARD" and depth == 0:  # a new card before this one ended
             yield "open", text[start:match.start()]
             start = match.start()
