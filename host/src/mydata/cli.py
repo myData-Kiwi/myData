@@ -22,6 +22,8 @@
                                      temporary folder, open it with this code and check it (exit 1: problems)
     mydata backup restore SNAPSHOT [--yes]   put a snapshot back (the host must be stopped; the current
                                      state is snapshotted first)
+    mydata db check-migration        try this host's migrations on copies of the databases and compare every
+                                     row (the files themselves are only read; exit 1: problems)
     mydata export --out DIR          write the stored vCards and iCalendar text as .vcf and .ics files
                                      (DIR must be new or empty, and outside the source checkout)
 """
@@ -417,6 +419,28 @@ def cmd_backup(settings: Settings, ns: argparse.Namespace) -> int:
         return 1
 
 
+def cmd_db(settings: Settings, ns: argparse.Namespace) -> int:
+    from .service import backup
+    try:
+        results = backup.check_migration(settings.home)
+    except (OSError, sqlite3.Error) as e:
+        print(f"mydata: {e}", file=sys.stderr)
+        return 1
+    if not results:
+        print("Nothing to check: the host folder holds no databases yet.")
+        return 0
+    for r in results:
+        step = (f"from schema version {r['from']} to {r['to']}" if r["from"] != r["to"]
+                else f"at schema version {r['to']}, nothing to migrate")
+        if r["problems"]:
+            print(f"{r['file']} ({step}): FAILED on a copy", file=sys.stderr)
+            for problem in r["problems"]:
+                print(f"  - {problem}", file=sys.stderr)
+        else:
+            print(f"{r['file']} ({step}): every one of its {r['rows']} rows kept, checks passed (on a copy)")
+    return 1 if any(r["problems"] for r in results) else 0
+
+
 def cmd_export(settings: Settings, out: str) -> int:
     from .sources.export import ExportError, export_raw
     try:
@@ -489,6 +513,9 @@ def main(argv: list[str] | None = None) -> int:
     rs = bksub.add_parser("restore", help="put a snapshot back (the host must be stopped)")
     rs.add_argument("snapshot")
     rs.add_argument("--yes", action="store_true", help="do not ask to confirm")
+    db = sub.add_parser("db", help="the host's databases")
+    dbsub = db.add_subparsers(dest="action", required=True)
+    dbsub.add_parser("check-migration", help="try this host's migrations on copies of the databases")
     ex = sub.add_parser("export", help="write the stored contacts and calendars as .vcf and .ics files")
     ex.add_argument("--out", required=True, help="a new or empty folder outside the source checkout")
     ns = ap.parse_args(argv)
@@ -508,6 +535,8 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_account(settings, ns)
     if ns.cmd == "backup":
         return cmd_backup(settings, ns)
+    if ns.cmd == "db":
+        return cmd_db(settings, ns)
     if ns.cmd == "export":
         return cmd_export(settings, ns.out)
     if ns.cmd == "dev-setup":

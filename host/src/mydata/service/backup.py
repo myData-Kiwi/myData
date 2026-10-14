@@ -28,6 +28,10 @@ the host's pid lock while it works, so no host can start meanwhile, takes a snap
 (a database too damaged to copy is kept in it byte for byte, so damage never blocks a restore), then puts
 the snapshot's files back.
 
+check_migration() (`mydata db check-migration`) tries this code's migrations on copies of the live files,
+in a temporary folder inside backups/, and compares every field of every row that existed before (as a
+digest per table, never the values); the live files are only read.
+
 Nothing here logs or reports row contents: messages name files, tables and counts only.
 """
 
@@ -556,6 +560,72 @@ def verify(home: Path, name: str | None = None, *, now: datetime | None = None) 
     log(logger, logging.INFO if result["ok"] else logging.WARNING, "restore drill", snapshot=snap.name,
         ok=result["ok"], problems=len(problems))
     return result
+
+
+def _digests(db: sqlite3.Connection, columns: dict[str, list[str]] | None = None) -> dict[str, tuple]:
+    """{table: (columns, rows, sha256 of every row's values in rowid order)} for the tables table_counts
+    knows; with `columns`, those tables and only those columns (what a migration must keep)."""
+    out = {}
+    for table in (columns or table_counts(db)):
+        cols = (columns or {}).get(table) or [r[1] for r in db.execute(f'PRAGMA table_info("{table}")')]
+        h, n = hashlib.sha256(), 0
+        quoted = ", ".join('"' + c + '"' for c in cols)
+        try:
+            rows = db.execute(f'SELECT {quoted} FROM "{table}" ORDER BY rowid')
+        except sqlite3.OperationalError:  # the table or a column is gone
+            continue
+        for row in rows:
+            h.update(repr(tuple(row)).encode("utf-8"))
+            n += 1
+        out[table] = (cols, n, h.hexdigest())
+    return out
+
+
+def check_migration(home: Path) -> list[dict]:
+    """Run this code's migrations on a copy of each store's live file and check the result, as a dry run
+    before the host migrates the real one. Per file: {file, from, to, rows, problems}; `from` == `to` when
+    nothing is pending. Problems name tables and counts, never values. The live files are only read."""
+    stores = _stores()
+    root = private_dir(backups_dir(home))
+    work = private_dir(root / f".check-{secrets.token_hex(4)}")
+    results = []
+    try:
+        for path in database_files(home):
+            if path.name not in stores:
+                continue
+            copy = work / path.name
+            entry = {"file": path.name, "from": None, "to": max(stores[path.name].MIGRATIONS), "rows": 0,
+                     "problems": []}
+            results.append(entry)
+            try:
+                _copy_database(path, copy)
+                db = sqlite3.connect(copy, isolation_level=None)
+                try:
+                    entry["from"] = Database.version(db)
+                    before = _digests(db)
+                finally:
+                    db.close()
+                entry["rows"] = sum(n for _, n, _ in before.values())
+                stores[path.name](copy)  # this code's migrations, with the runner's own checks
+                db = sqlite3.connect(copy, isolation_level=None)
+                try:
+                    after = _digests(db, {t: cols for t, (cols, _, _) in before.items()})
+                    entry["problems"] += check(db)
+                finally:
+                    db.close()
+            except Exception as e:  # a migration rolled back, or a file that cannot be read
+                entry["problems"].append(f"{type(e).__name__}: {e}")
+                continue
+            for table, (_, n, digest) in sorted(before.items()):
+                if table not in after:
+                    entry["problems"].append(f"table {table} (or one of its columns) is gone")
+                elif after[table][1] != n:
+                    entry["problems"].append(f"{table} has {after[table][1]} rows, it had {n}")
+                elif after[table][2] != digest:
+                    entry["problems"].append(f"{table}: some of its {n} rows changed")
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+    return results
 
 
 def last_verify(home: Path) -> dict | None:

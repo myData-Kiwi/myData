@@ -131,3 +131,61 @@ def test_calendar_v2_gains_modes_and_hashes(tmp_path):
     assert len(_added(path, "occurrences")) == 6 and len(_added(path, "coverage")) == 1
     assert {c["name"] for c in store.calendars()} >= {"Home", "Work", "Family (shared)"}
 
+
+# ---------------------------------------------------------------- mydata db check-migration
+
+
+def _sha_file(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def test_check_migration_tries_the_migrations_on_copies_only(tmp_path):
+    from mydata.service.backup import check_migration
+
+    contacts, calendar = _build(tmp_path, "contacts", 1), _build(tmp_path, "calendar", 2)
+    before = {p.name: _sha_file(p) for p in (contacts, calendar)}
+    results = check_migration(tmp_path)
+    assert [(r["file"], r["from"], r["to"], r["problems"]) for r in results] == [
+        ("calendar.sqlite", 2, max(CalendarStore.MIGRATIONS), []),
+        ("contacts.sqlite", 1, max(ContactsStore.MIGRATIONS), [])]
+    assert all(r["rows"] > 10 for r in results)
+    assert {p.name: _sha_file(p) for p in (contacts, calendar)} == before  # the live files only read
+    assert list_snapshots(tmp_path) == [] and not list((tmp_path / "backups").glob(".check-*"))
+
+
+class _Lossy(ContactsStore):
+    MIGRATIONS = {**ContactsStore.MIGRATIONS,
+                  max(ContactsStore.MIGRATIONS) + 1: ["UPDATE contacts SET display_name = 'x' WHERE seq = 2"]}
+
+
+class _Failing(ContactsStore):
+    MIGRATIONS = {**ContactsStore.MIGRATIONS, max(ContactsStore.MIGRATIONS) + 1: ["DELETE FROM contacts"]}
+
+
+def test_check_migration_reports_a_changed_row_and_a_rolled_back_migration(tmp_path, monkeypatch):
+    import mydata.service.backup as backup
+
+    path = _build(tmp_path, "contacts", 1)
+    monkeypatch.setattr(backup, "_stores", lambda: {"contacts.sqlite": _Lossy})
+    [result] = backup.check_migration(tmp_path)
+    assert result["problems"] == ["contacts: some of its 16 rows changed"]
+    monkeypatch.setattr(backup, "_stores", lambda: {"contacts.sqlite": _Failing})
+    [result] = backup.check_migration(tmp_path)
+    assert len(result["problems"]) == 1 and "MigrationError" in result["problems"][0]
+    assert "contacts has 0 rows, it had 16 before" in result["problems"][0]
+    assert "Ava" not in repr(result)  # counts and names of tables, never values
+    with sqlite3.connect(path) as db:
+        assert db.execute("SELECT MAX(version) FROM schema_version").fetchone()[0] == 1
+
+
+def test_the_check_migration_command(tmp_path):
+    import os
+    import subprocess
+    import sys
+
+    _build(tmp_path, "contacts", 1)
+    r = subprocess.run([sys.executable, "-m", "mydata.cli", "db", "check-migration"],
+                       env={**os.environ, "MYDATA_HOME": str(tmp_path)}, capture_output=True, text=True, timeout=60)
+    assert r.returncode == 0, r.stderr
+    assert r.stdout == (f"contacts.sqlite (from schema version 1 to {max(ContactsStore.MIGRATIONS)}): every one of "
+                        f"its 20 rows kept, checks passed (on a copy)\n")  # 4 address books, 16 cards
