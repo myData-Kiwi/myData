@@ -1,0 +1,28 @@
+This line is not part of any card.
+BEGIN:VCARD
+VERSION:3.0
+FN:Robin Readable
+EMAIL:robin@example.org
+UID:robin-readable@example.org
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+FN:Cut Short
+EMAIL:cut@example.org
+BEGIN:VCARD
+VERSION:9.9
+FN:Future Version
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+FN:Nested
+BEGIN:VCARD
+END:VCARD
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+FN:Last Card
+TEL:+1 202 555 0109
