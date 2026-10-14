@@ -3215,6 +3215,47 @@
         "title": "ModelOut",
         "type": "object"
       },
+      "NotDuplicatesIn": {
+        "properties": {
+          "ids": {
+            "description": "the two contacts of yours that are different people",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 2,
+            "minItems": 2,
+            "title": "Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "ids"
+        ],
+        "title": "NotDuplicatesIn",
+        "type": "object"
+      },
+      "NotDuplicatesOut": {
+        "properties": {
+          "contact_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Contact Ids",
+            "type": "array"
+          },
+          "undo_id": {
+            "description": "POST /undo/{undo_id} offers the pair again",
+            "title": "Undo Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "undo_id",
+          "contact_ids"
+        ],
+        "title": "NotDuplicatesOut",
+        "type": "object"
+      },
       "PostalAddress": {
         "properties": {
           "country": {
@@ -5534,6 +5575,93 @@
           }
         },
         "summary": "Merge Contacts",
+        "tags": [
+          "sources"
+        ],
+        "x-mydata-scopes": [
+          "contacts:write"
+        ]
+      }
+    },
+    "/contacts/not-duplicates": {
+      "post": {
+        "description": "\"Not the same person\": the two contacts of yours are never offered as possible duplicates again (GET\n/contacts/duplicates), also after an import or a merge, until undone with POST /undo/{undo_id}. Nothing on\neither contact changes.",
+        "operationId": "not_duplicates",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NotDuplicatesIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotDuplicatesOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "description": "the same contact named twice"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "missing or wrong token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
+          },
+          "404": {
+            "description": "no such contact"
+          },
+          "409": {
+            "description": "the contact is followed from a source (change it there), or is in Recently deleted"
+          },
+          "421": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardError"
+                }
+              }
+            },
+            "description": "the Host header is not this machine"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "503": {
+            "description": "accounts are not available in this host"
+          }
+        },
+        "summary": "Not Duplicates",
         "tags": [
           "sources"
         ],

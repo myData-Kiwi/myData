@@ -2,7 +2,9 @@
 that changed since the import.
 
 **Possible duplicates** (duplicates()): pairs of owned contacts with the same email or phone, or the same name, with
-the reason and its strength, never merged here (the user merges: sources/contacts_merge.py).
+the reason and its strength, never merged here (the user merges: sources/contacts_merge.py). "Not the same person"
+(not_duplicate()) is kept until undone, by the contacts' ids, which an import never changes; a merge's contact stands
+for its originals, also once they are deleted for good (contacts_write._settle_origins moves the decision to it).
 
 **Changed since import.** An owned contact stands for the followed cards it was imported from (origins, by account
 and UID) or that a file import hid behind it (shadows), its own and those of the contacts merged into it. When such
@@ -241,6 +243,27 @@ def duplicates(store: ContactsStore, *, limit: int = 500, region: str | None = N
                     "order": (not strong, a, b)})
     out.sort(key=lambda p: p.pop("order"))
     return out[:max(1, min(int(limit), 5000))]
+
+
+def not_duplicate(store: ContactsStore, first: str, second: str, *, actor: str) -> Settled:
+    """Record that two contacts of yours are different people: the pair is never offered as possible duplicates again,
+    also after an import or a merge of one of them, until the user undoes it (POST /undo/{undo_id}). Nothing on either
+    contact changes. Marking a pair already marked gives the same undo id."""
+    if first == second:
+        raise ReviewRefused("Name two different contacts.")
+    at = _clock(store)()
+    when = stamp(at)
+    with store.db.transaction() as db:
+        for contact_id in (first, second):
+            if _row(db, contact_id)["deleted_at"] is not None:
+                raise InTrash("A contact named is in Recently deleted. Restore it first.")
+        pair = frozenset((first, second))
+        for r in db.execute("SELECT id, object_id, other_id FROM decisions WHERE kind = ? AND undone_at IS NULL",
+                            (NOT_DUPLICATE,)):
+            if frozenset((_head(db, r["object_id"]), _head(db, r["other_id"]))) == pair:
+                return Settled(first, r["id"], (first, second))
+        decision = _decide(db, NOT_DUPLICATE, first, {}, actor, when, other_id=second)
+    return Settled(first, decision, (first, second))
 
 
 # ---------------------------------------------------------------- undo

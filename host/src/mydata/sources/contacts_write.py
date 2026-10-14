@@ -394,6 +394,9 @@ def _settle_origins(db: sqlite3.Connection, ids: list[str]) -> None:
                        "AND object_id = ?)", (successor, contact_id, contact_id))
             db.execute("UPDATE shadows SET held_by = ? WHERE held_by = ? OR (held_by IS NULL AND object_id = ?)",
                        (successor, contact_id, contact_id))
+            # "Not the same person" and other decisions about it now concern the contact it went into.
+            db.execute("UPDATE decisions SET object_id = ? WHERE object_id = ?", (successor, contact_id))
+            db.execute("UPDATE decisions SET other_id = ? WHERE other_id = ?", (successor, contact_id))
         else:
             db.execute("DELETE FROM shadows WHERE held_by = ? OR (held_by IS NULL AND object_id = ?)",
                        (contact_id, contact_id))

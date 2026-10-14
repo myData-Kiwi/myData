@@ -420,6 +420,16 @@ def test_possible_duplicates_through_the_api(host, client):
     assert (pair["strength"], pair["signals"], len(pair["emails"]), pair["phones"]) == ("strong", ["email", "name"],
                                                                                        1, [])
     assert client.get("/contacts/duplicates", headers=bearer(host, "mycalendar")).status_code == 403
+    ids = [c["id"] for c in pair["contacts"]]
+    assert client.post("/contacts/not-duplicates", headers=auth, json={"ids": [ids[0], ids[0]]}).status_code == 400
+    r = client.post("/contacts/not-duplicates", headers=auth, json={"ids": ids})
+    assert r.status_code == 201 and set(r.json()["contact_ids"]) == set(ids)
+    assert client.get("/contacts/duplicates", headers=auth).json() == []
+    r = client.post(f"/undo/{r.json()['undo_id']}", headers=auth)
+    assert r.status_code == 200 and set(r.json()["contact_ids"]) == set(ids)
+    assert len(client.get("/contacts/duplicates", headers=auth).json()) == 1
+    assert client.post("/contacts/not-duplicates", headers=bearer(host, "myassistant"),
+                       json={"ids": ids}).status_code == 403
 
 
 def test_merge_says_what_it_left_out(host, client):

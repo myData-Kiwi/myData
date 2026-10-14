@@ -491,6 +491,16 @@ class DuplicatePairOut(BaseModel):
                                                       "them")
 
 
+class NotDuplicatesIn(BaseModel):
+    ids: list[str] = Field(min_length=2, max_length=2, description="the two contacts of yours that are different "
+                                                                   "people")
+
+
+class NotDuplicatesOut(BaseModel):
+    undo_id: str = Field(description="POST /undo/{undo_id} offers the pair again")
+    contact_ids: list[str]
+
+
 class FollowedSeenIn(BaseModel):
     id: str = Field(min_length=1, max_length=100, description="a followed copy's id (FollowedChangeOut.followed.id)")
     etag: str = Field(min_length=1, max_length=200, description="its etag as the user saw it")
@@ -1627,6 +1637,26 @@ def _routes_contact_writes(app: FastAPI, need: Callable[[], SyncService], unavai
         written = run(lambda: cw.undo(service.contacts, undo_id, actor=who))
         out = answer(service, written, "undo", who)
         return UndoOut(undo_id=undo_id, contact=out.contact, contact_ids=[written.contact_id])
+
+    @app.post("/contacts/not-duplicates", dependencies=needs("contacts:write"), tags=["sources"],
+              response_model=NotDuplicatesOut, status_code=201,
+              responses={400: {"description": "the same contact named twice"}, **refused, **unavailable})
+    def not_duplicates(body: NotDuplicatesIn, request: Request) -> NotDuplicatesOut:
+        """"Not the same person": the two contacts of yours are never offered as possible duplicates again (GET
+        /contacts/duplicates), also after an import or a merge, until undone with POST /undo/{undo_id}. Nothing on
+        either contact changes."""
+        from ..sources import contacts_review
+        service = need()
+        who = actor(request)
+
+        def write() -> "contacts_review.Settled":
+            try:
+                return contacts_review.not_duplicate(service.contacts, body.ids[0], body.ids[1], actor=who)
+            except contacts_review.ReviewRefused as e:
+                raise HTTPException(400, str(e)) from None
+        done = run(write)
+        log(_LOGGER, logging.INFO, "contacts marked as different people", actor=who, undo_id=done.undo_id)
+        return NotDuplicatesOut(undo_id=done.undo_id, contact_ids=list(done.contact_ids))
 
     @app.post("/contacts/merge", dependencies=needs("contacts:write"), tags=["sources"], response_model=MergeOut,
               status_code=201, responses={400: {"description": "fewer than two contacts, one named twice, or "

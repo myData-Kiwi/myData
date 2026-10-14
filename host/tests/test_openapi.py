@@ -27,7 +27,7 @@ def test_openapi_declares_bearer_auth_and_localhost_server():
                                  "/contacts/{contact_id}/followed-changes/keep", "/calendars", "/events",
                                  "/sources", "/sources/mac", "/sources/mac/request-access", "/sources/mac/sync",
                                  "/sources/mac/reader", "/trash", "/trash/{item_id}", "/trash/{item_id}/restore",
-                                 "/undo/{undo_id}", "/contacts/merge", "/import/contacts/preview",
+                                 "/undo/{undo_id}", "/contacts/merge", "/contacts/not-duplicates", "/import/contacts/preview",
                                  "/import/contacts/from-source/{account_id}/preview", "/import/previews/{preview_id}",
                                  "/import/previews/{preview_id}/items/{index}",
                                  "/import/previews/{preview_id}/commit", "/imports", "/imports/{import_id}/undo"}

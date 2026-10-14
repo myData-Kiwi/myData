@@ -198,3 +198,50 @@ def test_a_large_group_is_paired_within_a_bound(store, monkeypatch):
         _make(store, given_name="Dev", family_name="Placeholder")
     assert len(review.duplicates(store, region="US")) == 3  # the first three paired, not all ten pairs
     assert len(review.duplicates(store, region="US", limit=1)) == 1
+
+
+# ---------------------------------------------------------------- not the same person
+
+def test_not_the_same_person_lasts_until_undone_also_through_imports_and_merges(tmp_path):
+    store = ContactsStore(tmp_path / "contacts.sqlite")
+    done = imp.commit(store, imp.FILE_SOURCE, imp.file_with(imp.AVA))
+    [ava] = imp.owned_rows(store)
+    other = _make(store, given_name="Ava", family_name="Fictional", emails=[{"value": "ava@example.org"}])
+    assert [(p["a"], p["b"]) for p in review.duplicates(store, region="US")] in ([(ava["id"], other)],
+                                                                                [(other, ava["id"])])
+    marked = review.not_duplicate(store, ava["id"], other, actor="mycontacts")
+    assert review.duplicates(store, region="US") == []
+    assert review.not_duplicate(store, other, ava["id"], actor="mycontacts").undo_id == marked.undo_id
+    # The file changes and is imported again: its contact is updated, the pair stays apart.
+    again = imp.commit(store, imp.FILE_SOURCE, imp.file_with(imp.AVA.replace("+1 202 555 0100", "+1 202 555 0111")))
+    assert again.counts["updated"] == 1 and review.duplicates(store, region="US") == []
+    # Ava is merged with a third contact: the merged contact stands for her, also once her card is deleted for good.
+    third = _make(store, given_name="Ava", family_name="F.", phones=[{"value": "+1 202 555 0123"}])
+    merged = imp.merge_.merge(store, [(ava["id"], store.get(ava["id"])["http_etag"]),
+                                      (third, store.get(third)["http_etag"])], actor="mycontacts")
+    assert review.duplicates(store, region="US") == []
+    cw.purge_now(store, ava["id"], if_match=store.get(ava["id"], include_deleted=True)["http_etag"])
+    assert review.duplicates(store, region="US") == []
+    with store.db.connect() as db:
+        assert db.execute("SELECT object_id FROM decisions WHERE id = ?", (marked.undo_id,)).fetchone()[0] == \
+            merged.contact_id
+    review.undo(store, marked.undo_id, actor="mycontacts")
+    assert [{p["a"], p["b"]} for p in review.duplicates(store, region="US")] == [{merged.contact_id, other}]
+    with pytest.raises(cw.UndoRefused):
+        review.undo(store, marked.undo_id, actor="mycontacts")
+    assert done.import_id
+
+
+def test_not_the_same_person_needs_two_contacts_of_yours(store):
+    mine = _make(store, given_name="Ava", family_name="Fictional")
+    followed = next(c for c in store.list() if c["account_id"] == ACCOUNT)
+    with pytest.raises(review.ReviewRefused):
+        review.not_duplicate(store, mine, mine, actor="mycontacts")
+    with pytest.raises(cw.ReadOnly):
+        review.not_duplicate(store, mine, followed["id"], actor="mycontacts")
+    with pytest.raises(cw.NotFound):
+        review.not_duplicate(store, mine, "no-such-contact", actor="mycontacts")
+    gone = _make(store, given_name="Ava", family_name="Fictional")
+    cw.delete(store, gone, if_match=store.get(gone)["http_etag"], actor="mycontacts")
+    with pytest.raises(cw.InTrash):
+        review.not_duplicate(store, mine, gone, actor="mycontacts")
