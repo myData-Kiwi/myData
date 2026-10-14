@@ -206,10 +206,15 @@ void main() {
           row(MyDataTone.accent),
           row(MyDataTone.info),
           row(MyDataTone.warning),
-          ActionRow(icon: Icons.key_outlined, title: 'Agent'),
+          ActionRow(icon: Icons.key_outlined, tone: MyDataTone.success, title: 'Agent'),
         ],
       ),
       throwsAssertionError,
+    );
+    // The untinted tile is no colour (ImportFlow's summary: accent, info, warning, and neutral rows).
+    GroupedSection(
+      heading: 'Summary',
+      parts: [row(MyDataTone.accent), row(MyDataTone.info), row(MyDataTone.warning), row(MyDataTone.neutral)],
     );
     // Rows without icons and content parts do not count.
     GroupedSection(

@@ -33,11 +33,12 @@ class GroupedSection extends StatelessWidget {
   /// The parts, top to bottom.
   final List<Widget> parts;
 
-  /// The distinct tile tones among [parts]' rows that show an icon tile.
+  /// The distinct tinted tile tones among [parts]' rows that show an icon tile (the untinted
+  /// `surface-sunken` tile is no colour).
   static Set<MyDataTone> _tileTones(List<Widget> parts) => {
     for (final p in parts)
       if (p is GroupedRow && p.icon != null) p.tone else if (p is ActionRow && p.icon != null) p.tone,
-  };
+  }..remove(MyDataTone.neutral);
 
   @override
   Widget build(BuildContext context) => GroupFrame(heading: heading, parts: parts);

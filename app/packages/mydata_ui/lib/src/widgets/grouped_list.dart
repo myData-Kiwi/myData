@@ -23,13 +23,16 @@ import 'switch.dart';
 ///   `space-2`, so the nearest token on the larger side).
 /// - Each row is a [GroupedRow]; a setting with a switch is a [GroupedRow.toggle] row (decided 2026-10-12: "A
 ///   switch row is a GroupedList row with an optional icon tile").
-/// - Tile colours: at most three different tile tones on one screen (decided 2026-10-12). A list can only
-///   check itself, so it asserts in debug builds that its own rows use at most [maxTileTones].
+/// - Tile colours: at most three different tile tones on one screen (decided 2026-10-12). The untinted
+///   `surface-sunken` tile is no colour and does not count (ImportFlow's summary, decided 2026-10-14:
+///   "accent, info and warning; every other row is neutral"). A list can only check itself, so it asserts in
+///   debug builds that its own rows use at most [maxTileTones].
 class GroupedList extends StatelessWidget {
   GroupedList({super.key, this.heading, required this.rows})
     : assert(rows.isNotEmpty, 'a grouped list has at least one row'),
       assert(
-        rows.where((r) => r.icon != null).map((r) => r.tone).toSet().length <= maxTileTones,
+        rows.where((r) => r.icon != null && r.tone != MyDataTone.neutral).map((r) => r.tone).toSet().length <=
+            maxTileTones,
         'use at most $maxTileTones different tile tones on one screen (design/README.md "Colour")',
       );
 

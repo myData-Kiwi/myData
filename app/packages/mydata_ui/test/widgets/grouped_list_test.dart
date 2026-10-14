@@ -576,6 +576,18 @@ void main() {
         ),
         throwsAssertionError,
       );
+      // The untinted tile is no colour.
+      expect(
+        () => GroupedList(
+          rows: const [
+            GroupedRow(icon: Icons.mail_outline_rounded, title: 'A'),
+            GroupedRow(icon: Icons.mail_outline_rounded, tone: MyDataTone.info, title: 'B'),
+            GroupedRow(icon: Icons.mail_outline_rounded, tone: MyDataTone.warning, title: 'C'),
+            GroupedRow(icon: Icons.mail_outline_rounded, tone: MyDataTone.neutral, title: 'D'),
+          ],
+        ),
+        returnsNormally,
+      );
       // Rows without a tile do not count.
       expect(
         () => GroupedList(
