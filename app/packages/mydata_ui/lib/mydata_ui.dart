@@ -9,6 +9,7 @@ export 'src/motion.dart';
 export 'src/theme.dart';
 export 'src/widgets/action_row.dart';
 export 'src/widgets/app_frame.dart';
+export 'src/widgets/app_menu_bar.dart';
 export 'src/widgets/avatar.dart';
 export 'src/widgets/approval_card.dart';
 export 'src/widgets/badge.dart';
