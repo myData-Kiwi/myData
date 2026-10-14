@@ -230,7 +230,14 @@ class CheckboxStack extends StatelessWidget {
 /// One item of a [CheckboxList].
 @immutable
 class CheckboxListItem {
-  const CheckboxListItem({required this.title, this.caption, required this.checked, this.disabledReason});
+  const CheckboxListItem({
+    required this.title,
+    this.caption,
+    required this.checked,
+    this.disabledReason,
+    this.trailing,
+    this.below,
+  });
 
   /// The item's name ("Ava Fictional").
   final String title;
@@ -245,6 +252,14 @@ class CheckboxListItem {
   final String? disabledReason;
 
   bool get enabled => disabledReason == null;
+
+  /// A control beside the row's target, at its end ("Compare", plain): a second target side by side with
+  /// the checkbox, never inside it, so a screen reader reaches both. Only the row the keys are on has it in
+  /// the Tab order, after the list.
+  final Widget? trailing;
+
+  /// Shown under the row while given (the import's comparison, opened by [trailing]).
+  final Widget? below;
 }
 
 /// Items picked from a list, each with a checkbox (design/components/Checkbox, "In a list" and "Select
@@ -277,6 +292,7 @@ class CheckboxList extends StatefulWidget {
     this.selectAllTitle,
     this.countLabel = defaultCountLabel,
     this.focusNode,
+    this.folded = false,
   });
 
   /// The group's heading, which also names it for screen readers ("Contacts in the file").
@@ -292,6 +308,10 @@ class CheckboxList extends StatefulWidget {
 
   /// The list's one focus node (the select-all row has its own).
   final FocusNode? focusNode;
+
+  /// Folded: the rows are not drawn, but select all shows and acts on every item, so a long list ("New
+  /// contacts (125)") can be unticked at once. The holder puts its disclosure ("Show all 125") under it.
+  final bool folded;
 
   static String defaultCountLabel(int checked, int total) => '$checked of $total selected';
 
@@ -453,6 +473,7 @@ class _CheckboxListState extends State<CheckboxList> {
                   onHover: (v) => setState(() => _hovered = v ? i : (_hovered == i ? null : _hovered)),
                   onPressDown: (v) => setState(() => _pressed = v ? i : null),
                   onTap: () => _press(i),
+                  current: i == _cursor,
                 ),
               ),
             ],
@@ -468,7 +489,7 @@ class _CheckboxListState extends State<CheckboxList> {
           value: checked == 0 ? false : (checked == items.length ? true : null),
           onToggle: items.any((i) => i.enabled) ? () => _all() : null,
         ),
-      if (items.isNotEmpty) rows,
+      if (items.isNotEmpty && !widget.folded) rows,
     ];
     return Semantics(
       container: true,
@@ -524,8 +545,12 @@ class _CheckboxListRow extends StatelessWidget {
     required this.onHover,
     required this.onPressDown,
     required this.onTap,
+    this.current = false,
   });
   final CheckboxListItem item;
+
+  /// The keys are on this row: its [CheckboxListItem.trailing] is in the Tab order.
+  final bool current;
   final bool focused;
 
   /// The keys are on this row while the list has focus (with or without the ring).
@@ -541,7 +566,7 @@ class _CheckboxListRow extends StatelessWidget {
     final c = context.colors;
     final enabled = item.enabled;
     final note = item.disabledReason ?? item.caption;
-    return MergeSemantics(
+    final target = MergeSemantics(
       child: Semantics(
         checked: item.checked,
         enabled: enabled,
@@ -573,6 +598,20 @@ class _CheckboxListRow extends StatelessWidget {
         ),
       ),
     );
+    final trailing = item.trailing;
+    final below = item.below;
+    if (trailing == null && below == null) return target;
+    return Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      Row(children: [
+        Expanded(child: target),
+        if (trailing != null)
+          Padding(
+            padding: const EdgeInsetsDirectional.only(end: MyDataSpace.s2),
+            child: ExcludeFocusTraversal(excluding: !current, child: trailing),
+          ),
+      ]),
+      ?below,
+    ]);
   }
 }
 

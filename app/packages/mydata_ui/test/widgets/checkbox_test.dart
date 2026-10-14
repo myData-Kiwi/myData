@@ -385,4 +385,65 @@ void main() {
     expect(box, 0);
     expect(changes, isEmpty);
   });
+
+  testWidgets('a row with a trailing button: two targets side by side, and what is below it', (tester) async {
+    var compared = 0;
+    var changes = <List<bool>>[];
+    tester.view.physicalSize = const Size(800, 600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(themedFrame(
+      themeMatrix.first,
+      SizedBox(
+        width: 600,
+        child: CheckboxList(
+          heading: 'Possible duplicates (1)',
+          items: [
+            CheckboxListItem(
+              title: 'Ben Sample',
+              caption: 'Same name as Ben Sample in myData.',
+              checked: true,
+              trailing: Button(label: 'Compare', variant: ButtonVariant.plain, onPressed: () => compared++),
+              below: const Text('The comparison'),
+            ),
+          ],
+          onChanged: (v) => changes.add(v),
+        ),
+      ),
+    ));
+    await tester.tap(find.text('Compare'));
+    expect(compared, 1);
+    expect(changes, isEmpty, reason: 'the button is not inside the checkbox target');
+    await tester.tap(find.text('Ben Sample'));
+    expect(changes, [
+      [false],
+    ]);
+    expect(find.text('The comparison'), findsOneWidget);
+  });
+
+  testWidgets('folded: no rows, but select all acts on every item', (tester) async {
+    List<bool>? got;
+    tester.view.physicalSize = const Size(800, 600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(themedFrame(
+      themeMatrix.first,
+      SizedBox(
+        width: 600,
+        child: CheckboxList(
+          heading: 'New contacts (2)',
+          selectAllTitle: 'All 2 contacts',
+          folded: true,
+          items: const [
+            CheckboxListItem(title: 'Cleo Example', checked: true),
+            CheckboxListItem(title: 'Dev Placeholder', checked: true),
+          ],
+          onChanged: (v) => got = v,
+        ),
+      ),
+    ));
+    expect(find.text('Cleo Example'), findsNothing);
+    await tester.tap(find.text('All 2 contacts'));
+    expect(got, [false, false]);
+  });
 }
