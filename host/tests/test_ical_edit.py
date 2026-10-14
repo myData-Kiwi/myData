@@ -732,3 +732,22 @@ def test_a_utc_recurrence_id_on_the_day_clocks_change_moves_with_its_occurrence(
                                 "09-28 04:00+1300"]
     assert [s for s, _e, summary in occ(out) if summary == "Changed"] == ["2026-09-26T15:00:00+00:00"]
     assert "RECURRENCE-ID:20260926T150000Z" in out
+
+
+def test_a_new_start_and_end_give_overrides_that_kept_the_length_the_new_one():
+    # the 23 Mar override changes only LOCATION: it keeps the series' time and length
+    text = load("auckland-weekly.ics").replace(
+        "DTSTART;TZID=Pacific/Auckland:20260323T110000\nDTEND;TZID=Pacific/Auckland:20260323T113000\n"
+        "SUMMARY:Stand-up moved", "DTSTART;TZID=Pacific/Auckland:20260323T090000\n"
+        "DTEND;TZID=Pacific/Auckland:20260323T093000\nSUMMARY:Stand-up\\, team; weekly")
+    head, _, tail = text.rpartition("LOCATION:Room 1")
+    text = head + "LOCATION:Room 9" + tail
+    changes = {"DTSTART": datetime(2026, 3, 2, 13, tzinfo=NZ), "DTEND": datetime(2026, 3, 2, 15, tzinfo=NZ)}
+    out = ie.edit_all(text, changes, now=NOW)
+    lengths = {e for s, e, *_ in occ(out) for e in [datetime.fromisoformat(e) - datetime.fromisoformat(s)]}
+    assert lengths == {timedelta(hours=2)}
+    room9 = event(out, datetime(2026, 3, 23, 13, tzinfo=NZ))
+    assert str(room9["LOCATION"]) == "Room 9" and room9["DTEND"].dt == datetime(2026, 3, 23, 15, tzinfo=NZ)
+    old, new = ie.edit_following(text, datetime(2026, 3, 9, 9, tzinfo=NZ), {
+        "DTSTART": datetime(2026, 3, 9, 13, tzinfo=NZ), "DTEND": datetime(2026, 3, 9, 15, tzinfo=NZ)}, now=NOW)
+    assert {datetime.fromisoformat(e) - datetime.fromisoformat(s) for s, e, *_ in occ(new)} == {timedelta(hours=2)}

@@ -899,6 +899,8 @@ def edit_all(text: str, changes: Mapping[str, object], *, exceptions: str = "kee
                 edit.allow(o, "DTSTART")
                 edit.allow(o, "DTEND")
                 length = _duration(o)
+                if length == old_length:  # its length was not changed for it: it follows the master's
+                    length = _duration(master)
                 _set(o, "DTSTART", _date_prop(shift(o["DTSTART"].dt), o["DTSTART"]))
                 if length is not None:
                     _set(o, "DTEND", _date_prop(_end(o["DTSTART"].dt, length), o["DTEND"]))
@@ -926,8 +928,8 @@ def edit_all(text: str, changes: Mapping[str, object], *, exceptions: str = "kee
             if _same_value(o.get(name), before):
                 edit.allow(o, name)
                 _set(o, name, copy.deepcopy(master.get(name)))
-        if old_length is not None and "DTEND" in changes and "DTSTART" not in changes and \
-                o.get("DTEND") is not None and _duration(o) == old_length:
+        if old_length is not None and "DTEND" in changes and o.get("DTEND") is not None and \
+                _duration(o) == old_length != _duration(master):
             edit.allow(o, "DTEND")
             _set(o, "DTEND", _date_prop(_end(o["DTSTART"].dt, _duration(master)), o["DTEND"]))
     _touch(edit, master, now, timing=bool(_TIMING & changes.keys()))
