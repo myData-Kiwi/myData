@@ -21,10 +21,11 @@ from mydata.service.config import Settings
 from mydata.service.model import ModelManager
 from mydata.tools.dates import DateParseError, resolve
 
-from service_helpers import (SEND_TO_NISHA, TODAY, TOKEN, Scripted, call, make_app, parse_sse, serve,
-                             spied_registry)
+from service_helpers import (ASSISTANT_TOKEN, SEND_TO_NISHA, TODAY, TOKEN, Scripted, call, make_app, parse_sse,
+                             serve, spied_registry)
 
 AUTH = {"Authorization": f"Bearer {TOKEN}"}
+ASSISTANT_AUTH = {"Authorization": f"Bearer {ASSISTANT_TOKEN}"}
 
 
 # ---------------------------------------------------------------- argument types reach no approval
@@ -205,11 +206,11 @@ def test_step_event_marks_streamed_text_before_tool_calls(tmp_path):
 def test_http_pending_approval_event_and_conversation_continue(tmp_path):
     app, registry, spy = make_app(tmp_path, [SEND_TO_NISHA, [{"content": "Okay."}]])
     with TestClient(app, base_url="http://127.0.0.1") as c:
-        first = parse_sse(c.post("/assistant/messages", headers=AUTH,
+        first = parse_sse(c.post("/assistant/messages", headers=ASSISTANT_AUTH,
                                  json={"text": "Tell Nisha Patel I'll be late tomorrow"}).text)
         cid = first[0][1]["conversation_id"]
         assert [k for k, _ in first][-3:] == ["pending_approval", "message", "done"]
-        second = parse_sse(c.post("/assistant/messages", headers=AUTH,
+        second = parse_sse(c.post("/assistant/messages", headers=ASSISTANT_AUTH,
                                   json={"text": "thanks", "conversation_id": cid}).text)
     assert second[-2] == ("message", {"text": "Okay.", "outcome": "answered", "by": "model"})
     assert spy.calls == []

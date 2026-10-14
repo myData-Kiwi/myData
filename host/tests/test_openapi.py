@@ -39,3 +39,13 @@ def test_source_routes_are_tagged_and_the_password_is_write_only():
         if name != "AccountIn":
             assert "password" not in schema.get("properties", {}), f"{name} exposes a password field"
     assert "mode" in doc["components"]["schemas"]["StatusOut"]["required"]
+
+
+def test_every_operation_names_its_scope():
+    from mydata.service.auth import SCOPES
+    doc = openapi_document()
+    for path, item in doc["paths"].items():
+        for method, op in item.items():
+            assert op["x-mydata-scopes"] and set(op["x-mydata-scopes"]) <= set(SCOPES), (method, path)
+    assert doc["paths"]["/approvals"]["get"]["x-mydata-scopes"] == ["approve"]
+    assert doc["paths"]["/contacts"]["get"]["x-mydata-scopes"] == ["contacts:read"]

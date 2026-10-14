@@ -31,7 +31,8 @@
   PUT  /sources/mac/reader     where the myData app's reader helper is (sent by the myData app)
   /mcp                         MCP (Streamable HTTP) over the same registry and gate
 
-App tokens can use every route. Agent tokens can use only /mcp (security.GuardMiddleware).
+Every route declares the scope it needs (`needs`, below; the scopes are in auth.SCOPES), and an app token
+reaches only the routes its app's scopes allow. Agent tokens can use only /mcp (security.GuardMiddleware).
 """
 
 from __future__ import annotations
@@ -47,10 +48,11 @@ from typing import Any, Callable, Literal
 
 import psutil
 
-from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 from fastapi.encoders import jsonable_encoder
+from fastapi.routing import APIRoute
 from pydantic import BaseModel, Field, SecretStr
 from starlette.routing import Route
 
@@ -58,7 +60,7 @@ from .. import __version__
 from ..tools import ApprovalError, Registry
 from .appearance import DEFAULT_THEME, THEME_IDS, THEMES
 from .assistant import Assistant
-from .auth import LIFETIME_APPS, Authenticator
+from .auth import SCOPES, Authenticator
 from ..sources._db import MigrationError
 from .backup import BackupError, BackupService
 from .logs import LAST_ERROR
@@ -68,6 +70,42 @@ from .model import ModelManager
 from .security import GuardMiddleware
 from .sync import SyncService
 from .version import code_changed
+
+# ---------------------------------------------------------------- scopes
+
+
+class Needs:
+    """A route's scope, checked before the route runs (and before its body is validated). Any one of the
+    scopes given is enough."""
+
+    def __init__(self, *scopes: str):
+        unknown = set(scopes) - set(SCOPES)
+        if not scopes or unknown:
+            raise ValueError(f"unknown scope(s): {sorted(unknown)}")
+        self.scopes = scopes
+
+    def __call__(self, request: Request) -> None:
+        principal = request.state.principal
+        if any(principal.allows(s) for s in self.scopes):
+            return
+        if self.scopes == ("shutdown",):
+            raise HTTPException(403, "only the myData app can stop the host")
+        raise HTTPException(403, f"the {principal.name} app cannot use this (it needs the "
+                                 f"{' or '.join(self.scopes)} scope)")
+
+
+def needs(*scopes: str) -> list:
+    """`dependencies=needs("approve")` on a route: the scope an app token needs to use it."""
+    return [Depends(Needs(*scopes))]
+
+
+def route_scopes(route) -> tuple[str, ...] | None:
+    """The scopes a FastAPI route declared with `needs`, or None (and a route declaring two is refused)."""
+    found = [d.dependency for d in getattr(route, "dependencies", []) if isinstance(d.dependency, Needs)]
+    if len(found) > 1:
+        raise RuntimeError(f"{route.path} declares more than one scope")
+    return found[0].scopes if found else None
+
 
 # ---------------------------------------------------------------- schemas
 
@@ -504,13 +542,15 @@ def create_app(auth: Authenticator, registry: Registry, models: ModelManager, as
         async with session_manager.run():
             yield
 
+    # No /openapi.json route: the document is written by `mydata openapi` (openapi.py), never served.
     app = FastAPI(title="myData host", version=__version__, lifespan=lifespan, docs_url=None, redoc_url=None,
+                  openapi_url=None,
                   # operation ids = function names, so the generated client reads status(), decide(), ...
                   generate_unique_id_function=lambda route: route.name,
                   description="Local API of the myData host. Listens on localhost only; every request needs "
                               "`Authorization: Bearer <token>` from the token file in the host's folder.")
 
-    @app.get("/status", tags=["host"], response_model=StatusOut)
+    @app.get("/status", dependencies=needs("status"), tags=["host"], response_model=StatusOut)
     def status() -> StatusOut:
         from .openapi import api_version  # here, not at the top: openapi.py builds the app from this module
         m = models.status()
@@ -529,13 +569,14 @@ def create_app(auth: Authenticator, registry: Registry, models: ModelManager, as
                          mac_available=sources is not None and sources.mac_available,
                          backup=BackupOut(**backups.status()) if backups is not None else None)
 
-    @app.post("/model/retry", tags=["host"], response_model=StatusOut)
+    @app.post("/model/retry", dependencies=needs("assistant", "admin"), tags=["host"], response_model=StatusOut)
     def retry() -> StatusOut:
         """Try again to get the model ready (after an error, or once Ollama is installed)."""
         models.retry()
         return status()
 
-    @app.post("/assistant/messages", tags=["assistant"], response_class=StreamingResponse,
+    @app.post("/assistant/messages", dependencies=needs("assistant"), tags=["assistant"],
+              response_class=StreamingResponse,
               responses={200: {"content": {"text/event-stream": {"schema": {"type": "string"}}},
                                "description": SSE_DESCRIPTION},
                          503: {"description": "the model is not ready yet; see GET /status"}})
@@ -547,7 +588,7 @@ def create_app(auth: Authenticator, registry: Registry, models: ModelManager, as
         return StreamingResponse(_sse(assistant, body.text, body.conversation_id), media_type="text/event-stream",
                                  headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
-    @app.put("/assistant/settings", tags=["assistant"], response_model=StatusOut)
+    @app.put("/assistant/settings", dependencies=needs("admin"), tags=["assistant"], response_model=StatusOut)
     def assistant_settings(body: AssistantSettingsIn) -> StatusOut:
         """Switch the assistant on (the model is prepared, downloading it if needed) or off (nothing is
         downloaded or loaded; the rest of myData works without it)."""
@@ -561,12 +602,12 @@ def create_app(auth: Authenticator, registry: Registry, models: ModelManager, as
         return AppearanceOut(theme=current_theme(), themes=[ThemeOut(id=i, name=n) for i, n in THEMES],
                              chosen=chosen)
 
-    @app.get("/appearance", tags=["appearance"], response_model=AppearanceOut)
+    @app.get("/appearance", dependencies=needs("status"), tags=["appearance"], response_model=AppearanceOut)
     def appearance() -> AppearanceOut:
         """The theme every app uses, and the themes to choose from. Light or dark mode is per device."""
         return appearance_out()
 
-    @app.put("/appearance", tags=["appearance"], response_model=AppearanceOut,
+    @app.put("/appearance", dependencies=needs("admin"), tags=["appearance"], response_model=AppearanceOut,
              responses={400: {"description": "no such theme"}})
     def set_appearance(body: AppearanceIn) -> AppearanceOut:
         """Set the theme every app uses. Apps follow the change through GET /status."""
@@ -579,28 +620,28 @@ def create_app(auth: Authenticator, registry: Registry, models: ModelManager, as
             no_state["chosen"] = True
         return appearance_out()
 
-    @app.post("/shutdown", tags=["host"], status_code=202, responses={403: {"description": "only the myData app can stop the host"}})
-    def shutdown_host(request: Request) -> dict:
+    @app.post("/shutdown", dependencies=needs("shutdown"), tags=["host"], status_code=202,
+              responses={403: {"description": "only the myData app can stop the host"}})
+    def shutdown_host() -> dict:
         """Stop the host. Only the myData app (which owns the host's lifetime) and the mydata command may."""
-        principal = request.state.principal
-        if principal.kind != "app" or principal.id not in LIFETIME_APPS:
-            raise HTTPException(403, "only the myData app can stop the host")
         if shutdown is not None:
             threading.Timer(0.2, shutdown).start()  # after this response is sent
         return {"stopping": True}
 
-    @app.get("/approvals", tags=["approvals"], response_model=list[ApprovalOut])
+    @app.get("/approvals", dependencies=needs("approve"), tags=["approvals"], response_model=list[ApprovalOut])
     def approvals(status: Literal["pending", "approved", "rejected", "failed"] | None = None) -> list[ApprovalOut]:
         return [ApprovalOut(**a.to_json()) for a in registry.approvals(status)]
 
-    @app.get("/approvals/{approval_id}", tags=["approvals"], response_model=ApprovalOut, responses={404: {"description": "no such approval"}})
+    @app.get("/approvals/{approval_id}", dependencies=needs("approve"),
+             tags=["approvals"], response_model=ApprovalOut, responses={404: {"description": "no such approval"}})
     def approval(approval_id: str) -> ApprovalOut:
         a = registry.approval(approval_id)
         if a is None:
             raise HTTPException(404, "no such approval")
         return ApprovalOut(**a.to_json())
 
-    @app.post("/approvals/{approval_id}", tags=["approvals"], response_model=ApprovalOut,
+    @app.post("/approvals/{approval_id}", dependencies=needs("approve"), tags=["approvals"],
+              response_model=ApprovalOut,
               responses={404: {"description": "no such approval"}, 409: {"description": "already decided"}})
     def decide(approval_id: str, body: DecisionIn, request: Request) -> ApprovalOut:
         try:
@@ -611,15 +652,15 @@ def create_app(auth: Authenticator, registry: Registry, models: ModelManager, as
         assistant.note_decision(a)
         return ApprovalOut(**a.to_json())
 
-    @app.get("/tools", tags=["tools"], response_model=list[ToolOut])
+    @app.get("/tools", dependencies=needs("admin"), tags=["tools"], response_model=list[ToolOut])
     def tools() -> list[ToolOut]:
         return [ToolOut(**t) for t in registry.describe()]
 
-    @app.get("/agents", tags=["agents"], response_model=list[AgentOut])
+    @app.get("/agents", dependencies=needs("admin"), tags=["agents"], response_model=list[AgentOut])
     def agents() -> list[AgentOut]:
         return [AgentOut(**a) for a in auth.agents.list()]
 
-    @app.post("/agents", tags=["agents"], response_model=AgentCreated, status_code=201)
+    @app.post("/agents", dependencies=needs("admin"), tags=["agents"], response_model=AgentCreated, status_code=201)
     def create_agent(body: AgentIn) -> AgentCreated:
         try:
             agent, token = auth.agents.create(body.name)
@@ -627,7 +668,8 @@ def create_app(auth: Authenticator, registry: Registry, models: ModelManager, as
             raise HTTPException(422, str(e)) from None
         return AgentCreated(**agent.public(None), token=token)
 
-    @app.delete("/agents/{agent_id}", tags=["agents"], response_model=AgentOut, responses={404: {"description": "no such agent"}})
+    @app.delete("/agents/{agent_id}", dependencies=needs("admin"),
+                tags=["agents"], response_model=AgentOut, responses={404: {"description": "no such agent"}})
     def revoke_agent(agent_id: str) -> AgentOut:
         try:
             agent = auth.agents.revoke(agent_id)
@@ -650,6 +692,10 @@ def create_app(auth: Authenticator, registry: Registry, models: ModelManager, as
     app.add_exception_handler(MigrationError, store_unavailable)
 
     _routes_sources(app, need_sources, current_mode)
+    # A route without a scope would be open to every app token: refuse to start rather than serve one.
+    missing = [r.path for r in app.routes if isinstance(r, APIRoute) and route_scopes(r) is None]
+    if missing:
+        raise RuntimeError(f"routes without a scope: {missing}")
     app.router.routes.append(Route("/mcp", endpoint=_mcp_endpoint(session_manager)))
     app.state.session_manager = session_manager
     return GuardMiddleware(app, auth)
@@ -662,12 +708,14 @@ def _routes_sources(app: FastAPI, need: Callable[[], SyncService], current_mode:
     from ..sources.secrets import SecretStoreError
     unavailable = {503: {"description": "accounts are not available in this host"}}
 
-    @app.get("/accounts", tags=["sources"], response_model=list[AccountOut], responses=unavailable)
+    @app.get("/accounts", dependencies=needs("sources:read"),
+             tags=["sources"], response_model=list[AccountOut], responses=unavailable)
     def accounts() -> list[AccountOut]:
         """Linked accounts. Passwords are never returned."""
         return [AccountOut(**a.public()) for a in need().accounts.list()]
 
-    @app.post("/accounts", tags=["sources"], response_model=AccountOut, status_code=201,
+    @app.post("/accounts", dependencies=needs("sources:manage"),
+              tags=["sources"], response_model=AccountOut, status_code=201,
               responses={400: {"description": "the provider did not accept the details, or the account is "
                                               "already linked; the message says which"}, **unavailable})
     def add_account(body: AccountIn) -> AccountOut:
@@ -683,7 +731,8 @@ def _routes_sources(app: FastAPI, need: Callable[[], SyncService], current_mode:
             raise HTTPException(503, f"{e}. Nothing was stored.") from None
         return AccountOut(**account.public())
 
-    @app.delete("/accounts/{account_id}", tags=["sources"], response_model=AccountOut,
+    @app.delete("/accounts/{account_id}", dependencies=needs("sources:manage"),
+                tags=["sources"], response_model=AccountOut,
                 responses={404: {"description": "no such account"}, **unavailable})
     def remove_account(account_id: str) -> AccountOut:
         """Unlink an account: its mirrored contacts and calendars and its Keychain item are deleted. Copies
@@ -698,7 +747,8 @@ def _routes_sources(app: FastAPI, need: Callable[[], SyncService], current_mode:
             raise HTTPException(503, str(e)) from None
         return AccountOut(**account.public())
 
-    @app.post("/accounts/{account_id}/sync", tags=["sources"], response_model=AccountSyncOut, status_code=202,
+    @app.post("/accounts/{account_id}/sync", dependencies=needs("sources:manage"),
+              tags=["sources"], response_model=AccountSyncOut, status_code=202,
               responses={404: {"description": "no such account"}, **unavailable})
     def sync_account(account_id: str) -> AccountSyncOut:
         """Sync now: the account is synced next, in the background. Follow it with GET /sync."""
@@ -707,12 +757,13 @@ def _routes_sources(app: FastAPI, need: Callable[[], SyncService], current_mode:
         except KeyError:
             raise HTTPException(404, "no such account") from None
 
-    @app.get("/sync", tags=["sources"], response_model=SyncOut)
+    @app.get("/sync", dependencies=needs("sources:read"), tags=["sources"], response_model=SyncOut)
     def sync_status() -> SyncOut:
         """The mode, and each account's sync status."""
         return SyncOut(mode=current_mode(), accounts=[AccountSyncOut(**r) for r in _status_rows(need)])
 
-    @app.get("/contacts", tags=["sources"], response_model=list[ContactOut], responses=unavailable)
+    @app.get("/contacts", dependencies=needs("contacts:read"),
+             tags=["sources"], response_model=list[ContactOut], responses=unavailable)
     def contacts(query: str | None = Query(default=None, max_length=200,
                                            description="search names, organisation, emails and phones"),
                  limit: int = Query(default=100, ge=1, le=1000), offset: int = Query(default=0, ge=0)
@@ -725,7 +776,8 @@ def _routes_sources(app: FastAPI, need: Callable[[], SyncService], current_mode:
             rows = store.list(limit=limit, offset=offset)
         return [ContactOut(**_list_view(r)) for r in rows]
 
-    @app.get("/contacts/{contact_id}", tags=["sources"], response_model=ContactDetailOut,
+    @app.get("/contacts/{contact_id}", dependencies=needs("contacts:read"),
+             tags=["sources"], response_model=ContactDetailOut,
              responses={404: {"description": "no such contact"}, **unavailable})
     def contact(contact_id: str, raw: bool = Query(default=False, description="include the raw vCard")
                 ) -> ContactDetailOut:
@@ -745,13 +797,15 @@ def _routes_sources(app: FastAPI, need: Callable[[], SyncService], current_mode:
             row.pop("raw_vcard", None)
         return ContactDetailOut(**row)
 
-    @app.get("/calendars", tags=["sources"], response_model=list[CalendarOut], responses=unavailable)
+    @app.get("/calendars", dependencies=needs("calendar:read"),
+             tags=["sources"], response_model=list[CalendarOut], responses=unavailable)
     def calendars() -> list[CalendarOut]:
         """Every mirrored calendar, grouped by source: This Mac first, then each iCloud account. The same
         calendar seen through This Mac and through an iCloud account is listed twice, once per source."""
         return [CalendarOut(**c) for c in need().calendar_list()]
 
-    @app.get("/contacts/{contact_id}/photo", tags=["sources"], response_class=Response,
+    @app.get("/contacts/{contact_id}/photo", dependencies=needs("contacts:read"),
+             tags=["sources"], response_class=Response,
              responses={200: {"content": {"image/jpeg": {"schema": {"type": "string", "format": "binary"}},
                                           "image/png": {"schema": {"type": "string", "format": "binary"}}},
                               "description": "the photo"},
@@ -764,7 +818,7 @@ def _routes_sources(app: FastAPI, need: Callable[[], SyncService], current_mode:
         data, media_type = found
         return Response(content=data, media_type=media_type, headers={"Cache-Control": "private, max-age=60"})
 
-    @app.get("/events", tags=["sources"], response_model=EventsOut,
+    @app.get("/events", dependencies=needs("calendar:read"), tags=["sources"], response_model=EventsOut,
              responses={400: {"description": "end is before start, or the range is too long"}, **unavailable})
     def events(start: date = Query(description="first day, YYYY-MM-DD"),
                end: date = Query(description="last day, YYYY-MM-DD (included)"),
@@ -814,7 +868,7 @@ def _routes_mac(app: FastAPI, need: Callable[[], SyncService]) -> None:
                                  last_error=st.get("last_error"), counts=SyncCounts(**(st.get("counts") or {}))))
         return out
 
-    @app.get("/sources", tags=["sources"], response_model=SourcesOut,
+    @app.get("/sources", dependencies=needs("sources:read"), tags=["sources"], response_model=SourcesOut,
              responses={503: {"description": "accounts are not available in this host"}})
     def sources() -> SourcesOut:
         """Every source: This Mac first (only on a Mac host), then each linked iCloud account."""
@@ -827,7 +881,7 @@ def _routes_mac(app: FastAPI, need: Callable[[], SyncService]) -> None:
             rows.append(SourceOut(**mac_row))
         return SourcesOut(sources=[*rows, *icloud_rows(service)])
 
-    @app.put("/sources/mac", tags=["sources"], response_model=SourceOut,
+    @app.put("/sources/mac", dependencies=needs("sources:manage"), tags=["sources"], response_model=SourceOut,
              responses={**not_mac, 400: {"description": "the body is not valid"}})
     def configure_mac(body: MacSourceIn) -> SourceOut:
         """Turn This Mac on or off, and choose which contact accounts and calendars it includes (null: all).
@@ -847,7 +901,8 @@ def _routes_mac(app: FastAPI, need: Callable[[], SyncService]) -> None:
         except MacUnavailable:
             raise HTTPException(404, "This host is not a Mac, so there is no This Mac source.") from None
 
-    @app.post("/sources/mac/request-access", tags=["sources"], response_model=SourceOut,
+    @app.post("/sources/mac/request-access", dependencies=needs("sources:manage"),
+              tags=["sources"], response_model=SourceOut,
               responses={**not_mac, 409: {"description": "This Mac is turned off"},
                          504: {"description": "the reader did not start"}})
     def request_mac_access(body: AccessIn) -> SourceOut:
@@ -861,7 +916,8 @@ def _routes_mac(app: FastAPI, need: Callable[[], SyncService]) -> None:
         except TimeoutError as e:
             raise HTTPException(504, str(e)) from None
 
-    @app.post("/sources/mac/sync", tags=["sources"], response_model=SourceOut, status_code=202,
+    @app.post("/sources/mac/sync", dependencies=needs("sources:manage"),
+              tags=["sources"], response_model=SourceOut, status_code=202,
               responses={**not_mac, 409: {"description": "This Mac is turned off"}})
     def sync_mac() -> SourceOut:
         """Read the Mac's contacts and calendars again now, in the background."""
@@ -870,7 +926,7 @@ def _routes_mac(app: FastAPI, need: Callable[[], SyncService]) -> None:
         except MacNotEnabled:
             raise HTTPException(409, "Turn on This Mac first.") from None
 
-    @app.put("/sources/mac/reader", tags=["sources"], response_model=SourceOut,
+    @app.put("/sources/mac/reader", dependencies=needs("sources:manage"), tags=["sources"], response_model=SourceOut,
              responses={**not_mac, 400: {"description": "the path is not the reader"}})
     def set_mac_reader(body: ReaderIn) -> SourceOut:
         """Where the myData app's reader helper is (myData.app/Contents/Helpers/myDataReader.app). The myData

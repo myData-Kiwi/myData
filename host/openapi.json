@@ -2097,7 +2097,7 @@
                 }
               }
             },
-            "description": "agent tokens can only use /mcp"
+            "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
           },
           "421": {
             "content": {
@@ -2116,6 +2116,9 @@
         "summary": "Accounts",
         "tags": [
           "sources"
+        ],
+        "x-mydata-scopes": [
+          "sources:read"
         ]
       },
       "post": {
@@ -2163,7 +2166,7 @@
                 }
               }
             },
-            "description": "agent tokens can only use /mcp"
+            "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
           },
           "421": {
             "content": {
@@ -2192,6 +2195,9 @@
         "summary": "Add Account",
         "tags": [
           "sources"
+        ],
+        "x-mydata-scopes": [
+          "sources:manage"
         ]
       }
     },
@@ -2239,7 +2245,7 @@
                 }
               }
             },
-            "description": "agent tokens can only use /mcp"
+            "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
           },
           "404": {
             "description": "no such account"
@@ -2271,6 +2277,9 @@
         "summary": "Remove Account",
         "tags": [
           "sources"
+        ],
+        "x-mydata-scopes": [
+          "sources:manage"
         ]
       }
     },
@@ -2318,7 +2327,7 @@
                 }
               }
             },
-            "description": "agent tokens can only use /mcp"
+            "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
           },
           "404": {
             "description": "no such account"
@@ -2350,6 +2359,9 @@
         "summary": "Sync Account",
         "tags": [
           "sources"
+        ],
+        "x-mydata-scopes": [
+          "sources:manage"
         ]
       }
     },
@@ -2389,7 +2401,7 @@
                 }
               }
             },
-            "description": "agent tokens can only use /mcp"
+            "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
           },
           "421": {
             "content": {
@@ -2405,6 +2417,9 @@
         "summary": "Agents",
         "tags": [
           "agents"
+        ],
+        "x-mydata-scopes": [
+          "admin"
         ]
       },
       "post": {
@@ -2448,7 +2463,7 @@
                 }
               }
             },
-            "description": "agent tokens can only use /mcp"
+            "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
           },
           "421": {
             "content": {
@@ -2474,6 +2489,9 @@
         "summary": "Create Agent",
         "tags": [
           "agents"
+        ],
+        "x-mydata-scopes": [
+          "admin"
         ]
       }
     },
@@ -2520,7 +2538,7 @@
                 }
               }
             },
-            "description": "agent tokens can only use /mcp"
+            "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
           },
           "404": {
             "description": "no such agent"
@@ -2549,6 +2567,9 @@
         "summary": "Revoke Agent",
         "tags": [
           "agents"
+        ],
+        "x-mydata-scopes": [
+          "admin"
         ]
       }
     },
@@ -2585,7 +2606,7 @@
                 }
               }
             },
-            "description": "agent tokens can only use /mcp"
+            "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
           },
           "421": {
             "content": {
@@ -2601,6 +2622,9 @@
         "summary": "Appearance",
         "tags": [
           "appearance"
+        ],
+        "x-mydata-scopes": [
+          "status"
         ]
       },
       "put": {
@@ -2648,7 +2672,7 @@
                 }
               }
             },
-            "description": "agent tokens can only use /mcp"
+            "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
           },
           "421": {
             "content": {
@@ -2674,6 +2698,9 @@
         "summary": "Set Appearance",
         "tags": [
           "appearance"
+        ],
+        "x-mydata-scopes": [
+          "admin"
         ]
       }
     },
@@ -2737,7 +2764,7 @@
                 }
               }
             },
-            "description": "agent tokens can only use /mcp"
+            "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
           },
           "421": {
             "content": {
@@ -2763,6 +2790,9 @@
         "summary": "Approvals",
         "tags": [
           "approvals"
+        ],
+        "x-mydata-scopes": [
+          "approve"
         ]
       }
     },
@@ -2809,7 +2839,7 @@
                 }
               }
             },
-            "description": "agent tokens can only use /mcp"
+            "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
           },
           "404": {
             "description": "no such approval"
@@ -2838,6 +2868,9 @@
         "summary": "Approval",
         "tags": [
           "approvals"
+        ],
+        "x-mydata-scopes": [
+          "approve"
         ]
       },
       "post": {
@@ -2892,7 +2925,7 @@
                 }
               }
             },
-            "description": "agent tokens can only use /mcp"
+            "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
           },
           "404": {
             "description": "no such approval"
@@ -2924,6 +2957,9 @@
         "summary": "Decide",
         "tags": [
           "approvals"
+        ],
+        "x-mydata-scopes": [
+          "approve"
         ]
       }
     },
@@ -2969,7 +3005,7 @@
                 }
               }
             },
-            "description": "agent tokens can only use /mcp"
+            "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
           },
           "421": {
             "content": {
@@ -2997,6 +3033,9 @@
         },
         "summary": "Messages",
         "tags": [
+          "assistant"
+        ],
+        "x-mydata-scopes": [
           "assistant"
         ]
       }
@@ -3044,7 +3083,7 @@
                 }
               }
             },
-            "description": "agent tokens can only use /mcp"
+            "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
           },
           "421": {
             "content": {
@@ -3070,6 +3109,9 @@
         "summary": "Assistant Settings",
         "tags": [
           "assistant"
+        ],
+        "x-mydata-scopes": [
+          "admin"
         ]
       }
     },
@@ -3110,7 +3152,7 @@
                 }
               }
             },
-            "description": "agent tokens can only use /mcp"
+            "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
           },
           "421": {
             "content": {
@@ -3129,6 +3171,9 @@
         "summary": "Calendars",
         "tags": [
           "sources"
+        ],
+        "x-mydata-scopes": [
+          "calendar:read"
         ]
       }
     },
@@ -3213,7 +3258,7 @@
                 }
               }
             },
-            "description": "agent tokens can only use /mcp"
+            "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
           },
           "421": {
             "content": {
@@ -3242,6 +3287,9 @@
         "summary": "Contacts",
         "tags": [
           "sources"
+        ],
+        "x-mydata-scopes": [
+          "contacts:read"
         ]
       }
     },
@@ -3301,7 +3349,7 @@
                 }
               }
             },
-            "description": "agent tokens can only use /mcp"
+            "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
           },
           "404": {
             "description": "no such contact"
@@ -3333,6 +3381,9 @@
         "summary": "Contact",
         "tags": [
           "sources"
+        ],
+        "x-mydata-scopes": [
+          "contacts:read"
         ]
       }
     },
@@ -3387,7 +3438,7 @@
                 }
               }
             },
-            "description": "agent tokens can only use /mcp"
+            "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
           },
           "404": {
             "description": "no such contact, or it has no photo (show initials)"
@@ -3419,6 +3470,9 @@
         "summary": "Contact Photo",
         "tags": [
           "sources"
+        ],
+        "x-mydata-scopes": [
+          "contacts:read"
         ]
       }
     },
@@ -3505,7 +3559,7 @@
                 }
               }
             },
-            "description": "agent tokens can only use /mcp"
+            "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
           },
           "421": {
             "content": {
@@ -3534,6 +3588,9 @@
         "summary": "Events",
         "tags": [
           "sources"
+        ],
+        "x-mydata-scopes": [
+          "calendar:read"
         ]
       }
     },
@@ -3570,7 +3627,7 @@
                 }
               }
             },
-            "description": "agent tokens can only use /mcp"
+            "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
           },
           "421": {
             "content": {
@@ -3586,6 +3643,10 @@
         "summary": "Retry",
         "tags": [
           "host"
+        ],
+        "x-mydata-scopes": [
+          "assistant",
+          "admin"
         ]
       }
     },
@@ -3633,6 +3694,9 @@
         "summary": "Shutdown Host",
         "tags": [
           "host"
+        ],
+        "x-mydata-scopes": [
+          "shutdown"
         ]
       }
     },
@@ -3669,7 +3733,7 @@
                 }
               }
             },
-            "description": "agent tokens can only use /mcp"
+            "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
           },
           "421": {
             "content": {
@@ -3688,6 +3752,9 @@
         "summary": "Sources",
         "tags": [
           "sources"
+        ],
+        "x-mydata-scopes": [
+          "sources:read"
         ]
       }
     },
@@ -3737,7 +3804,7 @@
                 }
               }
             },
-            "description": "agent tokens can only use /mcp"
+            "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
           },
           "404": {
             "description": "this host is not a Mac: there is no This Mac source"
@@ -3769,6 +3836,9 @@
         "summary": "Configure Mac",
         "tags": [
           "sources"
+        ],
+        "x-mydata-scopes": [
+          "sources:manage"
         ]
       }
     },
@@ -3818,7 +3888,7 @@
                 }
               }
             },
-            "description": "agent tokens can only use /mcp"
+            "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
           },
           "404": {
             "description": "this host is not a Mac: there is no This Mac source"
@@ -3850,6 +3920,9 @@
         "summary": "Set Mac Reader",
         "tags": [
           "sources"
+        ],
+        "x-mydata-scopes": [
+          "sources:manage"
         ]
       }
     },
@@ -3896,7 +3969,7 @@
                 }
               }
             },
-            "description": "agent tokens can only use /mcp"
+            "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
           },
           "404": {
             "description": "this host is not a Mac: there is no This Mac source"
@@ -3934,6 +4007,9 @@
         "summary": "Request Mac Access",
         "tags": [
           "sources"
+        ],
+        "x-mydata-scopes": [
+          "sources:manage"
         ]
       }
     },
@@ -3970,7 +4046,7 @@
                 }
               }
             },
-            "description": "agent tokens can only use /mcp"
+            "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
           },
           "404": {
             "description": "this host is not a Mac: there is no This Mac source"
@@ -3995,6 +4071,9 @@
         "summary": "Sync Mac",
         "tags": [
           "sources"
+        ],
+        "x-mydata-scopes": [
+          "sources:manage"
         ]
       }
     },
@@ -4030,7 +4109,7 @@
                 }
               }
             },
-            "description": "agent tokens can only use /mcp"
+            "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
           },
           "421": {
             "content": {
@@ -4046,6 +4125,9 @@
         "summary": "Status",
         "tags": [
           "host"
+        ],
+        "x-mydata-scopes": [
+          "status"
         ]
       }
     },
@@ -4082,7 +4164,7 @@
                 }
               }
             },
-            "description": "agent tokens can only use /mcp"
+            "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
           },
           "421": {
             "content": {
@@ -4098,6 +4180,9 @@
         "summary": "Sync Status",
         "tags": [
           "sources"
+        ],
+        "x-mydata-scopes": [
+          "sources:read"
         ]
       }
     },
@@ -4137,7 +4222,7 @@
                 }
               }
             },
-            "description": "agent tokens can only use /mcp"
+            "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
           },
           "421": {
             "content": {
@@ -4153,6 +4238,9 @@
         "summary": "Tools",
         "tags": [
           "tools"
+        ],
+        "x-mydata-scopes": [
+          "admin"
         ]
       }
     }

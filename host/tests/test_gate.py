@@ -17,9 +17,10 @@ from mcp.client.streamable_http import streamable_http_client
 
 from mydata.tools import ApprovalError
 
-from service_helpers import SEND_TO_NISHA, TODAY, TOKEN, make_app, parse_sse, serve, spied_registry
+from service_helpers import ASSISTANT_TOKEN, SEND_TO_NISHA, TODAY, TOKEN, make_app, parse_sse, serve, spied_registry
 
 AUTH = {"Authorization": f"Bearer {TOKEN}"}
+ASSISTANT_AUTH = {"Authorization": f"Bearer {ASSISTANT_TOKEN}"}
 ARGS = {"to": "nisha.patel@example.com", "subject": "Late", "body": "I'll be late tomorrow."}
 
 
@@ -90,7 +91,7 @@ def test_http_assistant_holds_send_and_only_approval_runs_it(tmp_path):
     app, registry, spy = make_app(tmp_path, [SEND_TO_NISHA])
     with _client(app) as c:
         r = c.post("/assistant/messages", json={"text": "Look up Nisha Patel's email and send her a note saying "
-                                                         "I'll be late tomorrow"}, headers=AUTH)
+                                                         "I'll be late tomorrow"}, headers=ASSISTANT_AUTH)
         events = parse_sse(r.text)
         kinds = [k for k, _ in events]
         assert "pending_approval" in kinds and kinds[-1] == "done"

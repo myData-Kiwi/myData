@@ -184,7 +184,8 @@ def test_deny_reads_nothing_and_the_tool_says_it_has_no_access(make_host):
         assert (src["contacts_status"], src["calendars_status"]) == ("denied", "denied")
         assert [x["cmd"] for x in mac.helper.commands] == ["request_access", "request_access"]
         assert c.get("/contacts") == [] and MAC_ID not in h.sources.contacts.account_ids()
-        events = parse_sse(c.c.post("/assistant/messages", headers=h.auth, json={"text": "What's on March 20?"}).text)
+        events = parse_sse(c.c.post("/assistant/messages", headers=h.assistant_auth,
+                                    json={"text": "What's on March 20?"}).text)
         result = dict(events)["result"]
         assert result["header"] == "myData cannot read the calendars on this Mac: access to them is not allowed."
         assert not result["header"].startswith("No ")
@@ -553,7 +554,8 @@ def test_list_events_never_says_nothing_found_for_days_it_does_not_hold(make_hos
     with Client(h) as c:
         on(c, mac)
         assert wait(lambda: c.mac()["window"] == WINDOW)
-        events = parse_sse(c.c.post("/assistant/messages", headers=h.auth, json={"text": f"What's on {phrase}?"}).text)
+        events = parse_sse(c.c.post("/assistant/messages", headers=h.assistant_auth,
+                                    json={"text": f"What's on {phrase}?"}).text)
         assert dict(events)["result"]["header"] == header
 
 
@@ -598,7 +600,8 @@ def test_an_icloud_account_never_hides_the_macs_window(make_host, phrase, header
         r = c.c.post("/accounts", headers=h.auth, json={"provider": "icloud", "email": fake_dav.USERNAME,
                                                         "password": fake_dav.PASSWORD})
         h.sources.sync_account(r.json()["id"])
-        events = parse_sse(c.c.post("/assistant/messages", headers=h.auth, json={"text": f"What's on {phrase}?"}).text)
+        events = parse_sse(c.c.post("/assistant/messages", headers=h.assistant_auth,
+                                    json={"text": f"What's on {phrase}?"}).text)
         assert dict(events)["result"]["header"] == header
         body = c.get("/events?start=2029-01-10&end=2029-01-10")
         assert {(x["source"], x["complete"]) for x in body["coverage"]} == {("icloud", True), ("mac", False)}
@@ -660,7 +663,8 @@ def test_calendars_listed_but_no_events_snapshot_is_never_read_as_empty(make_hos
             h.sources.sync_account(r.json()["id"])
         not_read = "The calendars on this Mac have not been read yet"
         for text in ("What's on January 10 2031?", "What's on March 20?"):
-            events = parse_sse(c.c.post("/assistant/messages", headers=h.auth, json={"text": text}).text)
+            events = parse_sse(c.c.post("/assistant/messages", headers=h.assistant_auth,
+                                        json={"text": text}).text)
             header = dict(events)["result"]["header"]
             assert not_read in header, header
             assert icloud or not header.startswith("No ")
@@ -705,7 +709,8 @@ def test_logs_and_the_request_log_hold_no_photo_and_no_mirrored_data(make_host, 
         on(c, mac)
         assert wait(lambda: len(c.names()) == 4 and c.mac()["window"])
         for text in ("Find Ava", "What's on March 20?"):
-            events = parse_sse(c.c.post("/assistant/messages", headers=h.auth, json={"text": text}).text)
+            events = parse_sse(c.c.post("/assistant/messages", headers=h.assistant_auth,
+                                        json={"text": text}).text)
             assert dict(events)["result"]["items"]
     logged = (h.home / "logs" / "assistant.jsonl").read_text()
     for text in (logged, caplog.text):
@@ -837,13 +842,17 @@ def test_result_items_carry_what_opens_them_in_their_own_app(make_host):
         assert wait(lambda: len(c.names()) == 4 and c.mac()["window"] == WINDOW)
         ava_id = next(x["id"] for x in c.get("/contacts") if x["display_name"] == "Ava Q Fictional")
 
-        events = parse_sse(c.c.post("/assistant/messages", headers=h.auth, json={"text": "Ava's details"}).text)
+        events = parse_sse(c.c.post("/assistant/messages", headers=h.assistant_auth,
+
+                                    json={"text": "Ava's details"}).text)
         result = dict(events)["result"]
         assert result["mode"] == "real" and result["kind"] == "contacts"
         assert [i["id"] for i in result["items"]] == [ava_id]
         assert c.get(f"/contacts/{ava_id}")["display_name"] == "Ava Q Fictional"  # the id myContacts opens
 
-        events = parse_sse(c.c.post("/assistant/messages", headers=h.auth, json={"text": "What's on March 24?"}).text)
+        events = parse_sse(c.c.post("/assistant/messages", headers=h.assistant_auth,
+
+                                    json={"text": "What's on March 24?"}).text)
         result = dict(events)["result"]
         assert result["mode"] == "real" and [i["date"] for i in result["items"]] == ["2026-03-24"]
 

@@ -2,14 +2,18 @@
 
 - App tokens: one per app that acts for the user (the myData app, myAssistant, myContacts, myCalendar,
   the mydata command). The host creates them on start, each in its own file readable only by the user
-  (<home>/app-tokens/<app>). The myData app, myAssistant and the mydata command can do everything,
-  including approving held calls, and approvals record which app decided; only the myData app and the
-  mydata command may stop the host (POST /shutdown). myContacts and myCalendar only read: their tokens
-  get GET and nothing else (READ_ONLY_APPS), so they cannot approve, mint agent tokens, change
-  sources or settings, or use /mcp.
+  (<home>/app-tokens/<app>). Each app's token has scopes (APP_SCOPES), and every route declares the
+  scope it needs (api.py): myContacts reads contacts, myCalendar reads calendars, myAssistant talks to
+  the assistant and approves, the myData app administers the host, and the mydata command can do
+  everything. Approvals record which app decided; only the myData app and the mydata command may stop
+  the host (POST /shutdown).
 - Agent tokens: for MCP agents. Created, listed and revoked with `mydata agent ...` or from the
   myData app. Only their SHA-256 hash is stored (<home>/agents.json). An agent token reaches
   /mcp and nothing else: no approvals, no assistant, no status.
+
+A known limit: any process running as the same user can read the app-token files (0600 keeps out other
+users, not other programs of this one) and use the API with them. It is to be hardened before the host
+sends mail (the owned-data plan, 2(f).4).
 """
 
 from __future__ import annotations
@@ -30,10 +34,37 @@ from pathlib import Path
 from .security import ensure_token
 
 APPS = ("mydata", "myassistant", "mycontacts", "mycalendar", "cli")
+
+# Every scope, and what it allows. Each route in api.py declares the one it needs; /mcp needs "mcp" from
+# an app token (agent tokens reach /mcp only, and need no scope there).
+SCOPES = {
+    "status": "GET /status and GET /appearance: the host's state and the theme every app follows",
+    "admin": "agent tokens, the theme, switching the assistant on or off, the tool list",
+    "assistant": "talk to the assistant, and ask the host to get the model ready again",
+    "approve": "list held calls and approve or reject them",
+    "contacts:read": "the contacts the host holds",
+    "contacts:write": "change contacts (nothing uses it yet)",
+    "calendar:read": "the calendars and events the host holds",
+    "calendar:write": "change calendars and events (nothing uses it yet)",
+    "sources:read": "the sources, linked accounts and their sync status",
+    "sources:manage": "link and remove accounts, turn This Mac on or off, sync now",
+    "shutdown": "stop the host",
+    "mcp": "/mcp with an app token",
+}
+
+APP_SCOPES: dict[str, frozenset[str]] = {
+    "mydata": frozenset({"status", "admin", "approve", "contacts:read", "contacts:write", "calendar:read",
+                         "calendar:write", "sources:read", "sources:manage", "shutdown", "mcp"}),
+    "myassistant": frozenset({"status", "assistant", "approve", "contacts:read", "calendar:read"}),
+    # contacts:write comes with editing contacts (phase 3), not before.
+    "mycontacts": frozenset({"status", "contacts:read", "sources:read"}),
+    "mycalendar": frozenset({"status", "calendar:read", "sources:read"}),
+    "cli": frozenset(SCOPES),
+}
+assert set(APP_SCOPES) == set(APPS) and all(s <= set(SCOPES) for s in APP_SCOPES.values())
+
 # The apps that own the host's lifetime: only they may stop it (POST /shutdown).
-LIFETIME_APPS = ("mydata", "cli")
-# The apps that only read: any request but GET from them is refused (security.GuardMiddleware).
-READ_ONLY_APPS = ("mycontacts", "mycalendar")
+LIFETIME_APPS = tuple(a for a in APPS if "shutdown" in APP_SCOPES[a])
 AGENT_PREFIX = "mda_"
 # An agent counts as connected if it made a request this recently.
 CONNECTED_WITHIN = 300.0
@@ -50,9 +81,12 @@ class Principal:
         return f"{self.kind}:{self.name}"
 
     @property
-    def read_only(self) -> bool:
-        """An app that may only read (myContacts, myCalendar)."""
-        return self.kind == "app" and self.id in READ_ONLY_APPS
+    def scopes(self) -> frozenset[str]:
+        """An app token's scopes; an agent token has none (it reaches /mcp only)."""
+        return APP_SCOPES.get(self.id, frozenset()) if self.kind == "app" else frozenset()
+
+    def allows(self, scope: str) -> bool:
+        return scope in self.scopes
 
 
 def app_token_path(home: Path, app: str) -> Path:

@@ -12,10 +12,12 @@ import hashlib
 import json
 from pathlib import Path
 
+from fastapi.routing import APIRoute
+
 from .. import __version__
 
 from ..tools import default_registry
-from .api import create_app
+from .api import create_app, route_scopes
 from .auth import AgentStore, Authenticator
 from .assistant import Assistant
 from .config import Settings
@@ -34,10 +36,16 @@ def openapi_document() -> dict:
     doc["components"]["schemas"]["GuardError"] = {"type": "object", "properties": {"detail": {"type": "string"}},
                                                   "required": ["detail"], "title": "GuardError"}
     err = {"application/json": {"schema": {"$ref": "#/components/schemas/GuardError"}}}
-    for item in doc["paths"].values():
-        for op in item.values():
+    # Each operation names the scope an app token needs (auth.SCOPES); a token without it gets 403.
+    scopes = {(m.lower(), r.path): route_scopes(r) for r in guarded.app.routes if isinstance(r, APIRoute)
+              for m in r.methods}
+    for path, item in doc["paths"].items():
+        for method, op in item.items():
+            op["x-mydata-scopes"] = list(scopes[(method, path)])
             op["responses"].setdefault("401", {"description": "missing or wrong token", "content": err})
-            op["responses"].setdefault("403", {"description": "agent tokens can only use /mcp", "content": err})
+            op["responses"].setdefault("403", {"description": "this token may not use this route: an app token "
+                                                              "needs one of x-mydata-scopes, and agent tokens can "
+                                                              "only use /mcp", "content": err})
             op["responses"].setdefault("421", {"description": "the Host header is not this machine", "content": err})
     doc["servers"] = [{"url": "http://127.0.0.1:47821", "description": "this machine only"}]
     # FastAPI's validation error says a location item is "string or integer"; the Dart generator cannot

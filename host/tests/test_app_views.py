@@ -63,29 +63,39 @@ def test_mycontacts_and_mycalendar_get_their_own_private_tokens(tmp_path):
         assert stat.S_IMODE((tmp_path / "app-tokens" / app).stat().st_mode) == 0o600
 
 
-def test_the_new_apps_read_like_myassistant_and_never_stop_the_host(home):
+def test_each_app_reads_what_it_shows_and_never_stops_the_host(home):
     """Their tokens are made by the host as mydatad builds it. (That host's /shutdown really stops the test
-    process, so only refusals are tried here; tests/test_app_support.py shows the myData app may stop it.)"""
+    process, so only refusals are tried here; tests/test_app_support.py shows the myData app may stop it.)
+    tests/test_scopes.py has every route for every app."""
     h = Host(home, FakeDav())
+    reads = {"mycontacts": ("/status", "/appearance", "/sources", "/contacts"),
+             "mycalendar": ("/status", "/appearance", "/sources", "/calendars",
+                            "/events?start=2026-03-01&end=2026-03-31"),
+             "myassistant": ("/status", "/appearance", "/contacts", "/calendars",
+                             "/events?start=2026-03-01&end=2026-03-31", "/approvals")}
     with TestClient(h.app, base_url="http://127.0.0.1") as c:
-        for app in ("mycontacts", "mycalendar", "myassistant"):
+        for app, paths in reads.items():
             auth = bearer(home, app)
-            for path in ("/status", "/contacts", "/calendars", "/events?start=2026-03-01&end=2026-03-31", "/sources",
-                         "/appearance"):
+            for path in paths:
                 assert c.get(path, headers=auth).status_code == 200, (app, path)
             r = c.post("/shutdown", headers=auth)
             assert r.status_code == 403, app
-            if app == "myassistant":
-                assert r.json()["detail"] == "only the myData app can stop the host"
+            assert r.json()["detail"] == "only the myData app can stop the host"
+        # Each reads only its own kind of data.
+        assert c.get("/calendars", headers=bearer(home, "mycontacts")).status_code == 403
+        assert c.get("/contacts", headers=bearer(home, "mycalendar")).status_code == 403
+        assert c.get("/sources", headers=bearer(home, "myassistant")).status_code == 403
 
 
 def test_mycontacts_and_mycalendar_tokens_only_read(home):
-    """myContacts and myCalendar never write: every request but GET is refused before it reaches a
-    route, so their tokens cannot approve a held send, mint an agent token, link or remove an account,
+    """myContacts and myCalendar never write: their scopes reach no route that changes anything, so their
+    tokens cannot approve (or even list) held calls, mint an agent token, link or remove an account,
     change This Mac (or ask macOS for access), change settings, talk to the assistant or use /mcp.
-    myAssistant's token still can (the routes answer something other than 403)."""
+    myAssistant's token can approve and the myData app's can change sources (the routes answer something
+    other than 403)."""
     h = Host(home, FakeDav())
     writes = [
+        ("get", "/approvals", None),
         ("post", "/approvals/nope", {"decision": "approve"}),
         ("post", "/agents", {"name": "Example agent"}),
         ("delete", "/agents/nope", None),
@@ -109,11 +119,12 @@ def test_mycontacts_and_mycalendar_tokens_only_read(home):
                 kwargs = {"headers": auth} if body is None else {"headers": auth, "json": body}
                 r = getattr(c, method)(path, **kwargs)
                 assert r.status_code == 403, (app, method, path, r.status_code)
-                assert r.json()["detail"] == f"the {app} app can only read", (app, path)
+                assert r.json()["detail"].startswith(f"the {app} app cannot use") or path == "/shutdown", (app, path)
             assert c.get("/status", headers=auth).status_code == 200
-        auth = bearer(home, "myassistant")
-        assert c.post("/approvals/nope", headers=auth, json={"decision": "approve"}).status_code == 404
-        assert c.put("/sources/mac", headers=auth, json={"enabled": False}).status_code != 403
+        assert c.post("/approvals/nope", headers=bearer(home, "myassistant"),
+                      json={"decision": "approve"}).status_code == 404
+        assert c.put("/sources/mac", headers=bearer(home, "myassistant"), json={"enabled": False}).status_code == 403
+        assert c.put("/sources/mac", headers=h.auth, json={"enabled": False}).status_code != 403
 
 
 def test_the_contact_list_is_in_order_ignoring_case_and_accents(home):

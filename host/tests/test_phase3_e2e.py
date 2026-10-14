@@ -104,7 +104,7 @@ def test_link_sync_read_ask_and_remove(host):
         assert {e["calendar_id"] for e in only_work} == {work} and len(only_work) == 4
 
         # ---- the assistant, in real mode: an ambiguous name makes the code ask
-        events = parse_sse(c.post("/assistant/messages", headers=host.auth,
+        events = parse_sse(c.post("/assistant/messages", headers=host.assistant_auth,
                                   json={"text": "Find Sam", "conversation_id": "c1"}).text)
         kinds = [k for k, _ in events]
         assert "clarify" in kinds
@@ -113,7 +113,7 @@ def test_link_sync_read_ask_and_remove(host):
         assert {o["email"] for o in clarify["options"]} == {"sam.example@example.com", None}
 
         # ---- ... and a date phrase lists the expanded occurrences
-        events = parse_sse(c.post("/assistant/messages", headers=host.auth,
+        events = parse_sse(c.post("/assistant/messages", headers=host.assistant_auth,
                                   json={"text": "What's on March 24?", "conversation_id": "c1"}).text)
         result = dict(events)["result"]
         assert result["kind"] == "events" and result["header"] == "1 event on Tuesday 24 March"

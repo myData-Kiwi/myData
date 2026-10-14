@@ -180,3 +180,6 @@ class Host:
         self.assistant = self.modes.assistant
         self.token = (tmp / "app-tokens" / "mydata").read_text().strip()
         self.auth = {"Authorization": f"Bearer {self.token}"}
+        # myAssistant's token: the one with the assistant scope (the myData app's has none).
+        assistant_token = (tmp / "app-tokens" / "myassistant").read_text().strip()
+        self.assistant_auth = {"Authorization": f"Bearer {assistant_token}"}
