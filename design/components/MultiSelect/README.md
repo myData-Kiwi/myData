@@ -1,0 +1,43 @@
+Selecting several records in a list at once, to act on them together: delete them, add them to a group, move them. It extends the list's single selection (ContactList); it is not a component of its own on screen.
+
+- **Use it** in a list of records the user acts on: myContacts' contact list and Recently deleted, later myMail's message list.
+- **Do not use it** to choose which items a step will include (the import review: Checkboxes in a list, which are always visible and default to all), to pick values in a form (TokenField), or in lists that only show (the calendar list, EventRows, a Select's list).
+
+- **Selecting, from 600px** (the list beside a detail pane):
+  - A click selects that one row and opens it, as ContactList. It becomes the anchor.
+  - ⌘-click (Ctrl-click on Windows and Linux) adds the row to the selection, or removes it. It does not move the anchor's range: it becomes the new anchor.
+  - ⇧-click selects every row from the anchor to the clicked one, in list order across letter groups, keeping the rows already added with ⌘.
+  - ⌘A selects every row in the list while the list has focus. In the search field, ⌘A selects the text (platforms.md, "Text comes first").
+  - Only rows on screen can be selected. When a search hides a selected row, that row leaves the selection and the count drops, so an action never reaches a record the user cannot see. Clearing the search does not bring it back.
+- **Selecting, under 600px** (phones): there is no ⌘ or ⇧. A plain "Select" button at the end of the large title enters select mode (below). A long-press on a row opens its Menu, as before; it does not start a selection.
+- **How selection looks.** The ContactList mark, extended to several rows: the `accent-soft` fill and a 2px `ink` ring. Adjacent selected rows share one ring around the run, with no ring and no divider between them, so a block reads as one selection; a row on its own has its own ring. The ring, not the fill, is the signal, as in ContactList and MonthGrid. The focused row (the last one clicked or moved to) also has the 2px `focus` ring inside the selection ring, as in ContactList, so both show.
+- **The count and the actions, from 600px:** with two or more rows selected, the detail pane shows the selection instead of a record:
+  - the count as its title, in the `display-lg` style that a contact's name uses: "3 contacts selected";
+  - under it, in `body` and `ink-muted`, up to three names and the rest as a count, as Dialog writes them: "Ava Fictional, Ben Sample, Cleo Example and 9 more";
+  - then the actions, as Buttons, `space-2` apart: Tonal "Add to group…" and Plain danger "Delete 3 contacts", which opens the Dialog "Delete 3 contacts?" (Button, "Plain danger"). Pressing Escape in the list, or clicking one row, returns to one record.
+  - The same actions are in the rows' context Menu with the count ("Delete 3 contacts…", Menu) and in the menu bar ("Delete 3 Contacts…", ⌘⌫ on macOS, Delete on Windows and Linux; platforms.md).
+- **Records that cannot be changed** (from a followed source): they can be selected, and the actions count only the records they can act on: "Delete 2 contacts". The selection pane says what is left out and why, in `caption` and full `ink-muted`: "1 of them is from this Mac and is changed in Contacts." When none can be changed, the actions are disabled with that sentence as their reason (platforms.md, "Disabled controls").
+- **After an action** the Toast says what happened with the count ("3 contacts deleted", with Undo). The selection then moves to the row now in the first deleted row's place, so the detail pane shows one record again.
+- **Select mode, under 600px:**
+  - The large title's "Select" button becomes "Done", and "Select all" appears at the title's start. The title becomes the count: "3 selected", or "Select contacts" while none is.
+  - Each row shows a Checkbox box at its start, before the avatar, centred in an `icon-tile` square, as Checkbox's list rows. A tap on a row toggles it; it does not open the contact.
+  - The floating tab bar is replaced by an action bar in the same place and style (FloatingBar), holding the actions as plain buttons with their words: "Add to group…" and "Delete". With none selected they are disabled; the title "Select contacts" says why.
+  - "Done", the system back gesture and the back button leave select mode and clear the selection; the tab bar comes back.
+- **Keyboard (desktop):**
+  - The list stays one tab stop. Up and Down move the selection to one row, as ContactList. ⇧-Up and ⇧-Down extend or shrink the range from the anchor; ⇧-Home and ⇧-End extend it to the first or last row.
+  - To add a row that is not next to the others: Option-Up and Option-Down move the focus ring without changing the selection, and Space adds or removes the focused row. macOS lists have no standard for this (most need the pointer), and platforms.md asks for every action without a pointer.
+  - Escape clears the selection back to the focused row, before it clears the search (platforms.md, "Which handler gets a key first").
+  - The context menu key and Shift-F10 open the Menu for the selection.
+- **Screen readers:** the list is a multi-selectable list (`aria-multiselectable` in the preview; Flutter's semantics mark each row selected or not). Each row reads its name, its caption and "selected" when it is. The count is announced politely after each change ("3 contacts selected"), and the selection pane's title is that count. In select mode on a phone, each row reads as a checkbox ("Ava Fictional, checkbox, checked").
+- **Motion:** the fill and the ring change over `fast`; a run's ring grows and shrinks with it, with no slide. The detail pane swaps between a record and the selection with a `fast` fade. On a phone, entering select mode slides the boxes in from the start edge over `base` with the `standard` curve while the rows' text moves over, and the tab bar and the action bar cross-fade over `base`. With reduced motion, everything is a `fast` fade and nothing slides.
+- **Light and dark, Kiwi and Graphite:** only tokens. In light mode `accent-soft` is close to the list's hover fill in every theme, and in Graphite it is grey, so the `ink` ring carries the selection everywhere. In dark mode the ring is near white.
+- **Sizes:** rows are the list's own (`row-height`); nothing changes size when selected. The action bar's buttons are `control-height`.
+- **Copy:** the count first, then "selected", with the kind in the plural: "3 contacts selected", "12 messages selected"; on a phone, where the title is short, "3 selected". Action buttons give the count when they act on it ("Delete 3 contacts"); Menu items add the ellipsis when a Dialog follows (Menu). "Select", "Done", "Select all", "Deselect all" (when every row is selected). Reasons are full sentences.
+- **Used by:**
+  - myContacts contact list (phase 3): delete several, add several to a group.
+  - myContacts Recently deleted (phase 3): restore several, delete several permanently ("Delete 3 contacts permanently?", Dialog).
+  - myMail message list (phases 5 and 7): move to Trash, mark as read. Its selection pane is specified with the three-pane layout.
+- **Token needed:** none.
+- **Why these rules.** The bulk actions sit in the detail pane, as in Contacts and Mail on the Mac: nothing new sits over the list, and the pane would otherwise show one record of many. One ring around each run of adjacent rows reads as a block; a ring per row would draw a 4px double line between neighbours.
+- **Decided 2026-10-14:** bulk actions in the detail pane; Option-Up and Option-Down, then Space, for rows that are not adjacent; one ring per run of adjacent rows.
+- You provide the rows in order, which are selected, the anchor and the focused row, the actions with what each can act on, and the reason for any record left out.

@@ -1,0 +1,137 @@
+<!-- @dsCard group="Overlays" height=1400 -->
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700&family=Figtree:wght@400;600&family=JetBrains+Mono&display=swap">
+<style>
+body{margin:0;padding:24px;background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:22px}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.btn{height:44px;padding:0 22px;border-radius:var(--radius-control);font:600 15px/1 var(--font-body);border:0;cursor:pointer}
+.primary{background:var(--accent);color:var(--on-accent)}
+.tonal{background:var(--accent-soft);color:var(--accent)}
+.plain{background:transparent;color:var(--accent)}
+.danger{background:var(--danger);color:var(--on-danger)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.card{background:var(--surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-1)}
+.tile{width:36px;height:36px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;flex:none}
+.tile svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.t-accent{background:var(--accent-soft);color:var(--accent)}.t-ok{background:var(--success-soft);color:var(--success)}
+.t-warn{background:var(--warning-soft);color:var(--warning)}.t-info{background:var(--info-soft);color:var(--info)}
+.chipst{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:var(--radius-pill);font:600 13px/1 var(--font-body);white-space:nowrap}
+.cap{font-size:13px;line-height:18px;color:var(--ink-muted)}
+.btn:active{opacity:.85;transform:scale(.97)}
+.fr{outline:2px solid var(--focus);outline-offset:2px}
+.wrap{display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start}
+.wrap>div>.cap{margin:0 0 8px 8px}
+/* Desktop: the list, then the inspector at the end edge. */
+.win{display:flex;width:860px;max-width:100%;height:620px;border-radius:var(--radius-lg);overflow:hidden;background:var(--bg);box-shadow:var(--shadow-1)}
+.list{flex:1;min-width:0;padding:20px}
+.lbl{font:600 13px/18px var(--font-body);color:var(--ink-muted);margin:0 0 8px 8px}
+.r{display:flex;gap:12px;align-items:center;min-height:56px;box-sizing:border-box;padding:8px 16px;border-top:1px solid var(--line)}
+.g{overflow:hidden}.g>:first-child{border-top:0}
+.r .txt{flex:1;min-width:0}.t{font-weight:600;display:block}
+.r.sel{background:var(--accent-soft);box-shadow:inset 0 0 0 2px var(--ink)}
+.av{width:36px;height:36px;border-radius:var(--radius-pill);background:var(--kiwi-wash);color:var(--ink);display:flex;align-items:center;justify-content:center;flex:none;font:600 15px/22px var(--font-body)}
+.insp{width:var(--inspector-width);flex:none;background:var(--surface);display:flex;flex-direction:column;min-height:0}
+.ih{padding:20px 20px 16px;border-bottom:1px solid transparent}
+.ih h2{margin:0;font:700 22px/28px var(--font-display);letter-spacing:-0.01em}
+.ih.sc{border-bottom-color:var(--line)}
+.ibd{flex:1;min-height:0;overflow:auto;padding:0 20px 20px}
+.if{display:flex;justify-content:flex-end;gap:8px;padding:16px 20px;border-top:1px solid transparent}
+.if.more{border-top-color:var(--line)}
+.f{margin-top:16px}.f:first-child{margin-top:0}
+.f label,.fl{font:600 13px/18px var(--font-body);color:var(--ink);display:block;margin-bottom:var(--space-2)}
+input,textarea{height:44px;box-sizing:border-box;width:100%;padding:0 var(--space-4);border:1px solid var(--line-strong);border-radius:var(--radius-md);background:var(--surface);color:var(--ink);font:400 15px var(--font-body)}
+textarea{height:auto;padding:var(--space-3) var(--space-4);resize:none;line-height:22px}
+.help{font-size:13px;line-height:18px;color:var(--ink-muted);margin-top:var(--space-2)}
+.err input{border:2px solid var(--danger)}.err .help{color:var(--danger)}
+.gh{font:600 13px/18px var(--font-body);color:var(--ink-muted);margin:24px 0 8px}
+.vr{display:flex;gap:8px;align-items:center}.vr+.vr{margin-top:8px}
+.vr input{flex:1;min-width:0}
+.sel-f{height:44px;flex:none;width:112px;display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);padding:0 var(--space-3) 0 var(--space-4);box-sizing:border-box;border:1px solid var(--line-strong);border-radius:var(--radius-md);background:var(--surface);color:var(--ink);font:400 15px var(--font-body);cursor:pointer}
+.sel-f svg,.ic svg,.add svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.sel-f svg{color:var(--ink-muted)}
+.ic{width:44px;height:44px;border:0;border-radius:var(--radius-pill);background:transparent;color:var(--ink-muted);display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none}
+.ic:hover{background:var(--surface-hover)}
+.add{display:inline-flex;align-items:center;gap:4px;margin:4px 0 0 -10px;padding:0 12px}
+.failed{margin:0 0 16px;color:var(--danger)}
+/* Phone: a sheet over the screen, Cancel and Save in its header. */
+.phone{position:relative;width:375px;height:620px;border-radius:var(--radius-lg);overflow:hidden;background:var(--bg)}
+.phone .fake{padding:64px 16px 0}.phone .fake .card{height:56px;margin-bottom:12px}
+.scrim{position:absolute;inset:0;background:var(--scrim)}
+.sheet{position:absolute;left:0;right:0;bottom:0;top:44px;background:var(--surface);border-radius:var(--radius-xl) var(--radius-xl) 0 0;display:flex;flex-direction:column}
+.sh{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:8px 12px 8px 4px}
+.sh h2{margin:0;font:600 17px/24px var(--font-body)}
+.sh .btn.plain{justify-self:start;padding:0 16px}.sh .btn.primary{justify-self:end;padding:0 18px}
+.sheet .ibd{padding:8px 16px 16px}
+.grab{width:var(--icon-tile);height:var(--space-1);border-radius:var(--radius-pill);background:var(--line-strong);margin:var(--space-2) auto 0;flex:none}
+</style></head><body>
+<div class="wrap">
+
+<div>
+<p class="cap">From 600px: edit contact beside the list. Scroll the form to see the lines appear</p>
+<div class="win">
+<div class="list" aria-label="Contacts">
+<p class="lbl">A</p>
+<div class="card g">
+<div class="r"><span class="av" aria-hidden="true">AE</span><span class="txt"><span class="t">Aaron Example</span><span class="cap">555-0101</span></span></div>
+<div class="r sel" aria-current="true"><span class="av" aria-hidden="true">AF</span><span class="txt"><span class="t">Ava Fictional</span><span class="cap">Example Labs</span></span></div>
+</div>
+<p class="lbl" style="margin-top:16px">B</p>
+<div class="card g">
+<div class="r"><span class="av" aria-hidden="true">BS</span><span class="txt"><span class="t">Ben Sample</span><span class="cap">ben@example.org</span></span></div>
+</div>
+</div>
+<section class="insp" aria-labelledby="i1t">
+<div class="ih" id="i1h"><h2 id="i1t">Edit contact</h2></div>
+<div class="ibd" id="i1b">
+<div class="f"><label for="i1fn">First name</label><input id="i1fn" class="fr" type="text" value="Ava"></div>
+<div class="f"><label for="i1ln">Last name</label><input id="i1ln" type="text" value="Fictional"></div>
+<div class="f"><label for="i1org">Company</label><input id="i1org" type="text" value="Example Labs"></div>
+<p class="gh">Phone</p>
+<div class="vr"><button class="sel-f" type="button" aria-haspopup="menu" aria-label="Label, Mobile">Mobile<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"></path></svg></button><input type="tel" value="555-0142" aria-label="Mobile number"><button class="ic" type="button" aria-label="Remove mobile number"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M8 12h8"></path></svg></button></div>
+<div class="vr"><button class="sel-f" type="button" aria-haspopup="menu" aria-label="Label, Work">Work<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"></path></svg></button><input type="tel" value="555-0177" aria-label="Work number"><button class="ic" type="button" aria-label="Remove work number"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M8 12h8"></path></svg></button></div>
+<button class="btn plain add" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Add phone</button>
+<p class="gh">Email</p>
+<div class="vr"><button class="sel-f" type="button" aria-haspopup="menu" aria-label="Label, Work">Work<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"></path></svg></button><input type="email" value="ava.fictional@example.org" aria-label="Work email"><button class="ic" type="button" aria-label="Remove work email"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M8 12h8"></path></svg></button></div>
+<button class="btn plain add" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Add email</button>
+<p class="gh">Notes</p>
+<div class="f"><textarea rows="3" aria-label="Notes">Met at the example.org meetup.</textarea></div>
+</div>
+<div class="if more" id="i1f"><button class="btn plain" type="button">Cancel</button><button class="btn primary" type="button">Save</button></div>
+</section>
+</div>
+</div>
+
+<div>
+<p class="cap">Under 600px: new contact, after Save with a wrong email and no answer from the host</p>
+<div class="phone">
+<div class="fake" aria-hidden="true"><div class="card"></div><div class="card"></div><div class="card"></div></div>
+<div class="scrim"></div>
+<section class="sheet" role="dialog" aria-modal="true" aria-labelledby="i2t">
+<div class="grab" aria-hidden="true"></div><div class="sh"><button class="btn plain" type="button">Cancel</button><h2 id="i2t">New contact</h2><button class="btn primary" type="button">Save</button></div>
+<div class="ibd">
+<p class="failed" role="status">The contact could not be saved. The host did not answer. Your changes are still here; check that the host is running, then press Save again.</p>
+<div class="f"><label for="i2fn">First name</label><input id="i2fn" type="text" value="Cleo"></div>
+<div class="f"><label for="i2ln">Last name</label><input id="i2ln" type="text" value="Example"></div>
+<p class="gh">Email</p>
+<div class="vr"><button class="sel-f" type="button" aria-haspopup="menu" aria-label="Label, Home">Home<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"></path></svg></button><div class="err" style="flex:1;min-width:0"><input class="fr" type="email" value="cleo@example" aria-label="Home email" aria-invalid="true" aria-describedby="i2eh"></div></div>
+<div class="err"><div class="help" id="i2eh">That address is incomplete. It looks like cleo@example.org.</div></div>
+</div>
+</section>
+</div>
+</div>
+
+</div>
+<script>
+// The header's line shows only while the form is scrolled under it; the footer's only while more is below.
+(function () {
+  var b = document.getElementById('i1b'), h = document.getElementById('i1h'), f = document.getElementById('i1f');
+  function lines() {
+    h.classList.toggle('sc', b.scrollTop > 0);
+    f.classList.toggle('more', b.scrollTop + b.clientHeight < b.scrollHeight - 1);
+  }
+  b.addEventListener('scroll', lines); lines();
+})();
+</script>
+</body></html>

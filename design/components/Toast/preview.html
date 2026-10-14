@@ -1,0 +1,122 @@
+<!-- @dsCard group="Feedback" height=1060 -->
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700&family=Figtree:wght@400;600&family=JetBrains+Mono&display=swap">
+<style>
+body{margin:0;padding:24px;background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:22px}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.btn{height:44px;padding:0 22px;border-radius:var(--radius-control);font:600 15px/1 var(--font-body);border:0;cursor:pointer}
+.primary{background:var(--accent);color:var(--on-accent)}
+.tonal{background:var(--accent-soft);color:var(--accent)}
+.plain{background:transparent;color:var(--accent)}
+.danger{background:var(--danger);color:var(--on-danger)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.card{background:var(--surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-1)}
+.tile{width:36px;height:36px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;flex:none}
+.tile svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.t-accent{background:var(--accent-soft);color:var(--accent)}.t-ok{background:var(--success-soft);color:var(--success)}
+.t-warn{background:var(--warning-soft);color:var(--warning)}.t-info{background:var(--info-soft);color:var(--info)}
+.chipst{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:var(--radius-pill);font:600 13px/1 var(--font-body);white-space:nowrap}
+.cap{font-size:13px;line-height:18px;color:var(--ink-muted)}
+.btn:active{opacity:.85;transform:scale(.97)}
+.fr{outline:2px solid var(--focus);outline-offset:2px}
+.wrap{display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start}
+.wrap>div>.cap{margin:0 0 8px 8px}
+.toast{display:inline-flex;align-items:center;gap:16px;box-sizing:border-box;min-height:60px;max-width:880px;padding:8px 8px 8px 20px;background:var(--surface-raised);border-radius:var(--radius-xl);box-shadow:var(--shadow-2)}
+.toast.na{padding:8px 20px}
+.toast p{margin:0}
+.toast .btn{flex:none}
+.states{display:flex;flex-direction:column;align-items:flex-start;gap:20px;padding:20px;width:420px;max-width:100%;box-sizing:border-box;border-radius:var(--radius-lg);background:var(--bg)}
+.states .cap{margin:0 0 -12px 4px}
+/* A window with the toast at the bottom of its content area. */
+.win{position:relative;width:560px;max-width:100%;height:360px;border-radius:var(--radius-lg);overflow:hidden;background:var(--bg);box-shadow:var(--shadow-1)}
+.win .content{padding:20px}
+.g{overflow:hidden}
+.r{display:flex;gap:12px;align-items:center;min-height:56px;box-sizing:border-box;padding:8px 16px;border-top:1px solid var(--line)}
+.g>:first-child{border-top:0}
+.r .txt{flex:1;min-width:0}.t{font-weight:600;display:block}
+.av{width:36px;height:36px;border-radius:var(--radius-pill);background:var(--kiwi-wash);color:var(--ink);display:flex;align-items:center;justify-content:center;flex:none;font:600 15px/22px var(--font-body)}
+.dock{position:absolute;left:0;right:0;bottom:24px;display:flex;justify-content:center;pointer-events:none}
+.dock .toast{pointer-events:auto}
+.toast[hidden]{display:none}
+/* Phone: above the floating tab bar. */
+.phone{position:relative;width:375px;height:360px;border-radius:var(--radius-lg);overflow:hidden;background:var(--bg)}
+.phone .content{padding:20px 16px}
+.phone .dock{bottom:92px;padding:0 16px}
+.phone .dock .toast{width:100%}
+.phone .dock .toast p{flex:1}
+.bar{position:absolute;left:16px;right:16px;bottom:16px;height:60px;display:flex;align-items:center;justify-content:space-around;background:var(--glass-fill);backdrop-filter:blur(var(--blur-glass));-webkit-backdrop-filter:blur(var(--blur-glass));border:1px solid var(--glass-stroke);border-radius:var(--radius-xl);box-shadow:var(--shadow-glass)}
+.bar span{height:44px;display:flex;align-items:center;padding:0 16px;border-radius:var(--radius-pill);font:600 13px/1 var(--font-body);color:var(--ink-muted)}
+.bar span.cur{background:var(--accent-soft);color:var(--accent)}
+.del{margin-left:auto}
+</style></head><body>
+<div class="wrap">
+
+<div>
+<p class="cap">Try it: delete a contact, then Undo. The time stops while the pointer or focus is on the toast</p>
+<div class="win">
+<div class="content">
+<div class="card g" id="list">
+<div class="r"><span class="av" aria-hidden="true">AE</span><span class="txt"><span class="t">Aaron Example</span><span class="cap">555-0101</span></span></div>
+<div class="r" id="ava"><span class="av" aria-hidden="true">AF</span><span class="txt"><span class="t">Ava Fictional</span><span class="cap">Example Labs</span></span><button class="btn plain del" type="button" id="del" style="color:var(--danger)">Delete</button></div>
+<div class="r"><span class="av" aria-hidden="true">BS</span><span class="txt"><span class="t">Ben Sample</span><span class="cap">ben@example.org</span></span></div>
+</div>
+</div>
+<div class="dock"><div class="toast" id="live" role="status" aria-live="polite" hidden><p id="msg"></p><button class="btn tonal" type="button" id="undo">Undo</button></div></div>
+</div>
+</div>
+
+<div>
+<p class="cap">States</p>
+<div class="states">
+<p class="cap">With Undo</p>
+<div class="toast"><p>Contact deleted</p><button class="btn tonal" type="button">Undo</button></div>
+<p class="cap">Undo has keyboard focus (the time stops)</p>
+<div class="toast"><p>3 contacts deleted</p><button class="btn tonal fr" type="button">Undo</button></div>
+<p class="cap">After Undo</p>
+<div class="toast na"><p>Contact restored</p></div>
+<p class="cap">No action</p>
+<div class="toast na"><p>Following you@example.com</p></div>
+<p class="cap">Could not undo</p>
+<div class="toast na"><p>Not undone. Ava Fictional was changed after that.</p></div>
+</div>
+</div>
+
+<div>
+<p class="cap">Under 600px: above the floating tab bar</p>
+<div class="phone">
+<div class="content"><div class="card g">
+<div class="r"><span class="txt"><span class="t">Book club</span><span class="cap">18:00 to 19:30, Family</span></span></div>
+<div class="r"><span class="txt"><span class="t">Dentist</span><span class="cap">09:15 to 10:00, Personal</span></span></div>
+</div></div>
+<div class="dock"><div class="toast"><p>Event deleted</p><button class="btn tonal" type="button">Undo</button></div></div>
+<nav class="bar" aria-label="Sections"><span class="cur">Month</span><span>List</span><span>Calendars</span></nav>
+</div>
+</div>
+
+</div>
+<script>
+// Toast demo. 8000 ms is toast-duration (motion.md).
+(function () {
+  var DURATION = 8000;
+  var live = document.getElementById('live'), msg = document.getElementById('msg'), undo = document.getElementById('undo');
+  var ava = document.getElementById('ava'), del = document.getElementById('del');
+  var timer = null, hovered = false, focused = false;
+  function hide() { live.hidden = true; clearTimeout(timer); timer = null; }
+  function start() { clearTimeout(timer); if (!hovered && !focused && !document.hidden) timer = setTimeout(hide, DURATION); }
+  function show(text, withUndo) { msg.textContent = text; undo.hidden = !withUndo; live.classList.toggle('na', !withUndo); live.hidden = false; start(); }
+  del.addEventListener('click', function () { ava.hidden = true; show('Contact deleted', true); });
+  undo.addEventListener('click', function () { ava.hidden = false; del.focus(); show('Contact restored', false); });
+  live.addEventListener('mouseenter', function () { hovered = true; clearTimeout(timer); });
+  live.addEventListener('mouseleave', function () { hovered = false; start(); });
+  undo.addEventListener('focus', function () { focused = true; clearTimeout(timer); });
+  undo.addEventListener('blur', function () { focused = false; start(); });
+  undo.addEventListener('keydown', function (e) { if (e.key === 'Escape') { hide(); del.focus(); } });
+  document.addEventListener('keydown', function (e) {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !live.hidden && !undo.hidden) { e.preventDefault(); undo.click(); }
+  });
+  document.addEventListener('visibilitychange', function () { if (!live.hidden) { if (document.hidden) clearTimeout(timer); else start(); } });
+})();
+</script>
+</body></html>

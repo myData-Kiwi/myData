@@ -1,0 +1,135 @@
+<!-- @dsCard group="Actions" height=880 -->
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700&family=Figtree:wght@400;600&family=JetBrains+Mono&display=swap">
+<style>
+body{margin:0;padding:24px;background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:22px}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.btn{height:44px;padding:0 22px;border-radius:var(--radius-control);font:600 15px/1 var(--font-body);border:0;cursor:pointer}
+.primary{background:var(--accent);color:var(--on-accent)}
+.tonal{background:var(--accent-soft);color:var(--accent)}
+.plain{background:transparent;color:var(--accent)}
+.danger{background:var(--danger);color:var(--on-danger)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.card{background:var(--surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-1)}
+.tile{width:36px;height:36px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;flex:none}
+.tile svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.t-accent{background:var(--accent-soft);color:var(--accent)}.t-ok{background:var(--success-soft);color:var(--success)}
+.t-warn{background:var(--warning-soft);color:var(--warning)}.t-info{background:var(--info-soft);color:var(--info)}
+.chipst{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:var(--radius-pill);font:600 13px/1 var(--font-body);white-space:nowrap}
+.cap{font-size:13px;line-height:18px;color:var(--ink-muted)}
+.ib{width:44px;height:44px;border:0;padding:0;border-radius:var(--radius-pill);background:transparent;color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none;position:relative;transition:background-color .12s,transform .12s,opacity .12s}
+.ib svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.ib.q{color:var(--ink-muted)}
+.ib.d{color:var(--danger)}
+.ib:hover,.ib.hv{background:var(--surface-hover)}
+.ib.d:hover,.ib.d.hv{background:var(--danger-soft)}
+.ib:active,.ib.pr{opacity:.85;transform:scale(.97)}
+.ib.fc{outline:2px solid var(--focus);outline-offset:2px}
+.ib[disabled]{opacity:.45;cursor:not-allowed;background:transparent}
+.ib[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent)}
+.ib[aria-pressed="true"] .fl{fill:currentColor}
+.lbl{font:600 13px/18px var(--font-body);color:var(--ink-muted);margin:0 0 8px 8px}
+.sec{margin-bottom:32px}
+.st{display:grid;grid-template-columns:72px repeat(7,64px);align-items:center;justify-items:center;row-gap:8px;padding:16px 20px;max-width:620px;box-sizing:border-box;overflow-x:auto}
+.st .h{font-size:13px;line-height:18px;color:var(--ink-muted);justify-self:center;text-align:center}
+.st .rh{font-size:13px;line-height:18px;color:var(--ink-muted);justify-self:start}
+.tip{position:absolute;top:calc(100% + 4px);left:50%;transform:translateX(-50%);white-space:nowrap;background:var(--surface-raised);color:var(--ink);box-shadow:var(--shadow-2);border-radius:var(--radius-sm);padding:4px 8px;font-size:13px;line-height:18px;pointer-events:none;z-index:2;text-align:left}
+.tip kbd{font:inherit;color:var(--ink-muted);margin-left:8px}
+.tip .why{display:block;color:var(--ink-muted)}
+.g{max-width:560px;overflow:hidden}
+.r{display:flex;gap:12px;align-items:center;min-height:56px;box-sizing:border-box;padding:8px 16px;border-top:1px solid var(--line)}
+.g>:first-child{border-top:0}
+.r .txt{flex:1;min-width:0}
+.k{display:block;font-size:13px;line-height:18px;color:var(--ink-muted)}
+.mh{display:flex;align-items:center;gap:8px;max-width:560px}
+.mh h3{flex:1;margin:0;font:700 22px/28px var(--font-display);letter-spacing:-0.01em}
+.tb{display:flex;align-items:center;gap:8px;max-width:560px;margin-bottom:16px}
+.tb h2{flex:1;margin:0;font:700 30px/36px var(--font-display);letter-spacing:-0.02em}
+.sel{height:44px;box-sizing:border-box;padding:0 12px 0 16px;border:1px solid var(--line-strong);border-radius:var(--radius-md);background:var(--surface);color:var(--ink);display:flex;align-items:center;gap:8px;font:400 15px var(--font-body);flex:none}
+.sel svg{width:20px;height:20px;fill:none;stroke:var(--ink-muted);stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.in{height:44px;box-sizing:border-box;flex:1;min-width:0;padding:0 14px;border:1px solid var(--line-strong);border-radius:var(--radius-md);background:var(--surface);color:var(--ink);font:400 15px var(--font-body)}
+.bar{display:flex;gap:8px;align-items:center;padding:8px 12px;max-width:560px;box-sizing:border-box}
+.bar .sp{flex:1}
+.cols{display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start}.cols>div{flex:1 1 340px;max-width:560px}
+/* Focus on something already red is ink, not the red focus (design/README.md, "Focus and danger"). */
+.ib.d:focus-visible,.ib.d.fc{outline-color:var(--ink)}
+</style></head><body>
+<section class="sec" aria-label="Tones and states">
+<p class="lbl">Tones and states (static)</p>
+<div class="card st" aria-hidden="true">
+<span></span><span class="h">Rest</span><span class="h">Hover</span><span class="h">Pressed</span><span class="h">Focused</span><span class="h">Disabled</span><span class="h">Toggled</span><span class="h">Done</span>
+<span class="rh">Default</span>
+<span class="ib"><svg viewBox="0 0 24 24"><path d="M5 21V4"></path><path class="fl" d="M5 4h12l-2.5 4L17 12H5"></path></svg></span>
+<span class="ib hv"><svg viewBox="0 0 24 24"><path d="M5 21V4"></path><path class="fl" d="M5 4h12l-2.5 4L17 12H5"></path></svg></span>
+<span class="ib hv pr"><svg viewBox="0 0 24 24"><path d="M5 21V4"></path><path class="fl" d="M5 4h12l-2.5 4L17 12H5"></path></svg></span>
+<span class="ib fc"><svg viewBox="0 0 24 24"><path d="M5 21V4"></path><path class="fl" d="M5 4h12l-2.5 4L17 12H5"></path></svg></span>
+<span class="ib" style="opacity:.45"><svg viewBox="0 0 24 24"><path d="M5 21V4"></path><path class="fl" d="M5 4h12l-2.5 4L17 12H5"></path></svg></span>
+<span class="ib" aria-pressed="true"><svg viewBox="0 0 24 24"><path d="M5 21V4"></path><path class="fl" d="M5 4h12l-2.5 4L17 12H5"></path></svg></span>
+<span class="h">–</span>
+<span class="rh">Quiet</span>
+<span class="ib q"><svg viewBox="0 0 24 24"><rect x="8.5" y="8.5" width="11.5" height="11.5" rx="2.5"></rect><path d="M15.5 8.5V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7.5a2 2 0 0 0 2 2h2.5"></path></svg></span>
+<span class="ib q hv"><svg viewBox="0 0 24 24"><rect x="8.5" y="8.5" width="11.5" height="11.5" rx="2.5"></rect><path d="M15.5 8.5V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7.5a2 2 0 0 0 2 2h2.5"></path></svg></span>
+<span class="ib q hv pr"><svg viewBox="0 0 24 24"><rect x="8.5" y="8.5" width="11.5" height="11.5" rx="2.5"></rect><path d="M15.5 8.5V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7.5a2 2 0 0 0 2 2h2.5"></path></svg></span>
+<span class="ib q fc"><svg viewBox="0 0 24 24"><rect x="8.5" y="8.5" width="11.5" height="11.5" rx="2.5"></rect><path d="M15.5 8.5V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7.5a2 2 0 0 0 2 2h2.5"></path></svg></span>
+<span class="ib q" style="opacity:.45"><svg viewBox="0 0 24 24"><rect x="8.5" y="8.5" width="11.5" height="11.5" rx="2.5"></rect><path d="M15.5 8.5V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7.5a2 2 0 0 0 2 2h2.5"></path></svg></span>
+<span class="h">–</span>
+<span class="ib q"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span>
+<span class="rh">Danger</span>
+<span class="ib d"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M8 12h8"></path></svg></span>
+<span class="ib d hv"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M8 12h8"></path></svg></span>
+<span class="ib d hv pr"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M8 12h8"></path></svg></span>
+<span class="ib d fc"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M8 12h8"></path></svg></span>
+<span class="ib d" style="opacity:.45"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M8 12h8"></path></svg></span>
+<span class="h">–</span><span class="h">–</span>
+</div>
+</section>
+
+<section class="sec" aria-label="Tooltips">
+<p class="lbl">Tooltips (shown on hover after the platform's delay, at once on keyboard focus)</p>
+<div class="row" style="gap:96px;padding:0 48px 64px" aria-hidden="true">
+<span class="ib hv"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg><span class="tip">New event<kbd>⌘N</kbd></span></span>
+<span class="ib q"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg><span class="tip">Copied</span></span>
+<span style="position:relative;display:inline-flex"><span class="ib" style="opacity:.45"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"></path></svg></span><span class="tip">Next month<span class="why">The host cannot be reached.</span></span></span>
+</div>
+</section>
+
+<section class="sec" aria-label="In use">
+<p class="lbl">In use (try them: Flag toggles, Copy shows the done state)</p>
+<div class="tb"><h2>Contacts</h2><button class="ib" type="button" aria-label="New contact" title="New contact ⌘N"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button></div>
+<div class="cols"><div>
+<div class="mh" style="margin-bottom:24px"><h3>October 2026</h3><button class="btn tonal" type="button">Today</button><button class="ib" type="button" aria-label="Previous month" title="Previous month"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button><button class="ib" type="button" aria-label="Next month" title="Next month"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg></button></div>
+<p class="lbl">Phone</p>
+<div class="card g" style="margin-bottom:24px">
+<div class="r"><span class="txt"><span class="k">Mobile</span><span>555-0142</span></span><button class="ib q cp" type="button" aria-label="Copy mobile number" title="Copy mobile number"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8.5" y="8.5" width="11.5" height="11.5" rx="2.5"></rect><path d="M15.5 8.5V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7.5a2 2 0 0 0 2 2h2.5"></path></svg></button></div>
+</div>
+</div><div>
+<p class="lbl">Edit contact: phone</p>
+<div class="card g" style="margin-bottom:24px">
+<div class="r"><span class="sel" aria-label="Label for phone 1">Mobile<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9l4-4 4 4M8 15l4 4 4-4"></path></svg></span><input class="in" type="tel" value="555-0142" aria-label="Phone 1"><button class="ib d" type="button" aria-label="Remove mobile number" title="Remove mobile number"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M8 12h8"></path></svg></button></div>
+<div class="r"><span class="sel" aria-label="Label for phone 2">Home<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9l4-4 4 4M8 15l4 4 4-4"></path></svg></span><input class="in" type="tel" value="555-0187" aria-label="Phone 2"><button class="ib d" type="button" aria-label="Remove home number" title="Remove home number"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M8 12h8"></path></svg></button></div>
+</div>
+<p class="lbl">myMail message bar</p>
+<div class="card bar">
+<button class="ib" type="button" aria-label="Reply" title="Reply ⌘R"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 7l-5 5 5 5"></path><path d="M5 12h9a5 5 0 0 1 5 5v1"></path></svg></button>
+<button class="ib tg" type="button" aria-label="Flag" aria-pressed="true" title="Flag"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"></path><path class="fl" d="M5 4h12l-2.5 4L17 12H5"></path></svg></button>
+<span class="sp"></span>
+<button class="ib" type="button" aria-label="Move to Trash" title="Move to Trash ⌘⌫"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"></path></svg></button>
+</div>
+</div></div>
+</section>
+<script>
+document.querySelectorAll('.tg').forEach(function (b) {
+  b.addEventListener('click', function () { b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') === 'true' ? 'false' : 'true'); });
+});
+document.querySelectorAll('.cp').forEach(function (b) {
+  b.addEventListener('click', function () {
+    b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>';
+    b.title = 'Copied';
+    var live = document.getElementById('live'); live.textContent = ''; setTimeout(function () { live.textContent = 'Copied'; }, 50);
+  });
+});
+</script>
+<div id="live" aria-live="polite" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)"></div>
+</body></html>

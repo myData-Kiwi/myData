@@ -1,0 +1,57 @@
+A short list of actions that opens over the screen: on a right-click or long-press of an item (a context menu), or from a "More" icon button (an overflow menu). It closes as soon as one is chosen.
+
+- **Use it for** actions on one item, or on the items selected, that do not each need a button on screen: "Edit contact", "Delete contact". A Select's open list uses the same panel and rows, with a check mark on the current choice; it is a list box, not a menu, and differs where Select says so (it stops at the ends).
+- **Not for:**
+  - the one main action of a screen or row: a Button, in view;
+  - choosing between two to five views: SegmentedControl;
+  - settings that stay on or off: Switch;
+  - the app's own menu bar on macOS (Edit, Undo and the rest), which is the platform's, built from the same labels and shortcuts.
+- **Submenus are not included.** No screen planned needs one. "Add to group" in myContacts opens a Dialog ("Add to group…") until a phase shows that a submenu is needed.
+- **Anatomy.** A `surface-raised` panel with `radius-md` and `shadow-2`, with `space-1` padding all round. It is as wide as its widest item. It holds items and separators, top to bottom.
+  - **An item** is `control-height` tall (`control-height-compact` in Compact density), with `space-3` padding across, and a `radius-sm` shape inset by `space-1` from the panel's edges, which takes the hover fill. In it, from the start:
+    - an optional icon at `icon` size in `ink-muted`, `space-3` before the label;
+    - the label in `body` and `ink`, on one line;
+    - an optional shortcut at the end, in `body` and `ink-muted`, at least `space-6` from the label.
+  - **Icons:** if one item in a menu has an icon, every item keeps the icon's space, so the labels line up.
+  - **A checked item** (only in a Select's list) has a check icon in `accent` at the row's end, where a shortcut would be, so it never clashes with a leading mark such as a calendar's DataColour dot (Select). A menu of actions has no check marks.
+  - **A destructive item** (it deletes or removes) has its label and icon in `danger`. It is the last item, after a separator, and never the first.
+  - **A separator** is a 1px `line` across the panel, with `space-1` above and below. It divides groups of actions; it never starts or ends a menu.
+- **States.**
+  - **Hover:** the item's shape fills with `surface-hover`; a destructive item's with `danger-soft`. It appears and goes over `fast`.
+  - **Pressed:** the fill stays and the item dims to 85%, without scaling. The menu then closes and the action runs.
+  - **Focused** (moved to with the keyboard): the hover fill, and the 2px `focus` ring drawn inside the item's shape, so neighbours never cover it. The fill alone is not enough: `surface-hover` on `surface-raised` is a faint mark (1.41:1 in light mode, 1.34:1 in dark), enough for the pointer's highlight but not to find focus by. On a destructive item the ring is `ink`, not the red `focus`, so it never reads as part of the red label and its `danger-soft` fill (design/README.md, "Focus and danger").
+  - **Disabled:** the label and icon at 45% opacity, no hover fill, and pressing it does nothing. It stays in its place, so the menu keeps its shape. It may carry one line under its label in `caption` and `ink-muted` saying why, as platforms.md asks of anything disabled: "Contacts from this Mac are changed in Contacts." The reason line is not faded: it keeps full `ink-muted`, so it stays readable (platforms.md, "Disabled controls"). The item then grows to `row-height`. When several items are disabled for one reason, only the first carries it.
+  - There is no error state: an action that fails reports it where its result would have shown.
+- **Opening.**
+  - **A context menu** opens on a right-click, a Control-click on macOS, a two-finger click, or a long-press. From the keyboard, Shift-F10 and the context menu key open it for the focused item on every platform, macOS included (the app reads its own keys, so this costs nothing there). It acts on the item under the pointer, which keeps its hover fill while the menu is open; the selection does not move. When that item is one of several selected (MultiSelect), the menu acts on all of them, and its labels give the count: "Delete 3 contacts…", which ends with an ellipsis because a Dialog follows.
+  - **An overflow menu** opens from the "More actions" IconButton (three dots) on a click, Return, Space or Down. It is the one IconButton allowed to open a list of actions (IconButton, "Do not use it").
+- **Never only in a context menu.** A context menu is a shortcut, not the only way: every item in it is also reachable without a pointer, through the macOS menu bar (platforms.md), a "More actions" IconButton on the record's pane or header, or a key. Each item is also exposed to screen readers as a custom action of the item it acts on, so VoiceOver's Actions rotor and TalkBack's actions list offer it on desktop and phone without the long-press.
+- **Where.** A context menu opens with its top start corner at the pointer, or under the focused item when opened from the keyboard. An overflow menu opens `space-1` under its button, lined up with the button's end edge. Either moves or flips to stay `space-2` inside the window.
+- **Keyboard.**
+  - Opened from the keyboard, focus goes to the first item that is not disabled. Opened with the pointer, no item is focused until the pointer or a key moves.
+  - Up and Down move between items and go round from the last to the first, as macOS menus do. A Select's list stops at the ends instead, as list boxes do; the difference is deliberate (Select). Disabled items are stopped on, so screen readers read them and their reason, but Return does nothing on them.
+  - Home and End go to the first and last item. Typing letters moves to the next item that starts with them.
+  - Return and Space choose the focused item.
+  - Escape and Tab close the menu and return focus to what opened it. A menu is passing, so Tab never moves on from it; a Select's Tab moves focus on, because a Select is a field in a form.
+  - Clicking outside closes the menu and does nothing else: that click does not reach what is under it.
+- **Screen readers** hear a menu with its items, how many there are and which one has focus. Each item is read by its label, then its shortcut ("Delete contact, Command Delete"), then "dimmed" and the reason when it is disabled. A checked item in a Select's list is read as selected. Separators are skipped. A destructive item's label carries the meaning; its colour is never the only signal.
+- **Motion.** It fades in and grows from 97%, from the corner nearest its pointer or button, over `base` with the `standard` curve. It closes with a `fast` fade, and at once when an item is chosen. With reduced motion it only fades, over `fast`, and closes at once.
+- **Light and dark.** In light mode the white panel lifts off white cards by `shadow-2`. In dark mode `surface-raised` is lighter than the `surface` it opens over, and the shadow barely shows.
+- **Kiwi and Graphite.** Only a Select's check mark takes the theme's colour. Everything else is neutral or `danger`, the same in every theme.
+- **Under 600px (phones).** It opens on a long-press, at the finger, with the same look, and the platform's light tap when it opens. Items are `control-height`. Shortcuts are not shown, since there is no keyboard. The overflow button sits in the screen's header.
+- **Sizes.** One, with Compact density on desktop only.
+- **Copy.**
+  - An item is a verb and its object, in sentence case with no full stop: "Edit contact", "Copy email address", "Delete event".
+  - An item that opens a Dialog before it acts ends with an ellipsis, whether the Dialog asks for values or only for confirmation: "Edit calendar…", "Add to group…", "Delete 3 contacts…". One that acts at once has none ("Delete contact", which has Undo). platforms.md uses the same rule.
+  - An item and the macOS menu bar use the same words, in the menu bar's case ("Delete contact" here, "Delete Contact" there), and the same shortcut for the same action. Shortcuts are shown as the platform writes them: "⌘⌫" on macOS, "Delete" on Windows and Linux (platforms.md).
+- **Used by:**
+  - myContacts, the contact list (ContactList): right-click or long-press on a row, with "Edit contact", "Add to group…" and "Delete contact". For a contact from a followed source, Edit and Delete are disabled with the reason.
+  - myContacts, the contact pane: the "More actions" button beside Edit, with the same items.
+  - myContacts, the contact's values (FieldRow): right-click or long-press offers "Copy", which that spec already names.
+  - myContacts edit contact: the label picker on each phone, email and address ("Mobile", "Home", "Work", "Other", "Custom label…") is a Select whose list is this menu.
+  - myCalendar (phase 6): right-click on a day in the MonthGrid, "New event on 16 October"; on an EventRow, "Edit event" and "Delete event"; on a calendar in the list, "Edit calendar…" (its name and, for a calendar myData owns, its colour) and "Delete calendar…". Each is also in the menu bar (platforms.md). The calendar and repeat pickers in the event Inspector are Selects.
+  - myMail (phases 5 and 7): on a message, "Mark as read", "Flag" and "Move to Trash".
+- **Tokens:** `surface-hover` for the hover and keyboard fill (tokens.json).
+- **Why these rules.** The "More actions" IconButton is the one icon-only trigger allowed to open a Menu, because the three dots are the common sign for "more" and a labelled "More" button would take room in every row and header. Items are `control-height` (44px), and 36px in Compact density, as every other target: macOS's own menus are much denser (about 22px), which would break the 44px target rule. Disabled items are stopped on by Up and Down, so a screen reader user hears that Edit exists and why it cannot be used, although macOS's own menus skip them; this follows platforms.md ("Disabled controls"), and `Pressable` gets a focusable-but-inert mode for it.
+- **Decided 2026-10-14:** the "More actions" IconButton opens the overflow menu; keyboard focus is the hover fill plus the focus ring inside the item; items are 44px (36px compact); disabled items are reachable by the arrow keys.
+- You provide the items in order, each with its label, and optionally its icon, shortcut, whether it is destructive, disabled (with its reason) or checked, and what it does; and the item or button it opens from.

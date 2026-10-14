@@ -1,0 +1,160 @@
+<!-- @dsCard group="Overlays" height=740 -->
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700&family=Figtree:wght@400;600&family=JetBrains+Mono&display=swap">
+<style>
+body{margin:0;padding:24px;background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:22px}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.btn{height:44px;padding:0 22px;border-radius:var(--radius-control);font:600 15px/1 var(--font-body);border:0;cursor:pointer}
+.primary{background:var(--accent);color:var(--on-accent)}
+.tonal{background:var(--accent-soft);color:var(--accent)}
+.plain{background:transparent;color:var(--accent)}
+.danger{background:var(--danger);color:var(--on-danger)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.card{background:var(--surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-1)}
+.tile{width:36px;height:36px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;flex:none}
+.tile svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.t-accent{background:var(--accent-soft);color:var(--accent)}.t-ok{background:var(--success-soft);color:var(--success)}
+.t-warn{background:var(--warning-soft);color:var(--warning)}.t-info{background:var(--info-soft);color:var(--info)}
+.chipst{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:var(--radius-pill);font:600 13px/1 var(--font-body);white-space:nowrap}
+.cap{font-size:13px;line-height:18px;color:var(--ink-muted)}
+.wrap{display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start}
+.wrap>div>.cap{margin:0 0 8px 8px}
+.stage{position:relative;width:440px;max-width:100%;height:320px;border-radius:var(--radius-lg);background:var(--bg)}
+.stage.short{height:250px}
+.stage .content{padding:20px}
+.g{overflow:hidden}
+.r{display:flex;gap:12px;align-items:center;min-height:56px;box-sizing:border-box;padding:8px 16px;border-top:1px solid var(--line)}
+.g>:first-child{border-top:0}
+.r .txt{flex:1;min-width:0}.t{font-weight:600;display:block}
+.r.hov{background:var(--surface-hover)}
+.av{width:36px;height:36px;border-radius:var(--radius-pill);background:var(--kiwi-wash);color:var(--ink);display:flex;align-items:center;justify-content:center;flex:none;font:600 15px/22px var(--font-body)}
+.slot{width:var(--icon-tile);height:var(--icon-tile);display:flex;align-items:center;justify-content:center;flex:none}
+.dot{width:8px;height:8px;border-radius:var(--radius-pill);flex:none;background:var(--c)}
+/* The menu. */
+.menu{position:absolute;margin:0;padding:4px;list-style:none;background:var(--surface-raised);border-radius:var(--radius-md);box-shadow:var(--shadow-2);min-width:max-content}
+.mi{display:flex;align-items:center;gap:12px;min-height:44px;box-sizing:border-box;padding:0 12px;border-radius:var(--radius-sm);cursor:default;outline:none;transition:background-color .12s}
+.mi .ico{width:20px;height:20px;flex:none;color:var(--ink-muted)}
+.mi .ico svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;display:block}
+.mi .lab{flex:1;white-space:nowrap}
+.mi .kbd{margin-left:24px;color:var(--ink-muted);white-space:nowrap}
+.mi:hover,.mi.hov,.mi:focus-visible,.mi.kf{background:var(--surface-hover)}
+.mi:focus-visible,.mi.kf{box-shadow:inset 0 0 0 2px var(--focus)}
+.mi:active{opacity:.85}
+.mi.dz,.mi.dz .ico{color:var(--danger)}
+.mi.dz:hover,.mi.dz.hov,.mi.dz:focus-visible,.mi.dz.kf{background:var(--danger-soft)}
+/* Disabled: the label, icon and shortcut fade; the reason line keeps full ink-muted. */
+.mi[aria-disabled="true"]>.ico,.mi[aria-disabled="true"]>.kbd,.mi[aria-disabled="true"] .lt{opacity:.45}
+.mi[aria-disabled="true"]:hover{background:transparent}
+.mi.two{min-height:56px;padding-top:8px;padding-bottom:8px}
+.mi .why{display:block;font-size:13px;line-height:18px;color:var(--ink-muted);white-space:nowrap}
+.mi .chk{color:var(--accent)}
+.mi .end{margin-left:24px}
+.sep{height:1px;margin:4px 0;background:var(--line)}
+.ib{width:44px;height:44px;border:0;border-radius:var(--radius-pill);background:transparent;color:var(--ink-muted);display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none}
+.ib:hover,.ib[aria-expanded="true"]{background:var(--surface-hover)}
+.ib svg{width:20px;height:20px;fill:currentColor;stroke:none}
+.ptr{position:absolute;width:12px;height:18px;pointer-events:none}
+.ptr path{fill:var(--surface);stroke:var(--ink);stroke-width:1.25;stroke-linejoin:round}
+/* Focus on something already red is ink, not the red focus (design/README.md, "Focus and danger"). */
+.mi.dz:focus-visible,.mi.dz.kf{box-shadow:inset 0 0 0 2px var(--ink)}
+</style></head><body>
+<div class="wrap">
+
+<div>
+<p class="cap">Context menu on a contact. Use Up, Down, Home, End, letters, Return and Escape</p>
+<div class="stage">
+<div class="content"><div class="card g">
+<div class="r"><span class="av" aria-hidden="true">AE</span><span class="txt"><span class="t">Aaron Example</span><span class="cap">555-0101</span></span></div>
+<div class="r hov" id="target" tabindex="0" aria-haspopup="menu"><span class="av" aria-hidden="true">AF</span><span class="txt"><span class="t">Ava Fictional</span><span class="cap">Example Labs</span></span></div>
+<div class="r"><span class="av" aria-hidden="true">BS</span><span class="txt"><span class="t">Ben Sample</span><span class="cap">ben@example.org</span></span></div>
+</div></div>
+<ul class="menu" id="m1" role="menu" aria-label="Ava Fictional" style="left:150px;top:96px">
+<li class="mi" role="menuitem" tabindex="-1"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"></path><path d="M13.5 6.5l4 4"></path></svg></span><span class="lab">Edit contact</span></li>
+<li class="mi kf" role="menuitem" tabindex="-1"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2.5"></rect><path d="M16 8V6.5A2.5 2.5 0 0 0 13.5 4h-7A2.5 2.5 0 0 0 4 6.5v7A2.5 2.5 0 0 0 6.5 16H8"></path></svg></span><span class="lab">Copy email address</span></li>
+<li class="mi" role="menuitem" tabindex="-1"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="9" r="3.5"></circle><path d="M3 19c.8-3 3.2-4.5 6-4.5s5.2 1.5 6 4.5"></path><path d="M15.5 5.6a3.5 3.5 0 0 1 0 6.8M17 14.8c2 .6 3.4 2 4 4.2"></path></svg></span><span class="lab">Add to group…</span></li>
+<li class="sep" role="separator"></li>
+<li class="mi dz" role="menuitem" tabindex="-1" aria-keyshortcuts="Meta+Backspace"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9.5 7V4.5h5V7M6.5 7l1 12.5h9l1-12.5"></path><path d="M10 11v5M14 11v5"></path></svg></span><span class="lab">Delete contact</span><span class="kbd">⌘⌫</span></li>
+</ul>
+<svg class="ptr" viewBox="0 0 12 18" style="left:146px;top:90px" aria-hidden="true"><path d="M1 1v14l4-3.5 2.6 5.5 2.2-1-2.6-5.4H12z"></path></svg>
+</div>
+</div>
+
+<div>
+<p class="cap">A contact from a followed source: disabled items, with the reason once</p>
+<div class="stage">
+<div class="content"><div class="card g">
+<div class="r hov"><span class="av" aria-hidden="true">EL</span><span class="txt"><span class="t">Example Labs</span><span class="cap">info@example.org</span></span></div>
+<div class="r"><span class="av" aria-hidden="true">CE</span><span class="txt"><span class="t">Cleo Example</span><span class="cap">555-0188</span></span></div>
+</div></div>
+<ul class="menu" role="menu" aria-label="Example Labs" style="left:120px;top:44px">
+<li class="mi two" role="menuitem" tabindex="-1" aria-disabled="true" aria-describedby="why1"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"></path><path d="M13.5 6.5l4 4"></path></svg></span><span class="lab"><span class="lt">Edit contact</span><span class="why" id="why1">Contacts from this Mac are changed in Contacts.</span></span></li>
+<li class="mi" role="menuitem" tabindex="-1"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2.5"></rect><path d="M16 8V6.5A2.5 2.5 0 0 0 13.5 4h-7A2.5 2.5 0 0 0 4 6.5v7A2.5 2.5 0 0 0 6.5 16H8"></path></svg></span><span class="lab">Copy email address</span></li>
+<li class="sep" role="separator"></li>
+<li class="mi dz" role="menuitem" tabindex="-1" aria-disabled="true" aria-describedby="why1"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9.5 7V4.5h5V7M6.5 7l1 12.5h9l1-12.5"></path><path d="M10 11v5M14 11v5"></path></svg></span><span class="lab"><span class="lt">Delete contact</span></span><span class="kbd">⌘⌫</span></li>
+</ul>
+</div>
+</div>
+
+<div>
+<p class="cap">Overflow menu from a “More actions” button, lined up with its end edge</p>
+<div class="stage short">
+<div class="content"><div class="card g">
+<div class="r"><span class="slot" aria-hidden="true"><span class="dot" style="--c:var(--data-purple)"></span></span><span class="txt"><span class="t">Book club</span><span class="cap">On myData only</span></span><button class="ib" type="button" aria-label="More actions" aria-haspopup="menu" aria-expanded="true"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5.5" cy="12" r="1.6"></circle><circle cx="12" cy="12" r="1.6"></circle><circle cx="18.5" cy="12" r="1.6"></circle></svg></button></div>
+</div></div>
+<ul class="menu" role="menu" aria-label="More actions" style="right:36px;top:84px">
+<li class="mi hov" role="menuitem" tabindex="-1"><span class="lab">Edit calendar…</span></li>
+<li class="sep" role="separator"></li>
+<li class="mi dz" role="menuitem" tabindex="-1"><span class="lab">Delete calendar…</span></li>
+</ul>
+</div>
+</div>
+
+<div>
+<p class="cap">A Select’s list: the label picker, with the current choice checked</p>
+<div class="stage short">
+<ul class="menu" role="listbox" aria-label="Label for phone 1" style="left:20px;top:20px">
+<li class="mi" role="option" aria-selected="true" tabindex="-1"><span class="lab">Mobile</span><span class="ico chk end"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span></li>
+<li class="mi" role="option" aria-selected="false" tabindex="-1"><span class="lab">Home</span><span class="ico end"></span></li>
+<li class="mi kf" role="option" aria-selected="false" tabindex="-1"><span class="lab">Work</span><span class="ico end"></span></li>
+<li class="mi" role="option" aria-selected="false" tabindex="-1"><span class="lab">Other</span><span class="ico end"></span></li>
+<li class="sep" role="separator"></li>
+<li class="mi" role="option" aria-selected="false" tabindex="-1"><span class="lab">Custom label…</span><span class="ico end"></span></li>
+</ul>
+</div>
+</div>
+
+</div>
+<script>
+// Menu keyboard: one menu, Up/Down go round, Home/End, type-ahead, Return chooses, Escape returns focus.
+(function () {
+  var target = document.getElementById('target'), menu = document.getElementById('m1');
+  var items = Array.prototype.slice.call(menu.querySelectorAll('.mi'));
+  function go(i) {
+    items.forEach(function (x) { x.classList.remove('kf'); x.tabIndex = -1; });
+    var it = items[(i + items.length) % items.length]; it.tabIndex = 0; it.focus();
+  }
+  menu.addEventListener('keydown', function (e) {
+    var i = items.indexOf(document.activeElement);
+    if (e.key === 'ArrowDown') { e.preventDefault(); go(i + 1); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); go(i - 1); }
+    else if (e.key === 'Home') { e.preventDefault(); go(0); }
+    else if (e.key === 'End') { e.preventDefault(); go(items.length - 1); }
+    else if (e.key === 'Escape' || e.key === 'Tab') { e.preventDefault(); target.focus(); }
+    else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); target.focus(); }
+    else if (e.key.length === 1) {
+      var k = e.key.toLowerCase();
+      for (var n = 1; n <= items.length; n++) {
+        var j = (i + n) % items.length;
+        if (items[j].querySelector('.lab').textContent.toLowerCase().indexOf(k) === 0) { go(j); break; }
+      }
+    }
+  });
+  items.forEach(function (it, i) { it.addEventListener('click', function () { target.focus(); }); });
+  target.addEventListener('keydown', function (e) {
+    if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10') || e.key === 'Enter') { e.preventDefault(); go(0); }
+  });
+})();
+</script>
+</body></html>

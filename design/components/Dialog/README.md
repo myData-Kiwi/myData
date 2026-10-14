@@ -1,0 +1,60 @@
+A small window over the app that asks one question before something happens, or takes one or two values to make something new.
+
+- **Use it for** a decision the user must take before going on:
+  - confirming something the app cannot undo, or that affects many items at once ("Delete 3 contacts?", "Empty Recently deleted?", "Turn off This Mac?");
+  - leaving unsaved changes ("Discard changes?", from the Inspector);
+  - a short form of one or two fields that makes or changes something ("New calendar", "Edit calendar": a name and a colour).
+- **Not for:**
+  - deleting one item that Undo can bring back: that happens at once, with an Undo Toast;
+  - editing a record: Inspector;
+  - saying that something happened: Toast. A limit on what is shown: Notice;
+  - choosing from a list: Menu, or a Select;
+  - files, sharing and permissions: the system's own dialogs (platforms.md).
+- **Anatomy.** A `scrim` covers the whole window. On it, centred, a `surface-raised` panel with `radius-xl`, `shadow-2` and `space-6` padding. Top to bottom:
+  - the title, in the `title` style and `ink`;
+  - the body, `space-2` under the title: one to three sentences in `body` and `ink`, or a form of one or two fields (TextField, ColourPicker), each with its label above, `space-4` apart, laid out as FormRow says;
+  - the error line, when there is one (see "Failed");
+  - the buttons, `space-6` under the body, at the end edge, `space-2` apart: the plain button, then the confirming button. The plain button is "Cancel", or names what it keeps when "Cancel" would be unclear: the Inspector's "Discard changes?" uses "Keep editing", because there "Cancel" could be read as cancelling the edit.
+  - No close icon, no icon beside the title, no "Don't ask again".
+- **Width:** `dialog-width` (520px), or the window less `space-8` on each side when that is narrower. The height follows the content. In a window too short for it, the body scrolls and the title and buttons stay.
+- **The confirming button** names the result, with the count when there is one: "Delete 3 contacts", "Create calendar", "Discard changes", "Turn off This Mac". Never "OK", "Yes" or "Confirm".
+  - **Destructive** (it deletes, removes, revokes or discards): the Danger button, as the Button and ActionRow specs say and the built dialogs in myData do. Plain danger is the style of the row's button that opens the dialog, not of the dialog's own button.
+  - **Anything else:** the Filled button. While the dialog is open it is the only filled button on screen.
+  - **A dialog that only tells** (the agent token, shown once) has one Filled button, "Done", and no Cancel.
+- **States.**
+  - The panel has no hover, press or focus of its own. Its buttons and fields keep theirs (Button, TextField).
+  - **Focused:** the 2px `focus` ring, 2px outside the focused button or field. On the Danger button, and on a field in error, the ring is `ink` instead (design/README.md, "Focus and danger").
+  - **Field error:** as TextField: a 2px `danger` border and the help line in `danger`, saying what is wrong and what a right value looks like. A field is checked when focus leaves it and when the confirming button is pressed, never while it is first being typed, as FormRow says. The button is never disabled to say that a field is wrong.
+  - **Working:** from pressing the confirming button until the host answers. Nothing is disabled, so focus stays where it was (on the confirming button, or in the field Return was pressed in): the buttons are inert (a press does nothing) and the fields are read-only. The confirming button shows that it is working by changing its label to the action in progress, "Deleting…", "Creating…", "Revoking…", at its old width, so nothing moves. Screen readers hear it politely once: "Deleting 3 contacts". Escape does nothing. The dialog closes when the host has done it; most answers arrive before the label has visibly changed.
+  - **Failed:** the dialog stays open with everything as it was, and a line in `body` and `danger` above the buttons says what failed and what to do: "The contacts could not be deleted. The host did not answer. Check that it is running, then try again." Focus goes to the confirming button, whose label is back, and the line is read at once (assertively, because it answers the user's own press). The confirming button tries again.
+- **Keyboard.**
+  - On opening, focus goes to Cancel when the confirming button is destructive, to the first field in a form, and to the only button in a dialog that only tells.
+  - Tab and Shift-Tab go round the dialog's own controls and never leave it. Nothing behind it can be reached.
+  - Return and Space press the focused button. Return in a form field presses the confirming button, unless the field has its own list or popover open (a ColourPicker has none; a Select or DatePicker would): Return then acts on that first, and confirms only when nothing is open. No key presses a destructive button that does not have focus.
+  - Escape, and ⌘. on macOS, is Cancel, after anything open inside the dialog has closed (platforms.md, "Which handler gets a key first"). In a dialog that only tells, it is its one button.
+  - Clicking the scrim does nothing, in every dialog, so a stray click never loses typed text and never answers a question. Escape and Cancel are the ways out.
+  - On closing, focus returns to what opened the dialog. When that is gone (the row just deleted), it goes to the row now in its place, or else to the list.
+- **Screen readers** hear the title, then the body, when the dialog opens. A dialog with a destructive button is an alert dialog. The rest of the window is hidden from screen readers while it is open. A field error and the failed line are read when they appear.
+- **Motion.** The scrim fades in over `slow`. The panel fades in and grows from 97% over `slow` with the `standard` curve. Closing fades both out over `fast`. With reduced motion, both only fade, over `fast`.
+- **Light and dark.** In dark mode the panel separates from the dimmed window by being lighter than it; `shadow-2` barely shows. The `scrim` is darker in dark mode.
+- **Kiwi and Graphite.** Only the Filled button takes the theme's colour: kiwi green in Kiwi, near black (light) or near white (dark) in Graphite. The Danger button is red in every theme. Its focus ring is `ink`, not the red `focus`, drawn 2px outside it with `surface-raised` showing between them, so it never reads as part of the red button (design/README.md, "Focus and danger"); in a destructive dialog focus starts on Cancel, which has the usual `focus` ring.
+- **Under 600px (phones).** The panel is the screen's width less `space-4` on each side. The buttons stack, full width and `space-2` apart: the confirming button on top, Cancel under it. When the on-screen keyboard opens, the panel moves up to sit above it. The system back gesture or button is Cancel.
+- **One order everywhere.** On desktop, Cancel then the confirming button, on every platform. Windows usually puts the confirming button first; the built dialogs use this one order, and the family looks the same everywhere.
+- **Copy.**
+  - The title of a question is a question that names the action and the object, in sentence case, with a question mark: "Delete 3 contacts?", "Delete the calendar Book club?". A form's title names what it makes, with no full stop: "New calendar".
+  - The body is in full sentences, with full stops. It says what will happen, what else it affects and what stays: "Its 12 events are deleted with it." For many items it names up to three, then the rest as a count: "Ava Fictional, Ben Sample, Cleo Example and 9 more".
+  - It says whether the action can be undone, and how: "You can restore them from Recently deleted for 30 days." When it cannot: "This cannot be undone." When copies stay in the host's backups, it says until when, as the host keeps them: "Copies in your host's backups are kept until 1 October 2027."
+  - Button and field labels are in sentence case, with no full stop.
+- **Sizes.** One. Buttons and fields are `control-height`, or `control-height-compact` in Compact density.
+- **Used by:**
+  - myData, Settings, Agents: "Revoke Claude on my laptop?", and "Token for Claude on my laptop", shown once with one button. Both are built today on Material's `AlertDialog`.
+  - myData, Settings, Sources: "Turn off This Mac?" and "Remove you@example.com?", built today. From phase 4, turning a source off also asks whether to keep what was brought in; that choice sits in the body.
+  - myData, import (phase 4): "Undo this import?".
+  - myContacts (phase 3): "Delete 3 contacts?" for a multi-selection (MultiSelect); in Recently deleted, "Delete Ava Fictional permanently?" and "Empty Recently deleted?".
+  - myContacts edit contact and myCalendar edit event: "Discard changes?" (Inspector).
+  - myCalendar (phase 6): "New calendar" and "Edit calendar" (Name, then Colour, a ColourPicker), "Delete the calendar Book club?". The question of which events a change to a repeating event applies to ("This event", "This and following events", "All events") is a dialog whose choices are its buttons; it is specified with phase 6.
+  - **The one exception to "one or two fields":** myCalendar's "Custom repeat" (phase 6), opened from the Repeat Select's "Custom…" inside the event Inspector. It holds more fields (how often, which days, Ends on), but it saves nothing to the host: its Done button hands a rule back to the event form, which is saved with the event. It is a Dialog on desktop and a Sheet stacked on the editor's sheet on a phone (Sheet). Its layout is specified with phase 6.
+  - myMail (phases 5 and 7): "Discard this draft?", "Delete 4 messages permanently?".
+- **Token:** `dialog-width` (tokens.json, 520px), the panel's width on a window wide enough for it. It fits two long button labels side by side and the agent token's MonoWells, whose dialog content is set to 520px today (`StatusPanel.maxWidth`).
+- **Decided 2026-10-14:** the destructive button is the Danger button (filled); clicking the scrim does nothing; deleting one item that Undo can bring back has no dialog: it goes to Recently deleted with an Undo Toast.
+- You provide the title, the body or the fields, the confirming button's label and whether it is destructive, and what happens when it is pressed.

@@ -1,0 +1,56 @@
+A panel at the side of the window that creates or edits one record, such as a contact or an event, while the list stays in view. It ends in Cancel and Save.
+
+- **Use it for** creating or editing one record with more than two fields.
+- **Not for:**
+  - making something from one or two values ("New calendar"): Dialog;
+  - settings that apply at once: a GroupedSection with Switches;
+  - reading a record: the app's own detail pane (the contact pane in myContacts);
+  - changing several records at once.
+- **Where it sits, from 600px.**
+  - At the end edge of the window (the right, or the left in right-to-left languages), the full height of the content area, `inspector-width` wide. The content beside it narrows; nothing is covered.
+  - Where the app already shows the record in a detail pane (myContacts), the inspector takes that pane's place while it is open, at that pane's width, and the list stays beside it.
+  - When the content left beside it would be narrower than `inspector-width`, the inspector covers the end of the content instead, lifted by `shadow-2`. The content behind keeps its width and stays usable.
+- **Anatomy, from 600px.** A `surface` panel with no border and no shadow when it sits beside the content, as the sidebar does. Three parts, each with `space-5` padding across:
+  - **Header:** the title in the `title` style and `ink`, `space-5` from the top and `space-4` above the body.
+  - **Body**, which scrolls: the form sits straight on the panel, laid out as FormRow says. Fields (TextField, and the Select, text area, checkbox and form Switch of the same batch) each have their label above them and are `space-4` apart. Values of one kind (Phone, Email) are grouped under a heading in the `label` style and `ink-muted`, `space-6` from the group before. No cards and no GroupedSection inside the panel: never a card on a card.
+  - **Footer:** Cancel (plain), then Save (filled), at the end edge, `space-2` apart, with `space-4` above and below.
+  - When the body is scrolled under the header, a 1px `line` appears under the header; when there is more of the body below the footer, one appears above the footer. They go when there is nothing hidden on that side. These are the panel's only lines.
+- **Under 600px (phones)** the inspector is the Sheet's editor form (Sheet): a full-height sheet with `radius-xl` top corners on the `scrim`, Cancel (plain) at the start of its header, the title in the `heading` style in the middle and Save (filled) at the end. There is no footer, so the on-screen keyboard never covers Save. The body has `space-4` padding across, and the form is always stacked (FormRow). Dragging down, the system back gesture and the back button are Cancel, with the check for changes; the Sheet spec says how a drag behaves while there are changes, and how a picker's sheet stacks on this one.
+- **Save** is always enabled.
+  - With no changes, it closes the inspector, as Cancel would.
+  - With an error, it saves nothing: every field that is wrong shows its error (TextField), and focus moves to the first of them. The button is never disabled to say that a field is wrong.
+  - Its label is "Save" alone: the title names the record.
+- **States.**
+  - **Unchanged and changed.** A record is changed when any value differs from the one loaded, so typing and then deleting back is no change. The panel looks the same either way; only leaving differs.
+  - **Saving:** from pressing Save until the host answers. Nothing is disabled, so focus stays where it was: the fields are read-only and the buttons inert (a press does nothing). Save's label becomes "Saving…" at its old width, and screen readers hear "Saving Ava Fictional" politely once. Most saves answer before the label has visibly changed.
+  - **Save failed:** everything stays as it was, and a line in `body` and `danger` above the footer (under the header on a phone) says what failed and what to do: "Ava Fictional could not be saved. The host did not answer. Your changes are still here; check that the host is running, then press Save again." Focus goes to Save, whose label is back, and the line is read at once (assertively, because it answers the user's own press).
+  - **Changed elsewhere:** when the record changed on the host after the inspector opened, the host refuses the save. The inspector never overwrites the other change. What it then shows is specified with phase 3.
+  - Hover, pressed, focused, disabled and error belong to the controls inside, as their own specs say. The panel has none of its own.
+- **Leaving with changes.** Cancel, Escape, choosing another record, New, changing section, closing the window or quitting the app opens the Dialog "Discard changes?": "Your changes to Ava Fictional are not saved." (for a new record: "This new contact is not saved."), with "Keep editing" (plain, with focus) and "Discard changes" (Danger). Keep editing returns focus to where it was. Without changes, the same actions close the inspector and go on at once.
+- **Keyboard, from 600px.**
+  - Opening it focuses the first field.
+  - It is not modal. Tab goes through the fields, then Cancel and Save, then on to the rest of the window. The list beside it stays usable.
+  - ⌘S saves while the inspector is open, wherever focus is in the window, as the menu bar's Save does (Ctrl+S elsewhere). ⌘Return saves while focus is inside the inspector. Return in a single-line field does not save, so a long form is not sent half done.
+  - Escape is Cancel, with the check for changes, while focus is inside the inspector. In the list beside it, Escape keeps the list's own meaning (it clears the search). Inside the inspector, anything open closes first, then a field's own revert, then Cancel (platforms.md, "Which handler gets a key first").
+  - On closing, focus goes to the record's row in the list (the new row after creating one), or else back to what opened the inspector.
+- **Keyboard, under 600px.** The sheet is modal: focus stays inside it, and the screen behind is hidden from screen readers.
+- **Screen readers:** the inspector is a region named by its title. Because focus lands straight in the first field, and a region's name is not reliably read when focus moves inside it, the title is also announced politely when it opens ("Edit contact"). A save failure is read when it appears, and each wrong field is marked invalid, with its error as its description.
+- **Motion.**
+  - From 600px it slides in from the end edge over `slow` with the `standard` curve, while the content narrows with it, as one movement. It closes the same way over `base`. When it covers the content, the content does not move.
+  - On a phone the sheet rises with the `spring` motion, follows the finger when dragged and settles with `spring`.
+  - With reduced motion it fades in and out over `fast`, and the content's width changes at once.
+- **Light and dark.** Beside the content, the `surface` panel against the `bg` content area is the same pairing as the sidebar: in dark mode the panel is the lighter of the two. Covering the content, it adds `shadow-2`, which barely shows in dark mode, so the lighter surface does the work there.
+- **Kiwi and Graphite.** Save is the only control in the theme's colour: kiwi green in Kiwi, near black (light) or near white (dark) in Graphite. Fields, headings and lines are the same in every theme.
+- **Sizes.** One width, `inspector-width`, or the detail pane's. Controls are `control-height`, or `control-height-compact` in Compact density.
+- **Copy.**
+  - The title says what is being done to what kind of record, in sentence case with no full stop: "New contact", "Edit contact", "New event", "Edit event". The record's own name is in the form, and it may change while the user types.
+  - The buttons are "Cancel" and "Save".
+  - Group headings are the kind, in the singular, as on the contact's page (FieldRow): "Phone", "Email", "Address". The button that adds a value names it: "Add phone", "Add email".
+  - Error and failure lines are full sentences, with full stops.
+- **Used by:**
+  - myContacts (phase 3): "New contact" (⌘N, or the Add button) and "Edit contact" (Edit beside the ContactHeader, or Edit contact in a row's Menu), with name, organisation, phone, email, address, birthday, links and notes, and a label picker on each phone, email and address.
+  - myCalendar (phase 6): "New event" (⌘N, or a double click on a day in the MonthGrid) and "Edit event", with title, All-day, start and end, time zone, repeat, calendar, location and notes. Its read view, and the question of which events a change to a repeating event applies to, are specified with phase 6.
+  - Not myMail's compose pane, which needs the reading pane's width and gets its own spec.
+- **Token:** `inspector-width` (tokens.json, 440px), the panel's width when it sits at the end edge: the narrowest that fits a contact's phone row (a label picker, a value long enough for "ava.fictional@example.org" and a remove button) at `space-5` padding. A 1280px window then keeps 592px of content beside the 248px sidebar; at 1024px the inspector covers the content.
+- **Decided 2026-10-14:** in myContacts the inspector replaces the contact pane while editing (no third pane); the form sits straight on the panel, with no cards.
+- You provide the title, the form, whether anything has changed, and what Save does.

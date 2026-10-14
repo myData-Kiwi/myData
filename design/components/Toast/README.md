@@ -1,0 +1,49 @@
+A short message at the bottom of the window saying that something has just happened, with at most one action: Undo. It goes away by itself.
+
+- **Use it for:**
+  - the result of something the user just did that can be undone: "Contact deleted", with Undo;
+  - a task the user started that goes on out of view: "Following you@example.com".
+- **Not for:**
+  - **errors that need the user to act.** They stay where the action was: the failed line in a Dialog or an Inspector, a field's error, an ActionRow with Retry, or the app frame's warning line when the host cannot be reached. Notice is not the place either: it is for limits on what a screen shows, not for errors;
+  - anything the user must read before going on, or a question: Dialog;
+  - news the screen already shows, unless it carries Undo;
+  - the only way to undo. On desktop, Undo is always also in Edit, Undo (⌘Z). On a phone, which has no menu bar, it stays in the screen's "More actions" menu as "Undo" and the action ("Undo delete contact") for as long as the host's undo log holds that action from this app (platforms.md, "Phones have no menu bar"). A deleted record also stays in Recently deleted. So a missed toast never loses anything, on either.
+- **Anatomy.** A `surface-raised` bar with `radius-xl` and `shadow-2`, at least `control-height` tall plus `space-2` above and below.
+  - The message, in `body` and `ink`, `space-5` from the start edge. It wraps to two lines at most; it is never cut short, so the copy stays short.
+  - The action, when there is one: a Tonal button, `space-4` after the message and `space-2` from the end edge. Without an action, the message has `space-5` on both sides.
+  - No icon and no close button.
+- **Where.** Centred at the bottom of the content area, `space-6` above the window's bottom edge: beside the sidebar, and beside an Inspector when one is open, never over them. It is as wide as its message and button, and at most `content-max`.
+- **Timing.**
+  - It stays for `toast-duration` (8 seconds, motion.md), then leaves.
+  - The time stops while the pointer is over the toast, while the toast's button has keyboard focus, and while the window is not the active one. When the pause ends, the full time starts again.
+- **One at a time.** A new toast replaces the one showing, at once. The replaced one's change can still be undone with ⌘Z and Edit, Undo.
+- **Undo.** Pressing Undo, or ⌘Z while the toast shows, undoes the change. ⌘Z follows platforms.md's order ("Which handler gets a key first"): while a text field has focus it undoes the typing, not the change the toast names. The toast is then replaced by one with no action that says what came back: "Contact restored", "Changes undone". When the change cannot be undone because the record was changed again since, the replacement says so: "Not undone. Ava Fictional was changed after that." It is the one failure a toast may carry, because there is nothing left to do.
+- **States.**
+  - Showing, paused and leaving look the same; only the time differs.
+  - The button has the Button states: hover, pressed (dims and scales to 97%) and focused, with the 2px `focus` ring 2px outside it, which shows on `surface-raised` in every theme. It is never disabled: an action that can no longer run takes its toast away.
+- **Keyboard.**
+  - A toast never takes focus.
+  - While it shows, its button is the last stop in the window's Tab order.
+  - ⌘Z (Ctrl+Z elsewhere) is the usual way to undo, and keeps working after the toast has gone.
+  - When focus moves into the toast (by Tab), the toast records what had focus before. When its button goes away while it has focus (Undo pressed, a new toast replacing it, or the time running out after focus left and came back), focus returns to that element, or, when that element is gone, to the restored record's row. It never falls to the top of the window. The replacement's message is still announced.
+  - Escape, with focus on the toast's button, closes the toast and returns focus the same way.
+- **Screen readers.** The toast is a polite live region: the message and the way to undo are read once, without moving focus: "Contact deleted. Undo with Command Z." (on a phone: "Contact deleted. Undo is in More actions."). Its replacement after Undo is read the same way. On a phone, closing it, which a sighted user does by swiping down, is also offered as the toast's "Close" action, so VoiceOver and TalkBack users are not left with a gesture they cannot make.
+- **Motion.** It fades in and rises 8px over `base` with the `standard` curve, and fades out over `fast`. A replacement swaps the text with a `fast` fade while the bar takes its new width with `standard`. With reduced motion, it only fades, over `fast`.
+- **Light and dark.** In light mode the white bar lifts off the grey ground and off white cards by `shadow-2`. In dark mode `surface-raised` is lighter than the ground and the cards, and the shadow barely shows.
+- **Kiwi and Graphite.** Only the Tonal Undo button takes the theme's colour: `accent` on `accent-soft`. In Graphite that is a grey pill with near-black text (light) or a dark grey pill with near-white text (dark). In every theme and mode the pill's fill barely shows on the `surface-raised` bar (1.11 to 1.24:1), so the `accent` label, which meets 4.5:1, is what carries the button, as it does for every tonal button on a raised surface.
+- **Under 600px (phones).** It sits `space-2` above the floating tab bar, or `space-4` above the bottom edge where there is no bar, and is the screen's width less `space-4` on each side. A downward swipe closes it. The time stops while it is touched.
+- **Sizes.** One.
+- **Copy.**
+  - The message says what happened, in the past tense, naming the kind of record and the count, in sentence case and with no full stop: "Contact deleted", "3 contacts deleted", "Event moved to Thursday 15 October". When a second sentence is needed, both take a full stop.
+  - Never a question, never "successfully", never an exclamation mark.
+  - The action is "Undo". It is the only action any screen needs today; another one would be added to this spec when a screen needs it.
+- **Used by:**
+  - myContacts (phase 3): "Contact deleted" after deleting one contact, "3 contacts deleted" after the Dialog for a multi-selection, "Contact added" and "Changes saved" after the Inspector, each with Undo.
+  - myCalendar (phase 6): "Event deleted", "Event added" and "Changes saved", with Undo.
+  - myMail (phases 5 and 7): "Message moved to Trash", with Undo. "Sending" with Undo send lasts as long as the host holds the message, not `toast-duration`; it is specified with phase 7.
+  - myData, Settings, Sources: "Following you@example.com. Its contacts and calendars are on their way." Settings, Assistant: "The assistant is on. Its model is being prepared; the Status screen shows the progress." Both are built today as Material SnackBars, with no action.
+  - **Moving out of the toast:** the error SnackBars built today need the user to act, so they move to where the action was when this is built: "Could not revoke …: the host is not connected" (`host_action.dart`), "Could not open System Settings. Open it, then Privacy & Security, …" (`sources_section.dart`), the app frame's failures to open another app (`shell.dart`), and myAssistant's "myAssistant could not open myData from here. Open the myData app yourself."
+- **Duration:** `toast-duration`, 8 seconds, a row in motion.md with the other durations (not tokens.json). Undo needs time to read the message, decide and reach the button. The pause on hover, touch and focus, and the lasting Undo after it has gone (⌘Z and Edit, Undo on desktop; the More actions menu on a phone), let anyone take longer, which is what WCAG 2.2.1 asks of a time limit.
+- **The bar is `surface-raised`, not `ink`.** Today's SnackBar theme fills it with `ink` and writes in `bg`; the `focus` red on `ink` is under 3:1 in light mode and on light `ink` in dark mode, so a keyboard user could not see where focus is. The built SnackBars change to this bar.
+- **Decided 2026-10-14:** the bar is `surface-raised` with `shadow-2`; it stays 8 seconds, with the pause; creates and edits get an Undo toast too, not only deletes and moves.
+- You provide the message and, when the change can be undone, what Undo does.

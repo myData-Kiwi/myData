@@ -1,0 +1,131 @@
+<!-- @dsCard group="Overlays" height=1320 -->
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700&family=Figtree:wght@400;600&family=JetBrains+Mono&display=swap">
+<style>
+body{margin:0;padding:24px;background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:22px}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.btn{height:44px;padding:0 22px;border-radius:var(--radius-control);font:600 15px/1 var(--font-body);border:0;cursor:pointer}
+.primary{background:var(--accent);color:var(--on-accent)}
+.tonal{background:var(--accent-soft);color:var(--accent)}
+.plain{background:transparent;color:var(--accent)}
+.danger{background:var(--danger);color:var(--on-danger)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.card{background:var(--surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-1)}
+.tile{width:36px;height:36px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;flex:none}
+.tile svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.t-accent{background:var(--accent-soft);color:var(--accent)}.t-ok{background:var(--success-soft);color:var(--success)}
+.t-warn{background:var(--warning-soft);color:var(--warning)}.t-info{background:var(--info-soft);color:var(--info)}
+.chipst{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:var(--radius-pill);font:600 13px/1 var(--font-body);white-space:nowrap}
+.cap{font-size:13px;line-height:18px;color:var(--ink-muted)}
+.btn:active{opacity:.85;transform:scale(.97)}
+.fr{outline:2px solid var(--focus);outline-offset:2px}
+.stages{display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start}
+.st .cap{margin:0 0 8px 8px}
+.stage{position:relative;width:500px;max-width:100%;height:300px;border-radius:var(--radius-lg);overflow:hidden;background:var(--bg)}
+.stage.tall{height:400px}
+.stage.ph{width:375px;height:420px}
+.fake{padding:20px}
+.fake .card{height:56px;margin-bottom:12px}
+.scrim{position:absolute;inset:0;background:var(--scrim)}
+.dlg{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:calc(100% - 64px);max-width:var(--dialog-width);box-sizing:border-box;padding:24px;background:var(--surface-raised);border-radius:var(--radius-xl);box-shadow:var(--shadow-2)}
+.ph .dlg{width:calc(100% - 32px)}
+.dlg h2{margin:0;font:700 22px/28px var(--font-display);letter-spacing:-0.01em;color:var(--ink)}
+.dlg p{margin:8px 0 0}
+.acts{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:8px;margin-top:24px}
+.ph .acts{flex-direction:column}.ph .acts .btn{width:100%}
+.fld{margin-top:16px}
+.fld label{font:600 13px/18px var(--font-body);color:var(--ink);display:block;margin-bottom:var(--space-2)}
+.fld input{height:44px;box-sizing:border-box;width:100%;padding:0 var(--space-4);border:1px solid var(--line-strong);border-radius:var(--radius-md);background:var(--surface);color:var(--ink);font:400 15px var(--font-body)}
+.fld .help{font-size:13px;line-height:18px;color:var(--ink-muted);margin-top:var(--space-2)}
+.fld.err input{border:2px solid var(--danger)}.fld.err .help{color:var(--danger)}
+.failed{margin:16px 0 0;color:var(--danger)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+/* Focus on something already red is ink, not the red focus (design/README.md, "Focus and danger"). */
+.danger:focus-visible,.danger.fr,.dz:focus-visible,.plain-danger:focus-visible{outline-color:var(--ink)}
+</style></head><body>
+<div class="stages">
+
+<div class="st">
+<p class="cap">Destructive. Cancel has focus, so Return cancels</p>
+<div class="stage" aria-hidden="false">
+<div class="fake" aria-hidden="true"><div class="card"></div><div class="card"></div><div class="card"></div></div>
+<div class="scrim"></div>
+<div class="dlg" role="alertdialog" aria-modal="true" aria-labelledby="d1t" aria-describedby="d1b">
+<h2 id="d1t">Delete 3 contacts?</h2>
+<p id="d1b">Ava Fictional, Ben Sample and Cleo Example move to Recently deleted. You can restore them there for 30 days.</p>
+<div class="acts"><button class="btn plain fr" type="button">Cancel</button><button class="btn danger" type="button">Delete 3 contacts</button></div>
+</div>
+</div>
+</div>
+
+<div class="st">
+<p class="cap">Cannot be undone. Says until when the backups keep a copy</p>
+<div class="stage">
+<div class="fake" aria-hidden="true"><div class="card"></div><div class="card"></div><div class="card"></div></div>
+<div class="scrim"></div>
+<div class="dlg" role="alertdialog" aria-modal="true" aria-labelledby="d2t" aria-describedby="d2b">
+<h2 id="d2t">Delete Ava Fictional permanently?</h2>
+<p id="d2b">This cannot be undone. Copies in your host’s backups are kept until 1 October 2027.</p>
+<div class="acts"><button class="btn plain" type="button">Cancel</button><button class="btn danger" type="button">Delete permanently</button></div>
+</div>
+</div>
+</div>
+
+<div class="st">
+<p class="cap">Form. The first field has focus; Return creates</p>
+<div class="stage">
+<div class="fake" aria-hidden="true"><div class="card"></div><div class="card"></div><div class="card"></div></div>
+<div class="scrim"></div>
+<div class="dlg" role="dialog" aria-modal="true" aria-labelledby="d3t">
+<h2 id="d3t">New calendar</h2>
+<div class="fld"><label for="d3n">Name</label><input id="d3n" class="fr" type="text" value="Book club"></div>
+<div class="acts"><button class="btn plain" type="button">Cancel</button><button class="btn primary" type="button">Create calendar</button></div>
+</div>
+</div>
+</div>
+
+<div class="st">
+<p class="cap">Form after pressing Create with an empty name, and after the host did not answer</p>
+<div class="stage tall">
+<div class="fake" aria-hidden="true"><div class="card"></div><div class="card"></div><div class="card"></div><div class="card"></div></div>
+<div class="scrim"></div>
+<div class="dlg" role="dialog" aria-modal="true" aria-labelledby="d4t">
+<h2 id="d4t">New calendar</h2>
+<div class="fld err"><label for="d4n">Name</label><input id="d4n" type="text" value="" aria-invalid="true" aria-describedby="d4h"><div class="help" id="d4h">Give the calendar a name, such as Family or Book club.</div></div>
+<p class="failed" role="status">The calendar could not be created. The host did not answer. Check that it is running, then try again.</p>
+<div class="acts"><button class="btn plain" type="button">Cancel</button><button class="btn primary" type="button">Create calendar</button></div>
+</div>
+</div>
+</div>
+
+<div class="st">
+<p class="cap">Phone. Buttons stack, the confirming one on top</p>
+<div class="stage ph">
+<div class="fake" aria-hidden="true"><div class="card"></div><div class="card"></div><div class="card"></div><div class="card"></div></div>
+<div class="scrim"></div>
+<div class="dlg" role="alertdialog" aria-modal="true" aria-labelledby="d5t" aria-describedby="d5b">
+<h2 id="d5t">Discard changes?</h2>
+<p id="d5b">Your changes to Ava Fictional are not saved.</p>
+<div class="acts"><button class="btn danger" type="button">Discard changes</button><button class="btn plain fr" type="button">Keep editing</button></div>
+</div>
+</div>
+</div>
+
+<div class="st">
+<p class="cap">Working: focus stays on the button, which says what it is doing</p>
+<div class="stage">
+<div class="fake" aria-hidden="true"><div class="card"></div><div class="card"></div><div class="card"></div></div>
+<div class="scrim"></div>
+<div class="dlg" role="alertdialog" aria-modal="true" aria-labelledby="d6t" aria-describedby="d6b" aria-busy="true">
+<h2 id="d6t">Revoke Claude on my laptop?</h2>
+<p id="d6b">Claude on my laptop will no longer reach your data.</p>
+<div class="acts"><button class="btn plain" type="button" aria-disabled="true">Cancel</button><button class="btn danger fr" type="button" aria-disabled="true">Revoking…</button></div>
+<p class="sr" role="status">Revoking Claude on my laptop</p>
+</div>
+</div>
+</div>
+
+</div>
+</body></html>

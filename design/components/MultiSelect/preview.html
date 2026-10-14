@@ -1,0 +1,182 @@
+<!-- @dsCard group="Contacts" height=1360 -->
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700&family=Figtree:wght@400;600&family=JetBrains+Mono&display=swap">
+<style>
+body{margin:0;padding:24px;background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:22px}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.btn{height:44px;padding:0 22px;border-radius:var(--radius-control);font:600 15px/1 var(--font-body);border:0;cursor:pointer}
+.primary{background:var(--accent);color:var(--on-accent)}
+.tonal{background:var(--accent-soft);color:var(--accent)}
+.plain{background:transparent;color:var(--accent)}
+.danger{background:var(--danger);color:var(--on-danger)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.card{background:var(--surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-1)}
+.tile{width:36px;height:36px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;flex:none}
+.tile svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.t-accent{background:var(--accent-soft);color:var(--accent)}.t-ok{background:var(--success-soft);color:var(--success)}
+.t-warn{background:var(--warning-soft);color:var(--warning)}.t-info{background:var(--info-soft);color:var(--info)}
+.chipst{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:var(--radius-pill);font:600 13px/1 var(--font-body);white-space:nowrap}
+.cap{font-size:13px;line-height:18px;color:var(--ink-muted)}
+.lbl{font:600 13px/18px var(--font-body);color:var(--ink-muted);margin:0 0 8px 8px}
+.wrap>div>.cap{margin:0 0 8px 8px}
+.wrap{display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start}
+/* Desktop: the list beside the detail pane. */
+.win{display:flex;gap:32px;width:860px;max-width:100%;box-sizing:border-box;padding:20px;border-radius:var(--radius-lg);background:var(--bg);box-shadow:var(--shadow-1)}
+.list{flex:0 1 340px;min-width:0}
+.pane{flex:1;min-width:0;padding-top:8px}
+.srch{position:relative;margin-bottom:16px}
+.srch svg{position:absolute;left:16px;top:12px;width:20px;height:20px;fill:none;stroke:var(--ink-muted);stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.srch input{width:100%;height:44px;box-sizing:border-box;padding:0 16px 0 44px;border:0;border-radius:var(--radius-pill);background:var(--surface-sunken);color:var(--ink);font:400 15px var(--font-body)}
+.grp{margin-bottom:16px}
+.g{overflow:hidden}
+.r{display:flex;gap:12px;align-items:center;width:100%;min-height:56px;box-sizing:border-box;padding:8px 16px;border-top:1px solid var(--line);background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer;user-select:none;transition:background-color .12s,box-shadow .12s}
+.g>:first-child{border-top-color:transparent}
+.r .txt{flex:1;min-width:0}.t{font-weight:600;display:block}.r .cap{display:block}
+.r:hover{background:var(--surface-hover)}
+/* Selected: accent-soft fill and an ink ring; a run of adjacent rows shares one ring. */
+.r.sel,.r.sel:hover{background:var(--accent-soft);--rt:2px;--rb:2px;box-shadow:inset 2px 0 0 var(--ink),inset -2px 0 0 var(--ink),inset 0 var(--rt) 0 var(--ink),inset 0 calc(-1 * var(--rb)) 0 var(--ink)}
+.r.sel.join-up{--rt:0px;border-top:0;padding-top:9px}
+.r.sel.join-down{--rb:0px}
+.r.fc{outline:2px solid var(--focus);outline-offset:-6px}
+.r:focus-visible{outline:2px solid var(--focus);outline-offset:-6px}
+.av{width:36px;height:36px;border-radius:var(--radius-pill);background:var(--kiwi-wash);color:var(--ink);display:flex;align-items:center;justify-content:center;flex:none;font:600 15px/22px var(--font-body)}
+.pane h2{margin:0;font:700 30px/36px var(--font-display);letter-spacing:-0.02em}
+.pane .names{margin:8px 0 0;color:var(--ink-muted)}
+.pane .left{margin:8px 0 0}
+.pane .acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:24px}
+.plain-danger{background:transparent;color:var(--danger)}
+.one{display:flex;align-items:center;gap:20px}
+.one .av{width:96px;height:96px;font:700 30px/36px var(--font-display)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+/* Phone: select mode. */
+.phone{position:relative;width:375px;height:600px;border-radius:var(--radius-lg);overflow:hidden;background:var(--bg)}
+.ptop{display:flex;justify-content:space-between;align-items:center;padding:8px 8px 0}
+.ptop .btn{padding:0 var(--space-2)}
+.ptitle{margin:4px 16px 16px;font:700 30px/36px var(--font-display);letter-spacing:-0.02em}
+.phone .content{padding:0 16px}
+.phone .r{font-size:16px;cursor:default}
+.slot{width:36px;height:36px;display:flex;align-items:center;justify-content:center;flex:none}
+/* The Checkbox box. */
+.box{width:20px;height:20px;box-sizing:border-box;border-radius:var(--radius-xs);border:1px solid var(--line-strong);background:var(--surface);color:var(--on-accent);display:flex;align-items:center;justify-content:center}
+.box svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;opacity:0}
+[aria-checked="true"] .box{background:var(--accent);border-color:var(--accent)}
+[aria-checked="true"] .box svg{opacity:1}
+.abar{position:absolute;left:16px;right:16px;bottom:16px;display:flex;justify-content:space-between;gap:4px;padding:6px;border-radius:var(--radius-xl);background:var(--glass-fill);-webkit-backdrop-filter:blur(var(--blur-glass)) saturate(1.6);backdrop-filter:blur(var(--blur-glass)) saturate(1.6);border:1px solid var(--glass-stroke);box-shadow:var(--shadow-glass)}
+.abar .btn{padding:0 var(--space-4)}
+/* Focus on something already red is ink, not the red focus (design/README.md, "Focus and danger"). */
+.danger:focus-visible,.danger.fr,.dz:focus-visible,.plain-danger:focus-visible{outline-color:var(--ink)}
+</style></head><body>
+<div class="wrap">
+
+<div>
+<p class="cap">From 600px (live): click, ⌘-click, ⇧-click; ⇧-Up and ⇧-Down; ⌘A in the list; Escape</p>
+<div class="win">
+<div class="list">
+<div class="srch"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M20 20l-4.2-4.2"></path></svg><input type="search" placeholder="Search contacts" aria-label="Search contacts"></div>
+<div id="lb" role="listbox" aria-multiselectable="true" aria-label="Contacts" tabindex="0">
+<div class="grp"><p class="lbl" aria-hidden="true">A</p><div class="card g">
+<div class="r" role="option" data-n="Aaron Example"><span class="av" aria-hidden="true">AE</span><span class="txt"><span class="t">Aaron Example</span><span class="cap">555-0101</span></span></div>
+<div class="r" role="option" data-n="Ava Fictional"><span class="av" aria-hidden="true">AF</span><span class="txt"><span class="t">Ava Fictional</span><span class="cap">Example Labs</span></span></div>
+</div></div>
+<div class="grp"><p class="lbl" aria-hidden="true">B</p><div class="card g">
+<div class="r" role="option" data-n="Bea Placeholder"><span class="av" aria-hidden="true">BP</span><span class="txt"><span class="t">Bea Placeholder</span><span class="cap">bea@example.org</span></span></div>
+<div class="r" role="option" data-n="Ben Sample"><span class="av" aria-hidden="true">BS</span><span class="txt"><span class="t">Ben Sample</span><span class="cap">555-0142</span></span></div>
+</div></div>
+<div class="grp"><p class="lbl" aria-hidden="true">C</p><div class="card g">
+<div class="r" role="option" data-n="Cleo Example"><span class="av" aria-hidden="true">CE</span><span class="txt"><span class="t">Cleo Example</span><span class="cap">cleo@example.org</span></span></div>
+</div></div>
+<div class="grp"><p class="lbl" aria-hidden="true">E</p><div class="card g">
+<div class="r" role="option" data-n="Example Labs" data-followed="1"><span class="av" aria-hidden="true">EL</span><span class="txt"><span class="t">Example Labs</span><span class="cap">info@example.org</span></span></div>
+</div></div>
+</div>
+</div>
+<section class="pane" id="pane" aria-live="off"></section>
+</div>
+<p class="sr" role="status" id="said"></p>
+</div>
+
+<div>
+<p class="cap">Under 600px: select mode, with the action bar in the tab bar's place</p>
+<div class="phone">
+<div class="ptop"><button class="btn plain" type="button">Select all</button><button class="btn plain" type="button">Done</button></div>
+<h2 class="ptitle">2 selected</h2>
+<div class="content"><div class="card g" role="group" aria-label="Contacts">
+<div class="r" role="checkbox" aria-checked="false"><span class="slot"><span class="box"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 12.5l3.5 3.5 7.5-8"></path></svg></span></span><span class="av" aria-hidden="true">AE</span><span class="txt"><span class="t">Aaron Example</span><span class="cap">555-0101</span></span></div>
+<div class="r" role="checkbox" aria-checked="true"><span class="slot"><span class="box"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 12.5l3.5 3.5 7.5-8"></path></svg></span></span><span class="av" aria-hidden="true">AF</span><span class="txt"><span class="t">Ava Fictional</span><span class="cap">Example Labs</span></span></div>
+<div class="r" role="checkbox" aria-checked="true"><span class="slot"><span class="box"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 12.5l3.5 3.5 7.5-8"></path></svg></span></span><span class="av" aria-hidden="true">BS</span><span class="txt"><span class="t">Ben Sample</span><span class="cap">555-0142</span></span></div>
+<div class="r" role="checkbox" aria-checked="false"><span class="slot"><span class="box"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 12.5l3.5 3.5 7.5-8"></path></svg></span></span><span class="av" aria-hidden="true">CE</span><span class="txt"><span class="t">Cleo Example</span><span class="cap">cleo@example.org</span></span></div>
+</div></div>
+<nav class="abar" aria-label="Actions for 2 contacts"><button class="btn plain" type="button">Add to group…</button><button class="btn plain plain-danger" type="button">Delete</button></nav>
+</div>
+</div>
+
+</div>
+<script>
+// MultiSelect: click, ⌘/Ctrl-click, ⇧-click, ⇧-arrows, ⌘A, Escape. The pane shows one record or the selection.
+(function () {
+  var lb = document.getElementById('lb'), pane = document.getElementById('pane'), said = document.getElementById('said');
+  var rows = Array.prototype.slice.call(lb.querySelectorAll('.r'));
+  var sel = new Set([1, 2, 3, 5]), anchor = 5, focus = 5, showFocus = true;
+  function render(announce) {
+    rows.forEach(function (r, i) {
+      var on = sel.has(i), card = r.parentNode;
+      var prev = r.previousElementSibling, next = r.nextElementSibling;
+      r.classList.toggle('sel', on);
+      r.classList.toggle('join-up', on && !!prev && sel.has(rows.indexOf(prev)));
+      r.classList.toggle('join-down', on && !!next && sel.has(rows.indexOf(next)));
+      r.classList.toggle('fc', i === focus && showFocus);
+      r.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    lb.setAttribute('aria-activedescendant', '');
+    var list = rows.filter(function (r, i) { return sel.has(i); });
+    if (list.length === 1) {
+      var r = list[0];
+      pane.innerHTML = '<div class="one"><span class="av" aria-hidden="true">' + r.querySelector('.av').textContent + '</span><div><h2></h2><p class="cap"></p></div></div>';
+      pane.querySelector('h2').textContent = r.dataset.n;
+      pane.querySelector('.cap').textContent = r.dataset.followed ? 'From this Mac. Change it in Contacts.' : 'On myData only, not on your phone yet.';
+    } else {
+      var names = list.map(function (r) { return r.dataset.n; });
+      var shown = names.length > 3 ? names.slice(0, 3).join(', ') + ' and ' + (names.length - 3) + ' more' : names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1];
+      var can = list.filter(function (r) { return !r.dataset.followed; }).length, out = list.length - can;
+      pane.innerHTML = '<h2>' + list.length + ' contacts selected</h2><p class="names"></p>' +
+        (out ? '<p class="cap left">' + out + ' of them ' + (out === 1 ? 'is' : 'are') + ' from this Mac and ' + (out === 1 ? 'is' : 'are') + ' changed in Contacts.</p>' : '') +
+        '<div class="acts"><button class="btn tonal" type="button"' + (can ? '' : ' aria-disabled="true"') + '>Add to group…</button><button class="btn plain-danger" type="button"' + (can ? '' : ' aria-disabled="true"') + '>' + (can ? 'Delete ' + can + (can === 1 ? ' contact' : ' contacts') : 'Delete contacts') + '</button></div>';
+      pane.querySelector('.names').textContent = shown;
+    }
+    if (announce) said.textContent = list.length === 1 ? list[0].dataset.n : list.length + ' contacts selected';
+  }
+  function range(a, b) { var s = new Set(); for (var k = Math.min(a, b); k <= Math.max(a, b); k++) s.add(k); return s; }
+  rows.forEach(function (r, i) {
+    r.addEventListener('mousedown', function (e) { e.preventDefault(); showFocus = false; lb.focus(); });
+    r.addEventListener('click', function (e) {
+      if (e.metaKey || e.ctrlKey) { if (sel.has(i) && sel.size > 1) sel.delete(i); else sel.add(i); anchor = i; }
+      else if (e.shiftKey) { range(anchor, i).forEach(function (k) { sel.add(k); }); }
+      else { sel = new Set([i]); anchor = i; }
+      focus = i; render(true);
+    });
+  });
+  lb.addEventListener('blur', function () { showFocus = false; render(false); });
+  lb.addEventListener('keydown', function (e) {
+    showFocus = true;
+    var n = rows.length - 1, to = null;
+    if (e.key === 'ArrowDown') to = Math.min(n, focus + 1);
+    else if (e.key === 'ArrowUp') to = Math.max(0, focus - 1);
+    else if (e.key === 'Home') to = 0;
+    else if (e.key === 'End') to = n;
+    if (to !== null) {
+      e.preventDefault(); focus = to;
+      if (e.altKey) { /* move focus only */ }
+      else if (e.shiftKey) { sel = range(anchor, to); }
+      else { sel = new Set([to]); anchor = to; }
+      render(!e.altKey); return;
+    }
+    if (e.key === ' ' ) { e.preventDefault(); if (sel.has(focus) && sel.size > 1) sel.delete(focus); else sel.add(focus); anchor = focus; render(true); }
+    else if ((e.metaKey || e.ctrlKey) && e.key === 'a') { e.preventDefault(); sel = range(0, n); render(true); }
+    else if (e.key === 'Escape') { e.preventDefault(); sel = new Set([focus]); anchor = focus; render(true); }
+  });
+  render(false);
+})();
+</script>
+</body></html>
