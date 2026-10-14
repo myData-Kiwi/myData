@@ -140,3 +140,31 @@ def test_a_parent_key_that_is_no_longer_unique_is_rolled_back(tmp_path):
     with pytest.raises(MigrationError, match="foreign key"):
         Database(path, {**V1, 2: loose})
     assert _version(Database(path, V1)) == 1
+
+
+def test_a_migration_that_loses_rows_is_rolled_back(tmp_path):
+    """A rebuild that copies only some rows of a table with no children: nothing else notices it, and the
+    search index that would show it must not be rebuilt over the loss."""
+    from test_contacts_store import ALL, BOOK, item, result
+
+    path = tmp_path / "contacts.sqlite"
+    ContactsStore(path).apply("acc-1", BOOK, result([item(n) for n in ALL], full=True))
+    create = ContactsStore.MIGRATIONS[1][1].replace("CREATE TABLE contacts", "CREATE TABLE contacts_new")
+    assert "contacts_new" in create
+    lossy = [create, "INSERT INTO contacts_new SELECT * FROM contacts WHERE seq % 2 = 0", "DROP TABLE contacts",
+             "ALTER TABLE contacts_new RENAME TO contacts"]
+    with pytest.raises(MigrationError, match=f"contacts has {len(ALL) // 2} rows, it had {len(ALL)} before"):
+        Database(path, {**ContactsStore.MIGRATIONS, max(ContactsStore.MIGRATIONS) + 1: lossy})
+    with sqlite3.connect(path) as c:
+        assert c.execute("SELECT COUNT(*) FROM contacts").fetchone()[0] == len(ALL)
+        assert c.execute("SELECT MAX(version) FROM schema_version").fetchone()[0] == max(ContactsStore.MIGRATIONS)
+
+
+def test_a_migration_may_declare_the_tables_it_shrinks(tmp_path):
+    path = tmp_path / "t.sqlite"
+    _seed(path)
+    dedupe = ["DELETE FROM cards WHERE id IN ('c1', 'c2')"]
+    with pytest.raises(MigrationError, match="cards has 3 rows, it had 5 before"):
+        Database(path, {**V1, 2: dedupe})
+    db = Database(path, {**V1, 2: dedupe}, may_shrink={2: ["cards"]})
+    assert (_version(db), _count(db, "cards")) == (2, 3)

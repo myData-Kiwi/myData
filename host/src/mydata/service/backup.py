@@ -47,7 +47,7 @@ from pathlib import Path
 from typing import Callable, Iterable
 
 from .. import __version__
-from ..sources._db import Database, check, fts_tables
+from ..sources._db import Database, check, table_counts
 from .config import private_dir, private_file
 from .logs import log
 
@@ -63,7 +63,6 @@ INTERVAL = 60 * 60.0
 
 _NAME = re.compile(r"^(\d{8}T\d{6}Z)(?:-(\d+))?$")
 _STAMP = "%Y%m%dT%H%M%SZ"
-_SHADOW = ("_data", "_idx", "_content", "_docsize", "_config")  # FTS5's own tables
 _take_lock = threading.Lock()
 
 
@@ -125,16 +124,6 @@ def _sha256(path: Path) -> str:
         for chunk in iter(lambda: fh.read(1 << 20), b""):
             h.update(chunk)
     return h.hexdigest()
-
-
-def table_counts(db: sqlite3.Connection) -> dict[str, int]:
-    """Row counts of the main tables: not SQLite's own, not schema_version, not search indexes."""
-    fts = fts_tables(db)
-    shadow = {f + s for f in fts for s in _SHADOW}
-    names = [r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' "
-                                      "AND sql NOT LIKE 'CREATE VIRTUAL TABLE%' ORDER BY name")]
-    return {n: db.execute(f'SELECT COUNT(*) FROM "{n}"').fetchone()[0]
-            for n in names if n != "schema_version" and n not in shadow}
 
 
 def _write_json(path: Path, data: dict) -> None:

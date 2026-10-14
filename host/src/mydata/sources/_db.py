@@ -3,9 +3,11 @@ a schema_version table and numbered migrations, files readable only by the user.
 
 Migrations run on a connection of their own with foreign keys off, set before BEGIN (inside a
 transaction the pragma does nothing). With them on, rebuilding a parent table (create, copy, drop,
-rename) deletes every child row through ON DELETE CASCADE. Afterwards foreign_key_check and
-integrity_check must pass (a search index that does not match its table is rebuilt), or the whole
-migration is rolled back. Every other connection (connect()) has foreign keys on.
+rename) deletes every child row through ON DELETE CASCADE. Afterwards no table that still exists may
+hold fewer rows than before (unless the migration declares it may: `may_shrink`), and foreign_key_check
+and integrity_check must pass, or the whole migration is rolled back. A search index that does not match
+its table is rebuilt, but only when no table lost rows: a lossy rebuild must not be hidden by repairing
+the index that would show it. Every other connection (connect()) has foreign keys on.
 
 Callers that hold data take a snapshot first (service/backup.py, open_store); pending() says whether a
 file has a migration to run."""
@@ -16,7 +18,7 @@ import os
 import sqlite3
 import sys
 import uuid
-from collections.abc import Iterator, Sequence
+from collections.abc import Iterable, Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
@@ -25,10 +27,12 @@ from pathlib import Path
 # add the next number.
 Migrations = dict[int, Sequence[str]]
 
+_SHADOW = ("_data", "_idx", "_content", "_docsize", "_config")  # FTS5's own tables
+
 
 class MigrationError(RuntimeError):
-    """A migration left the file broken (a foreign key without its row, a failed integrity check); it was
-    rolled back."""
+    """A migration left the file broken (rows lost, a foreign key without its row, a failed integrity
+    check); it was rolled back."""
 
 
 def now() -> str:
@@ -41,7 +45,9 @@ def new_id() -> str:
 
 
 class Database:
-    def __init__(self, path: Path, migrations: Migrations):
+    def __init__(self, path: Path, migrations: Migrations, *, may_shrink: Mapping[int, Iterable[str]] | None = None):
+        """may_shrink: {version: tables} a migration is meant to remove rows from (deduplicating, say); every
+        other table must keep at least its row count."""
         self.path = Path(path)
         self.path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
         if not self.path.exists():
@@ -51,7 +57,7 @@ class Database:
             os.close(fd)
         if not sys.platform.startswith("win"):
             os.chmod(self.path, 0o600)
-        self._migrate(migrations)
+        self._migrate(migrations, may_shrink or {})
 
     @contextmanager
     def connect(self) -> Iterator[sqlite3.Connection]:
@@ -101,7 +107,7 @@ class Database:
         target = max(migrations)
         return (current, target) if 0 < current < target else None
 
-    def _migrate(self, migrations: Migrations) -> None:
+    def _migrate(self, migrations: Migrations, may_shrink: Mapping[int, Iterable[str]]) -> None:
         db = sqlite3.connect(self.path, timeout=30, isolation_level=None)
         try:
             db.execute("PRAGMA busy_timeout=30000")
@@ -116,14 +122,18 @@ class Database:
                     raise RuntimeError(
                         f"database schema version {current} is newer than this host understands ({newest})"
                     )
-                applied = False
-                for version in sorted(v for v in migrations if v > current):
+                todo = sorted(v for v in migrations if v > current)
+                before = table_counts(db) if todo else {}
+                for version in todo:
                     for statement in migrations[version]:
                         db.execute(statement)
                     db.execute("INSERT INTO schema_version (version) VALUES (?)", (version,))
-                    applied = True
-                if applied:
-                    problems = check(db, repair_fts=True)
+                if todo:
+                    allowed = {t for v in todo for t in may_shrink.get(v, ())}
+                    after = table_counts(db)
+                    problems = [f"{t} has {after[t]} rows, it had {n} before" for t, n in sorted(before.items())
+                                if t in after and after[t] < n and t not in allowed]
+                    problems += check(db, repair_fts=not problems)
                     if problems:
                         raise MigrationError(f"migrating {self.path.name} to version {newest} was rolled back: "
                                              + "; ".join(problems))
@@ -145,6 +155,16 @@ def fts_tables(db: sqlite3.Connection) -> list[str]:
     """The FTS5 tables in an open database."""
     return [r[0] for r in db.execute(
         "SELECT name FROM sqlite_master WHERE type = 'table' AND sql LIKE 'CREATE VIRTUAL TABLE%USING fts5%'")]
+
+
+def table_counts(db: sqlite3.Connection) -> dict[str, int]:
+    """Row counts of the main tables: not SQLite's own, not schema_version, not search indexes."""
+    fts = fts_tables(db)
+    shadow = {f + s for f in fts for s in _SHADOW}
+    names = [r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' "
+                                      "AND sql NOT LIKE 'CREATE VIRTUAL TABLE%' ORDER BY name")]
+    return {n: db.execute(f'SELECT COUNT(*) FROM "{n}"').fetchone()[0]
+            for n in names if n != "schema_version" and n not in shadow}
 
 
 def check(db: sqlite3.Connection, *, repair_fts: bool = False) -> list[str]:
