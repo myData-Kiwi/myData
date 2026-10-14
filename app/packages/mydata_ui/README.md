@@ -64,3 +64,11 @@ The specs, previews and top-level docs were checked against each other; the owne
 - **`ContactList.searchTrailing`**: an IconButton beside the search field ("New contact"), the list pane's title bar on desktop.
 - **`AppFrame.phoneTitleActions`**: IconButtons at the end of a phone's large title ("New contact", "More actions"), since a phone has no menu bar.
 - **`Inspector.failureAction`**: a Tonal button under the failure line, for a failure the user can act on from the inspector ("Reload" when the record changed elsewhere). The Inspector spec left "Changed elsewhere" to phase 3.
+
+## Import and merge (phase 4, 2026-10-14)
+
+- **DropZone** (design/components/DropZone) draws its states only; the page it is on takes the drop (the myData app wraps its Import page in `desktop_drop`'s `DropTarget`) and the chooser is the app's (`file_selector`), so this package stays free of platform plugins. The dragged file's name is not given before the drop on macOS, so dragging says "Drop to import".
+- **DuplicatePair** (design/components/DuplicatePair) takes the versions as `PairVersion`s (built from the API's contacts and cards by `ContactPair` in `mydata_core`), and the after column as a `PairAfter` (the host's merge preview, never worked out here). "Differs" is the app's comparison (emails in lower case, phones as their digits, spacing) unless the host gives the differences (H7, Changes). Under 600px a SegmentedControl switches the columns; with more than five it stacks them.
+- **CheckboxList** rows take a `trailing` control beside the target (the import's Compare, a second target, in the Tab order only on the row the keys are on) and a `below` widget (the comparison); `folded` hides the rows but keeps select all, for "New contacts (125)".
+- **AppSection.count** shows a number after a sidebar label in `caption` and `ink-muted` (myContacts' Review), never a badge; screen readers hear "Review, 4".
+- **Tile colours:** the untinted `surface-sunken` tile no longer counts toward a screen's three: ImportFlow's summary uses accent, info and warning, "every other row is neutral" (decided 2026-10-14), which the earlier count of four tones refused.
