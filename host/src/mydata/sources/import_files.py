@@ -13,7 +13,9 @@ Caps, each refused with ImportFileError (a message for the user, no content):
 
 Each card is cut out of the text on its own, so one malformed card never stops the others: a card without
 END:VCARD, one the line parser rejects, an unsupported VERSION or a vCard 2.1 that cannot be converted is
-skipped with its reason, and text outside any card is reported once.
+skipped with its reason, and text outside any card is reported once. A card far larger than a contact (over
+MAX_CARD_BYTES, MAX_CARD_LINES content lines or MAX_CARD_TEXT of text besides photos) is skipped before it is
+parsed, and cards past the first MAX_CARDS are only counted, so memory stays a small multiple of the input.
 
 vCard 2.1 (Samsung): the line reader joins quoted-printable soft breaks, then vcard_edit.upgrade_21 makes it
 3.0 (values decoded in their CHARSET); the import keeps the 2.1 text as the original (origins.source_raw).
@@ -38,6 +40,13 @@ MAX_EXPANDED = 200 * 1024 * 1024
 MAX_ENTRIES = 10_000
 MAX_RATIO = 200
 MAX_CARDS = 50_000
+# One card: its size, its content lines, and its text without binary values (photos). Parsing a card holds many
+# times its text in memory, so a card past these is not read (a loss, too_large). Real cards are far smaller: a
+# few KB, a photo up to a few hundred KB, a few dozen lines.
+MAX_CARD_BYTES = 8 * 1024 * 1024
+MAX_CARD_LINES = 5_000
+MAX_CARD_TEXT = 1024 * 1024
+_BINARY = {"PHOTO", "LOGO", "SOUND", "KEY"}
 # Zip entries are read only when stored or deflated (Google, Takeout and macOS write these): zlib expands a bounded
 # read in bounded steps, so the caps below hold while the entry is read.
 _READ_COMPRESSION = (zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED)
@@ -48,6 +57,8 @@ SKIP_REASONS = {
     "no_end": "has no END:VCARD (the file may be cut short)",
     "version": "is a vCard version myData does not read",
     "empty": "holds nothing at all (not even a UID)",
+    "too_large": "is far larger than a contact card (over {mb} MB, {lines} lines, or {text} KB of text)".format(
+        mb=MAX_CARD_BYTES // (1024 * 1024), lines=MAX_CARD_LINES, text=MAX_CARD_TEXT // 1024),
     "too_many": "came after the first {n} cards".format(n=MAX_CARDS),
 }
 
@@ -187,34 +198,36 @@ _PHYSICAL = re.compile(r"[^\r\n]*(?:\r\n|\n|\r)|[^\r\n]+\Z")
 
 def _chunks(text: str):
     """(kind, text) for each part of the text: ("card", one card from BEGIN:VCARD to its END:VCARD),
-    ("open", a card with no END:VCARD), ("outside", non-blank text outside any card)."""
-    current: list[str] | None = None
+    ("open", a card with no END:VCARD), ("outside", non-blank text outside any card). Cards are cut out by
+    offset, so a very long card is never held twice as a list of its lines."""
+    start: int | None = None  # where the current card begins
     depth = 0
     outside = False
-    for phys in _PHYSICAL.findall(text):
-        line = phys.strip().lstrip("﻿").upper()
-        if current is None:
+    for match in _PHYSICAL.finditer(text):
+        phys = match.group(0)
+        # Only the start of a line decides (BEGIN:/END:); a long value line is never copied whole to read it.
+        line = (phys if len(phys) <= 256 else phys[:256]).strip().lstrip("\ufeff").upper()
+        if start is None:
             if line == "BEGIN:VCARD":
-                current, depth = [phys], 0
+                start, depth = match.start(), 0
             elif line:
                 outside = True
             continue
         if line == "BEGIN:VCARD" and depth == 0:  # a new card before this one ended
-            yield "open", "".join(current)
-            current = [phys]
+            yield "open", text[start:match.start()]
+            start = match.start()
             continue
-        current.append(phys)
         if line.startswith("BEGIN:"):
             depth += 1
         elif line.startswith("END:"):
             if depth == 0:
                 if line == "END:VCARD":
-                    yield "card", "".join(current)
-                    current = None
+                    yield "card", text[start:match.end()]
+                    start = None
                 continue
             depth -= 1
-    if current is not None:
-        yield "open", "".join(current)
+    if start is not None:
+        yield "open", text[start:]
     if outside:
         yield "outside", ""
 
@@ -247,10 +260,15 @@ def _has_content(card: VCard) -> bool:
 
 def read_card(original: str, index: int, entry: str | None = None) -> ReadCard | Skipped:
     """One card's text as a ReadCard, or why it is skipped."""
+    if len(original) > MAX_CARD_BYTES:
+        return Skipped("too_large", index, entry)
     try:
         card = VCard.parse(original)
     except VCardError:
         return Skipped("unreadable", index, entry)
+    props = card.props()
+    if len(props) > MAX_CARD_LINES or sum(len(p.value) for p in props if p.key not in _BINARY) > MAX_CARD_TEXT:
+        return Skipped("too_large", index, entry)
     version = card.version
     if version not in ("2.1", "3.0", "4.0", ""):
         return Skipped("version", index, entry)
@@ -285,7 +303,7 @@ def _read_text(text: str, result: ReadResult, *, entry: str | None) -> None:
             continue
         index = len(result.cards) + len(result.skipped)
         if index >= MAX_CARDS:
-            result.skipped.append(Skipped("too_many", index, entry))
+            result.note("too_many")  # counted, never cut out or kept: the input may hold millions
             continue
         if kind == "open":
             result.skipped.append(Skipped("no_end", index, entry))

@@ -3,6 +3,7 @@ with their caps, malformed cards skipped one by one, and nothing ever written to
 
 from __future__ import annotations
 
+import base64
 import os
 import tracemalloc
 import zipfile
@@ -11,6 +12,7 @@ import pytest
 
 import import_corpus as corpus
 from mydata.sources import import_files
+from mydata.sources.contacts_store import card_fields
 from mydata.sources.import_files import ImportFileError, content_key, read_contacts
 
 
@@ -121,6 +123,47 @@ def test_nested_and_encrypted_entries_are_reported_not_read():
     raw[central + 8] |= 1
     r = read_contacts(bytes(raw))
     assert r.notes == {"encrypted": 1} and len(r.cards) == 2
+
+
+def test_cards_far_larger_than_a_contact_are_skipped_without_parsing_them():
+    head = "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Ava Fictional\r\n"
+    huge_note = head + "NOTE:" + "x" * (20 * 1024 * 1024) + "\r\nEND:VCARD\r\n"
+    many_lines = head + "EMAIL:ava@example.org\r\n" * (import_files.MAX_CARD_LINES + 1) + "END:VCARD\r\n"
+    long_text = head + "NOTE:" + "x" * (import_files.MAX_CARD_TEXT + 1) + "\r\nEND:VCARD\r\n"
+    data = (huge_note + many_lines + long_text + corpus.read(corpus.GOOGLE).decode()).encode()
+    tracemalloc.start()
+    try:
+        r = read_contacts(data)
+        peak = tracemalloc.get_traced_memory()[1]
+    finally:
+        tracemalloc.stop()
+    assert [(s.reason, s.index) for s in r.skipped] == [("too_large", 0), ("too_large", 1), ("too_large", 2)]
+    assert len(r.cards) == 2
+    assert peak < 4 * len(data)  # parsing it held well over a hundred times its size
+
+
+def test_a_large_photo_is_read_without_parsing_it_in_full():
+    photo = base64.b64encode(os.urandom(3 * 1024 * 1024)).decode()
+    folded = "\r\n ".join(photo[i:i + 74] for i in range(0, len(photo), 74))
+    card = ("BEGIN:VCARD\r\nVERSION:3.0\r\nUID:ava-1@example.org\r\nFN:Ava Fictional\r\nEMAIL:ava@example.org\r\n"
+            f"PHOTO;ENCODING=b;TYPE=JPEG:{folded}\r\nNOTE:Met at the library\\, Tuesdays.\r\nEND:VCARD\r\n")
+    tracemalloc.start()
+    try:
+        [read] = read_contacts(card.encode()).cards
+        fields = card_fields(None, read.text)
+        peak = tracemalloc.get_traced_memory()[1]
+    finally:
+        tracemalloc.stop()
+    assert read.text == card and read.emails == ["ava@example.org"] and read.uid == "ava-1@example.org"
+    assert fields["has_photo"] == 1 and fields["note"] == "Met at the library, Tuesdays."
+    assert fields["raw_vcard"] == card
+    assert peak < 12 * len(card)
+
+
+def test_cards_past_the_limit_are_counted_not_kept(monkeypatch):
+    monkeypatch.setattr(import_files, "MAX_CARDS", 3)
+    r = read_contacts(b"BEGIN:VCARD\n" * 100_000)
+    assert len(r.skipped) == 3 and r.notes == {"too_many": 100_000 - 3}
 
 
 def test_a_file_over_the_cap_is_refused(monkeypatch):

@@ -2,7 +2,7 @@
 sources may be imported (sources/importer.py does the work).
 
 - **Previews** live in this process only, for PREVIEW_TTL seconds (at most MAX_PREVIEWS at a time; the oldest
-  goes first). A preview id that expired, was committed, or was made before the host restarted is gone
+  goes first, before a new input is read). One input is read at a time. A preview id that expired, was committed, or was made before the host restarted is gone
   (PreviewGone): the app reads the file again. Nothing is written for a preview.
 - **Commit** takes a snapshot of the databases first ("always before an import", the owned-data plan 3.4),
   and refuses (SnapshotFailed, nothing imported) if contacts.sqlite cannot be copied. One import runs at a time.
@@ -82,13 +82,17 @@ class ContactImports:
         self._previews: OrderedDict[str, Held] = OrderedDict()
         self._lock = threading.Lock()
         self._write_lock = threading.Lock()
+        # One input is read at a time: reading a large file holds several times its size in memory.
+        self._read_lock = threading.Lock()
 
     # ---------------------------------------------------------------- previews
 
     def preview_file(self, data: bytes, filename: str, actor: str) -> dict:
         """Read an uploaded .vcf or .zip (ImportFileError when it cannot be imported at all) and hold it."""
-        read = read_contacts(data)
-        return self._hold(ImportSource(FILE, "", file_label(filename)), read, actor)
+        with self._read_lock:
+            self._make_room()
+            read = read_contacts(data)
+            return self._hold(ImportSource(FILE, "", file_label(filename)), read, actor)
 
     def preview_source(self, account_id: str, actor: str) -> dict:
         """Copy a followed iCloud account's cards into a preview. NotImportable for This Mac; KeyError for an
@@ -100,14 +104,25 @@ class ContactImports:
             raise KeyError(account_id)
         from ..sources.views import source_heading
         store = self.sources.contacts
-        read = ReadResult()
-        with store.db.connect() as db:
-            rows = importer.followed_cards(db, account_id)
-        for row in rows:
-            card = read_card(row["raw_vcard"], len(read.cards) + len(read.skipped))
-            (read.cards if isinstance(card, ReadCard) else read.skipped).append(card)
-        read.entries_read = 1
-        return self._hold(ImportSource(ICLOUD, account_id, source_heading(account_id, account.email)), read, actor)
+        with self._read_lock:
+            self._make_room()
+            read = ReadResult()
+            with store.db.connect() as db:
+                rows = importer.followed_cards(db, account_id)
+            for row in rows:
+                card = read_card(row["raw_vcard"], len(read.cards) + len(read.skipped))
+                (read.cards if isinstance(card, ReadCard) else read.skipped).append(card)
+            read.entries_read = 1
+            return self._hold(ImportSource(ICLOUD, account_id, source_heading(account_id, account.email)), read,
+                              actor)
+
+    def _make_room(self) -> None:
+        """Drop expired previews, and the oldest while as many are held as allowed, before a new input is read, so
+        the new one's memory never comes on top of them all."""
+        with self._lock:
+            self._expire(self.clock())
+            while len(self._previews) >= self.max_previews:
+                self._previews.popitem(last=False)
 
     def _hold(self, source: ImportSource, read: ReadResult, actor: str) -> dict:
         now = self.clock()

@@ -321,7 +321,7 @@ def analyse(db: sqlite3.Connection, source: ImportSource, read: ReadResult, *,
     items.sort(key=lambda i: i.index)
     missing = _missing(db, source, {c.source_uid for c in read.cards})
     losses, changes = _report(read)
-    return Plan(source, items, losses, changes, missing, _counts(items, missing))
+    return Plan(source, items, losses, changes, missing, _counts(items, missing, read.notes.get("too_many", 0)))
 
 
 def _missing(db: sqlite3.Connection, source: ImportSource, present: set[str]) -> list[dict]:
@@ -363,6 +363,8 @@ def _report(read: ReadResult) -> tuple[list[dict], list[dict]]:
     reasons: dict[str, int] = {}
     for s in read.skipped:
         reasons[s.reason] = reasons.get(s.reason, 0) + 1
+    if read.notes.get("too_many"):  # cards past MAX_CARDS are counted only
+        reasons["too_many"] = reasons.get("too_many", 0) + read.notes["too_many"]
     for reason, n in reasons.items():
         losses.append({"code": f"skipped_{reason}", "count": n,
                        "message": f"{n} card(s) {SKIP_REASONS[reason]}; they are not imported."})
@@ -385,14 +387,15 @@ def _report(read: ReadResult) -> tuple[list[dict], list[dict]]:
     return losses, changes
 
 
-def _counts(items: list[Item], missing: list[dict]) -> dict[str, int]:
+def _counts(items: list[Item], missing: list[dict], uncut: int = 0) -> dict[str, int]:
+    """`uncut`: cards past MAX_CARDS, counted in the input but never read (no item each)."""
     def n(pred) -> int:
         return sum(1 for i in items if pred(i))
     return {
-        "cards": len(items),
+        "cards": len(items) + uncut,
         "contacts": n(lambda i: i.status != "skipped" and i.kind != "group"),
         "groups": n(lambda i: i.kind == "group"),
-        "skipped": n(lambda i: i.status == "skipped"),
+        "skipped": n(lambda i: i.status == "skipped") + uncut,
         "new": n(lambda i: i.status == "new"),
         "duplicates": n(lambda i: i.status == "duplicate"),
         "in_file": n(lambda i: i.status == "in_file"),

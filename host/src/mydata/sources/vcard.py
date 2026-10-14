@@ -122,7 +122,22 @@ def _phone_value(value: str) -> str:
     return value
 
 
+# Values only their presence matters for here (PHOTO: has_photo). In a large card they are emptied before vobject
+# reads it: vobject holds well over a hundred times a value's size while it reads it.
+_BINARY = ("PHOTO", "LOGO", "SOUND", "KEY")
+_LARGE = 64 * 1024
+_BINARY_LINE = re.compile(r"^((?:[A-Za-z0-9-]+\.)?(?:" + "|".join(_BINARY) + r"))[;:].*$", re.IGNORECASE | re.MULTILINE)
+
+
+def _light(text: str) -> str:
+    """The card as parsed: a large card unfolded with its binary values emptied (see _BINARY); others as they are."""
+    if len(text) <= _LARGE:
+        return text
+    return _BINARY_LINE.sub(lambda m: m.group(1) + ":", re.sub(r"\r\n[ \t]|\n[ \t]|\r[ \t]", "", text))
+
+
 def parse_vcard(text: str) -> ParsedContact:
+    text = _light(text)
     try:
         card = vobject.readOne(text, ignoreUnreadable=True)
     except Exception:  # noqa: BLE001 - any parse failure falls back to a line scan

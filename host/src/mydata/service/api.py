@@ -527,7 +527,7 @@ class ImportCountsOut(BaseModel):
 
 class ImportNoteOut(BaseModel):
     code: str = Field(description="skipped_unreadable, skipped_no_end, skipped_version, skipped_empty, "
-                                  "skipped_too_many, nested_zip, encrypted, unsupported_compression (losses); "
+                                  "skipped_too_large, skipped_too_many, nested_zip, encrypted, unsupported_compression (losses); "
                                   "converted_21, windows_1252, outside_text, other_files (changes)")
     count: int
     message: str = Field(description="for the user; holds no contact data")
@@ -550,7 +550,8 @@ class ImportItemOut(BaseModel):
     display_name: str
     status: str = Field(description="new, duplicate, in_file, unchanged, update, conflict, deleted, skipped")
     reason: str | None = Field(default=None, description="conflict: edited, merged or kept_yours; skipped: "
-                                                         "unreadable, no_end, version, empty, too_many")
+                                                         "unreadable, no_end, version, empty, too_large (cards past "
+                                                         "the first 50000 are counted only, with no item)")
     action: str = Field(description="what the commit does unless chosen otherwise: import, update, link (keep the "
                                     "matching contact of yours and hide the followed copy) or skip")
     choices: list[str] = Field(description="the actions this card may be given")

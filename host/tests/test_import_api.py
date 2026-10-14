@@ -176,6 +176,28 @@ def test_previews_expire(tmp_path, monkeypatch):
         assert c.get(f"/import/previews/{held['id']}", headers=bearer(host, "mycontacts")).status_code == 404
 
 
+def test_cards_past_the_limit_are_one_loss_and_the_oldest_preview_goes_before_a_new_read(tmp_path, monkeypatch):
+    monkeypatch.setattr(import_files, "MAX_CARDS", 2)
+    host = Host(tmp_path, FakeDav())
+    with TestClient(host.app, base_url="http://127.0.0.1") as c:
+        r = upload(c, host, corpus.read(corpus.APPLE))
+        preview = r.json()
+        assert [i["status"] for i in preview["items"]] == ["new", "new"]
+        assert preview["counts"]["cards"] == 4 and preview["counts"]["skipped"] == 2
+        assert [(x["code"], x["count"]) for x in preview["losses"]] == [("skipped_too_many", 2)]
+    imports = imports_service.ContactImports(host.sources, max_previews=2)
+    held = []
+    real = imports_service.read_contacts
+
+    def counting(data):
+        held.append(len(imports._previews))
+        return real(data)
+    monkeypatch.setattr(imports_service, "read_contacts", counting)
+    for _ in range(4):
+        imports.preview_file(corpus.read(corpus.GOOGLE), "contacts.vcf", "mycontacts")
+    assert held == [0, 1, 1, 1] and len(imports._previews) == 2  # room is made before each read, not after
+
+
 # ---------------------------------------------------------------- a copy of a followed source
 
 def _follow(host) -> str:

@@ -309,33 +309,71 @@ def _is_qp(first_line: str) -> bool:
     return "QUOTED-PRINTABLE" in head
 
 
+class _Line:
+    """A logical line being joined: its pieces (unfolded) and physical lines, kept as lists so a value folded
+    over many thousands of lines (a photo) is joined once, and its header (the text before the first ':' outside
+    quotes) read as the pieces come, never the whole value again."""
+
+    __slots__ = ("pieces", "raws", "head", "head_done", "quoted")
+
+    def __init__(self) -> None:
+        self.pieces: list[str] = []
+        self.raws: list[str] = []
+        self.head: list[str] = []
+        self.head_done = False
+        self.quoted = False
+
+    def add(self, piece: str, phys: str) -> None:
+        self.pieces.append(piece)
+        self.raws.append(phys)
+        if self.head_done:
+            return
+        for i, ch in enumerate(piece):
+            if ch == '"':
+                self.quoted = not self.quoted
+            elif ch == ":" and not self.quoted:
+                self.head.append(piece[:i])
+                self.head_done = True
+                return
+        self.head.append(piece)
+
+    def is_qp(self) -> bool:
+        return "QUOTED-PRINTABLE" in "".join(self.head).upper()
+
+
 def _logical_lines(text: str, *, keep_fold_space: bool = False) -> list[tuple[str, str]]:
     """(unfolded line, original text with endings) for each content line. A folded line (the next one starts
     with a space or tab) and a vCard 2.1 quoted-printable soft break (a value line ending in "=") are joined;
     a blank line is kept with the line before it. Unfolding drops the space or tab that starts a folded line
     (3.0, 4.0), or keeps it with keep_fold_space (2.1 folds as RFC 822 does: the line break alone goes)."""
-    out: list[list[str]] = []  # [unfolded, raw]
+    out: list[_Line] = []
     qp = qp_open = False
     for phys in _PHYSICAL.findall(text):
         content = phys.rstrip("\r\n")
         if out and qp_open:
-            out[-1][0] = out[-1][0][:-1] + content
-            out[-1][1] += phys
+            line = out[-1]
+            line.pieces[-1] = line.pieces[-1][:-1]
+            line.add(content, phys)
         elif out and content[:1] in (" ", "\t"):
-            out[-1][0] += content if keep_fold_space else content[1:]
-            out[-1][1] += phys
-            qp = _is_qp(out[-1][0])  # ENCODING=QUOTED-PRINTABLE can be on a folded part of the header
+            line = out[-1]
+            line.add(content if keep_fold_space else content[1:], phys)
+            qp = line.is_qp()  # ENCODING=QUOTED-PRINTABLE can be on a folded part of the header
         elif content.strip() == "":
             if out:
-                out[-1][1] += phys
+                out[-1].raws.append(phys)
             else:
-                out.append(["", phys])
+                line = _Line()
+                line.raws.append(phys)
+                line.pieces.append("")
+                out.append(line)
             qp = False
         else:
-            out.append([content, phys])
-            qp = _is_qp(content)
+            line = _Line()
+            line.add(content, phys)
+            out.append(line)
+            qp = line.is_qp()
         qp_open = qp and content.endswith("=")
-    return [(u, r) for u, r in out]
+    return [("".join(line.pieces), "".join(line.raws)) for line in out]
 
 
 def _newline(text: str) -> str:
