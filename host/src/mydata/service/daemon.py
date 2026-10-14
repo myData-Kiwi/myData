@@ -156,8 +156,8 @@ def main(argv: list[str] | None = None) -> int:
         code = int(e.code or 1)
     finally:
         sources.stop()
-        backups.stop()
-        models.stop()
+        models.stop()  # before waiting for a snapshot: `mydata stop` kills the host after 15 seconds
+        backups.stop(timeout=5)  # a daemon thread; a snapshot cut short leaves a .partial-* that prune removes
         settings.pid_path.unlink(missing_ok=True)
         os.close(lock_fd)
         log(logger, logging.INFO, "stopped", code=code)
