@@ -28,6 +28,27 @@ void main() {
       expect(MyDataLink.parse(Uri.parse('mycalendar://day/2026-12-31')), OpenDay(DateTime(2026, 12, 31)));
     });
 
+    test('the import and contact list links', () {
+      expect(MyDataLink.parse('mydata://import/contacts'), const OpenMyDataImport());
+      expect(MyDataLink.parse('MyData://Import/contacts'), const OpenMyDataImport());
+      expect(const OpenMyDataImport().app, MyDataAppId.mydata);
+      expect(const OpenMyDataImport().uri.toString(), 'mydata://import/contacts');
+      expect(MyDataLink.parse('mycontacts://contacts'), const OpenContactList());
+      expect(const OpenContactList().app, MyDataAppId.mycontacts);
+      expect(const OpenContactList().uri.toString(), 'mycontacts://contacts');
+      for (final bad in [
+        'mydata://import',
+        'mydata://import/',
+        'mydata://import/contacts/',
+        'mydata://import/calendars',
+        'mydata://import/contacts?file=x',
+        'mycontacts://contacts/',
+        'mycontacts://contacts#x',
+      ]) {
+        expect(MyDataLink.parse(bad), isNull, reason: bad);
+      }
+    });
+
     test('scheme and first part are case-insensitive, the id keeps its case', () {
       final link = MyDataLink.parse('MyContacts://Contact/AbC-12');
       expect(link, OpenContact('AbC-12'));
@@ -185,6 +206,14 @@ void main() {
       final off = FakeRunner();
       expect(await AppLinks(run: off.call, macOS: false).openApp(MyDataAppId.mycontacts), isFalse);
       expect(off.calls, isEmpty);
+    });
+
+    test('openMyDataImport sends myData its import link', () async {
+      final run = FakeRunner();
+      expect(await AppLinks(run: run.call, macOS: true).openMyDataImport(), isTrue);
+      expect(run.calls, [
+        ['/usr/bin/open', '-b', 'kiwi.mydata.mydata', 'mydata://import/contacts'],
+      ]);
     });
 
     test('openMyDataSources sends myData its settings link', () async {

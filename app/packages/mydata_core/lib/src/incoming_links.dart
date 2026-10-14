@@ -4,8 +4,8 @@ import 'package:flutter/services.dart';
 
 import 'links.dart';
 
-/// Links that macOS opened with this app (`mycontacts://contact/<id>`, `mycalendar://day/<date>`,
-/// `mydata://settings/sources`), as typed [MyDataLink]s.
+/// Links that macOS opened with this app (`mycontacts://contact/<id>`, `mycontacts://contacts`,
+/// `mycalendar://day/<date>`, `mydata://settings/sources`, `mydata://import/contacts`), as typed [MyDataLink]s.
 ///
 /// The app's runner forwards them on the `mydata/links` channel; copy
 /// `packages/mydata_core/macos_snippets/LinksAppDelegate.swift` into the runner (its header says how). The

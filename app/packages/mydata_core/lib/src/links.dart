@@ -26,7 +26,9 @@ enum MyDataAppId {
 ///
 /// - `mycontacts://contact/<id>`: a contact, by its id on the host ([OpenContact]);
 /// - `mycalendar://day/<YYYY-MM-DD>`: a day ([OpenDay]);
-/// - `mydata://settings/sources`: the myData app at Settings, Sources ([OpenMyDataSources]).
+/// - `mycontacts://contacts`: myContacts at its list of contacts ([OpenContactList]);
+/// - `mydata://settings/sources`: the myData app at Settings, Sources ([OpenMyDataSources]);
+/// - `mydata://import/contacts`: the myData app at Import, choosing a contacts file ([OpenMyDataImport]).
 ///
 /// Anything else, including these with a query, a fragment, a port, a trailing slash or a percent escape,
 /// is not a link: [parse] returns null.
@@ -55,6 +57,8 @@ sealed class MyDataLink {
       return date == null ? null : OpenDay(date);
     }
     if (_sourcesLink.hasMatch(s)) return const OpenMyDataSources();
+    if (_importLink.hasMatch(s)) return const OpenMyDataImport();
+    if (_listLink.hasMatch(s)) return const OpenContactList();
     return null;
   }
 
@@ -66,6 +70,8 @@ sealed class MyDataLink {
 final _contactLink = RegExp(r'^mycontacts://contact/([A-Za-z0-9-]{1,64})$', caseSensitive: false);
 final _dayLink = RegExp(r'^mycalendar://day/([0-9]{4})-([0-9]{2})-([0-9]{2})$', caseSensitive: false);
 final _sourcesLink = RegExp(r'^mydata://settings/sources$', caseSensitive: false);
+final _importLink = RegExp(r'^mydata://import/contacts$', caseSensitive: false);
+final _listLink = RegExp(r'^mycontacts://contacts$', caseSensitive: false);
 final _contactId = RegExp(r'^[A-Za-z0-9-]{1,64}$');
 
 /// Show one contact in myContacts.
@@ -149,6 +155,42 @@ final class OpenMyDataSources extends MyDataLink {
   int get hashCode => (OpenMyDataSources).hashCode;
 }
 
+/// Show the myData app at Import, on the step that chooses a contacts file (myContacts' File > Import…;
+/// design/components/ImportFlow, "Where it lives"). An import already in Review or Importing is not
+/// restarted: myData comes forward on that step.
+final class OpenMyDataImport extends MyDataLink {
+  const OpenMyDataImport();
+
+  @override
+  MyDataAppId get app => MyDataAppId.mydata;
+
+  @override
+  Uri get uri => Uri.parse('mydata://import/contacts');
+
+  @override
+  bool operator ==(Object other) => other is OpenMyDataImport;
+
+  @override
+  int get hashCode => (OpenMyDataImport).hashCode;
+}
+
+/// Show myContacts at its list of contacts (the import's Done step: "Open in myContacts").
+final class OpenContactList extends MyDataLink {
+  const OpenContactList();
+
+  @override
+  MyDataAppId get app => MyDataAppId.mycontacts;
+
+  @override
+  Uri get uri => Uri.parse('mycontacts://contacts');
+
+  @override
+  bool operator ==(Object other) => other is OpenContactList;
+
+  @override
+  int get hashCode => (OpenContactList).hashCode;
+}
+
 /// Opening one myData app from another (macOS; elsewhere every answer is false).
 ///
 /// - [isInstalled] asks LaunchServices for the app's bundle id, without launching anything and without
@@ -229,6 +271,9 @@ function run(argv) {
   /// Brings the myData app forward at Settings, Sources (starting it if needed). A myData build that does
   /// not handle links yet still comes forward, on whatever screen it was. False where it could not.
   Future<bool> openMyDataSources() => openLink(const OpenMyDataSources());
+
+  /// Brings the myData app forward at Import (starting it if needed). False where it could not.
+  Future<bool> openMyDataImport() => openLink(const OpenMyDataImport());
 }
 
 /// The app links every app uses; tests may replace it.
