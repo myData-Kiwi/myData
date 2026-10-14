@@ -438,3 +438,66 @@ def test_raw_values_are_written_as_given():
     card.add("X-ADDRESSBOOKSERVER-MEMBER", Raw("urn:uuid:3F1C0F0E-0000-4000-8000-00000000B003"))
     assert "X-ADDRESSBOOKSERVER-MEMBER:urn:uuid:3F1C0F0E-0000-4000-8000-00000000B003\n" in card.to_text(now=NOW)
     assert base64.b64decode(Raw("AAAA")) == b"\x00\x00\x00"
+
+
+# ---------------------------------------------------------------- what an edit may write
+
+@pytest.mark.parametrize("params, message", [
+    ([("TYPE", ["cell\r\nEMAIL:evil@example.invalid"])], "control character"),
+    ([("TYPE", ["cell\x00"])], "control character"),
+    ([("TY PE", ["cell"])], "parameter name"),
+    ([("TYPE:X", ["cell"])], "parameter name"),
+    ([(None, ["CELL;X"])], "without a name"),
+])
+def test_a_parameter_that_would_break_the_line_is_refused(params, message):
+    card = VCard.parse(fixture("apple-3.0.vcf"))
+    with pytest.raises(VCardError, match=message):
+        card.add("TEL", "555-0102", params)
+    with pytest.raises(VCardError, match=message):
+        card.update(card.first("FN"), "Someone", params)
+    assert not card.changed
+
+
+@pytest.mark.parametrize("name, group", [("TEL\r\nEMAIL", ""), ("X:Y", ""), ("TEL", "item1.x"), ("TEL", "a b")])
+def test_a_name_or_group_that_would_break_the_line_is_refused(name, group):
+    card = VCard.parse(fixture("apple-3.0.vcf"))
+    with pytest.raises(VCardError):
+        card.add(name, "555-0102", group=group)
+    if name != "TEL":
+        with pytest.raises(VCardError):
+            card.update(card.first("FN"), name=name)
+
+
+def test_quotes_carets_and_line_breaks_in_a_parameter_are_written_as_rfc_6868_says():
+    card = VCard.parse(fixture("apple-3.0.vcf", "\r\n"))
+    prop = card.add("TEL", "555-0101", [("X-NOTE", ['a":b', "x^y", "two\nlines"])])
+    out = card.to_text(now=NOW)
+    assert "TEL;X-NOTE=\"a^':b\",x^^y,two^nlines:555-0101\r\n" in out
+    again = VCard.parse(out)
+    tel = again.props("TEL")[-1]
+    assert tel.value == "555-0101" and tel.param("X-NOTE") == ['a":b', "x^y", "two\nlines"]
+    assert [p.raw for p in again.props() if p.key not in ("TEL", "REV")] == \
+        [p.raw for p in VCard.parse(fixture("apple-3.0.vcf", "\r\n")).props() if p.key not in ("TEL", "REV")]
+    assert prop.param("X-NOTE")[0] == 'a":b'
+
+
+_ANY_PARAM_TEXT = st.text(st.characters(blacklist_categories=("Cs",)), min_size=1, max_size=20)
+
+
+@settings(max_examples=300, suppress_health_check=[HealthCheck.too_slow])
+@given(st.text(min_size=1, max_size=12), st.lists(_ANY_PARAM_TEXT, min_size=1, max_size=3))
+def test_any_parameter_is_refused_or_reads_back_and_nothing_else_moves(pname, values):
+    text = split_cards(fixture("google-3.0.vcf", "\r\n"))[0].to_text()
+    card = VCard.parse(text)
+    before = [(p.key, p.raw) for p in card.props() if p.key != "REV"]
+    try:
+        card.add("X-PROBE", "probe", [(pname, values)])
+    except VCardError:
+        assert card.to_text() == text
+        return
+    out = card.to_text(now=NOW)
+    again = VCard.parse(out)
+    probe = again.props("X-PROBE")
+    assert len(probe) == 1 and probe[0].value == "probe" and probe[0].param(pname) == values
+    assert [(p.key, p.raw) for p in again.props() if p.key not in ("REV", "X-PROBE")] == before
+

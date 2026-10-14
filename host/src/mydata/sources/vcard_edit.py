@@ -40,6 +40,10 @@ FOLD_OCTETS = 75
 # One physical line with its ending (CRLF, LF or a lone CR), or a last line without one.
 _PHYSICAL = re.compile(r"[^\r\n]*(?:\r\n|\n|\r)|[^\r\n]+\Z")
 _ITEM = re.compile(r"(?i)^item(\d+)$")
+_NAME = re.compile(r"[A-Za-z0-9-]+")
+# Control characters a parameter value may not hold (RFC 6350 3.3: tab is the only one allowed; a line break is
+# written ^n, RFC 6868).
+_PARAM_CTL = re.compile(r"[\x00-\x08\x0b-\x1f\x7f]")
 
 # How a value is written: each part of a compound value escaped, a comma-separated list of texts, or as given
 # (URIs, dates, numbers, identifiers: escaping would change them). Every other property is text.
@@ -148,8 +152,42 @@ def fold(line: str, newline: str = "\r\n") -> str:
     return newline.join(out) + newline
 
 
+def _caret_encode(value: str) -> str:
+    """A parameter value with ^, " and line breaks written as RFC 6868 says (^^, ^' and ^n)."""
+    return value.replace("^", "^^").replace('"', "^'").replace("\n", "^n")
+
+
+def _caret_decode(value: str) -> str:
+    """RFC 6868 undone: ^n is a line break, ^' a double quote, ^^ a caret; any other ^ is itself."""
+    return re.sub(r"\^([n'^])", lambda m: {"n": "\n", "'": '"', "^": "^"}[m.group(1)], value)
+
+
 def _quote_param(value: str) -> str:
+    value = _caret_encode(value)
     return f'"{value}"' if any(c in value for c in ':;,') else value
+
+
+def check_prop(group: str, name: str, params: Sequence[tuple[str | None, list[str]]]) -> None:
+    """Refuse (VCardError) what would not stay one content line as written: a name or group that is not
+    letters, digits and '-', a parameter name likewise, or a parameter value with a control character other
+    than a tab or a line break (which is written ^n). A double quote and ^ are written as RFC 6868 says."""
+    for label, text in (("property name", name), ("group", group)):
+        if (text or label == "property name") and not _NAME.fullmatch(text or ""):
+            raise VCardError(f"a {label} may hold only letters, digits and '-'")
+    for pname, values in params:
+        if pname is None:
+            if len(values) != 1 or not _NAME.fullmatch(values[0]):
+                raise VCardError("a parameter without a name is one word of letters, digits and '-'")
+            continue
+        if not _NAME.fullmatch(pname):
+            raise VCardError("a parameter name may hold only letters, digits and '-'")
+        if not values:
+            raise VCardError(f"parameter {pname} has no value")
+        for value in values:
+            if not isinstance(value, str):
+                raise VCardError(f"parameter {pname} values must be text")
+            if _PARAM_CTL.search(value):
+                raise VCardError(f"parameter {pname} cannot hold a control character")
 
 
 def _unquote(value: str) -> str:
@@ -183,7 +221,8 @@ class Prop:
         return self.name.upper()
 
     def param(self, name: str) -> list[str]:
-        """Every value of a parameter (case ignored), each as written; quoted lists stay one value."""
+        """Every value of a parameter (case ignored), unquoted and with RFC 6868's carets undone; quoted lists
+        stay one value."""
         name = name.upper()
         return [v for n, values in self.params if n is not None and n.upper() == name for v in values]
 
@@ -253,7 +292,7 @@ def _parse_prop(unfolded: str, raw: str) -> Prop | None:
     for token in tokens[1:]:
         if "=" in token:
             pname, pvalue = token.split("=", 1)
-            params.append((pname.strip(), [_unquote(v) for v in _split_quoted(pvalue, ",")]))
+            params.append((pname.strip(), [_caret_decode(_unquote(v)) for v in _split_quoted(pvalue, ",")]))
         elif token:
             params.append((None, [token.strip()]))
     return Prop(group, name, params, value, raw)
@@ -379,7 +418,9 @@ class VCard:
         that group's X-ABLabel."""
         if label is not None and not group:
             group = self.next_item()
-        prop = Prop(group, name, [(n, list(v)) for n, v in params], encode(name, value))
+        params = [(n, list(v)) for n, v in params]
+        check_prop(group, name, params)
+        prop = Prop(group, name, params, encode(name, value))
         self._insert(prop)
         if label is not None:
             self._insert(Prop(group, "X-ABLabel", [], escape_text(label)), after=prop)
@@ -392,6 +433,8 @@ class VCard:
         new_value = prop.value if value is _KEEP else encode(name or prop.name, value)
         new_params = prop.params if params is None else [(n, list(v)) for n, v in params]
         new_name = name or prop.name
+        if params is not None or name is not None:
+            check_prop("", new_name, new_params)
         if (new_value, new_params, new_name) != (prop.value, prop.params, prop.name):
             prop.value, prop.params, prop.name = new_value, new_params, new_name
             prop.touch()
