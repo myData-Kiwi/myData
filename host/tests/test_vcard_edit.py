@@ -501,3 +501,27 @@ def test_any_parameter_is_refused_or_reads_back_and_nothing_else_moves(pname, va
     assert len(probe) == 1 and probe[0].value == "probe" and probe[0].param(pname) == values
     assert [(p.key, p.raw) for p in again.props() if p.key not in ("REV", "X-PROBE")] == before
 
+
+def test_a_new_value_drops_a_quoted_printable_encoding_so_the_next_line_survives():
+    text = ("BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Kai Invented\r\nN:Invented;Kai;;;\r\n"
+            "NOTE;ENCODING=QUOTED-PRINTABLE;CHARSET=UTF-8:caf=C3=A9\r\nTEL;TYPE=CELL:555-0101\r\nEND:VCARD\r\n")
+    assert VCard.parse(text).first("NOTE").text() == "café"
+    for value in ("total =", "a=3D b"):
+        card = VCard.parse(text)
+        card.set("NOTE", value)
+        out = card.to_text(now=NOW)
+        again = VCard.parse(out)
+        assert again.first("NOTE").text() == value and "QUOTED-PRINTABLE" not in out and "CHARSET" not in out
+        assert again.first("TEL").raw == "TEL;TYPE=CELL:555-0101\r\n"
+        assert parse_vcard(out).note == value
+    card = VCard.parse(text)
+    with pytest.raises(VCardError, match="quoted-printable"):
+        card.set("NOTE", "x", [("ENCODING", ["QUOTED-PRINTABLE"])])
+
+
+def test_a_link_replacing_an_embedded_photo_drops_its_encoding():
+    card = VCard.parse(fixture("apple-3.0.vcf"))
+    assert card.first("PHOTO").encoding == "B"
+    card.set("PHOTO", Raw("https://example.org/p.jpg"))
+    photo_prop = VCard.parse(card.to_text(now=NOW)).first("PHOTO")
+    assert photo_prop.encoding == "" and photo_prop.value == "https://example.org/p.jpg"

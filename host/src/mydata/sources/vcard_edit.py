@@ -428,13 +428,27 @@ class VCard:
 
     def update(self, prop: Prop, value=_KEEP, params: Sequence[tuple[str | None, list[str]]] | None = None, *,
                name: str | None = None) -> Prop:
-        """Change a property in place (its position and group are kept): its value, its parameters, its name."""
+        """Change a property in place (its position and group are kept): its value, its parameters, its name.
+        A new value given without parameters drops the old value's ENCODING and CHARSET (and a 2.1 bare
+        QUOTED-PRINTABLE or BASE64): the new value is written as plain text."""
         self._index(prop)
         new_value = prop.value if value is _KEEP else encode(name or prop.name, value)
-        new_params = prop.params if params is None else [(n, list(v)) for n, v in params]
+        if params is not None:
+            new_params = [(n, list(v)) for n, v in params]
+        elif value is not _KEEP:
+            # The new value is plain 3.0/4.0 text: an encoding or charset kept from the old one would misread it
+            # (a quoted-printable value ending in "=" would swallow the next line; a link would be read as base64).
+            new_params = [(n, v) for n, v in prop.params
+                          if not (n is None and v[0].upper() in _ENCODINGS_21)
+                          and not (n is not None and n.upper() in ("ENCODING", "CHARSET"))]
+        else:
+            new_params = prop.params
         new_name = name or prop.name
         if params is not None or name is not None:
             check_prop("", new_name, new_params)
+        if any(n is not None and n.upper() == "ENCODING" and any(x.upper() == "QUOTED-PRINTABLE" for x in v)
+               or n is None and v[0].upper() == "QUOTED-PRINTABLE" for n, v in new_params) and new_value != prop.value:
+            raise VCardError("a value is never written quoted-printable")
         if (new_value, new_params, new_name) != (prop.value, prop.params, prop.name):
             prop.value, prop.params, prop.name = new_value, new_params, new_name
             prop.touch()
