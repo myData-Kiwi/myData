@@ -32,6 +32,7 @@ export 'src/widgets/grouped_list.dart';
 export 'src/widgets/grouped_section.dart';
 export 'src/widgets/icon_button.dart';
 export 'src/widgets/icon_tile.dart';
+export 'src/widgets/inspector.dart';
 export 'src/widgets/kiwi.dart';
 export 'src/widgets/menu.dart';
 export 'src/widgets/mono_well.dart';
