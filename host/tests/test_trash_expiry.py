@@ -23,7 +23,7 @@ def test_the_daily_expiry_purges_the_trash_after_30_days(tmp_path):
 
 def _expire(host, client):
     contact = create(client, host).json()["contact"]
-    client.delete(f"/contacts/{contact['id']}", headers=bearer(host, "mycontacts"))
+    client.delete(f"/contacts/{contact['id']}", headers={**bearer(host, "mycontacts"), "If-Match": contact["etag"]})
     purge_after = datetime.fromisoformat(client.get("/trash", headers=host.auth).json()[0]["purge_after"])
     early = TrashExpiry(host.sources, clock=lambda: purge_after - timedelta(minutes=1))
     assert early.run_once() == 0 and len(client.get("/trash", headers=host.auth).json()) == 1
@@ -43,7 +43,7 @@ def test_the_job_runs_when_the_host_starts_and_stops_with_it(tmp_path):
     host = Host(tmp_path, FakeDav())
     with TestClient(host.app, base_url="http://127.0.0.1") as client:
         contact = create(client, host).json()["contact"]
-        client.delete(f"/contacts/{contact['id']}", headers=bearer(host, "mycontacts"))
+        client.delete(f"/contacts/{contact['id']}", headers={**bearer(host, "mycontacts"), "If-Match": contact["etag"]})
         job = TrashExpiry(host.sources, interval=3600, clock=lambda: datetime.now(timezone.utc) + timedelta(days=31))
         job.start()
         deadline = time.time() + 5

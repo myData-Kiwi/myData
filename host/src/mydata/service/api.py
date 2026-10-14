@@ -24,9 +24,9 @@
   GET  /contacts/{id}/photo    the contact's photo (JPEG or PNG), or 404
   POST /contacts               create a contact the host owns (in its "myData" address book)
   PATCH /contacts/{id}         change an owned contact; If-Match with its etag is required
-  DELETE /contacts/{id}        move an owned contact to Recently deleted (purged after 30 days)
+  DELETE /contacts/{id}        move an owned contact to Recently deleted (purged after 30 days); If-Match required
   GET  /trash                  what is in Recently deleted, and when each item is purged
-  DELETE /trash/{id}           delete an item in Recently deleted for good now
+  DELETE /trash/{id}           delete an item in Recently deleted for good now; If-Match required
   POST /trash/{id}/restore     bring an item back from Recently deleted
   POST /undo/{id}              undo one change (as a new change; refused if the item changed since)
   GET  /calendars              mirrored calendars
@@ -1142,14 +1142,18 @@ def _routes_contact_writes(app: FastAPI, need: Callable[[], SyncService], unavai
         return answer(service, written, "update", who, response)
 
     @app.delete("/contacts/{contact_id}", dependencies=needs("contacts:write"), tags=["sources"],
-                response_model=ContactWriteOut, responses={**refused, **stale, **unavailable})
+                response_model=ContactWriteOut,
+                responses={**refused, **stale, 428: {"description": "If-Match is missing"}, **unavailable})
     def delete_contact(contact_id: str, request: Request,
                        if_match: str | None = Header(default=None, alias="If-Match",
-                                                     description="optional: refuse if the contact changed since")
+                                                     description="the etag of the contact the user chose to delete")
                        ) -> ContactWriteOut:
         """Move an owned contact to Recently deleted. It is deleted for good after 30 days (purge_after); until
-        then POST /trash/{id}/restore or the undo id brings it back. Copies in the host's snapshots stay until
-        those expire (within 12 months while the host runs)."""
+        then POST /trash/{id}/restore or the undo id brings it back. Refused with 412 when the contact changed
+        since its etag. Copies in the host's snapshots stay until those expire (within 12 months while the host
+        runs)."""
+        if not if_match:
+            raise HTTPException(428, "Send the contact's etag as If-Match.")
         service = need()
         who = actor(request)
         written = run(lambda: cw.delete(service.contacts, contact_id, if_match=if_match, actor=who))
@@ -1168,14 +1172,24 @@ def _routes_contact_writes(app: FastAPI, need: Callable[[], SyncService], unavai
 
     @app.delete("/trash/{item_id}", dependencies=needs("contacts:write"), tags=["sources"], status_code=204,
                 responses={404: {"description": "no such item in Recently deleted"},
-                           409: {"description": "the contact is followed from a source"}, **unavailable})
-    def purge_item(item_id: str, request: Request) -> Response:
+                           409: {"description": "the contact is followed from a source"}, **stale,
+                           428: {"description": "If-Match is missing"}, **unavailable})
+    def purge_item(item_id: str, request: Request,
+                   if_match: str | None = Header(default=None, alias="If-Match",
+                                                 description="the item's etag as Recently deleted lists it "
+                                                             "(contact.etag)")) -> Response:
         """Delete an item in Recently deleted for good now, with its earlier versions; it cannot be brought back
-        or undone. Copies in the host's snapshots stay until those expire (backups_kept_until)."""
+        or undone. Refused with 412 when the item changed since its etag (restored, changed and deleted again
+        elsewhere): look at it again first. The host log records which app asked. Copies in the host's
+        snapshots stay until those expire (backups_kept_until)."""
+        if not if_match:
+            raise HTTPException(428, "Send the item's etag as If-Match.")
         service = need()
         who = actor(request)
         try:
-            cw.purge_now(service.contacts, item_id)
+            cw.purge_now(service.contacts, item_id, if_match=if_match)
+        except cw.PreconditionFailed as e:
+            raise _JSONError(412, {"detail": str(e), "etag": e.etag}, headers={"ETag": e.etag}) from None
         except cw.NotFound as e:
             raise HTTPException(404, str(e)) from None
         except cw.WriteError as e:
@@ -1184,12 +1198,17 @@ def _routes_contact_writes(app: FastAPI, need: Callable[[], SyncService], unavai
         return Response(status_code=204)
 
     @app.post("/trash/{item_id}/restore", dependencies=needs("contacts:write"), tags=["sources"],
-              response_model=ContactWriteOut, responses={**refused, **unavailable})
-    def restore_item(item_id: str, request: Request) -> ContactWriteOut:
-        """Bring an item back from Recently deleted. 404 when it is not there (or was deleted for good)."""
+              response_model=ContactWriteOut, responses={**refused, **stale, **unavailable})
+    def restore_item(item_id: str, request: Request,
+                     if_match: str | None = Header(default=None, alias="If-Match",
+                                                   description="optional: the item's etag as Recently deleted lists "
+                                                               "it; refuse if it changed since")
+                     ) -> ContactWriteOut:
+        """Bring an item back from Recently deleted. 404 when it is not there (or was deleted for good); 412 when
+        If-Match is sent and the item changed since."""
         service = need()
         who = actor(request)
-        written = run(lambda: cw.restore(service.contacts, item_id, actor=who))
+        written = run(lambda: cw.restore(service.contacts, item_id, if_match=if_match, actor=who))
         return answer(service, written, "restore", who)
 
     @app.post("/undo/{undo_id}", dependencies=needs("contacts:write"), tags=["sources"], response_model=UndoOut,

@@ -19,7 +19,9 @@ each store's migration):
   them as well. A plain connection without that pragma is not covered against a replace.
 
 A permit is a row of `purge_permits`, written by purge() in the same transaction as the delete and removed
-before it commits. Only the trash expiry and "Forget" (both later) may call purge().
+before it commits. Only these may call purge(): the trash expiry (contacts_write.expire_trash), deleting an
+item in Recently deleted for good when the user asks (contacts_write.purge_now, only at the etag the user saw,
+and logged with who asked) and "Forget" (later).
 
 The other tables added with modes are empty until the writers and the import exist: `revisions` (each
 version of an owned row's raw text), `changes` (the change feed), `imports`, `origins` (where an imported
@@ -140,7 +142,7 @@ def protection(collections: str, rows: str, fk: str, also: Sequence[tuple[str, s
 def purge(db: sqlite3.Connection, store: tuple[str, str, str], *, collection_ids: Iterable[str] = (),
           row_ids: Iterable[str] = (), also: Sequence[tuple[str, str]] = ()) -> dict[str, int]:
     """Hard-delete rows, and collections with everything in them, owned or not. The only code that may delete
-    owned data: the trash expiry and "Forget" (not built yet). It must run inside the caller's transaction,
+    owned data: the trash expiry, a delete for good from Recently deleted, and "Forget" (not built yet). It must run inside the caller's transaction,
     which it leaves holding no permit. Returns {"collections", "rows"} deleted."""
     if not db.in_transaction:
         raise RuntimeError("purge runs inside the caller's transaction")

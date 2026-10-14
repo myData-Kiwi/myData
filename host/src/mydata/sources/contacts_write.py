@@ -15,8 +15,9 @@ Every write is one transaction holding:
 - a `changes` row (the change feed: add, modify or delete);
 - an `undo_log` row, whose id the caller gets back.
 
-Concurrency: an edit names the etag it was made from (If-Match); a card that changed since is refused with
-PreconditionFailed, which carries the current etag, and nothing is written.
+Concurrency: an edit, a delete and a delete for good name the etag they were made from (If-Match; the API
+requires it, 428 without), and a restore may; a card that changed since is refused with PreconditionFailed,
+which carries the current etag, and nothing is written.
 
 Undo (undo()) never goes back in place: it writes a new revision forward, and only when the card is still at
 the revision the action wrote (anything later, an edit or another undo, refuses it: UndoRefused). An action
@@ -26,8 +27,10 @@ delete restores the card; undoing a restore deletes it again. An undo is not its
 
 Delete is soft: `deleted_at` is set and `purge_after` is 30 days later. expire_trash() (the host runs it
 daily) purges cards past their date through purge permits (owned.purge), with their revisions, which hold
-their text, and purge_now() does the same for one card when the user deletes it for good; the change feed and undo log rows hold no contact data and stay. Copies in the host's snapshots
-stay until those expire (backup.kept_until).
+their text, and purge_now() does the same for one card when the user deletes it for good from Recently
+deleted (only at the etag the user saw there, so a card restored, changed and deleted again elsewhere is
+never purged unseen); the change feed and undo log rows hold no contact data and stay. The host log records
+who purged what (ids only). Copies in the host's snapshots stay until those expire (backup.kept_until).
 
 Group cards are not contacts here (they are never found by id), so they are never written; a contact's
 membership in a group is by UID, which no edit changes.
@@ -232,7 +235,7 @@ def update(store: ContactsStore, contact_id: str, form: dict, *, if_match: str, 
 
 
 def delete(store: ContactsStore, contact_id: str, *, if_match: str | None = None, actor: str) -> Written:
-    """Move the card to Recently deleted, to be purged after TRASH_DAYS."""
+    """Move the card to Recently deleted, to be purged after TRASH_DAYS. The API always passes `if_match`."""
     at = _clock(store)()
     when = stamp(at)
     with store.db.transaction() as db:
@@ -247,14 +250,15 @@ def delete(store: ContactsStore, contact_id: str, *, if_match: str | None = None
     return Written(contact_id, undo_id)
 
 
-def restore(store: ContactsStore, contact_id: str, *, actor: str) -> Written:
-    """Bring a card back from Recently deleted."""
+def restore(store: ContactsStore, contact_id: str, *, if_match: str | None = None, actor: str) -> Written:
+    """Bring a card back from Recently deleted (from etag `if_match`, when given)."""
     at = _clock(store)()
     when = stamp(at)
     with store.db.transaction() as db:
         row = _row(db, contact_id)
         if row["deleted_at"] is None:
             raise NotFound("This contact is not in Recently deleted.")
+        _check_etag(row, if_match)
         _baseline(db, row)
         rev = _set_deleted(db, row, False, at)
         undo_id = _record(db, contact_id, row["address_book_id"], row["href"], rev, None, "restore", "add", actor,
@@ -309,14 +313,19 @@ def trash(store: ContactsStore) -> list[dict]:
     return [public_row(r) for r in rows]
 
 
-def purge_now(store: ContactsStore, contact_id: str) -> None:
+def purge_now(store: ContactsStore, contact_id: str, *, if_match: str) -> None:
     """Delete one card in Recently deleted for good now, because the user asked, with its revisions, as
     expire_trash does for cards whose time is over. A card that is not in Recently deleted is refused
-    (NotFound), so a contact in use is never purged by mistake; a followed one is refused (ReadOnly)."""
+    (NotFound), so a contact in use is never purged by mistake; a followed one is refused (ReadOnly); one
+    whose etag is not `if_match` (restored, changed and deleted again since the user saw it) is refused
+    (PreconditionFailed). The caller logs who asked."""
     with store.db.transaction() as db:
         row = _row(db, contact_id)
         if row["deleted_at"] is None:
             raise NotFound("This contact is not in Recently deleted.")
+        current = http_etag(row["rev"], row["raw_sha256"])
+        if not if_match or if_match.strip() != current:
+            raise PreconditionFailed("This contact changed since it was read. Look at it again first.", current)
         owned.purge(db, owned.CONTACTS, row_ids=[contact_id])
         db.execute("DELETE FROM revisions WHERE object_id = ?", (contact_id,))
         db.execute("INSERT INTO contacts_fts (contacts_fts) VALUES ('optimize')")

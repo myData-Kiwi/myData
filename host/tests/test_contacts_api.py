@@ -119,7 +119,7 @@ def test_delete_trash_restore_and_undo(host, client):
     auth = bearer(host, "mycontacts")
     contact = create(client, host).json()["contact"]
     path = f"/contacts/{contact['id']}"
-    r = client.delete(path, headers=auth)
+    r = client.delete(path, headers={**auth, "If-Match": contact["etag"]})
     assert r.status_code == 200, r.text
     deleted, undo_delete = r.json()["contact"], r.json()["undo_id"]
     assert deleted["deleted_at"] and deleted["purge_after"] > deleted["deleted_at"]
@@ -129,15 +129,16 @@ def test_delete_trash_restore_and_undo(host, client):
     assert [(t["id"], t["kind"], t["title"], t["purge_after"]) for t in trash] == [
         (contact["id"], "contact", "Ava Fictional", deleted["purge_after"])]
     assert client.patch(path, headers={**auth, "If-Match": deleted["etag"]}, json={"nickname": "x"}).status_code == 409
-    assert client.delete(path, headers=auth).status_code == 409
+    assert client.delete(path, headers={**auth, "If-Match": deleted["etag"]}).status_code == 409
     r = client.post(f"/trash/{contact['id']}/restore", headers=auth)
     assert r.status_code == 200 and r.json()["contact"]["deleted_at"] is None
+    restored = r.json()["contact"]
     assert client.get("/trash", headers=auth).json() == []
     assert client.post(f"/trash/{contact['id']}/restore", headers=auth).status_code == 404
     # The delete's undo now comes after the restore: refused, nothing changes.
     r = client.post(f"/undo/{undo_delete}", headers=auth)
     assert r.status_code == 409 and "changed since" in r.json()["detail"]
-    undo_restore = client.delete(path, headers=auth).json()["undo_id"]
+    undo_restore = client.delete(path, headers={**auth, "If-Match": restored["etag"]}).json()["undo_id"]
     r = client.post(f"/undo/{undo_restore}", headers=bearer(host, "mydata"))
     assert r.status_code == 200 and r.json()["contact"]["deleted_at"] is None and r.json()["undo_id"] == undo_restore
     assert client.post(f"/undo/{undo_restore}", headers=auth).status_code == 409
@@ -149,19 +150,22 @@ def test_delete_for_good_from_recently_deleted(host, client):
     contact = create(client, host).json()["contact"]
     keep = create(client, host, {"company": "Example Library"}).json()["contact"]
     path = f"/contacts/{contact['id']}"
-    assert client.delete(f"/trash/{contact['id']}", headers=auth).status_code == 404  # not in the trash: kept
-    undo_delete = client.delete(path, headers=auth).json()["undo_id"]
+    in_use = {**auth, "If-Match": contact["etag"]}
+    assert client.delete(f"/trash/{contact['id']}", headers=in_use).status_code == 404  # not in the trash: kept
+    undo_delete = client.delete(path, headers=in_use).json()["undo_id"]
     [item] = client.get("/trash", headers=auth).json()
     kept = date.fromisoformat(item["backups_kept_until"])
     assert kept.day == 1 and kept > date.today()
-    r = client.delete(f"/trash/{contact['id']}", headers=auth)
+    assert client.delete(f"/trash/{contact['id']}", headers=auth).status_code == 428
+    r = client.delete(f"/trash/{contact['id']}", headers={**auth, "If-Match": item["contact"]["etag"]})
     assert r.status_code == 204 and r.content == b""
     assert client.get("/trash", headers=auth).json() == []
     assert client.get(path, headers=auth).status_code == 404
     assert client.post(f"/trash/{contact['id']}/restore", headers=auth).status_code == 404
     r = client.post(f"/undo/{undo_delete}", headers=auth)
     assert r.status_code == 409 and "deleted for good" in r.json()["detail"]
-    assert client.delete(f"/trash/{contact['id']}", headers=auth).status_code == 404
+    assert client.delete(f"/trash/{contact['id']}", headers={**auth, "If-Match": item["contact"]["etag"]}
+                         ).status_code == 404
     db = host.sources.contacts.db
     with db.connect() as c:
         assert c.execute("SELECT COUNT(*) FROM revisions WHERE object_id = ?", (contact["id"],)).fetchone()[0] == 0
@@ -194,8 +198,9 @@ def test_followed_contacts_cannot_be_changed(host, client):
     r = client.patch(f"/contacts/{target['id']}", headers={**auth, "If-Match": target["etag"]},
                      json={"given_name": "Changed"})
     assert r.status_code == 409 and "followed" in r.json()["detail"]
-    assert client.delete(f"/contacts/{target['id']}", headers=auth).status_code == 409
-    assert client.delete(f"/trash/{target['id']}", headers=auth).status_code == 409
+    tagged = {**auth, "If-Match": target["etag"]}
+    assert client.delete(f"/contacts/{target['id']}", headers=tagged).status_code == 409
+    assert client.delete(f"/trash/{target['id']}", headers=tagged).status_code == 409
     assert client.get(f"/contacts/{target['id']}", headers=auth).json()["display_name"] == target["display_name"]
 
 
@@ -247,3 +252,53 @@ def test_the_logs_hold_no_contact_data(host, client, caplog):
     for secret in SECRETS:
         assert secret not in logged, secret
     assert LAST_ERROR.last is None or not any(s in str(LAST_ERROR.last) for s in SECRETS)
+
+
+def test_delete_needs_if_match_and_refuses_a_stale_one(host, client):
+    """A window with an old list must not send a newer edit to Recently deleted unseen."""
+    auth = bearer(host, "mycontacts")
+    contact = create(client, host).json()["contact"]
+    path = f"/contacts/{contact['id']}"
+    assert client.delete(path, headers=auth).status_code == 428
+    newer = client.patch(path, headers={**bearer(host, "mydata"), "If-Match": contact["etag"]},
+                         json={"phones": [{"label": "home", "value": "+1 555 0101"}]}).json()["contact"]
+    r = client.delete(path, headers={**auth, "If-Match": contact["etag"]})
+    assert r.status_code == 412 and r.json()["etag"] == newer["etag"] and r.headers["ETag"] == newer["etag"]
+    assert client.get(path, headers=auth).json()["phones"] == newer["phones"]
+    assert client.delete(path, headers={**auth, "If-Match": newer["etag"]}).status_code == 200
+
+
+def test_delete_for_good_needs_the_etag_seen_in_recently_deleted(host, client):
+    """Window B lists Ava in Recently deleted; elsewhere she is restored, edited and deleted again. B's
+    "Delete permanently" must not purge the newer version: 412, and she stays."""
+    auth = bearer(host, "mycontacts")
+    contact = create(client, host).json()["contact"]
+    path = f"/contacts/{contact['id']}"
+    client.delete(path, headers={**auth, "If-Match": contact["etag"]})
+    [seen_by_b] = client.get("/trash", headers=auth).json()
+    other = bearer(host, "mydata")
+    restored = client.post(f"/trash/{contact['id']}/restore", headers=other).json()["contact"]
+    edited = client.patch(path, headers={**other, "If-Match": restored["etag"]},
+                          json={"job_title": "Inventor"}).json()["contact"]
+    client.delete(path, headers={**other, "If-Match": edited["etag"]})
+    r = client.delete(f"/trash/{contact['id']}", headers={**auth, "If-Match": seen_by_b["contact"]["etag"]})
+    assert r.status_code == 412 and r.headers["ETag"] != seen_by_b["contact"]["etag"]
+    [now] = client.get("/trash", headers=auth).json()
+    assert now["contact"]["etag"] == r.json()["etag"]
+    # Restoring from the stale view is refused the same way when it names its etag.
+    r = client.post(f"/trash/{contact['id']}/restore", headers={**auth, "If-Match": seen_by_b["contact"]["etag"]})
+    assert r.status_code == 412
+    assert client.delete(f"/trash/{contact['id']}", headers={**auth, "If-Match": now["contact"]["etag"]}
+                         ).status_code == 204
+
+
+def test_a_delete_for_good_is_logged_with_the_app_that_asked(host, client, caplog):
+    caplog.set_level(logging.INFO)
+    auth = bearer(host, "mycontacts")
+    contact = create(client, host).json()["contact"]
+    client.delete(f"/contacts/{contact['id']}", headers={**auth, "If-Match": contact["etag"]})
+    [item] = client.get("/trash", headers=auth).json()
+    assert client.delete(f"/trash/{contact['id']}", headers={**auth, "If-Match": item["contact"]["etag"]}
+                         ).status_code == 204
+    [purged] = [r for r in caplog.records if r.getMessage() == "contact purged"]
+    assert purged.fields == {"actor": "mycontacts", "contact_id": contact["id"]}

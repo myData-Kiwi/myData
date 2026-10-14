@@ -3941,7 +3941,7 @@
     },
     "/contacts/{contact_id}": {
       "delete": {
-        "description": "Move an owned contact to Recently deleted. It is deleted for good after 30 days (purge_after); until\nthen POST /trash/{id}/restore or the undo id brings it back. Copies in the host's snapshots stay until\nthose expire (within 12 months while the host runs).",
+        "description": "Move an owned contact to Recently deleted. It is deleted for good after 30 days (purge_after); until\nthen POST /trash/{id}/restore or the undo id brings it back. Refused with 412 when the contact changed\nsince its etag. Copies in the host's snapshots stay until those expire (within 12 months while the host\nruns).",
         "operationId": "delete_contact",
         "parameters": [
           {
@@ -3954,7 +3954,7 @@
             }
           },
           {
-            "description": "optional: refuse if the contact changed since",
+            "description": "the etag of the contact the user chose to delete",
             "in": "header",
             "name": "If-Match",
             "required": false,
@@ -3967,7 +3967,7 @@
                   "type": "null"
                 }
               ],
-              "description": "optional: refuse if the contact changed since",
+              "description": "the etag of the contact the user chose to delete",
               "title": "If-Match"
             }
           }
@@ -4046,6 +4046,9 @@
               }
             },
             "description": "Validation Error"
+          },
+          "428": {
+            "description": "If-Match is missing"
           },
           "503": {
             "description": "accounts are not available in this host"
@@ -5256,7 +5259,7 @@
     },
     "/trash/{item_id}": {
       "delete": {
-        "description": "Delete an item in Recently deleted for good now, with its earlier versions; it cannot be brought back\nor undone. Copies in the host's snapshots stay until those expire (backups_kept_until).",
+        "description": "Delete an item in Recently deleted for good now, with its earlier versions; it cannot be brought back\nor undone. Refused with 412 when the item changed since its etag (restored, changed and deleted again\nelsewhere): look at it again first. The host log records which app asked. Copies in the host's\nsnapshots stay until those expire (backups_kept_until).",
         "operationId": "purge_item",
         "parameters": [
           {
@@ -5266,6 +5269,24 @@
             "schema": {
               "title": "Item Id",
               "type": "string"
+            }
+          },
+          {
+            "description": "the item's etag as Recently deleted lists it (contact.etag)",
+            "in": "header",
+            "name": "If-Match",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "the item's etag as Recently deleted lists it (contact.etag)",
+              "title": "If-Match"
             }
           }
         ],
@@ -5299,6 +5320,24 @@
           "409": {
             "description": "the contact is followed from a source"
           },
+          "412": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreconditionFailedOut"
+                }
+              }
+            },
+            "description": "the contact changed since the etag sent; `etag` is the current one",
+            "headers": {
+              "ETag": {
+                "description": "the contact's etag",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
           "421": {
             "content": {
               "application/json": {
@@ -5319,6 +5358,9 @@
             },
             "description": "Validation Error"
           },
+          "428": {
+            "description": "If-Match is missing"
+          },
           "503": {
             "description": "accounts are not available in this host"
           }
@@ -5334,7 +5376,7 @@
     },
     "/trash/{item_id}/restore": {
       "post": {
-        "description": "Bring an item back from Recently deleted. 404 when it is not there (or was deleted for good).",
+        "description": "Bring an item back from Recently deleted. 404 when it is not there (or was deleted for good); 412 when\nIf-Match is sent and the item changed since.",
         "operationId": "restore_item",
         "parameters": [
           {
@@ -5344,6 +5386,24 @@
             "schema": {
               "title": "Item Id",
               "type": "string"
+            }
+          },
+          {
+            "description": "optional: the item's etag as Recently deleted lists it; refuse if it changed since",
+            "in": "header",
+            "name": "If-Match",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "optional: the item's etag as Recently deleted lists it; refuse if it changed since",
+              "title": "If-Match"
             }
           }
         ],
@@ -5383,6 +5443,24 @@
           },
           "409": {
             "description": "the contact is followed from a source (change it there), or is in Recently deleted"
+          },
+          "412": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreconditionFailedOut"
+                }
+              }
+            },
+            "description": "the contact changed since the etag sent; `etag` is the current one",
+            "headers": {
+              "ETag": {
+                "description": "the contact's etag",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "421": {
             "content": {
