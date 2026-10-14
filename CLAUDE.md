@@ -187,7 +187,7 @@ Phase 4, app side (2026-10-14): `app/apps/mydata/lib/src/import/`, `app/apps/myc
 
 ### Contacts and calendars sources
 
-Read-only mirrors in `contacts.sqlite` and `calendar.sqlite` (`host/src/mydata/sources/`). The user turns each source on or off in the myData app (Settings, Sources); turning one off deletes what it mirrored from the mirror. **Copies stay in the host's snapshots until they expire:** by the first day of the same month next year (`backup.kept_until`), while the host keeps running. The CLI and the API docs say so; the myData app's turn-off and remove dialogs do not yet.
+Read-only mirrors in `contacts.sqlite` and `calendar.sqlite` (`host/src/mydata/sources/`). The user turns each source on or off in the myData app (Settings, Sources); turning one off deletes what it mirrored from the mirror. **Copies stay in the host's snapshots until they expire:** by the first day of the same month next year (`backup.kept_until`), while the host keeps running. The CLI, the API docs and the myData app's turn-off and remove dialogs say so.
 
 - **Group cards** (iCloud's `X-ADDRESSBOOKSERVER-KIND:group`, vCard 4's `KIND:group`) are stored with `kind = 'group'` and never listed, counted, searched or found by `find_contact`; the export keeps them in a separate file.
 - **Followed sources stay read-only.** No source ever writes back: the iCloud client sends only PROPFIND, REPORT, OPTIONS and GET, and the Mac helper has no write calls. Writing back to a provider is not planned; owned data reaches other devices through the host's own CardDAV/CalDAV server (see "Direction").
