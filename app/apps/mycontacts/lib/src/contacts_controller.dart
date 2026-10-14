@@ -466,6 +466,23 @@ class ContactsController extends ChangeNotifier {
     _notify();
   }
 
+  /// Contact [id] as the host has it now, for the inspector to open on (a page read earlier may be older than
+  /// a change made in another app). It replaces the page shown. When the host does not answer, the page read
+  /// earlier, if any (a save from it is refused if it is stale); null when the host has no such contact.
+  Future<ContactDetailOut?> readForEdit(String id) async {
+    final ContactDetailOut? fresh;
+    try {
+      fresh = await backend.contact(id);
+    } on Object {
+      final known = _details[id];
+      return known is DetailReady ? known.contact : null;
+    }
+    if (_disposed) return fresh;
+    _details[id] = fresh == null ? const DetailMissing() : DetailReady(fresh);
+    _notify();
+    return fresh;
+  }
+
   /// The inspector closed.
   void endEdit() {
     if (editing == null) return;
@@ -548,7 +565,9 @@ class ContactsController extends ChangeNotifier {
     final undoIds = <String>[];
     final names = <String>[];
     WriteFailure? failure;
+    String? failedId;
     for (final id in ids) {
+      failedId = id;
       try {
         final etag = await _etagOf(id);
         if (etag == null) throw const Gone();
@@ -565,6 +584,16 @@ class ContactsController extends ChangeNotifier {
       }
     }
     if (_disposed) return BulkResult(done, failure, null);
+    if (failure is ChangedElsewhere && failedId != null) {
+      // It changed elsewhere since this app read it: read its page and the list again, so the pane shows the
+      // host's version and the next Delete names it.
+      if (failedId == selectedId && _details[failedId] is DetailReady) {
+        unawaited(_readDetail(failedId)); // the page stays on screen until the host's version replaces it
+      } else {
+        _details.remove(failedId);
+      }
+      _readListAgain();
+    }
     UndoEntry? entry;
     if (done.isNotEmpty) {
       final n = done.length;

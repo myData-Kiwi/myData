@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mycontacts/src/app.dart';
+import 'package:mycontacts/src/backend.dart';
 import 'package:mycontacts/src/contact_actions.dart';
 import 'package:mycontacts/src/contact_editor.dart';
 import 'package:mycontacts/src/contact_form.dart';
@@ -656,6 +657,49 @@ void main() {
       await tester.pumpAndSettle();
       expect(backend.writes.last, 'purge c-pip');
       expect(backend.etagsSent.last, '"7-c-pip"');
+      await outlastToast(tester);
+    });
+  });
+  group('a contact changed elsewhere (review)', () {
+    testWidgets('Delete gets 412, the page is read again, and a second Delete goes', (tester) async {
+      desktop(tester);
+      final backend = ownedBackend();
+      await tester.pumpWidget(app(backend));
+      await tester.pumpAndSettle();
+      expect(headerName('Pip Owned'), findsOneWidget);
+      backend.changeElsewhere('c-pip', jobTitle: 'Head archivist'); // another app; nothing here re-reads
+      final reads = backend.detailCalls.where((id) => id == 'c-pip').length;
+      await tester.tap(find.byType(MoreActionsButton));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Delete contact'));
+      await tester.pumpAndSettle();
+      expect(backend.writes, isEmpty);
+      expect(find.text(ContactActions.deleteFailed('Pip Owned', const ChangedElsewhere())), findsOneWidget);
+      expect(backend.detailCalls.where((id) => id == 'c-pip').length, greaterThan(reads),
+          reason: 'the page is read again, so the pane shows the host\'s version');
+      await tester.tap(find.byType(MoreActionsButton));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Delete contact'));
+      await tester.pumpAndSettle();
+      expect(backend.writes, ['delete c-pip']);
+      expect(backend.etagsSent, ['"3-c-pip"', '"4-c-pip"']);
+      await outlastToast(tester);
+    });
+
+    testWidgets('Edit opens on the host\'s version, not the page read earlier', (tester) async {
+      desktop(tester);
+      final backend = ownedBackend();
+      await tester.pumpWidget(app(backend));
+      await tester.pumpAndSettle();
+      backend.changeElsewhere('c-pip', jobTitle: 'Head archivist');
+      await tester.tap(find.widgetWithText(Button, ContactActions.editButton));
+      await tester.pumpAndSettle();
+      expect(find.descendant(of: field('Job title'), matching: find.text('Head archivist')), findsOneWidget);
+      await enter(tester, 'Company', 'Example Museum');
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+      expect(backend.writes, ['update c-pip'], reason: 'saved from the current etag: no 412');
+      expect(backend.etagsSent, ['"4-c-pip"']);
       await outlastToast(tester);
     });
   });

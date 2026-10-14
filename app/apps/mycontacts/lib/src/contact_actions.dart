@@ -74,10 +74,9 @@ class ContactActions {
     if (!controller.isEditable(id)) return;
     if (controller.editing?.id == id) return;
     if (!await leaveEditor()) return;
-    final detail = controller.detailOf(id);
-    ContactDetailOut? contact = detail is DetailReady ? detail.contact : null;
-    contact ??= await controller.backend.contact(id).catchError((Object _) => null);
-    if (contact == null) return;
+    // The host's version now, not the page read earlier: another app may have changed it since.
+    final contact = await controller.readForEdit(id);
+    if (contact == null || controller.editing != null) return;
     controller.startEdit(contact);
     if (_phone) await _sheet();
   }
