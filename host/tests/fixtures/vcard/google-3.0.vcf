@@ -1,0 +1,27 @@
+BEGIN:VCARD
+VERSION:3.0
+FN:Sam Sample
+N:Sample;Sam;;;
+NICKNAME:Sammy
+EMAIL;TYPE=INTERNET;TYPE=HOME:sam@example.org
+EMAIL;TYPE=INTERNET;TYPE=WORK:sam.sample@work.example.net
+TEL;TYPE=CELL:+1 202 555 0101
+TEL;TYPE=WORK:+1 202 555 0102
+ADR;TYPE=HOME:;;22 Invented Road\, Flat 3;Example City;;0000;Exampleland
+ORG:Example Holdings
+TITLE:Invented role
+BDAY:1990-05-01
+item1.URL:https\://sam.example.org
+item1.X-ABLabel:Blog
+PHOTO;VALUE=URI:https://photos.example.org/sam.jpg
+NOTE:Two lines\nof note text\, with a comma.
+CATEGORIES:myContacts,Family
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+FN:Pat Placeholder
+N:Placeholder;Pat;;;
+EMAIL;TYPE=INTERNET:pat@example.com
+TEL;TYPE=CELL:+1 202 555 0103
+CATEGORIES:myContacts
+END:VCARD

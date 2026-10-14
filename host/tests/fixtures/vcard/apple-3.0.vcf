@@ -1,0 +1,37 @@
+BEGIN:VCARD
+VERSION:3.0
+PRODID:-//Apple Inc.//macOS 26.0//EN
+N:Fictional;Ava;Q.;Dr.;PhD
+FN:Dr. Ava Q. Fictional\, PhD
+NICKNAME:AJ,Avi
+ORG:Example Widgets;R&D
+TITLE:Head of invented research
+item1.EMAIL;type=INTERNET;type=pref:ava@example.com
+item1.X-ABLabel:_$!<Work>!$_
+EMAIL;type=INTERNET;type=HOME:ava.home@example.net
+item2.TEL;type=CELL;type=VOICE;type=pref:+1 (555) 010-0100
+item2.X-ABLabel:custom label
+TEL;type=HOME;type=VOICE:+44 20 7946 0000
+item3.X-ABRELATEDNAMES;type=pref:Sam Sample
+item3.X-ABLabel:_$!<Spouse>!$_
+item4.ADR;type=HOME;type=pref:;;1 Example Street;Springfield;;12345;Exampleland
+item4.X-ABADR:us
+item5.X-ABDATE;type=pref:2010-05-01
+item5.X-ABLabel:_$!<Anniversary>!$_
+item6.URL;type=pref:https://ava.example.org/
+item6.X-ABLabel:_$!<HomePage>!$_
+X-SOCIALPROFILE;type=mastodon;x-user=ava:https://social.example.org/@ava
+IMPP;X-SERVICE-TYPE=Jabber;type=HOME;type=pref:xmpp:ava@example.org
+BDAY;X-APPLE-OMIT-YEAR=1604:1604-03-18
+NOTE:Met at the invented conference\, row two.\nBrings biscuits\; always.
+X-PHONETIC-FIRST-NAME:Ay-va
+CATEGORIES:Friends,Work
+PHOTO;ENCODING=b;TYPE=JPEG:/9j/4AAQSkZJRgABAQAAAQABAAAAAQIDBAUGBwgJCgsMDQ4P
+ EBESExQVFhcYGRobHB0eHyAhIiMkJSYnKCkqKywtLi8wMTIzNDU2Nzg5Ojs8PT4/QEFCQ0RFRk
+ dISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl9gYWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXp7fH1+
+ f4CBgoOEhYaHiImKi4yNjo+QkZKTlJWWl5iZmpucnZ6foKGio6SlpqeoqaqrrK2ur7CxsrP/2Q
+ ==
+UID:3F1C0F0E-0000-4000-8000-00000000B001
+X-ABUID:3F1C0F0E-0000-4000-8000-00000000B001:ABPerson
+REV:2026-01-01T00:00:00Z
+END:VCARD
