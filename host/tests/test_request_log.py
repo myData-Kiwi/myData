@@ -73,6 +73,30 @@ def test_a_rejected_value_stays_out_of_the_real_mode_log(tmp_path):
     assert "Zephyrine" not in json.dumps(entry)
 
 
+def test_a_model_reply_quoting_the_result_stays_out_of_the_real_mode_log(tmp_path):
+    """The follow-up sentence answers from the result, so it quotes it: only its shape is logged."""
+    reply = f"Ava Fictional, email {AVA_EMAIL}, phone +1 202 555 0101."
+    scripts = [[[call("find_contact", name="Ava")], {"content": reply}]]
+    assistant, settings = _assistant(tmp_path, scripts, real=True)
+    list(assistant.reply("Which one is Ava Fictional, and why?"))
+    (entry,) = _entries(settings)
+    assert entry["reply_by"] == "model" and entry["final_text"] == {"type": "string", "length": len(reply)}
+    logged = json.dumps(entry)
+    assert AVA_EMAIL not in logged and "555 0101" not in logged and "Ava Fictional, email" not in logged
+
+
+def test_a_later_reply_quoting_an_earlier_result_stays_out_of_the_real_mode_log(tmp_path):
+    """A reply with no tool call of its own can still quote a result from earlier in the conversation."""
+    scripts = [[[call("find_contact", name="Ava")], {"content": "Found her."}],
+               [{"content": f"Her email is {AVA_EMAIL}."}]]
+    assistant, settings = _assistant(tmp_path, scripts, real=True)
+    cid = next(e for e in list(assistant.reply("Find Ava")) if e["type"] == "conversation")["conversation_id"]
+    list(assistant.reply("What was her email?", cid))
+    first, second = _entries(settings)
+    assert second["conversation_id"] == first["conversation_id"] and second["calls"] == []
+    assert AVA_EMAIL not in json.dumps(second)
+
+
 def test_demo_mode_logs_the_values_as_before(tmp_path):
     scripts = [[[call("find_contact", name="Zephyrine Inventedname")], {"content": "Sorry."}],
                [[call("find_contact", name="Nisha")], {"content": "Found."}]]
@@ -81,7 +105,7 @@ def test_demo_mode_logs_the_values_as_before(tmp_path):
     list(assistant.reply("Find Nisha"))
     rejected, found = _entries(settings)
     assert rejected["mode"] == "demo" and "Zephyrine" in rejected["calls"][0]["error"]
-    assert found["calls"][0]["args"] == {"name": "Nisha"}
+    assert found["calls"][0]["args"] == {"name": "Nisha"} and "Nisha" in found["final_text"]
     assert "nisha" in json.dumps(found["calls"][0]["result"]).lower()
 
 

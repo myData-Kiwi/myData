@@ -282,8 +282,9 @@ class Assistant:
         Each entry says its mode. In real mode the tool results (the user's mirrored contacts and events)
         are left out, and so are the argument values, which the model can copy from them: each call keeps
         its tool and status, the shape of each argument (its name, type and length) and only the size of its
-        result, and a reply written by code (the results' headers) is left out too. The request text and a
-        reply the model wrote are kept. Demo mode logs everything (its data is invented)."""
+        result. The reply keeps only its shape too, whoever wrote it: code writes the results' headers, and the
+        model writes from the results, of this request or of an earlier one in the conversation. The request
+        text is kept. Demo mode logs everything (its data is invented)."""
         mode = self.registry.mode
         entry = {"ts": time.time(), "conversation_id": cid, "mode": mode, **run.to_json()}
         entry.pop("messages", None)
@@ -339,7 +340,8 @@ def _redact_call(c: dict) -> dict:
 
 
 def redact_real(entry: dict) -> dict:
-    """A request-log entry without the user's data (for real mode): no tool results and no argument values."""
+    """A request-log entry without the user's data (for real mode): no tool results, no argument values and
+    no reply text."""
     entry = dict(entry)
     entry["calls"] = [_redact_call(c) for c in entry.get("calls", [])]
     if entry.get("pending"):
@@ -353,6 +355,8 @@ def redact_real(entry: dict) -> dict:
                         for r in entry.get("results", [])]
     if entry.get("clarify_options") is not None:
         entry["clarify_options"] = len(entry["clarify_options"])
-    if entry.get("reply_by") == "code":  # the reply is the results' headers ("Ava Fictional"): data too
-        entry["final_text"] = None
+    # The reply quotes the results ("Ava Fictional", "Dentist at 3pm"): code's headers, and the model's
+    # sentences, which can quote a result from earlier in the conversation even when this request read none.
+    entry["final_text"] = _text_shape(entry.get("final_text"))
+    entry["error"] = _text_shape(entry.get("error"))  # an exception's text can quote a value too
     return entry
