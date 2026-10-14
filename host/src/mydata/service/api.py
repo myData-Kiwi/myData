@@ -492,10 +492,20 @@ class MergeIn(BaseModel):
                                                                              "the first")
 
 
+class MergeLeftOutOut(BaseModel):
+    property: str = Field(description="a vCard property name, upper case (TITLE, BDAY, PHOTO, X-ABSHOWAS, ...)")
+    count: int = Field(description="how many of the other contacts' values of it the merged contact does not hold")
+
+
 class MergeOut(BaseModel):
     contact: ContactDetailOut = Field(description="the merged contact")
     undo_id: str = Field(description="POST /undo/{undo_id} undoes the merge while nothing changed since")
     merged: list[str] = Field(description="the originals' ids, now in Recently deleted")
+    left_out: list[MergeLeftOutOut] = Field(default=[], description="what the others hold that the merged contact "
+                                                                    "does not (a different value of a property it "
+                                                                    "has its own of, or what kind of card it is): "
+                                                                    "names and counts only. The originals keep it "
+                                                                    "until they are deleted for good")
 
 
 class ImportCountsOut(BaseModel):
@@ -1434,9 +1444,10 @@ def _routes_contact_writes(app: FastAPI, need: Callable[[], SyncService], unavai
                                           **refused, **stale, **unavailable})
     def merge_contacts(body: MergeIn, request: Request) -> MergeOut:
         """Merge owned contacts the user chose as one person (never automatic): a new contact holds the first
-        one's names (or names_from's) and every email, phone, address and link of them all; the originals go to
-        Recently deleted, unchanged, so POST /undo/{undo_id} brings them back while nothing changed since. 412 when
-        a contact changed since its etag."""
+        one's names (or names_from's), every email, phone, address and link of them all, and every other property
+        it has no value of; what it cannot take (a second job title or birthday, another photo) is listed in
+        left_out. The originals go to Recently deleted, unchanged, so POST /undo/{undo_id} brings them back while
+        nothing changed since. 412 when a contact changed since its etag."""
         from ..sources import contacts_merge
         service = need()
         who = actor(request)
@@ -1452,7 +1463,8 @@ def _routes_contact_writes(app: FastAPI, need: Callable[[], SyncService], unavai
         log(_LOGGER, logging.INFO, "contacts merged", actor=who, contact_id=merged.contact_id,
             merge_id=merged.merge_id, count=len(merged.originals))
         detail = _detail(service, service.contacts.get(merged.contact_id))
-        return MergeOut(contact=detail, undo_id=merged.merge_id, merged=list(merged.originals))
+        return MergeOut(contact=detail, undo_id=merged.merge_id, merged=list(merged.originals),
+                        left_out=[MergeLeftOutOut(property=n, count=c) for n, c in merged.left_out])
 
 
 def _routes_imports(app: FastAPI, need: Callable[[], SyncService], unavailable: dict) -> None:

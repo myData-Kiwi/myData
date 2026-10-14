@@ -10,8 +10,12 @@ A merge creates one new card and moves the originals to Recently deleted:
 - every email address, phone number, postal address, link, instant-message handle, social profile, related
   name and Apple date the others hold and it does not (compared as values: an email in any case, a phone number
   in E.164, an address part by part) is added, with its label in a new Apple item group;
-- a company, job title, birthday, nickname, photo or categories only another holds is added; notes that differ
-  are kept one after the other;
+- any other property it has no value of (a company, job title, birthday, nickname, photo, categories, X- lines
+  such as a phonetic name or an anniversary) is added with all the other's values; notes that differ are kept
+  one after the other;
+- what it cannot take is left out and reported by name and count (`left_out`, never a value): a different value
+  of a property it has its own of (a second job title or birthday, another photo), and KIND or X-ABShowAs, which
+  say what the card is. The originals keep it all until they are deleted for good;
 - a card in another vCard version is converted to the kept one's first (vcard_edit.convert, which changes only
   the lines that differ).
 
@@ -46,8 +50,9 @@ from .vcard_edit import Raw, VCard, VCardError, convert
 
 MAX_MERGE = 20
 _UNION = ("EMAIL", "TEL", "ADR", "URL", "IMPP", "X-SOCIALPROFILE", "X-ABRELATEDNAMES", "X-ABDATE")
-_FILL = ("ORG", "TITLE", "BDAY", "NICKNAME", "PHOTO", "CATEGORIES", "ROLE")
 _COMPANIONS = ("X-ABLABEL", "X-ABADR")
+_NEVER_COPIED = ("BEGIN", "END", "VERSION", "N", "FN", "UID", "REV", "PRODID")  # the kept card's own
+_IDENTITY = ("KIND", "X-ADDRESSBOOKSERVER-KIND", "X-ABSHOWAS")  # what the card is: never changed by a merge
 
 
 class MergeRefused(WriteError):
@@ -59,6 +64,7 @@ class Merged:
     contact_id: str  # the merged card
     merge_id: str
     originals: tuple[str, ...]
+    left_out: tuple[tuple[str, int], ...] = ()  # (property name, values) the merged card does not hold
 
 
 def _value_key(prop, region: str | None) -> str:
@@ -82,9 +88,16 @@ def _copy(card: VCard, other: VCard, prop) -> None:
 
 def merged_text(base: str, others: list[str], *, region: str | None = None) -> str | None:
     """The merged card's text (see the module docstring), or None when nothing was added to `base`."""
+    return merge_cards(base, others, region=region)[0]
+
+
+def merge_cards(base: str, others: list[str], *, region: str | None = None) -> tuple[str | None, dict[str, int]]:
+    """(the merged card's text, or None when nothing was added to `base`; what the others hold that it does not
+    take: {property name: how many values}, names only, never a value). See the module docstring."""
     region = region if region is not None else default_region()
     card = VCard.parse(base)
     version = card.version
+    left_out: dict[str, int] = {}
     for text in others:
         if VCard.parse(text).version != version and version in ("3.0", "4.0"):
             text = convert(text, version)
@@ -96,10 +109,6 @@ def merged_text(base: str, others: list[str], *, region: str | None = None) -> s
                 if key and key not in have:
                     _copy(card, other, prop)
                     have.add(key)
-        for name in _FILL:
-            prop = other.first(name)
-            if prop is not None and card.first(name) is None and prop.decoded().strip():
-                _copy(card, other, prop)
         note = other.first("NOTE")
         if note is not None and note.text().strip():
             mine = card.first("NOTE")
@@ -107,7 +116,26 @@ def merged_text(base: str, others: list[str], *, region: str | None = None) -> s
                 _copy(card, other, note)
             elif note.text().strip() not in mine.text():
                 card.update(mine, mine.text().rstrip() + "\n\n" + note.text().strip())
-    return card.to_text() if card.changed else None
+        # Everything else: what the kept card has no value of is added (all its values); a value it already has
+        # is the same; a different value where it has its own (a second job title, another birthday or photo) is
+        # left out and counted, as are the properties that say what the card is (KIND, X-ABShowAs).
+        names = dict.fromkeys(p.key for p in other.props()
+                              if p.key not in (*_UNION, "NOTE", *_COMPANIONS, *_NEVER_COPIED))
+        for name in names:
+            values = [p for p in other.props(name) if p.decoded().strip()]
+            mine = card.props(name)
+            have = {_value_key(p, region) for p in mine}
+            if name in _IDENTITY:
+                lost = [p for p in values if _value_key(p, region) not in have]
+            elif not mine:
+                for prop in values:
+                    _copy(card, other, prop)
+                continue
+            else:
+                lost = [p for p in values if _value_key(p, region) not in have]
+            if lost:
+                left_out[name] = left_out.get(name, 0) + len(lost)
+    return (card.to_text() if card.changed else None), left_out
 
 
 def merge(store: ContactsStore, contacts: list[tuple[str, str]], *, names_from: str | None = None,
@@ -137,7 +165,8 @@ def merge(store: ContactsStore, contacts: list[tuple[str, str]], *, names_from: 
         base = next(r for r in rows if r["id"] == first)
         others = [r for r in rows if r["id"] != first]
         try:
-            text = merged_text(base["raw_vcard"], [r["raw_vcard"] for r in others]) or base["raw_vcard"]
+            text, left_out = merge_cards(base["raw_vcard"], [r["raw_vcard"] for r in others])
+            text = text or base["raw_vcard"]
         except VCardError as e:
             raise WriteError("These contacts' cards cannot be merged here.") from e
         merged_id = new_id()
@@ -166,7 +195,7 @@ def merge(store: ContactsStore, contacts: list[tuple[str, str]], *, names_from: 
         db.execute("INSERT INTO merges (id, merged_id, merged_rev, originals, links, actor, at) "
                    "VALUES (?, ?, 1, ?, ?, ?, ?)", (merge_id, merged_id, json.dumps(originals), json.dumps(links),
                                                     actor, when))
-    return Merged(merged_id, merge_id, tuple(ids))
+    return Merged(merged_id, merge_id, tuple(ids), tuple(sorted(left_out.items())))
 
 
 def is_merge(store: ContactsStore, undo_id: str) -> bool:

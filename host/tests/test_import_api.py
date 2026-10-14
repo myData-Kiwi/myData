@@ -271,6 +271,16 @@ def test_a_person_imported_from_icloud_while_still_followed_is_found_once(host, 
 
 # ---------------------------------------------------------------- merge
 
+def test_merge_says_what_it_left_out(host, client):
+    auth = bearer(host, "mycontacts")
+    a = client.post("/contacts", headers=auth, json={"given_name": "Ava", "job_title": "Librarian"}).json()
+    b = client.post("/contacts", headers=auth, json={"given_name": "Ava", "job_title": "Chess coach"}).json()
+    pair = [{"id": c["contact"]["id"], "etag": c["contact"]["etag"]} for c in (a, b)]
+    r = client.post("/contacts/merge", headers=auth, json={"contacts": pair})
+    assert r.status_code == 201, r.text
+    assert r.json()["left_out"] == [{"property": "TITLE", "count": 1}]
+
+
 def test_merge_and_undo_through_the_api(host, client):
     auth = bearer(host, "mycontacts")
     a = client.post("/contacts", headers=auth, json={"given_name": "Ava", "family_name": "Fictional",

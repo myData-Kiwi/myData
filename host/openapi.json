@@ -2681,11 +2681,40 @@
         "title": "MergeIn",
         "type": "object"
       },
+      "MergeLeftOutOut": {
+        "properties": {
+          "count": {
+            "description": "how many of the other contacts' values of it the merged contact does not hold",
+            "title": "Count",
+            "type": "integer"
+          },
+          "property": {
+            "description": "a vCard property name, upper case (TITLE, BDAY, PHOTO, X-ABSHOWAS, ...)",
+            "title": "Property",
+            "type": "string"
+          }
+        },
+        "required": [
+          "property",
+          "count"
+        ],
+        "title": "MergeLeftOutOut",
+        "type": "object"
+      },
       "MergeOut": {
         "properties": {
           "contact": {
             "$ref": "#/components/schemas/ContactDetailOut",
             "description": "the merged contact"
+          },
+          "left_out": {
+            "default": [],
+            "description": "what the others hold that the merged contact does not (a different value of a property it has its own of, or what kind of card it is): names and counts only. The originals keep it until they are deleted for good",
+            "items": {
+              "$ref": "#/components/schemas/MergeLeftOutOut"
+            },
+            "title": "Left Out",
+            "type": "array"
           },
           "merged": {
             "description": "the originals' ids, now in Recently deleted",
@@ -4938,7 +4967,7 @@
     },
     "/contacts/merge": {
       "post": {
-        "description": "Merge owned contacts the user chose as one person (never automatic): a new contact holds the first\none's names (or names_from's) and every email, phone, address and link of them all; the originals go to\nRecently deleted, unchanged, so POST /undo/{undo_id} brings them back while nothing changed since. 412 when\na contact changed since its etag.",
+        "description": "Merge owned contacts the user chose as one person (never automatic): a new contact holds the first\none's names (or names_from's), every email, phone, address and link of them all, and every other property\nit has no value of; what it cannot take (a second job title or birthday, another photo) is listed in\nleft_out. The originals go to Recently deleted, unchanged, so POST /undo/{undo_id} brings them back while\nnothing changed since. 412 when a contact changed since its etag.",
         "operationId": "merge_contacts",
         "requestBody": {
           "content": {

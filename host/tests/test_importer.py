@@ -488,6 +488,20 @@ def test_merge_keeps_every_distinct_value_and_the_first_names(store):
         merge_.undo(store, merged.merge_id, actor="mycontacts")
 
 
+def test_merge_carries_what_the_kept_card_lacks_and_reports_the_rest():
+    base = ("BEGIN:VCARD\r\nVERSION:3.0\r\nUID:a@example.org\r\nFN:Ava Fictional\r\nN:Fictional;Ava;;;\r\n"
+            "TITLE:Librarian\r\nEND:VCARD\r\n")
+    other = ("BEGIN:VCARD\r\nVERSION:3.0\r\nUID:b@example.org\r\nFN:Ava F.\r\nN:F.;Ava;;;\r\nTITLE:Chess coach\r\n"
+             "TITLE:Librarian\r\nX-ANNIVERSARY:2010-06-01\r\nX-PHONETIC-FIRST-NAME:Ah-va\r\nGENDER:F\r\n"
+             "item1.X-GOOGLE-TALK:ava@example.org\r\nitem1.X-ABLabel:chess\r\nX-ABShowAs:COMPANY\r\nEND:VCARD\r\n")
+    text, left_out = merge_.merge_cards(base, [other], region=REGION)
+    for line in ("X-ANNIVERSARY:2010-06-01", "X-PHONETIC-FIRST-NAME:Ah-va", "GENDER:F",
+                 "item1.X-GOOGLE-TALK:ava@example.org", "item1.X-ABLabel:chess", "TITLE:Librarian"):
+        assert line + "\r\n" in text
+    assert "Chess coach" not in text and "X-ABShowAs" not in text and "FN:Ava F." not in text
+    assert left_out == {"TITLE": 1, "X-ABSHOWAS": 1}  # names and counts, never a value
+
+
 def test_a_merge_changed_since_is_not_undone(store):
     a, b = _two(store)
     merged = merge_.merge(store, [(a, store.get(a)["http_etag"]), (b, store.get(b)["http_etag"])],
