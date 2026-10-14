@@ -382,12 +382,12 @@ void main() {
       expect(value.height, greaterThan(MyDataType.body.fontSize! * MyDataType.body.height! * 1.5));
     });
 
-    testWidgets('the copy button: a plain round icon button in ink-muted, surface-sunken on hover', (tester) async {
+    testWidgets('the copy button: a plain round icon button in ink-muted, surface-hover on hover', (tester) async {
       await _pump(tester, const FieldRow(kind: FieldKind.phone, label: 'Mobile', value: '+44 7700 900123'));
       final row = find.byType(FieldRow);
       final pressable = tester.widget<Pressable>(_copyButton(row));
       expect(pressable.borderRadius, MyDataRadii.pill);
-      expect(pressable.hoverFill, _kiwi.surfaceSunken);
+      expect(pressable.hoverFill, _kiwi.surfaceHover);
       expect(_copyIcon(tester, row), Icons.content_copy_outlined);
       expect(tester.widget<Icon>(find.byType(Icon)).color, _kiwi.inkMuted);
       expect(tester.widget<Icon>(find.byType(Icon)).size, MyDataSize.icon);

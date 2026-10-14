@@ -103,9 +103,9 @@ final class GroupedValueChevron extends GroupedTrailing {
 ///   the value cut short with an ellipsis, and then it keeps at most [maxTrailingFraction] of the row.
 /// - **Selected:** the row fill becomes `accent-soft`.
 /// - A row that does something ([onPressed], or a switch) is one target: hovering or pressing fills it with
-///   `surface-sunken` over `fast`, a press dims it to 85% without shrinking, keyboard focus draws the focus
+///   `surface-hover` over `fast`, a press dims it to 85% without shrinking, keyboard focus draws the focus
 ///   ring, and Enter and Space activate it. A selected row's hover fill is [selectedHoverInk] of `ink`
-///   over its `accent-soft`, the same step that `surface-sunken` is from `surface`. A row that does nothing
+///   over its `accent-soft`, the same step that `surface-hover` is from `surface`. A row that does nothing
 ///   is not focusable and has no hover.
 /// - [enabled] false, on a row that does something, shows it at 45% opacity, not focusable, announced as
 ///   disabled. A switch row is disabled when its `onChanged` is null.
@@ -205,11 +205,11 @@ class GroupedRow extends StatelessWidget {
   static const maxTrailingFraction = 0.5;
 
   /// The hover and press fill of a selected row: `ink` at this opacity over `accent-soft`. Not a token;
-  /// derived from the spec's hover fill, `surface-sunken`, which is `surface` darkened by about this much
-  /// `ink` in light mode (ink #1A1A19 at 8% over #FFFFFF is #ECECEC; surface-sunken is #EDEDEB). The plain
-  /// `surface-sunken` cannot be used: it would replace the selected fill, and accent-soft on accent-soft
-  /// shows nothing.
-  static const selectedHoverInk = 0.08;
+  /// derived from the spec's hover fill, `surface-hover`, which is `surface` with about this much `ink` over
+  /// it in both modes (ink #1A1A19 at 16% over #FFFFFF is #DADADA, surface-hover #D9D9D6; ink #EDEDEB at
+  /// 16% over #1A1A1A is #3C3C3C, surface-hover #383838). The plain `surface-hover` cannot be used: it would
+  /// replace the selected fill, and a selected row would then look hovered but not selected.
+  static const selectedHoverInk = 0.16;
 
   /// The corner shape of the row at [context] within its group: rounded at the group's ends, square
   /// between, square outside a group. For a row subclass that draws its own hover fill and focus ring.
@@ -256,7 +256,7 @@ class GroupedRow extends StatelessWidget {
       content = Pressable(
         onPressed: activate,
         borderRadius: shape,
-        hoverFill: selected ? c.ink.withValues(alpha: selectedHoverInk) : c.surfaceSunken,
+        hoverFill: selected ? c.ink.withValues(alpha: selectedHoverInk) : c.surfaceHover,
         scaleOnPress: false,
         focusNode: focusNode,
         autofocus: autofocus,

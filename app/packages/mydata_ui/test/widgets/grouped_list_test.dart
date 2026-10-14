@@ -389,7 +389,7 @@ void main() {
       );
     });
 
-    testWidgets('hover and press fill the row with surface-sunken; it dims and does not shrink', (tester) async {
+    testWidgets('hover and press fill the row with surface-hover; it dims and does not shrink', (tester) async {
       tester.binding.focusManager.highlightStrategy = FocusHighlightStrategy.alwaysTraditional;
       addTearDown(() => tester.binding.focusManager.highlightStrategy = FocusHighlightStrategy.automatic);
       for (final reduced in [false, true]) {
@@ -406,7 +406,7 @@ void main() {
         final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
         await mouse.addPointer(location: tester.getCenter(row));
         await tester.pump(MyDataMotion.fast);
-        expect(_hoverFill(tester, row), _kiwi.surfaceSunken);
+        expect(_hoverFill(tester, row), isSameColorAs(_kiwi.surfaceHover));
         await mouse.down(tester.getCenter(row));
         await tester.pump();
         expect(find.byType(AnimatedScale), findsNothing);

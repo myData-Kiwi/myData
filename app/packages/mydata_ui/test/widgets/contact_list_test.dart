@@ -498,7 +498,7 @@ void main() {
       await mouse.addPointer(location: tester.getCenter(find.text('Eli Sample')));
       addTearDown(mouse.removePointer);
       await tester.pumpAndSettle();
-      expect(fill('Eli Sample'), c.surfaceSunken);
+      expect(fill('Eli Sample'), c.surfaceHover);
       await mouse.moveTo(tester.getCenter(find.text('Ava Fictional')));
       await tester.pumpAndSettle();
       expect(fill('Eli Sample')!.a, 0);

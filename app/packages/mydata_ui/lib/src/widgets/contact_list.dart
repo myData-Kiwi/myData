@@ -83,7 +83,7 @@ class ContactListEntry {
 ///   only the rows on screen, and a photo is fetched only for a row that is shown. From 600px nothing sits at
 ///   the right end; under 600px a chevron in `ink-muted`.
 /// - **One target.** The whole row is the target; it holds nothing else that can be pressed.
-/// - **Hover:** the GroupedList hover fill (`surface-sunken`). A selected row keeps its `accent-soft` under the
+/// - **Hover:** the GroupedList hover fill (`surface-hover`). A selected row keeps its `accent-soft` under the
 ///   pointer (preview: `.r.sel:hover`), because the ring, not the fill, marks it.
 /// - **Pressing** a row calls [onOpen] with its id: the app selects it and shows it in the contact pane, or,
 ///   under 600px, pushes its page.
@@ -937,7 +937,7 @@ class _ContactRowState extends State<_ContactRow> {
       duration: MyDataMotion.fast,
       curve: MyDataMotion.standard,
       decoration: BoxDecoration(
-        color: lit ? c.surfaceSunken : c.surfaceSunken.withValues(alpha: 0),
+        color: lit ? c.surfaceHover : c.surfaceHover.withValues(alpha: 0),
         borderRadius: shape,
       ),
       child: content,

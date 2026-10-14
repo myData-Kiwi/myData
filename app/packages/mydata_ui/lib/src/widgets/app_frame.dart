@@ -116,7 +116,7 @@ class AppConnection {
 ///   when the app has one, and the Retry button; while a retry runs, the disabled button has the reason next
 ///   to it.
 /// - The current section is an `accent-soft` pill with `accent` text; the others are `ink-muted`. Rows fill
-///   with `surface-sunken` on hover and draw the focus ring with the keyboard. Tab reaches every row; the
+///   with `surface-hover` on hover and draw the focus ring with the keyboard. Tab reaches every row; the
 ///   up and down arrows move between them (Home and End to the ends); Enter and Space open one.
 /// - The window's title bar and its controls stay the platform's.
 ///
@@ -357,7 +357,7 @@ class _SidebarRow extends StatelessWidget {
         focusNode: focusNode,
         borderRadius: MyDataRadii.pill,
         scaleOnPress: false,
-        hoverFill: current ? c.ink.withValues(alpha: GroupedRow.selectedHoverInk) : c.surfaceSunken,
+        hoverFill: current ? c.ink.withValues(alpha: GroupedRow.selectedHoverInk) : c.surfaceHover,
         selected: current,
         semanticLabel: section.label,
         child: ExcludeSemantics(
@@ -405,7 +405,7 @@ class _RailItem extends StatelessWidget {
       focusNode: focusNode,
       borderRadius: MyDataRadii.md,
       scaleOnPress: false,
-      hoverFill: c.surfaceSunken,
+      hoverFill: c.surfaceHover,
       selected: current,
       semanticLabel: section.label,
       tooltip: section.label,

@@ -636,6 +636,8 @@ class _IconButton extends StatelessWidget {
   Widget build(BuildContext context) => Pressable(
         onPressed: onPressed,
         borderRadius: MyDataRadii.control,
+        // IconButton's hover (design/components/IconButton): the circle fills with `surface-hover`.
+        hoverFill: context.colors.surfaceHover,
         semanticLabel: label,
         child: SizedBox.square(
             dimension: MyDataSize.controlHeight,

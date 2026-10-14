@@ -124,7 +124,7 @@ class SwitchTrack extends StatelessWidget {
 /// - At least `row-height` tall, padded `space-4` across and `space-2` down, `space-3` between its parts:
 ///   an optional [IconTile], the [title] in `body-strong` over the [description] in `caption` and
 ///   `ink-muted`, and the switch at the right end.
-/// - Hovering or pressing fills the row with `surface-sunken`; it does not shrink. Keyboard focus draws the
+/// - Hovering or pressing fills the row with `surface-hover`; it does not shrink. Keyboard focus draws the
 ///   focus ring around [borderRadius]; Enter and Space flip it.
 /// - It has no background and no divider, so a grouped list can stack it with its other rows and clip it
 ///   to the group's corners. Pass the group's corner shape as [borderRadius] for the first and last rows.
@@ -180,7 +180,7 @@ class SwitchRow extends StatelessWidget {
       child: Pressable(
         onPressed: onChanged == null ? null : () => onChanged!(!value),
         borderRadius: borderRadius,
-        hoverFill: c.surfaceSunken,
+        hoverFill: c.surfaceHover,
         scaleOnPress: false,
         focusNode: focusNode,
         autofocus: autofocus,

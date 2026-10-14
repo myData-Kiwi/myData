@@ -189,6 +189,7 @@ void main() {
       expect(DataGround.surface.of(c), c.surface);
       expect(DataGround.accentSoft.of(c), c.accentSoft);
       expect(DataGround.surfaceSunken.of(c), c.surfaceSunken);
+      expect(DataGround.surfaceHover.of(c), c.surfaceHover);
     });
   });
 
@@ -502,7 +503,7 @@ void main() {
       expect(find.byType(AnimatedScale), findsNothing);
       final fill = tester.widget<AnimatedContainer>(
           find.descendant(of: find.byType(CalendarListRow), matching: find.byType(AnimatedContainer)).first);
-      expect((fill.decoration! as BoxDecoration).color, _colors('kiwi', Brightness.light).surfaceSunken);
+      expect((fill.decoration! as BoxDecoration).color, _colors('kiwi', Brightness.light).surfaceHover);
       expect(tester.getSize(find.byType(CalendarListRow)), before);
       await g.up();
     });
@@ -524,7 +525,7 @@ void main() {
         addTearDown(mouse.removePointer);
         for (final e in colours.entries) {
           final row = find.ancestor(of: find.text(e.key), matching: find.byType(CalendarListRow));
-          final needs = dataColourNeedsEdge(e.value, c.surface) || dataColourNeedsEdge(e.value, c.surfaceSunken);
+          final needs = dataColourNeedsEdge(e.value, c.surface) || dataColourNeedsEdge(e.value, c.surfaceHover);
           final dot = find.descendant(of: row, matching: find.byType(DataDot));
           expect(_decorationOf(tester, dot).border != null, needs, reason: '${e.key}, resting');
           await mouse.moveTo(tester.getCenter(row));
@@ -535,7 +536,7 @@ void main() {
           // The review's cases: pass on white, fail on the hover fill.
           for (final col in [_grey!, _teal!]) {
             expect(dataColourNeedsEdge(col, c.surface), isFalse);
-            expect(dataColourNeedsEdge(col, c.surfaceSunken), isTrue);
+            expect(dataColourNeedsEdge(col, c.surfaceHover), isTrue);
           }
         }
       });

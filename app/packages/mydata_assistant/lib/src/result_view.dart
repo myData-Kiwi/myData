@@ -24,7 +24,7 @@ class ResultLinks {
 ///
 /// **Opening an item.** In real mode ([realMode]), a contact row opens that contact in myContacts and an event
 /// row opens its day in myCalendar, when that app is installed ([links]). Such a row is one target, like a
-/// [GroupedRow] that opens something: the `surface-sunken` hover fill, a chevron at its end, the focus ring,
+/// [GroupedRow] that opens something: the `surface-hover` hover fill, a chevron at its end, the focus ring,
 /// Enter and Space. Otherwise (demo data, the app not installed, an item without an id or a day, mail and
 /// photos) the row is not interactive.
 class ResultCard extends StatelessWidget {
@@ -272,7 +272,7 @@ class _ResultRow extends GroupedRow {
         child: Pressable(
           onPressed: onPressed,
           borderRadius: GroupedRow.shapeOf(context),
-          hoverFill: c.surfaceSunken,
+          hoverFill: c.surfaceHover,
           scaleOnPress: false,
           child: row,
         ),

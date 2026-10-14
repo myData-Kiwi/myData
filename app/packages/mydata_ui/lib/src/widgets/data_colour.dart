@@ -48,14 +48,22 @@ enum DataGround {
   accentSoft,
 
   /// A sunken ground, such as a day myData does not read: `surface-sunken`.
-  surfaceSunken;
+  surfaceSunken,
+
+  /// A hovered or pressed list row: `surface-hover`.
+  surfaceHover;
 
   /// Spec: "less than 3:1 contrast with the ground it sits on" gets the edge.
   static const minContrast = 3.0;
 
   /// This ground's colour in [c].
   Color of(MyDataColors c) =>
-      switch (this) { surface => c.surface, accentSoft => c.accentSoft, surfaceSunken => c.surfaceSunken };
+      switch (this) {
+        surface => c.surface,
+        accentSoft => c.accentSoft,
+        surfaceSunken => c.surfaceSunken,
+        surfaceHover => c.surfaceHover,
+      };
 }
 
 /// How a data colour is drawn on [ground] and the [alsoOn] grounds: the colour as the source gives it
@@ -236,7 +244,7 @@ class _RenderBarBox extends RenderBox {
 ///   ("iCloud", "Google", "Exchange"), or myData's own words for the three cases macOS calls "Other":
 ///   [onlyOnThisMac], [birthdaysFromContacts], [subscribed]. A source that reads one account needs none.
 /// - A hidden calendar ([shown] false) keeps its row and its dot.
-/// - The dot's 3:1 edge rule is measured on `surface` and on the hover and press fill (`surface-sunken`),
+/// - The dot's 3:1 edge rule is measured on `surface` and on the hover and press fill (`surface-hover`),
 ///   and the edge is drawn when either fails, so a pale dot keeps its shape under the pointer.
 /// - Its accessible name is "Show" and the calendar's name, then the caption; it is announced as a switch,
 ///   on or off. The dot has no accessible name.
@@ -287,7 +295,7 @@ class CalendarListRow extends GroupedRow {
         child: Pressable(
             onPressed: onChanged == null ? null : () => onChanged(!shown),
             borderRadius: shape,
-            hoverFill: c.surfaceSunken,
+            hoverFill: c.surfaceHover,
             scaleOnPress: false,
             focusNode: focusNode,
             autofocus: autofocus,
@@ -299,8 +307,8 @@ class CalendarListRow extends GroupedRow {
                 child: Padding(
                     padding: GroupedRow.padding,
                     child: Row(children: [
-                      // The row's hover and press fill is `surface-sunken`: the edge rule covers both grounds.
-                      DataDot.slot(colour: colour, alsoOn: const [DataGround.surfaceSunken]),
+                      // The row's hover and press fill is `surface-hover`: the edge rule covers both grounds.
+                      DataDot.slot(colour: colour, alsoOn: const [DataGround.surfaceHover]),
                       const SizedBox(width: GroupedRow.gap),
                       Expanded(
                           child: Column(

@@ -117,7 +117,7 @@ void main() {
           )
           .map((c) => (c.decoration as BoxDecoration?)?.color)
           .whereType<Color>();
-      expect(fill, contains(MyDataTheme.data('kiwi', Brightness.light).extension<MyDataColors>()!.surfaceSunken));
+      expect(fill, contains(MyDataTheme.data('kiwi', Brightness.light).extension<MyDataColors>()!.surfaceHover));
     });
 
     testWidgets('not interactive when its app is not installed', (tester) async {

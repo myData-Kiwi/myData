@@ -65,7 +65,7 @@ typedef LinkOpener = void Function(Uri url);
 ///   44px rule without making the row taller; it is a Tab stop with the focus ring, and Enter opens it.
 ///   A link is not selectable; the copy button copies it.
 /// - At the right end, `space-3` from the text, a plain icon button `control-height` square copies the
-///   value exactly as written: a copy icon in `ink-muted`, `surface-sunken` on hover. Its accessible name
+///   value exactly as written: a copy icon in `ink-muted`, `surface-hover` on hover. Its accessible name
 ///   and tooltip are [copyName] (by default from the kind and the label: "Copy mobile number"). After
 ///   copying, the icon becomes a check, the tooltip reads [copiedLabel], screen readers hear
 ///   [copiedLabel], and it stays so until another FieldRow copies something or the value changes.
@@ -391,7 +391,7 @@ class _Link extends StatelessWidget {
 }
 
 /// The plain icon button that copies: `control-height` square, round, a copy icon in `ink-muted` that
-/// becomes a check once copied; `surface-sunken` on hover.
+/// becomes a check once copied; `surface-hover` on hover (IconButton).
 class _CopyButton extends StatelessWidget {
   const _CopyButton({required this.name, required this.copied, required this.onPressed});
 
@@ -411,7 +411,7 @@ class _CopyButton extends StatelessWidget {
           child: Pressable(
             onPressed: onPressed,
             borderRadius: MyDataRadii.pill,
-            hoverFill: c.surfaceSunken,
+            hoverFill: c.surfaceHover,
             semanticLabel: name,
             child: SizedBox.square(
               dimension: MyDataSize.controlHeight,
