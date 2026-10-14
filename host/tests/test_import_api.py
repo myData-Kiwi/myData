@@ -539,8 +539,8 @@ def test_merge_and_undo_through_the_api(host, client):
 # ---------------------------------------------------------------- who may import, and the logs
 
 IMPORT_ROUTES = [("post", "/import/contacts/preview"), ("post", "/import/contacts/from-source/x/preview"),
-                 ("get", "/import/previews/x"), ("delete", "/import/previews/x"), ("post", "/import/previews/x/commit"),
-                 ("get", "/imports"), ("post", "/imports/x/undo")]
+                 ("get", "/import/previews/x"), ("get", "/import/previews/x/items/0"), ("delete", "/import/previews/x"),
+                 ("post", "/import/previews/x/commit"), ("get", "/imports"), ("post", "/imports/x/undo")]
 
 
 def _send(client, method, path, headers):
