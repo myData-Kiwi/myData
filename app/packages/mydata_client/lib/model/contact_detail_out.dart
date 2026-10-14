@@ -18,10 +18,14 @@ class ContactDetailOut {
     this.addresses = const [],
     this.birthday,
     this.caption,
+    this.company = '',
     required this.createdAt,
     this.deletedAt,
+    this.department = '',
     required this.displayName,
+    required this.editable,
     this.emails = const [],
+    required this.etag,
     this.familyName = '',
     this.fields = const [],
     this.fullName = '',
@@ -29,12 +33,17 @@ class ContactDetailOut {
     this.hasPhoto = false,
     required this.id,
     this.jobTitle = '',
+    this.middleName = '',
     required this.modifiedAt,
+    this.namePrefix = '',
+    this.nameSuffix = '',
     this.nickname = '',
     this.note = '',
     this.notesIncluded = true,
+    this.onPhone,
     this.organisation = '',
     this.phones = const [],
+    this.purgeAfter,
     this.rawVcard,
     required this.sortLetter,
     required this.source_,
@@ -53,14 +62,25 @@ class ContactDetailOut {
   /// the line under the name in the contact list: the organisation, else the first email or phone that is not already the name; none when there is nothing else to say
   String? caption;
 
+  /// the organisation's name alone (organisation also has the department, after a comma)
+  String company;
+
   String createdAt;
 
   String? deletedAt;
 
+  String department;
+
   /// the name to show: never empty (organisation, email or phone when the card has no name)
   String displayName;
 
+  /// true for a contact the host owns, which the apps may change and delete; false for one followed from a source (change it there)
+  bool editable;
+
   List<LabeledValue> emails;
+
+  /// the contact's current version, to send back as If-Match when changing it; it changes with every change, a delete or restore included
+  String etag;
 
   String familyName;
 
@@ -77,7 +97,14 @@ class ContactDetailOut {
 
   String jobTitle;
 
+  /// for the edit form, as are the four fields below
+  String middleName;
+
   String modifiedAt;
+
+  String namePrefix;
+
+  String nameSuffix;
 
   String nickname;
 
@@ -86,9 +113,15 @@ class ContactDetailOut {
   /// false when the source never reads notes (This Mac): show no Notes field
   bool notesIncluded;
 
+  /// false for a contact the host owns: it is on myData only, not on any phone yet. Null for a followed one (the source decides where it is)
+  bool? onPhone;
+
   String organisation;
 
   List<LabeledValue> phones;
+
+  /// for a contact in Recently deleted: when it is deleted for good (UTC)
+  String? purgeAfter;
 
   /// the card as the server sent it; only with ?raw=1
   String? rawVcard;
@@ -96,10 +129,10 @@ class ContactDetailOut {
   /// the contact list's letter group: the first letter of display_name without accents, upper case; \"#\" when it does not start with a letter (digits, symbols, Chinese, Japanese kanji or Korean characters)
   String sortLetter;
 
-  /// where the contact comes from
+  /// where the contact comes from: mydata for a contact the host owns (made in an app; the only copy is on this host)
   ContactDetailOutSource_Enum source_;
 
-  /// the source inside a sentence: \"this Mac\" or \"the iCloud account <email>\" (\"From this Mac. Change it in Contacts.\")
+  /// the source inside a sentence: \"this Mac\", \"the iCloud account <email>\" (\"From this Mac. Change it in Contacts.\") or \"myData\" for a contact the host owns
   String sourceLabel;
 
   /// web addresses as the source wrote them; never trusted to say what they open
@@ -114,10 +147,14 @@ class ContactDetailOut {
           _deepEquality.equals(other.addresses, addresses) &&
           other.birthday == birthday &&
           other.caption == caption &&
+          other.company == company &&
           other.createdAt == createdAt &&
           other.deletedAt == deletedAt &&
+          other.department == department &&
           other.displayName == displayName &&
+          other.editable == editable &&
           _deepEquality.equals(other.emails, emails) &&
+          other.etag == etag &&
           other.familyName == familyName &&
           _deepEquality.equals(other.fields, fields) &&
           other.fullName == fullName &&
@@ -125,12 +162,17 @@ class ContactDetailOut {
           other.hasPhoto == hasPhoto &&
           other.id == id &&
           other.jobTitle == jobTitle &&
+          other.middleName == middleName &&
           other.modifiedAt == modifiedAt &&
+          other.namePrefix == namePrefix &&
+          other.nameSuffix == nameSuffix &&
           other.nickname == nickname &&
           other.note == note &&
           other.notesIncluded == notesIncluded &&
+          other.onPhone == onPhone &&
           other.organisation == organisation &&
           _deepEquality.equals(other.phones, phones) &&
+          other.purgeAfter == purgeAfter &&
           other.rawVcard == rawVcard &&
           other.sortLetter == sortLetter &&
           other.source_ == source_ &&
@@ -145,10 +187,14 @@ class ContactDetailOut {
       (addresses.hashCode) +
       (birthday == null ? 0 : birthday!.hashCode) +
       (caption == null ? 0 : caption!.hashCode) +
+      (company.hashCode) +
       (createdAt.hashCode) +
       (deletedAt == null ? 0 : deletedAt!.hashCode) +
+      (department.hashCode) +
       (displayName.hashCode) +
+      (editable.hashCode) +
       (emails.hashCode) +
+      (etag.hashCode) +
       (familyName.hashCode) +
       (fields.hashCode) +
       (fullName.hashCode) +
@@ -156,12 +202,17 @@ class ContactDetailOut {
       (hasPhoto.hashCode) +
       (id.hashCode) +
       (jobTitle.hashCode) +
+      (middleName.hashCode) +
       (modifiedAt.hashCode) +
+      (namePrefix.hashCode) +
+      (nameSuffix.hashCode) +
       (nickname.hashCode) +
       (note.hashCode) +
       (notesIncluded.hashCode) +
+      (onPhone == null ? 0 : onPhone!.hashCode) +
       (organisation.hashCode) +
       (phones.hashCode) +
+      (purgeAfter == null ? 0 : purgeAfter!.hashCode) +
       (rawVcard == null ? 0 : rawVcard!.hashCode) +
       (sortLetter.hashCode) +
       (source_.hashCode) +
@@ -170,7 +221,7 @@ class ContactDetailOut {
 
   @override
   String toString() =>
-      'ContactDetailOut[accountId=$accountId, addressBookId=$addressBookId, addresses=$addresses, birthday=$birthday, caption=$caption, createdAt=$createdAt, deletedAt=$deletedAt, displayName=$displayName, emails=$emails, familyName=$familyName, fields=$fields, fullName=$fullName, givenName=$givenName, hasPhoto=$hasPhoto, id=$id, jobTitle=$jobTitle, modifiedAt=$modifiedAt, nickname=$nickname, note=$note, notesIncluded=$notesIncluded, organisation=$organisation, phones=$phones, rawVcard=$rawVcard, sortLetter=$sortLetter, source_=$source_, sourceLabel=$sourceLabel, urls=$urls]';
+      'ContactDetailOut[accountId=$accountId, addressBookId=$addressBookId, addresses=$addresses, birthday=$birthday, caption=$caption, company=$company, createdAt=$createdAt, deletedAt=$deletedAt, department=$department, displayName=$displayName, editable=$editable, emails=$emails, etag=$etag, familyName=$familyName, fields=$fields, fullName=$fullName, givenName=$givenName, hasPhoto=$hasPhoto, id=$id, jobTitle=$jobTitle, middleName=$middleName, modifiedAt=$modifiedAt, namePrefix=$namePrefix, nameSuffix=$nameSuffix, nickname=$nickname, note=$note, notesIncluded=$notesIncluded, onPhone=$onPhone, organisation=$organisation, phones=$phones, purgeAfter=$purgeAfter, rawVcard=$rawVcard, sortLetter=$sortLetter, source_=$source_, sourceLabel=$sourceLabel, urls=$urls]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
@@ -187,14 +238,18 @@ class ContactDetailOut {
     } else {
       json[r'caption'] = null;
     }
+    json[r'company'] = this.company;
     json[r'created_at'] = this.createdAt;
     if (this.deletedAt != null) {
       json[r'deleted_at'] = this.deletedAt;
     } else {
       json[r'deleted_at'] = null;
     }
+    json[r'department'] = this.department;
     json[r'display_name'] = this.displayName;
+    json[r'editable'] = this.editable;
     json[r'emails'] = this.emails;
+    json[r'etag'] = this.etag;
     json[r'family_name'] = this.familyName;
     json[r'fields'] = this.fields;
     json[r'full_name'] = this.fullName;
@@ -202,12 +257,25 @@ class ContactDetailOut {
     json[r'has_photo'] = this.hasPhoto;
     json[r'id'] = this.id;
     json[r'job_title'] = this.jobTitle;
+    json[r'middle_name'] = this.middleName;
     json[r'modified_at'] = this.modifiedAt;
+    json[r'name_prefix'] = this.namePrefix;
+    json[r'name_suffix'] = this.nameSuffix;
     json[r'nickname'] = this.nickname;
     json[r'note'] = this.note;
     json[r'notes_included'] = this.notesIncluded;
+    if (this.onPhone != null) {
+      json[r'on_phone'] = this.onPhone;
+    } else {
+      json[r'on_phone'] = null;
+    }
     json[r'organisation'] = this.organisation;
     json[r'phones'] = this.phones;
+    if (this.purgeAfter != null) {
+      json[r'purge_after'] = this.purgeAfter;
+    } else {
+      json[r'purge_after'] = null;
+    }
     if (this.rawVcard != null) {
       json[r'raw_vcard'] = this.rawVcard;
     } else {
@@ -247,6 +315,14 @@ class ContactDetailOut {
             'Required key "ContactDetailOut[display_name]" is missing from JSON.');
         assert(json[r'display_name'] != null,
             'Required key "ContactDetailOut[display_name]" has a null value in JSON.');
+        assert(json.containsKey(r'editable'),
+            'Required key "ContactDetailOut[editable]" is missing from JSON.');
+        assert(json[r'editable'] != null,
+            'Required key "ContactDetailOut[editable]" has a null value in JSON.');
+        assert(json.containsKey(r'etag'),
+            'Required key "ContactDetailOut[etag]" is missing from JSON.');
+        assert(json[r'etag'] != null,
+            'Required key "ContactDetailOut[etag]" has a null value in JSON.');
         assert(json.containsKey(r'fields'),
             'Required key "ContactDetailOut[fields]" is missing from JSON.');
         assert(json[r'fields'] != null,
@@ -280,10 +356,14 @@ class ContactDetailOut {
         addresses: PostalAddress.listFromJson(json[r'addresses']),
         birthday: mapValueOfType<String>(json, r'birthday'),
         caption: mapValueOfType<String>(json, r'caption'),
+        company: mapValueOfType<String>(json, r'company') ?? '',
         createdAt: mapValueOfType<String>(json, r'created_at')!,
         deletedAt: mapValueOfType<String>(json, r'deleted_at'),
+        department: mapValueOfType<String>(json, r'department') ?? '',
         displayName: mapValueOfType<String>(json, r'display_name')!,
+        editable: mapValueOfType<bool>(json, r'editable')!,
         emails: LabeledValue.listFromJson(json[r'emails']),
+        etag: mapValueOfType<String>(json, r'etag')!,
         familyName: mapValueOfType<String>(json, r'family_name') ?? '',
         fields: ContactFieldGroup.listFromJson(json[r'fields']),
         fullName: mapValueOfType<String>(json, r'full_name') ?? '',
@@ -291,12 +371,17 @@ class ContactDetailOut {
         hasPhoto: mapValueOfType<bool>(json, r'has_photo') ?? false,
         id: mapValueOfType<String>(json, r'id')!,
         jobTitle: mapValueOfType<String>(json, r'job_title') ?? '',
+        middleName: mapValueOfType<String>(json, r'middle_name') ?? '',
         modifiedAt: mapValueOfType<String>(json, r'modified_at')!,
+        namePrefix: mapValueOfType<String>(json, r'name_prefix') ?? '',
+        nameSuffix: mapValueOfType<String>(json, r'name_suffix') ?? '',
         nickname: mapValueOfType<String>(json, r'nickname') ?? '',
         note: mapValueOfType<String>(json, r'note') ?? '',
         notesIncluded: mapValueOfType<bool>(json, r'notes_included') ?? true,
+        onPhone: mapValueOfType<bool>(json, r'on_phone'),
         organisation: mapValueOfType<String>(json, r'organisation') ?? '',
         phones: LabeledValue.listFromJson(json[r'phones']),
+        purgeAfter: mapValueOfType<String>(json, r'purge_after'),
         rawVcard: mapValueOfType<String>(json, r'raw_vcard'),
         sortLetter: mapValueOfType<String>(json, r'sort_letter')!,
         source_: ContactDetailOutSource_Enum.fromJson(json[r'source'])!,
@@ -362,6 +447,8 @@ class ContactDetailOut {
     'address_book_id',
     'created_at',
     'display_name',
+    'editable',
+    'etag',
     'fields',
     'id',
     'modified_at',
@@ -371,10 +458,11 @@ class ContactDetailOut {
   };
 }
 
-/// where the contact comes from
+/// where the contact comes from: mydata for a contact the host owns (made in an app; the only copy is on this host)
 enum ContactDetailOutSource_Enum {
   mac._(r'mac'),
   icloud._(r'icloud'),
+  mydata._(r'mydata'),
   ;
 
   /// Instantiate a new enum with the provided value.
@@ -442,6 +530,8 @@ class ContactDetailOutSource_EnumTypeTransformer {
           return ContactDetailOutSource_Enum.mac;
         case r'icloud':
           return ContactDetailOutSource_Enum.icloud;
+        case r'mydata':
+          return ContactDetailOutSource_Enum.mydata;
         default:
           if (!allowNull) {
             throw ArgumentError('Unknown enum value to decode: $data');

@@ -167,8 +167,16 @@ ContactOut listView(ContactDetailOut c) => ContactOut(
   organisation: c.organisation,
   phones: c.phones,
   sortLetter: c.sortLetter,
-  source_: c.source_ == ContactDetailOutSource_Enum.mac ? ContactOutSource_Enum.mac : ContactOutSource_Enum.icloud,
+  source_: switch (c.source_) {
+    ContactDetailOutSource_Enum.mac => ContactOutSource_Enum.mac,
+    ContactDetailOutSource_Enum.icloud => ContactOutSource_Enum.icloud,
+    ContactDetailOutSource_Enum.mydata => ContactOutSource_Enum.mydata,
+  },
   notesIncluded: c.notesIncluded,
+  etag: c.etag,
+  editable: c.editable,
+  onPhone: c.onPhone,
+  purgeAfter: c.purgeAfter,
 );
 
 typedef Labeled = (String label, String value);
@@ -215,7 +223,9 @@ ContactDetailOut card({
     caption: caption,
     createdAt: '2026-01-05T09:00:00+00:00',
     displayName: name,
+    editable: false,
     emails: [for (final e in emails) LabeledValue(label: e.$1, value: e.$2)],
+    etag: '"1-$id"',
     familyName: family,
     givenName: given,
     fullName: name,

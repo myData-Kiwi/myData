@@ -270,7 +270,7 @@ class SourcesApi {
 
   /// Contact
   ///
-  /// One contact, for its page: the fields grouped by kind, the job title and where the card comes from.
+  /// One contact, for its page: the fields grouped by kind, the job title and where the card comes from; whether it can be changed here, and its etag (also the ETag header).
   ///
   /// Note: This method returns the HTTP [Response].
   ///
@@ -316,7 +316,7 @@ class SourcesApi {
 
   /// Contact
   ///
-  /// One contact, for its page: the fields grouped by kind, the job title and where the card comes from.
+  /// One contact, for its page: the fields grouped by kind, the job title and where the card comes from; whether it can be changed here, and its etag (also the ETag header).
   ///
   /// Parameters:
   ///
@@ -514,6 +514,156 @@ class SourcesApi {
     return null;
   }
 
+  /// Create Contact
+  ///
+  /// Create a contact the host owns, in its \"myData\" address book (made with the first contact, which also switches the host to real mode). It is on myData only, not on any phone yet (on_phone false).
+  ///
+  /// Note: This method returns the HTTP [Response].
+  ///
+  /// Parameters:
+  ///
+  /// * [ContactIn] contactIn (required):
+  Future<Response> createContactWithHttpInfo(
+    ContactIn contactIn, {
+    Future<void>? abortTrigger,
+  }) async {
+    // ignore: prefer_const_declarations
+    final path = r'/contacts';
+
+    // ignore: prefer_final_locals
+    Object? postBody = contactIn;
+
+    final queryParams = <QueryParam>[];
+    final headerParams = <String, String>{};
+    final formParams = <String, String>{};
+
+    const contentTypes = <String>['application/json'];
+
+    return apiClient.invokeAPI(
+      path,
+      'POST',
+      queryParams,
+      postBody,
+      headerParams,
+      formParams,
+      contentTypes.isEmpty ? null : contentTypes.first,
+      abortTrigger: abortTrigger,
+    );
+  }
+
+  /// Create Contact
+  ///
+  /// Create a contact the host owns, in its \"myData\" address book (made with the first contact, which also switches the host to real mode). It is on myData only, not on any phone yet (on_phone false).
+  ///
+  /// Parameters:
+  ///
+  /// * [ContactIn] contactIn (required):
+  Future<ContactWriteOut?> createContact(
+    ContactIn contactIn, {
+    Future<void>? abortTrigger,
+  }) async {
+    final response = await createContactWithHttpInfo(
+      contactIn,
+      abortTrigger: abortTrigger,
+    );
+    if (response.statusCode >= HttpStatus.badRequest) {
+      throw ApiException(response.statusCode, await _decodeBodyBytes(response));
+    }
+    // When a remote server returns no body with a status of 204, we shall not decode it.
+    // At the time of writing this, `dart:convert` will throw an "Unexpected end of input"
+    // FormatException when trying to decode an empty string.
+    if (response.body.isNotEmpty &&
+        response.statusCode != HttpStatus.noContent) {
+      return await apiClient.deserializeAsync(
+        await _decodeBodyBytes(response),
+        'ContactWriteOut',
+      ) as ContactWriteOut;
+    }
+    return null;
+  }
+
+  /// Delete Contact
+  ///
+  /// Move an owned contact to Recently deleted. It is deleted for good after 30 days (purge_after); until then POST /trash/{id}/restore or the undo id brings it back. Copies in the host's snapshots stay until those expire (within 12 months while the host runs).
+  ///
+  /// Note: This method returns the HTTP [Response].
+  ///
+  /// Parameters:
+  ///
+  /// * [String] contactId (required):
+  ///
+  /// * [String] ifMatch:
+  ///   optional: refuse if the contact changed since
+  Future<Response> deleteContactWithHttpInfo(
+    String contactId, {
+    String? ifMatch,
+    Future<void>? abortTrigger,
+  }) async {
+    // ignore: prefer_const_declarations
+    final path =
+        r'/contacts/{contact_id}'.replaceAll('{contact_id}', contactId);
+
+    // ignore: prefer_final_locals
+    Object? postBody;
+
+    final queryParams = <QueryParam>[];
+    final headerParams = <String, String>{};
+    final formParams = <String, String>{};
+
+    if (ifMatch != null) {
+      headerParams[r'If-Match'] = parameterToString(ifMatch);
+    }
+
+    const contentTypes = <String>[];
+
+    return apiClient.invokeAPI(
+      path,
+      'DELETE',
+      queryParams,
+      postBody,
+      headerParams,
+      formParams,
+      contentTypes.isEmpty ? null : contentTypes.first,
+      abortTrigger: abortTrigger,
+    );
+  }
+
+  /// Delete Contact
+  ///
+  /// Move an owned contact to Recently deleted. It is deleted for good after 30 days (purge_after); until then POST /trash/{id}/restore or the undo id brings it back. Copies in the host's snapshots stay until those expire (within 12 months while the host runs).
+  ///
+  /// Parameters:
+  ///
+  /// * [String] contactId (required):
+  ///
+  /// * [String] ifMatch:
+  ///   optional: refuse if the contact changed since
+  Future<ContactWriteOut?> deleteContact(
+    String contactId, {
+    String? ifMatch,
+    Future<void>? abortTrigger,
+  }) async {
+    final response = await deleteContactWithHttpInfo(
+      contactId,
+      ifMatch: ifMatch,
+      abortTrigger: abortTrigger,
+    );
+    if (response.statusCode >= HttpStatus.badRequest) {
+      throw ApiException(response.statusCode, await _decodeBodyBytes(response));
+    }
+    // When a remote server returns no body with a status of 204, we shall not decode it.
+    // At the time of writing this, `dart:convert` will throw an "Unexpected end of input"
+    // FormatException when trying to decode an empty string.
+    if (response.body.isNotEmpty &&
+        response.statusCode != HttpStatus.noContent) {
+      return await apiClient.deserializeAsync(
+        await _decodeBodyBytes(response),
+        'ContactWriteOut',
+      ) as ContactWriteOut;
+    }
+    return null;
+  }
+
   /// Events
   ///
   /// Events overlapping the days from start to end (both included), in the host's time zone, with recurring events expanded into occurrences; and, per source, which of those days it holds. This Mac holds a window (one year back, two ahead): days outside it are unknown, not empty.
@@ -528,12 +678,12 @@ class SourcesApi {
   /// * [DateTime] end (required):
   ///   last day, YYYY-MM-DD (included)
   ///
-  /// * [List<String>] calendar:
+  /// * [List<String?>] calendar:
   ///   calendar ids; repeat for several. Omit for every calendar
   Future<Response> eventsWithHttpInfo(
     DateTime start,
     DateTime end, {
-    List<String>? calendar,
+    List<String?>? calendar,
     Future<void>? abortTrigger,
   }) async {
     // ignore: prefer_const_declarations
@@ -578,12 +728,12 @@ class SourcesApi {
   /// * [DateTime] end (required):
   ///   last day, YYYY-MM-DD (included)
   ///
-  /// * [List<String>] calendar:
+  /// * [List<String?>] calendar:
   ///   calendar ids; repeat for several. Omit for every calendar
   Future<EventsOut?> events(
     DateTime start,
     DateTime end, {
-    List<String>? calendar,
+    List<String?>? calendar,
     Future<void>? abortTrigger,
   }) async {
     final response = await eventsWithHttpInfo(
@@ -741,6 +891,74 @@ class SourcesApi {
         await _decodeBodyBytes(response),
         'SourceOut',
       ) as SourceOut;
+    }
+    return null;
+  }
+
+  /// Restore Item
+  ///
+  /// Bring an item back from Recently deleted. 404 when it is not there (or was deleted for good).
+  ///
+  /// Note: This method returns the HTTP [Response].
+  ///
+  /// Parameters:
+  ///
+  /// * [String] itemId (required):
+  Future<Response> restoreItemWithHttpInfo(
+    String itemId, {
+    Future<void>? abortTrigger,
+  }) async {
+    // ignore: prefer_const_declarations
+    final path = r'/trash/{item_id}/restore'.replaceAll('{item_id}', itemId);
+
+    // ignore: prefer_final_locals
+    Object? postBody;
+
+    final queryParams = <QueryParam>[];
+    final headerParams = <String, String>{};
+    final formParams = <String, String>{};
+
+    const contentTypes = <String>[];
+
+    return apiClient.invokeAPI(
+      path,
+      'POST',
+      queryParams,
+      postBody,
+      headerParams,
+      formParams,
+      contentTypes.isEmpty ? null : contentTypes.first,
+      abortTrigger: abortTrigger,
+    );
+  }
+
+  /// Restore Item
+  ///
+  /// Bring an item back from Recently deleted. 404 when it is not there (or was deleted for good).
+  ///
+  /// Parameters:
+  ///
+  /// * [String] itemId (required):
+  Future<ContactWriteOut?> restoreItem(
+    String itemId, {
+    Future<void>? abortTrigger,
+  }) async {
+    final response = await restoreItemWithHttpInfo(
+      itemId,
+      abortTrigger: abortTrigger,
+    );
+    if (response.statusCode >= HttpStatus.badRequest) {
+      throw ApiException(response.statusCode, await _decodeBodyBytes(response));
+    }
+    // When a remote server returns no body with a status of 204, we shall not decode it.
+    // At the time of writing this, `dart:convert` will throw an "Unexpected end of input"
+    // FormatException when trying to decode an empty string.
+    if (response.body.isNotEmpty &&
+        response.statusCode != HttpStatus.noContent) {
+      return await apiClient.deserializeAsync(
+        await _decodeBodyBytes(response),
+        'ContactWriteOut',
+      ) as ContactWriteOut;
     }
     return null;
   }
@@ -1049,6 +1267,238 @@ class SourcesApi {
         await _decodeBodyBytes(response),
         'SyncOut',
       ) as SyncOut;
+    }
+    return null;
+  }
+
+  /// Trash
+  ///
+  /// Recently deleted: what was deleted in the apps, the most recent first, with when each is deleted for good. Copies in the host's snapshots stay until those expire.
+  ///
+  /// Note: This method returns the HTTP [Response].
+  ///
+  /// Parameters:
+  ///
+  /// * [String] kind:
+  ///   what to list
+  Future<Response> trashWithHttpInfo({
+    String? kind,
+    Future<void>? abortTrigger,
+  }) async {
+    // ignore: prefer_const_declarations
+    final path = r'/trash';
+
+    // ignore: prefer_final_locals
+    Object? postBody;
+
+    final queryParams = <QueryParam>[];
+    final headerParams = <String, String>{};
+    final formParams = <String, String>{};
+
+    if (kind != null) {
+      queryParams.addAll(_queryParams('', 'kind', kind));
+    }
+
+    const contentTypes = <String>[];
+
+    return apiClient.invokeAPI(
+      path,
+      'GET',
+      queryParams,
+      postBody,
+      headerParams,
+      formParams,
+      contentTypes.isEmpty ? null : contentTypes.first,
+      abortTrigger: abortTrigger,
+    );
+  }
+
+  /// Trash
+  ///
+  /// Recently deleted: what was deleted in the apps, the most recent first, with when each is deleted for good. Copies in the host's snapshots stay until those expire.
+  ///
+  /// Parameters:
+  ///
+  /// * [String] kind:
+  ///   what to list
+  Future<List<TrashItemOut>?> trash({
+    String? kind,
+    Future<void>? abortTrigger,
+  }) async {
+    final response = await trashWithHttpInfo(
+      kind: kind,
+      abortTrigger: abortTrigger,
+    );
+    if (response.statusCode >= HttpStatus.badRequest) {
+      throw ApiException(response.statusCode, await _decodeBodyBytes(response));
+    }
+    // When a remote server returns no body with a status of 204, we shall not decode it.
+    // At the time of writing this, `dart:convert` will throw an "Unexpected end of input"
+    // FormatException when trying to decode an empty string.
+    if (response.body.isNotEmpty &&
+        response.statusCode != HttpStatus.noContent) {
+      final responseBody = await _decodeBodyBytes(response);
+      return (await apiClient.deserializeAsync(
+              responseBody, 'List<TrashItemOut>') as List)
+          .cast<TrashItemOut>()
+          .toList(growable: false);
+    }
+    return null;
+  }
+
+  /// Undo
+  ///
+  /// Undo one change by its undo id. The undo is a new change: it is refused when the item changed since (nothing later is ever overwritten), and a change is undone at most once, also across a restart.
+  ///
+  /// Note: This method returns the HTTP [Response].
+  ///
+  /// Parameters:
+  ///
+  /// * [String] undoId (required):
+  Future<Response> undoWithHttpInfo(
+    String undoId, {
+    Future<void>? abortTrigger,
+  }) async {
+    // ignore: prefer_const_declarations
+    final path = r'/undo/{undo_id}'.replaceAll('{undo_id}', undoId);
+
+    // ignore: prefer_final_locals
+    Object? postBody;
+
+    final queryParams = <QueryParam>[];
+    final headerParams = <String, String>{};
+    final formParams = <String, String>{};
+
+    const contentTypes = <String>[];
+
+    return apiClient.invokeAPI(
+      path,
+      'POST',
+      queryParams,
+      postBody,
+      headerParams,
+      formParams,
+      contentTypes.isEmpty ? null : contentTypes.first,
+      abortTrigger: abortTrigger,
+    );
+  }
+
+  /// Undo
+  ///
+  /// Undo one change by its undo id. The undo is a new change: it is refused when the item changed since (nothing later is ever overwritten), and a change is undone at most once, also across a restart.
+  ///
+  /// Parameters:
+  ///
+  /// * [String] undoId (required):
+  Future<UndoOut?> undo(
+    String undoId, {
+    Future<void>? abortTrigger,
+  }) async {
+    final response = await undoWithHttpInfo(
+      undoId,
+      abortTrigger: abortTrigger,
+    );
+    if (response.statusCode >= HttpStatus.badRequest) {
+      throw ApiException(response.statusCode, await _decodeBodyBytes(response));
+    }
+    // When a remote server returns no body with a status of 204, we shall not decode it.
+    // At the time of writing this, `dart:convert` will throw an "Unexpected end of input"
+    // FormatException when trying to decode an empty string.
+    if (response.body.isNotEmpty &&
+        response.statusCode != HttpStatus.noContent) {
+      return await apiClient.deserializeAsync(
+        await _decodeBodyBytes(response),
+        'UndoOut',
+      ) as UndoOut;
+    }
+    return null;
+  }
+
+  /// Update Contact
+  ///
+  /// Change an owned contact. Only the fields in the body change (null clears one), and of the card only the lines whose values change are written. Refused with 412 when the contact changed since its etag.
+  ///
+  /// Note: This method returns the HTTP [Response].
+  ///
+  /// Parameters:
+  ///
+  /// * [String] contactId (required):
+  ///
+  /// * [ContactIn] contactIn (required):
+  ///
+  /// * [String] ifMatch:
+  ///   the etag the change was made from
+  Future<Response> updateContactWithHttpInfo(
+    String contactId,
+    ContactIn contactIn, {
+    String? ifMatch,
+    Future<void>? abortTrigger,
+  }) async {
+    // ignore: prefer_const_declarations
+    final path =
+        r'/contacts/{contact_id}'.replaceAll('{contact_id}', contactId);
+
+    // ignore: prefer_final_locals
+    Object? postBody = contactIn;
+
+    final queryParams = <QueryParam>[];
+    final headerParams = <String, String>{};
+    final formParams = <String, String>{};
+
+    if (ifMatch != null) {
+      headerParams[r'If-Match'] = parameterToString(ifMatch);
+    }
+
+    const contentTypes = <String>['application/json'];
+
+    return apiClient.invokeAPI(
+      path,
+      'PATCH',
+      queryParams,
+      postBody,
+      headerParams,
+      formParams,
+      contentTypes.isEmpty ? null : contentTypes.first,
+      abortTrigger: abortTrigger,
+    );
+  }
+
+  /// Update Contact
+  ///
+  /// Change an owned contact. Only the fields in the body change (null clears one), and of the card only the lines whose values change are written. Refused with 412 when the contact changed since its etag.
+  ///
+  /// Parameters:
+  ///
+  /// * [String] contactId (required):
+  ///
+  /// * [ContactIn] contactIn (required):
+  ///
+  /// * [String] ifMatch:
+  ///   the etag the change was made from
+  Future<ContactWriteOut?> updateContact(
+    String contactId,
+    ContactIn contactIn, {
+    String? ifMatch,
+    Future<void>? abortTrigger,
+  }) async {
+    final response = await updateContactWithHttpInfo(
+      contactId,
+      contactIn,
+      ifMatch: ifMatch,
+      abortTrigger: abortTrigger,
+    );
+    if (response.statusCode >= HttpStatus.badRequest) {
+      throw ApiException(response.statusCode, await _decodeBodyBytes(response));
+    }
+    // When a remote server returns no body with a status of 204, we shall not decode it.
+    // At the time of writing this, `dart:convert` will throw an "Unexpected end of input"
+    // FormatException when trying to decode an empty string.
+    if (response.body.isNotEmpty &&
+        response.statusCode != HttpStatus.noContent) {
+      return await apiClient.deserializeAsync(
+        await _decodeBodyBytes(response),
+        'ContactWriteOut',
+      ) as ContactWriteOut;
     }
     return null;
   }

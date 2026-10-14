@@ -16,14 +16,20 @@ Method | HTTP request | Description
 [**contact**](SourcesApi.md#contact) | **GET** /contacts/{contact_id} | Contact
 [**contactPhoto**](SourcesApi.md#contactphoto) | **GET** /contacts/{contact_id}/photo | Contact Photo
 [**contacts**](SourcesApi.md#contacts) | **GET** /contacts | Contacts
+[**createContact**](SourcesApi.md#createcontact) | **POST** /contacts | Create Contact
+[**deleteContact**](SourcesApi.md#deletecontact) | **DELETE** /contacts/{contact_id} | Delete Contact
 [**events**](SourcesApi.md#events) | **GET** /events | Events
 [**removeAccount**](SourcesApi.md#removeaccount) | **DELETE** /accounts/{account_id} | Remove Account
 [**requestMacAccess**](SourcesApi.md#requestmacaccess) | **POST** /sources/mac/request-access | Request Mac Access
+[**restoreItem**](SourcesApi.md#restoreitem) | **POST** /trash/{item_id}/restore | Restore Item
 [**setMacReader**](SourcesApi.md#setmacreader) | **PUT** /sources/mac/reader | Set Mac Reader
 [**sources**](SourcesApi.md#sources) | **GET** /sources | Sources
 [**syncAccount**](SourcesApi.md#syncaccount) | **POST** /accounts/{account_id}/sync | Sync Account
 [**syncMac**](SourcesApi.md#syncmac) | **POST** /sources/mac/sync | Sync Mac
 [**syncStatus**](SourcesApi.md#syncstatus) | **GET** /sync | Sync Status
+[**trash**](SourcesApi.md#trash) | **GET** /trash | Trash
+[**undo**](SourcesApi.md#undo) | **POST** /undo/{undo_id} | Undo
+[**updateContact**](SourcesApi.md#updatecontact) | **PATCH** /contacts/{contact_id} | Update Contact
 
 
 # **accounts**
@@ -219,7 +225,7 @@ Name | Type | Description  | Notes
 
 Contact
 
-One contact, for its page: the fields grouped by kind, the job title and where the card comes from.
+One contact, for its page: the fields grouped by kind, the job title and where the card comes from; whether it can be changed here, and its etag (also the ETag header).
 
 ### Example
 ```dart
@@ -367,6 +373,106 @@ Name | Type | Description  | Notes
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **createContact**
+> ContactWriteOut createContact(contactIn)
+
+Create Contact
+
+Create a contact the host owns, in its \"myData\" address book (made with the first contact, which also switches the host to real mode). It is on myData only, not on any phone yet (on_phone false).
+
+### Example
+```dart
+import 'package:mydata_client/api.dart';
+// TODO Configure HTTP Bearer authorization: bearer
+// Case 1. Use String Token
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearer').setAccessToken('YOUR_ACCESS_TOKEN');
+// Case 2. Use Function which generate token.
+// String yourTokenGeneratorFunction() { ... }
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearer').setAccessToken(yourTokenGeneratorFunction);
+
+final api_instance = SourcesApi();
+final contactIn = ContactIn(); // ContactIn | 
+
+try {
+    final result = api_instance.createContact(contactIn);
+    print(result);
+} catch (e) {
+    print('Exception when calling SourcesApi->createContact: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **contactIn** | [**ContactIn**](ContactIn.md)|  | 
+
+### Return type
+
+[**ContactWriteOut**](ContactWriteOut.md)
+
+### Authorization
+
+[bearer](../README.md#bearer)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **deleteContact**
+> ContactWriteOut deleteContact(contactId, ifMatch)
+
+Delete Contact
+
+Move an owned contact to Recently deleted. It is deleted for good after 30 days (purge_after); until then POST /trash/{id}/restore or the undo id brings it back. Copies in the host's snapshots stay until those expire (within 12 months while the host runs).
+
+### Example
+```dart
+import 'package:mydata_client/api.dart';
+// TODO Configure HTTP Bearer authorization: bearer
+// Case 1. Use String Token
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearer').setAccessToken('YOUR_ACCESS_TOKEN');
+// Case 2. Use Function which generate token.
+// String yourTokenGeneratorFunction() { ... }
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearer').setAccessToken(yourTokenGeneratorFunction);
+
+final api_instance = SourcesApi();
+final contactId = contactId_example; // String | 
+final ifMatch = ifMatch_example; // String | optional: refuse if the contact changed since
+
+try {
+    final result = api_instance.deleteContact(contactId, ifMatch);
+    print(result);
+} catch (e) {
+    print('Exception when calling SourcesApi->deleteContact: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **contactId** | **String**|  | 
+ **ifMatch** | **String**| optional: refuse if the contact changed since | [optional] 
+
+### Return type
+
+[**ContactWriteOut**](ContactWriteOut.md)
+
+### Authorization
+
+[bearer](../README.md#bearer)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **events**
 > EventsOut events(start, end, calendar)
 
@@ -387,7 +493,7 @@ import 'package:mydata_client/api.dart';
 final api_instance = SourcesApi();
 final start = 2013-10-20; // DateTime | first day, YYYY-MM-DD
 final end = 2013-10-20; // DateTime | last day, YYYY-MM-DD (included)
-final calendar = []; // List<String> | calendar ids; repeat for several. Omit for every calendar
+final calendar = []; // List<String?> | calendar ids; repeat for several. Omit for every calendar
 
 try {
     final result = api_instance.events(start, end, calendar);
@@ -403,7 +509,7 @@ Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **start** | **DateTime**| first day, YYYY-MM-DD | 
  **end** | **DateTime**| last day, YYYY-MM-DD (included) | 
- **calendar** | [**List<String>**](String.md)| calendar ids; repeat for several. Omit for every calendar | [optional] [default to const []]
+ **calendar** | [**List<String?>**](String.md)| calendar ids; repeat for several. Omit for every calendar | [optional] [default to const []]
 
 ### Return type
 
@@ -514,6 +620,55 @@ Name | Type | Description  | Notes
 ### HTTP request headers
 
  - **Content-Type**: application/json
+ - **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **restoreItem**
+> ContactWriteOut restoreItem(itemId)
+
+Restore Item
+
+Bring an item back from Recently deleted. 404 when it is not there (or was deleted for good).
+
+### Example
+```dart
+import 'package:mydata_client/api.dart';
+// TODO Configure HTTP Bearer authorization: bearer
+// Case 1. Use String Token
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearer').setAccessToken('YOUR_ACCESS_TOKEN');
+// Case 2. Use Function which generate token.
+// String yourTokenGeneratorFunction() { ... }
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearer').setAccessToken(yourTokenGeneratorFunction);
+
+final api_instance = SourcesApi();
+final itemId = itemId_example; // String | 
+
+try {
+    final result = api_instance.restoreItem(itemId);
+    print(result);
+} catch (e) {
+    print('Exception when calling SourcesApi->restoreItem: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **itemId** | **String**|  | 
+
+### Return type
+
+[**ContactWriteOut**](ContactWriteOut.md)
+
+### Authorization
+
+[bearer](../README.md#bearer)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
  - **Accept**: application/json
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
@@ -747,6 +902,157 @@ This endpoint does not need any parameter.
 ### HTTP request headers
 
  - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **trash**
+> List<TrashItemOut> trash(kind)
+
+Trash
+
+Recently deleted: what was deleted in the apps, the most recent first, with when each is deleted for good. Copies in the host's snapshots stay until those expire.
+
+### Example
+```dart
+import 'package:mydata_client/api.dart';
+// TODO Configure HTTP Bearer authorization: bearer
+// Case 1. Use String Token
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearer').setAccessToken('YOUR_ACCESS_TOKEN');
+// Case 2. Use Function which generate token.
+// String yourTokenGeneratorFunction() { ... }
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearer').setAccessToken(yourTokenGeneratorFunction);
+
+final api_instance = SourcesApi();
+final kind = kind_example; // String | what to list
+
+try {
+    final result = api_instance.trash(kind);
+    print(result);
+} catch (e) {
+    print('Exception when calling SourcesApi->trash: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **kind** | **String**| what to list | [optional] [default to 'contact']
+
+### Return type
+
+[**List<TrashItemOut>**](TrashItemOut.md)
+
+### Authorization
+
+[bearer](../README.md#bearer)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **undo**
+> UndoOut undo(undoId)
+
+Undo
+
+Undo one change by its undo id. The undo is a new change: it is refused when the item changed since (nothing later is ever overwritten), and a change is undone at most once, also across a restart.
+
+### Example
+```dart
+import 'package:mydata_client/api.dart';
+// TODO Configure HTTP Bearer authorization: bearer
+// Case 1. Use String Token
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearer').setAccessToken('YOUR_ACCESS_TOKEN');
+// Case 2. Use Function which generate token.
+// String yourTokenGeneratorFunction() { ... }
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearer').setAccessToken(yourTokenGeneratorFunction);
+
+final api_instance = SourcesApi();
+final undoId = undoId_example; // String | 
+
+try {
+    final result = api_instance.undo(undoId);
+    print(result);
+} catch (e) {
+    print('Exception when calling SourcesApi->undo: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **undoId** | **String**|  | 
+
+### Return type
+
+[**UndoOut**](UndoOut.md)
+
+### Authorization
+
+[bearer](../README.md#bearer)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **updateContact**
+> ContactWriteOut updateContact(contactId, contactIn, ifMatch)
+
+Update Contact
+
+Change an owned contact. Only the fields in the body change (null clears one), and of the card only the lines whose values change are written. Refused with 412 when the contact changed since its etag.
+
+### Example
+```dart
+import 'package:mydata_client/api.dart';
+// TODO Configure HTTP Bearer authorization: bearer
+// Case 1. Use String Token
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearer').setAccessToken('YOUR_ACCESS_TOKEN');
+// Case 2. Use Function which generate token.
+// String yourTokenGeneratorFunction() { ... }
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearer').setAccessToken(yourTokenGeneratorFunction);
+
+final api_instance = SourcesApi();
+final contactId = contactId_example; // String | 
+final contactIn = ContactIn(); // ContactIn | 
+final ifMatch = ifMatch_example; // String | the etag the change was made from
+
+try {
+    final result = api_instance.updateContact(contactId, contactIn, ifMatch);
+    print(result);
+} catch (e) {
+    print('Exception when calling SourcesApi->updateContact: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **contactId** | **String**|  | 
+ **contactIn** | [**ContactIn**](ContactIn.md)|  | 
+ **ifMatch** | **String**| the etag the change was made from | [optional] 
+
+### Return type
+
+[**ContactWriteOut**](ContactWriteOut.md)
+
+### Authorization
+
+[bearer](../README.md#bearer)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
  - **Accept**: application/json
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)

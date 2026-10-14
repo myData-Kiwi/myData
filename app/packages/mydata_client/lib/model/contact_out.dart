@@ -21,7 +21,9 @@ class ContactOut {
     required this.createdAt,
     this.deletedAt,
     required this.displayName,
+    required this.editable,
     this.emails = const [],
+    required this.etag,
     this.familyName = '',
     this.fullName = '',
     this.givenName = '',
@@ -31,8 +33,10 @@ class ContactOut {
     this.nickname = '',
     this.note = '',
     this.notesIncluded = true,
+    this.onPhone,
     this.organisation = '',
     this.phones = const [],
+    this.purgeAfter,
     required this.sortLetter,
     required this.source_,
   });
@@ -55,7 +59,13 @@ class ContactOut {
   /// the name to show: never empty (organisation, email or phone when the card has no name)
   String displayName;
 
+  /// true for a contact the host owns, which the apps may change and delete; false for one followed from a source (change it there)
+  bool editable;
+
   List<LabeledValue> emails;
+
+  /// the contact's current version, to send back as If-Match when changing it; it changes with every change, a delete or restore included
+  String etag;
 
   String familyName;
 
@@ -76,14 +86,20 @@ class ContactOut {
   /// false when the source never reads notes (This Mac): show no Notes field
   bool notesIncluded;
 
+  /// false for a contact the host owns: it is on myData only, not on any phone yet. Null for a followed one (the source decides where it is)
+  bool? onPhone;
+
   String organisation;
 
   List<LabeledValue> phones;
 
+  /// for a contact in Recently deleted: when it is deleted for good (UTC)
+  String? purgeAfter;
+
   /// the contact list's letter group: the first letter of display_name without accents, upper case; \"#\" when it does not start with a letter (digits, symbols, Chinese, Japanese kanji or Korean characters)
   String sortLetter;
 
-  /// where the contact comes from
+  /// where the contact comes from: mydata for a contact the host owns (made in an app; the only copy is on this host)
   ContactOutSource_Enum source_;
 
   @override
@@ -98,7 +114,9 @@ class ContactOut {
           other.createdAt == createdAt &&
           other.deletedAt == deletedAt &&
           other.displayName == displayName &&
+          other.editable == editable &&
           _deepEquality.equals(other.emails, emails) &&
+          other.etag == etag &&
           other.familyName == familyName &&
           other.fullName == fullName &&
           other.givenName == givenName &&
@@ -108,8 +126,10 @@ class ContactOut {
           other.nickname == nickname &&
           other.note == note &&
           other.notesIncluded == notesIncluded &&
+          other.onPhone == onPhone &&
           other.organisation == organisation &&
           _deepEquality.equals(other.phones, phones) &&
+          other.purgeAfter == purgeAfter &&
           other.sortLetter == sortLetter &&
           other.source_ == source_;
 
@@ -124,7 +144,9 @@ class ContactOut {
       (createdAt.hashCode) +
       (deletedAt == null ? 0 : deletedAt!.hashCode) +
       (displayName.hashCode) +
+      (editable.hashCode) +
       (emails.hashCode) +
+      (etag.hashCode) +
       (familyName.hashCode) +
       (fullName.hashCode) +
       (givenName.hashCode) +
@@ -134,14 +156,16 @@ class ContactOut {
       (nickname.hashCode) +
       (note.hashCode) +
       (notesIncluded.hashCode) +
+      (onPhone == null ? 0 : onPhone!.hashCode) +
       (organisation.hashCode) +
       (phones.hashCode) +
+      (purgeAfter == null ? 0 : purgeAfter!.hashCode) +
       (sortLetter.hashCode) +
       (source_.hashCode);
 
   @override
   String toString() =>
-      'ContactOut[accountId=$accountId, addressBookId=$addressBookId, addresses=$addresses, birthday=$birthday, caption=$caption, createdAt=$createdAt, deletedAt=$deletedAt, displayName=$displayName, emails=$emails, familyName=$familyName, fullName=$fullName, givenName=$givenName, hasPhoto=$hasPhoto, id=$id, modifiedAt=$modifiedAt, nickname=$nickname, note=$note, notesIncluded=$notesIncluded, organisation=$organisation, phones=$phones, sortLetter=$sortLetter, source_=$source_]';
+      'ContactOut[accountId=$accountId, addressBookId=$addressBookId, addresses=$addresses, birthday=$birthday, caption=$caption, createdAt=$createdAt, deletedAt=$deletedAt, displayName=$displayName, editable=$editable, emails=$emails, etag=$etag, familyName=$familyName, fullName=$fullName, givenName=$givenName, hasPhoto=$hasPhoto, id=$id, modifiedAt=$modifiedAt, nickname=$nickname, note=$note, notesIncluded=$notesIncluded, onPhone=$onPhone, organisation=$organisation, phones=$phones, purgeAfter=$purgeAfter, sortLetter=$sortLetter, source_=$source_]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
@@ -165,7 +189,9 @@ class ContactOut {
       json[r'deleted_at'] = null;
     }
     json[r'display_name'] = this.displayName;
+    json[r'editable'] = this.editable;
     json[r'emails'] = this.emails;
+    json[r'etag'] = this.etag;
     json[r'family_name'] = this.familyName;
     json[r'full_name'] = this.fullName;
     json[r'given_name'] = this.givenName;
@@ -175,8 +201,18 @@ class ContactOut {
     json[r'nickname'] = this.nickname;
     json[r'note'] = this.note;
     json[r'notes_included'] = this.notesIncluded;
+    if (this.onPhone != null) {
+      json[r'on_phone'] = this.onPhone;
+    } else {
+      json[r'on_phone'] = null;
+    }
     json[r'organisation'] = this.organisation;
     json[r'phones'] = this.phones;
+    if (this.purgeAfter != null) {
+      json[r'purge_after'] = this.purgeAfter;
+    } else {
+      json[r'purge_after'] = null;
+    }
     json[r'sort_letter'] = this.sortLetter;
     json[r'source'] = this.source_;
     return json;
@@ -209,6 +245,14 @@ class ContactOut {
             'Required key "ContactOut[display_name]" is missing from JSON.');
         assert(json[r'display_name'] != null,
             'Required key "ContactOut[display_name]" has a null value in JSON.');
+        assert(json.containsKey(r'editable'),
+            'Required key "ContactOut[editable]" is missing from JSON.');
+        assert(json[r'editable'] != null,
+            'Required key "ContactOut[editable]" has a null value in JSON.');
+        assert(json.containsKey(r'etag'),
+            'Required key "ContactOut[etag]" is missing from JSON.');
+        assert(json[r'etag'] != null,
+            'Required key "ContactOut[etag]" has a null value in JSON.');
         assert(json.containsKey(r'id'),
             'Required key "ContactOut[id]" is missing from JSON.');
         assert(json[r'id'] != null,
@@ -237,7 +281,9 @@ class ContactOut {
         createdAt: mapValueOfType<String>(json, r'created_at')!,
         deletedAt: mapValueOfType<String>(json, r'deleted_at'),
         displayName: mapValueOfType<String>(json, r'display_name')!,
+        editable: mapValueOfType<bool>(json, r'editable')!,
         emails: LabeledValue.listFromJson(json[r'emails']),
+        etag: mapValueOfType<String>(json, r'etag')!,
         familyName: mapValueOfType<String>(json, r'family_name') ?? '',
         fullName: mapValueOfType<String>(json, r'full_name') ?? '',
         givenName: mapValueOfType<String>(json, r'given_name') ?? '',
@@ -247,8 +293,10 @@ class ContactOut {
         nickname: mapValueOfType<String>(json, r'nickname') ?? '',
         note: mapValueOfType<String>(json, r'note') ?? '',
         notesIncluded: mapValueOfType<bool>(json, r'notes_included') ?? true,
+        onPhone: mapValueOfType<bool>(json, r'on_phone'),
         organisation: mapValueOfType<String>(json, r'organisation') ?? '',
         phones: LabeledValue.listFromJson(json[r'phones']),
+        purgeAfter: mapValueOfType<String>(json, r'purge_after'),
         sortLetter: mapValueOfType<String>(json, r'sort_letter')!,
         source_: ContactOutSource_Enum.fromJson(json[r'source'])!,
       );
@@ -311,6 +359,8 @@ class ContactOut {
     'address_book_id',
     'created_at',
     'display_name',
+    'editable',
+    'etag',
     'id',
     'modified_at',
     'sort_letter',
@@ -318,10 +368,11 @@ class ContactOut {
   };
 }
 
-/// where the contact comes from
+/// where the contact comes from: mydata for a contact the host owns (made in an app; the only copy is on this host)
 enum ContactOutSource_Enum {
   mac._(r'mac'),
   icloud._(r'icloud'),
+  mydata._(r'mydata'),
   ;
 
   /// Instantiate a new enum with the provided value.
@@ -389,6 +440,8 @@ class ContactOutSource_EnumTypeTransformer {
           return ContactOutSource_Enum.mac;
         case r'icloud':
           return ContactOutSource_Enum.icloud;
+        case r'mydata':
+          return ContactOutSource_Enum.mydata;
         default:
           if (!allowNull) {
             throw ArgumentError('Unknown enum value to decode: $data');

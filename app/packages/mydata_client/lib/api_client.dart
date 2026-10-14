@@ -236,8 +236,12 @@ class ApiClient {
           return ContactField.fromJson(value);
         case 'ContactFieldGroup':
           return ContactFieldGroup.fromJson(value);
+        case 'ContactIn':
+          return ContactIn.fromJson(value);
         case 'ContactOut':
           return ContactOut.fromJson(value);
+        case 'ContactWriteOut':
+          return ContactWriteOut.fromJson(value);
         case 'CoverageOut':
           return CoverageOut.fromJson(value);
         case 'DecisionIn':
@@ -248,12 +252,16 @@ class ApiClient {
           return EventOut.fromJson(value);
         case 'EventsOut':
           return EventsOut.fromJson(value);
+        case 'FieldErrorsOut':
+          return FieldErrorsOut.fromJson(value);
         case 'GuardError':
           return GuardError.fromJson(value);
         case 'HTTPValidationError':
           return HTTPValidationError.fromJson(value);
         case 'LabeledValue':
           return LabeledValue.fromJson(value);
+        case 'LabeledValueIn':
+          return LabeledValueIn.fromJson(value);
         case 'MacCalendarOut':
           return MacCalendarOut.fromJson(value);
         case 'MacContainerOut':
@@ -268,6 +276,10 @@ class ApiClient {
           return ModelOut.fromJson(value);
         case 'PostalAddress':
           return PostalAddress.fromJson(value);
+        case 'PostalAddressIn':
+          return PostalAddressIn.fromJson(value);
+        case 'PreconditionFailedOut':
+          return PreconditionFailedOut.fromJson(value);
         case 'Progress':
           return Progress.fromJson(value);
         case 'ReaderIn':
@@ -286,6 +298,10 @@ class ApiClient {
           return ThemeOut.fromJson(value);
         case 'ToolOut':
           return ToolOut.fromJson(value);
+        case 'TrashItemOut':
+          return TrashItemOut.fromJson(value);
+        case 'UndoOut':
+          return UndoOut.fromJson(value);
         case 'ValidationError':
           return ValidationError.fromJson(value);
         case 'WindowOut':

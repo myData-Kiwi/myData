@@ -84,14 +84,20 @@ Class | Method | HTTP request | Description
 *SourcesApi* | [**contact**](doc//SourcesApi.md#contact) | **GET** /contacts/{contact_id} | Contact
 *SourcesApi* | [**contactPhoto**](doc//SourcesApi.md#contactphoto) | **GET** /contacts/{contact_id}/photo | Contact Photo
 *SourcesApi* | [**contacts**](doc//SourcesApi.md#contacts) | **GET** /contacts | Contacts
+*SourcesApi* | [**createContact**](doc//SourcesApi.md#createcontact) | **POST** /contacts | Create Contact
+*SourcesApi* | [**deleteContact**](doc//SourcesApi.md#deletecontact) | **DELETE** /contacts/{contact_id} | Delete Contact
 *SourcesApi* | [**events**](doc//SourcesApi.md#events) | **GET** /events | Events
 *SourcesApi* | [**removeAccount**](doc//SourcesApi.md#removeaccount) | **DELETE** /accounts/{account_id} | Remove Account
 *SourcesApi* | [**requestMacAccess**](doc//SourcesApi.md#requestmacaccess) | **POST** /sources/mac/request-access | Request Mac Access
+*SourcesApi* | [**restoreItem**](doc//SourcesApi.md#restoreitem) | **POST** /trash/{item_id}/restore | Restore Item
 *SourcesApi* | [**setMacReader**](doc//SourcesApi.md#setmacreader) | **PUT** /sources/mac/reader | Set Mac Reader
 *SourcesApi* | [**sources**](doc//SourcesApi.md#sources) | **GET** /sources | Sources
 *SourcesApi* | [**syncAccount**](doc//SourcesApi.md#syncaccount) | **POST** /accounts/{account_id}/sync | Sync Account
 *SourcesApi* | [**syncMac**](doc//SourcesApi.md#syncmac) | **POST** /sources/mac/sync | Sync Mac
 *SourcesApi* | [**syncStatus**](doc//SourcesApi.md#syncstatus) | **GET** /sync | Sync Status
+*SourcesApi* | [**trash**](doc//SourcesApi.md#trash) | **GET** /trash | Trash
+*SourcesApi* | [**undo**](doc//SourcesApi.md#undo) | **POST** /undo/{undo_id} | Undo
+*SourcesApi* | [**updateContact**](doc//SourcesApi.md#updatecontact) | **PATCH** /contacts/{contact_id} | Update Contact
 *ToolsApi* | [**tools**](doc//ToolsApi.md#tools) | **GET** /tools | Tools
 
 
@@ -113,15 +119,19 @@ Class | Method | HTTP request | Description
  - [ContactDetailOut](doc//ContactDetailOut.md)
  - [ContactField](doc//ContactField.md)
  - [ContactFieldGroup](doc//ContactFieldGroup.md)
+ - [ContactIn](doc//ContactIn.md)
  - [ContactOut](doc//ContactOut.md)
+ - [ContactWriteOut](doc//ContactWriteOut.md)
  - [CoverageOut](doc//CoverageOut.md)
  - [DecisionIn](doc//DecisionIn.md)
  - [ErrorOut](doc//ErrorOut.md)
  - [EventOut](doc//EventOut.md)
  - [EventsOut](doc//EventsOut.md)
+ - [FieldErrorsOut](doc//FieldErrorsOut.md)
  - [GuardError](doc//GuardError.md)
  - [HTTPValidationError](doc//HTTPValidationError.md)
  - [LabeledValue](doc//LabeledValue.md)
+ - [LabeledValueIn](doc//LabeledValueIn.md)
  - [MacCalendarOut](doc//MacCalendarOut.md)
  - [MacContainerOut](doc//MacContainerOut.md)
  - [MacSourceIn](doc//MacSourceIn.md)
@@ -129,6 +139,8 @@ Class | Method | HTTP request | Description
  - [MessageIn](doc//MessageIn.md)
  - [ModelOut](doc//ModelOut.md)
  - [PostalAddress](doc//PostalAddress.md)
+ - [PostalAddressIn](doc//PostalAddressIn.md)
+ - [PreconditionFailedOut](doc//PreconditionFailedOut.md)
  - [Progress](doc//Progress.md)
  - [ReaderIn](doc//ReaderIn.md)
  - [SourceOut](doc//SourceOut.md)
@@ -138,6 +150,8 @@ Class | Method | HTTP request | Description
  - [SyncOut](doc//SyncOut.md)
  - [ThemeOut](doc//ThemeOut.md)
  - [ToolOut](doc//ToolOut.md)
+ - [TrashItemOut](doc//TrashItemOut.md)
+ - [UndoOut](doc//UndoOut.md)
  - [ValidationError](doc//ValidationError.md)
  - [WindowOut](doc//WindowOut.md)
 
