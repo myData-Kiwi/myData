@@ -4,6 +4,9 @@ The DAV mirror is read-only because every HTTP call to a DAV server goes through
 which refuses write methods. These tests make that structural: they fail if any module imports an HTTP
 library (or reaches one through an attribute or importlib), apart from an allow-list of files that only
 talk to localhost.
+
+Mail and TLS libraries (smtplib, imaplib, poplib, and ssl, which would wrap a raw socket) are banned the
+same way. When the host gets its one mail module, it goes in MAIL_ALLOWED; until then that list is empty.
 """
 
 import ast
@@ -15,7 +18,8 @@ SRC = Path(mydata.__file__).parent
 
 # Modules that can make network requests.
 BANNED = ("httpx", "urllib.request", "urllib3", "requests", "http.client", "aiohttp", "socket", "pycurl",
-          "httplib2", "websockets", "websocket", "ftplib", "asyncio.open_connection", "treq", "grequests")
+          "httplib2", "websockets", "websocket", "ftplib", "asyncio.open_connection", "treq", "grequests",
+          "smtplib", "imaplib", "poplib", "ssl")
 
 # path (relative to src/mydata) -> modules it may use, and why.
 ALLOWED = {
@@ -28,10 +32,20 @@ ALLOWED = {
     "sources/mac/socket.py": {"socket"},  # the reader helper's Unix socket in the host folder (AF_UNIX only)
 }
 
+MAIL_LIBRARIES = {"smtplib", "imaplib", "poplib", "ssl"}
+# path -> the mail libraries it may use. At most one module: the host's one way to reach a mail server.
+# Empty until myMail exists.
+MAIL_ALLOWED: dict[str, set[str]] = {}
 
-def _banned(name: str) -> str | None:
-    for b in BANNED:
-        if name == b or name.startswith(b + "."):
+
+def _banned(name: str, banned=BANNED) -> str | None:
+    """The banned entry `name` falls under: the module itself or anything in it. An entry ending in "*" is
+    a prefix ("os.exec*" covers os.execv and os.execvpe)."""
+    for b in banned:
+        if b.endswith("*"):
+            if name.startswith(b[:-1]):
+                return b
+        elif name == b or name.startswith(b + "."):
             return b
     return None
 
@@ -54,6 +68,12 @@ def _is_type_checking(test: ast.AST) -> bool:
 
 def network_uses(tree: ast.AST) -> list[tuple[int, str]]:
     """(line, banned module) for every runtime use of a network module."""
+    return uses(tree, BANNED)
+
+
+def uses(tree: ast.AST, banned) -> list[tuple[int, str]]:
+    """(line, banned entry) for every runtime use of a banned module or function: imported, reached
+    through an attribute, or imported by name through importlib."""
     found: list[tuple[int, str]] = []
 
     def visit(node: ast.AST) -> None:
@@ -63,23 +83,23 @@ def network_uses(tree: ast.AST) -> list[tuple[int, str]]:
             return
         if isinstance(node, ast.Import):
             for alias in node.names:
-                if b := _banned(alias.name):
+                if b := _banned(alias.name, banned):
                     found.append((node.lineno, b))
         elif isinstance(node, ast.ImportFrom) and node.module and node.level == 0:
             names = [node.module] + [f"{node.module}.{a.name}" for a in node.names]
             for n in names:
-                if b := _banned(n):
+                if b := _banned(n, banned):
                     found.append((node.lineno, b))
                     break
         elif isinstance(node, ast.Attribute):
             dotted = _dotted(node)
-            if dotted and (b := _banned(dotted)) and "." in b:  # urllib.request.urlopen after `import urllib`
+            if dotted and (b := _banned(dotted, banned)) and "." in b:  # urllib.request.urlopen after `import urllib`
                 found.append((node.lineno, b))
         elif isinstance(node, ast.Call):
             fn = _dotted(node.func)
             if fn in ("importlib.import_module", "import_module", "__import__") and node.args \
                     and isinstance(node.args[0], ast.Constant) and isinstance(node.args[0].value, str):
-                if b := _banned(node.args[0].value):
+                if b := _banned(node.args[0].value, banned):
                     found.append((node.lineno, b))
         for child in ast.iter_child_nodes(node):
             visit(child)
@@ -116,10 +136,31 @@ if TYPE_CHECKING:
     assert 14 not in lines
 
 
+def test_the_scanner_catches_mail_and_tls():
+    code = """
+import smtplib
+from imaplib import IMAP4_SSL
+import poplib as p
+import ssl
+import socket
+ssl.create_default_context().wrap_socket(socket.socket())
+import importlib
+importlib.import_module("smtplib")
+"""
+    hits = [b for _, b in network_uses(ast.parse(code))]
+    assert {"smtplib", "imaplib", "poplib", "ssl", "socket"} == set(hits) and hits.count("smtplib") == 2
+
+
+def test_at_most_one_mail_module_and_only_mail_libraries_in_it():
+    assert len(MAIL_ALLOWED) <= 1
+    assert all(libs <= MAIL_LIBRARIES for libs in MAIL_ALLOWED.values())
+    assert not any(libs & MAIL_LIBRARIES for libs in ALLOWED.values())  # mail goes through MAIL_ALLOWED only
+
+
 def test_no_http_outside_davclient_and_the_localhost_allow_list():
     problems = []
     for rel, tree in _sources():
-        allowed = ALLOWED.get(rel, set())
+        allowed = ALLOWED.get(rel, set()) | MAIL_ALLOWED.get(rel, set())
         for line, b in network_uses(tree):
             if b not in allowed:
                 problems.append(f"{rel}:{line} uses {b}")
