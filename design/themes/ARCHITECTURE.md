@@ -125,7 +125,7 @@ The resolver fills new roles added in later formats from the seeds, so old files
 
 ### 1.6 Palettes: colour is a separate choice (decided 2026-10-23)
 
-The owner, on the twenty prototypes: "theme names look like you're only changing the colours". So a theme is named after its design language (Journal, not Plum), and colour is chosen inside it.
+The owner, on the twenty prototypes, said the names made them look like colour changes only (his words are in the decision record). So a theme is named after its design language (Journal, not Plum), and colour is chosen inside it.
 
 - **A theme is a style plus palettes.** The style is every group of 1.2 except colour: type, shape, density, borders, elevation, materials, icons, motion, components and `colour-use`. A palette is the colours, named by colour. The user picks a theme and one of its palettes, per app and per device ("Journal, Ink blue").
 - **Fields:**
