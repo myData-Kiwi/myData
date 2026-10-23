@@ -54,7 +54,8 @@ class SettingsScreen extends StatelessWidget {
 ///
 /// - **Mode:** Light, Dark or Match system, for every app on this device, applied at once.
 /// - **Everywhere:** the theme and palette every app follows unless it has its own ("Kiwi, Plum"; System by
-///   default). Change… opens the gallery, where Use everywhere sets it.
+///   default). Change… opens the gallery on it, where Use everywhere (Return) sets it. Phones have one theme
+///   per app until native phone apps, so there it is shown without Change….
 /// - **Apps:** one row per app, "Same as everywhere" or its own theme and palette, with Change… (the gallery
 ///   on that app's scene, with the app switcher) and Reset (back to everywhere).
 /// - **Themes:** the themes on this device and their palettes. Duplicate, Edit, Export and Import come with
@@ -106,12 +107,14 @@ class AppearanceSection extends StatelessWidget {
   static String aboutTheme(ThemeFile theme) =>
       [theme.blurb ?? '', palettesOf(theme)].where((x) => x.isNotEmpty).join(' ');
 
+  /// The gallery for [app], or for everywhere when null.
   Future<void> _change(BuildContext context, {MyDataAppId? app}) => showThemeGalleryFor(
     context,
     themes,
     app: MyDataAppId.mydata,
     choosingFor: apps,
     initialApp: app ?? MyDataAppId.mydata,
+    everywhere: app == null,
   );
 
   Future<void> _setMode(BuildContext context, MyDataMode mode) async {
@@ -185,7 +188,7 @@ class AppearanceSection extends StatelessWidget {
                 MacFormRow(
                   title: everywhereLabel,
                   subtitle: describeEverywhere(themes),
-                  trailing: [change(null, everywhereLabel)],
+                  trailing: [if (canUseEverywhere) change(null, everywhereLabel)],
                 ),
               ],
               footer: everywhereNote,
@@ -241,7 +244,7 @@ class AppearanceSection extends StatelessWidget {
                     ),
                     GroupedControl(
                       label: everywhereLabel,
-                      child: line(describeEverywhere(themes), [change(null, everywhereLabel)]),
+                      child: line(describeEverywhere(themes), [if (canUseEverywhere) change(null, everywhereLabel)]),
                     ),
                   ],
                 ),

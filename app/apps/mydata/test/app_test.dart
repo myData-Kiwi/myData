@@ -263,6 +263,42 @@ void main() {
       // phones have one theme per app until native phone apps: a desktop runs this test
     }, variant: TargetPlatformVariant.only(TargetPlatform.windows));
 
+    testWidgets("Everywhere's Change… starts on everywhere's choice, and Return uses it everywhere", (tester) async {
+      tester.view.physicalSize = const Size(1280, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final store = MemoryDeviceStore({
+        'themes': {
+          'everywhere': {'theme': 'mydata.kiwi', 'palette': 'dusk'},
+          'apps': {
+            'mydata': {'theme': 'mydata.kiwi', 'palette': 'rose'},
+          },
+        },
+      });
+      await pumpApp(tester, FakeHost(), store: store);
+      await openSettings(tester);
+      await tester.ensureVisible(changeButton(AppearanceSection.everywhereLabel));
+      await tester.tap(changeButton(AppearanceSection.everywhereLabel));
+      await settle(tester);
+      expect(find.text(ThemeGallery.everywhereSentence), findsOneWidget);
+      expect(find.text(ThemeGallery.useLabel('myData')), findsNothing);
+      // the selection is everywhere's Kiwi in Dusk, not myData's own Kiwi in Rose
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await settle(tester);
+      expect(await storedThemes(store), {
+        'everywhere': {'theme': 'mydata.kiwi', 'palette': 'dusk'},
+      });
+      expect(find.text(ThemeGallery.everywhereDone('Kiwi, Dusk')), findsOneWidget);
+    }, variant: TargetPlatformVariant.only(TargetPlatform.windows));
+
+    testWidgets('on a phone, Everywhere has no Change…: phones have one theme per app', (tester) async {
+      await pumpApp(tester, FakeHost(), store: MemoryDeviceStore());
+      await openSettings(tester);
+      expect(find.text(AppearanceSection.everywhereLabel), findsOneWidget);
+      expect(changeButton(AppearanceSection.everywhereLabel), findsNothing);
+      expect(changeButton('myCalendar'), findsOneWidget);
+    }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+
     testWidgets('a stored theme this build does not have says what it draws instead', (tester) async {
       final store = MemoryDeviceStore({
         'themes': {

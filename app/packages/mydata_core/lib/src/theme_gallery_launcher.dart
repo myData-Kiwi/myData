@@ -12,9 +12,11 @@ import 'theme_controller.dart';
 /// - Return or "Use in [app]" stores it as that app's own ([ThemeController.use]);
 /// - Use everywhere stores it for every app and offers Undo ([ThemeController.useEverywhere] and
 ///   [ThemeController.restore]); phones have one theme per app and no Use everywhere until native phone
-///   apps;
+///   apps ([canUseEverywhere]);
 /// - [choosingFor] (myData's gallery) adds an app switcher with every app, starting on [initialApp], so a
-///   theme can be judged on another app's scene before it is used there.
+///   theme can be judged on another app's scene before it is used there;
+/// - [everywhere] (the Everywhere row's Change… in myData's Appearance) chooses the everywhere choice: it
+///   starts on it, and Use everywhere is its default action. Not on phones.
 /// - Only one gallery is open at a time: while one is, this does nothing ([ThemeGallery.showing]).
 Future<void> showThemeGalleryFor(
   BuildContext context,
@@ -22,9 +24,11 @@ Future<void> showThemeGalleryFor(
   required MyDataAppId app,
   List<MyDataAppId>? choosingFor,
   MyDataAppId? initialApp,
+  bool everywhere = false,
   bool? phone,
 }) {
-  final onPhone = phone ?? _isPhone;
+  final onPhone = phone ?? !canUseEverywhere;
+  assert(!(everywhere && onPhone), 'Phones have no Use everywhere.');
   final apps = choosingFor ?? [app];
   return showThemeGallery(
     context: context,
@@ -39,6 +43,7 @@ Future<void> showThemeGalleryFor(
     ],
     initialApp: (initialApp ?? app).name,
     windowApp: app.name,
+    everywhere: everywhere ? (themes.settings.everywhere ?? ThemeChoice.system) : null,
     onPreview: themes.preview,
     onUse: (id, choice) => themes.use(choice, app: id),
     onUseEverywhere: onPhone
@@ -49,6 +54,10 @@ Future<void> showThemeGalleryFor(
           },
   );
 }
+
+/// Whether this device offers Use everywhere: desktops do; phones have one theme per app until native
+/// phone apps (ARCHITECTURE.md 4.3).
+bool get canUseEverywhere => !_isPhone;
 
 bool get _isPhone => switch (defaultTargetPlatform) {
   TargetPlatform.iOS || TargetPlatform.android => true,

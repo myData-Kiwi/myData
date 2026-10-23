@@ -13,12 +13,21 @@ const _plum = ThemeChoice(ThemeLibrary.kiwiId, 'plum');
 
 /// An app window with a stored choice and the gallery's preview over it, as ThemeController draws them.
 class _Window extends StatefulWidget {
-  const _Window({required this.stored, this.mode = MyDataMode.light, this.everywhere = true, this.apps});
+  const _Window({
+    required this.stored,
+    this.mode = MyDataMode.light,
+    this.everywhere = true,
+    this.apps,
+    this.choosingEverywhere,
+  });
 
   final ThemeChoice stored;
   final MyDataMode mode;
   final bool everywhere;
   final List<ThemeGalleryApp>? apps;
+
+  /// The everywhere choice, for a gallery that chooses it.
+  final ThemeChoice? choosingEverywhere;
 
   @override
   State<_Window> createState() => _WindowState();
@@ -54,6 +63,7 @@ class _WindowState extends State<_Window> {
         widget.apps ??
         [ThemeGalleryApp(id: 'mycontacts', name: 'myContacts', scene: ThemePreviewScenes.contacts, current: stored)],
     windowApp: 'mycontacts',
+    everywhere: widget.choosingEverywhere,
     onPreview: (c) {
       // the gallery ends its preview after the frame it is removed in, as at the end of a test
       if (!mounted) return;
@@ -225,6 +235,20 @@ void main() {
     await tester.tap(find.text('Undo'));
     await tester.pumpAndSettle();
     expect(find.text(ThemeGallery.everywhereNotUndone), findsOneWidget);
+  });
+
+  testWidgets('choosing everywhere starts on it, and Use everywhere is the default action', (tester) async {
+    final w = await _open(tester, const _Window(stored: _kiwi, choosingEverywhere: _plum));
+    expect(find.text(ThemeGallery.everywhereSentence), findsOneWidget);
+    expect(find.text(ThemeGallery.useLabel('myContacts')), findsNothing);
+    final everywhere = tester.widget<Button>(find.widgetWithText(Button, ThemeGallery.everywhereLabel));
+    expect(everywhere.variant, ButtonVariant.filled);
+    // the selection starts on the everywhere choice, Kiwi in Plum, not on myContacts' Kiwi in Kiwi
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pumpAndSettle();
+    expect(w.everywhere, [_plum]);
+    expect(w.uses, isEmpty);
+    expect(find.text(ThemeGallery.everywhereDone('Kiwi, Plum')), findsOneWidget);
   });
 
   testWidgets('while a choice is being stored, Escape and the cards wait for it', (tester) async {

@@ -50,6 +50,9 @@ final _showing = ValueNotifier<bool>(false);
 /// - [onUse]: "Use in myContacts", or Return: stores the choice for that app, then the gallery closes.
 /// - [onUseEverywhere]: stores the choice for every app and returns its undo, offered in a toast inside the
 ///   gallery, which stays open. Null (phones: one theme per app) leaves the button out.
+/// - [everywhere]: the gallery chooses the everywhere choice (myData's Appearance, the Everywhere row). It
+///   starts on [everywhere], Use everywhere is the default action (Return), and there is no "Use in".
+///   Needs [onUseEverywhere].
 /// - One at a time: while a gallery is open ([ThemeGallery.showing]), this does nothing. On a Mac the menu
 ///   bar is not behind the gallery's barrier, so View > Theme… could otherwise open a second one.
 Future<void> showThemeGallery({
@@ -60,7 +63,9 @@ Future<void> showThemeGallery({
   required ValueChanged<ThemeChoice?> onPreview,
   required Future<void> Function(String app, ThemeChoice choice) onUse,
   Future<ThemeUndo> Function(ThemeChoice choice)? onUseEverywhere,
+  ThemeChoice? everywhere,
 }) {
+  assert(everywhere == null || onUseEverywhere != null, 'Choosing everywhere needs Use everywhere.');
   if (_showing.value) return Future.value();
   _showing.value = true;
   final reduced = MyDataMotion.reduced(context);
@@ -73,6 +78,7 @@ Future<void> showThemeGallery({
             apps: apps,
             initialApp: initialApp,
             windowApp: windowApp,
+            everywhere: everywhere,
             onPreview: onPreview,
             onUse: onUse,
             onUseEverywhere: onUseEverywhere,
@@ -144,7 +150,8 @@ class _GalleryRoute extends PopupRoute<void> {
 ///   palettes as named swatches, also previewed as they change; none for System or a theme with one), then
 ///   the buttons. Return uses the selection in the app; Escape or Cancel puts the window back as it was.
 /// - **Use everywhere** stores the theme and palette for every app and clears each app's own, so its toast
-///   offers Undo; the gallery stays open, and Cancel becomes Done.
+///   offers Undo; the gallery stays open, and Cancel becomes Done. With [everywhere] it is the default
+///   action and "Use in" is left out.
 /// - **While a choice is being stored** the selection, the app switcher, Escape and the buttons wait for it,
 ///   so what is stored is what was shown; when it cannot be stored, a Notice above the buttons says so.
 /// - **Screen readers:** the cards are radios named "Kiwi, theme" with their blurb; each palette swatch is a
@@ -158,11 +165,15 @@ class ThemeGallery extends StatefulWidget {
     required this.onPreview,
     required this.onUse,
     this.onUseEverywhere,
-  });
+    this.everywhere,
+  }) : assert(everywhere == null || onUseEverywhere != null);
 
   final List<ThemeGalleryApp> apps;
   final String? initialApp;
   final String windowApp;
+
+  /// The everywhere choice, when this gallery chooses it ([showThemeGallery]); null: it chooses for an app.
+  final ThemeChoice? everywhere;
   final ValueChanged<ThemeChoice?> onPreview;
   final Future<void> Function(String app, ThemeChoice choice) onUse;
   final Future<ThemeUndo> Function(ThemeChoice choice)? onUseEverywhere;
@@ -179,6 +190,9 @@ class ThemeGallery extends StatefulWidget {
 
   /// Cancel's label once Use everywhere has stored something: closing then keeps it.
   static const doneLabel = 'Done';
+
+  /// The everywhere gallery's sentence.
+  static const everywhereSentence = 'Choose how every app looks on this device, unless it has its own.';
 
   /// When a choice could not be stored.
   static const failed = 'The theme could not be stored on this device. Try again.';
@@ -215,7 +229,7 @@ class ThemeGallery extends StatefulWidget {
 
 class _ThemeGalleryState extends State<ThemeGallery> {
   late ThemeGalleryApp _app = widget.apps.firstWhere((a) => a.id == widget.initialApp, orElse: () => widget.apps.first);
-  late ThemeChoice _choice = ThemeLibrary.normalise(_app.current);
+  late ThemeChoice _choice = ThemeLibrary.normalise(_current);
   final _toasts = ToastController();
   final List<FocusNode> _cardNodes = [];
   bool _used = false;
@@ -227,6 +241,11 @@ class _ThemeGalleryState extends State<ThemeGallery> {
 
   /// Why the last choice could not be stored, or null.
   String? _error;
+
+  bool get _choosingEverywhere => widget.everywhere != null;
+
+  /// What the gallery starts on and what an unselected card shows: the everywhere choice, or the app's.
+  ThemeChoice get _current => widget.everywhere ?? _app.current;
 
   List<ThemeFile> get _themes => ThemeLibrary.offered;
 
@@ -279,7 +298,7 @@ class _ThemeGalleryState extends State<ThemeGallery> {
     if (_working) return;
     final theme = _themes[index];
     if (theme.id == _choice.theme) return;
-    final current = ThemeLibrary.normalise(_app.current);
+    final current = ThemeLibrary.normalise(_current);
     _show(current.theme == theme.id ? current : ThemeLibrary.defaultChoice(theme));
   }
 
@@ -287,16 +306,21 @@ class _ThemeGalleryState extends State<ThemeGallery> {
     if (!_working) _show(ThemeChoice(_choice.theme, id));
   }
 
+  /// Another app's scene. Choosing for an app, its own choice is selected; choosing everywhere, the
+  /// selection stays and is judged on that app's scene.
   void _switchApp(String id) {
     if (_working) return;
     final app = widget.apps.firstWhere((a) => a.id == id);
     if (_previewsWindow) widget.onPreview(null);
     setState(() {
       _app = app;
-      _choice = ThemeLibrary.normalise(app.current);
+      if (!_choosingEverywhere) _choice = ThemeLibrary.normalise(app.current);
     });
     if (_previewsWindow) widget.onPreview(_choice);
   }
+
+  /// Return: Use in the app, or Use everywhere when choosing everywhere.
+  Future<void> _useDefault() => _choosingEverywhere ? _useEverywhere() : _use();
 
   Future<void> _use() async {
     if (_working) return;
@@ -369,7 +393,7 @@ class _ThemeGalleryState extends State<ThemeGallery> {
       return KeyEventResult.handled;
     } else if (key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.numpadEnter) {
       // Return on the cards uses the selection; on a button or a palette swatch it presses that.
-      if (event is KeyDownEvent) unawaited(_use());
+      if (event is KeyDownEvent) unawaited(_useDefault());
       return KeyEventResult.handled;
     }
     if (next == null) return KeyEventResult.ignored;
@@ -440,7 +464,9 @@ class _ThemeGalleryState extends State<ThemeGallery> {
           child: Text(ThemeGallery.title, style: context.type(MyDataTypeRole.title).copyWith(color: c.ink)),
         ),
         SizedBox(height: context.space(1)),
-        Text(ThemeGallery.sentence(_app.name), style: context.type(MyDataTypeRole.body).copyWith(color: c.inkMuted)),
+        Text(
+          _choosingEverywhere ? ThemeGallery.everywhereSentence : ThemeGallery.sentence(_app.name),
+          style: context.type(MyDataTypeRole.body).copyWith(color: c.inkMuted)),
         if (widget.apps.length > 1) ...[
           SizedBox(height: context.space(4)),
           SegmentedControl<String>(
@@ -489,12 +515,17 @@ class _ThemeGalleryState extends State<ThemeGallery> {
           onPressed: _working ? null : _cancel,
         ),
         if (widget.onUseEverywhere != null)
-          Button(label: ThemeGallery.everywhereLabel, onPressed: _working ? null : _useEverywhere),
-        Button(
-          label: ThemeGallery.useLabel(_app.name),
-          variant: ButtonVariant.filled,
-          onPressed: _working ? null : _use,
-        ),
+          Button(
+            label: ThemeGallery.everywhereLabel,
+            variant: _choosingEverywhere ? ButtonVariant.filled : ButtonVariant.tonal,
+            onPressed: _working ? null : _useEverywhere,
+          ),
+        if (!_choosingEverywhere)
+          Button(
+            label: ThemeGallery.useLabel(_app.name),
+            variant: ButtonVariant.filled,
+            onPressed: _working ? null : _use,
+          ),
       ],
     );
 
@@ -571,7 +602,7 @@ class _ThemeGalleryState extends State<ThemeGallery> {
   /// What a card that is not selected draws: the palette in use when it is the app's current theme, else
   /// the theme's default.
   ThemeChoice _cardChoice(ThemeFile theme) {
-    final current = ThemeLibrary.normalise(_app.current);
+    final current = ThemeLibrary.normalise(_current);
     return current.theme == theme.id ? current : ThemeLibrary.defaultChoice(theme);
   }
 }
