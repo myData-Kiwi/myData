@@ -98,7 +98,7 @@ class AssistantUnavailable extends StatelessWidget {
               child: Text(
                 notice!,
                 textAlign: TextAlign.center,
-                style: MyDataType.caption.copyWith(color: c.inkMuted),
+                style: context.type(MyDataType.caption).copyWith(color: c.inkMuted),
               ),
             ),
           ),

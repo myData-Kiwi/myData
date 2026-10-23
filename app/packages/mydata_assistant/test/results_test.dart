@@ -69,8 +69,9 @@ void main() {
     expect(find.text('Personal training'), findsOneWidget);
     expect(find.text('Call with mum'), findsOneWidget);
     expect(find.textContaining('Gym'), findsOneWidget);
-    expect(find.textContaining('06:30–07:30'), findsOneWidget);
-    expect(find.textContaining('20:00–20:30'), findsOneWidget);
+    // Times on this device's clock, as every app writes them (MyDataDates): 12-hour in tests.
+    expect(find.textContaining('6:30 am to 7:30 am'), findsOneWidget);
+    expect(find.textContaining('8:00 pm to 8:30 pm'), findsOneWidget);
   });
 
   testWidgets('the header is body-strong on the ground; the items are a grouped list with calendar tiles',

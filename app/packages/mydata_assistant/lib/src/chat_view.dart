@@ -4,6 +4,7 @@ import 'package:mydata_ui/mydata_ui.dart';
 
 import 'approval_card.dart';
 import 'chat_controller.dart';
+import 'mac_chat.dart';
 import 'result_view.dart';
 
 /// The conversation and the message input. Enter sends; Shift+Enter starts a new line.
@@ -19,10 +20,19 @@ import 'result_view.dart';
 ///   transparency), holding a borderless field and a send button named "Send". The conversation scrolls
 ///   beneath it. Both are disabled while a reply is coming in; the field gets focus back afterwards.
 /// - Everything in the conversation can be selected and copied.
+/// - **The Mac frame** ([MacLook]): the conversation is a column centred in the content (the branded
+///   column's measure at 13 pt), the user's messages in a neutral bubble, the assistant's in plain `body`,
+///   progress in `callout` / `secondary-label`. The composer sits at the bottom under the conversation, as in
+///   Messages: a rounded field with the round accent Send button inside it, and the system's focus ring. The
+///   keys and behaviour are the same.
 class ChatView extends StatefulWidget {
-  const ChatView({super.key, required this.controller, this.links});
+  const ChatView({super.key, required this.controller, this.links, this.realMode});
 
   final ChatController controller;
+
+  /// Whether the host serves the user's own data (real mode) or sample data; the Mac frame's empty state
+  /// names what can be asked about from it ([emptyLineFor]). Null: not known.
+  final bool? realMode;
 
   /// Opens real contact and event results in myContacts and myCalendar when installed ([ResultCard]); null
   /// opens nothing.
@@ -34,6 +44,21 @@ class ChatView extends StatefulWidget {
   static const placeholder = 'Ask about your data';
   static const sendLabel = 'Send';
   static const emptyText = 'Ask about your calendar, mail, contacts or photos.';
+
+  /// The Mac frame's empty state.
+  static const emptyTitle = 'Ask myAssistant';
+
+  /// The one line under [emptyTitle], from the tools the host offers: in real mode only contacts and
+  /// calendars (CLAUDE.md, "Demo and real mode"); with sample data the six sample tools.
+  static String emptyLineFor(bool? realMode) => switch (realMode) {
+        true => 'Ask about your contacts and calendars.',
+        false => 'Ask about the sample calendar, mail, contacts or photos.',
+        null => 'Ask about your data.',
+      };
+
+  /// Why Send does nothing yet.
+  static const sendEmptyReason = 'Type a message first.';
+  static const sendBusyReason = 'Wait for the answer to this message.';
   static const errorTitle = 'That message did not get an answer';
   static const retryLabel = 'Retry';
   static const workingLabel = 'Working on your message';
@@ -145,8 +170,76 @@ class _ChatViewState extends State<ChatView> {
     };
   }
 
+  /// The list's items: each in [view], with the gap above it ([itemGap], or [progressGap] between progress
+  /// lines), and [working] last while a reply is on its way and nothing of it shows yet.
+  Widget _list(EdgeInsets padding, {required double itemGap, required double progressGap,
+      required Widget Function(ChatItem item) view, required Widget working}) {
+    final items = _chat.items;
+    final waiting = _waiting;
+    final count = items.length + (waiting ? 1 : 0);
+    return SelectionArea(
+      child: ListView.builder(
+        controller: _scroll,
+        padding: padding,
+        itemCount: count,
+        itemBuilder: (_, i) {
+          final item = i < items.length ? items[i] : null;
+          final previous = i == 0 ? null : items[i - 1];
+          final double gap = i == 0 ? 0 : (item is ProgressLine && previous is ProgressLine ? progressGap : itemGap);
+          return Padding(padding: EdgeInsets.only(top: gap), child: item == null ? working : view(item));
+        },
+      ),
+    );
+  }
+
+  /// The Mac frame's chat: the conversation centred in a column, the composer under it.
+  Widget _mac(BuildContext context) {
+    final composer = MacComposer(
+      input: _input,
+      focus: _focus,
+      ring: _ring,
+      busy: _chat.busy,
+      onSend: _send,
+      inputKey: ChatView.inputKey,
+      sendKey: ChatView.sendKey,
+      placeholder: ChatView.placeholder,
+      sendLabel: ChatView.sendLabel,
+      emptyReason: ChatView.sendEmptyReason,
+      busyReason: ChatView.sendBusyReason,
+    );
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // The column is centred; narrower windows keep side-padding on each side.
+        final side = ((constraints.maxWidth - MacChat.columnMax) / 2).clamp(MacChat.sidePadding, double.infinity);
+        final Widget conversation = _chat.items.isEmpty
+            ? Padding(
+                padding: EdgeInsets.symmetric(horizontal: side),
+                child: MacEmptyState(title: ChatView.emptyTitle, line: ChatView.emptyLineFor(widget.realMode)),
+              )
+            : _list(
+                EdgeInsets.fromLTRB(side, MyDataSpace.s4, side, MyDataSpace.s4),
+                itemGap: MacChat.itemGap,
+                progressGap: MacChat.progressGap,
+                working: const MacWorking(label: ChatView.workingLabel),
+                view: (item) => _MacItemView(item: item, chat: _chat, links: widget.links),
+              );
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(child: conversation),
+            Padding(
+              padding: EdgeInsets.fromLTRB(side, MyDataSpace.s2, side, MyDataSpace.s4),
+              child: composer,
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (MacLook.of(context)) return _mac(context);
     final items = _chat.items;
     final pad = PageScaffold.paddingFor(AppLayout.of(context));
     return FloatingBarHost(
@@ -172,25 +265,12 @@ class _ChatViewState extends State<ChatView> {
             insets.bottom,
           );
           if (items.isEmpty) return Padding(padding: padding, child: const _EmptyChat());
-          final waiting = _waiting;
-          final count = items.length + (waiting ? 1 : 0);
-          return SelectionArea(
-            child: ListView.builder(
-              controller: _scroll,
-              padding: padding,
-              itemCount: count,
-              itemBuilder: (_, i) {
-                final item = i < items.length ? items[i] : null;
-                final previous = i == 0 ? null : items[i - 1];
-                final double gap = i == 0
-                    ? 0
-                    : (item is ProgressLine && previous is ProgressLine ? ChatView.progressGap : ChatView.itemGap);
-                return Padding(
-                  padding: EdgeInsets.only(top: gap),
-                  child: item == null ? const _Working() : _ItemView(item: item, chat: _chat, links: widget.links),
-                );
-              },
-            ),
+          return _list(
+            padding,
+            itemGap: ChatView.itemGap,
+            progressGap: ChatView.progressGap,
+            working: const _Working(),
+            view: (item) => _ItemView(item: item, chat: _chat, links: widget.links),
           );
         },
       ),
@@ -273,6 +353,30 @@ class _ItemView extends StatelessWidget {
     ),
     final ChatError e => _ErrorRow(error: e, onRetry: chat.busy ? null : () => chat.retry(e)),
     final ConversationNotice n => _NoticeRow(n.text),
+  };
+}
+
+/// One item of the conversation in the Mac frame.
+class _MacItemView extends StatelessWidget {
+  const _MacItemView({required this.item, required this.chat, this.links});
+  final ChatItem item;
+  final ChatController chat;
+  final ResultLinks? links;
+
+  @override
+  Widget build(BuildContext context) => switch (item) {
+    UserMessage(:final text) => MacUserMessage(text, maxShare: ChatView.bubbleMaxShare),
+    final AssistantReply reply => MacAssistantText(reply.text.isEmpty && !reply.streaming ? 'No answer.' : reply.text),
+    final ProgressLine line => MacProgressRow(line),
+    // ResultCard and the approval card draw their Mac look themselves.
+    ResultItem() || ApprovalItem() => _ItemView(item: item, chat: chat, links: links),
+    final ChatError e => MacErrorRow(
+      title: ChatView.errorTitle,
+      message: e.message,
+      retryLabel: ChatView.retryLabel,
+      onRetry: chat.busy ? null : () => chat.retry(e),
+    ),
+    final ConversationNotice n => MacNoticeRow(n.text),
   };
 }
 

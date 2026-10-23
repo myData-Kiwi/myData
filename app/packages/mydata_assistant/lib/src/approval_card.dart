@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:mydata_client/api.dart';
 import 'package:mydata_ui/mydata_ui.dart';
 
+import 'mac_chat.dart';
+
 /// A held call, shown with the design system's [ApprovalCard] exactly as the host stored it: a question
 /// naming the action, every argument with its full value (nothing shortened or hidden, because this is
 /// what runs if approved), and the decision once it is made.
@@ -15,6 +17,12 @@ import 'package:mydata_ui/mydata_ui.dart';
 ///
 /// Pending: "Approve and send" (or "Approve and run") and Reject, both disabled while [deciding]. There is
 /// no Edit: the host has no way to change a held call.
+///
+/// **The Mac frame** ([MacLook]): the same card drawn as the system would ([_MacApprovalCard]): a rounded box
+/// with a hairline outline, the question in the toolbar's `title` with the state as a small glyph and word
+/// at its end, every argument in Contacts' label and value columns ([MacFieldTable]: click a value to copy
+/// it), and push buttons at the bottom right, Reject before the default "Approve and send" in the accent, as
+/// in a macOS alert. The lines under it are in the system font.
 class AssistantApprovalCard extends StatelessWidget {
   const AssistantApprovalCard({
     super.key,
@@ -61,27 +69,45 @@ class AssistantApprovalCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final caption = MyDataType.caption.copyWith(color: c.inkMuted);
+    final mac = MacLook.of(context);
+    final caption = context.type(MyDataType.caption).copyWith(color: c.inkMuted);
     final state = _state;
     final pending = state == ApprovalState.pending;
+    final arguments = [for (final MapEntry(:key, :value) in approval.args.entries) (nameFor(key), _show(value))];
+    final approveLabel = _isMail ? 'Approve and send' : 'Approve and run';
+    final decidedLabel = _isMail ? 'Sent' : 'Done';
+    final failure = state == ApprovalState.failed
+        ? 'Running it failed: ${_clause(approval.error ?? 'the host gave no reason')}. Ask again to try once more.'
+        : null;
+    final sidePadding = mac ? MyDataSpace.s4 : MyDataSpace.s5;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        ApprovalCard(
-          question: questionFor(approval.tool),
-          arguments: [for (final MapEntry(:key, :value) in approval.args.entries) (nameFor(key), _show(value))],
-          approveLabel: _isMail ? 'Approve and send' : 'Approve and run',
-          decidedLabel: _isMail ? 'Sent' : 'Done',
-          state: state,
-          onApprove: deciding ? null : onApprove,
-          onReject: deciding ? null : onReject,
-          error: state == ApprovalState.failed
-              ? 'Running it failed: ${_clause(approval.error ?? 'the host gave no reason')}. Ask again to try once more.'
-              : null,
-        ),
+        if (mac)
+          _MacApprovalCard(
+            question: questionFor(approval.tool),
+            arguments: arguments,
+            approveLabel: approveLabel,
+            decidedLabel: decidedLabel,
+            state: state,
+            onApprove: deciding ? null : onApprove,
+            onReject: deciding ? null : onReject,
+            error: failure,
+          )
+        else
+          ApprovalCard(
+            question: questionFor(approval.tool),
+            arguments: arguments,
+            approveLabel: approveLabel,
+            decidedLabel: decidedLabel,
+            state: state,
+            onApprove: deciding ? null : onApprove,
+            onReject: deciding ? null : onReject,
+            error: failure,
+          ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(MyDataSpace.s5, MyDataSpace.s2, MyDataSpace.s5, 0),
+          padding: EdgeInsets.fromLTRB(sidePadding, MyDataSpace.s2, sidePadding, 0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
@@ -93,7 +119,7 @@ class AssistantApprovalCard extends StatelessWidget {
                   padding: const EdgeInsets.only(top: MyDataSpace.s1),
                   child: Row(
                     children: [
-                      const KiwiLoader(size: MyDataSize.icon, semanticLabel: sendingText),
+                      KiwiLoader(size: mac ? MyDataMacSize.icon : MyDataSize.icon, semanticLabel: sendingText),
                       const SizedBox(width: MyDataSpace.s2),
                       Flexible(
                         child: ExcludeSemantics(child: Text(sendingText, style: caption)),
@@ -104,7 +130,7 @@ class AssistantApprovalCard extends StatelessWidget {
               if (pending && error != null)
                 Text(
                   'Your decision was not recorded: ${_clause(error!)}. Try again.',
-                  style: MyDataType.caption.copyWith(color: c.danger),
+                  style: context.type(MyDataType.caption).copyWith(color: c.danger),
                 ),
               if (approval.decidedBy != null) Text('Decided by ${approval.decidedBy}', style: caption),
               if (approval.result != null)
@@ -138,4 +164,153 @@ String _clause(String text) {
 String _show(Object? value) {
   if (value is String) return value;
   return const JsonEncoder.withIndent('  ').convert(value);
+}
+
+/// The approval card in the Mac frame. The same states, labels, region names and keyboard behaviour as
+/// mydata_ui's [ApprovalCard] (its names are used here), drawn as the system would.
+class _MacApprovalCard extends StatefulWidget {
+  const _MacApprovalCard({
+    required this.question,
+    required this.arguments,
+    required this.approveLabel,
+    required this.decidedLabel,
+    required this.state,
+    required this.onApprove,
+    required this.onReject,
+    this.error,
+  });
+
+  final String question;
+  final List<(String, String)> arguments;
+  final String approveLabel;
+  final String decidedLabel;
+  final ApprovalState state;
+  final VoidCallback? onApprove;
+  final VoidCallback? onReject;
+  final String? error;
+
+  @override
+  State<_MacApprovalCard> createState() => _MacApprovalCardState();
+}
+
+class _MacApprovalCardState extends State<_MacApprovalCard> {
+  /// Holds no focus itself; tells whether one of the buttons has it.
+  final _actionsNode = FocusNode(debugLabel: 'Approval actions', canRequestFocus: false, skipTraversal: true);
+
+  /// The card: focused only by code, after a decision removes the focused button.
+  final _cardNode = FocusNode(debugLabel: 'Approval card', skipTraversal: true);
+
+  bool _ring = false;
+
+  bool get _pending => widget.state == ApprovalState.pending;
+
+  @override
+  void didUpdateWidget(_MacApprovalCard old) {
+    super.didUpdateWidget(old);
+    if (old.state == ApprovalState.pending && !_pending && _actionsNode.hasFocus) {
+      // The focused button is about to go. Move focus to the card once it has, so Tab continues here.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _cardNode.requestFocus();
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _actionsNode.dispose();
+    _cardNode.dispose();
+    super.dispose();
+  }
+
+  /// The state at the end of the question line: a glyph in its colour and the word, as a small badge would.
+  Widget _status(BuildContext context) {
+    final c = context.colors;
+    final mac = context.mac;
+    final (icon, colour, text) = switch (widget.state) {
+      ApprovalState.pending => (MacIcons.warning, c.warning, ApprovalCard.pendingLabel),
+      ApprovalState.approved => (MacIcons.success, c.success, widget.decidedLabel),
+      ApprovalState.rejected => (MacIcons.close, mac.secondaryLabel, ApprovalCard.rejectedLabel),
+      ApprovalState.failed => (MacIcons.error, c.danger, ApprovalCard.failedLabel),
+    };
+    return Semantics(
+      liveRegion: true,
+      child: Row(
+        key: ValueKey(widget.state),
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: MyDataMacSize.icon, color: colour),
+          const SizedBox(width: MyDataSpace.s1),
+          Text(text, style: MyDataMacType.callout.copyWith(color: mac.secondaryLabel)),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final mac = context.mac;
+    final card = MacChat.box(
+      context,
+      Padding(
+        padding: MacChat.cardPadding,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Semantics(
+                    header: true,
+                    child: Text(widget.question, style: MyDataMacType.title.copyWith(color: mac.label)),
+                  ),
+                ),
+                const SizedBox(width: MyDataSpace.s3),
+                _status(context),
+              ],
+            ),
+            const SizedBox(height: MyDataSpace.s3),
+            // Every argument in full, exactly as it will run. The label column is Contacts'; an empty value
+            // still has its line.
+            MacFieldTable(groups: [
+              [for (final (name, value) in widget.arguments) MacField(label: name, value: value)],
+            ]),
+            if (_pending)
+              Padding(
+                padding: const EdgeInsets.only(top: MyDataSpace.s4),
+                child: Focus(
+                  focusNode: _actionsNode,
+                  includeSemantics: false,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Button(label: ApprovalCard.rejectLabel, onPressed: widget.onReject),
+                      const SizedBox(width: ButtonRow.gap),
+                      Button(label: widget.approveLabel, variant: ButtonVariant.filled, onPressed: widget.onApprove),
+                    ],
+                  ),
+                ),
+              )
+            else if (widget.state == ApprovalState.failed && widget.error != null)
+              Padding(
+                padding: const EdgeInsets.only(top: MyDataSpace.s3),
+                child: Text(widget.error!, style: MyDataMacType.body.copyWith(color: c.danger)),
+              ),
+          ],
+        ),
+      ),
+    );
+    return Semantics(
+      container: true,
+      explicitChildNodes: true,
+      label: _pending ? ApprovalCard.pendingRegionLabel : ApprovalCard.decidedRegionLabel,
+      child: FocusableActionDetector(
+        focusNode: _cardNode,
+        includeFocusSemantics: false,
+        onShowFocusHighlight: (v) => setState(() => _ring = v),
+        child: FocusRing(visible: _ring, borderRadius: MacChat.boxRadius, child: card),
+      ),
+    );
+  }
 }
