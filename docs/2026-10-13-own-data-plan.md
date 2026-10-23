@@ -1,3 +1,5 @@
+> **Superseded (2026-10-23)** by [the 23 October plan](2026-10-23-plan.md) and its owner decisions; where they differ from CLAUDE.md, CLAUDE.md wins.
+
 > **Status (2026-10-14):** the owner's decisions are recorded in CLAUDE.md, "Direction: the host owns the data". Spikes S0 (the Automation prompt names the parent app) and S2 (account 2 is Microsoft: Outlook, Exchange or 365) are answered. Phases 0a, 0b, 0c and 1 are built. Where this plan and CLAUDE.md differ, CLAUDE.md wins.
 
 # The plan: myData becomes the owner of contacts, calendars and mail
