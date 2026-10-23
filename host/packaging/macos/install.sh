@@ -21,6 +21,11 @@
 #   - bootstraps the agent into this login session, which starts the host, and waits for it to answer.
 # The data in the host folder is never touched. uninstall.sh undoes it.
 #
+# Rebuild and reinstall the myData app before or with the first install: a myData built before 2026-10-23
+# still stops the host when it quits, and the installed host then stays stopped until the next login or until
+# an app starts it. If launchd will not load the agent because it is switched off in System Settings > General >
+# Login Items & Extensions, switch it on and run this again.
+#
 # Local installs only: an app signed with an Apple Development certificate and downloaded from elsewhere is
 # quarantined and blocked by Gatekeeper; that needs Developer ID and notarisation.
 set -euo pipefail
@@ -41,7 +46,7 @@ while [[ $# -gt 0 ]]; do
     --dest) DEST_DIR="$2"; shift 2 ;;
     --label|--agents-dir) SERVICE_ARGS+=("$1" "$2"); shift 2 ;;
     --dry-run) DRY=1; shift ;;
-    -h|--help) sed -n '2,27p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,30p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "install.sh: unknown argument $1" >&2; exit 2 ;;
   esac
 done
