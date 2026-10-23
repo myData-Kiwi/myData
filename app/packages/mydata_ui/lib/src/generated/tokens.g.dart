@@ -682,6 +682,8 @@ class MyDataMacColors extends ThemeExtension<MyDataMacColors> {
     required this.sidebarSelection,
     required this.hover,
     required this.focusRing,
+    required this.red,
+    required this.green,
     required this.toolbarItem,
   });
 
@@ -727,6 +729,12 @@ class MyDataMacColors extends ThemeExtension<MyDataMacColors> {
   /// The keyboard focus ring (keyboardFocusIndicatorColor, which follows the system's accent) on every control in the Mac frame, a field in error included: the branded red `focus` ring and its `ink` rule are not used on a Mac.
   final Color focusRing;
 
+  /// The system's red (systemRed): today's date in myCalendar, as Calendar.app marks it.
+  final Color red;
+
+  /// The system's green (systemGreen): the round add button in an editing form, as Contacts' edit mode draws it.
+  final Color green;
+
   /// The flat stand-in for a toolbar item's Liquid Glass (Flutter cannot draw glass): with a 0.5 pt `separator` outline.
   final Color toolbarItem;
 
@@ -746,6 +754,8 @@ class MyDataMacColors extends ThemeExtension<MyDataMacColors> {
     sidebarSelection: Color(0x1A000000),
     hover: Color(0x0D000000),
     focusRing: Color(0x80007AFF),
+    red: Color(0xFFFF3B30),
+    green: Color(0xFF28CD41),
     toolbarItem: Color(0xFFFCFCFC),
   );
 
@@ -765,11 +775,13 @@ class MyDataMacColors extends ThemeExtension<MyDataMacColors> {
     sidebarSelection: Color(0x1FFFFFFF),
     hover: Color(0x12FFFFFF),
     focusRing: Color(0x800A84FF),
+    red: Color(0xFFFF453A),
+    green: Color(0xFF32D74B),
     toolbarItem: Color(0xFF3D3D3D),
   );
 
   /// The token names, as the system channel reports them.
-  static const tokenNames = ['accent', 'on-accent', 'label', 'secondary-label', 'tertiary-label', 'quaternary-label', 'separator', 'content-background', 'window-background', 'sidebar-background', 'selection-inactive', 'sidebar-selection', 'hover', 'focus-ring', 'toolbar-item'];
+  static const tokenNames = ['accent', 'on-accent', 'label', 'secondary-label', 'tertiary-label', 'quaternary-label', 'separator', 'content-background', 'window-background', 'sidebar-background', 'selection-inactive', 'sidebar-selection', 'hover', 'focus-ring', 'red', 'green', 'toolbar-item'];
 
   /// These colours with the ones in [system] (by token name) in their place.
   MyDataMacColors withSystem(Map<String, Color> system) => MyDataMacColors(
@@ -787,12 +799,14 @@ class MyDataMacColors extends ThemeExtension<MyDataMacColors> {
         sidebarSelection: system['sidebar-selection'] ?? sidebarSelection,
         hover: system['hover'] ?? hover,
         focusRing: system['focus-ring'] ?? focusRing,
+        red: system['red'] ?? red,
+        green: system['green'] ?? green,
         toolbarItem: system['toolbar-item'] ?? toolbarItem,
       );
 
   @override
-  MyDataMacColors copyWith({Color? accent, Color? onAccent, Color? label, Color? secondaryLabel, Color? tertiaryLabel, Color? quaternaryLabel, Color? separator, Color? contentBackground, Color? windowBackground, Color? sidebarBackground, Color? selectionInactive, Color? sidebarSelection, Color? hover, Color? focusRing, Color? toolbarItem}) =>
-      MyDataMacColors(accent: accent ?? this.accent, onAccent: onAccent ?? this.onAccent, label: label ?? this.label, secondaryLabel: secondaryLabel ?? this.secondaryLabel, tertiaryLabel: tertiaryLabel ?? this.tertiaryLabel, quaternaryLabel: quaternaryLabel ?? this.quaternaryLabel, separator: separator ?? this.separator, contentBackground: contentBackground ?? this.contentBackground, windowBackground: windowBackground ?? this.windowBackground, sidebarBackground: sidebarBackground ?? this.sidebarBackground, selectionInactive: selectionInactive ?? this.selectionInactive, sidebarSelection: sidebarSelection ?? this.sidebarSelection, hover: hover ?? this.hover, focusRing: focusRing ?? this.focusRing, toolbarItem: toolbarItem ?? this.toolbarItem);
+  MyDataMacColors copyWith({Color? accent, Color? onAccent, Color? label, Color? secondaryLabel, Color? tertiaryLabel, Color? quaternaryLabel, Color? separator, Color? contentBackground, Color? windowBackground, Color? sidebarBackground, Color? selectionInactive, Color? sidebarSelection, Color? hover, Color? focusRing, Color? red, Color? green, Color? toolbarItem}) =>
+      MyDataMacColors(accent: accent ?? this.accent, onAccent: onAccent ?? this.onAccent, label: label ?? this.label, secondaryLabel: secondaryLabel ?? this.secondaryLabel, tertiaryLabel: tertiaryLabel ?? this.tertiaryLabel, quaternaryLabel: quaternaryLabel ?? this.quaternaryLabel, separator: separator ?? this.separator, contentBackground: contentBackground ?? this.contentBackground, windowBackground: windowBackground ?? this.windowBackground, sidebarBackground: sidebarBackground ?? this.sidebarBackground, selectionInactive: selectionInactive ?? this.selectionInactive, sidebarSelection: sidebarSelection ?? this.sidebarSelection, hover: hover ?? this.hover, focusRing: focusRing ?? this.focusRing, red: red ?? this.red, green: green ?? this.green, toolbarItem: toolbarItem ?? this.toolbarItem);
 
   @override
   MyDataMacColors lerp(MyDataMacColors? other, double t) {
@@ -812,6 +826,8 @@ class MyDataMacColors extends ThemeExtension<MyDataMacColors> {
       sidebarSelection: Color.lerp(sidebarSelection, other.sidebarSelection, t)!,
       hover: Color.lerp(hover, other.hover, t)!,
       focusRing: Color.lerp(focusRing, other.focusRing, t)!,
+      red: Color.lerp(red, other.red, t)!,
+      green: Color.lerp(green, other.green, t)!,
       toolbarItem: Color.lerp(toolbarItem, other.toolbarItem, t)!,
     );
   }
@@ -882,6 +898,23 @@ abstract final class MyDataMacType {
     fontWeight: FontWeight.w700,
     letterSpacing: -0.225,
   );
+  /// A pane's title, one per pane: a record's name, "Merge 2 contacts?", "New Contact", a month in myCalendar, a page of myData. The second of the three title roles (toolbar `title`, `pane-title`, `section-header`).
+  static const paneTitle = TextStyle(
+    fontFamily: MyDataMacFont.display,
+    fontSize: 22,
+    height: 1.2727,
+    leadingDistribution: TextLeadingDistribution.even,
+    fontWeight: FontWeight.w700,
+  );
+  /// A section's heading inside a pane (a Settings group, "After merging", a list's group). The third title role.
+  static const sectionHeader = TextStyle(
+    fontFamily: MyDataMacFont.text,
+    fontSize: 13,
+    height: 1.2308,
+    leadingDistribution: TextLeadingDistribution.even,
+    fontWeight: FontWeight.w700,
+    letterSpacing: -0.078,
+  );
   /// A record's name at the top of its page.
   static const name = TextStyle(
     fontFamily: MyDataMacFont.display,
@@ -938,12 +971,32 @@ abstract final class MyDataMacSize {
   static const double toolbarItemHeight = 36;
   /// From the column's edges to the first and last toolbar items.
   static const double toolbarInset = 8;
+  /// The room the window's close, minimise and zoom buttons take at the toolbar band's leading edge when no sidebar is beside the pane (a window showing one state, such as no source yet).
+  static const double windowControlsWidth = 72;
   /// The floating sidebar panel's gap to the window's left, top and bottom edges (macOS 26).
   static const double sidebarMargin = 8;
   /// The keyboard focus ring's width in the Mac frame (the system's is about 3 pt; check it against a live window).
   static const double focusRingWidth = 3;
   /// The gap between a control and its focus ring in the Mac frame: none, the ring hugs the control as the system's does.
   static const double focusRingOffset = 0;
+  /// A hairline: a group's outline, a toolbar item's edge, a switch thumb's edge (one pixel on a Retina screen).
+  static const double hairline = 0.5;
+  /// The smallest gap: between a title and the line under it, inside a segmented control, a field's text from its bezel.
+  static const double tight = 2;
+  /// A detail pane's readable column (a record's page, the editor, Merge, Review), leading-aligned; and a Settings-style form's column, centred.
+  static const double contentWidth = 640;
+  /// An alert's panel: macOS 26 alerts are narrow, their text wrapping (NSAlert is about 260 pt plus its margins).
+  static const double alertWidth = 300;
+  /// A list column beside a record, at its narrowest.
+  static const double listMinWidth = 240;
+  /// A list column beside a record, at its widest.
+  static const double listMaxWidth = 340;
+  /// A day's or an item's list beside a grid (myCalendar's day list).
+  static const double sideListWidth = 320;
+  /// The narrowest content beside which a side list still fits; narrower, the side list goes under it.
+  static const double besideMinWidth = 760;
+  /// A month grid's cell at least this wide shows each event's start time.
+  static const double gridTimeCellWidth = 136;
 }
 
 /// The Mac frame's corner radii (tokens.json "macos.radius").
