@@ -30,6 +30,9 @@ class _WindowState extends State<_Window> {
   final everywhere = <ThemeChoice>[];
   int undone = 0;
 
+  /// What the Undo answers: whether it put the choices back.
+  bool undoes = true;
+
   ThemeChoice get drawn => preview ?? stored;
 
   void open(BuildContext context) => showThemeGallery(
@@ -57,7 +60,8 @@ class _WindowState extends State<_Window> {
             setState(() => stored = c);
             return () async {
               undone++;
-              setState(() => stored = before);
+              if (undoes) setState(() => stored = before);
+              return undoes;
             };
           }
         : null,
@@ -193,6 +197,19 @@ void main() {
     expect(w.undone, 1);
     expect(w.stored, _kiwi);
     expect(find.text(ThemeGallery.everywhereUndone), findsOneWidget);
+  });
+
+  testWidgets('after Use everywhere, Cancel is Done; an Undo that finds later changes says so', (tester) async {
+    final w = await _open(tester, const _Window(stored: _kiwi));
+    expect(find.text(ThemeGallery.cancelLabel), findsOneWidget);
+    await tester.tap(find.text(ThemeGallery.everywhereLabel));
+    await tester.pumpAndSettle();
+    expect(find.text(ThemeGallery.doneLabel), findsOneWidget);
+    expect(find.text(ThemeGallery.cancelLabel), findsNothing);
+    w.undoes = false;
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+    expect(find.text(ThemeGallery.everywhereNotUndone), findsOneWidget);
   });
 
   testWidgets('phones have one theme per app: no Use everywhere', (tester) async {
@@ -331,7 +348,7 @@ void main() {
                           windowApp: 'mycalendar',
                           onPreview: (_) {},
                           onUse: (_, _) async {},
-                          onUseEverywhere: (_) async => () async {},
+                          onUseEverywhere: (_) async => () async => true,
                         ),
                       ),
                     ),

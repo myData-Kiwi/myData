@@ -31,8 +31,9 @@ class ThemeGalleryApp {
   final ThemeChoice current;
 }
 
-/// Undoes a Use everywhere (puts each app's choice back).
-typedef ThemeUndo = Future<void> Function();
+/// Undoes a Use everywhere (puts each app's choice back): true when it did, false when the choices had
+/// changed since and nothing was put back.
+typedef ThemeUndo = Future<bool> Function();
 
 /// Opens the theme gallery over [context]'s window (design/themes/ARCHITECTURE.md 4.4): View > Theme…
 /// in every app, and Change… in myData's Appearance. Completes when it closes.
@@ -125,7 +126,7 @@ class _GalleryRoute extends PopupRoute<void> {
 ///   palettes as named swatches, also previewed as they change; none for System or a theme with one), then
 ///   the buttons. Return uses the selection in the app; Escape or Cancel puts the window back as it was.
 /// - **Use everywhere** stores the theme and palette for every app and clears each app's own, so its toast
-///   offers Undo; the gallery stays open.
+///   offers Undo; the gallery stays open, and Cancel becomes Done.
 /// - **Screen readers:** the cards are radios named "Kiwi, theme" with their blurb; each palette swatch is a
 ///   radio named after its colour. The previews are pictures and are not read.
 class ThemeGallery extends StatefulWidget {
@@ -151,6 +152,9 @@ class ThemeGallery extends StatefulWidget {
   /// "Choose how myContacts looks on this Mac."
   static String sentence(String app) => 'Choose how $app looks on this device.';
   static const cancelLabel = 'Cancel';
+
+  /// Cancel's label once Use everywhere has stored something: closing then keeps it.
+  static const doneLabel = 'Done';
   static const everywhereLabel = 'Use everywhere';
   static String useLabel(String app) => 'Use in $app';
   static const paletteLabel = 'Palette';
@@ -162,6 +166,7 @@ class ThemeGallery extends StatefulWidget {
   /// "Kiwi, Plum is now used in every app."
   static String everywhereDone(String choice) => '$choice is now used in every app.';
   static const everywhereUndone = "Each app's theme is back.";
+  static const everywhereNotUndone = 'Not undone. The themes were changed after that.';
 
   /// What System means here, under its card: the Mac's own look, or Kiwi until this platform's own pass
   /// (ARCHITECTURE.md section 0).
@@ -189,6 +194,9 @@ class _ThemeGalleryState extends State<ThemeGallery> {
   bool _used = false;
   bool _ended = false;
   bool _working = false;
+
+  /// Use everywhere stored something: Cancel is Done.
+  bool _stored = false;
 
   List<ThemeFile> get _themes => ThemeLibrary.offered;
 
@@ -276,11 +284,12 @@ class _ThemeGalleryState extends State<ThemeGallery> {
     try {
       final undo = await everywhere(choice);
       if (!mounted) return;
+      _stored = true;
       _toasts.show(
         ThemeGallery.everywhereDone(ThemeLibrary.describe(choice)),
         undo: () async {
-          await undo();
-          return const UndoResult(ThemeGallery.everywhereUndone);
+          final undone = await undo();
+          return UndoResult(undone ? ThemeGallery.everywhereUndone : ThemeGallery.everywhereNotUndone);
         },
       );
     } finally {
@@ -424,7 +433,11 @@ class _ThemeGalleryState extends State<ThemeGallery> {
     final buttons = ButtonRow(
       alignment: WrapAlignment.end,
       children: [
-        Button(label: ThemeGallery.cancelLabel, variant: ButtonVariant.plain, onPressed: _working ? null : _cancel),
+        Button(
+          label: _stored ? ThemeGallery.doneLabel : ThemeGallery.cancelLabel,
+          variant: ButtonVariant.plain,
+          onPressed: _working ? null : _cancel,
+        ),
         if (widget.onUseEverywhere != null)
           Button(label: ThemeGallery.everywhereLabel, onPressed: _working ? null : _useEverywhere),
         Button(

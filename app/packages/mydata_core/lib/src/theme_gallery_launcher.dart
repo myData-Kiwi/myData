@@ -43,8 +43,8 @@ Future<void> showThemeGalleryFor(
     onUseEverywhere: onPhone
         ? null
         : (choice) async {
-            final before = await themes.useEverywhere(choice);
-            return () => themes.restore(before);
+            final undo = await themes.useEverywhere(choice);
+            return () => themes.restore(undo);
           },
   );
 }

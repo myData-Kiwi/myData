@@ -115,6 +115,21 @@ class ThemeSettings {
   int get hashCode => Object.hash(everywhere, Object.hashAllUnordered(apps.entries.map((e) => (e.key, e.value))));
 }
 
+/// What a Use everywhere changed, for its Undo ([ThemeController.restore]).
+@immutable
+class EverywhereUndo {
+  const EverywhereUndo._(this.before, this.written, this._raw);
+
+  /// The settings just before.
+  final ThemeSettings before;
+
+  /// The choice it stored for every app.
+  final ThemeChoice written;
+
+  /// The `themes` value just before, as the file held it.
+  final Map<Object?, Object?> _raw;
+}
+
 /// The theme and mode one app draws with (design/themes/ARCHITECTURE.md 4.1 and 4.2):
 ///
 /// - **The theme** is chosen per app and per device ([ThemeSettings] in this device's settings file, shared
@@ -122,8 +137,9 @@ class ThemeSettings {
 /// - **The mode** (light, dark, match system) is one per device for every app.
 /// - Another app's change (myData's Appearance, Use everywhere in a gallery) arrives through the store's
 ///   [DeviceStore.changes] and, where those are not promised, the [pollInterval] read.
-/// - **Preview** ([preview]) draws a choice without storing it, while the gallery is open; [use],
-///   [useEverywhere] or `preview(null)` end it.
+/// - **Preview** ([preview]) draws a choice without storing it, while the gallery is open; [use] (which
+///   closes the gallery) or `preview(null)` ends it. Use everywhere and its Undo leave it as it is, since
+///   the gallery stays open and still shows its selection.
 /// - **A settings file that cannot be read** ([DeviceStoreUnreadable]) changes nothing on screen: a read
 ///   that fails is ignored, and a change fails with that error, writing nothing.
 /// - **Migration**, once per device, when the file has no `themes` key (ARCHITECTURE.md 4.2): on macOS every
@@ -281,20 +297,25 @@ class ThemeController extends ChangeNotifier {
 
   /// Writes [change] of the stored settings over what the file holds now, keeping what other apps wrote
   /// meanwhile and what this build does not know ([ThemeSettings.writtenOver]), and draws the result.
-  /// Returns the settings [change] was given (what the file held just before), for an undo.
-  Future<ThemeSettings> _change(ThemeSettings Function(ThemeSettings now) change, {bool clearApps = false}) async {
+  /// Returns the `themes` value and the settings [change] was given (what the file held just before).
+  Future<(Map<Object?, Object?>, ThemeSettings)> _change(
+    ThemeSettings Function(ThemeSettings now) change, {
+    bool clearApps = false,
+  }) async {
+    var raw = const <Object?, Object?>{};
     var before = const ThemeSettings();
     ++_generation;
     final v = await store.update((now) {
       final r = now[ThemeSettings.key];
+      raw = r is Map ? r : const {};
       before = ThemeSettings.fromJson(r) ?? const ThemeSettings();
       return {...now, ThemeSettings.key: change(before).writtenOver(r, clearApps: clearApps)};
     });
-    _preview = null;
-    if (_disposed) return before;
-    _apply(v);
-    notifyListeners();
-    return before;
+    if (!_disposed) {
+      _apply(v);
+      notifyListeners();
+    }
+    return (raw, before);
   }
 
   /// Draws [choice] without storing it (the gallery's live preview); null ends the preview.
@@ -304,21 +325,68 @@ class ThemeController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Use in this app (or in [app]): stores [choice] as that app's own. Changing only the palette is the same
-  /// write; a palette is never written for a theme without palettes (System).
-  Future<void> use(ThemeChoice choice, {String? app}) =>
-      _change((s) => s.copyWith(apps: {...s.apps, app ?? appId: choice}));
+  /// Use in this app (or in [app]): stores [choice] as that app's own, and ends the preview (the gallery
+  /// closes). Changing only the palette is the same write; a palette is never written for a theme without
+  /// palettes (System).
+  Future<void> use(ThemeChoice choice, {String? app}) async {
+    await _change((s) => s.copyWith(apps: {...s.apps, app ?? appId: choice}));
+    if (_disposed || _preview == null) return;
+    _preview = null;
+    notifyListeners();
+  }
 
   /// Use everywhere: stores [choice], palette included, for every app, including ones installed later, and
-  /// clears each app's own. Returns the settings before, for [restore] (the Undo in the gallery's toast).
-  Future<ThemeSettings> useEverywhere(ThemeChoice choice) =>
-      _change((_) => ThemeSettings(everywhere: choice), clearApps: true);
+  /// clears each app's own. Returns what it changed, for [restore] (the Undo in the gallery's toast). The
+  /// gallery stays open, so a preview goes on.
+  Future<EverywhereUndo> useEverywhere(ThemeChoice choice) async {
+    final (raw, before) = await _change((_) => ThemeSettings(everywhere: choice), clearApps: true);
+    return EverywhereUndo._(before, ThemeSettings.stored(choice)!, raw);
+  }
 
-  /// Puts [settings] back (Undo of [useEverywhere]).
-  Future<void> restore(ThemeSettings settings) => _change((_) => settings);
+  /// Undo of [useEverywhere], as its inverse rather than the whole settings as they were, so a choice made
+  /// since (another app's Reset or Use in, in this app or another) is kept: the everywhere choice goes
+  /// back, and each app's own comes back where that app still has none. When everywhere was changed since
+  /// (another Use everywhere), nothing is put back and this returns false.
+  Future<bool> restore(EverywhereUndo undo) async {
+    var restored = false;
+    ++_generation;
+    final v = await store.update((now) {
+      restored = false;
+      final r = now[ThemeSettings.key];
+      final current = ThemeSettings.fromJson(r) ?? const ThemeSettings();
+      if (ThemeSettings.stored(current.everywhere) != undo.written) return now;
+      restored = true;
+      final out = <String, Object?>{
+        for (final e in (r is Map ? r : const <Object?, Object?>{}).entries)
+          if (e.key is String && e.key != 'everywhere') e.key as String: e.value,
+      };
+      if (undo._raw['everywhere'] case final e?) out['everywhere'] = e;
+      final nowApps = out['apps'] is Map ? out['apps'] as Map : const <Object?, Object?>{};
+      final beforeApps = undo._raw['apps'] is Map ? undo._raw['apps'] as Map : const <Object?, Object?>{};
+      final apps = <String, Object?>{
+        for (final e in beforeApps.entries)
+          if (e.key is String && !nowApps.containsKey(e.key)) e.key as String: e.value,
+        for (final e in nowApps.entries)
+          if (e.key is String) e.key as String: e.value,
+      };
+      if (apps.isEmpty) {
+        out.remove('apps');
+      } else {
+        out['apps'] = apps;
+      }
+      return {...now, ThemeSettings.key: out};
+    });
+    if (!_disposed) {
+      _apply(v);
+      notifyListeners();
+    }
+    return restored;
+  }
 
   /// Reset: [app] (this app when null) follows the everywhere choice again.
-  Future<void> reset([String? app]) => _change((s) => s.copyWith(apps: {...s.apps}..remove(app ?? appId)));
+  Future<void> reset([String? app]) async {
+    await _change((s) => s.copyWith(apps: {...s.apps}..remove(app ?? appId)));
+  }
 
   /// Light, dark or match system, for this device (every myData app on it follows). Drawn at once; when it
   /// cannot be stored, the mode before is drawn again and the error is passed on.

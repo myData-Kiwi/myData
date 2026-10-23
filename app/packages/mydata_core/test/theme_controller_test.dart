@@ -263,15 +263,66 @@ void main() {
       await c.use(kiwiDusk, app: 'mycalendar');
       final before = c.settings;
       final undo = await c.useEverywhere(const ThemeChoice(ThemeLibrary.kiwiId, 'rose'));
-      expect(undo, before);
+      expect(undo.before, before);
       expect(await _themes(store), {
         'everywhere': {'theme': 'mydata.kiwi', 'palette': 'rose'},
       });
       expect(c.settings.choiceFor('mycalendar'), const ThemeChoice(ThemeLibrary.kiwiId, 'rose'));
       expect(c.settings.choiceFor('a-later-app'), const ThemeChoice(ThemeLibrary.kiwiId, 'rose'));
-      await c.restore(undo);
+      expect(await c.restore(undo), isTrue);
       expect(c.settings, before);
       expect(c.choice, kiwiPlum);
+      c.dispose();
+    });
+
+    test('Undo of Use everywhere keeps the choices made since, in this app or another', () async {
+      final store = MemoryDeviceStore();
+      final contacts = _controller(store, mac: true);
+      final mydata = _controller(store, app: 'mydata', mac: true);
+      await contacts.start();
+      await mydata.start();
+      await contacts.use(kiwiPlum);
+      await contacts.use(kiwiDusk, app: 'mycalendar');
+      await contacts.use(kiwiDusk, app: 'myassistant');
+      final undo = await contacts.useEverywhere(const ThemeChoice(ThemeLibrary.kiwiId, 'rose'));
+      // then, in myData's Appearance: myAssistant gets its own theme
+      await mydata.use(const ThemeChoice(ThemeLibrary.kiwiId, 'amber'), app: 'myassistant');
+      expect(await contacts.restore(undo), isTrue);
+      expect(await _themes(store), {
+        'everywhere': {'theme': 'mydata.system'},
+        'apps': {
+          'mycontacts': kiwiPlum.toJson(),
+          'mycalendar': kiwiDusk.toJson(),
+          'myassistant': {'theme': 'mydata.kiwi', 'palette': 'amber'},
+        },
+      });
+      contacts.dispose();
+      mydata.dispose();
+    });
+
+    test('Undo of Use everywhere puts nothing back once everywhere was changed again', () async {
+      final store = MemoryDeviceStore();
+      final c = _controller(store, mac: true);
+      await c.start();
+      await c.use(kiwiPlum);
+      final undo = await c.useEverywhere(kiwiDusk);
+      await c.useEverywhere(const ThemeChoice(ThemeLibrary.kiwiId, 'amber'));
+      final now = await _themes(store);
+      expect(await c.restore(undo), isFalse);
+      expect(await _themes(store), now);
+      c.dispose();
+    });
+
+    test('Use everywhere and its Undo leave the preview on: the gallery is still open', () async {
+      final store = MemoryDeviceStore();
+      final c = _controller(store, mac: true);
+      await c.start();
+      c.preview(kiwiPlum);
+      final undo = await c.useEverywhere(kiwiPlum);
+      c.preview(kiwiDusk);
+      await c.restore(undo);
+      expect(c.previewing, kiwiDusk);
+      expect(c.choice, kiwiDusk);
       c.dispose();
     });
 
@@ -302,10 +353,20 @@ void main() {
       });
       await c.use(ThemeChoice.system, app: 'mycalendar');
       expect((await _themes(store))!['apps'], containsPair('mycalendar', {'theme': 'mydata.system'}));
-      // Use everywhere clears every app's own, the ones this build cannot read too
-      await c.useEverywhere(kiwiDusk);
+      // Use everywhere clears every app's own, the ones this build cannot read too; Undo brings them back
+      final undo = await c.useEverywhere(kiwiDusk);
       expect(await _themes(store), {
         'everywhere': {'theme': 'mydata.kiwi', 'palette': 'dusk', 'contrast': 'more'},
+        'library': ['someone.neon'],
+      });
+      await c.restore(undo);
+      expect(await _themes(store), {
+        'everywhere': {'theme': 'mydata.kiwi', 'palette': 'plum', 'contrast': 'more'},
+        'apps': {
+          'mycalendar': {'theme': 'mydata.system'},
+          'mynotes': {'custom': 'later-format'},
+          'mycontacts': {'theme': 'mydata.system'},
+        },
         'library': ['someone.neon'],
       });
       c.dispose();
@@ -336,6 +397,7 @@ void main() {
       expect(c.choice, ThemeChoice.system);
       c.preview(kiwiDusk);
       await c.use(kiwiDusk);
+      // Use closes the gallery, so it ends the preview
       expect(c.previewing, isNull);
       expect(c.choice, kiwiDusk);
       c.dispose();
