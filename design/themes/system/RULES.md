@@ -1,6 +1,6 @@
 # System
 
-`mydata.system`, the default for every app on every device. File: `theme.json` (frame `system`, nothing else). **It has no palettes:** its colour is the platform's accent, with no alternatives on macOS, so the picker shows no palette row for it (decided 2026-10-23). "System, tinted" (a custom `system`-frame theme whose palettes give an accent only) is never applied on macOS, and whether it exists at all is open for the owner (phase 5; `ARCHITECTURE.md` 1.6).
+`mydata.system`, the default for every app on every device. File: `theme.json` (frame `system`, nothing else). **It has no palettes:** its colour is the platform's accent, with no alternatives on macOS, so the picker shows no palette row for it (decided 2026-10-23). "System, tinted" (a custom `system`-frame theme whose palettes give an accent only) never exists on macOS (the owner, 2026-10-23); other platforms may allow a tint later (phase 5; `ARCHITECTURE.md` 1.6).
 
 ## Personality
 

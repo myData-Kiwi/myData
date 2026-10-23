@@ -386,7 +386,7 @@ const themeSchemaJson = r'''{
         "light",
         "dark"
       ],
-      "description": "A palette of a system-frame theme (\"System, tinted\", phase 5, open for the owner): an accent in both modes and nothing else. Never applied on macOS, where the accent is always the system's. Checked as a palette on the grounds System draws on that platform, text at 4.5:1 (ARCHITECTURE.md 1.6). The built-in System has no palettes: its colour is the platform's accent.",
+      "description": "A palette of a system-frame theme (\"System, tinted\", phase 5; never on macOS, decided 2026-10-23): an accent in both modes and nothing else. Never applied on macOS, where the accent is always the system's. Checked as a palette on the grounds System draws on that platform, text at 4.5:1 (ARCHITECTURE.md 1.6). The built-in System has no palettes: its colour is the platform's accent.",
       "properties": {
         "id": {
           "$ref": "#/$defs/paletteId"
