@@ -534,3 +534,33 @@ def test_a_stop_that_boots_out_fits_in_the_apps_wait(fake, home, app, tmp_path, 
     monkeypatch.setattr(cli.time, "sleep", lambda s: clock.__setitem__(0, clock[0] + s))
     assert cli.main(["stop"]) == 1
     assert waits and 10 + 15 + waits[0] + 10 < 75
+
+
+def test_the_host_app_opened_from_finder_asks_launchd_or_refuses(tmp_path, monkeypatch, capsys):
+    """Opened from Finder or Spotlight, the bundle's mydatad has neither launchd's label nor `mydata start`'s
+    marker; it never runs a host launchd does not watch over."""
+    from mydata.service import daemon
+    prefix = tmp_path / "myData Host.app" / "Contents" / "Resources" / "python"
+    prefix.mkdir(parents=True)
+    monkeypatch.setattr(daemon.sys, "prefix", str(prefix))
+    monkeypatch.setenv("MYDATA_HOME", str(tmp_path / "home"))
+    monkeypatch.delenv(launchd.LABEL_ENV, raising=False)
+    monkeypatch.delenv("MYDATA_DETACHED", raising=False)
+    monkeypatch.setattr(daemon, "main", lambda: pytest.fail("ran a host outside launchd"))
+    monkeypatch.setattr(launchd, "supported", lambda: True)
+    assert daemon.run_program() == 1
+    assert "no login service" in capsys.readouterr().err
+    monkeypatch.setattr(launchd, "recorded_agent", lambda home: object())
+    monkeypatch.setattr(cli, "cmd_start", lambda settings: 0)
+    assert daemon.run_program() == 0
+    # Started by launchd or by `mydata start`: the host itself.
+    monkeypatch.setattr(daemon, "main", lambda: 7)
+    monkeypatch.setenv("MYDATA_DETACHED", "1")
+    assert daemon.run_program() == 7
+    monkeypatch.delenv("MYDATA_DETACHED")
+    monkeypatch.setenv(launchd.LABEL_ENV, "kiwi.mydata.host")
+    assert daemon.run_program() == 7
+    # A checkout's Python is not the app.
+    monkeypatch.delenv(launchd.LABEL_ENV)
+    monkeypatch.setattr(daemon.sys, "prefix", str(tmp_path / "venv"))
+    assert daemon.run_program() == 7

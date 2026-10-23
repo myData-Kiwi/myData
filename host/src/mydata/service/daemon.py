@@ -315,5 +315,34 @@ def _note_start_error(path, why: str) -> None:
         pass
 
 
+def _in_host_app() -> bool:
+    """Running from "myData Host.app" (its Python is Contents/Resources/python)."""
+    prefix = Path(sys.prefix).resolve()
+    return (prefix.name == "python" and prefix.parent.name == "Resources" and prefix.parent.parent.name == "Contents"
+            and prefix.parent.parent.parent.suffix == ".app")
+
+
+def run_program() -> int:
+    """`mydatad` as a program (the bundle's executable, `python -m mydata.service.daemon`). In "myData Host.app",
+    neither launchd (its LaunchAgent) nor `mydata start` started it when both markers are missing: someone opened
+    the app from Finder, Spotlight or Launchpad. That would run a host on the default folder that launchd does not
+    supervise, with its output going nowhere, so ask launchd instead when the folder has an agent, else refuse."""
+    if _in_host_app() and not os.environ.get(LAUNCHD_LABEL_ENV) and os.environ.get("MYDATA_DETACHED") != "1":
+        from .. import cli
+        from . import launchd
+        try:
+            settings = load_settings()
+        except ConfigError as e:
+            print(f"mydatad: {e}", file=sys.stderr)
+            return 2
+        if launchd.supported() and launchd.recorded_agent(settings.home) is not None:
+            return cli.cmd_start(settings)
+        print(f"mydatad: myData Host runs at login once installed (host/packaging/macos/install.sh), and is "
+              f"started with `mydata start`; {settings.home} has no login service, so nothing was started.",
+              file=sys.stderr)
+        return 1
+    return main()
+
+
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(run_program())
