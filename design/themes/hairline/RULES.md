@@ -38,6 +38,18 @@ A precise tool, like a well-sharpened pencil. Grey on grey, one black, nothing d
 - The focus ring stays the repo's red (#B3261E; #F2867E dark). Red against a monochrome screen is the clearest focus signal there is.
 - Status colours are Kiwi's, unchanged: they are the only saturated colours apart from calendar data.
 
+## Palettes
+
+Colour is chosen inside the theme (decided 2026-10-23; `ARCHITECTURE.md` 1.6). "Colour use" above describes the default palette; every palette keeps the same rules, status colours, `danger` and calendar colours, and moves only the accent and the tint of the grounds and ink. In every palette `selection` is `ink`, `edge` is `ink`, `avatar-fill` is `surface` (`colour-use.same-as`).
+
+| Palette | Id | Accent (light / dark) | Ground (light / dark) | Character | `ink-muted` / `link` on `bg`, label on `accent` |
+|---|---|---|---|---|---|
+| Graphite (default) | `graphite` | `#232323` / `#E6E6E4` | `#F4F4F2` / `#141414` | Monochrome: a near-black accent (near-white in dark). | light 6.4 / 14.3 / 15.7; dark 7.3 / 14.7 / 14.5 |
+| Slate | `slate` | `#364E6D` / `#BACCE5` | `#EFF4FB` / `#111419` | Cool blue-grey grounds with a slate accent. | light 6.4 / 7.7 / 8.5; dark 7.3 / 11.3 / 10.7 |
+| Cobalt | `cobalt` | `#1D4BC0` / `#8AB4FF` | `#F4F4F2` / `#141414` | The neutral greys with one saturated blue. | light 6.4 / 6.8 / 7.4; dark 7.3 / 8.8 / 8.4 |
+
+Every palette gives all 43 roles in both modes and passes the contrast pairs of `ARCHITECTURE.md` 2.2 in both modes, with its own increase-contrast set, checked at 7:1 (prototype validator, 2026-10-23). Alternative palettes were made from the default by moving the accent and the tinted roles' hue at the same lightness, then fixing each failing pair by lightness only.
+
 ## Depth and materials
 
 - Flat. No shadows on cards or rows (`elevation: none`). Menus and popovers get a 1 px `line-strong` edge instead of a shadow.
@@ -100,7 +112,7 @@ Cheap. No blur, no painter, no extra shape. Inter adds one variable family (Lati
 
 ## Name
 
-Was Graphite. "Graphite" is also a macOS accent colour name (not on Apple's trademark list, per Research B); naming the theme after its language, Hairline, keeps it apart from the system accent.
+Was Graphite. "Graphite" is also a macOS accent colour name (not on Apple's trademark list, per Research B); naming the theme after its language, Hairline, keeps it apart from the system accent. The colour lives on as Hairline's default palette, so Settings writes "Hairline, Graphite", never "Graphite" alone.
 
 ## Changed by the critique (2026-10-23)
 

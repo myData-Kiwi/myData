@@ -28,6 +28,18 @@ Proportional numerals. No upper-case labels.
 - Selection is a tint (`accent-soft`) **plus a 3 px accent bar**, because the tint alone is under 3:1.
 - Status and calendar colours were moved in lightness only to pass on the blue grounds (`data-*` at 3:1 on `surface`, yellow keeps its edge).
 
+## Palettes
+
+Colour is chosen inside the theme (decided 2026-10-23; `ARCHITECTURE.md` 1.6). "Colour use" above describes the default palette; every palette keeps the same rules, status colours, `danger` and calendar colours, and moves only the accent and the tint of the grounds and ink.
+
+| Palette | Id | Accent (light / dark) | Ground (light / dark) | Character | `ink-muted` / `link` on `bg`, label on `accent` |
+|---|---|---|---|---|---|
+| Dusk (default) | `dusk` | `#3D5AA9` / `#9DB4F2` | `#E9EDF8` / `#0E1326` | A periwinkle-to-blush sky (navy to violet at night), periwinkle accent. | light 6.5 / 5.5 / 6.5; dark 8.9 / 9.0 / 8.3 |
+| Aurora | `aurora` | `#00736F` / `#75D1C5` | `#E2F1F1` / `#00191D` | A teal-to-lilac sky (deep teal to violet at night), teal accent. | light 6.3 / 5.1 / 5.7; dark 8.9 / 10.1 / 8.9 |
+| Sand | `sand` | `#8C541F` / `#E2B487` | `#F3ECE4` / `#1E1107` | A sand-to-lavender sky (umber to plum at night), warm brown accent. | light 6.5 / 5.3 / 6.2; dark 8.9 / 9.8 / 8.8 |
+
+Every palette gives all 43 roles in both modes and passes the contrast pairs of `ARCHITECTURE.md` 2.2 in both modes, with increase contrast derived by the resolver (no set of its own) (prototype validator, 2026-10-23). Alternative palettes were made from the default by moving the accent and the tinted roles' hue at the same lightness, then fixing each failing pair by lightness only.
+
 ## Depth and materials
 
 The gradient, the translucent sidebar and the glass come with phase 6 (materials); until then the ground, sidebar and bars are solid `bg`, `sidebar` and `toolbar`.

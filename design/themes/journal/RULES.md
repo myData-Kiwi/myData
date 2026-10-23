@@ -28,6 +28,18 @@ Regular with wide margins: 36 px controls, 52 px rows, 18 px icons, spacing at 1
 - Plum (`#7A3E8E` / `#D2A6E0`) is used as text and line, almost never as a fill: the outlined primary, links, the selection bar and the selected name.
 - Status chips and calendar colours as everywhere; data-orange, -green, -blue, -grey and -yellow are under 3:1 on the paper in light mode, so their 1 px `line-strong` edge is drawn.
 
+## Palettes
+
+Colour is chosen inside the theme (decided 2026-10-23; `ARCHITECTURE.md` 1.6). "Colour use" above describes the default palette; every palette keeps the same rules, status colours, `danger` and calendar colours, and moves only the accent and the tint of the grounds and ink. In every palette `toolbar` is `bg`, `edge` is `ink` (`colour-use.same-as`).
+
+| Palette | Id | Accent (light / dark) | Ground (light / dark) | Character | `ink-muted` / `link` on `bg`, label on `accent` |
+|---|---|---|---|---|---|
+| Plum (default) | `plum` | `#7A3E8E` / `#D2A6E0` | `#FBF8F4` / `#17121A` | Warm paper, plum-black ink, plum accent. | light 6.8 / 6.8 / 7.2; dark 7.9 / 9.0 / 8.5 |
+| Ink blue | `ink-blue` | `#20428D` / `#99BCF5` | `#FBF8F4` / `#10141C` | Warm paper, blue-black ink, a deep ink-blue accent; navy grounds at night. | light 6.7 / 8.9 / 9.4; dark 8.0 / 9.5 / 8.8 |
+| Forest | `forest` | `#28603A` / `#96CAA0` | `#FBF8F4` / `#0F1611` | Warm paper, green-black ink, a deep green accent; forest grounds at night. | light 6.6 / 7.0 / 7.4; dark 8.0 / 9.8 / 8.6 |
+
+Every palette gives all 43 roles in both modes and passes the contrast pairs of `ARCHITECTURE.md` 2.2 in both modes, with increase contrast derived by the resolver (no set of its own) (prototype validator, 2026-10-23). Alternative palettes were made from the default by moving the accent and the tinted roles' hue at the same lightness, then fixing each failing pair by lightness only.
+
 ## Depth and materials
 
 None. Flat paper, solid sidebar and bars, no shadows. Dialogs (not in the preview) get a 1 px ink border on `surface-raised`.

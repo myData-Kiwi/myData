@@ -30,6 +30,18 @@ Today's explicit values, so phase 1 stays byte-identical: 44 px controls, 56 px 
 - Status is a tonal chip with a word. Links are accent and underlined.
 - Calendar colours are today's `data-*`; data-yellow (1.8:1 on white) gets its 1 px `line-strong` edge.
 
+## Palettes
+
+Colour is chosen inside the theme (decided 2026-10-23; `ARCHITECTURE.md` 1.6). "Colour use" above describes the default palette; every palette keeps the same rules, status colours, `danger` and calendar colours, and moves only the accent and the tint of the grounds and ink. In every palette `sidebar` is `bg`, `toolbar` is `bg` (`colour-use.same-as`).
+
+| Palette | Id | Accent (light / dark) | Ground (light / dark) | Character | `ink-muted` / `link` on `bg`, label on `accent` |
+|---|---|---|---|---|---|
+| Kiwi (default) | `kiwi` | `#4C7814` / `#A9CC4E` | `#F6F6F5` / `#111111` | The brand green on neutral greys. | light 6.2 / 5.0 / 5.2; dark 7.9 / 10.3 / 8.8 |
+| Sky | `sky` | `#1666AA` / `#78BFF9` | `#F6F6F5` / `#111111` | A clear blue on the same greys. | light 6.2 / 5.5 / 6.0; dark 7.9 / 9.5 / 8.4 |
+| Violet | `violet` | `#6849AB` / `#BCA9F7` | `#F6F6F5` / `#111111` | A soft violet on the same greys. | light 6.2 / 6.2 / 6.7; dark 7.9 / 9.1 / 8.3 |
+
+Every palette gives all 43 roles in both modes and passes the contrast pairs of `ARCHITECTURE.md` 2.2 in both modes, with increase contrast derived by the resolver (no set of its own) (prototype validator, 2026-10-23). Alternative palettes were made from the default by moving the accent and the tinted roles' hue at the same lightness, then fixing each failing pair by lightness only.
+
 ## Depth and materials
 
 - Soft lift (`shadow-1` 0 4 20, strength 0.5) on cards and grouped lists; no borders on cards. In dark mode cards separate by lightness.

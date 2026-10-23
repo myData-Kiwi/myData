@@ -21,17 +21,17 @@ A theme changes how the whole app looks: type, shape, density, borders, depth, i
 
 ## The built-in themes
 
-| Theme | Character | Rules |
-|---|---|---|
-| System | Looks like the rest of your computer: the Mac shell on macOS. On Windows, Linux and the web, Kiwi in the platform's font until that platform's own pass; Android waits for its Material 3 pass. The picker says so | `themes/system/` |
-| Kiwi | The house style: soft grey grounds, white cards, continuous corners, pills, tinted tiles, one accent | `themes/kiwi/` |
-| Hairline (was Graphite) | Precise and quiet: hairlines, small corners, a black bar on the selected row | `themes/hairline/` |
-| Frosted (was Dusk) | A sky behind frosted glass, slow motion | `themes/frosted/` |
-| Journal (was Plum) | Set like a literary journal: serif titles, ink rules instead of boxes | `themes/journal/` |
-| Sticker (was Rose) | Chunky, round and cheerful: 2 px outlines, sticker shadows | `themes/sticker/` |
-| Paperback (was Amber) | Paper under a reading lamp: a book serif, italic secondary text | `themes/paperback/` |
+| Theme | Character | Palettes (default first) | Rules |
+|---|---|---|---|
+| System | Looks like the rest of your computer: the Mac shell on macOS. On Windows, Linux and the web, Kiwi in the platform's font until that platform's own pass; Android waits for its Material 3 pass. The picker says so | None: the system accent | `themes/system/` |
+| Kiwi | The house style: soft grey grounds, white cards, continuous corners, pills, tinted tiles, one accent | Kiwi, Sky, Violet | `themes/kiwi/` |
+| Hairline (was Graphite) | Precise and quiet: hairlines, small corners, an ink bar on the selected row | Graphite, Slate, Cobalt | `themes/hairline/` |
+| Frosted (was Dusk) | A sky behind frosted glass, slow motion | Dusk, Aurora, Sand | `themes/frosted/` |
+| Journal (was Plum) | Set like a literary journal: serif titles, ink rules instead of boxes | Plum, Ink blue, Forest | `themes/journal/` |
+| Sticker (was Rose) | Chunky, round and cheerful: 2 px outlines, sticker shadows | Rose, Mint, Mustard | `themes/sticker/` |
+| Paperback (was Amber) | Paper under a reading lamp: a book serif, italic secondary text | Amber, Sepia, Linen | `themes/paperback/` |
 
-Each folder holds the theme file and its `RULES.md` (its design language, do and don't, accessibility, font and icon licences). The six drawn themes are the phase 3 targets; until then the apps draw Kiwi, and the old colours are Kiwi's palettes. New built-ins are the owner's pick from the prototype gallery; none is added until then. "System, tinted" (System with another accent) is a custom theme, phase 5.
+Each folder holds the theme file and its `RULES.md` (its design language, its palettes, do and don't, accessibility, font and icon licences). The six drawn themes are the phase 3 targets; until then the apps draw Kiwi, and the old colours are Kiwi's palettes. New built-ins are the owner's pick from the prototype gallery; none is added until then. "System, tinted" (System with another accent) is a custom theme, phase 5.
 
 ## Palettes
 

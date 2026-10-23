@@ -31,6 +31,18 @@ A reading lamp. Warm paper with a faint grain, a book serif set for long reading
 - **The accent is the warning hue.** `warning` was moved to an ochre (`#755600` light, `#E2C766` dark) so the two differ, and a warning always carries a word.
 - Selection: `accent-soft` tint plus the 3 px accent bar.
 
+## Palettes
+
+Colour is chosen inside the theme (decided 2026-10-23; `ARCHITECTURE.md` 1.6). "Colour use" above describes the default palette; every palette keeps the same rules, status colours, `danger` and calendar colours, and moves only the accent and the tint of the grounds and ink. In every palette `toolbar` is `bg`, `edge` is `ink` (`colour-use.same-as`).
+
+| Palette | Id | Accent (light / dark) | Ground (light / dark) | Character | `ink-muted` / `link` on `bg`, label on `accent` |
+|---|---|---|---|---|---|
+| Amber (default) | `amber` | `#8A5100` / `#F0B45A` | `#F4ECDD` / `#1A1510` | Cream paper, walnut at night, amber accent. | light 6.1 / 5.5 / 6.4; dark 7.6 / 9.8 / 8.9 |
+| Sepia | `sepia` | `#5D4432` / `#CDAD95` | `#F2ECE3` / `#181512` | Greyer, browner paper and a muted brown accent, like an old print. | light 6.1 / 7.6 / 9.0; dark 7.6 / 8.7 / 8.0 |
+| Linen | `linen` | `#2B616D` / `#8DC6D0` | `#E6EEF2` / `#121719` | Cool grey-blue paper, slate-teal accent. | light 6.0 / 5.9 / 6.9; dark 7.6 / 9.6 / 8.7 |
+
+Every palette gives all 43 roles in both modes and passes the contrast pairs of `ARCHITECTURE.md` 2.2 in both modes, with increase contrast derived by the resolver (no set of its own) (prototype validator, 2026-10-23). Alternative palettes were made from the default by moving the accent and the tinted roles' hue at the same lightness, then fixing each failing pair by lightness only.
+
 ## Depth and materials
 
 The grain comes with phase 6 (materials); until then the window ground is solid `bg`.

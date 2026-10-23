@@ -37,6 +37,18 @@ Playful and chunky, like a sticker sheet or a toy. Big rounds, ink outlines, a h
 - Danger moved to an orange-red (#B4380E light, #FF9A8A dark) so it stays at least 25° of hue from the pink accent; danger still always carries its word.
 - Focus ring is blue (#2457C5; #8CB4FF dark), because the repo's red ring would sit too close to the pink accent and selection.
 
+## Palettes
+
+Colour is chosen inside the theme (decided 2026-10-23; `ARCHITECTURE.md` 1.6). "Colour use" above describes the default palette; every palette keeps the same rules, status colours, `danger` and calendar colours, and moves only the accent and the tint of the grounds and ink.
+
+| Palette | Id | Accent (light / dark) | Ground (light / dark) | Character | `ink-muted` / `link` on `bg`, label on `accent` |
+|---|---|---|---|---|---|
+| Rose (default) | `rose` | `#A63A5B` / `#EFA3B8` | `#FFF4F6` / `#1C1216` | Blush ground, pink fills, rose accent. | light 7.1 / 6.0 / 6.2; dark 8.8 / 10.1 / 8.6 |
+| Mint | `mint` | `#057558` / `#7FD9B8` | `#F0FAF6` / `#0D1814` | Mint ground, pale green fills, deep mint accent. | light 6.8 / 5.3 / 5.7; dark 9.1 / 10.8 / 9.2 |
+| Mustard | `mustard` | `#866700` / `#EFCA55` | `#FAF7EE` / `#19150C` | Butter ground, pale yellow fills; the accent is a dark gold in light mode (a bright yellow fails 3:1 on white and white text on it) and true mustard in dark. | light 6.9 / 5.2 / 5.3; dark 9.0 / 11.5 / 10.1 |
+
+Every palette gives all 43 roles in both modes and passes the contrast pairs of `ARCHITECTURE.md` 2.2 in both modes, with its own increase-contrast set, checked at 7:1 (prototype validator, 2026-10-23). Alternative palettes were made from the default by moving the accent and the tinted roles' hue at the same lightness, then fixing each failing pair by lightness only.
+
 ## Depth and materials
 
 - 2 px outlines in `edge` (ink) on cards, buttons, fields and containers (`borders.width: 2`, `colour: edge`).
