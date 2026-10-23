@@ -8,6 +8,8 @@ import 'package:flutter/services.dart';
 
 import '../accessibility.dart';
 import '../generated/tokens.g.dart';
+import '../mac/mac_overlays.dart' show MacToastLook;
+import '../mac/mac_theme.dart' show MacLook;
 import '../motion.dart';
 import '../theme.dart';
 import 'app_menu_bar.dart';
@@ -602,7 +604,9 @@ class _ToastBar extends StatelessWidget {
     final c = context.colors;
     final reduced = MyDataAccessibility.of(context).reduceMotion;
     final hasUndo = message.undo != null;
-    final text = Text(message.message, style: MyDataType.body.copyWith(color: c.ink));
+    // The Mac frame: a small floating panel in the system's font and colours (mac/mac_overlays.dart).
+    final mac = MacLook.of(context);
+    final text = Text(message.message, style: mac ? MacToastLook.text(context) : MyDataType.body.copyWith(color: c.ink));
     final content = Row(
       mainAxisSize: phone ? MainAxisSize.max : MainAxisSize.min,
       children: [
@@ -634,18 +638,21 @@ class _ToastBar extends StatelessWidget {
     );
 
     Widget bar = Container(
-      constraints: const BoxConstraints(minHeight: MyDataSize.controlHeight + 2 * MyDataSpace.s2),
+      constraints: BoxConstraints(
+          minHeight: mac ? MacToastLook.minHeight : MyDataSize.controlHeight + 2 * MyDataSpace.s2),
       padding: EdgeInsetsDirectional.fromSTEB(
-        MyDataSpace.s5,
+        mac ? MyDataSpace.s4 : MyDataSpace.s5,
         MyDataSpace.s2,
-        hasUndo ? MyDataSpace.s2 : MyDataSpace.s5,
+        hasUndo ? MyDataSpace.s2 : (mac ? MyDataSpace.s4 : MyDataSpace.s5),
         MyDataSpace.s2,
       ),
-      decoration: BoxDecoration(
-        color: c.surfaceRaised,
-        borderRadius: MyDataRadii.xl,
-        boxShadow: context.shadows.shadow2,
-      ),
+      decoration: mac
+          ? MacToastLook.decoration(context)
+          : BoxDecoration(
+              color: c.surfaceRaised,
+              borderRadius: MyDataRadii.xl,
+              boxShadow: context.shadows.shadow2,
+            ),
       child: AnimatedSize(
         duration: reduced ? Duration.zero : MyDataMotion.fast,
         curve: MyDataMotion.standard,

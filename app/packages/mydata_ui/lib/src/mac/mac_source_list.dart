@@ -9,8 +9,8 @@ import '../widgets/app_frame.dart' show AppConnection, AppConnectionState, AppSe
 import 'mac_chrome.dart';
 import 'mac_theme.dart';
 
-/// The Mac frame's sidebar: the app's sections as a source list, under the window's close, minimise and zoom
-/// buttons, with the host's state at the bottom only when something is wrong (the plan's "status only when
+/// The Mac frame's sidebar: the app's sections as a source list in a [MacSidebar] panel, under the window's
+/// close, minimise and zoom buttons, with the host's state at the bottom only when something is wrong (the plan's "status only when
 /// something is wrong": nothing while connected).
 ///
 /// - **Shape.** macOS 26's floating sidebar: a panel `sidebar-margin` in from the window's left, top and
@@ -32,12 +32,17 @@ class MacSourceList extends StatefulWidget {
     required this.current,
     required this.onSelect,
     required this.connection,
+    this.showConnection = true,
   });
 
   final List<AppSection> sections;
   final int current;
   final ValueChanged<int> onSelect;
   final AppConnection connection;
+
+  /// False while the content already says the host cannot be reached (with its one Retry): the line at the
+  /// bottom would say it twice.
+  final bool showConnection;
 
   @override
   State<MacSourceList> createState() => _MacSourceListState();
@@ -68,82 +73,38 @@ class _MacSourceListState extends State<MacSourceList> {
 
   @override
   Widget build(BuildContext context) {
-    final mac = context.mac;
     final chrome = MacChrome.of(context);
-    final solid = chrome.sidebar == null || MyDataAccessibility.of(context).reduceTransparency;
-    Widget list = Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // The window's close, minimise and zoom buttons sit here, in the toolbar's band (the panel starts
-        // `sidebar-margin` below the window's top).
-        const SizedBox(height: MyDataMacSize.toolbarHeight - MyDataMacSize.sidebarMargin),
-        Focus(
-          focusNode: _focus,
-          onKeyEvent: _onKey,
-          onFocusChange: (f) => setState(() => _focused = f),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              for (var i = 0; i < widget.sections.length; i++)
-                _Row(
-                  section: widget.sections[i],
-                  current: i == widget.current,
-                  emphasised: i == widget.current && _focused && chrome.windowActive,
-                  windowActive: chrome.windowActive,
-                  onPressed: () {
-                    _focus.requestFocus();
-                    if (i != widget.current) widget.onSelect(i);
-                  },
-                ),
-            ],
+    return MacSidebar(
+      connection: widget.connection,
+      showConnection: widget.showConnection,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Focus(
+            focusNode: _focus,
+            onKeyEvent: _onKey,
+            onFocusChange: (f) => setState(() => _focused = f),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (var i = 0; i < widget.sections.length; i++)
+                  _Row(
+                    section: widget.sections[i],
+                    current: i == widget.current,
+                    emphasised: i == widget.current && _focused && chrome.windowActive,
+                    windowActive: chrome.windowActive,
+                    onPressed: () {
+                      _focus.requestFocus();
+                      if (i != widget.current) widget.onSelect(i);
+                    },
+                  ),
+              ],
+            ),
           ),
-        ),
-        const Spacer(),
-        _ConnectionLine(connection: widget.connection),
-      ],
-    );
-    const margin = MyDataMacSize.sidebarMargin;
-    const radius = BorderRadius.all(Radius.circular(MyDataMacRadius.sidebar));
-    final panel = Padding(
-      padding: const EdgeInsets.fromLTRB(margin, margin, 0, margin),
-      child: DecoratedBox(
-        position: DecorationPosition.foreground,
-        decoration: BoxDecoration(borderRadius: radius, border: Border.all(color: mac.separator, width: 0.5)),
-        child: solid ? DecoratedBox(decoration: BoxDecoration(color: mac.sidebarBackground, borderRadius: radius), child: list) : list,
+        ],
       ),
     );
-    // Around the panel, the content's ground; inside it, the material (or the flat colour).
-    final column = SizedBox(
-      width: MyDataMacSize.sidebarWidth,
-      child: CustomPaint(painter: _AroundPanel(color: mac.contentBackground), child: panel),
-    );
-    return solid ? column : chrome.sidebar!(column);
   }
-}
-
-/// Paints [color] over the sidebar column except the rounded panel, so the window's material shows only
-/// through the panel.
-class _AroundPanel extends CustomPainter {
-  const _AroundPanel({required this.color});
-
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    const m = MyDataMacSize.sidebarMargin;
-    final panel = RRect.fromRectAndRadius(
-      Rect.fromLTRB(m, m, size.width, size.height - m),
-      const Radius.circular(MyDataMacRadius.sidebar),
-    );
-    final path = Path()
-      ..fillType = PathFillType.evenOdd
-      ..addRect(Offset.zero & size)
-      ..addRRect(panel);
-    canvas.drawPath(path, Paint()..color = color);
-  }
-
-  @override
-  bool shouldRepaint(_AroundPanel old) => old.color != color;
 }
 
 class _Row extends StatelessWidget {
@@ -206,10 +167,117 @@ class _Row extends StatelessWidget {
   }
 }
 
-/// The host's state in one line at the bottom of the sidebar: "Connected" with Open myData, "Starting your
-/// host", or "Cannot reach your host" with Retry and when the list was read.
-class _ConnectionLine extends StatelessWidget {
-  const _ConnectionLine({required this.connection});
+/// The Mac frame's sidebar panel around content of the app's own, for an app whose sidebar is not a list of
+/// sections: myCalendar's calendar list, as Calendar.app's sidebar is. The same panel as [MacSourceList]
+/// (macOS 26's floating sidebar: `sidebar-margin` in from the window's left, top and bottom edges, `sidebar`
+/// corners, a `separator` outline, translucent through [MacChrome.sidebar] or `sidebar-background` where it
+/// cannot be), the room for the window's close, minimise and zoom buttons at its top, and the host's state
+/// at its bottom only when something is wrong. [child] fills the rest and scrolls itself.
+///
+/// [MacSourceList] draws its sections in this panel, so every app's sidebar is the same panel.
+class MacSidebar extends StatelessWidget {
+  const MacSidebar({super.key, required this.connection, required this.child, this.showConnection = true});
+
+  final AppConnection connection;
+  final Widget child;
+
+  /// False: no connection line (the content says what is wrong).
+  final bool showConnection;
+
+  @override
+  Widget build(BuildContext context) {
+    final mac = context.mac;
+    final chrome = MacChrome.of(context);
+    final solid = chrome.sidebar == null || MyDataAccessibility.of(context).reduceTransparency;
+    final list = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: MyDataMacSize.toolbarHeight - MyDataMacSize.sidebarMargin),
+        Expanded(child: child),
+        if (showConnection) MacConnectionLine(connection: connection),
+      ],
+    );
+    const margin = MyDataMacSize.sidebarMargin;
+    const radius = BorderRadius.all(Radius.circular(MyDataMacRadius.sidebar));
+    final panel = Padding(
+      padding: const EdgeInsets.fromLTRB(margin, margin, 0, margin),
+      child: DecoratedBox(
+        position: DecorationPosition.foreground,
+        decoration: BoxDecoration(borderRadius: radius, border: Border.all(color: mac.separator, width: MyDataMacSize.hairline)),
+        child: ClipRRect(
+          borderRadius: radius,
+          child: solid
+              ? DecoratedBox(decoration: BoxDecoration(color: mac.sidebarBackground, borderRadius: radius), child: list)
+              : list,
+        ),
+      ),
+    );
+    final column = SizedBox(
+      width: MyDataMacSize.sidebarWidth,
+      child: CustomPaint(painter: _AroundPanel(color: mac.contentBackground), child: panel),
+    );
+    return solid ? column : chrome.sidebar!(column);
+  }
+}
+
+/// The Mac frame's window with a [MacSidebar]: [sidebar] in the panel, then [child] on `content-background`.
+/// With no [sidebar] (nothing to list yet: no source, the host not reached) or no [connection] (a build that
+/// cannot have a host) [child] alone, which then says what is wrong; its toolbar leaves room for the
+/// window's buttons ([MacToolbar.windowControls]). Put it in a Scaffold with a transparent background, so the
+/// sidebar's material shows.
+class MacSidebarFrame extends StatelessWidget {
+  const MacSidebarFrame({super.key, required this.sidebar, required this.connection, required this.child});
+
+  final Widget? sidebar;
+  final AppConnection? connection;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final content = ColoredBox(color: context.mac.contentBackground, child: child);
+    final c = connection;
+    final panel = sidebar;
+    if (c == null || panel == null) return content;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        MacSidebar(connection: c, child: panel),
+        Expanded(child: content),
+      ],
+    );
+  }
+}
+
+/// Paints [color] over the sidebar column except the rounded panel, so the window's material shows only
+/// through the panel.
+class _AroundPanel extends CustomPainter {
+  const _AroundPanel({required this.color});
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const m = MyDataMacSize.sidebarMargin;
+    final panel = RRect.fromRectAndRadius(
+      Rect.fromLTRB(m, m, size.width, size.height - m),
+      const Radius.circular(MyDataMacRadius.sidebar),
+    );
+    final path = Path()
+      ..fillType = PathFillType.evenOdd
+      ..addRect(Offset.zero & size)
+      ..addRRect(panel);
+    canvas.drawPath(path, Paint()..color = color);
+  }
+
+  @override
+  bool shouldRepaint(_AroundPanel old) => old.color != color;
+}
+
+/// The host's state in one line at the bottom of a Mac sidebar: nothing while connected, "Starting your
+/// host", or "Cannot reach your host" with Retry and when the data on screen was read (as [MacSourceList]
+/// writes it).
+class MacConnectionLine extends StatelessWidget {
+  const MacConnectionLine({super.key, required this.connection});
 
   final AppConnection connection;
 
@@ -217,7 +285,6 @@ class _ConnectionLine extends StatelessWidget {
   Widget build(BuildContext context) {
     final mac = context.mac;
     final c = connection;
-    // Connected: nothing (Contacts.app has no such line; status shows only when something is wrong).
     if (c.state == AppConnectionState.connected && c.lastUpdated == null) return const SizedBox.shrink();
     final (text, action, onAction) = switch (c.state) {
       AppConnectionState.connected => (AppConnection.connectedShortText, AppConnection.openMyDataText, c.onOpenMyData),

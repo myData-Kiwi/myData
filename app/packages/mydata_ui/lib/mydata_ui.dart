@@ -3,16 +3,23 @@
 library;
 
 export 'src/accessibility.dart';
+export 'src/dates.dart';
 export 'src/generated/tokens.g.dart';
 export 'src/licenses.dart';
 export 'src/mac/mac_chrome.dart';
+export 'src/mac/mac_controls.dart';
+export 'src/mac/mac_empty_state.dart';
+export 'src/mac/mac_form.dart';
 export 'src/mac/mac_icons.dart';
+export 'src/mac/mac_overlays.dart';
+export 'src/mac/mac_pair_table.dart';
 export 'src/mac/mac_record.dart';
 export 'src/mac/mac_shell.dart';
 export 'src/mac/mac_source_list.dart';
 export 'src/mac/mac_system_colors.dart';
 export 'src/mac/mac_theme.dart';
 export 'src/mac/mac_toolbar.dart';
+export 'src/mac/mac_toolbar_group.dart';
 export 'src/mac/mac_window.dart';
 export 'src/motion.dart';
 export 'src/theme.dart';

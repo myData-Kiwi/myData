@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -61,14 +63,16 @@ class MacRowEmphasis extends InheritedWidget {
 /// The Mac frame's ThemeData for one appearance.
 abstract final class MacTheme {
   /// The app's theme ([MyDataTheme.data] for [themeId]) moved onto the system: the system font for every
-  /// Material text style, the system's colours behind every token, and [mac] for the Mac widgets.
+  /// Material text style, the system's colours behind every token, and [system] (white on its accent:
+  /// [onAccentWhite]) for the Mac widgets.
   ///
   /// The tokens map to the system's meanings: `bg` is the window's background, `surface` the content's,
-  /// `ink` and `ink-muted` the label colours, `line` the separator, `accent` the system's accent and `focus`
-  /// its focus ring colour.
+  /// `surface-sunken` a `quaternary-label` shade over it, `ink` and `ink-muted` the label colours, `line` the
+  /// separator, `accent` the system's accent and `focus` its focus ring colour.
   /// The host's theme is not used for the accent here: on the Mac the accent is the system's (the plan's
   /// "System" accent option, the default on the Mac).
-  static ThemeData data(String? themeId, Brightness brightness, MyDataMacColors mac) {
+  static ThemeData data(String? themeId, Brightness brightness, MyDataMacColors system) {
+    final mac = onAccentWhite(system);
     final base = MyDataTheme.data(themeId, brightness);
     final brand = base.extension<MyDataColors>()!;
     final soft = Color.alphaBlend(mac.accent.withValues(alpha: 0.18), mac.contentBackground);
@@ -76,6 +80,9 @@ abstract final class MacTheme {
       bg: mac.windowBackground,
       surface: mac.contentBackground,
       surfaceRaised: mac.contentBackground,
+      // Wells, notices and code: a shade of `quaternary-label` over the content, so they are raised in dark
+      // mode (as the system's secondary surfaces are), never a hole darker than the window.
+      surfaceSunken: Color.alphaBlend(mac.quaternaryLabel, mac.contentBackground),
       surfaceHover: Color.alphaBlend(mac.hover, mac.contentBackground),
       ink: mac.label,
       inkMuted: mac.secondaryLabel,
@@ -114,6 +121,31 @@ abstract final class MacTheme {
     );
   }
 
+  /// The least contrast white text needs on the accent (WCAG's for large text and controls; the system's
+  /// blue in dark mode, #0A84FF, has 3.6).
+  static const accentContrast = 3.0;
+
+  /// [mac] with white text on the accent, as macOS draws a selection and a default button in both
+  /// appearances (HIG Color): a light accent (a Kiwi green or a Graphite grey in dark mode, which would
+  /// otherwise carry dark text and read as a highlighter) is darkened in its own hue until white text on it
+  /// has [accentContrast]. The system's own accents already have it, so on a Mac this changes nothing.
+  static MyDataMacColors onAccentWhite(MyDataMacColors mac) {
+    final white = MyDataMacColors.light.onAccent;
+    var accent = mac.accent;
+    var hsl = HSLColor.fromColor(accent);
+    while (_contrast(white, accent) < accentContrast && hsl.lightness > 0) {
+      hsl = hsl.withLightness((hsl.lightness - 0.01).clamp(0.0, 1.0));
+      accent = hsl.toColor().withValues(alpha: mac.accent.a);
+    }
+    if (accent == mac.accent && mac.onAccent == white) return mac;
+    return mac.withSystem({'accent': accent, 'on-accent': white});
+  }
+
+  static double _contrast(Color a, Color b) {
+    final la = a.computeLuminance(), lb = b.computeLuminance();
+    return (math.max(la, lb) + 0.05) / (math.min(la, lb) + 0.05);
+  }
+
   /// The Mac's type ramp: Flutter's macOS typography (the system font) for the large styles, and the Mac
   /// tokens for the ones the screens use (body 13pt, callout, caption, the toolbar title, a record's name).
   static TextTheme _textTheme(Brightness brightness) {
@@ -121,9 +153,9 @@ abstract final class MacTheme {
     final colored = brightness == Brightness.dark ? typography.white : typography.black;
     final ramp = typography.englishLike.merge(colored).apply(fontFamily: MyDataMacFont.text);
     return ramp.copyWith(
-      displaySmall: MyDataMacType.name,
-      headlineLarge: MyDataMacType.name,
-      headlineMedium: MyDataMacType.name,
+      displaySmall: MyDataMacType.paneTitle,
+      headlineLarge: MyDataMacType.paneTitle,
+      headlineMedium: MyDataMacType.paneTitle,
       headlineSmall: MyDataMacType.title,
       titleLarge: MyDataMacType.title,
       titleMedium: MyDataMacType.bodyEmphasized,
@@ -137,12 +169,12 @@ abstract final class MacTheme {
     );
   }
 
-  /// The Mac counterpart of a branded type style: `display-xl` and `display-lg` are a record's `name`,
+  /// The Mac counterpart of a branded type style: `display-xl` and `display-lg` are a pane's `pane-title`,
   /// `title` and `heading` the toolbar's `title`, `body-strong` is `body-emphasized`, `label` is `callout`,
   /// `body` and `caption` keep their names. Anything else keeps its size and weight in the system font.
   static TextStyle typeFor(TextStyle branded) {
     if (identical(branded, MyDataType.displayXl) || identical(branded, MyDataType.displayLg)) {
-      return MyDataMacType.name;
+      return MyDataMacType.paneTitle;
     }
     if (identical(branded, MyDataType.title) || identical(branded, MyDataType.heading)) return MyDataMacType.title;
     if (identical(branded, MyDataType.bodyStrong)) return MyDataMacType.bodyEmphasized;

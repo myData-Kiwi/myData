@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../accessibility.dart';
 import '../theme.dart';
 import '../widgets/app_frame.dart' show AppConnection, AppSection;
+import 'mac_overlays.dart' show MacAppIcon;
 import 'mac_source_list.dart';
 import 'mac_system_colors.dart';
 import 'mac_theme.dart';
@@ -36,11 +37,14 @@ import 'mac_window.dart';
 /// The Runner copies `macos_snippets/MacShell.swift` (its header says how). Screens then branch on
 /// [MacLook.of]: in the Mac frame, [MacAppFrame] with [MacPane]s; elsewhere AppFrame as before.
 class MacShell extends StatelessWidget {
-  const MacShell({super.key, required this.theme, required this.builder});
+  const MacShell({super.key, required this.theme, required this.builder, this.appIcon});
 
   /// The app's theme (the host's theme id, this device's mode). On macOS only its mode is used: the colours
   /// and the accent are the system's (the plan's "System" accent, the Mac's default).
   final MyDataTheme theme;
+
+  /// The app's own icon ([MyDataAppIcons]), which its alerts show ([MacAppIcon]); null shows the kiwi.
+  final ImageProvider? appIcon;
 
   /// Builds the MaterialApp with these themes and mode.
   final Widget Function(BuildContext context, ThemeData light, ThemeData dark, ThemeMode mode) builder;
@@ -59,6 +63,10 @@ class MacShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (!MacLook.forThisPlatform) return builder(context, theme.light, theme.dark, theme.themeMode);
+    return MacAppIcon(icon: appIcon, child: _frame());
+  }
+
+  Widget _frame() {
     return MacSystemColorsScope(
       builder: (context, palette) {
         final brightness = switch (theme.themeMode) {
@@ -128,7 +136,12 @@ class MacAppFrame extends StatelessWidget {
     required this.onSelect,
     required this.connection,
     required this.child,
+    this.showConnection = true,
   });
+
+  /// False while [child] says the host cannot be reached, with its Retry: the sidebar's line would say it
+  /// again ([MacSourceList.showConnection]).
+  final bool showConnection;
 
   /// The app's own sections, as in AppFrame; their icons from MacIcons.
   final List<AppSection> sections;
@@ -146,7 +159,13 @@ class MacAppFrame extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // macOS 26's floating sidebar panel has no divider beside it.
-        MacSourceList(sections: sections, current: current, onSelect: onSelect, connection: c),
+        MacSourceList(
+          sections: sections,
+          current: current,
+          onSelect: onSelect,
+          connection: c,
+          showConnection: showConnection,
+        ),
         Expanded(child: content),
       ],
     );

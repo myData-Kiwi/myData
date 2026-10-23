@@ -147,8 +147,9 @@ class Button extends StatelessWidget {
 
   /// The Mac frame's push button: a `push-button-height` capsule with the label in `body`. [ButtonVariant.filled]
   /// is the default button (the accent, `on-accent` text), [ButtonVariant.tonal] a plain push button on
-  /// `quaternary-label`, [ButtonVariant.danger] the same in `danger`; the plain variants are the label alone
-  /// in the accent or `danger`, as borderless buttons are. Pressing, focus and disabling are [Pressable]'s.
+  /// `quaternary-label`, [ButtonVariant.danger] the same with its label in `danger` (a destructive push
+  /// button: red text, never a red fill); the plain variants are the label alone in the accent or `danger`,
+  /// as borderless buttons are. Pressing, focus and disabling are [Pressable]'s.
   Widget _mac(BuildContext context) {
     final c = context.colors;
     final mac = context.mac;
@@ -156,7 +157,8 @@ class Button extends StatelessWidget {
       ButtonVariant.filled => (mac.accent, mac.onAccent),
       ButtonVariant.tonal => (mac.quaternaryLabel, mac.label),
       ButtonVariant.plain => (null, mac.accent),
-      ButtonVariant.danger => (c.danger, c.onDanger),
+      // A destructive push button: red text on the push button's own fill, never a red fill (HIG Alerts).
+      ButtonVariant.danger => (mac.quaternaryLabel, c.danger),
       ButtonVariant.plainDanger => (null, c.danger),
     };
     const shape = BorderRadius.all(Radius.circular(MyDataMacRadius.field));

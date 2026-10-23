@@ -1175,8 +1175,8 @@ class _PlainContactRowState extends State<_PlainContactRow> {
         // The keyboard's ring in the system's `focus-ring`; the row a context menu was opened on, outlined in
         // the accent, as the system's lists do.
         border: widget.focusRing
-            ? Border.all(color: mac.focusRing, width: 2)
-            : (_menuOpen && !widget.selected ? Border.all(color: mac.accent, width: 2) : null),
+            ? Border.all(color: mac.focusRing, width: MyDataMacSize.focusRingWidth)
+            : (_menuOpen && !widget.selected ? Border.all(color: mac.accent, width: MyDataMacSize.tight) : null),
       ),
       child: Text.rich(
         plainNameSpan(e, MyDataMacType.body.copyWith(color: ink), MyDataMacType.bodyEmphasized.copyWith(color: ink)),

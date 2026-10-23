@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../dates.dart';
 import '../generated/tokens.g.dart';
 import '../theme.dart';
 import 'data_colour.dart';
@@ -41,6 +42,7 @@ class EventItem {
     required this.calendarName,
     this.calendarColour,
     this.calendarId,
+    this.sourceName,
   });
 
   /// Optional: tells rows apart when the list changes (an occurrence key).
@@ -76,6 +78,24 @@ class EventItem {
 
   /// The calendar's id, for [DayList.hiddenCalendarIds]. Null: never hidden.
   final String? calendarId;
+
+  /// Where the calendar comes from, as the calendar list heads it ("iCloud", "Only on this Mac"): said
+  /// after the calendar's name when the same event shows twice on a day (one account read through two
+  /// sources). Null: unknown.
+  final String? sourceName;
+}
+
+/// The events of [events] that show the same title at the same times as another of them: one event read
+/// twice (the same account through This Mac and through iCloud), which a day list tells apart by source.
+Set<EventItem> repeatedEvents(List<EventItem> events) {
+  final seen = <(String, DateTime, DateTime, bool), List<EventItem>>{};
+  for (final e in events) {
+    (seen[(e.title.trim(), e.start, e.end, e.allDay)] ??= []).add(e);
+  }
+  return {
+    for (final group in seen.values)
+      if (group.length > 1) ...group,
+  };
 }
 
 /// One source's range of days that myData reads, for [DayList] (design/components/Notice and EventRow).
@@ -128,12 +148,8 @@ bool _sameDay(DateTime a, DateTime b) => a.year == b.year && a.month == b.month 
 
 /// A time of day on the device's clock: "09:30" on a 24-hour clock, "9:30 am" on a 12-hour one (British
 /// English, as the apps are written).
-String formatEventTime(DateTime time, {required bool use24HourFormat}) {
-  final m = time.minute.toString().padLeft(2, '0');
-  if (use24HourFormat) return '${time.hour.toString().padLeft(2, '0')}:$m';
-  final h = time.hour % 12 == 0 ? 12 : time.hour % 12;
-  return '$h:$m ${time.hour < 12 ? 'am' : 'pm'}';
-}
+String formatEventTime(DateTime time, {required bool use24HourFormat}) =>
+    MyDataDates.time(time, use24HourFormat: use24HourFormat);
 
 /// A zone id's name in the generic form the zone caption uses, from the city in the id:
 /// "America/New_York" is "New York", "America/Argentina/Buenos_Aires" is "Buenos Aires". "UTC", "Etc/UTC"
@@ -253,14 +269,16 @@ String? eventZoneCaption(EventItem event, {required bool use24HourFormat}) {
 /// The caption under the title, parts joined by " · ": the zone's times when the zone differs, "Day 2 of 3"
 /// for an event over several days, the location if there is one, and the calendar's name, which is always
 /// there.
-String eventCaption(EventItem event, DateTime day, {required bool use24HourFormat}) {
+String eventCaption(EventItem event, DateTime day, {required bool use24HourFormat, bool withSource = false}) {
   final of = eventDayOf(event, day);
   final location = event.location.trim();
+  final source = event.sourceName;
   return [
     ?eventZoneCaption(event, use24HourFormat: use24HourFormat),
     if (of != null && of.count > 1) dayOfLabel(of.day, of.count),
     if (location.isNotEmpty) location,
     event.calendarName,
+    if (withSource && source != null && source.isNotEmpty) source,
   ].join(EventRow.captionSeparator);
 }
 

@@ -120,6 +120,9 @@ class AppConnection {
   static const openMyDataText = 'Open myData';
   static const startingText = 'Starting your host';
   static const unreachableText = 'Cannot reach your host';
+
+  /// Every app's title for a host that stopped while the app was open (one wording in every app).
+  static const lostText = 'Your host stopped';
   static const retryText = 'Retry';
 
   /// The reason the Retry button is disabled, next to it.

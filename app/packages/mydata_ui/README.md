@@ -83,7 +83,8 @@ Flutter is the stack on every platform; on macOS every app draws the Mac frame (
 2. **main:** `await MacShell.setUp();` after `WidgetsFlutterBinding.ensureInitialized()`, before `runApp` (a no-op off macOS).
 3. **App:** `MacShell(theme: appearance.theme, builder: (context, light, dark, mode) => MaterialApp(theme: light, darkTheme: dark, themeMode: mode, builder: MacShell.content, ...))`. `MacShell.content` replaces the app's `MyDataAccessibilityScope` builder.
 4. **Screens:** `if (MacLook.of(context))` draw `Scaffold(backgroundColor: Colors.transparent, body: MacAppFrame(sections:, current:, onSelect:, connection:, child: MacPane(toolbar: MacToolbar(title:, trailing: [...]), child: ...)))`; else the branded `AppFrame` as before. Sidebar sections use `MacIcons`. myContacts' `home.dart` and `contacts_view.dart` are the worked example (a list column and a record column, each with its own `MacToolbar`).
-5. **Tests:** `MacLook.debugOverride = false` in `flutter_test_config.dart` (the branded frame by default, also in the macOS variants) and `await loadMacFonts()`; a Mac-frame test sets it to true and renders with `screenMatrix(..., themes: macMatrix)`.
+5. **Tests:** `MacLook.debugOverride = false` in `flutter_test_config.dart` (the branded frame by default, also in the macOS variants) and `await loadMacFonts()`; a Mac-frame test sets it to true and uses `macTestWidgets` and `macScreenMatrix` (mydata_testing), which run it as macOS, so its keys are ⌘ and its menus say "⌘E" and "⌘⌫".
+6. **The app's icon:** `MacShell(appIcon: MyDataAppIcons.<app>)`, which its alerts show.
 
 ### API
 
@@ -91,20 +92,28 @@ Flutter is the stack on every platform; on macOS every app draws the Mac frame (
 |---|---|
 | `MacShell`, `MacShell.setUp()`, `MacShell.content` | The theme (system colours read live by `MacSystemColorsScope`, `MacTheme.data`), the window (`MacWindow`: full-size content, unified toolbar, translucent sidebar, appearance following the mode) and the chrome (`MacChrome`: toolbar items that take clicks, the sidebar's material, whether the window is active) |
 | `MacLook.forThisPlatform`, `MacLook.of(context)`, `MacLook.debugOverride` | On macOS; in the Mac frame here (the Mac theme and wider than a phone); tests' switch |
-| `MacAppFrame`, `MacPane` | The window's layout: the sidebar (`MacSourceList`) beside the content on `content-background`; a column's toolbar band over its body |
-| `MacToolbar`, `MacToolbarButton` (`.text`), `MacSearchField` | The band (title, leading and trailing items) and its items |
-| `MacRecordHeader`, `MacQuickAction`, `MacFieldTable`, `MacField` | A record's page: 64 pt avatar, name, round actions, label and value columns (click to copy) |
+| `MacAppFrame`, `MacPane`, `MacSidebar`, `MacSidebarFrame` | The window's layout: the sidebar (`MacSourceList`, or an app's own list in the same `MacSidebar` panel) beside the content on `content-background`; a column's toolbar band over its body. `showConnection: false` while the content already says the host cannot be reached; no sidebar (`MacSidebarFrame(sidebar: null)`, `MacToolbar(windowControls: true)`) when there is nothing to list |
+| `MacToolbar`, `MacToolbarButton` (`.text`, a capsule), `MacToolbarGroup`, `MacSearchField` | The band (title, leading and trailing items) and its items; several buttons in one capsule ("‹ Today ›") |
+| `MacRecordHeader`, `MacSourceBadge`, `MacQuickAction`, `MacFieldTable`, `MacField` | A record's page: 64 pt avatar, name with a source glyph (its sentence as a help tag), round actions, label and value columns (click to copy) |
+| `MacForm`, `MacFormSection`, `MacFormRow`, `MacSwitch`, `MacSegmented`, `MacDisclosure` | Settings-style grouped forms, centred at `content-width`: a row is a title, a line and controls at the end |
+| `MacEditorRow`, `MacEditField`, `MacPopUpButton`, `MacRemoveButton`, `MacAddButton` | Contacts-style editing forms: a label column and the control; the one text field (single line, text area, password); the green ⊕ add button |
+| `MacEmptyState` | The one empty, waiting and error state (ContentUnavailableView): a symbol, a title, one line, at most one button. EmptyState and StatusPanel draw it in the Mac frame |
+| `MacAlert`, `MacAppIcon`, `MyDataAppIcons` | MyDataDialog as an alert sheet: the app's icon, Cancel as the default button when the action is destructive (which is red text, not a red fill), no scrim |
+| `MyDataDates` | Every date and time in every app: "14 Oct 2026", "Wednesday 14 October 2026", "7:58 am" or "07:58" as the Mac's clock is set |
 | `ContactListStyle.plain`, `MultiSelectList`, `GroupedList`, `Button` | Shared widgets with a Mac branch: a plain list with the accent selection, a push button |
 | `MacIcons` | Lucide, one set for every app (sections, sources, actions, states, navigation) |
 | `context.mac` (`MyDataMacColors`), `context.type(style)`, `MacRowEmphasis` | The system's colours; a branded type style's Mac counterpart; text on an accent row |
-| `MyDataMacType`, `MyDataMacSize`, `MyDataMacRadius`, `MyDataMacFont` | The `macos` tokens: 13 pt body, 24 pt rows, 28 pt controls, 52 pt toolbar, 208 pt sidebar, focus ring |
+| `MyDataMacType`, `MyDataMacSize`, `MyDataMacRadius`, `MyDataMacFont` | The `macos` tokens: 13 pt body, 24 pt rows, 28 pt controls, 52 pt toolbar, 208 pt sidebar, focus ring, `hairline` and `tight`, the panes' widths; three title roles: `title` (the toolbar's), `pane-title` (one per pane, 22 pt), `section-header` |
 | `FocusRing.colourFor(context)`, `FocusRing.painter(...)` | Every focus ring: the system's `focus-ring` in the Mac frame (red controls too), the branded rule elsewhere |
 
 ### Notes
 
 - **Tokens:** `design/tokens.json` "macos" (fonts, colours, type, sizes, radii), generated into `MyDataMac*`. The colours are fallbacks; on a Mac the system's own are used (`MacShell.swift` lists which NSColor each token reads).
 - **The theme:** `MacTheme.data` maps the branded tokens onto the system's colours, so branded widgets drawn in the Mac frame (the Inspector and its fields, Select, the dialogs, still branded in shape) take the system's colours and font, and builds the text theme afresh in the system font: applying a family to the branded styles would keep mydata_ui's package and name a font that does not exist.
-- **Shared widgets' Mac branch:** Button becomes a push button, MultiSelectList and GroupedList plain lists, and EmptyState, StatusPanel, Notice, MultiSelectSummary and DuplicatePair take their text through `context.type`.
+- **Shared widgets' Mac branch:** Button becomes a push button (Danger: red text on a push button), MultiSelectList and GroupedList plain lists, EmptyState and StatusPanel a `MacEmptyState`, the Inspector has its buttons under the form, a Menu item has no second line (a disabled item's reason is its help tag), and Notice, MultiSelectSummary and DuplicatePair take their text through `context.type`. Covered by `test/mac_overlays_test.dart` (alert, menu, toast and empty state, as macOS, with screenshots).
+- **The accent:** `MacTheme.onAccentWhite` darkens a light accent in its own hue until white text on it has 3:1, as the system's selection and default buttons have white text in both appearances; the system's own accents pass unchanged. Wells and notices (`surface-sunken`) are a `quaternary-label` shade over the content, so they are raised in dark mode.
+- **Pane widths:** a detail pane (a record, the editor, Merge, Review) is leading-aligned at `content-width`; a form or Settings page (`MacForm`, myData's Import) is centred at the same width.
+- **No literals:** besides colours, radii and fonts, `no_literals_test.dart` flags a token nudged by a number (`MyDataSpace.s1 + 2`), a numeric border width and a one-number inset: use `tight`, `hairline` and `focus-ring-width`.
 - **Icons:** Lucide (ISC), cut down by `tool/subset_lucide.sh` to `MacIcons`, in place of SF Symbols (only Apple's frameworks may draw them). Add an icon there and in the script.
 - **macOS 26 shapes:** the sidebar is a floating panel (`sidebar-margin`, `sidebar` radius) with no divider beside it; toolbar items are `toolbar-item-height` circles and capsules on `toolbar-item`, a flat stand-in for Liquid Glass (Flutter cannot draw glass, flutter#170310), with no hairline under the band. The sizes are those SwiftUI's NavigationSplitView draws on macOS 26 (measured in the stack gate).
 - **Window:** `macos_window_utils` 1.9.1, pinned, a dependency of this package (its plugin registers in every app; it does nothing until `MacShell.setUp`). Not macos_ui, which is a whole widget set of its own.

@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../generated/tokens.g.dart';
+import '../motion.dart';
 import 'mac_chrome.dart';
 import 'mac_icons.dart';
+import 'mac_overlays.dart' show MacMenuLook;
 import 'mac_theme.dart';
 
 /// The Mac frame's toolbar band: `toolbar-height` tall across the content, in the window's title bar
@@ -21,6 +23,7 @@ class MacToolbar extends StatelessWidget {
     this.trailing = const [],
     this.background,
     this.separator = false,
+    this.windowControls = false,
   });
 
   final List<Widget> leading;
@@ -34,6 +37,10 @@ class MacToolbar extends StatelessWidget {
   /// The hairline under the band.
   final bool separator;
 
+  /// The band starts at the window's leading edge (no sidebar beside it): it leaves the window's close,
+  /// minimise and zoom buttons their room (`window-controls-width`).
+  final bool windowControls;
+
   /// Between items in the band.
   static const itemGap = MyDataSpace.s2;
 
@@ -42,7 +49,10 @@ class MacToolbar extends StatelessWidget {
     final mac = context.mac;
     return Container(
       height: MyDataMacSize.toolbarHeight,
-      padding: const EdgeInsets.symmetric(horizontal: MyDataMacSize.toolbarInset),
+      padding: EdgeInsetsDirectional.only(
+        start: MyDataMacSize.toolbarInset + (windowControls ? MyDataMacSize.windowControlsWidth : 0),
+        end: MyDataMacSize.toolbarInset,
+      ),
       decoration: BoxDecoration(
         color: background ?? mac.contentBackground,
         border: separator ? Border(bottom: BorderSide(color: mac.separator)) : null,
@@ -133,17 +143,18 @@ class _MacToolbarButtonState extends State<MacToolbarButton> {
         ? Icon(widget.icon, size: MyDataMacSize.icon, color: ink)
         : Text(widget.text!, style: MyDataMacType.body.copyWith(color: enabled ? mac.label : mac.tertiaryLabel));
     Widget button = AnimatedContainer(
-      duration: const Duration(milliseconds: 80),
+      duration: MyDataMotion.fast,
       height: MyDataMacSize.toolbarItemHeight,
       constraints: const BoxConstraints(minWidth: MyDataMacSize.toolbarItemHeight),
-      padding: EdgeInsets.symmetric(horizontal: widget.icon != null ? 0 : MyDataSpace.s2),
+      // A word is a capsule (macOS 26's toolbar text items), wider than tall: never a circle round a word.
+      padding: EdgeInsets.symmetric(horizontal: widget.icon != null ? 0 : MyDataSpace.s4),
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: enabled && (_hovered || _pressed)
             ? Color.alphaBlend(_pressed ? mac.quaternaryLabel : mac.hover, mac.toolbarItem)
             : mac.toolbarItem,
         borderRadius: const BorderRadius.all(Radius.circular(MyDataMacRadius.field)),
-        border: Border.all(color: _focused ? mac.focusRing : mac.separator, width: _focused ? 2 : 0.5),
+        border: Border.all(color: _focused ? mac.focusRing : mac.separator, width: _focused ? MyDataMacSize.focusRingWidth : MyDataMacSize.hairline),
       ),
       child: face,
     );
@@ -169,7 +180,7 @@ class _MacToolbarButtonState extends State<MacToolbarButton> {
       excludeSemantics: true,
       child: Tooltip(
         message: tip,
-        waitDuration: const Duration(milliseconds: 700),
+        waitDuration: MacMenuLook.helpTagDelay,
         textStyle: MyDataMacType.caption.copyWith(color: mac.label),
         decoration: BoxDecoration(
           color: mac.contentBackground,
@@ -263,8 +274,8 @@ class _MacSearchFieldState extends State<MacSearchField> {
         color: mac.toolbarItem,
         borderRadius: const BorderRadius.all(Radius.circular(MyDataMacRadius.field)),
         border: _focused
-            ? Border.all(color: mac.focusRing, width: 2)
-            : Border.all(color: mac.separator, width: 0.5),
+            ? Border.all(color: mac.focusRing, width: MyDataMacSize.focusRingWidth)
+            : Border.all(color: mac.separator, width: MyDataMacSize.hairline),
       ),
       child: Row(
         children: [
@@ -281,7 +292,7 @@ class _MacSearchFieldState extends State<MacSearchField> {
                 focusNode: _focus,
                 style: MyDataMacType.body.copyWith(color: mac.label),
                 cursorColor: mac.accent,
-                cursorHeight: MyDataMacType.body.fontSize! + 2,
+                cursorHeight: MyDataMacType.body.fontSize! + MyDataMacSize.tight,
                 decoration: InputDecoration.collapsed(
                   hintText: widget.placeholder,
                   hintStyle: MyDataMacType.body.copyWith(color: mac.secondaryLabel),
@@ -296,7 +307,7 @@ class _MacSearchFieldState extends State<MacSearchField> {
               excludeSemantics: true,
               child: GestureDetector(
                 onTap: widget.controller.clear,
-                child: Icon(MacIcons.clear, size: MyDataMacSize.icon - 2, color: mac.secondaryLabel),
+                child: Icon(MacIcons.clear, size: MyDataMacSize.icon - MyDataMacSize.tight, color: mac.secondaryLabel),
               ),
             ),
         ],

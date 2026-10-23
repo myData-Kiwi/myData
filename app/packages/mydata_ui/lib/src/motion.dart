@@ -29,6 +29,10 @@ abstract final class MyDataMotion {
 
   /// A pressed control dims slightly and scales to 97%, within one frame; it returns over [fast].
   static const pressScale = 0.97;
+
+  /// How far a Mac frame's sheet travels as it comes down from the toolbar's edge, as a share of the
+  /// window's height (about 30 pt in an 800 pt window).
+  static const sheetDrop = 0.04;
   static const pressOpacity = 0.85;
 
   /// Cards entering a screen fade and rise 8px over [base], staggered by 30ms, at most six.

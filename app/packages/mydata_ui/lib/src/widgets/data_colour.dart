@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import '../generated/tokens.g.dart';
+import '../mac/mac_theme.dart' show MacLook;
 import '../theme.dart';
 import 'group_frame.dart' show GroupPartShape;
 import 'grouped_list.dart';
@@ -79,8 +80,15 @@ enum DataGround {
 /// Spec: "a 1px inner edge in `line-strong`".
 const _edgeWidth = 1.0;
 
-Border? _edge(MyDataColors c, bool edge) =>
-    edge ? Border.all(color: c.lineStrong, width: _edgeWidth, strokeAlign: BorderSide.strokeAlignInside) : null;
+/// The edge, 1px; a hairline in the Mac frame, so a small dark dot or bar reads as filled there, not as a
+/// ring (design/components/DataColour, "The Mac frame").
+Border? _edge(BuildContext context, MyDataColors c, bool edge) => edge
+    ? Border.all(
+        color: c.lineStrong,
+        width: MacLook.of(context) ? MyDataMacSize.hairline : _edgeWidth,
+        strokeAlign: BorderSide.strokeAlignInside,
+      )
+    : null;
 
 /// A colour from the user's data, such as a calendar's colour, as an 8px dot
 /// (design/components/DataColour).
@@ -130,7 +138,7 @@ class DataDot extends StatelessWidget {
         child: Container(
             width: diameter,
             height: diameter,
-            decoration: BoxDecoration(color: s.fill, shape: BoxShape.circle, border: _edge(c, s.edge))));
+            decoration: BoxDecoration(color: s.fill, shape: BoxShape.circle, border: _edge(context, c, s.edge))));
     if (slot) {
       dot = SizedBox.square(dimension: MyDataSize.iconTile, child: Center(child: dot));
     }
@@ -179,7 +187,7 @@ class DataBar extends StatelessWidget {
     final s = _swatch(c, colour, ground, alsoOn);
     return ExcludeSemantics(
         child: DecoratedBox(
-            decoration: BoxDecoration(color: s.fill, borderRadius: MyDataRadii.pill, border: _edge(c, s.edge)),
+            decoration: BoxDecoration(color: s.fill, borderRadius: MyDataRadii.pill, border: _edge(context, c, s.edge)),
             child: _BarBox(height: height)));
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import '../generated/tokens.g.dart';
+import '../mac/mac_empty_state.dart';
 import '../mac/mac_theme.dart';
 import '../theme.dart';
 import 'button.dart';
@@ -67,6 +68,19 @@ class EmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     final reason = onAction == null ? disabledReason : null;
+    // The Mac frame: the bare kiwi, the title, one line and the button (ContentUnavailableView).
+    if (MacLook.of(context)) {
+      return MacEmptyState(
+        title: title,
+        line: sentence,
+        action: Button(
+          label: actionLabel,
+          variant: ButtonVariant.filled,
+          onPressed: onAction,
+          disabledReason: disabledReason,
+        ),
+      );
+    }
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: maxWidth),

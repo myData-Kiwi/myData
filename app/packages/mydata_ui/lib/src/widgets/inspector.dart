@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 
 import '../accessibility.dart';
 import '../generated/tokens.g.dart';
+import '../mac/mac_theme.dart' show MacLook, MacTypeContext;
 import '../motion.dart';
 import '../theme.dart';
 import 'app_menu_bar.dart';
@@ -330,12 +331,14 @@ class InspectorState extends State<Inspector> {
       onPressed: _saving ? _inert : () => unawaited(save()),
     );
     final action = widget.failureAction;
+    // The Mac frame: the system's type (context.type) and a push button for Cancel; the panel is the same.
+    final mac = MacLook.of(context);
     final failure = _failure == null
         ? null
         : action == null
-            ? Text(_failure!, style: MyDataType.body.copyWith(color: c.danger))
+            ? Text(_failure!, style: context.type(MyDataType.body).copyWith(color: c.danger))
             : Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-                Text(_failure!, style: MyDataType.body.copyWith(color: c.danger)),
+                Text(_failure!, style: context.type(MyDataType.body).copyWith(color: c.danger)),
                 const SizedBox(height: MyDataSpace.s2),
                 Button(label: action.label, onPressed: _saving ? _inert : action.onPressed),
               ]);
@@ -372,7 +375,45 @@ class InspectorState extends State<Inspector> {
 
     final line = c.line;
     final none = c.line.withValues(alpha: 0);
-    final panel = ColoredBox(
+    final buttons = ButtonRow(alignment: WrapAlignment.end, children: [
+      Button(
+        label: Inspector.cancelLabel,
+        variant: mac ? ButtonVariant.tonal : ButtonVariant.plain,
+        onPressed: _saving ? _inert : () => unawaited(requestClose()),
+      ),
+      saveButton,
+    ]);
+    // The Mac frame: the title in `pane-title`, as the record's page it replaces, and Cancel and Save right
+    // under the form (as Contacts' Done), never pinned to the window's bottom away from it.
+    final macPanel = !mac
+        ? null
+        : ColoredBox(
+            color: c.surface,
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                    Inspector.padding, Inspector.headerTop, Inspector.padding, Inspector.headerBottom),
+                child: Semantics(
+                  header: true,
+                  child: Text(widget.title,
+                      maxLines: 1, overflow: TextOverflow.ellipsis, style: MyDataMacType.paneTitle.copyWith(color: c.ink)),
+                ),
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  controller: _scroll,
+                  padding: const EdgeInsets.fromLTRB(Inspector.padding, 0, Inspector.padding, Inspector.padding),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                    form,
+                    if (failure != null) ...[const SizedBox(height: MyDataSpace.s4), failure],
+                    const SizedBox(height: MyDataSpace.s6),
+                    buttons,
+                  ]),
+                ),
+              ),
+            ]),
+          );
+    final panel = macPanel ?? ColoredBox(
       color: c.surface,
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Container(
@@ -382,7 +423,7 @@ class InspectorState extends State<Inspector> {
           child: Semantics(
             header: true,
             child: Text(widget.title,
-                maxLines: 1, overflow: TextOverflow.ellipsis, style: MyDataType.title.copyWith(color: c.ink)),
+                maxLines: 1, overflow: TextOverflow.ellipsis, style: context.type(MyDataType.title).copyWith(color: c.ink)),
           ),
         ),
         Expanded(
@@ -406,14 +447,7 @@ class InspectorState extends State<Inspector> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: Inspector.padding, vertical: Inspector.footerPadding),
           decoration: BoxDecoration(border: Border(top: BorderSide(color: _hiddenBelow ? line : none))),
-          child: ButtonRow(alignment: WrapAlignment.end, children: [
-            Button(
-              label: Inspector.cancelLabel,
-              variant: ButtonVariant.plain,
-              onPressed: _saving ? _inert : () => unawaited(requestClose()),
-            ),
-            saveButton,
-          ]),
+          child: buttons,
         ),
       ]),
     );

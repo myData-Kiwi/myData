@@ -94,6 +94,8 @@ final class SystemColorsChannel {
     ("window-background", .windowBackgroundColor),
     ("selection-inactive", .unemphasizedSelectedContentBackgroundColor),
     ("focus-ring", .keyboardFocusIndicatorColor),
+    ("red", .systemRed),
+    ("green", .systemGreen),
   ]
 
   /// Each colour as 0xAARRGGBB in sRGB, resolved in [appearance].

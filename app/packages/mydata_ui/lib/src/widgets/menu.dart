@@ -8,6 +8,8 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 
 import '../generated/tokens.g.dart';
+import '../mac/mac_overlays.dart' show MacMenuLook;
+import '../mac/mac_theme.dart' show MacLook;
 import '../motion.dart';
 import '../theme.dart';
 import 'dialog.dart' show phoneWidth;
@@ -371,6 +373,8 @@ class _MenuPanelState extends State<_MenuPanel> {
     final c = context.colors;
     final compact = widget.route.compact;
     final phone = MediaQuery.sizeOf(context).width < phoneWidth;
+    // The Mac frame: a macOS menu (mac/mac_overlays.dart), with the same behaviour.
+    final mac = MacLook.of(context);
     final iconSpace = _items.any((i) => i.icon != null);
     final children = <Widget>[];
     var index = 0;
@@ -378,7 +382,9 @@ class _MenuPanelState extends State<_MenuPanel> {
       switch (e) {
         case MenuSeparator():
           children.add(ExcludeSemantics(
-            child: Container(height: 1, margin: const EdgeInsets.symmetric(vertical: MyDataSpace.s1), color: c.line),
+            child: mac
+                ? MacMenuLook.separator(context)
+                : Container(height: 1, margin: const EdgeInsets.symmetric(vertical: MyDataSpace.s1), color: c.line),
           ));
         case MenuItem():
           final i = index++;
@@ -414,8 +420,10 @@ class _MenuPanelState extends State<_MenuPanel> {
         child: Material(
           type: MaterialType.transparency,
           child: Container(
-            padding: const EdgeInsets.all(MyDataSpace.s1),
-            decoration: BoxDecoration(color: c.surfaceRaised, borderRadius: MyDataRadii.md, boxShadow: context.shadows.shadow2),
+            padding: mac ? MacMenuLook.padding : const EdgeInsets.all(MyDataSpace.s1),
+            decoration: mac
+                ? MacMenuLook.panel(context)
+                : BoxDecoration(color: c.surfaceRaised, borderRadius: MyDataRadii.md, boxShadow: context.shadows.shadow2),
             child: IntrinsicWidth(
               child: SingleChildScrollView(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: children),
@@ -493,7 +501,8 @@ class _MenuItemTile extends StatelessWidget {
         const SizedBox(width: Menu.shortcutGap),
         Opacity(
           opacity: faded,
-          child: Text(MyDataShortcut.shown(shortcut), style: MyDataType.body.copyWith(color: c.inkMuted)),
+          child: Text(MyDataShortcut.shown(shortcut, platform: Theme.of(context).platform),
+              style: MyDataType.body.copyWith(color: c.inkMuted)),
         ),
       ],
       if (item.checked) ...[
@@ -505,7 +514,24 @@ class _MenuItemTile extends StatelessWidget {
     final height = reason != null
         ? MyDataSize.rowHeight
         : (compact ? MyDataSize.controlHeightCompact : MyDataSize.controlHeight);
-    Widget tile = AnimatedContainer(
+    // The Mac frame: a macOS menu item (mac/mac_overlays.dart); the keyboard's item is on the accent. A macOS
+    // menu item has no second line: a disabled item's reason is its help tag (a tooltip) and its hint.
+    final mac = MacLook.of(context);
+    Widget tile = mac
+        ? MacMenuLook.item(
+            context,
+            label: item.label,
+            icon: item.icon,
+            iconSpace: iconSpace,
+            shortcut: shortcut != null && showShortcut
+                ? MyDataShortcut.shown(shortcut, platform: Theme.of(context).platform)
+                : null,
+            checked: item.checked,
+            active: active,
+            enabled: item.enabled,
+            destructive: item.destructive,
+          )
+        : AnimatedContainer(
       duration: MyDataMotion.fast,
       curve: MyDataMotion.standard,
       constraints: BoxConstraints(minHeight: height),
@@ -523,6 +549,7 @@ class _MenuItemTile extends StatelessWidget {
       child: row,
     );
     tile = Opacity(opacity: pressed ? MyDataMotion.pressOpacity : 1, child: tile);
+    if (mac && reason != null) tile = MacMenuLook.helpTag(context, message: reason, child: tile);
 
     final spokenShortcut = shortcut == null ? null : MyDataShortcut.spoken(shortcut);
     final hint = [?spokenShortcut, ?reason].join(', ');

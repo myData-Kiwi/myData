@@ -220,7 +220,7 @@ class _MyDataIconButtonState extends State<MyDataIconButton> {
       padding: const EdgeInsets.symmetric(vertical: MyDataSpace.s1, horizontal: MyDataSpace.s2),
       richMessage: TextSpan(text: name, children: [
         if (shortcut != null && !widget.done)
-          TextSpan(text: ' ${MyDataShortcut.shown(shortcut)}', style: TextStyle(color: c.inkMuted)),
+          TextSpan(text: ' ${MyDataShortcut.shown(shortcut, platform: Theme.of(context).platform)}', style: TextStyle(color: c.inkMuted)),
         if (!enabled) TextSpan(text: '\n${widget.disabledReason}', style: TextStyle(color: c.inkMuted)),
       ]),
       child: body,

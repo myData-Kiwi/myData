@@ -147,14 +147,29 @@ void goldenMatrix(String name, Widget Function() build,
   }
 }
 
+/// The Mac frame's tests run as macOS: `defaultTargetPlatform` and the theme's platform are macOS, so the
+/// keys are ⌘ and the menus write "⌘E" and "⌘⌫", as on a Mac (set for the test and reset after it).
+final macOS = TargetPlatformVariant.only(TargetPlatform.macOS);
+
+/// A widget test of the Mac frame, run as macOS ([macOS]).
+void macTestWidgets(String description, WidgetTesterCallback callback, {bool? skip}) =>
+    testWidgets(description, callback, variant: macOS, skip: skip);
+
+/// [screenMatrix] for the Mac frame: run as macOS ([macOS]), in [macMatrix] unless [themes] says.
+void macScreenMatrix(String name, Widget Function(ThemeCase theme) build,
+        {Size size = const Size(1280, 800), Future<void> Function(WidgetTester tester)? before,
+        List<ThemeCase> themes = macMatrix}) =>
+    screenMatrix(name, build, size: size, before: before, themes: themes, variant: macOS);
+
 /// Defines one screenshot test per [themes] case (every [themeMatrix] case unless given) for a whole app
 /// screen: [build] gets the theme case and returns the app (its own MaterialApp, themed with `theme.data`),
 /// rendered at [size] into `screenshots/<name>.<theme>-<mode>.png`. Run with --update-goldens to refresh them.
+/// [variant]: the platform to run as ([macOS] for the Mac frame).
 void screenMatrix(String name, Widget Function(ThemeCase theme) build,
     {Size size = const Size(1280, 800), Future<void> Function(WidgetTester tester)? before,
-    List<ThemeCase> themes = themeMatrix}) {
+    List<ThemeCase> themes = themeMatrix, TestVariant<Object?> variant = const DefaultTestVariant()}) {
   for (final theme in themes) {
-    testWidgets('$name screenshot (${theme.label})', (tester) async {
+    testWidgets('$name screenshot (${theme.label})', variant: variant, (tester) async {
       tester.view.physicalSize = size;
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);

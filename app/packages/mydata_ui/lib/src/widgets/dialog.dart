@@ -7,6 +7,8 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 
 import '../generated/tokens.g.dart';
+import '../mac/mac_overlays.dart' show MacAlert;
+import '../mac/mac_theme.dart' show MacLook;
 import '../motion.dart';
 import '../theme.dart';
 import 'app_frame.dart' show AppLayout;
@@ -170,8 +172,9 @@ class _DialogRoute extends PopupRoute<bool> {
   final bool reduced;
   final CapturedThemes capturedThemes;
 
+  /// No scrim in the Mac frame: a sheet leaves its window as it is (the barrier still takes the clicks).
   @override
-  Color? get barrierColor => scrim;
+  Color? get barrierColor => MacLook.of(navigator!.context) ? null : scrim;
 
   @override
   bool get barrierDismissible => false;
@@ -195,6 +198,13 @@ class _DialogRoute extends PopupRoute<bool> {
     final curved = CurvedAnimation(parent: animation, curve: MyDataMotion.standard);
     final faded = FadeTransition(opacity: curved, child: child);
     if (reduced) return faded;
+    // The Mac frame's sheet comes down from the toolbar's edge.
+    if (MacLook.of(context)) {
+      return SlideTransition(
+        position: Tween(begin: const Offset(0, -MyDataMotion.sheetDrop), end: Offset.zero).animate(curved),
+        child: faded,
+      );
+    }
     return ScaleTransition(scale: Tween(begin: MyDataMotion.pressScale, end: 1.0).animate(curved), child: faded);
   }
 }
@@ -435,7 +445,31 @@ class _MyDataDialogState extends State<MyDataDialog> {
         ),
     ];
 
-    final panel = Container(
+    // The Mac frame: an alert as macOS 26 draws it (mac/mac_overlays.dart), with the same behaviour; Cancel
+    // is a push button there.
+    final panel = MacLook.of(context)
+        ? MacAlert.panel(
+            context,
+            title: widget.title,
+            message: widget.message,
+            content: widget.content,
+            fields: widget.fields.isEmpty ? null : bodyChildren.last,
+            failure: _failure,
+            // Destructive: Cancel is the default button (the accent, and focus, so Return presses it) and the
+            // action a push button with red text (Button's danger variant in the Mac frame).
+            cancel: _onlyTells
+                ? null
+                : Button(
+                    label: widget.cancelLabel!,
+                    variant: widget.destructive ? ButtonVariant.filled : ButtonVariant.tonal,
+                    focusNode: _cancelNode,
+                    onPressed: _working ? _inert : _cancel,
+                  ),
+            confirm: confirm,
+            destructive: widget.destructive,
+            buttonLabels: [?widget.cancelLabel, widget.confirmLabel, ?widget.workingLabel],
+          )
+        : Container(
       width: MyDataDialog.widthFor(size.width),
       padding: const EdgeInsets.all(MyDataDialog.padding),
       decoration: BoxDecoration(color: c.surfaceRaised, borderRadius: MyDataRadii.xl, boxShadow: context.shadows.shadow2),
@@ -499,10 +533,19 @@ class _MyDataDialogState extends State<MyDataDialog> {
                   curve: MyDataMotion.standard,
                   padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
                   child: SafeArea(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: margin),
-                      child: Center(child: Material(type: MaterialType.transparency, child: panel)),
-                    ),
+                    // The Mac frame: a sheet, hanging from the toolbar's edge at the top of the window.
+                    child: MacLook.of(context)
+                        ? Padding(
+                            padding: const EdgeInsets.only(top: MyDataMacSize.toolbarHeight, bottom: MyDataSpace.s8),
+                            child: Align(
+                              alignment: Alignment.topCenter,
+                              child: Material(type: MaterialType.transparency, child: panel),
+                            ),
+                          )
+                        : Padding(
+                            padding: EdgeInsets.symmetric(vertical: margin),
+                            child: Center(child: Material(type: MaterialType.transparency, child: panel)),
+                          ),
                   ),
                 ),
               ),

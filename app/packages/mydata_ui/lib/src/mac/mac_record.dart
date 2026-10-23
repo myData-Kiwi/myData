@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 
 import '../generated/tokens.g.dart';
 import '../widgets/menu.dart';
+import 'mac_overlays.dart' show MacMenuLook;
 import 'mac_theme.dart';
 
 /// The top of a record's page in the Mac frame (plan section 5, "Person page"): the avatar at
@@ -18,12 +19,16 @@ class MacRecordHeader extends StatelessWidget {
     required this.name,
     this.subtitle = '',
     this.actions = const [],
+    this.badge,
   });
 
   final Widget avatar;
   final String name;
   final String subtitle;
   final List<Widget> actions;
+
+  /// A small glyph after the name: where the record comes from ([MacSourceBadge]).
+  final Widget? badge;
 
   /// Between the avatar and the name.
   static const gap = MyDataSpace.s4;
@@ -48,7 +53,15 @@ class MacRecordHeader extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Semantics(header: true, child: Text(name, style: MyDataMacType.name.copyWith(color: mac.label))),
+                    Row(mainAxisSize: MainAxisSize.min, children: [
+                      Flexible(
+                        child: Semantics(
+                          header: true,
+                          child: Text(name, style: MyDataMacType.name.copyWith(color: mac.label)),
+                        ),
+                      ),
+                      if (badge != null) ...[const SizedBox(width: MyDataSpace.s2), badge!],
+                    ]),
                     if (subtitle.isNotEmpty)
                       Text(subtitle, style: MyDataMacType.body.copyWith(color: mac.secondaryLabel)),
                   ],
@@ -130,7 +143,7 @@ class _MacQuickActionState extends State<MacQuickAction> {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: _pressed ? mac.tertiaryLabel : mac.quaternaryLabel,
-                    border: _focused ? Border.all(color: mac.focusRing, width: 2) : null,
+                    border: _focused ? Border.all(color: mac.focusRing, width: MyDataMacSize.focusRingWidth) : null,
                   ),
                   child: Icon(widget.icon, size: MyDataMacSize.icon, color: tint),
                 ),
@@ -244,7 +257,7 @@ class _FieldLineState extends State<_FieldLine> {
       style: MyDataMacType.callout.copyWith(color: _copied ? mac.accent : mac.secondaryLabel),
     );
     Widget value = Container(
-      padding: const EdgeInsets.symmetric(horizontal: MyDataSpace.s1, vertical: 1),
+      padding: const EdgeInsets.symmetric(horizontal: MyDataSpace.s1, vertical: 2 * MyDataMacSize.hairline),
       decoration: BoxDecoration(
         color: _hovered ? mac.hover : null,
         borderRadius: const BorderRadius.all(Radius.circular(MyDataMacRadius.selection)),
@@ -273,7 +286,7 @@ class _FieldLineState extends State<_FieldLine> {
       customSemanticsActions: open == null ? null : {CustomSemanticsAction(label: copyName): () => unawaited(_copy())},
       excludeSemantics: true,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2),
+        padding: const EdgeInsets.symmetric(vertical: MyDataMacSize.tight),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -281,7 +294,7 @@ class _FieldLineState extends State<_FieldLine> {
               width: MyDataMacSize.labelColumn,
               child: Padding(
                 // The label sits on the value's first line.
-                padding: const EdgeInsets.only(top: 2),
+                padding: const EdgeInsets.only(top: MyDataMacSize.tight),
                 child: label,
               ),
             ),
@@ -289,6 +302,33 @@ class _FieldLineState extends State<_FieldLine> {
             Flexible(child: value),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Where a record comes from, as a small glyph with the full sentence as its help tag and accessible name
+/// (plan 5.5: "Ownership and source as small glyph badges. Explanations behind ⓘ."): [MacIcons.cloud] for an
+/// iCloud account, [MacIcons.thisMac] for this Mac, [MacIcons.host] for what the host owns. In
+/// `secondary-label`, at `icon` size.
+class MacSourceBadge extends StatelessWidget {
+  const MacSourceBadge({super.key, required this.icon, required this.sentence});
+
+  final IconData icon;
+
+  /// "From the iCloud account you@example.com. Change it in your iCloud account."
+  final String sentence;
+
+  @override
+  Widget build(BuildContext context) {
+    final mac = context.mac;
+    return Semantics(
+      label: sentence,
+      excludeSemantics: true,
+      child: MacMenuLook.helpTag(
+        context,
+        message: sentence,
+        child: Icon(icon, size: MyDataMacSize.icon, color: mac.secondaryLabel),
       ),
     );
   }

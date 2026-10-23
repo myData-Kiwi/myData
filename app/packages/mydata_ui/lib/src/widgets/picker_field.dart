@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../generated/tokens.g.dart';
+import '../mac/mac_controls.dart' show MacControl;
+import '../mac/mac_theme.dart' show MacLook;
 import '../motion.dart';
 import '../theme.dart';
 import 'app_frame.dart' show AppLayout, PhoneType;
@@ -130,9 +132,13 @@ class PickerField extends StatelessWidget {
     final c = context.colors;
     final hasError = error != null && !_disabled;
     final note = _disabled ? disabledReason : (error ?? help);
-    final border = hasError ? errorBorderWidth : borderWidth;
-    final style = pickerValueStyle(c, phone: phone);
-    final height = pickerControlHeight(compact: compact, phone: phone);
+    // The Mac frame: the field at Mac density, as MacEditField (mac/mac_controls.dart); the same behaviour.
+    final mac = !phone && MacLook.of(context);
+    final border = mac ? 1.0 : (hasError ? errorBorderWidth : borderWidth);
+    final style = mac ? MyDataMacType.body.copyWith(color: c.ink) : pickerValueStyle(c, phone: phone);
+    final height = mac ? MacControl.height : pickerControlHeight(compact: compact, phone: phone);
+    final inset = mac ? MacControl.inset : MyDataSpace.s4;
+    final radius = mac ? MacControl.radius : MyDataRadii.md;
     final lineHeight = style.fontSize! * style.height!;
     final vertical = math.max(0.0, (height - lineHeight) / 2 - border);
 
@@ -173,7 +179,7 @@ class PickerField extends StatelessWidget {
               isCollapsed: true,
               border: InputBorder.none,
               filled: false,
-              contentPadding: EdgeInsetsDirectional.fromSTEB(MyDataSpace.s4 - border, vertical, 0, vertical),
+              contentPadding: EdgeInsetsDirectional.fromSTEB(inset - border, vertical, 0, vertical),
             ),
           ),
         ),
@@ -184,16 +190,18 @@ class PickerField extends StatelessWidget {
       key: boxKey,
       width: fieldWidth,
       height: height,
-      decoration: BoxDecoration(
-        color: c.surface,
-        borderRadius: MyDataRadii.md,
-        border: Border.all(color: hasError ? c.danger : c.lineStrong, width: border),
-      ),
+      decoration: mac
+          ? MacControl.bezel(context, error: hasError)
+          : BoxDecoration(
+              color: c.surface,
+              borderRadius: MyDataRadii.md,
+              border: Border.all(color: hasError ? c.danger : c.lineStrong, width: border),
+            ),
       child: Row(children: [
         Expanded(child: text),
         const SizedBox(width: MyDataSpace.s2),
-        ExcludeSemantics(child: Icon(icon, size: MyDataSize.icon, color: c.inkMuted)),
-        SizedBox(width: MyDataSpace.s4 - border),
+        ExcludeSemantics(child: Icon(icon, size: mac ? MyDataMacSize.icon : MyDataSize.icon, color: c.inkMuted)),
+        SizedBox(width: inset - border),
       ]),
     );
 
@@ -221,7 +229,7 @@ class PickerField extends StatelessWidget {
         value: semanticsValue,
         hint: _disabled ? disabledReason : (hint.isEmpty ? null : hint),
         validationResult: hasError ? SemanticsValidationResult.invalid : SemanticsValidationResult.none,
-        child: FocusRing(visible: showRing && !_disabled, borderRadius: MyDataRadii.md, danger: hasError, child: box),
+        child: FocusRing(visible: showRing && !_disabled, borderRadius: radius, danger: hasError, child: box),
       ));
     }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../generated/tokens.g.dart';
+import '../mac/mac_empty_state.dart';
 import '../mac/mac_theme.dart';
 import '../theme.dart';
 import 'button.dart';
@@ -92,6 +93,26 @@ class StatusPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     final hasDetail = detail != null && detail!.isNotEmpty;
+    // The Mac frame: one symbol, the title, one line, the detail as selectable small text, the actions.
+    if (MacLook.of(context)) {
+      return MacEmptyState(
+        symbol: switch (kind) {
+          StatusPanelKind.working => MacEmptySymbol.working,
+          StatusPanelKind.info => MacEmptySymbol.info,
+          StatusPanelKind.error => MacEmptySymbol.error,
+        },
+        title: title,
+        line: message,
+        detail: detail,
+        progress: progress,
+        progressLabel: progressLabel,
+        action: actions.isEmpty
+            ? null
+            : actions.length == 1
+            ? actions.single
+            : ButtonRow(alignment: WrapAlignment.center, children: actions),
+      );
+    }
     final showBar = kind == StatusPanelKind.working && progress != null;
     final Widget? lead = switch (kind) {
       StatusPanelKind.working => showBar ? null : const KiwiLoader(size: loaderSize),
