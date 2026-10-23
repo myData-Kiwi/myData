@@ -336,3 +336,119 @@ def test_bootout_waits_until_launchd_has_let_the_job_go(fake, monkeypatch):
     lingering["prints"] = 10**6
     with pytest.raises(launchd.LaunchdError, match="still has"):
         launchd.bootout("kiwi.mydata.host", wait=0)
+
+
+# --- Starting and stopping around launchd's KeepAlive (review of the packaging) ---------------------------------
+
+def _test_config(home: Path, port: int) -> None:
+    (home / "config.toml").write_text(
+        DEFAULT_CONFIG.replace("port = 47821", f"port = {port}")
+        .replace("http://127.0.0.1:11434", f"http://127.0.0.1:{free_port()}")
+        .replace("start_ollama = true", "start_ollama = false"))
+
+
+def _daemon(home: Path, **env) -> subprocess.Popen:
+    return subprocess.Popen([sys.executable, "-m", "mydata.service.daemon"],
+                            env={**os.environ, "MYDATA_HOME": str(home), "MYDATA_DETACHED": "1", **env},
+                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def _wait_for(predicate, timeout: float = 30) -> bool:
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        if predicate():
+            return True
+        time.sleep(0.01)
+    return False
+
+
+@pytest.mark.parametrize("when", ["early", "locked"])
+def test_a_sigterm_while_the_host_is_starting_is_a_clean_stop(tmp_path, when):
+    """`mydata stop` signals as soon as the folder is locked, before the host serves; a death by signal would make
+    launchd start it again (KeepAlive), undoing the stop."""
+    _test_config(tmp_path, free_port())
+    proc = _daemon(tmp_path)
+    try:
+        if when == "early":  # during the imports
+            time.sleep(0.1)
+        else:
+            assert _wait_for(lambda: daemon_pid(Settings(home=tmp_path)))
+        proc.send_signal(signal.SIGTERM)
+        assert proc.wait(timeout=30) == 0
+    finally:
+        if proc.poll() is None:
+            proc.kill()
+
+
+def test_a_taken_port_stops_the_host_before_anything_starts(tmp_path, monkeypatch, capsys):
+    from mydata.service import daemon
+    port = free_port()
+    _test_config(tmp_path, port)
+    monkeypatch.setenv("MYDATA_HOME", str(tmp_path))
+    monkeypatch.delenv(launchd.LABEL_ENV, raising=False)
+    built = []
+    monkeypatch.setattr(daemon, "build", lambda *a, **k: built.append(1))
+    import socket
+    with socket.socket() as taken:
+        taken.bind(("127.0.0.1", port))
+        taken.listen()
+        assert daemon.main() == 1
+    assert built == []  # no migration, sync, snapshot, model or trash expiry
+    settings = Settings(home=tmp_path)
+    assert f"port {port}" in daemon.start_error_path(settings).read_text()
+    assert cli._start_error(settings) and cli.cmd_status(settings) == 3
+    assert "Its last start failed: port" in capsys.readouterr().out
+    assert daemon_pid(settings) is None
+
+
+def test_under_launchd_a_host_that_cannot_start_waits_and_mydata_stop_ends_the_loop(tmp_path):
+    """KeepAlive restarts an error exit every 15 s; the host waits a minute first, and a SIGTERM during the wait
+    (mydata stop, bootout, logout) makes it exit with 0, so launchd leaves it stopped."""
+    import socket
+    port = free_port()
+    _test_config(tmp_path, port)
+    settings = Settings(home=tmp_path)
+    with socket.socket() as taken:
+        taken.bind(("127.0.0.1", port))
+        taken.listen()
+        proc = _daemon(tmp_path, **{launchd.LABEL_ENV: "kiwi.mydata.host-test"})
+        try:
+            from mydata.service.daemon import start_error_path
+            assert _wait_for(lambda: start_error_path(settings).exists())
+            time.sleep(0.5)
+            assert proc.poll() is None  # waiting, not restarting
+            assert daemon_pid(settings) == proc.pid
+            assert cli.cmd_start(settings) == 1  # says why at once instead of waiting for it
+            proc.send_signal(signal.SIGTERM)
+            assert proc.wait(timeout=10) == 0
+        finally:
+            if proc.poll() is None:
+                proc.kill()
+
+
+def test_a_config_error_under_launchd_waits_before_exiting(tmp_path, monkeypatch):
+    from mydata.service import daemon
+    (tmp_path / "config.toml").write_text("[server]\nport = 0\n")
+    monkeypatch.setenv("MYDATA_HOME", str(tmp_path))
+    monkeypatch.setenv(launchd.LABEL_ENV, "kiwi.mydata.host-test")
+    monkeypatch.setattr(daemon, "FAILURE_PAUSE_SECONDS", 0.2)
+    t = time.monotonic()
+    assert daemon.main() == 2
+    assert time.monotonic() - t >= 0.2
+    monkeypatch.delenv(launchd.LABEL_ENV)
+    monkeypatch.setattr(daemon, "FAILURE_PAUSE_SECONDS", 60)
+    assert daemon.main() == 2  # not under launchd: at once
+
+
+def test_launchd_output_is_trimmed(tmp_path, monkeypatch):
+    from mydata.service import daemon
+    monkeypatch.setattr(daemon, "OUT_LIMIT_BYTES", 1000)
+    monkeypatch.setattr(daemon, "OUT_KEEP_BYTES", 100)
+    out = tmp_path / "mydatad.out"
+    out.write_bytes(b"".join(b"line %04d\n" % i for i in range(200)))
+    daemon._trim_output(out)
+    text = out.read_bytes()
+    assert text.startswith(b"[older output trimmed]\n") and text.endswith(b"line 0199\n") and len(text) < 150
+    small = text
+    daemon._trim_output(out)
+    assert out.read_bytes() == small

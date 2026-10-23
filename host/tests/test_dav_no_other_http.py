@@ -30,6 +30,7 @@ ALLOWED = {
     "feasibility/latency.py": {"urllib.request"},  # Ollama on localhost (measurement harness)
     "feasibility/timing.py": {"urllib.request"},  # Ollama on localhost (measurement harness)
     "sources/mac/socket.py": {"socket"},  # the reader helper's Unix socket in the host folder (AF_UNIX only)
+    "service/daemon.py": {"socket"},  # binds the API's port on the loopback address (config refuses any other)
 }
 
 MAIL_LIBRARIES = {"smtplib", "imaplib", "poplib", "ssl"}

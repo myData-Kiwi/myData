@@ -90,8 +90,22 @@ def _agent(settings: Settings):
     return launchd.recorded_agent(settings.home) if launchd.supported() else None
 
 
+def _start_error(settings: Settings, since: float | None = None) -> str | None:
+    """Why the host's last start failed (the daemon writes it: the port taken, an error while building), or None.
+    With `since`, only an error written after that time."""
+    from .service.daemon import start_error_path
+    path = start_error_path(settings)
+    try:
+        if since is not None and path.stat().st_mtime < since:
+            return None
+        return path.read_text().strip() or None
+    except OSError:
+        return None
+
+
 def _wait_until_answering(settings: Settings, failed) -> int:
     """Wait up to 20 s for /status after a start. `failed()` returns why the start failed, or None."""
+    started = time.time()
     deadline = time.time() + 20
     while time.time() < deadline:
         status = _get_status(settings, timeout=1)
@@ -104,8 +118,13 @@ def _wait_until_answering(settings: Settings, failed) -> int:
             if status:  # another start won the race; that daemon is running
                 print(_describe(status))
                 return 0
-            print(f"{why}; see {settings.log_dir / 'mydatad.log'} and {settings.log_dir / 'mydatad.out'}",
-                  file=sys.stderr)
+            error = _start_error(settings, since=started)
+            print(f"{why}{': ' + error if error else ''}; see {settings.log_dir / 'mydatad.log'} and "
+                  f"{settings.log_dir / 'mydatad.out'}", file=sys.stderr)
+            return 1
+        error = _start_error(settings, since=started)
+        if error:  # under launchd it waits a minute before exiting, holding the folder
+            print(f"mydatad could not start: {error}; see {settings.log_dir / 'mydatad.log'}", file=sys.stderr)
             return 1
         time.sleep(0.3)
     # Still running: not a failed start. An app keeps waiting for it (a hot machine, a slow first start).
@@ -156,7 +175,15 @@ def cmd_start(settings: Settings) -> int:
     pid = daemon_pid(settings)
     if pid:
         status = _get_status(settings)
-        print(_describe(status) if status else f"mydatad is already running (pid {pid})")
+        if status:
+            print(_describe(status))
+            return 0
+        error = _start_error(settings)
+        if error:  # the host holding the folder could not start; under launchd it waits a minute, then exits
+            print(f"mydatad (pid {pid}) could not start: {error}; see {settings.log_dir / 'mydatad.log'}",
+                  file=sys.stderr)
+            return 1
+        print(f"mydatad is already running (pid {pid})")
         return 0
     agent = _agent(settings)
     if agent is not None:
@@ -262,6 +289,9 @@ def cmd_status(settings: Settings) -> int:
     if not status:
         pid = daemon_pid(settings)
         print("mydatad is not running" if not pid else f"mydatad (pid {pid}) is not answering")
+        why = _start_error(settings)
+        if why:
+            print(f"Its last start failed: {why}")
         code = 3
     else:
         print(_describe(status))
@@ -615,6 +645,9 @@ def cmd_service(settings: Settings, ns: argparse.Namespace) -> int:
                  f"{info['state']}" + (f", pid {info['pid']}" if info["pid"] else "")
                  + (f", last exit {info['last_exit']}" if info["last_exit"] else ""))
         print(f"{recorded.app}\n  LaunchAgent {recorded.label}: {state}\n  plist {recorded.plist}")
+        why = _start_error(settings)
+        if why and not _get_status(settings, timeout=1):
+            print(f"  Its last start failed: {why}")
         return 0
     try:
         label = launchd.check_label(ns.label or (recorded.label if recorded else launchd.DEFAULT_LABEL))

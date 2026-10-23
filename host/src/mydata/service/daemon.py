@@ -2,19 +2,31 @@
 when the host is installed as a login service (launchd.py). Exit code 0 means a clean stop (SIGTERM, /shutdown):
 launchd then leaves it stopped; anything else is an error, and launchd starts it again.
 
-On start: read config.toml (create it with defaults), create the token on first start, set up
-structured logging, refuse to run twice, start getting the model ready in the background, start the
-hourly snapshots of the databases (backup.py) and the daily trash expiry (trash.py), and serve the API on
-the loopback address from the config. On SIGTERM/SIGINT: finish open requests, stop Ollama if the host
-started it, and remove the pid file.
+On start: catch SIGTERM/SIGINT first (a stop during start-up is a clean stop too), read config.toml (create it
+with defaults), set up structured logging, refuse to run twice, bind the API's port on the loopback address
+(a taken port stops it before anything else starts), create the tokens, migrate, start getting the model ready
+in the background, start the hourly snapshots of the databases (backup.py) and the daily trash expiry
+(trash.py), and serve. On SIGTERM/SIGINT: finish open requests, stop Ollama if the host started it, and
+remove the pid file. Under launchd, a host that cannot start waits a minute before it exits with an error.
 """
 
 from __future__ import annotations
 
+import signal
+import threading
+
+# Run as a program: catch a stop before the imports below (about half a second); main() takes it over.
+_EARLY_STOP = threading.Event()
+if __name__ == "__main__":
+    for _sig in (signal.SIGTERM, signal.SIGINT):
+        signal.signal(_sig, lambda *_: _EARLY_STOP.set())
+
 import logging
 import os
-import signal
+import socket
 import sys
+import traceback
+from pathlib import Path
 
 import uvicorn
 
@@ -119,58 +131,188 @@ def build(settings: Settings, sources: SyncService | None = None, *, model_facto
     return app, models, sources, modes.mode
 
 
+# Under launchd, a host that cannot start (a config error, the port taken, an exception while building) waits
+# this long before it exits with an error, so KeepAlive tries again about once a minute instead of every
+# ThrottleInterval (15 s), and `mydata stop` can still end the loop (it then exits with 0).
+FAILURE_PAUSE_SECONDS = 60
+# launchd appends the daemon's stdout and stderr to <home>/logs/mydatad.out (the plist): kept under this size.
+OUT_LIMIT_BYTES = 1_000_000
+OUT_KEEP_BYTES = 100_000
+
+
+def start_error_path(settings: Settings):
+    """Why the last start failed (one line, no user data), for `mydata start` and `mydata status`. Removed by the
+    next host that takes the folder."""
+    return settings.log_dir / "start-error"
+
+
+class StopRequest:
+    """SIGTERM or SIGINT, from the first line of main(): a stop that arrives while the host is still starting
+    (migrations and the snapshot before them, the first sync) is a clean stop too, and exits with 0, so launchd
+    leaves it stopped. Only flags are set here; main() checks them between the steps of starting, and a
+    server that exists is told to exit (uvicorn installs its own handlers once it runs, and re-raises the
+    signal to this one when it has shut down)."""
+
+    def __init__(self):
+        self.event = threading.Event()
+        self.server: uvicorn.Server | None = None
+
+    def __call__(self, signum, frame) -> None:
+        self.event.set()
+        if self.server is not None:
+            self.server.should_exit = True
+
+    @property
+    def requested(self) -> bool:
+        return self.event.is_set()
+
+
+def bind_listener(host: str, port: int) -> socket.socket:
+    """The API's listening socket, bound before anything else starts, so a taken port stops the host before it
+    syncs, snapshots or loads a model. Not listening yet: until uvicorn serves, a connection is refused at once."""
+    family, kind, proto, _, address = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)[0]
+    sock = socket.socket(family, kind, proto)
+    try:
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # as uvicorn does: a restart within TIME_WAIT
+        sock.bind(address)
+    except OSError:
+        sock.close()
+        raise
+    return sock
+
+
+def _trim_output(path) -> None:
+    """Keep launchd's output file (opened by launchd in append mode, never rotated) under OUT_LIMIT_BYTES: its
+    last OUT_KEEP_BYTES stay."""
+    try:
+        if path.stat().st_size <= OUT_LIMIT_BYTES:
+            return
+        with open(path, "r+b") as fh:
+            fh.seek(-OUT_KEEP_BYTES, os.SEEK_END)
+            tail = fh.read()
+            fh.seek(0)
+            fh.truncate()
+            fh.write(b"[older output trimmed]\n" + tail[tail.find(b"\n") + 1:])
+    except OSError:
+        pass
+
+
+def _failed(stop: StopRequest, code: int, *, under_launchd: bool) -> int:
+    """Exit code for a host that could not start. Under launchd, first wait (see FAILURE_PAUSE_SECONDS)."""
+    if under_launchd and not stop.requested:
+        stop.event.wait(FAILURE_PAUSE_SECONDS)
+    return 0 if stop.requested else code
+
+
 def main(argv: list[str] | None = None) -> int:
+    stop = StopRequest()
+    if _EARLY_STOP.is_set():
+        stop.event.set()
+    previous = {sig: signal.signal(sig, stop) for sig in (signal.SIGTERM, signal.SIGINT)}
+    try:
+        return _main(stop)
+    finally:
+        for sig, handler in previous.items():
+            signal.signal(sig, handler)
+
+
+def _main(stop: StopRequest) -> int:
+    under_launchd = bool(os.environ.get(LAUNCHD_LABEL_ENV))
     try:
         settings = load_settings()
     except ConfigError as e:
-        print(f"mydatad: {e}", file=sys.stderr)
-        return 2
-    # Detached (started by `mydata start`): log to the file only; stderr would duplicate every line.
+        print(f"mydatad: {e}", file=sys.stderr, flush=True)
+        return _failed(stop, 2, under_launchd=under_launchd)
+    # Detached (started by `mydata start` or launchd): log to the file only; stderr would duplicate every line.
     setup_logging(settings.log_dir, settings.log_level, to_stderr=os.environ.get("MYDATA_DETACHED") != "1")
+    if under_launchd:
+        _trim_output(settings.log_dir / "mydatad.out")
 
     lock_fd = acquire_pid_lock(settings)
     if lock_fd is None:
         log(logger, logging.ERROR, "already running", pid=daemon_pid(settings))
         # Started by launchd (its LaunchAgent) while another host runs on this folder: exit cleanly, so launchd
         # does not start it again every few seconds. That host is the one running.
-        return 0 if os.environ.get(LAUNCHD_LABEL_ENV) else 1
+        return 0 if under_launchd else 1
 
-    backups = BackupService(settings.home)
-    app, models, sources, mode = build(settings, backups=backups)
-    log(logger, logging.INFO, "starting", version=__version__, host=settings.host, port=settings.port,
-        home=str(settings.home), model=settings.model, mode=mode)
-    if settings.pin_today and mode == "demo":
-        log(logger, logging.WARNING, f"DEMO DATE: the host treats {settings.pin_today.isoformat()} as today, because the "
-            "tools serve fake demo data. Set [dev] pin_today = false in config.toml to use the real date.",
-            pin_today=settings.pin_today.isoformat())
-    models.start()
-    sources.start()  # syncs every account now, then every 15 minutes; starts This Mac's reader if it is on
-    backups.start()  # a snapshot now if a database changed since the last one, then every hour
-    trash = TrashExpiry(sources)
-    trash.start()  # Recently deleted: what has been there 30 days goes for good, now and then daily
-    # uvicorn shuts down gracefully on SIGTERM/SIGINT, then re-raises the signal to the handler that was
-    # installed before it. With the default handler that kills the process before the cleanup below runs,
-    # so install a harmless one: shutdown still happens, and Ollama and the pid file are cleaned up.
-    for sig in (signal.SIGTERM, signal.SIGINT):
-        signal.signal(sig, lambda *_: None)
-    server = uvicorn.Server(uvicorn.Config(app, host=settings.host, port=settings.port, log_config=None,
-                                           lifespan="on", timeout_graceful_shutdown=10))
-    code = 0
+    start_error_path(settings).unlink(missing_ok=True)  # from an earlier start; this one writes its own
+    parts: list = []  # what was started, stopped again in reverse order
     try:
-        server.run()
-        if not server.started:  # e.g. the port is taken
-            code = 1
-    except SystemExit as e:
-        code = int(e.code or 1)
+        code = _serve(settings, stop, parts, under_launchd=under_launchd)
     finally:
-        trash.stop()
-        sources.stop()
-        models.stop()  # before waiting for a snapshot: `mydata stop` kills the host after 15 seconds
-        backups.stop(timeout=5)  # a daemon thread; a snapshot cut short leaves a .partial-* that prune removes
+        for part in reversed(parts):
+            # models before waiting for a snapshot (`mydata stop` boots out or kills after 15 seconds); backups'
+            # thread is a daemon one, and a snapshot cut short leaves a .partial-* that prune removes.
+            part.stop(timeout=5) if isinstance(part, BackupService) else part.stop()
         settings.pid_path.unlink(missing_ok=True)
         os.close(lock_fd)
-        log(logger, logging.INFO, "stopped", code=code)
+    if stop.requested:
+        code = 0  # SIGTERM (`mydata stop`, /shutdown, bootout, logout): a clean stop, whenever it came
+    log(logger, logging.INFO, "stopped", code=code)
     return code
+
+
+def _serve(settings: Settings, stop: StopRequest, parts: list, *, under_launchd: bool) -> int:
+    """Bind the port, build the host, start its parts (appended to `parts`) and serve until stopped."""
+    error_file = start_error_path(settings)
+    try:
+        listener = bind_listener(settings.host, settings.port)
+    except OSError as e:
+        log(logger, logging.ERROR, "cannot listen", host=settings.host, port=settings.port, error=str(e))
+        _note_start_error(error_file, f"port {settings.port} on {settings.host} is in use or cannot be used "
+                                      f"({e.strerror or e})")
+        return _failed(stop, 1, under_launchd=under_launchd)
+    with listener:
+        if stop.requested:
+            return 0
+        backups = BackupService(settings.home)
+        try:
+            app, models, sources, mode = build(settings, backups=backups)
+        except Exception as e:
+            # The kind only in the host log (an error's text can quote a value); the traceback goes to stderr,
+            # which is mydatad.out when detached, as an uncaught error's did.
+            log(logger, logging.ERROR, "could not build the host", error=type(e).__name__)
+            traceback.print_exc()
+            _note_start_error(error_file, f"the host could not start ({type(e).__name__}); see mydatad.log")
+            return _failed(stop, 1, under_launchd=under_launchd)
+        if stop.requested:  # asked to stop while migrating: start nothing
+            return 0
+        log(logger, logging.INFO, "starting", version=__version__, host=settings.host, port=settings.port,
+            home=str(settings.home), model=settings.model, mode=mode)
+        if settings.pin_today and mode == "demo":
+            log(logger, logging.WARNING, f"DEMO DATE: the host treats {settings.pin_today.isoformat()} as today, "
+                "because the tools serve fake demo data. Set [dev] pin_today = false in config.toml to use the "
+                "real date.", pin_today=settings.pin_today.isoformat())
+        models.start()
+        parts.append(models)
+        sources.start()  # syncs every account now, then every 15 minutes; starts This Mac's reader if it is on
+        parts.append(sources)
+        backups.start()  # a snapshot now if a database changed since the last one, then every hour
+        parts.insert(0, backups)  # stopped last
+        trash = TrashExpiry(sources)
+        trash.start()  # Recently deleted: what has been there 30 days goes for good, now and then daily
+        parts.append(trash)
+        server = uvicorn.Server(uvicorn.Config(app, host=settings.host, port=settings.port, log_config=None,
+                                               lifespan="on", timeout_graceful_shutdown=10))
+        # A signal from here until uvicorn installs its own handlers sets should_exit: it starts, then stops.
+        stop.server = server
+        if stop.requested:
+            server.should_exit = True
+        # uvicorn shuts down gracefully on SIGTERM/SIGINT, then re-raises the signal to StopRequest.
+        try:
+            server.run(sockets=[listener])
+        except SystemExit as e:
+            return int(e.code or 1)
+        return 0 if server.started else 1
+
+
+def _note_start_error(path, why: str) -> None:
+    try:
+        from .config import private_file
+        path.write_text(why + "\n")
+        private_file(path)
+    except OSError:
+        pass
 
 
 if __name__ == "__main__":
