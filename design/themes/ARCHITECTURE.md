@@ -440,7 +440,7 @@ New keys:
 
 | Place | What |
 |---|---|
-| Every app, macOS | View > Theme… (no key: ⌥⌘T is Show or Hide Toolbar in Apple's apps; checked in phase 2) opens the gallery sheet. It is not a submenu of themes, because `PlatformMenuItem` has no checked state (`mydata_ui` README) |
+| Every app, macOS | View > Theme… ⌃⌘T (⌥⌘T is Show or Hide Toolbar in Apple's apps; checked in phase 2) opens the gallery sheet; Windows and Linux have no key (Ctrl+T is myCalendar's Go to Today). It is not a submenu of themes, because `PlatformMenuItem` has no checked state (`mydata_ui` README) |
 | Every app, phone | More actions > Theme… |
 | myData, Settings > Appearance | **Mode** (Light, Dark, Match system); **Everywhere** (the theme and palette, "Journal, Ink blue", Change…); **Apps**: one row per installed app, showing "Same as everywhere" or its own theme and palette, with Change… and Reset; **Library**: built-ins and custom themes, each with Duplicate, Edit (custom only), Export…, Delete (custom only, a Dialog saying which apps use it); Import… and Paste theme |
 | myData, File | Import Theme…, Export Theme… |

@@ -112,7 +112,7 @@ void main() {
       expect(_items('myContacts').map((i) => i.label), contains('Settings…'));
     }, variant: TargetPlatformVariant.only(TargetPlatform.macOS));
 
-    testWidgets('View > Theme… sits before Enter Full Screen, with no key (⌥⌘T is Hide Toolbar)', (tester) async {
+    testWidgets('View > Theme… ⌃⌘T sits before Enter Full Screen (⌥⌘T is Hide Toolbar)', (tester) async {
       _captureMenus(tester);
       var opened = 0;
       await tester.pumpWidget(themedFrame(themeMatrix.first, app()));
@@ -132,8 +132,9 @@ void main() {
       final theme = (top['children'] as List).cast<Map<Object?, Object?>>().expand((c) =>
           c['label'] == 'Theme…' ? [c] : const <Map<Object?, Object?>>[]);
       expect(theme, hasLength(1));
-      expect(theme.single['shortcutTrigger'], isNull);
-      expect(AppMenuBar.themeShortcut, isNull);
+      expect(theme.single['shortcutTrigger'], LogicalKeyboardKey.keyT.keyId);
+      expect(theme.single['shortcutModifiers'], 1 | 8, reason: 'Command (1 << 0) and Control (1 << 3)');
+      expect(AppMenuBar.themeShortcut.label(TargetPlatform.macOS), '⌃⌘T');
       await _select(tester, view[1].id);
       expect(opened, 1);
     }, variant: TargetPlatformVariant.only(TargetPlatform.macOS));
@@ -241,6 +242,25 @@ void main() {
       await tester.sendKeyEvent(LogicalKeyboardKey.keyZ);
       await tester.sendKeyUpEvent(LogicalKeyboardKey.control);
       expect(undone, 1, reason: 'Ctrl+Z undoes the typing in the field');
+    });
+
+    testWidgets('Theme… has no key there: Ctrl+T stays Go to Today', (tester) async {
+      var themes = 0, today = 0;
+      await tester.pumpWidget(themedFrame(
+          themeMatrix.first,
+          AppMenuBar(
+            appName: 'myCalendar',
+            platform: TargetPlatform.linux,
+            view: [AppMenuItem(title: 'Go to Today', shortcut: AppMenuBar.todayShortcut, onSelected: () => today++)],
+            onTheme: () => themes++,
+            child: Button(label: 'Somewhere', onPressed: () {}),
+          )));
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pump();
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.control);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyT);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.control);
+      expect((today, themes), (1, 0));
     });
 
     testWidgets('phones have no menu bar and no window keys', (tester) async {

@@ -234,10 +234,10 @@ class AppMenuBar extends StatefulWidget {
   /// View > Theme….
   static const themeTitle = 'Theme…';
 
-  /// Theme…'s key: none. The decision was ⌥⌘T unless Apple's apps use it, and they do: ⌥⌘T is Show or Hide
-  /// Toolbar in Finder, Mail and the other apps with a toolbar. Until the owner picks another, Theme… has
-  /// no key, and Windows and Linux (no menu bar) reach the gallery from myData's Settings, Appearance.
-  static const AppShortcut? themeShortcut = null;
+  /// Theme…'s key: ⌃⌘T (the owner, 2026-10-23; ⌥⌘T is Show or Hide Toolbar in Apple's apps). macOS only:
+  /// with Control for Command it would be Ctrl+T, myCalendar's Go to Today, so Windows and Linux (no menu
+  /// bar) reach the gallery from myData's Settings, Appearance.
+  static const themeShortcut = AppShortcut(LogicalKeyboardKey.keyT, control: true);
 
   static const undoShortcut = AppShortcut(LogicalKeyboardKey.keyZ);
   static const redoShortcut = AppShortcut(LogicalKeyboardKey.keyZ, shift: true);
@@ -436,7 +436,8 @@ class _AppMenuBarState extends State<AppMenuBar> {
   }
 
   /// Windows and Linux: the items' keys with Control. Undo and Redo give way to a focused text field (whose
-  /// own keys are further up the tree), and Delete is the list's ([AppMenuBar.listDeleteActivator]).
+  /// own keys are further up the tree), Delete is the list's ([AppMenuBar.listDeleteActivator]), and Theme…
+  /// has none ([AppMenuBar.themeShortcut]).
   KeyEventResult _onKey(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent && event is! KeyRepeatEvent) return KeyEventResult.ignored;
     final keyboard = HardwareKeyboard.instance;
@@ -465,11 +466,6 @@ class _AppMenuBarState extends State<AppMenuBar> {
         item.onSelected!();
         return KeyEventResult.handled;
       }
-    }
-    final theme = AppMenuBar.themeShortcut;
-    if (theme != null && _theme != null && matches(theme.activator(p))) {
-      _theme!();
-      return KeyEventResult.handled;
     }
     if (widget.onCloseWindow != null && matches(AppMenuBar.closeWindowShortcut.activator(p))) {
       widget.onCloseWindow!();
