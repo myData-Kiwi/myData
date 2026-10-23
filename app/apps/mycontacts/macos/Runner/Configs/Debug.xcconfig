@@ -1,2 +1,8 @@
 #include "../../Flutter/Flutter-Debug.xcconfig"
 #include "Warnings.xcconfig"
+
+// Ad hoc signing unless the myData app's Signing.local.xcconfig (git-ignored) names a certificate; the four
+// apps share it, so each keeps one code identity across rebuilds. See
+// app/apps/mydata/macos/Runner/Configs/Signing.local.xcconfig.example.
+CODE_SIGN_IDENTITY = -
+#include? "../../../../mydata/macos/Runner/Configs/Signing.local.xcconfig"
