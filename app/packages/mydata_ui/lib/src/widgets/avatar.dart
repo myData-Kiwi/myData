@@ -16,7 +16,11 @@ enum AvatarSize {
   small(MyDataSize.iconTile, MyDataSize.icon),
 
   /// 96px: at the top of a contact's page (ContactHeader). The icon is twice the `icon` size.
-  large(96, MyDataSize.icon * 2);
+  large(96, MyDataSize.icon * 2),
+
+  /// The Mac frame's `avatar` (64pt), at the top of a record's page (MacRecordHeader), with the initials in
+  /// the system font.
+  mac(MyDataMacSize.avatar, MyDataSize.icon * 1.5);
 
   const AvatarSize(this.diameter, this.iconSize);
 
@@ -27,7 +31,11 @@ enum AvatarSize {
   final double iconSize;
 
   /// The initials' type style, without colour: `body-strong` at 36px, `display-lg` at 96px.
-  TextStyle get letterStyle => this == small ? MyDataType.bodyStrong : MyDataType.displayLg;
+  TextStyle get letterStyle => switch (this) {
+        small => MyDataType.bodyStrong,
+        large => MyDataType.displayLg,
+        mac => MyDataMacType.avatar,
+      };
 }
 
 /// A round picture of a person: their photo when the host has one, otherwise their initials

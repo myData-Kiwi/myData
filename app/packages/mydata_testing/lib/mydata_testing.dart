@@ -3,9 +3,11 @@
 /// - [loadMyDataFonts]: render the bundled fonts (and Material icons) in widget and golden tests instead of
 ///   Flutter's test font. Call it from each package's test/flutter_test_config.dart.
 /// - [themeMatrix] and [goldenMatrix]: one golden per theme and mode (Kiwi and Graphite, light and dark).
+/// - [loadMacFonts] and [macMatrix]: the Mac frame's fonts (the system font, Lucide) and its two appearances.
 library;
 
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/painting.dart' as painting;
@@ -37,6 +39,26 @@ Future<void> loadMyDataFonts() async {
   }
 }
 
+/// Where macOS keeps the system font (SF Pro, a variable font). Read, never copied into the repo.
+const macSystemFontFile = '/System/Library/Fonts/SFNS.ttf';
+
+/// Loads the Mac frame's fonts: Lucide (bundled in mydata_ui) and, on a Mac, the system font from
+/// [macSystemFontFile] under the names Flutter's macOS engine gives it ([MyDataMacFont.text] and
+/// [MyDataMacFont.display]), so screenshots of the Mac frame show SF Pro as the app does. Elsewhere the system
+/// font is missing and its text draws in the test font. Returns whether the system font was loaded.
+Future<bool> loadMacFonts() async {
+  final icons = FontLoader('packages/${MyDataFontFamily.package}/${MyDataMacFont.icons}')
+    ..addFont(rootBundle.load('packages/${MyDataFontFamily.package}/assets/fonts/Lucide-subset.ttf'));
+  await icons.load();
+  final file = File(macSystemFontFile);
+  if (!file.existsSync()) return false;
+  final bytes = file.readAsBytesSync();
+  for (final family in const [MyDataMacFont.text, MyDataMacFont.display]) {
+    await (FontLoader(family)..addFont(Future.value(ByteData.sublistView(bytes)))).load();
+  }
+  return true;
+}
+
 /// For test/flutter_test_config.dart:
 /// `Future<void> testExecutable(FutureOr<void> Function() main) => myDataTestExecutable(main);`
 Future<void> myDataTestExecutable(FutureOr<void> Function() testMain) async {
@@ -60,6 +82,12 @@ const themeMatrix = [
   ThemeCase('kiwi', Brightness.dark),
   ThemeCase('graphite', Brightness.light),
   ThemeCase('graphite', Brightness.dark),
+];
+
+/// The Mac frame's two appearances. Its accent is the system's, not the host's theme, so one theme is enough.
+const macMatrix = [
+  ThemeCase('kiwi', Brightness.light),
+  ThemeCase('kiwi', Brightness.dark),
 ];
 
 /// Wraps [child] the way an app does: the theme, accessibility settings, a `bg` ground and padding.
@@ -104,12 +132,13 @@ void goldenMatrix(String name, Widget Function() build,
   }
 }
 
-/// Defines one screenshot test per [themeMatrix] case for a whole app screen: [build] gets the theme case
-/// and returns the app (its own MaterialApp, themed with `theme.data`), rendered at [size] into
-/// `screenshots/<name>.<theme>-<mode>.png`. Run with --update-goldens to refresh them.
+/// Defines one screenshot test per [themes] case (every [themeMatrix] case unless given) for a whole app
+/// screen: [build] gets the theme case and returns the app (its own MaterialApp, themed with `theme.data`),
+/// rendered at [size] into `screenshots/<name>.<theme>-<mode>.png`. Run with --update-goldens to refresh them.
 void screenMatrix(String name, Widget Function(ThemeCase theme) build,
-    {Size size = const Size(1280, 800), Future<void> Function(WidgetTester tester)? before}) {
-  for (final theme in themeMatrix) {
+    {Size size = const Size(1280, 800), Future<void> Function(WidgetTester tester)? before,
+    List<ThemeCase> themes = themeMatrix}) {
+  for (final theme in themes) {
     testWidgets('$name screenshot (${theme.label})', (tester) async {
       tester.view.physicalSize = size;
       tester.view.devicePixelRatio = 1;

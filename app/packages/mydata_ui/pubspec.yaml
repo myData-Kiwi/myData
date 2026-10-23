@@ -30,6 +30,7 @@ flutter:
     - assets/fonts/OFL-plusjakartasans.txt
     - assets/fonts/OFL-figtree.txt
     - assets/fonts/OFL-jetbrainsmono.txt
+    - assets/fonts/ISC-lucide.txt
   # Only the weights the design uses (design/README.md, "Type"). Licences: assets/fonts/OFL-*.txt.
   fonts:
     - family: PlusJakartaSans
@@ -46,3 +47,7 @@ flutter:
       fonts:
         - asset: assets/fonts/JetBrainsMono-400.ttf
           weight: 400
+    # The Mac frame's icons: Lucide (ISC, assets/fonts/ISC-lucide.txt), cut down by tool/subset_lucide.sh.
+    - family: Lucide
+      fonts:
+        - asset: assets/fonts/Lucide-subset.ttf

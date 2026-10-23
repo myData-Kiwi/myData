@@ -8,6 +8,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import '../generated/tokens.g.dart';
+import '../mac/mac_chrome.dart';
+import '../mac/mac_theme.dart';
 import '../motion.dart';
 import '../theme.dart';
 import 'app_frame.dart' show AppLayout;
@@ -20,6 +22,20 @@ import 'multi_select.dart' show MultiSelectController;
 import 'pressable.dart' show FocusRing;
 import 'text_field.dart' show MyDataSearchField;
 import 'toggle_target.dart' show InsetRingPainter;
+
+/// How a [ContactList] draws its rows.
+enum ContactListStyle {
+  /// One card per letter group on `bg`, 56px rows with an avatar and a caption (design/components/ContactList).
+  grouped,
+
+  /// The Mac frame's plain list (docs/2026-10-23-plan.md section 5, "Lists are lists"): `row-height` (24pt)
+  /// rows of the name alone in `body`, the family name in `body-emphasized` as Contacts.app does, under
+  /// `section-height` letter headings in `caption-emphasized`; no cards, no avatars, no dividers. The selection
+  /// is a `selection` rounded fill inset `row-inset` from the sides: the accent with `on-accent` text while
+  /// the list has focus in the active window, `selection-inactive` otherwise; adjacent selected rows join into
+  /// one block. A row the keyboard is on without being selected (Option-arrows) gets a 2pt accent ring.
+  plain,
+}
 
 /// One contact as a [ContactList] shows it. The host gives these values; the list only reads them.
 @immutable
@@ -146,7 +162,16 @@ class ContactList extends StatefulWidget {
     this.onReturn,
     this.onDelete,
     this.searchTrailing,
+    this.style = ContactListStyle.grouped,
+    this.showSearch = true,
   });
+
+  /// How the rows are drawn: the branded cards, or the Mac frame's plain list.
+  final ContactListStyle style;
+
+  /// The list draws its own search field above the rows. False: the search field is elsewhere (the Mac
+  /// frame's toolbar) and drives the list through [searchController]; the rows start at [padding]'s top.
+  final bool showSearch;
 
   /// Every contact, in the locale's order. The list filters them itself as the search text changes.
   final List<ContactListEntry> contacts;
@@ -619,6 +644,22 @@ class _ContactListState extends State<ContactList> {
       return h;
     }
 
+    if (widget.style == ContactListStyle.plain) {
+      final row = math.max(MyDataMacSize.rowHeight, line(MyDataMacType.body) + MyDataSpace.s2);
+      final heading = math.max(MyDataMacSize.sectionHeight, line(MyDataMacType.captionEmphasized) + MyDataSpace.s2);
+      final extents = <double>[];
+      final tops = <double>[];
+      var y = _listTop;
+      for (final item in _model.items) {
+        final h = item is _HeadingItem ? heading : row;
+        tops.add(y);
+        extents.add(h);
+        y += h;
+      }
+      _extents = extents;
+      _tops = tops;
+      return;
+    }
     final name = line(MyDataType.bodyStrong);
     final caption = line(MyDataType.caption);
     final label = line(MyDataType.label);
@@ -630,7 +671,7 @@ class _ContactListState extends State<ContactList> {
     final captioned = row(true);
     final extents = <double>[];
     final tops = <double>[];
-    var y = ContactList.searchGap;
+    var y = _listTop;
     for (final item in _model.items) {
       final h = switch (item) {
         _HeadingItem(:final first) => (first ? 0 : ContactList.groupGap) + label + GroupFrame.headingPadding.bottom,
@@ -644,6 +685,13 @@ class _ContactListState extends State<ContactList> {
     _extents = extents;
     _tops = tops;
   }
+
+  /// Where the first heading starts in the scrolling content: under the search field's gap, or at the top.
+  double get _listTop => widget.showSearch ? ContactList.searchGap : 0;
+
+  /// A screenful's worth of rows, for Page Up and Page Down in the selection.
+  double get _rowHeight =>
+      widget.style == ContactListStyle.plain ? MyDataMacSize.rowHeight : MyDataSize.rowHeight;
 
   /// The row the keyboard is on: the cursor if it is shown; from 600px the selected row if it is shown;
   /// otherwise the first row. Null when no rows are shown.
@@ -735,7 +783,9 @@ class _ContactListState extends State<ContactList> {
       final item = _model.itemOfRow[row];
       var top = _tops[item];
       if (_model.items[item - 1] case _HeadingItem(:final first)) {
-        top = first ? 0 : _tops[item - 1] + ContactList.groupGap;
+        top = first
+            ? 0
+            : _tops[item - 1] + (widget.style == ContactListStyle.plain ? 0 : ContactList.groupGap);
       }
       final bottom = _tops[item] + _extents[item];
       final p = _scroll.position;
@@ -819,7 +869,7 @@ class _ContactListState extends State<ContactList> {
       final enter = key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.numpadEnter;
       if (!typingSpace && !enter) {
         final view = _scroll.hasClients ? _scroll.position.viewportDimension : 0.0;
-        final page = math.max(1, (view / MyDataSize.rowHeight).floor());
+        final page = math.max(1, (view / _rowHeight).floor());
         if (multi.focused == null || !multi.rows.contains(multi.focused)) {
           final id = _model.rows[cursor].id;
           if (multi.isSelected(id)) {
@@ -941,22 +991,56 @@ class _ContactListState extends State<ContactList> {
       ),
     );
 
+    final plain = widget.style == ContactListStyle.plain;
+    final top = widget.showSearch ? ContactList.searchGap : pad.top;
+    final emphasised = _focused && MacChrome.of(context).windowActive;
     final Widget body;
     if (model.rows.isEmpty) {
       body = _query.trim().isEmpty
           ? const SizedBox.shrink()
           : Padding(
               // Preview: `.none{margin:8px}` under the field's 16px margin.
-              padding: EdgeInsets.fromLTRB(pad.left + MyDataSpace.s2, ContactList.searchGap, pad.right, pad.bottom),
+              padding: EdgeInsets.fromLTRB(pad.left + MyDataSpace.s2, top, pad.right, pad.bottom),
               child: Align(
                 alignment: AlignmentDirectional.topStart,
-                child: Text(ContactList.noMatches(_query), style: MyDataType.body.copyWith(color: c.inkMuted)),
+                child: Text(ContactList.noMatches(_query),
+                    style: plain
+                        ? MyDataMacType.body.copyWith(color: context.mac.secondaryLabel)
+                        : MyDataType.body.copyWith(color: c.inkMuted)),
               ),
             );
+    } else if (plain) {
+      body = ListView.builder(
+        controller: _scroll,
+        padding: EdgeInsets.fromLTRB(pad.left, top, pad.right, pad.bottom),
+        itemCount: model.items.length,
+        itemExtentBuilder: (i, _) => i < _extents.length ? _extents[i] : null,
+        addSemanticIndexes: false,
+        semanticChildCount: model.rows.length,
+        itemBuilder: (context, i) => switch (model.items[i]) {
+          _HeadingItem(:final letter) => _PlainHeading(letter: letter),
+          _RowItem(:final entry, :final row, :final first, :final last) => IndexedSemantics(
+            index: row,
+            child: _PlainContactRow(
+              key: ValueKey(entry.id),
+              entry: entry,
+              selected: _isSelected(entry.id),
+              emphasised: emphasised,
+              joinsUp: !first && _isSelected(entry.id) && _isSelected(model.rows[row - 1].id),
+              joinsDown: !last && _isSelected(entry.id) && _isSelected(model.rows[row + 1].id),
+              focusRing: ring && row == cursor && !_isSelected(entry.id),
+              cursor: row == cursor,
+              focused: _focused && row == cursor,
+              menu: widget.menuFor == null ? null : () => widget.menuFor!(entry.id),
+              onPressed: () => _press(row),
+            ),
+          ),
+        },
+      );
     } else {
       body = ListView.builder(
         controller: _scroll,
-        padding: EdgeInsets.fromLTRB(pad.left, ContactList.searchGap, pad.right, pad.bottom),
+        padding: EdgeInsets.fromLTRB(pad.left, top, pad.right, pad.bottom),
         itemCount: model.items.length,
         itemExtentBuilder: (i, _) => i < _extents.length ? _extents[i] : null,
         addSemanticIndexes: false,
@@ -992,7 +1076,7 @@ class _ContactListState extends State<ContactList> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          search,
+          if (widget.showSearch) search,
           Expanded(
             child: Focus(
               focusNode: _focus,
@@ -1009,6 +1093,152 @@ class _ContactListState extends State<ContactList> {
       ),
     );
   }
+}
+
+/// A letter heading in the plain list: `caption-emphasized` in `secondary-label`, lined up with the names.
+class _PlainHeading extends StatelessWidget {
+  const _PlainHeading({required this.letter});
+
+  final String letter;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: MyDataMacSize.rowInset + MyDataMacSize.rowPadding),
+    child: Align(
+      alignment: AlignmentDirectional.bottomStart,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: MyDataSpace.s1),
+        child: Semantics(
+          header: true,
+          child: Text(letter, maxLines: 1, style: MyDataMacType.captionEmphasized.copyWith(color: context.mac.secondaryLabel)),
+        ),
+      ),
+    ),
+  );
+}
+
+/// One row of the plain list (ContactListStyle.plain).
+class _PlainContactRow extends StatefulWidget {
+  const _PlainContactRow({
+    super.key,
+    required this.entry,
+    required this.selected,
+    required this.emphasised,
+    required this.joinsUp,
+    required this.joinsDown,
+    required this.focusRing,
+    required this.cursor,
+    required this.focused,
+    required this.onPressed,
+    this.menu,
+  });
+
+  final ContactListEntry entry;
+  final bool selected;
+
+  /// The list has focus in the active window: the selection is the accent.
+  final bool emphasised;
+  final bool joinsUp;
+  final bool joinsDown;
+  final bool focusRing;
+  final bool cursor;
+  final bool focused;
+  final VoidCallback onPressed;
+  final List<MenuEntry> Function()? menu;
+
+  @override
+  State<_PlainContactRow> createState() => _PlainContactRowState();
+}
+
+class _PlainContactRowState extends State<_PlainContactRow> {
+  /// Its Menu is open: it gets the ring a right-clicked row has on the Mac.
+  bool _menuOpen = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final mac = context.mac;
+    final e = widget.entry;
+    final onAccent = widget.selected && widget.emphasised;
+    final ink = onAccent ? mac.onAccent : mac.label;
+    const corner = Radius.circular(MyDataMacRadius.selection);
+    final shape = BorderRadius.vertical(
+      top: widget.joinsUp ? Radius.zero : corner,
+      bottom: widget.joinsDown ? Radius.zero : corner,
+    );
+
+    Widget content = Container(
+      padding: const EdgeInsets.symmetric(horizontal: MyDataMacSize.rowPadding),
+      alignment: AlignmentDirectional.centerStart,
+      decoration: BoxDecoration(
+        color: widget.selected ? (widget.emphasised ? mac.accent : mac.selectionInactive) : null,
+        borderRadius: shape,
+        border: widget.focusRing || (_menuOpen && !widget.selected)
+            ? Border.all(color: mac.accent, width: 2)
+            : null,
+      ),
+      child: Text.rich(
+        plainNameSpan(e, MyDataMacType.body.copyWith(color: ink), MyDataMacType.bodyEmphasized.copyWith(color: ink)),
+        maxLines: 1,
+        softWrap: false,
+        overflow: TextOverflow.ellipsis,
+      ),
+    );
+    content = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: MyDataMacSize.rowInset),
+      child: content,
+    );
+    content = GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      excludeFromSemantics: true,
+      onTap: widget.onPressed,
+      child: content,
+    );
+    final menu = widget.menu;
+    if (menu != null) {
+      content = ContextMenuRegion(
+        entries: menu,
+        onOpenChanged: (open) => setState(() => _menuOpen = open),
+        child: content,
+      );
+    }
+    final caption = e.caption;
+    return Semantics(
+      container: true,
+      button: true,
+      selected: widget.selected,
+      focusable: widget.cursor ? true : null,
+      focused: widget.cursor ? widget.focused : null,
+      label: caption == null ? e.name : '${e.name}, $caption',
+      onTap: widget.onPressed,
+      customSemanticsActions: menu == null
+          ? null
+          : {
+              for (final item in menu())
+                if (item is MenuItem && item.enabled) CustomSemanticsAction(label: item.label): item.onSelected,
+            },
+      child: ExcludeSemantics(child: content),
+    );
+  }
+}
+
+/// [e]'s name with its family name in [strong], as Contacts.app lists names: "Ava **Fictional**". A name
+/// without a family name in it (a company, an email address) is all in [strong] when the card has no given or
+/// family name, and all in [regular] otherwise.
+TextSpan plainNameSpan(ContactListEntry e, TextStyle regular, TextStyle strong) {
+  final family = e.familyName.trim();
+  final name = e.name;
+  if (family.isNotEmpty) {
+    final at = name.lastIndexOf(family);
+    if (at >= 0) {
+      return TextSpan(style: regular, children: [
+        if (at > 0) TextSpan(text: name.substring(0, at)),
+        TextSpan(text: family, style: strong),
+        if (at + family.length < name.length) TextSpan(text: name.substring(at + family.length)),
+      ]);
+    }
+  }
+  final noPersonName = e.givenName.trim().isEmpty && family.isEmpty;
+  return TextSpan(text: name, style: noPersonName ? strong : regular);
 }
 
 /// A letter group's heading: `label` in `ink-muted`, as GroupedList draws its heading.
