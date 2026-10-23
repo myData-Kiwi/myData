@@ -1,0 +1,1181 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:mydata:theme:1",
+  "title": "myData theme, format 1",
+  "description": "theme.json inside a .mydatatheme file, and every built-in theme in design/themes/<slug>/theme.json. Data only: no URLs, paths (except the two image slots), CSS, expressions or code. Every number has bounds. The schema is the first gate; contrast and the other rules in ARCHITECTURE.md section 2 are the second, run by the same validator in the apps, the editor and the tests. Keys use kebab-case like design/tokens.json.",
+  "type": "object",
+  "additionalProperties": true,
+  "$comment": "Unknown keys are allowed by the schema so a newer minor version still loads; the validator drops them and reports a notice. A newer major 'format' is refused before this schema runs.",
+  "required": [
+    "format",
+    "id",
+    "name",
+    "version",
+    "licence",
+    "frame"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "maxLength": 200,
+      "$comment": "Informational only. Never fetched."
+    },
+    "format": {
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "description": "Built-in: 'mydata.<slug>'. Everything else: a lower-case UUID. An imported file may not use the 'mydata.' prefix.",
+      "oneOf": [
+        {
+          "pattern": "^mydata\\.[a-z][a-z0-9-]{1,31}$"
+        },
+        {
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        }
+      ]
+    },
+    "name": {
+      "$ref": "#/$defs/shortText",
+      "maxLength": 40
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]{0,3})\\.(0|[1-9][0-9]{0,3})\\.(0|[1-9][0-9]{0,3})$"
+    },
+    "author": {
+      "$ref": "#/$defs/shortText",
+      "maxLength": 80
+    },
+    "licence": {
+      "type": "string",
+      "maxLength": 64,
+      "pattern": "^([A-Za-z0-9.+-]+|NOASSERTION)$",
+      "description": "One SPDX licence identifier (checked against the SPDX list compiled into the app), or NOASSERTION for a theme that is not shared. Export asks for one if NOASSERTION."
+    },
+    "description": {
+      "$ref": "#/$defs/shortText",
+      "maxLength": 280
+    },
+    "based-on": {
+      "type": "string",
+      "pattern": "^mydata\\.[a-z][a-z0-9-]{1,31}$",
+      "description": "A built-in id only. Fills every group this file leaves out. Never a fetch, never another custom theme."
+    },
+    "frame": {
+      "enum": [
+        "system",
+        "drawn"
+      ],
+      "description": "system: the platform's own look (the Mac shell on macOS); only the built-in System and 'System, tinted' copies may use it, and they may set colours.light/dark.accent only. drawn: myData draws everything inside the window with this file's rules."
+    },
+    "preview": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "How the gallery introduces the theme. Pictures are always rendered live; a file never carries a screenshot.",
+      "properties": {
+        "blurb": {
+          "$ref": "#/$defs/shortText",
+          "maxLength": 80
+        },
+        "scene": {
+          "enum": [
+            "contacts",
+            "calendar",
+            "assistant",
+            "status"
+          ]
+        }
+      }
+    },
+    "colours": {
+      "$ref": "#/$defs/colours"
+    },
+    "contrast": {
+      "description": "Optional overrides used when the system asks for more contrast (macOS Increase contrast, Windows contrast themes). Without them the resolver applies the rule in ARCHITECTURE.md 2.6. Checked at 7:1 for text.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "light": {
+          "$ref": "#/$defs/colourSetPartial"
+        },
+        "dark": {
+          "$ref": "#/$defs/colourSetPartial"
+        }
+      }
+    },
+    "type": {
+      "$ref": "#/$defs/type"
+    },
+    "shape": {
+      "$ref": "#/$defs/shape"
+    },
+    "density": {
+      "$ref": "#/$defs/density"
+    },
+    "borders": {
+      "$ref": "#/$defs/borders"
+    },
+    "elevation": {
+      "$ref": "#/$defs/elevation"
+    },
+    "materials": {
+      "$ref": "#/$defs/materials"
+    },
+    "icons": {
+      "$ref": "#/$defs/icons"
+    },
+    "motion": {
+      "$ref": "#/$defs/motion"
+    },
+    "components": {
+      "$ref": "#/$defs/components"
+    },
+    "illustration": {
+      "enum": [
+        "flat",
+        "line",
+        "pixel",
+        "ink"
+      ],
+      "description": "The kiwi's drawing style on empty and loading screens. Falls back to flat while a style is not drawn."
+    },
+    "sound": {
+      "const": "none",
+      "description": "Reserved. Themes make no sound."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "frame": {
+            "const": "drawn"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "colours"
+        ],
+        "properties": {
+          "colours": {
+            "required": [
+              "light",
+              "dark"
+            ],
+            "properties": {
+              "light": {
+                "$ref": "#/$defs/colourSet"
+              },
+              "dark": {
+                "$ref": "#/$defs/colourSet"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "frame": {
+            "const": "system"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "colours": {
+            "properties": {
+              "light": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "accent": {
+                    "$ref": "#/$defs/opaque"
+                  }
+                }
+              },
+              "dark": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "accent": {
+                    "$ref": "#/$defs/opaque"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "type"
+              ]
+            },
+            {
+              "required": [
+                "shape"
+              ]
+            },
+            {
+              "required": [
+                "density"
+              ]
+            },
+            {
+              "required": [
+                "borders"
+              ]
+            },
+            {
+              "required": [
+                "elevation"
+              ]
+            },
+            {
+              "required": [
+                "materials"
+              ]
+            },
+            {
+              "required": [
+                "icons"
+              ]
+            },
+            {
+              "required": [
+                "motion"
+              ]
+            },
+            {
+              "required": [
+                "components"
+              ]
+            },
+            {
+              "required": [
+                "contrast"
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "shortText": {
+      "type": "string",
+      "minLength": 1,
+      "$comment": "Plain text, shown as text (never Markdown, never a link). The validator strips control (Cc) and format (Cf) characters, bidi overrides included, and normalises to NFC before the length check."
+    },
+    "opaque": {
+      "type": "string",
+      "pattern": "^#[0-9A-Fa-f]{6}$"
+    },
+    "translucent": {
+      "type": "string",
+      "pattern": "^#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$"
+    },
+    "colours": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "light": {
+          "$ref": "#/$defs/colourSetPartial"
+        },
+        "dark": {
+          "$ref": "#/$defs/colourSetPartial"
+        }
+      }
+    },
+    "colourSet": {
+      "description": "Six seed roles are required; every other role is derived from them (ARCHITECTURE.md 1.3) unless given. brand, skin, cream and paper are fixed artwork colours and not part of a theme.",
+      "allOf": [
+        {
+          "$ref": "#/$defs/colourSetPartial"
+        },
+        {
+          "required": [
+            "bg",
+            "surface",
+            "ink",
+            "ink-muted",
+            "accent",
+            "on-accent"
+          ]
+        }
+      ]
+    },
+    "colourSetPartial": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "bg": {
+          "$ref": "#/$defs/opaque",
+          "description": "Window ground."
+        },
+        "surface": {
+          "$ref": "#/$defs/opaque"
+        },
+        "surface-raised": {
+          "$ref": "#/$defs/opaque"
+        },
+        "surface-sunken": {
+          "$ref": "#/$defs/opaque"
+        },
+        "surface-hover": {
+          "$ref": "#/$defs/opaque"
+        },
+        "sidebar": {
+          "$ref": "#/$defs/opaque",
+          "description": "Sidebar ground when solid (and the fallback for a translucent one)."
+        },
+        "toolbar": {
+          "$ref": "#/$defs/opaque",
+          "description": "Toolbar ground when solid."
+        },
+        "line": {
+          "$ref": "#/$defs/opaque",
+          "description": "Decorative dividers."
+        },
+        "line-strong": {
+          "$ref": "#/$defs/opaque",
+          "description": "Edges that identify a control (3:1)."
+        },
+        "edge": {
+          "$ref": "#/$defs/opaque",
+          "description": "The theme's outline colour when borders.colour is 'edge' (ink outlines in Rose, Concrete)."
+        },
+        "ink": {
+          "$ref": "#/$defs/opaque"
+        },
+        "ink-muted": {
+          "$ref": "#/$defs/opaque"
+        },
+        "accent": {
+          "$ref": "#/$defs/opaque",
+          "description": "Fill of primary controls and on-state."
+        },
+        "on-accent": {
+          "$ref": "#/$defs/opaque"
+        },
+        "accent-soft": {
+          "$ref": "#/$defs/opaque"
+        },
+        "link": {
+          "$ref": "#/$defs/opaque",
+          "description": "Accent used as text (links, text buttons). Derived from accent; set it when accent cannot be text (a yellow accent)."
+        },
+        "selection": {
+          "$ref": "#/$defs/opaque"
+        },
+        "on-selection": {
+          "$ref": "#/$defs/opaque"
+        },
+        "selection-inactive": {
+          "$ref": "#/$defs/opaque"
+        },
+        "focus": {
+          "$ref": "#/$defs/opaque"
+        },
+        "focus-on-danger": {
+          "$ref": "#/$defs/opaque"
+        },
+        "success": {
+          "$ref": "#/$defs/opaque"
+        },
+        "success-soft": {
+          "$ref": "#/$defs/opaque"
+        },
+        "warning": {
+          "$ref": "#/$defs/opaque"
+        },
+        "warning-soft": {
+          "$ref": "#/$defs/opaque"
+        },
+        "danger": {
+          "$ref": "#/$defs/opaque"
+        },
+        "danger-soft": {
+          "$ref": "#/$defs/opaque"
+        },
+        "on-danger": {
+          "$ref": "#/$defs/opaque"
+        },
+        "info": {
+          "$ref": "#/$defs/opaque"
+        },
+        "info-soft": {
+          "$ref": "#/$defs/opaque"
+        },
+        "avatar-fill": {
+          "$ref": "#/$defs/opaque",
+          "description": "Was kiwi-wash."
+        },
+        "data-red": {
+          "$ref": "#/$defs/opaque"
+        },
+        "data-orange": {
+          "$ref": "#/$defs/opaque"
+        },
+        "data-yellow": {
+          "$ref": "#/$defs/opaque"
+        },
+        "data-green": {
+          "$ref": "#/$defs/opaque"
+        },
+        "data-blue": {
+          "$ref": "#/$defs/opaque"
+        },
+        "data-purple": {
+          "$ref": "#/$defs/opaque"
+        },
+        "data-brown": {
+          "$ref": "#/$defs/opaque"
+        },
+        "data-grey": {
+          "$ref": "#/$defs/opaque"
+        },
+        "scrim": {
+          "$ref": "#/$defs/translucent"
+        },
+        "glass-fill": {
+          "$ref": "#/$defs/translucent"
+        },
+        "glass-stroke": {
+          "$ref": "#/$defs/translucent"
+        },
+        "shadow": {
+          "$ref": "#/$defs/opaque",
+          "description": "Shadow colour; strength comes from elevation."
+        }
+      }
+    },
+    "fontStack": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 4,
+      "description": "Catalogue font ids in order of preference, ending with a generic. Unknown ids are skipped with a notice, so a newer catalogue never breaks an older app.",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9-]{1,40}$"
+      },
+      "$comment": "Generics: system, system-mono, sans, serif, mono. The catalogue (ARCHITECTURE.md 1.5) says which ids are display-only."
+    },
+    "role": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "size": {
+          "type": "number",
+          "minimum": 10,
+          "maximum": 48
+        },
+        "line-height": {
+          "type": "number",
+          "minimum": 1.0,
+          "maximum": 1.8,
+          "description": "A multiple of size."
+        },
+        "weight": {
+          "type": "integer",
+          "minimum": 300,
+          "maximum": 900,
+          "multipleOf": 50
+        },
+        "tracking": {
+          "type": "number",
+          "minimum": -0.03,
+          "maximum": 0.12,
+          "description": "em"
+        },
+        "case": {
+          "enum": [
+            "as-written",
+            "upper"
+          ],
+          "description": "upper is allowed on label and caption only, and needs tracking >= 0.04. Text that holds a name (a person, an app such as myAssistant, a calendar, a file) keeps its own case in every theme: widgets mark it, and the resolver never upper-cases it (decided 2026-10-23)."
+        },
+        "stack": {
+          "enum": [
+            "display",
+            "body",
+            "mono"
+          ],
+          "description": "Which font stack the role is set in. Default: display for display-xl, display-lg and title; body for heading, body, body-strong, label and caption (as design/tokens.json today); mono for mono. A display-only font is still refused under 16 px whatever the stack."
+        }
+      }
+    },
+    "type": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "display": {
+          "$ref": "#/$defs/fontStack"
+        },
+        "body": {
+          "$ref": "#/$defs/fontStack"
+        },
+        "mono": {
+          "$ref": "#/$defs/fontStack"
+        },
+        "base": {
+          "type": "number",
+          "minimum": 12,
+          "maximum": 19,
+          "description": "Desktop body size in logical px. Phones add 1 and never go under 16 in fields."
+        },
+        "ratio": {
+          "type": "number",
+          "minimum": 1.067,
+          "maximum": 1.333,
+          "description": "Modular scale for derived role sizes."
+        },
+        "numerals": {
+          "enum": [
+            "proportional",
+            "tabular"
+          ]
+        },
+        "secondary-italic": {
+          "type": "boolean"
+        },
+        "roles": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "display-xl": {
+              "$ref": "#/$defs/role"
+            },
+            "display-lg": {
+              "$ref": "#/$defs/role"
+            },
+            "title": {
+              "$ref": "#/$defs/role"
+            },
+            "heading": {
+              "$ref": "#/$defs/role"
+            },
+            "body": {
+              "$ref": "#/$defs/role"
+            },
+            "body-strong": {
+              "$ref": "#/$defs/role"
+            },
+            "label": {
+              "$ref": "#/$defs/role"
+            },
+            "caption": {
+              "$ref": "#/$defs/role"
+            },
+            "mono": {
+              "$ref": "#/$defs/role"
+            }
+          }
+        }
+      }
+    },
+    "shape": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "corners": {
+          "enum": [
+            "round",
+            "continuous",
+            "cut",
+            "square"
+          ],
+          "description": "continuous = squircle-like (ContinuousRectangleBorder); cut = chamfer (BeveledRectangleBorder). square ignores the radii."
+        },
+        "radius": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "xs": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 8
+            },
+            "sm": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 14
+            },
+            "md": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 20
+            },
+            "lg": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 28
+            },
+            "xl": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 36
+            }
+          }
+        },
+        "controls": {
+          "enum": [
+            "pill",
+            "match"
+          ],
+          "description": "pill: buttons, chips, switches and search fields are capsules. match: they use radius.sm."
+        },
+        "cut-size": {
+          "type": "number",
+          "minimum": 2,
+          "maximum": 12,
+          "description": "Chamfer length when corners is cut."
+        }
+      }
+    },
+    "densitySet": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "control": {
+          "type": "number",
+          "minimum": 24,
+          "maximum": 64
+        },
+        "row": {
+          "type": "number",
+          "minimum": 24,
+          "maximum": 72
+        },
+        "icon": {
+          "type": "number",
+          "minimum": 14,
+          "maximum": 28
+        },
+        "space": {
+          "type": "number",
+          "minimum": 0.75,
+          "maximum": 1.5,
+          "description": "Multiplier on the 4px spacing scale."
+        }
+      }
+    },
+    "density": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Per platform class. The runtime raises every value to the platform floor (24 desktop, 44 iOS, 48 Android, 44 for a coarse pointer), so no file can go below it.",
+      "properties": {
+        "preset": {
+          "enum": [
+            "compact",
+            "regular",
+            "roomy"
+          ]
+        },
+        "desktop": {
+          "$ref": "#/$defs/densitySet"
+        },
+        "phone": {
+          "$ref": "#/$defs/densitySet"
+        }
+      }
+    },
+    "borders": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "width": {
+          "enum": [
+            "hairline",
+            1,
+            2,
+            3
+          ]
+        },
+        "style": {
+          "enum": [
+            "solid",
+            "dashed",
+            "double"
+          ],
+          "description": "dashed and double apply to cards and separators; inputs and focus rings stay solid."
+        },
+        "colour": {
+          "enum": [
+            "line",
+            "line-strong",
+            "edge",
+            "accent"
+          ]
+        },
+        "cards": {
+          "type": "boolean"
+        },
+        "controls": {
+          "type": "boolean",
+          "description": "Outline on buttons and fields. Inputs keep a 3:1 edge or underline whatever this says."
+        },
+        "separators": {
+          "enum": [
+            "none",
+            "inset",
+            "full"
+          ]
+        },
+        "title-rule": {
+          "enum": [
+            "none",
+            "single",
+            "double"
+          ]
+        }
+      }
+    },
+    "elevation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "style": {
+          "enum": [
+            "none",
+            "soft",
+            "hard",
+            "offset",
+            "bevel",
+            "glow"
+          ],
+          "description": "glow lights the primary button and the selection marker only."
+        },
+        "strength": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "offset": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 8,
+          "description": "px, for hard and offset."
+        },
+        "press": {
+          "enum": [
+            "none",
+            "collapse"
+          ],
+          "description": "collapse: a pressed hard or offset shadow drops to 0 (the control sinks)."
+        }
+      }
+    },
+    "gradient": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "light",
+        "dark"
+      ],
+      "properties": {
+        "angle": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 360
+        },
+        "light": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 3,
+          "items": {
+            "$ref": "#/$defs/opaque"
+          }
+        },
+        "dark": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 3,
+          "items": {
+            "$ref": "#/$defs/opaque"
+          }
+        }
+      }
+    },
+    "pattern": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "dots",
+            "grid",
+            "ruled",
+            "margin-rule",
+            "grain",
+            "scanlines"
+          ]
+        },
+        "spacing": {
+          "type": "number",
+          "minimum": 8,
+          "maximum": 64
+        },
+        "opacity": {
+          "type": "number",
+          "minimum": 0.02,
+          "maximum": 0.12
+        },
+        "colour": {
+          "enum": [
+            "line",
+            "ink",
+            "accent"
+          ]
+        }
+      }
+    },
+    "image": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "light",
+        "dark"
+      ],
+      "properties": {
+        "light": {
+          "type": "string",
+          "pattern": "^images/[a-z0-9][a-z0-9-]{0,31}\\.(png|jpg)$"
+        },
+        "dark": {
+          "type": "string",
+          "pattern": "^images/[a-z0-9][a-z0-9-]{0,31}\\.(png|jpg)$"
+        },
+        "fit": {
+          "enum": [
+            "cover",
+            "tile"
+          ]
+        },
+        "opacity": {
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 0.6
+        },
+        "tint-opacity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.9
+        },
+        "blur": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 24,
+          "description": "Applied once at import, never per frame."
+        }
+      }
+    },
+    "materials": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "window": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "enum": [
+                "solid",
+                "gradient",
+                "pattern",
+                "image"
+              ]
+            },
+            "gradient": {
+              "$ref": "#/$defs/gradient"
+            },
+            "pattern": {
+              "$ref": "#/$defs/pattern"
+            },
+            "image": {
+              "$ref": "#/$defs/image"
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "kind": {
+                    "const": "gradient"
+                  }
+                }
+              },
+              "then": {
+                "required": [
+                  "gradient"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "kind": {
+                    "const": "pattern"
+                  }
+                }
+              },
+              "then": {
+                "required": [
+                  "pattern"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "kind": {
+                    "const": "image"
+                  }
+                }
+              },
+              "then": {
+                "required": [
+                  "image"
+                ]
+              }
+            }
+          ]
+        },
+        "sidebar": {
+          "enum": [
+            "solid",
+            "translucent",
+            "native"
+          ],
+          "description": "native: the window's own material on macOS, solid elsewhere."
+        },
+        "bars": {
+          "enum": [
+            "solid",
+            "translucent",
+            "blur"
+          ],
+          "description": "Toolbar and floating bars. blur: one shared BackdropGroup per window; solid on the web, with reduced transparency and on low-end devices."
+        },
+        "blur": {
+          "type": "number",
+          "minimum": 8,
+          "maximum": 30
+        }
+      }
+    },
+    "icons": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "set": {
+          "enum": [
+            "lucide",
+            "phosphor",
+            "tabler",
+            "material-outlined",
+            "material-rounded",
+            "material-sharp",
+            "pixelarticons",
+            "iconoir"
+          ]
+        },
+        "weight": {
+          "enum": [
+            "thin",
+            "light",
+            "regular",
+            "bold",
+            "fill"
+          ],
+          "description": "Mapped to the nearest weight the set has."
+        },
+        "selected": {
+          "enum": [
+            "same",
+            "fill"
+          ],
+          "description": "fill: the current sidebar section's icon is filled where the set has a fill."
+        },
+        "tiles": {
+          "enum": [
+            "tinted",
+            "outlined",
+            "none"
+          ]
+        }
+      }
+    },
+    "motion": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "personality": {
+          "enum": [
+            "none",
+            "calm",
+            "standard",
+            "crisp",
+            "lively"
+          ]
+        },
+        "scale": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 1.5,
+          "description": "Multiplies fast, base and slow; slow is capped at 500 ms."
+        },
+        "press": {
+          "enum": [
+            "none",
+            "dim",
+            "dim-scale",
+            "sink",
+            "invert"
+          ]
+        },
+        "enter": {
+          "enum": [
+            "none",
+            "fade",
+            "fade-rise"
+          ]
+        }
+      }
+    },
+    "components": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "button": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "primary": {
+              "enum": [
+                "filled",
+                "outline",
+                "brutal",
+                "bevel",
+                "push"
+              ],
+              "description": "Never text: a primary action must look like a button."
+            },
+            "secondary": {
+              "enum": [
+                "tonal",
+                "outline",
+                "text"
+              ]
+            },
+            "shape": {
+              "enum": [
+                "pill",
+                "rounded",
+                "square",
+                "cut"
+              ]
+            }
+          }
+        },
+        "list": {
+          "enum": [
+            "plain",
+            "inset",
+            "cards",
+            "bordered",
+            "ruled",
+            "table"
+          ]
+        },
+        "sidebar": {
+          "enum": [
+            "source-list",
+            "column",
+            "rail",
+            "tabs"
+          ]
+        },
+        "toolbar": {
+          "enum": [
+            "native",
+            "flat",
+            "floating"
+          ]
+        },
+        "inputs": {
+          "enum": [
+            "filled",
+            "outlined",
+            "underlined"
+          ]
+        },
+        "selection": {
+          "enum": [
+            "tint",
+            "solid",
+            "inverse",
+            "bar",
+            "outline",
+            "highlighter"
+          ]
+        },
+        "avatar": {
+          "enum": [
+            "circle",
+            "rounded",
+            "square",
+            "shape",
+            "none"
+          ]
+        },
+        "tabs": {
+          "enum": [
+            "pill",
+            "underline",
+            "boxed"
+          ]
+        },
+        "chat": {
+          "enum": [
+            "bubbles",
+            "blocks",
+            "transcript"
+          ]
+        },
+        "month": {
+          "enum": [
+            "boxed",
+            "open",
+            "table"
+          ]
+        },
+        "today": {
+          "enum": [
+            "disc",
+            "ring",
+            "inverse"
+          ]
+        },
+        "data-colours": {
+          "enum": [
+            "colour",
+            "pattern"
+          ],
+          "description": "pattern: calendar colours become greys with a pattern and the name always shows (Still)."
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,246 @@
+{
+  "format": 1,
+  "id": "mydata.dusk",
+  "name": "Dusk",
+  "version": "1.0.0",
+  "author": "myData",
+  "licence": "CC0-1.0",
+  "description": "Twilight glass: a static gradient sky, frosted bars and panels, round soft shapes and slow, calm eases.",
+  "frame": "drawn",
+  "preview": {
+    "blurb": "Evening sky behind frosted glass.",
+    "scene": "assistant"
+  },
+  "colours": {
+    "light": {
+      "bg": "#E9EDF8",
+      "surface": "#F3F5FB",
+      "surface-raised": "#FAFBFE",
+      "surface-sunken": "#DCE0EC",
+      "surface-hover": "#CDD0D8",
+      "sidebar": "#E2E7F6",
+      "toolbar": "#F3F5FB",
+      "line": "#D6DCEE",
+      "line-strong": "#81838C",
+      "edge": "#141A2E",
+      "ink": "#141A2E",
+      "ink-muted": "#4A5370",
+      "accent": "#3D5AA9",
+      "on-accent": "#FFFFFF",
+      "accent-soft": "#DFE5F6",
+      "link": "#3D5AA9",
+      "selection": "#3D5AA9",
+      "on-selection": "#FFFFFF",
+      "selection-inactive": "#DCE0EC",
+      "focus": "#B3261E",
+      "focus-on-danger": "#141A2E",
+      "success": "#256B29",
+      "success-soft": "#D6E2DE",
+      "warning": "#8A5100",
+      "warning-soft": "#E4DED8",
+      "danger": "#B3261E",
+      "danger-soft": "#EAD8DC",
+      "on-danger": "#FFFFFF",
+      "info": "#1F5FA8",
+      "info-soft": "#D5E0EF",
+      "avatar-fill": "#D3DAF0",
+      "data-red": "#D34730",
+      "data-orange": "#DE6A0E",
+      "data-yellow": "#E7BD1B",
+      "data-green": "#349F5F",
+      "data-blue": "#1494D7",
+      "data-purple": "#8B51E1",
+      "data-brown": "#8A6859",
+      "data-grey": "#8C8C8C",
+      "scrim": "#14141459",
+      "glass-fill": "#F3F5FBCB",
+      "glass-stroke": "#FFFFFFCC",
+      "shadow": "#1B2450"
+    },
+    "dark": {
+      "bg": "#0E1326",
+      "surface": "#1B2140",
+      "surface-raised": "#222951",
+      "surface-sunken": "#1B2033",
+      "surface-hover": "#383D5A",
+      "sidebar": "#141A33",
+      "toolbar": "#1B2140",
+      "line": "#2A3155",
+      "line-strong": "#70758D",
+      "edge": "#E8ECFA",
+      "ink": "#E8ECFA",
+      "ink-muted": "#A9B3D6",
+      "accent": "#9DB4F2",
+      "on-accent": "#0E1A3A",
+      "accent-soft": "#283463",
+      "link": "#9DB4F2",
+      "selection": "#9DB4F2",
+      "on-selection": "#0E1A3A",
+      "selection-inactive": "#1B2033",
+      "focus": "#F2867E",
+      "focus-on-danger": "#E8ECFA",
+      "success": "#7BC67E",
+      "success-soft": "#32494F",
+      "warning": "#F0B45A",
+      "warning-soft": "#4E4446",
+      "danger": "#F3928B",
+      "danger-soft": "#4F394F",
+      "on-danger": "#2C1A19",
+      "info": "#8AB8EA",
+      "info-soft": "#364569",
+      "avatar-fill": "#2E3762",
+      "data-red": "#D34730",
+      "data-orange": "#EA700F",
+      "data-yellow": "#E7BD1B",
+      "data-green": "#36A462",
+      "data-blue": "#159CE2",
+      "data-purple": "#8B51E1",
+      "data-brown": "#8A6859",
+      "data-grey": "#939393",
+      "scrim": "#00000099",
+      "glass-fill": "#1B2140D3",
+      "glass-stroke": "#FFFFFF1F",
+      "shadow": "#000000"
+    }
+  },
+  "type": {
+    "display": [
+      "sora",
+      "sans"
+    ],
+    "body": [
+      "manrope",
+      "sans"
+    ],
+    "mono": [
+      "jetbrains-mono",
+      "mono"
+    ],
+    "base": 15,
+    "ratio": 1.25,
+    "numerals": "proportional",
+    "roles": {
+      "display-xl": {
+        "size": 40,
+        "line-height": 1.15,
+        "weight": 600,
+        "tracking": -0.02
+      },
+      "display-lg": {
+        "size": 30,
+        "line-height": 1.2,
+        "weight": 600,
+        "tracking": -0.015
+      },
+      "title": {
+        "size": 22,
+        "line-height": 1.25,
+        "weight": 600,
+        "tracking": -0.01
+      },
+      "heading": {
+        "size": 17,
+        "line-height": 1.3,
+        "weight": 600,
+        "stack": "display"
+      },
+      "body": {
+        "size": 15,
+        "line-height": 1.5,
+        "weight": 400
+      },
+      "body-strong": {
+        "size": 15,
+        "line-height": 1.5,
+        "weight": 700
+      }
+    }
+  },
+  "shape": {
+    "corners": "continuous",
+    "radius": {
+      "xs": 6,
+      "sm": 10,
+      "md": 14,
+      "lg": 18,
+      "xl": 24
+    },
+    "controls": "pill"
+  },
+  "density": {
+    "preset": "regular",
+    "desktop": {
+      "control": 36,
+      "row": 48,
+      "icon": 18,
+      "space": 1.05
+    }
+  },
+  "borders": {
+    "width": "hairline",
+    "style": "solid",
+    "colour": "line",
+    "cards": false,
+    "controls": false,
+    "separators": "inset",
+    "title-rule": "none"
+  },
+  "elevation": {
+    "style": "soft",
+    "strength": 0.8,
+    "press": "none"
+  },
+  "materials": {
+    "window": {
+      "kind": "gradient",
+      "gradient": {
+        "angle": 160,
+        "light": [
+          "#DDE4F8",
+          "#E9E6F6",
+          "#F5E6EE"
+        ],
+        "dark": [
+          "#0E1326",
+          "#1A1A40",
+          "#2B1D48"
+        ]
+      }
+    },
+    "sidebar": "translucent",
+    "bars": "blur",
+    "blur": 24
+  },
+  "icons": {
+    "set": "phosphor",
+    "weight": "regular",
+    "selected": "fill",
+    "tiles": "tinted"
+  },
+  "motion": {
+    "personality": "calm",
+    "scale": 1.2,
+    "press": "dim",
+    "enter": "fade"
+  },
+  "components": {
+    "button": {
+      "primary": "filled",
+      "secondary": "tonal",
+      "shape": "pill"
+    },
+    "list": "inset",
+    "sidebar": "column",
+    "toolbar": "floating",
+    "inputs": "filled",
+    "selection": "tint",
+    "avatar": "circle",
+    "tabs": "pill",
+    "chat": "bubbles",
+    "month": "open",
+    "today": "ring",
+    "data-colours": "colour"
+  },
+  "illustration": "line",
+  "sound": "none"
+}

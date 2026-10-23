@@ -1,0 +1,282 @@
+{
+  "format": 1,
+  "id": "mydata.rose",
+  "name": "Rose",
+  "version": "1.0.0",
+  "author": "myData",
+  "licence": "CC0-1.0",
+  "description": "Playful and chunky: Fredoka titles, big rounds, 2px ink outlines and sticker shadows that a press squashes.",
+  "frame": "drawn",
+  "preview": {
+    "blurb": "Chunky, round and cheerful.",
+    "scene": "calendar"
+  },
+  "colours": {
+    "light": {
+      "bg": "#FFF4F6",
+      "surface": "#FFFFFF",
+      "surface-raised": "#FFFFFF",
+      "surface-sunken": "#FBE4EA",
+      "surface-hover": "#DBD7D9",
+      "sidebar": "#FDE8EE",
+      "toolbar": "#FFFFFF",
+      "line": "#F0D3DC",
+      "line-strong": "#9A6577",
+      "edge": "#2A1520",
+      "ink": "#2A1520",
+      "ink-muted": "#6B4A58",
+      "accent": "#A63A5B",
+      "on-accent": "#FFFFFF",
+      "accent-soft": "#F8E1E8",
+      "link": "#A33858",
+      "selection": "#A63A5B",
+      "on-selection": "#FFFFFF",
+      "selection-inactive": "#F6E1E7",
+      "focus": "#2457C5",
+      "focus-on-danger": "#2A1520",
+      "success": "#256B29",
+      "success-soft": "#DDF2DF",
+      "warning": "#8A5100",
+      "warning-soft": "#FBEBCF",
+      "danger": "#B4380E",
+      "danger-soft": "#FCE3DA",
+      "on-danger": "#FFFFFF",
+      "info": "#1F5FA8",
+      "info-soft": "#DCE9F8",
+      "avatar-fill": "#F9D3DE",
+      "data-red": "#D34730",
+      "data-orange": "#EA700F",
+      "data-yellow": "#E7BD1B",
+      "data-green": "#36A462",
+      "data-blue": "#159CE2",
+      "data-purple": "#8B51E1",
+      "data-brown": "#8A6859",
+      "data-grey": "#939393",
+      "scrim": "#14141459",
+      "glass-fill": "#FFFFFFB8",
+      "glass-stroke": "#FFFFFFCC",
+      "shadow": "#2A1520"
+    },
+    "dark": {
+      "bg": "#1C1216",
+      "surface": "#2A1C22",
+      "surface-raised": "#33232A",
+      "surface-sunken": "#160E11",
+      "surface-hover": "#45373D",
+      "sidebar": "#22161B",
+      "toolbar": "#2A1C22",
+      "line": "#43303A",
+      "line-strong": "#9E808C",
+      "edge": "#E2C4CF",
+      "ink": "#F7E9EE",
+      "ink-muted": "#C9ADB8",
+      "accent": "#EFA3B8",
+      "on-accent": "#33101C",
+      "accent-soft": "#4A2632",
+      "link": "#F2AEC0",
+      "selection": "#EFA3B8",
+      "on-selection": "#33101C",
+      "selection-inactive": "#36252C",
+      "focus": "#8CB4FF",
+      "focus-on-danger": "#F7E9EE",
+      "success": "#7BC67E",
+      "success-soft": "#1E3524",
+      "warning": "#F0B45A",
+      "warning-soft": "#3D2A12",
+      "danger": "#FF9A8A",
+      "danger-soft": "#4A1D1E",
+      "on-danger": "#2B0B08",
+      "info": "#8AB8EA",
+      "info-soft": "#1D2D45",
+      "avatar-fill": "#4D2B38",
+      "data-red": "#D34730",
+      "data-orange": "#EA700F",
+      "data-yellow": "#E7BD1B",
+      "data-green": "#36A462",
+      "data-blue": "#159CE2",
+      "data-purple": "#8B51E1",
+      "data-brown": "#8A6859",
+      "data-grey": "#939393",
+      "scrim": "#00000099",
+      "glass-fill": "#1A1A1AB8",
+      "glass-stroke": "#FFFFFF1F",
+      "shadow": "#000000"
+    }
+  },
+  "contrast": {
+    "light": {
+      "ink-muted": "#593846",
+      "line-strong": "#976274",
+      "line": "#9A6577",
+      "link": "#8B2044",
+      "accent": "#962C4E",
+      "selection": "#9C3153",
+      "danger": "#961700",
+      "success": "#105A18",
+      "warning": "#784000",
+      "info": "#024A92"
+    },
+    "dark": {
+      "line": "#9E808C",
+      "ink-muted": "#E2C6D1",
+      "danger": "#FF9E8D",
+      "success": "#83CF86",
+      "info": "#8EBDEF"
+    }
+  },
+  "type": {
+    "display": [
+      "fredoka",
+      "nunito",
+      "sans"
+    ],
+    "body": [
+      "nunito",
+      "sans"
+    ],
+    "mono": [
+      "jetbrains-mono",
+      "mono"
+    ],
+    "base": 15,
+    "ratio": 1.25,
+    "numerals": "proportional",
+    "secondary-italic": false,
+    "roles": {
+      "display-xl": {
+        "size": 40,
+        "line-height": 1.1,
+        "weight": 600,
+        "tracking": -0.01
+      },
+      "display-lg": {
+        "size": 30,
+        "line-height": 1.15,
+        "weight": 600,
+        "tracking": -0.01
+      },
+      "title": {
+        "size": 24,
+        "line-height": 1.2,
+        "weight": 600,
+        "tracking": 0
+      },
+      "heading": {
+        "size": 18,
+        "line-height": 1.3,
+        "weight": 600,
+        "tracking": 0,
+        "stack": "display"
+      },
+      "body": {
+        "size": 15,
+        "line-height": 1.5,
+        "weight": 500,
+        "tracking": 0
+      },
+      "body-strong": {
+        "size": 15,
+        "line-height": 1.5,
+        "weight": 800,
+        "tracking": 0
+      },
+      "label": {
+        "size": 13,
+        "line-height": 1.3,
+        "weight": 800,
+        "tracking": 0.01
+      },
+      "caption": {
+        "size": 12.5,
+        "line-height": 1.4,
+        "weight": 600,
+        "tracking": 0
+      },
+      "mono": {
+        "size": 13,
+        "line-height": 1.4,
+        "weight": 400,
+        "tracking": 0
+      }
+    }
+  },
+  "shape": {
+    "corners": "round",
+    "radius": {
+      "xs": 6,
+      "sm": 12,
+      "md": 16,
+      "lg": 24,
+      "xl": 28
+    },
+    "controls": "pill"
+  },
+  "density": {
+    "desktop": {
+      "control": 40,
+      "row": 52,
+      "icon": 20,
+      "space": 1.15
+    },
+    "phone": {
+      "control": 48,
+      "row": 60,
+      "icon": 22,
+      "space": 1.15
+    }
+  },
+  "borders": {
+    "width": 2,
+    "style": "solid",
+    "colour": "edge",
+    "cards": true,
+    "controls": true,
+    "separators": "inset",
+    "title-rule": "none"
+  },
+  "elevation": {
+    "style": "hard",
+    "strength": 1,
+    "offset": 4,
+    "press": "collapse"
+  },
+  "materials": {
+    "window": {
+      "kind": "solid"
+    },
+    "sidebar": "solid",
+    "bars": "solid"
+  },
+  "icons": {
+    "set": "phosphor",
+    "weight": "bold",
+    "selected": "fill",
+    "tiles": "tinted"
+  },
+  "motion": {
+    "personality": "lively",
+    "scale": 1,
+    "press": "sink",
+    "enter": "fade-rise"
+  },
+  "components": {
+    "button": {
+      "primary": "brutal",
+      "secondary": "outline",
+      "shape": "pill"
+    },
+    "list": "bordered",
+    "sidebar": "source-list",
+    "toolbar": "floating",
+    "inputs": "outlined",
+    "selection": "tint",
+    "avatar": "circle",
+    "tabs": "pill",
+    "chat": "bubbles",
+    "month": "boxed",
+    "today": "disc",
+    "data-colours": "colour"
+  },
+  "illustration": "flat",
+  "sound": "none"
+}

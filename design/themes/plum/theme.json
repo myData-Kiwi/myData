@@ -1,0 +1,259 @@
+{
+  "format": 1,
+  "id": "mydata.plum",
+  "name": "Plum",
+  "version": "1.0.0",
+  "author": "myData",
+  "licence": "CC0-1.0",
+  "description": "Editorial: a high-contrast serif for titles, ink rules instead of boxes, generous margins, no cards and few icons.",
+  "frame": "drawn",
+  "preview": {
+    "blurb": "Set like a literary journal.",
+    "scene": "contacts"
+  },
+  "colours": {
+    "light": {
+      "bg": "#FBF8F4",
+      "surface": "#FBF8F4",
+      "surface-raised": "#FFFFFF",
+      "surface-sunken": "#ECE8E6",
+      "surface-hover": "#DDD9D7",
+      "sidebar": "#F5F0EA",
+      "toolbar": "#FBF8F4",
+      "line": "#D9D0D6",
+      "line-strong": "#8E888D",
+      "edge": "#1C1420",
+      "ink": "#1C1420",
+      "ink-muted": "#5E5463",
+      "accent": "#7A3E8E",
+      "on-accent": "#FFFFFF",
+      "accent-soft": "#F1E4F5",
+      "link": "#7A3E8E",
+      "selection": "#7A3E8E",
+      "on-selection": "#FFFFFF",
+      "selection-inactive": "#ECE8E6",
+      "focus": "#B3261E",
+      "focus-on-danger": "#1C1420",
+      "success": "#256B29",
+      "success-soft": "#DFE5D8",
+      "warning": "#8A5100",
+      "warning-soft": "#EDE1D6",
+      "danger": "#B3261E",
+      "danger-soft": "#F5DED7",
+      "on-danger": "#FFFFFF",
+      "info": "#1F5FA8",
+      "info-soft": "#DEE4EB",
+      "avatar-fill": "#DDD9D7",
+      "data-red": "#D34730",
+      "data-orange": "#EA700F",
+      "data-yellow": "#E7BD1B",
+      "data-green": "#36A462",
+      "data-blue": "#159CE2",
+      "data-purple": "#8B51E1",
+      "data-brown": "#8A6859",
+      "data-grey": "#939393",
+      "scrim": "#14141459",
+      "glass-fill": "#FBF8F4B8",
+      "glass-stroke": "#FFFFFFCC",
+      "shadow": "#141414"
+    },
+    "dark": {
+      "bg": "#17121A",
+      "surface": "#17121A",
+      "surface-raised": "#211A25",
+      "surface-sunken": "#211C24",
+      "surface-hover": "#363039",
+      "sidebar": "#1C1620",
+      "toolbar": "#17121A",
+      "line": "#3A3040",
+      "line-strong": "#6D6770",
+      "edge": "#EFE8F1",
+      "ink": "#EFE8F1",
+      "ink-muted": "#B2A6B6",
+      "accent": "#D2A6E0",
+      "on-accent": "#2A0F33",
+      "accent-soft": "#3B2145",
+      "link": "#D2A6E0",
+      "selection": "#D2A6E0",
+      "on-selection": "#2A0F33",
+      "selection-inactive": "#211C24",
+      "focus": "#F2867E",
+      "focus-on-danger": "#EFE8F1",
+      "success": "#7BC67E",
+      "success-soft": "#303B33",
+      "warning": "#F0B45A",
+      "warning-soft": "#47372D",
+      "danger": "#F2867E",
+      "danger-soft": "#492D32",
+      "on-danger": "#0A0302",
+      "info": "#8AB8EA",
+      "info-soft": "#333849",
+      "avatar-fill": "#2C272F",
+      "data-red": "#D34730",
+      "data-orange": "#EA700F",
+      "data-yellow": "#E7BD1B",
+      "data-green": "#36A462",
+      "data-blue": "#159CE2",
+      "data-purple": "#8B51E1",
+      "data-brown": "#8A6859",
+      "data-grey": "#939393",
+      "scrim": "#00000099",
+      "glass-fill": "#17121AB8",
+      "glass-stroke": "#FFFFFF1F",
+      "shadow": "#000000"
+    }
+  },
+  "type": {
+    "display": [
+      "fraunces",
+      "serif"
+    ],
+    "body": [
+      "instrument-sans",
+      "sans"
+    ],
+    "mono": [
+      "jetbrains-mono",
+      "mono"
+    ],
+    "base": 15,
+    "ratio": 1.25,
+    "numerals": "proportional",
+    "secondary-italic": true,
+    "roles": {
+      "display-xl": {
+        "size": 44,
+        "line-height": 1.1,
+        "weight": 600,
+        "tracking": -0.02
+      },
+      "display-lg": {
+        "size": 34,
+        "line-height": 1.12,
+        "weight": 600,
+        "tracking": -0.015
+      },
+      "title": {
+        "size": 24,
+        "line-height": 1.2,
+        "weight": 600,
+        "tracking": -0.01
+      },
+      "heading": {
+        "size": 16,
+        "line-height": 1.4,
+        "weight": 600,
+        "tracking": 0.01
+      },
+      "body": {
+        "size": 15,
+        "line-height": 1.55,
+        "weight": 400,
+        "tracking": 0
+      },
+      "body-strong": {
+        "size": 15,
+        "line-height": 1.55,
+        "weight": 600,
+        "tracking": 0
+      },
+      "label": {
+        "size": 13,
+        "line-height": 1.4,
+        "weight": 500,
+        "tracking": 0.01
+      },
+      "caption": {
+        "size": 13,
+        "line-height": 1.4,
+        "weight": 400,
+        "tracking": 0
+      },
+      "mono": {
+        "size": 13,
+        "line-height": 1.5,
+        "weight": 400,
+        "tracking": 0
+      }
+    }
+  },
+  "shape": {
+    "corners": "square",
+    "radius": {
+      "xs": 2,
+      "sm": 2,
+      "md": 2,
+      "lg": 2,
+      "xl": 4
+    },
+    "controls": "match"
+  },
+  "density": {
+    "desktop": {
+      "control": 36,
+      "row": 52,
+      "icon": 18,
+      "space": 1.25
+    },
+    "phone": {
+      "control": 48,
+      "row": 60,
+      "icon": 22,
+      "space": 1.25
+    }
+  },
+  "borders": {
+    "width": 1,
+    "style": "solid",
+    "colour": "edge",
+    "cards": false,
+    "controls": true,
+    "separators": "full",
+    "title-rule": "double"
+  },
+  "elevation": {
+    "style": "none",
+    "strength": 0,
+    "offset": 0,
+    "press": "none"
+  },
+  "materials": {
+    "window": {
+      "kind": "solid"
+    },
+    "sidebar": "solid",
+    "bars": "solid"
+  },
+  "icons": {
+    "set": "phosphor",
+    "weight": "light",
+    "selected": "same",
+    "tiles": "none"
+  },
+  "motion": {
+    "personality": "calm",
+    "scale": 1,
+    "press": "dim",
+    "enter": "fade"
+  },
+  "components": {
+    "button": {
+      "primary": "outline",
+      "secondary": "text",
+      "shape": "square"
+    },
+    "list": "ruled",
+    "sidebar": "column",
+    "toolbar": "flat",
+    "inputs": "underlined",
+    "selection": "bar",
+    "avatar": "none",
+    "tabs": "underline",
+    "chat": "transcript",
+    "month": "open",
+    "today": "ring",
+    "data-colours": "colour"
+  },
+  "illustration": "ink",
+  "sound": "none"
+}
