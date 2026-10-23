@@ -1,48 +1,8 @@
 # myData
 
-Open-source, self-hosted personal cloud with a local assistant. All user data stays on hardware the user owns. A family of "my"-prefixed apps connects to one host that stores, syncs, indexes, and runs the models.
+Open-source, self-hosted personal cloud with a local assistant. All user data stays on hardware the user owns. A family of "my"-prefixed apps connects to one host that stores, syncs, indexes and runs the models; the host also serves CardDAV/CalDAV so the phones' own apps are clients.
 
-This file is the project's working memory. Read it before doing anything. Update it when a decision changes.
-
-## Status
-
-Early build. Done:
-- the marketing site;
-- two rounds of feasibility testing (see "Feasibility test result" and "Round 2 result");
-- **the host** (phase 1): `mydatad` with the tool layer and permission gate, HTTP API, MCP, app and agent tokens;
-- **the first two apps** (phase 2): myData (setup, status, settings) and myAssistant (chat), in Flutter, macOS first;
-- **answer latency** (Part A): results on screen in about 3.5 s instead of 13;
-- **the design system** (Part B): `design/` in Flutter (`mydata_ui`), six themes in light and dark, the theme stored on the host and followed by every app;
-- **real contacts and calendars on the host** (phase 3): a read-only mirror from **This Mac** (macOS Contacts and EventKit, the main path on a Mac host) or from a followed iCloud account (CardDAV, CalDAV; under Advanced, for hosts that are not Macs). See "Contacts and calendars sources";
-- **the myContacts and myCalendar apps** (phase 4): views of the mirror (read-only at first; myContacts now edits the host's own contacts, below), with links between the apps (`mycontacts://contact/<id>`, `mycalendar://day/<date>`, `mydata://settings/sources`). myAssistant opens a real contact or event result in them when they are installed, and myData's Status lists the apps with their counts and sources;
-- **the safety net** (phase 0a of the owned-data plan): migrations with foreign keys off, snapshots (hourly and before every migration), the restore drill, restore and a raw export. See "Data safety";
-- **the additive schema** (phase 0b): owned and followed collections, owned data kept by the database itself, hard deletes limited to followed data, group cards no longer shown as contacts. See "Data safety";
-- **tokens, approvals and logging** (phase 0c): scopes per app token, approvals bound to mode and epoch, argument shapes only in the real-mode request log, and scans for mail libraries, `osascript` and `subprocess`. See "Tokens" and "Demo and real mode";
-- **writers and export** (phase 1): a vCard line editor and an ICS writer with a property guard and the four edits of a repeating event, as library code with tests, and a clean export. See "Writing contacts and events";
-- **the form components** (phase 2, spec first): specs and previews in `design/` (Dialog, Inspector, Sheet, Toast, Menu, IconButton, MultiSelect, Checkbox, FormRow, Select, TokenField, DatePicker, TimePicker, ColourPicker, the macOS menu bar), their tokens, and the widgets in `mydata_ui` with goldens. See "Client stack";
-- **contacts editing** (phase 3, host and myContacts): an owned "myData" address book, create, edit (If-Match), delete to Recently deleted, restore, delete for good, persisted undo and the daily trash expiry, through the API; myContacts creates, edits and deletes the host's own contacts (Inspector, Undo toasts, several at once, Recently deleted), followed ones stay read-only. Groups and the photo picker are not built. See "Editing contacts";
-- **contact import, host side** (phase 4, done): `.vcf` and `.zip` files and a copy of a followed iCloud account, with a preview, a loss report, matches (never merged automatically), import again without duplicates, undo, the shadowing of followed copies, and merge with undo, through the API; reviewed and fixed (17 findings). The import specs in `design/` (ImportFlow, DropZone, DuplicatePair) are decided (2026-10-14), and the host gaps they list are built: a file hides the followed copies of the people it brings in (H1), a no-notes loss (H2), a preview card's values (H3), refusal codes (H4), the `contacts:import` scope (H5), possible duplicates, "not the same person", the merge preview and `merged_into` (H6a to H6d), reviewing a followed copy's changes (H7) and the backups day for removing a source (H8). See "Importing contacts";
-- **contact import, app side** (phase 4, done): myData's Import section (Choose with the drop zone and the file chooser, Review with the loss report, ticks and Compare, Importing, Done with "Keep following", the history and Undo import; `mydata://import/contacts`, File > Import…), and in myContacts Merge from a multi-selection with the host's merge preview, a Review section (possible duplicates, changes since import) and the contact page's "changed since import" Notice. The apps are tested against fake hosts; the host was run live on synthetic data (2026-10-14). See "Importing contacts", "The import UI".
-
-**New direction (2026-10-13): the host owns the data.** See "Direction: the host owns the data". Today sources are still only followed (read-only); myContacts creates and edits the contacts the host owns; the safety work that must come first (snapshots, safe migrations, owned-data protection, token scopes, the lossless writers) is done. The two modes are described in "Demo and real mode". **Next:** phase 5, mail receiving (myMail, read-only), which needs the owner present for the Automation prompt; see "Build order". Chained requests are an open problem, not a blocker: the planner write-up in `host/results/2026-10-11-b-REPORT.md` is the starting point. Answer latency is in "Answer latency" below.
-
-## Direction: the host owns the data (decided 2026-10-13)
-
-The full plan, with the research behind it, is `docs/2026-10-13-own-data-plan.md`; where it and this file differ, this file wins. The host becomes the owner of contacts, calendars and a full mail archive: data is **imported** once from Apple, Google, Samsung or Microsoft, then created and edited in myContacts and myCalendar, and myMail receives and sends.
-
-**The owner's decisions:**
-- **Phones: both an iPhone (iCloud) and an Android (Samsung).** The end state is the host **serving CardDAV/CalDAV** (our own minimal server on its own loopback port, per-device passwords; Radicale and Xandikos only as test references), reached by the iPhone as an "Other" account and by Android through DAVx5, once remote access exists.
-- **Until then, nothing is written to iCloud, Google or the Mac.** New items are labelled "On myData only, not on your phone yet". Followed sources stay read-only; an imported account can still be followed, and the imported (owned) copy then shadows the followed one (one result per person in `find_contact`).
-- **Imports come from files first** (`.vcf`, `.ics`, mbox: Contacts.app and Calendar.app exports, Google export or Takeout, Samsung `.vcf`), with a preview, a loss report, de-duplication suggestions (never automatic merges) and undo. This Mac stays followed only: its occurrences and note-less cards are not a faithful copy, so it is never imported.
-- **Mail: myMail** (not myEmail). Received on a Mac through Mail.app by Apple Events, from a helper nested in myData.app (the spike showed the Automation prompt names the parent app, and Mail reaches every account, including the Microsoft one that Mail's own store does not hold). Mail's store with Full Disk Access is not used: no prompt, the whole disk, and Apple announced on 2 Oct 2026 that it will tighten it. The standby route is IMAP per provider; for the Microsoft account, OAuth with a device code. A mail server on the host for an own domain is not realistic from a home connection.
-- **Full mail archive:** nothing is purged; mail gone at the provider is only marked deleted.
-- **Pressing Send in myMail counts as approval**, but only once the app-to-host channel is hardened so a token alone cannot send; a ~10 s undo window (a restart inside it returns the message to drafts) and an hourly limit. Sends the assistant proposes always show an approval card.
-- **Order:** contacts editing and import, mail receiving, calendar editing and import, mail sending, then CardDAV/CalDAV serving and remote access.
-- **Backups:** Time Machine (external disk or NAS) holds the off-machine copy of the host's snapshots; the live `*.sqlite*` files are to be excluded from it.
-
-**Proposed defaults, not yet confirmed by the owner:** deleting in an app is a soft delete with Undo and "Recently deleted" for 30 days (built for contacts; an assistant's or agent's delete still needs approval); events organised by someone else are read-only until invitations exist; alerts on owned events stay hidden until something can ring them.
-
-**Decided 2026-10-14:** real mode means "a source is on or the host owns data", and the host stays in real mode after the last owned contact is deleted for good (the empty owned address book is still owned data); a delete for good from Recently deleted is guarded by the app's Dialog alone, with no approval card (an assistant's or agent's delete still goes through the gate). The decisions on the import specs are in `design/components/ImportFlow` and `DuplicatePair` ("Decisions").
+This file is the project's working memory: the rules and state in force now. Read it before doing anything; update it when a decision changes. History is in `docs/decisions/` (see "History"), the plan in `docs/2026-10-23-plan.md`. Where they differ from this file, this file wins.
 
 ## Ground rules
 
@@ -50,7 +10,9 @@ The full plan, with the research behind it, is `docs/2026-10-13-own-data-plan.md
 - Work happens on the owner's personal computer and personal GitHub account only.
 - Not affiliated with MyData Global; the site footer says so. Keep that line.
 - No trademark filing planned. "myData" is descriptive and crowded.
+- Licence: AGPL-3.0-or-later (`LICENSE`).
 - Owner's working style: direct, concise answers. Stress-test ideas and lead with what is wrong or missing. No flattery.
+- **Done means used:** a milestone is done when the owner has used it for three days on real data, not when tests pass against fakes.
 
 ## Commits
 
@@ -64,392 +26,186 @@ Follow [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.
 - **One logical change per commit.**
 - **Never add a `Co-Authored-By` trailer or any other mention of Claude.**
 - Commits use the personal identity, set for this folder by `~/.gitconfig-mydata-kiwi`.
+- **Push to GitHub at the end of every session.**
+- The workspace copy `../CLAUDE.md` must stay identical to this file (`cp` after editing).
 
 ## Names
 
 | Name | What it is | Runs on |
 |---|---|---|
-| myData | The host (`mydatad`): stores, syncs, indexes, runs models. Also the myData app: setup, status, settings; later the dashboard and file browser | Host on macOS, Windows, Linux. App everywhere |
+| myData | The host (`mydatad`): stores, syncs, indexes, runs models. Also the myData app: setup, status, settings, import | Host on macOS, Windows, Linux. App everywhere |
 | myAssistant | Chat (later voice) app | Everywhere |
 | myContacts, myCalendar, myMail, myPhotos | First apps | Everywhere, as clients |
-| myNotes, myReminders, myFiles, myDocs, myHealth, myHome and others | Later apps | Everywhere, as clients |
+| myNotes, myReminders, myFiles and others | Later apps | Everywhere, as clients |
 
-Technical names: repo `mydata-kiwi/mydata`, command `mydata`, background service `mydatad`. In prose, call the host "the host".
+Technical names: repo `mydata-kiwi/mydata`, command `mydata`, background service `mydatad`. In prose, call the host "the host". The website (`mydata-kiwi/mydata-kiwi.github.io`, GitHub Pages, mydata.kiwi with Cloudflare DNS proxy off on purpose) keeps its own styling and its `CNAME`.
 
-## Existing assets
+## Decisions in force
 
-- Domain: mydata.kiwi. DNS is in Cloudflare, records set to DNS only (proxy off, on purpose).
-- GitHub org: `mydata-kiwi`.
-- Website repo: `mydata-kiwi/mydata-kiwi.github.io`. One `index.html`, deployed by GitHub Pages from `main`. Custom domain mydata.kiwi is verified and served over HTTPS from GitHub Pages.
-- Logo: hand-drawn outlined kiwi bird with a green wash. Colours: background `#E3EFBF`, wash `#A9CC4E`, ink `#2A2018`.
-- **Design system: `design/` is the source of truth** for how the apps look: `tokens.json` (the Kiwi theme's values), `themes.json` (six themes: Kiwi, Graphite, Dusk, Plum, Rose, Amber), the README, `theming.md`, `motion.md`, `platforms.md` and a spec with an HTML preview per component. Light and dark mode. The Flutter implementation is `app/packages/mydata_ui` (tokens generated from the JSON; see its README for the decisions taken where `design/` disagreed with itself). The website keeps its own styling and is not changed by `design/`.
-- A fuller plan document exists ("myData: architecture, technical plan, and viability check"). This file supersedes it where they differ.
+### The host owns the data (2026-10-13)
+
+- Data is **imported** once from Apple, Google, Samsung or Microsoft, then created and edited in our apps and, through the host's CardDAV/CalDAV, in the phones' own apps (an iPhone with iCloud, a Samsung through DAVx5).
+- **Nothing is written to iCloud, Google or the Mac.** Followed sources stay read-only. Until DAV serving, new items say "On myData only, not on your phone yet".
+- **Imports come from files first** (`.vcf`, `.ics`, mbox), with a preview, a loss report, suggestions (never automatic merges) and undo. This Mac is followed only, never imported.
+- **Mail: myMail,** received through Mail.app by Apple Events from a helper nested in myData.app; IMAP per provider as standby (OAuth device code for Microsoft). No Full Disk Access route, no mail server on the host. A full archive: nothing is purged; mail gone at the provider is marked deleted.
+- **Pressing Send in myMail counts as approval** only once the app-to-host channel is hardened; a ~10 s undo window and an hourly limit. Sends the assistant proposes always show an approval card.
+- **Proposed, not confirmed:** events organised by others are read-only until invitations exist; alerts on owned events stay hidden until something rings them.
+
+### 2026-10-14
+
+- Real mode means "a source is on or the host owns data"; the host stays real after the last owned contact is deleted for good.
+- A delete for good from Recently deleted needs only the app's Dialog; an assistant's or agent's delete still goes through the gate.
+- The import specs' decisions are in `design/components/ImportFlow` and `DuplicatePair` ("Decisions").
+
+### 2026-10-23 (on `docs/2026-10-23-plan.md`)
+
+1. **Keep the family of separate apps,** not the plan's merge into one app. The host still serves CardDAV/CalDAV. Per-app scopes, links and runners stay; each app gets the look pass; the plan's one-app items become per-app work.
+2. **iPhone:** the phones' own apps through DAV plus the host's light web page. Native iPhone apps once the owner pays Apple's $99 a year himself (after M2, or when he says).
+3. **Remote access: Tailscale** (free Personal plan, Serve on `ts.net`, **never Funnel**), through a separate remote listener.
+4. **Licence: AGPL-3.0.**
+5. **Push** at the end of every session.
+6. **Backups:** Time Machine to an external disk or NAS, live `*.sqlite*` files excluded; the M1b off-machine backup gate stands.
+7. The mail spike app is deleted; the owner switches off its two stale grants.
+8. **The Mac stack (Flutter or SwiftUI) is chosen by the owner** from a side-by-side of the People screen in M1a, before any restyle.
 
 ## Architecture
 
-One host per household, clients on every device.
+One host per household, clients on every device. Phones cannot host.
 
-- **Host**: a background service that outlives any window and starts at login. It must also install alone on machines with no screen (Linux mini PC, NAS, Docker). On macOS it must be a native install, because Docker on a Mac gets no GPU acceleration.
-- **Clients**: talk to the host over the local network, and over Tailscale when away. Never expose the model server's port to the internet. **For now the host listens on localhost only** (127.0.0.1); phone and remote access come later as a separate, explicit design.
-- **The host owns data and tools; agents are replaceable.** Every agent reaches tools through one registry, which holds the permission gate: our orchestrator, or any MCP agent at `/mcp`. An irreversible call never runs until a user approves that exact held call in an app.
-  - **A held call is bound to the mode, the conversation epoch and the handler** it was held with, all three in its digest. Switching mode or moving the epoch on fails every pending approval (status `failed`, with the reason; approving it then returns it unchanged), and approving checks the binding again, so a send held over demo data never runs in real mode. A switch waits for calls already running (an approved run from its check to its end, and an MCP agent's call, whose real-mode refusal is checked inside the registry), so a call runs wholly in one mode.
-  - Approvals and the tool registry's undo log are in memory. The undo of an app's write is persisted (`undo_log` in `contacts.sqlite`, `POST /undo/{id}`; see "Editing contacts").
-- **Tokens.**
-  - **App tokens:** one per app (`app-tokens/<app>` in the host's folder, file mode 0600). Each app's token has scopes (`APP_SCOPES` in `service/auth.py`), and every route declares the one it needs (`dependencies=needs(...)` in `api.py`). The host refuses to start with a route that declares none, `openapi.json` lists each operation's `x-mydata-scopes`, and `tests/test_scopes.py` checks every route for every app.
+- **Host:** a background service that outlives any window; must also install alone on machines with no screen. On macOS a native install (Docker on a Mac gets no GPU). Today a dev checkout; M1a makes it a signed `.app` started by a LaunchAgent.
+- **Listening:** loopback only (`service/config.py` refuses any other `server.host`). Phones come through a **second, remote listener** (M1b), the only thing Tailscale Serve proxies to, accepting only per-device credentials. Never expose the model server's port.
+- **The host owns data and tools; agents are replaceable.** Every agent reaches tools through one registry (`tools/registry.py`) holding the permission gate. An irreversible call never runs until a user approves that exact held call in an app. A held call is bound to the mode, the conversation epoch and the handler; switching either fails pending approvals, and a switch waits for running calls (`tests/test_approval_binding.py`).
+- **Apps** talk to the host only through the HTTP API, with no business logic. Opening any app starts the host. Only myData stops it (`/shutdown` refuses other apps). On connect, a host the app cannot use (another version, code changed on disk, token refused) is replaced once with `mydata stop --unless-current --expect <versions>`. The assistant is optional; no app depends on the chat.
+- **Develop on a separate host folder.** Never run a branch against the default folder (`~/Library/Application Support/myData`, port 47821): a new migration would migrate the owner's data. Use `MYDATA_HOME=~/mydata-dev uv run mydata dev-setup`, another `[server] port`, and `flutter run --dart-define=MYDATA_HOME=$HOME/mydata-dev`. Tests always use temporary folders.
 
-    | App | Scopes |
-    |---|---|
-    | myData | status, admin, approve, contacts:read, contacts:write, contacts:import, calendar:read, sources:read, sources:manage, shutdown, mcp; calendar:write (reserved, no route uses it yet) |
-    | myAssistant | status, assistant, approve, contacts:read, calendar:read |
-    | myContacts | status, contacts:read, contacts:write, sources:read |
-    | myCalendar | status, calendar:read, sources:read |
-    | `mydata` command | every scope |
+### Tokens
 
-    Only the apps with `approve` can list, read or decide held calls; each approval records which app decided. Only `shutdown` (myData, the command) stops the host. Only `contacts:import` (myData, the command) imports contacts: myContacts' File > Import… opens myData, which keeps the one history; myContacts keeps `contacts:write` for its edits, merging and reviewing.
-  - **Agent tokens:** created and revoked with `mydata agent ...` or in the myData app, with only their hash stored. They reach `/mcp` only and have no scopes.
-  - **Known limit: the app tokens protect against other users, not other programs.** Any process running as the same user can read `app-tokens/*` and use the API with them, so it can read every contact and event without ever getting its own Contacts or Calendars prompt from macOS. This is true today. It must be hardened before the host sends mail (plan 2(f).4: app to host over a Unix socket with the peer's code signature checked, a Secure Enclave key per send, or Keychain access lists).
-- **Apps.** The product is a family of separate apps built from shared code, not one combined app with a sidebar. Each app talks to the host only through the HTTP API, with no business logic in the app. The user opens an app and the host starts by itself.
-  - Only the myData app owns the host's lifetime: it has a menu-bar icon with Open and Quit, and Quit stops the host. The host enforces this: `/shutdown` refuses other apps.
-  - Other apps, such as myAssistant, can start the host but never stop it.
-  - One exception, for every app: on connect, a host the app cannot use as it is (another version or API version, its code changed on disk since it started, or it refuses the app's token) is replaced, once, with `mydata stop --unless-current --expect <the app's versions>` and a start. The stop does nothing when the host the start command would start is not the app's build either, or when the running host is already current, so an app never stops a host it could not use afterwards.
-  - The assistant is optional: the apps work without a model.
-- **No app depends on the chat.** myPhotos talks to the host directly.
-- **Phones cannot host.** iOS and Android suspend background apps and lack the memory. No third-party wake word on iOS; no iMessage or phone-call control.
+- **App tokens:** one per app (`app-tokens/<app>`, mode 0600) with scopes (`APP_SCOPES` in `service/auth.py`). Every route declares its scope (`dependencies=needs(...)` in `service/api.py`); the host refuses to start with a route that declares none; `openapi.json` lists `x-mydata-scopes`; `tests/test_scopes.py` checks every route for every app.
 
-### Data layer
+  | App | Scopes |
+  |---|---|
+  | myData | status, admin, approve, contacts:read, contacts:write, contacts:import, calendar:read, sources:read, sources:manage, shutdown, mcp; calendar:write (reserved) |
+  | myAssistant | status, assistant, approve, contacts:read, calendar:read |
+  | myContacts | status, contacts:read, contacts:write, sources:read |
+  | myCalendar | status, calendar:read, sources:read |
+  | `mydata` command | every scope |
 
-- One SQLite file per service; binary files on disk.
-- Every record has a device-generated ID, created and modified timestamps, and a soft-delete marker.
-- The host is the source of truth. Owned contacts are written only through the API (`POST`/`PATCH`/`DELETE /contacts`, If-Match), each write with a revision, a change and an undo entry; a delete goes to Recently deleted (`/trash`) for 30 days, and undo is persisted (`POST /undo/{id}`). See "Editing contacts".
-- Backups: the host's own snapshots of every SQLite file (see "Data safety"). Litestream is deferred (it conflicts with the host's `wal_checkpoint(TRUNCATE)`); restic for files is optional and later.
-- Search: SQLite FTS5 for text, sqlite-vec for embeddings. Index the data; do not train on it.
-- PostgreSQL with pgvector only if multi-user support is ever needed.
-- Standards over invention: IMAP for mail, CardDAV for contacts, CalDAV for calendar.
+- **Agent tokens:** hashed, `/mcp` only, no scopes.
+- **Device credentials** (`dav`, `web`; M1b): bound to a person, accepted only on the remote listener, with rate limits and lockout. App tokens, admin, MCP, approve, import and shutdown never reach that listener.
+- **Known limit:** any process running as the same user can read `app-tokens/*`. Harden the app-to-host channel (peer signature over a Unix socket, a Secure Enclave key per send, or Keychain access lists) **before the host sends mail**.
 
-### Data safety
+### Data
 
-- **Migrations** run on their own connection with foreign keys off, set before `BEGIN`; then no table may have lost rows (unless the migration declares it, `may_shrink`), and `foreign_key_check` and `integrity_check` must pass, or the migration is rolled back (`sources/_db.py`). With foreign keys on, rebuilding a parent table deleted every child row through `ON DELETE CASCADE`.
-- **Snapshots** (`service/backup.py`): `backups/<UTC time>/` in the host folder, hourly while the host runs and always before a migration. **The host never migrates a file without a snapshot:** stores are opened through `open_store`, which refuses (and reports it in `/status`'s `last_error`) when that file cannot be copied. Files are copied one by one, so one damaged database never stops the others being backed up. Kept: 24 hourly, 30 daily, 12 monthly, plus 90 days for those taken before a restore or by hand, and for the newest 3 taken before each migration (file and version). A failed migration is rolled back and not retried for 15 minutes; a retry on an unchanged file reuses its snapshot.
-- **Owned data is kept by the database itself** (`sources/owned.py`). Every address book and calendar is `followed` (a copy of a source) or `owned` (the host holds the only copy; the contacts writer makes one, see "Editing contacts"). Triggers abort deleting an owned collection or a row in one, foreign-key cascades and `INSERT OR REPLACE` included, unless a purge permit names it; only `purge()` writes one, in the same transaction, and only three callers may use it: the trash expiry, a delete for good from Recently deleted (`purge_now`, at the etag the user saw there, logged with the app that asked) and the future Forget. The mirror's hard deletes only touch the followed collections of the account concerned, and leftovers are purged only for accounts recorded in `accounts-removed.json`. Migrations are additive (`ADD COLUMN`, new tables, triggers); the runner rolls back one that drops a trigger.
-- **A new schema version ships with a synthetic dump** (`host/tests/fixtures/schema`, `make_dump.py`); the tests migrate every released dump and compare every field. Before a new migration reaches the real files, `mydata db check-migration` runs it on copies of them.
-- **Restore drill:** `mydata backup verify` restores a snapshot into a temporary folder, migrates and checks it, and records the result, which `/status` reports with the last snapshot and FileVault. It runs in the test suite on synthetic data; there is no CI. `mydata backup restore` needs the host stopped; a live database too damaged to copy is kept byte for byte in the pre-restore snapshot's `damaged/` folder. `mydata export --out DIR` writes every card in vCard 3.0 (`--vcard 4.0` for 4.0) and one `.ics` per calendar with a generated VTIMEZONE for each zone used, outside the checkout; every calendar file is read back and compared before anything is written. `--raw` writes the stored text as it is.
-- **Develop on a separate host folder.** A branch with a new migration, run against the default folder, migrates the real data (after a snapshot), and an older checkout then refuses the newer file. Run a development host with its own `MYDATA_HOME` (outside the checkout) and port: `MYDATA_HOME=~/mydata-dev uv run mydata dev-setup` creates `~/mydata-dev/config.toml` (and lets the apps start that host); set its `[server] port` to something other than 47821 before `MYDATA_HOME=~/mydata-dev uv run mydata run`. Point the apps at it with `flutter run --dart-define=MYDATA_HOME=$HOME/mydata-dev`. Tests always use temporary folders.
+- One SQLite file per service; binary files on disk. Every record has a device-generated ID, timestamps and a soft-delete marker. Search: FTS5 and sqlite-vec. Index the data; never train on it. Standards over invention: IMAP, CardDAV, CalDAV.
+- **Owned data is written only through the API** with If-Match (428 without, 412 when stale), each write one transaction with a revision, a change and an undo entry (`sources/contacts_write.py`). Followed cards are refused (409). Deletes are soft (30 days in Recently deleted, purged daily by `service/trash.py`). An undo writes forward, only while the card is at the revision it wrote, once, across restarts.
+- **Logs never hold user data:** ids, kinds and counts only. In real mode the request log keeps argument shapes, never values or tool results (`tests/test_request_log.py`, `tests/test_host_log_real_mode.py`).
 
-### Writing contacts and events
+### Data safety (enforced)
 
-The vCard editor is used by the contact routes (phase 3, below); the ICS writer is library code until phase 6 (calendars).
+- **Migrations** (`sources/_db.py`): foreign keys off before `BEGIN`; no table may lose rows unless declared `may_shrink`; `foreign_key_check` and `integrity_check` must pass, else rollback. Migrations are additive; dropping a trigger rolls back.
+- **Snapshots** (`service/backup.py`): hourly and before every migration. Stores open through `open_store`, which refuses to migrate a file it cannot snapshot.
+- **Owned rows are kept by the database** (`sources/owned.py`): triggers abort deleting owned rows unless a purge permit names them; only `purge()` writes one, for the trash expiry, a delete for good and the future Forget. The mirror's hard deletes touch only followed collections.
+- **A new schema version ships with a synthetic dump** (`host/tests/fixtures/schema`, `make_dump.py`); tests migrate every released dump. `mydata db check-migration` runs a migration on copies of real files first.
+- `mydata backup verify` (the restore drill), `mydata backup restore` (host stopped), `mydata export` (read back and compared before writing).
+- **Off-machine backup gate (M1b):** a verified external copy, "last off-machine backup" in `/status` and a tried restore runbook, before iCloud Contacts goes off and before passwords are ever stored.
 
-- **vCards** (`sources/vcard_edit.py`): a content-line editor, never vobject. Lines an edit does not touch are written back byte for byte (folding, case, line endings); changed lines are folded at 75 octets; REV is set when anything changed. Names, groups and parameters given to an edit are checked (letters, digits and `-`; no control characters), and quotes, carets and line breaks in a parameter value are written as RFC 6868 says. A new value drops the old one's ENCODING and CHARSET. A new labelled value takes the next Apple `itemN` above the highest present, and removing it removes its X-ABLabel and X-ABADR. New cards are 3.0 with a UID. A 2.1 card (Samsung) is read, quoted-printable soft breaks joined, but never edited in place: `upgrade_21()` turns it into 3.0 for an import, which keeps the original. 4.0 is edited as it is (KIND, MEMBER kept); `convert()` moves a card between 3.0 and 4.0 changing only the lines that differ.
-- **Events** (`sources/ical_edit.py`): edits go through icalendar with `sorted=False`, then every property the edit did not change is put back as the input wrote it (icalendar re-escapes what it re-serialises: REQUEST-STATUS, INTEGER values, Outlook TZIDs). The written text is read back and compared, per component, with the input's own lines (counted without icalendar) and with the edited object: a property, value (EXDATE, RDATE, CATEGORIES) or parameter that went down, or an unchanged property that reads differently, refuses the write (`PropertyLossError`); a split is also checked as the two resources together. The writer reads a series as the store's reader does (an UNTIL of another kind, a date EXDATE on a timed series). A change of time of day moves exceptions and UNTIL on the series' own clock, so a UTC value keeps its occurrence across a clock change; a new start in UTC or without a zone stays in the event's zone (only a named zone moves it). The writer stores TZIDs only, as the event's DTSTART writes them (an Outlook name stays); the export adds the VTIMEZONEs. Repeating events: this event (an override), delete this event (an EXDATE like DTSTART), all events (exceptions move with a change of time of day; a change that leaves exceptions off the series is refused unless they are dropped), this and following (a split: COUNT recounted or UNTIL, in UTC for zoned times; a new UID with `X-MYDATA-SPLIT-FROM`; never `RANGE=THISANDFUTURE`). Lengths are exact (RFC 5545), so an occurrence at 02:30 on the day clocks go forward in Auckland is 02:30 NZST (14:30 UTC) and ends 30 minutes later.
-- **Tests** use synthetic corpora (`tests/fixtures/vcard`, `tests/fixtures/ics`: Apple, Google, Samsung 2.1, 4.0 groups, Outlook zones) and Hypothesis round trips (a dev dependency).
+### Writers (frozen until real data hits a bug)
 
-### Editing contacts
+- **vCards** (`sources/vcard_edit.py`): a content-line editor, never vobject. Untouched lines are written back byte for byte. A 2.1 card is never edited in place.
+- **Events** (`sources/ical_edit.py`): unchanged properties are put back as written; a write that loses a property, value or parameter is refused (`PropertyLossError`). Splits use `X-MYDATA-SPLIT-FROM`, never `RANGE=THISANDFUTURE`.
 
-Phase 3: the host (`sources/contacts_write.py`, `sources/contact_form.py`, routes in `service/api.py`) and myContacts (`app/apps/mycontacts`).
+### Contacts editing and import
 
-- **Only owned cards are written.** The first one creates the owned address book "myData" (account `local`, one per host for now), which switches the host to real mode and ends conversations as turning a source on does. A followed card is refused (409).
-- **Routes** (`contacts:write`: myData, myContacts, the command): `POST /contacts`, `PATCH /contacts/{id}` and `DELETE /contacts/{id}` (If-Match with the etag required: 428 without, 412 with the current etag when stale), `GET /trash?kind=contact` (`contacts:read`; each item has `backups_kept_until` and its contact's etag), `POST /trash/{id}/restore` (If-Match optional), `DELETE /trash/{id}` (delete for good now, with its revisions; If-Match with the item's etag required; 404 unless it is in Recently deleted), `POST /undo/{id}`. The body is the form's fields (names, nickname, company, department, job title, phones, emails, urls, addresses, birthday with or without a year, note); a field left out is kept, null clears it (the generated client sends every field, so it sends the whole form). Errors come per field (400, `fields`), never echoing values; an edit checks only the values that differ from the card, so a value the card already holds (an imported `BDAY:March 18`) never blocks it. Contacts carry `etag`, `editable` and `on_phone` (false for owned: "On myData only, not on your phone yet").
-- **Writes:** one transaction each, with a `revisions` row (actor = the app), a `changes` row and an `undo_log` row. An edit changes only the lines whose values differ; the rest of the card stays byte for byte. `rev` and the etag move on with every write, a delete or restore included.
-- **Undo** writes a new revision forward and only when the card is still at the revision the action wrote; each action is undone at most once, across restarts. A card whose text changed without a revision (another owned-row writer, such as a later import) gets one before the next write, so an undo never goes back past that change; an undo whose earlier text is not fully recorded is refused. Undoing a create moves the card to Recently deleted.
-- **Recently deleted:** a delete is soft (`purge_after` = 30 days). The host purges what is due daily (`service/trash.py`) through purge permits, with the card's revisions. Snapshots keep copies until they expire.
-- **myContacts:** "New contact" (beside the search field, ⌘N; in a phone's large title) and Edit (beside the header, ⌘E, Return on the open row, the row's Menu) open the Inspector in the contact pane's place (the editor sheet on a phone): Name (first, last, company, job title), Phone, Email, Address, Birthday (year optional), Links, Notes. Fields not in the form (middle name, prefix, suffix, nickname, department) are sent back as loaded. Save sends the whole form with If-Match; a 412 keeps the changes and offers Reload (the host's version, dropping them), never overwriting. Field errors show on their fields in the app's words. One delete goes at once with an Undo toast; several (⌘-click, ⇧-click, ⌘A; the count in the pane) ask first in a Dialog; followed contacts are counted out with the reason. Undo is the toast's, ⌘Z and Edit, Undo named from the action ("Undo Delete Contact"), or "More actions" on a phone; Redo stays disabled. While the Inspector is open, Undo is only the form's typing (opening it hides the last toast) and Delete acts only on the record being edited. Recently deleted is the app's second section: restore (with Undo), or delete for good after a Dialog naming until when the host's backups keep a copy. Owned contacts say "On myData only, not on your phone yet."; followed ones keep "Change it in Contacts" and have no Edit or Delete.
-- **Decided 2026-10-14:** a delete for good from an app runs after the app's Dialog alone, not through the approval gate as the plan's 3.3 table says ("Empty trash, Forget, expunge, bulk delete: confirmation dialog, through the gate"); this file wins over the plan there.
-- **Not done:** revisions keep the whole card (the plan's "raw without PHOTO when the photo did not change" is not built); revisions are not pruned after 90 days; no unique index on (address book, UID) (an import never stores a second owned card with a UID, but a merged original restored on its own shares the merged card's UID); groups are not edited (membership is by UID, which no edit changes). In myContacts: no groups or photo picker, no select mode on a phone, no "Empty Recently deleted"; the undo names live for the app's session (the host has no route that lists its undo log); owned contacts changed by another app (an import or its undo in myData, another window) show at the next sources check, which reads the list again when `GET /sources`' `owned_revision` (counts and the last change token, no values) moves on (Edit still reads the host's version first, and a delete refused with 412 reads the page and the list again); the app itself not yet run against a live host.
-- **Live run (2026-10-14, synthetic host, temporary folder and port, assistant off):** through the API with the myContacts token: create (demo to real, epoch moved on), edit (428 without If-Match, 412 when stale), a field error without its value, delete, Recently deleted, undo (a second undo 409), restore, then a restart: an undo from before it still works once, an older one is refused (409), delete for good (204, then 404; the host stays real); `/shutdown` refused (403). The contact values never reached the host log. A fresh host takes its first snapshot at the next start or hourly tick, so a contact made in its first hour is not yet in a snapshot.
+Built; the full rules, routes and live runs are in `docs/decisions/2026-10-14-contacts-editing-and-import.md`.
 
-### Importing contacts
+- Only owned cards are written; the first creates the owned address book "myData" (account `local`), switching the host to real mode.
+- Import is an app action, never a tool. Previews are in memory and write nothing; a commit takes a snapshot first, in one transaction; losses need `accept_losses`; nothing is merged automatically.
+- A file hides the followed copies of the people it brings in (`shadows`): one result per person.
 
-Phase 4, host side: `sources/import_files.py` (reading the upload), `sources/importer.py` (preview, commit, undo, importing again), `sources/contacts_merge.py`, `sources/contacts_review.py` (possible duplicates, "not the same person", changes since import), `sources/card_values.py` (a card's values and what differs between two), `service/imports.py` (previews held in memory, the snapshot) and the routes in `service/api.py`. An app action, never a tool: MCP agents and the assistant get nothing. The app UI is built to the decided specs (`design/components/ImportFlow`, `DropZone`, `DuplicatePair`; see "The import UI"), and every host gap they list (H1 to H8) is built.
+### Sources (followed, read-only)
 
-- **Routes** (`contacts:import`: myData and the command only): `POST /import/contacts/preview` (the file's raw bytes, `?filename=`; 201 with the preview; 400 when it cannot be imported at all and 413 over 50 MB, each with a `code`: `too_big`, `zip_too_big`, `zip_entry_too_big`, `zip_too_many`, `zip_unreadable`, `zip_no_vcard`, `no_vcard`, `utf16_unreadable`), `POST /import/contacts/from-source/{account}/preview` (a copy of a followed iCloud account as the mirror holds it; This Mac is refused, 409, with the reason and how to export a vCard with notes instead), `GET` and `DELETE /import/previews/{id}`, `GET /import/previews/{id}/items/{index}` (one card's values in a contact page's shape, for Compare), `POST /import/previews/{id}/commit` (`choices`, `accept_losses`, `address_book_id`; a refusal's `code`: `losses_not_accepted`, `choice_refused`), `GET /imports`, `POST /imports/{id}/undo`. With `contacts:write` (myContacts too): `POST /contacts/merge` and `POST /contacts/merge/preview`, `POST /contacts/not-duplicates`, `POST /contacts/{id}/followed-changes/save` and `.../keep`, all undone with `POST /undo/{id}`. With `contacts:read`: `GET /contacts/duplicates`, `GET /contacts/{id}/followed-changes`, `GET /contacts/{id}?include_deleted=true`.
-- **Reading:** a `.vcf` (2.1, 3.0, 4.0) or a `.zip` of them, all in memory, nothing written to disk (an entry's name is only a label). Caps: 50 MB uploaded; for a zip 10,000 entries, 200 MB expanded, 200 times per entry, only stored or deflated entries (bzip2 and LZMA expand a whole read before a cap can stop them), nested and encrypted ones reported; per card 8 MB, 5,000 lines and 1 MB of text besides photos (`too_large`); 50,000 cards, the rest only counted. One input is read at a time, and the oldest held preview is dropped first. Each card is cut out on its own, so a bad card never stops the file: a folded or quoted-printable continuation line that starts with `BEGIN:` or `END:` is never a card edge. UTF-8 and UTF-16 (with or without a byte-order mark) are decoded whole; any other file card by card: UTF-8, else the CHARSET the card names (only real character sets: never `unicode_escape`, `punycode` or `utf-7`), else Windows-1252 or Latin-1 as a guess, which is a loss, with the card's bytes kept in `origins.source_raw`. A 2.1 card is stored as 3.0 with its original kept.
-- **The loss report** is what will not reach the host: cards skipped (unreadable, no END, version, empty, too large, past the limit), text outside any card (a misspelt `BEGIN: VCARD` loses its card), `.vcf` entries with no card (by name), nested, encrypted or unsupported zip entries, guessed character sets, and a file from Contacts on a Mac (its PRODID) in which no card has a note (`no_notes`: Contacts leaves notes out unless "Export notes in vCards" is on; never for an account copy). A preview with losses commits only with `accept_losses`. Changes that lose nothing (2.1 converted, a named character set, other files in the zip) are listed apart.
-- **Preview** writes nothing. Each card gets a status and a default action: new (import), duplicate (skip; an owned contact with the same UID, or the same email or phone and the same name, or one of them has none; a shared number under another name is only a suggestion), in_file (skip), unchanged, update (an earlier import's copy nobody edited since), conflict (edited, merged or kept_yours: never written), deleted. Matches list owned and followed contacts (strong or suggestion) and earlier cards in the input. A card with no UID that changed since (a Google or Samsung export edited on the phone) is paired with the one contact from that file name it came from (same name, email or phone; signal `changed`) and updated, not imported twice. Previews belong to the app that made it (another gets 404), last an hour, are lost on a restart, and can be discarded.
-- **Commit:** a snapshot first (refused, nothing imported, if `contacts.sqlite` cannot be copied), then one transaction: the analysis again (the host may have changed), the choices, and per card written a contacts row, an `origins` row (source, account, UID or content key, hash, the 2.1 or guessed original), a revision, a change and an undo entry. Each card is parsed once when the file is read, so 44,000 cards commit in about 6 s, under the stores' 30 s busy timeout. A card imported anyway while an owned card holds its UID gets a new UID (the original kept in its origin).
-- **A file hides the followed copies of the people it brings in** (decided 2026-10-14): a followed card (This Mac, an iCloud account) with the same name and the same email or phone (emails in lower case, phones in E.164) as a card the commit writes, or finds unchanged from an earlier import of the file, is hidden behind that owned contact (a `shadows` row, schema 6 of `contacts.sqlite`, keyed by the followed card's account and UID, never its row id), so each person is one result in lists, search and `find_contact`. The preview counts them (`followed_matches`) and marks each match (`hides`); the commit counts what it hid (`hidden`). The followed card stays hidden when it changes later, and the owned contact is flagged (`changed_in_source`); it shows again when the owned contact is deleted (and stays shown once it is deleted for good) or the import is undone (`unhidden`). A copy of an account hides only that account's cards; a card a file hid counts as "kept as one of yours" when a copy of its account is imported, and in `stop_following`. Importing the same file again hides a source turned on since.
-- **A copy of a followed account:** its cards are hidden behind their owned copies while the account is still followed (the shadowing rule, `_SHADOWED`: matched by account and UID, one result per person in `find_contact`); an owned contact with the same name and email or phone may be kept instead (link; never by default when two cards would link the same contact). `stop_following` says whether stopping loses anything: how many of its contacts are not on myData, kept as one of yours (whose details may differ) or changed since, and until when the host's backups keep its copies (`backups_kept_until`, also on `GET /accounts`, `GET /sources` and the remove answers); nothing stops following by itself.
-- **Undo** reverts the batch forward: what it created and nobody changed goes to Recently deleted, what it updated gets its earlier text, links are dropped. What changed since, or is already in Recently deleted, stays, and so do their origins (still copies of those cards). Once, also after a restart.
-- **Merge** (owned contacts the user picks, at most 20): a new card from the lines of the one changed most recently (or of `names_from`), every email, phone, address and link of the others, notes kept one after another, and every other property it has no value of; what it cannot take (a second job title or birthday, another photo, KIND, X-ABShowAs) is reported in `left_out`, names and counts only. The originals go to Recently deleted with `merged_into`; restoring one alone takes it out of the merge. When they are deleted for good (expiry or Delete for good), the merged card holds their origins (`origins.held_by`, schema 5 of `contacts.sqlite`, without their text), so it keeps shadowing the followed copies and importing again sees a conflict, not a new card.
-- **Review** (`sources/contacts_review.py`; DuplicatePair): `GET /contacts/duplicates` gives pairs of owned contacts, strong (the same email or phone under the same name, or where one has none) before suggestions (the same name alone, or an email or phone shared under another name), with the shared values; followed copies are never offered. "Not the same person" (`POST /contacts/not-duplicates`) is kept until undone, by the contacts' ids (which an import never changes; a merged contact stands for its originals, also once they are deleted for good). The merge preview (`POST /contacts/merge/preview`) writes nothing and gives the merged contact, each value it would leave out (with the value and whose it is) and `newest`, the contact changed most recently (the default kept one). A merged original carries `merged_into`. Changes since import: `GET /contacts/{id}/followed-changes` puts each followed copy that changed beside the contact, with what differs (name, nickname, company, job title, phone, email, address, birthday, url, note, photo, other; normalised; no notes for This Mac); `.../save` writes the chosen values through the writer (If-Match) and `.../keep` leaves the contact, both clearing the mark at the text the user saw (`reviewed_hash` on the newest origin or shadow, schema 7) until the copy changes again, and a later copy of the account sees that text as unchanged. These decisions are `decisions` rows (ids, kinds and hashes only), undone once with `POST /undo/{id}`, a save only while the contact is unchanged since.
-- **Live run (2026-10-14, synthetic host, temporary folder and port, assistant off, through the API):** an Apple-style export (a `no_notes` loss: committed only with `accept_losses`, refused with `losses_not_accepted` before), a Samsung 2.1 file (`converted_21`) and a Google export; myContacts' token refused (403) on every import route; a card's values (H3); a followed copy (rows written into the temporary `contacts.sqlite` before the start, with no account or password, since an iCloud account cannot be faked through the API) hidden by a strong match (H1: `hides`, `hidden` 1, one Ava in `/contacts`) and shown again when that import was undone (`unhidden` 1); importing the three files again wrote nothing (all `unchanged`); possible duplicates, the merge preview (`newest` by default, a second job title in `left_out`), merge, undo (a second undo 409); "not the same person"; undoing an import kept the contact changed since (`kept` 1); after a restart the undos of a decision and of two imports still worked once. The host log held no name, value or file name (the access log drops `?filename=`). A commit with nothing to write still makes a history row and a snapshot (the app offers "Choose another file" instead, so only a direct API call does this).
-- **History:** `GET /imports`; once nothing an import of a file brought in is left on the host, its row says "Contacts file, <day>" instead of the file's name (exports are named after people). File names lose control and format characters.
-- **Logs** hold ids, kinds and counts only: never a card, a name, a file name or a value.
-- **Not done:** preview items are not paged (at most 50,000); the analysis is not resumable and the commit shows no progress; a card whose owned copy was deleted and that did not change shows as unchanged on a new import (restoring it is the way back); merged originals expire after 30 days like any deleted contact, and what a merge left out goes with them; `mydata db check-migration` has not been run on the owner's files for schemas 5 to 7. A source turned on after a file import is hidden only by importing the file again (the mirror does not apply the rule as it syncs); a copy of an account never hides another account's copies (the spec's rule: This Mac's copy of an imported iCloud account stays visible until a file of it is imported); a preview card's photo is not served (`has_photo` only), and Compare's "Differs" marks are the app's until the host gives `differences` for a card and a contact (it does for a followed copy, H7).
-
-### The import UI
-
-Phase 4, app side (2026-10-14): `app/apps/mydata/lib/src/import/`, `app/apps/mycontacts/lib/src/{merge,merge_pane,review,review_view}.dart`, `ContactPair` in `mydata_core`, and `DropZone`, `DuplicatePair` in `mydata_ui`.
-
-- **myData, Import** (third section: Status ⌘1, Import ⌘2, Settings ⌘3; File, Import…; `mydata://import/contacts`, which never restarts a Review or Importing): Choose (DropZone with `desktop_drop` on the whole page and `file_selector`; one `.vcf` or `.zip`, checked by extension and size before anything is sent, the bytes sent as they are with the name only as a label; "Where to get a file" with the vendors' menu names, still unverified; the followed iCloud accounts with "Import a copy"; This Mac never importable, with "Show how"; the history with Undo import), Review (the summary, the loss report and its checkbox, what changed on the way in, the notices, a zip's files, the lists with select all and Compare (H3), Cancel and Import with ⌘Return), Importing (after 1 s), Done ("Open in myContacts", Undo import, Import more; "Keep following …?" after an account copy, whose Stop following is Settings' remove dialog with H8's date). Every sentence is the app's, from the host's codes and counts. The page stays when the host stops, with the zone disabled and the history as last read.
-- **Settings' dialogs** (remove an account, turn off This Mac) are MyDataDialogs now and say until when the backups keep the copies (H8).
-- **myContacts:** File, Import… (and "Import contacts…" in a phone's More actions) opens myData's Import; Edit, Merge Contacts… (and the selection's Menu) for 2 to 20 owned contacts opens the Merge pane (the host's preview, `names_from` from the Select, defaulting to the host's `newest`; a 412 reads the contacts again and says so; Undo Merge Contacts); a third section, Review (⌘3, its count in the sidebar), with possible duplicates (Merge, Not the same person) and changes since import (a Select per differing row, Save changes or Keep mine), each with an Undo toast; the contact page's Notice links to it.
-- **Decided while building (owner may revisit):** the untinted tile no longer counts toward a screen's three tile colours (ImportFlow's summary); Importing shows the kiwi loader with the label, since ProgressBar is determinate only; Compare under a row is an unframed DuplicatePair (never a card on a card); the merge pane sends the contacts in the order they were selected.
-- **Not done:** Settings' account row has no "Import a copy" (ActionRow takes two buttons and it has Sync now and Remove; the Import page offers it); ⌘V of a file; the empty state's link to Import (EmptyState has one button; its sentence says where Import is); arrow keys in Review's list; the phone layouts are built but untried; the apps have not run against a live host or between built apps (the host has, through the API).
-
-### Contacts and calendars sources
-
-Read-only mirrors in `contacts.sqlite` and `calendar.sqlite` (`host/src/mydata/sources/`). The user turns each source on or off in the myData app (Settings, Sources); turning one off deletes what it mirrored from the mirror. **Copies stay in the host's snapshots until they expire:** by the first day of the same month next year (`backup.kept_until`), while the host keeps running. The CLI, the API docs and the myData app's turn-off and remove dialogs say so.
-
-- **Group cards** (iCloud's `X-ADDRESSBOOKSERVER-KIND:group`, vCard 4's `KIND:group`) are stored with `kind = 'group'` and never listed, counted, searched or found by `find_contact`; the export keeps them in a separate file.
-- **Followed sources stay read-only.** No source ever writes back: the iCloud client sends only PROPFIND, REPORT, OPTIONS and GET, and the Mac helper has no write calls. Writing back to a provider is not planned; owned data reaches other devices through the host's own CardDAV/CalDAV server (see "Direction").
-- **Nothing goes around these two paths.** Static scans of the host's sources: no HTTP client outside `DavClient.request` and a localhost allow-list; no `smtplib`, `imaplib`, `poplib` or `ssl` outside one mail module (none yet: `MAIL_ALLOWED` is empty) (`test_dav_no_other_http.py`); only an allow-list of modules, each with its reason and the programs it may start (never through a shell), may start a program, nothing may load native code (`ctypes`, `cffi`, PyObjC and Apple's frameworks) or use `posix` or `webbrowser`, and no source mentions `osascript` or AppleScript (`test_no_way_around_the_helper.py`). The scans see through import aliases, `import *` and `getattr`; they catch accidental use, not code written to hide a call.
-- **Why This Mac is the default on a Mac host:** it uses the normal system permission prompt, so no password reaches myData, and it covers every account on the Mac (iCloud, Google, Exchange). Asking for an app-specific password is not acceptable as the main path, and Apple rejects sign-ins that use an address other than the Apple Account email (for example a custom domain).
-
-- **This Mac** (Mac host only; absent, not broken, elsewhere): a Swift helper, `myDataReader.app` (`app/apps/mydata/macos/Reader`), inside `myData.app/Contents/Helpers`. macOS attributes it to myData, so the permission prompt names myData and the grant belongs to `kiwi.mydata.mydata`. No password or account detail reaches myData, and every account set up on the Mac is covered.
-  - The host starts it with `open` (LaunchServices), never by running the binary, and only from a path inside a validly signed myData app with the same signing identity. It talks JSON lines over `<home>/run/reader.sock` (folder 0700, socket 0600, one connection at a time).
-  - **Read-only:** all framework access is behind one Swift protocol with no write method; a host test scans the helper's sources for write calls.
-  - **Permission** is asked only when the user presses Allow in the myData app, never at login.
-  - **Access taken away** (denied, restricted, calendars write-only) deletes that kind's copy. "Not asked yet" keeps it, unread until the user allows again: macOS reports it whenever myData's signing identity changes, as on every ad hoc rebuild (found 2026-10-14, when a rebuild emptied the copy).
-  - The user chooses which contact accounts and calendars are included (all by default).
-  - **Contact notes are never read** (they need an entitlement Apple grants on request); the API says `notes_included: false`. Photos are read when allowed, otherwise the apps show initials.
-  - **Events:** EventKit gives only expanded occurrences, so the Mac source keeps a rolling window, one year back and two years ahead, read in pieces of at most 4 years. An occurrence is keyed by (calendar, external id, occurrence date), so one event in two calendars is two rows.
-  - **The window rule:** list_events and `/events` never answer "nothing found" for days a source does not hold. It is decided per source: an iCloud account holding every day never hides the Mac's limit.
-  - Large snapshots arrive in parts of a few MB.
-- **iCloud account** (Advanced): CardDAV and CalDAV with an app-specific password and the Apple Account email, which may differ from an address on the user's own domain. It holds every date.
-- **Switching mode ends every conversation.** The host moves its conversation epoch on (`state.json`, `conversation_epoch` in `/status`); myAssistant then shows one line saying a new conversation has started, and a message to an older epoch's conversation gets a `reset` event.
-- **The same account through both sources** (an iCloud account set up on the Mac and also followed) is mirrored twice: its contacts and calendars are listed twice, and myCalendar lets the user hide either copy. Hiding is kept on the device and followed by myCalendar only: myAssistant's answers come from the host and still include hidden calendars (and both copies). While This Mac is on, Settings says under each followed account that following it is not needed on a Mac that has it in System Settings.
+- **Never write back.** The iCloud client sends only PROPFIND, REPORT, OPTIONS and GET; the Mac helper has no write method (`tests/test_mac_reader_readonly.py`).
+- **Nothing goes around them:** no HTTP client outside `DavClient.request`, no mail libraries outside `MAIL_ALLOWED` (`tests/test_dav_no_other_http.py`); only allow-listed modules start programs, never through a shell; no native code, `osascript` or AppleScript (`tests/test_no_way_around_the_helper.py`).
+- **This Mac:** `myDataReader.app` inside myData.app, started with `open` only from a validly signed myData with the same identity, over `<home>/run/reader.sock` (0600). Permission is asked only on Allow. Access taken away deletes that copy; "not asked yet" keeps it. Contact notes are never read. **From M1b it must exclude the myData account.**
+- **The window rule:** `/events` never answers "nothing found" for days a source does not hold.
+- Group cards are never listed, counted or found. Turning a source off deletes its mirror; snapshots keep copies until they expire, and the UI says so.
 
 ### Demo and real mode
 
-The host is in **demo mode** while no source is on and it holds no owned data, and in **real mode** as soon as a source is on or an owned address book or calendar exists (`mode` in `/status`), even an empty one (purging its last contact leaves the address book, so the host stays real; decided 2026-10-14). Turning the first source on or the last one off switches it; code that creates or purges owned data must call `ModeController.refresh()` the same way.
-
-- **Demo mode:** the six built-in tools serve the fake data in `orchestrator/fixtures.py`, and the host's today is pinned to 18 March 2026 (`demo_date` in `/status`; myData shows a "Demo date" chip, myAssistant "Demo data"). MCP agents get the same six fake tools. myContacts and myCalendar have nothing to show and point to myData, Settings, Sources. Results in myAssistant never open in another app: their ids and days are not the user's.
-- **Real mode:** only `find_contact` and `list_events` are offered, reading the mirror, with the real date and the machine's time zone. Mail, photos and creating events have no real source yet, so those tools are not offered. MCP agents get no tools. The request log records the mode and holds no mirrored data: no tool results, for each argument only its shape (name, type and length), never its value, since the model can copy a value from a result, and only the shape of the reply, which quotes the results whoever wrote it. The request text is kept. The host log keeps only the kind and length of a failed call's error, which can quote a value. Demo mode logs everything. A `result` event says `"mode": "real"`; a contact item carries its id and an event item its day, so myAssistant opens them in myContacts and myCalendar when installed.
+Demo while no source is on and no owned data exists; otherwise real (`mode` in `/status`). Code that creates or purges owned data calls `ModeController.refresh()`. **Switching mode moves the conversation epoch on and ends every conversation.** Demo: six fake tools over `orchestrator/fixtures.py`, today pinned to 18 March 2026 (to become "Try with sample data" in M1a). Real: only `find_contact` and `list_events`; MCP agents get no tools.
 
 ### Assistant
 
-The language model has exactly one job: choose a tool and extract plain arguments. Everything else is ordinary code.
+The model has one job: choose a tool and extract plain arguments. Everything else is code.
 
-- **Dates**: the model outputs the phrase ("next friday"). Code resolves it to a date.
-- **Permissions**, enforced in code, never by asking the model to behave:
-  - read: runs freely
-  - reversible write: runs, with undo
-  - irreversible (send mail, delete): blocked until the user approves
-- **Ambiguity**: a lookup that returns several matches makes the code ask the user.
-- **Structured output**: pass a JSON schema so the model can only emit valid calls.
-- **Small tool set per request**: show the model only the handful of tools relevant to the request.
-- **Untrusted input**: text from mail bodies or web pages can contain instructions. Nothing read from them may trigger an irreversible tool without approval.
-- **Log every request** with the tools called and the outcome. This is future test data and, much later, fine-tuning data.
-- **Web search** is an optional, visible, switchable tool (`web_search`, `fetch_page`). Prefer self-hosted SearXNG. Never put private data into a query without asking.
-
-### Photos
-
-No language model looks at photos. Search uses CLIP embeddings for descriptions, a face model for people, and metadata filters for place and date. These models total about 1GB. Immich's defaults (`ViT-B-32__openai` for CLIP, `buffalo_l` for faces, run through ONNX Runtime) are the reference; verify current names before copying.
+- **Dates** are resolved by code from the model's phrase. **Permissions** are code: reads run, reversible writes run with undo, irreversible acts wait for approval. **Ambiguity** makes code ask the user. **Structured output** with a JSON schema; grounding drops invented arguments (`orchestrator/grounding.py`).
+- **Untrusted input:** text from mail, invites or web pages may carry instructions; nothing read from them triggers an irreversible tool without approval. Before extraction ships, add the plan's rules: a session that has read such text loses outbound tools unless each call is approved; extraction jobs have no tools; every extracted fact links to its source.
+- Log every request with its tools and outcome. The prompt prefix stays byte-identical (`tests/test_prompt_prefix.py`).
+- **Measure on a new frozen request set,** written before looking at output; never edit one (`feasibility/cases.py`, `cases_2026_10_11_b.py`); a request passes only if all reps pass.
+- Working model: `qwen3:14b`, thinking off (24 GB Air; a 27B model crashed it). No language model looks at photos.
 
 ### Client stack
 
-**Flutter**, one codebase for macOS, Windows, Linux, web, iOS and Android; macOS first. The Dart API client is generated from `host/openapi.json` (OpenAPI Generator) and never hand-written. Flutter has no official Liquid Glass components. The web build compiles but only explains that it needs the desktop app, until remote access exists.
-
-**Look:** everything comes from `design/` through `mydata_ui`. Tokens are generated from `design/tokens.json` and `themes.json` (`dart run tool/generate_tokens.dart` in `mydata_ui`; a test fails when they are stale). No app or widget may contain a literal colour, radius or font name; a test scans the source. The **theme** is stored on the host (`PUT /appearance`, reported in `/status`) and applies to every app; the **mode** (light, dark, match system) is per device. Both apps follow a change within one status poll, without a restart. Reduced motion and reduced transparency follow the system. Widget goldens and app screenshots are made in Kiwi and Graphite, light and dark.
-
-**Rules added with the form components (phase 2; details in `design/README.md`, `design/platforms.md` and `mydata_ui`'s README):**
-- **New tokens:** `surface-hover` (every row and icon button that fills on hover), the `data-*` palette (colours of calendars myData owns, never control colours), `dialog-width` (520px), `inspector-width` (440px), `radius-xs` (the checkbox's box), and checkbox and calendar tokens.
-- **Focus ring:** `focus` (red) everywhere, `ink` on anything already red (a field in error, a Danger button, a destructive menu item); the colour comes from one place, never picked by a widget.
-- **Disabled controls always have a reason,** a full sentence. Where it shows only on demand (tooltip, menu item) the control stays focusable but inert (`Pressable(disabledReason: ...)`).
-- **Keys:** one order from the innermost outwards for Escape, ⌘Z and Return; text comes first. On macOS each app has a real menu bar (`AppMenuBar`, title case there only), the one owner of ⌘Z and ⌘S; ⌘E edits the selected record. Phones have no menu bar: every action is also on screen.
-- **Phones:** one breakpoint (600px, `AppLayout.isPhone`) and 16px body text in form fields (`PhoneType`).
-- **Forms:** a Dialog or Inspector makes its fields read-only while it works (`FormBusy`) and commits pending typing before it confirms or saves (`FormCommit`, `PendingInput`); Cancel with changes asks "Discard changes?". Toasts with Undo sit beside an Inspector (`ToastHost` around `InspectorLayout`).
-- Dates are written in British English ("Wed 14 Oct 2026"); only the order for typing follows the region.
+- **Flutter**, macOS first, until the M1a side-by-side decides the Mac; Android stays Flutter; the iPhone gets plain HTML from the host. The Dart client is generated from `host/openapi.json`, never hand-written.
+- **Look today:** everything from `design/` through `mydata_ui`; tokens generated (`generated_tokens_test.dart` fails when stale); **no literal colour, radius or font name** in any app or widget (`no_literals_test.dart`). The theme is stored on the host; light or dark per device.
+- **Direction (M1a's look pass):** the platform owns the frame (window, toolbar, sidebar, controls, font, icons, accent, focus ring); myData owns the content. Mac density, lists not cards, themes become accents. No spec before a component's first use.
+- Disabled controls always give a reason. On macOS the menu bar (`AppMenuBar`) owns ⌘Z and ⌘S; phones have every action on screen. Forms go read-only while working (`FormBusy`) and commit pending typing first (`FormCommit`). Dates in British English ("Wed 14 Oct 2026").
 
 ### Repo layout
 
 ```
-host/                 Python: mydatad, mydata command, tool layer, API, MCP, orchestrator, feasibility harness
-  openapi.json        generated from the app; the Dart client is generated from it
-  results/            feasibility runs and reports
-app/                  Dart workspace
-  packages/mydata_client     generated API client
-  packages/mydata_core       host lifecycle (find, start, wait, watch), app tokens, error states
-  packages/mydata_ui         design system: tokens generated from design/, MyDataTheme, fonts, logo, widgets
-  packages/mydata_testing    test helpers: bundled fonts in tests, golden and screenshot matrices
-  packages/mydata_assistant  chat, streamed replies, progress lines, approval card, results that open in their apps
-  apps/mydata                the myData app
-  apps/myassistant           the myAssistant app
-  apps/mycontacts            the myContacts app (edits the host's own contacts; followed ones read-only)
-  apps/mycalendar            the myCalendar app (read-only)
-CLAUDE.md, README.md
+host/        Python: mydatad, the mydata command, tools, API, MCP, orchestrator, feasibility harness
+  openapi.json, results/
+app/         Dart workspace
+  packages/  mydata_client (generated), mydata_core (host lifecycle, tokens, links), mydata_ui,
+             mydata_testing, mydata_assistant
+  apps/      mydata, myassistant, mycontacts, mycalendar
+design/      design system specs, tokens, previews
+docs/        2026-10-23-plan.md and decisions/ (history)
 ```
 
-Each later app (myMail, myPhotos, ...) is a new `app/apps/<name>` on the same packages. `mydata_core` also holds the links between the apps (`AppLinks`, `IncomingLinks`, `InstalledApps`; the runner side is `macos_snippets/LinksAppDelegate.swift`).
+## Status (2026-10-23)
 
-## Hardware and model findings
+Built and tested against fakes and synthetic hosts, **never used live by the owner**: the host with the gate, scopes, safety net, writers and export; followed contacts and calendars (This Mac, iCloud); the four apps on the design system; contacts editing, import, merge and review. Nothing reaches the phones (loopback only); the host is a dev checkout; builds are signed ad hoc. The old phase build order is replaced by the milestones below.
 
-Measured on a 24GB Apple-silicon MacBook Air:
+## Milestones (plan section 6, adjusted for 2026-10-23)
 
-- A 27B model crashed the machine (about 17GB of weights plus context plus macOS exceeds 24GB).
-- `qwen3:14b` fits: 10GB, 100% GPU.
-- With thinking on, answers took 30 to 120 seconds. Run with `--think=false`; the shipped configuration must work without thinking.
-- Default context was 4,096 tokens. Too small for multi-turn or web content; raise `num_ctx` to 8,000 to 16,000 when needed and watch memory.
-- Realistic ceiling on 24GB is about 20B. `gpt-oss:20b` is the candidate above 14B.
-- A 16GB machine tops out around 8B. A phone handles 3 to 4B, as an offline fallback only.
-
-### First manual test (10 requests, tools described in text, thinking off, one shared chat)
-
-- Right tool chosen: 9 of 10, including both chained requests.
-- Fully correct, judged strictly: 3 of 10.
-- Failures: 4 date errors (wrong day, wrong year), 3 rule failures (skipped a confirmation, guessed at an ambiguous name, offered to delete with no delete tool).
-
-Conclusion: tool choice is promising; dates and rules must move into code. That finding is why the architecture above assigns them to code.
-
-## First task: the feasibility test
-
-Build this before anything else. Its harness becomes the first version of the orchestrator, so write it as real code, not a throwaway script.
-
-**Setup**
-
-- Python, calling Ollama's chat API with real tool definitions (not tools described in the prompt).
-- Six fake tools that only record their arguments: `search_mail`, `send_mail`, `search_photos`, `find_contact`, `list_events`, `create_event`.
-- Date arguments are natural phrases. A resolver in code converts them, given a fixed "today".
-- A permission gate in code blocks `send_mail` pending approval.
-- `find_contact` returns canned results, including a case with several matches.
-- Thinking off. One fresh context per request.
-
-**Requests: 30, written before looking at any model output**
-
-| Type | Count | Example | Correct behaviour |
-|---|---|---|---|
-| Single tool, clear | 10 | "Show photos from Goa last December" | `search_photos` with place and the date phrase |
-| Arguments need care | 6 | "What's on my calendar next Friday?" | `list_events` with the right phrase |
-| Two or three steps chained | 5 | "Email Rishita the time of my dentist appointment" | `list_events`, `find_contact`, then `send_mail` (gated) |
-| Ambiguous | 3 | "Message Patel about tomorrow" | `find_contact` returns several; code asks |
-| No tool needed | 3 | "What's 15% of 80?" | Answer directly, no calls |
-| No suitable tool | 3 | "Delete all mail from my bank" | Say it cannot; call nothing |
-
-**Method**
-
-- Run each request 3 times per model.
-- Models: `qwen3:14b` and `gpt-oss:20b`. Optionally `qwen3:8b` to see whether a faster model matches.
-- Record per run: right tool, arguments correct (strict), any invented tool or argument, seconds to first tool call.
-- Print a results table per model and per request type.
-
-**Reading the result**
-
-- 90% or more fully correct: the local-only design works. Start building.
-- 70 to 90%: look at which type fails; consider a planner step or the larger model.
-- Under 70%: local-only on this hardware is not viable as planned. Options are a 48GB or larger host, or a hybrid that sends hard requests to a hosted model.
-
-Do not count "close enough" arguments as passes, and do not rewrite requests after seeing what the model is good at.
-
-## Feasibility test result (2026-10-11)
-
-Full detail: `myData/results/2026-10-11-full/report.md` and `REVIEW.md`. 30 requests × 3 reps, strict scoring, fixed today Wed 18 March 2026, Ollama 0.40.1, 24GB MacBook Air.
-
-| Model | Fully correct (after hand review of refusals) |
-|---|---|
-| `qwen3:14b`, think off | 78/90 (87%) |
-| `qwen3:8b`, think off | 67/90 (74%) |
-| `gpt-oss:20b`, think low (it cannot be turned off) | 63/90 (70%) |
-
-- Dates in code works. `qwen3:14b` got every date case right on every rep.
-- Chained requests are the weak spot (`qwen3:14b` 53%). Models search mail for calendar facts, and gpt-oss writes made-up times into emails. The permission gate held every send.
-- gpt-oss:20b and qwen3:8b invent optional arguments (location, duration) on every create_event. qwen3:14b does not.
-- gpt-oss:20b is worse than qwen3:14b, so "use the larger model" is not the fix on 24GB. `qwen3:14b` is the working model.
-- Thinking off gives a median of 2.5 to 3.9 s to the first tool call.
-- Round 2 (below) tried the code fixes for chains on a new set. Never edit the 2026-10-11 set.
-
-## Round 2 result (2026-10-11/12)
-
-Full report: `myData/results/2026-10-11-b-REPORT.md`. New frozen set `cases_2026_10_11_b.py`: 40 requests, 15 of them chained, its own dataset, committed before any orchestrator change. Model `qwen3:14b`, thinking off, 3 reps. Each row adds one fix.
-
-| Row | Overall runs (requests passing all reps) | Chains runs (requests) | Median s to first tool call |
-|---|---|---|---|
-| baseline | 65% (26/40) | 20% (3/15) | 3.8 |
-| +a tool descriptions | 70% (28/40 hand-reviewed) | 28% (4/15) | 3.9 |
-| +b per-request tool filtering | 70% (28/40) | 26% (4/15) | 4.5 |
-| +c grounding check | 67% (27/40) | 26% (4/15) | 4.6 |
-
-- Chains stay far under 80%. The model treats a chain as one step: it skips the lookup and acts on a guess, passes a description ("the day of Farah's housewarming") as an argument, or reads the wrong source.
-- No planner was built, as agreed for this round. The report lists what one would need to fix. Measure any planner on a new frozen set; 2026-10-11-b has now been seen.
-- **Kept: (a) tool descriptions and (c) grounding.**
-  - (a) gave +5 runs at no cost.
-  - (c) did not raise the score. It blocked 6 sends with an invented address and dropped invented event fields before the user saw them. Its one cost was a duration worked out from two times (BA03), which it dropped; fixed in Part A (see "Answer latency").
-- **Not kept: (b) per-request tool filtering.** It is off by default (`Engine.route=False`); the module stays so the measurement can be reproduced. It gained nothing, added 0.6 s, and by design hides tools that a chain needs when the wording does not name the source.
-- The kept combination (a + c, without b) was not itself measured.
-- Scoring: raw and hand-reviewed scores are both reported, and requests count as passing only if all reps pass. The hand-review rule for refusals is automated in `scoring.py`.
-- Kept configuration (a + c, routing off), measured as a whole: 68% of runs strict after hand review (27/40 requests); chains 26% on both the strict and outcome scores (4/15). Median 12.4 s to the final answer, worst 39.5 s.
-- Thinking on, chains only: strict 40% (4/15 requests), outcome 48% (6/15). Median 181 s to the final answer, worst 693 s. It fixes some lookup-skipping but often asks the user for facts it could look up; too slow to ship.
-- An "outcome correct" score (ignores rejected calls the model then corrected) is now reported next to strict. Defect found: grounding read "4-9" as one token and rejected "Slides 4-9" (BC14); fixed in Part A.
-
-## Answer latency (Part A, 2026-10-12)
-
-Full report: `host/results/2026-10-12-a-REPORT.md`. Measured on battery, with BTLEServer using one core throughout.
-
-- **Results are shown by code.** A read tool's result goes to the app at once as a `result` event (`{kind, header, items}`), with a one-line header written by code. Single-tool requests: result on screen median 13.4 → 3.5 s, worst 35.7 → 5.9 s; end of reply 13.4 → 7.0 s, worst 35.7 → 8.2 s.
-- **A model sentence is written only when the list does not answer the question.** It is streamed, capped at about 40 tokens, and decided by a code rule (`[model] followup = "rule"`, `orchestrator/followup.py`). Tool choice is unchanged: 27/40 requests before and after.
-- **Rejected: a `then` field on the tool-choice call.** It changed which tools the model chose (BS10, BM04, BU01).
-- **Open defect: the rule misses sentences.** It caught 4 of the 12 needed in a blind probe set (open item 1 below).
-- **Keep warm.** The model is loaded while the assistant is on, and a warm-up request caches the prompt prefix. The prefix must stay byte-identical across requests (`tests/test_prompt_prefix.py`).
-- **Grounding fixes.** "4-9" is grounded by "4 to 9", and a duration between two grounded times is allowed.
-- **Speed.** The M4 Air peaks at about 11 tok/s generating and about 100 tok/s reading a cold prompt. On this fanless machine, heat costs about 15% within minutes, and swap bursts caused by other apps cost about 20% more. Background CPU load does not matter. The earlier 8.5 tok/s and 25 s cold read were a hot machine after 25 to 50 minutes of continuous requests.
-
-**Open items for the next assistant round** (agreed; not built):
-
-1. **Follow-up sentence: flip the default.** Write the short sentence unless the request is plainly a show/list request, instead of only when a question is recognised. A missed answer is worse than an extra sentence. Measure on a new blind set of about 40 requests, written before the rule changes.
-2. **Keep the input usable while the second model call runs.** Cancel that call if the user sends something new.
-3. **Temperature for the tool-choice call.** Measure 0 and 0.2 against today's 0.6 on a new frozen set, reporting requests that pass on all reps.
-4. **Repeat the speed check plugged in, on a quiet machine,** to separate battery from heat.
-
-## Build order after the test passes
-
-1. ~~Host skeleton~~: done (phase 1): service, config, logging, tool layer and gate, API, MCP, tokens.
-2. ~~myData and myAssistant apps~~: done (phase 2), macOS first, against the fake tools.
-3. ~~Answer latency~~: done (Part A, 2026-10-12): results shown by code, the model kept warm. Open items are listed under "Answer latency".
-4. ~~Design system~~: done (Part B): `design/` implemented in `mydata_ui`, the theme stored on the host, both apps restyled.
-5. ~~myContacts and myCalendar~~: done. The host side, with This Mac (Contacts, EventKit) as the main source on a Mac and iCloud (CardDAV, CalDAV) under Advanced, replacing the fake contact and calendar tools in real mode; then the two read-only apps in `app/apps`, the links between the apps, myAssistant's results opening in them, and the apps on myData's Status. myCalendar shows the window limit that `/events` reports.
-6. **The host owns the data** (`docs/2026-10-13-own-data-plan.md`, section 4):
-   - ~~0a safety net~~: done (snapshots, restore drill, safe migrations, export).
-   - ~~0b additive schema~~: done (owned and followed collections, revisions, changes, origins, triggers that keep owned rows, group cards fixed).
-   - ~~0c tokens and approvals~~: done (scopes per app, approvals bound to mode and epoch, real-mode logs keep shapes only, wider scans).
-   - ~~1 writers and export~~: done (the lossless vCard and ICS writers, `.vcf`/`.ics` export).
-   - ~~2 form components~~: done (specs and previews in `design/`, tokens, the widgets in `mydata_ui` with goldens, the macOS menu bar).
-   - ~~3 contacts editing~~: done (see "Editing contacts"), except groups and the photo picker in myContacts.
-   - ~~4 contact import~~: done (see "Importing contacts" and "The import UI"): the host side and its gaps (H1 to H8), the UI in myData and myContacts, and a live run of the host on synthetic data.
-   - **Next: 5 mail receiving** (myMail, read-only). It needs the owner present: the Automation prompt (myData asking to control Mail) is answered by hand. Then remove the mail spike app (`~/Applications/myDataMailSpikeHost.app`, which holds Full Disk Access and Automation grants) and ask the owner to switch both grants off in System Settings.
-   - Then 6 calendar editing and import; 7 mail sending; 8 assistant write tools (new frozen request set first); 9 CardDAV/CalDAV serving; 10 remote access; 11 API imports and IMAP (Advanced).
-7. myAssistant against the real tools; revisit chained requests (planner) and the sentences the follow-up rule misses (see "Answer latency").
-   - **Real-mode tool descriptions:** in real mode `find_contact` and `list_events` still use the descriptions measured on the demo set, which mention mail. New descriptions need a new frozen request set and a measurement before they replace them.
-   - **Outside agents and real data:** MCP agents are blocked from real data (in real mode they get no tools). Later: a per-agent permission, granted in the myData app, off by default, with a warning that the data may leave this machine.
-8. myPhotos (import, CLIP index, faces). The largest piece; expect 6 to 8 weekends.
-9. Phone clients (remote access itself is phase 10 of item 6).
-10. Packaging: installers, a bundled host binary (the place to start it is marked in `mydata_core`), Windows and Linux builds on those systems.
+- **M0, housekeeping. Next.** Owner: the Apple Development certificate; switching off the spike app's grants. Mine: `Signing.local.xcconfig`; `mydata db check-migration` on copies of the owner's files (schemas 5 to 7). Done: push, licence, this file cut. Accept: two rebuilds without a second Contacts prompt.
+- **M1a, the Mac (2 to 3 weeks).** The host as a signed `.app` with a LaunchAgent; the stack side-by-side; the look pass in **each** of the four apps (Mac density, system font and accent, icons, a real app icon); first launch in myData (Allow, or Try with sample data); History, Restore and Cleanup in myContacts; Proof of privacy v0 in myData.
+- **M1b, contacts on both phones (3 weeks).** The backup gate first; the remote listener and Tailscale Serve; day 1 records stock Radicale against iPhone, Mac Contacts and DAVx5, then our CardDAV against the recordings; Settings, Devices; This Mac excludes the myData account; the switch-over tool; `mydata check security`.
+- **M1c, calendar and tasks on both phones (2 weeks).** CalDAV for an owned calendar and plain VTODO; `.ics` import; provider calendars stay followed.
+- **M2:** the host's web page (Today, Search/Ask, Settings) with Web Push; Android APKs; ⌘K and Ask in myAssistant; notifications.
+- **M3:** the `items` index; person pages in myContacts; a model bake-off on a new frozen set. Then decide on a Mac mini.
+- **M4** mail archive, read-only (myMail). **M5** brief and tasks. **M6** extraction from mail (no tools). **M7** photos through Immich. **M8** sending and the assistant acting (channel hardened first).
+- **Native iPhone apps** when the owner pays for the Apple Developer Program.
 
 ## Open questions
 
-- Licence: MIT or AGPL.
-- Where to keep the conversation history (in memory now; lost when the host restarts).
-- Whether myAssistant should ask the myData app to open its Setup when myData is already running. Today `--setup` only works on a cold start of myData.
-- **Releasing on macOS** (not needed for development). It needs the paid Apple Developer Program, for:
-  - a Developer ID Application certificate for the myData app and its helper;
-  - the hardened runtime;
-  - notarization;
-  - the two entitlements on `myDataReader.app`: `com.apple.security.personal-information.addressbook` and `com.apple.security.personal-information.calendars`. `Reader.entitlements` has them, and `build_reader.sh` applies them when `ENABLE_HARDENED_RUNTIME=YES`.
-
-  Development builds are signed ad hoc, or with a free Apple Development certificate through the git-ignored `Runner/Configs/Signing.local.xcconfig`. With a Developer ID, the host's check of the helper could also pin the team id; today it only requires the same identity as the myData app around it.
-- Website: may move to a static-site generator. If so, it must build to static files for GitHub Pages and keep the `CNAME` file. Not a priority.
+- Where Today, ⌘K and person pages live (proposed: Today in myData, ⌘K and Ask in myAssistant, person pages in myContacts).
+- Where to keep conversation history (in memory now).
+- Releasing on macOS needs the paid program: Developer ID, hardened runtime, notarisation, and the entitlements in `Reader.entitlements`. Development signing goes through the git-ignored `Runner/Configs/Signing.local.xcconfig`.
+- Chained requests (26% in round 2) need a planner; start from `host/results/2026-10-11-b-REPORT.md`.
 
 ## Known rough edges
 
-- The website's header animation (kiwi walks in, pecks the "M" to lower case, jumps) and the pull-to-refresh kiwi-slice loader were never visually verified end to end. Expect to tune timing and positions.
-- The app icon file and the newer logo (pale green background with wash and ground line) do not match yet.
-- The myData and myAssistant apps still use Flutter's default app icons; `design/assets/Logos/mydata-kiwi-app-icon.svg` exists but is not applied. Inside the apps the kiwi appears only on empty and loading screens and in the menu-bar icon, as `design/` says.
-- Design-system gaps found while restyling:
-  - The loading "kiwi slice" has not been drawn. `KiwiLoader` (the kiwi mark on a turning badge) is a placeholder.
-  - The icon set has not been drawn. The apps use Material outline icons.
-- myAssistant's "Open myData" (assistant off) can only bring myData forward, or open Setup on a cold start. myData now takes one link, `mydata://settings/sources`, but there is none for its Assistant setting yet.
-- The links between the apps, myAssistant's results opening in myContacts and myCalendar, and the Status rows' "Open" are tested with fakes only. None has been tried between built apps on a Mac, and myContacts and myCalendar have not been run against a real host (the contacts write and import APIs have, on synthetic data; see "Editing contacts" and "Importing contacts"). myCalendar's time zone channel has not been tried live.
-- The phone layouts (floating tab bar, large title) are built and covered by goldens, but have not been run on a phone.
-- **The calendar reader takes one zone per custom TZID.** icalendar keeps the first VTIMEZONE it reads for a TZID it does not know (Outlook's "Customized Time Zone") for the whole process, so a later resource with the same TZID and other rules is read with the first one's offsets (found 2026-10-14; the export renames such zones, the store does not yet).
-- **The calendar reader gives the occurrence in the skipped hour no length.** recurring-ical-events adds an event's length on the wall clock, so on the day clocks go forward an occurrence at 02:30 ends before it starts, and `ical.occurrences` clamps it to zero length. The writer uses the exact length (RFC 5545); the reader is not fixed yet.
-- **One host test is timing-sensitive:** `test_a_reader_that_fails_the_same_way_every_time_backs_off` waits 5 s for a relaunch after a 2.5 s pause; it failed once (2026-10-14) while the Flutter suites ran at the same time, and passes alone. Run the host suite on a quiet machine.
-- Windows and Linux builds of the apps have not been made: Flutter builds them only on those systems. Their code paths compile (`flutter analyze`).
-- **myContacts' keys on Windows and Linux** (Ctrl+N, Ctrl+E, Ctrl+S, Ctrl+Z) reach the menu bar's handler only while focus is inside the window's content; right after launch, with nothing focused, they do nothing until something is clicked. macOS's menu bar owns its keys and is not affected. ⌘E for Edit Contact is still unverified against Apple's Contacts.
-- **The owner's Mac still builds ad hoc** (checked 2026-10-13): no Apple Development certificate is in the keychain, Xcode has no account, and there is no `Signing.local.xcconfig`. An ad hoc build's designated requirement is its code hash, so every rebuild is a new app to macOS and the Contacts and Calendars permission is asked again. The fix is the certificate (steps in `Signing.local.xcconfig.example`); a self-signed certificate does not work without trusting it, which needs an admin prompt.
-- The host runs as `mydatad` (argv[0]; `pgrep mydatad`, `ps`). On macOS the kernel name in `top` and Activity Monitor is still the Python binary. The Linux form (an absolute path beside the interpreter) has not been run on Linux.
-- An app replaces a host from another build only when it connects (the poll reports it and restarts nothing). A host-only code change shows up as `stale` in `/status`, so the next app to connect restarts the host, which ends in-memory conversations.
-- This Mac has not been verified:
-  - across a reboot;
-  - with the helper running for hours (it was watched for 5 minutes);
-  - with Google or Exchange accounts (the test Mac had only iCloud, On My Mac, a subscribed calendar and Birthdays);
-  - on macOS versions other than 26.7;
-  - with signed and notarized builds;
-  - starting the host at login through Apple's login-item mechanism (a plain login agent was used).
+- **Ad hoc builds:** every rebuild is a new app to macOS, so permissions are asked again and This Mac's copy goes unread. Fixed by the certificate (M0).
+- **Never run live:** the apps against a live host or each other, the links between apps, the phone layouts, Windows and Linux builds.
+- **The calendar reader** takes one zone per custom TZID and gives the occurrence in the skipped hour no length.
+- `test_a_reader_that_fails_the_same_way_every_time_backs_off` is timing-sensitive: run the host suite on a quiet machine.
+- Default Flutter app icons; `KiwiLoader` is a placeholder.
+- A host-only code change shows as `stale`; the next app to connect restarts the host, ending conversations.
+- This Mac is unverified across a reboot, over hours, with Google or Exchange accounts and with signed builds.
+- Real-mode tool descriptions were measured on the demo set; new ones need a new frozen set.
+
+## History
+
+Moved verbatim from this file on 2026-10-23:
+
+- `docs/decisions/2026-10-11-feasibility.md`: hardware and model findings; the feasibility test and its result.
+- `docs/decisions/2026-10-12-round-2.md`: round 2 (chained requests).
+- `docs/decisions/2026-10-12-answer-latency.md`: Part A and its open items.
+- `docs/decisions/2026-10-14-architecture.md`: architecture, tokens, sources, modes, assistant, photos and client stack in full.
+- `docs/decisions/2026-10-14-data-safety-and-writers.md`: data layer, data safety and the writers in full.
+- `docs/decisions/2026-10-14-contacts-editing-and-import.md`: contacts editing, import and the import UI.
+- `docs/decisions/2026-10-14-status-and-build-order.md`: phase status, the 2026-10-13 direction in full, assets, the old build order, open questions and rough edges.
+- `docs/2026-10-13-own-data-plan.md` (superseded) and `docs/2026-10-23-plan.md` (current).

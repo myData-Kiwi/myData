@@ -1,6 +1,6 @@
 How contacts come into myData as the host's own: from a file, or as a copy of an account myData follows. Four steps on one page of the myData app (Choose, Review, Importing, Done), then the import's place in the history, where it can be undone. Phase 4; contacts only. Calendars (phase 6) use the same page and the same steps.
 
-**Status: decided 2026-10-14** (the owner's review; "Decisions", at the end). **The host side is built** (CLAUDE.md, "Importing contacts"); the app side is not. Every count, list, choice and error below comes from the host's API as built ("What the host gives", at the end); the host gaps this spec named (H1 to H8, at the end) are all built (2026-10-14), and each use below says which it relies on.
+**Status: decided 2026-10-14** (the owner's review; "Decisions", at the end). **The host side is built** (`docs/decisions/2026-10-14-contacts-editing-and-import.md`, "Importing contacts"); the app side is not. Every count, list, choice and error below comes from the host's API as built ("What the host gives", at the end); the host gaps this spec named (H1 to H8, at the end) are all built (2026-10-14), and each use below says which it relies on.
 
 ## Where it lives
 
@@ -195,7 +195,7 @@ Every message names the file, says what is wrong and gives one next step (platfo
 
 ## Host gaps this spec needed (all built, 2026-10-14)
 
-Kept as the record of what the UI relies on; CLAUDE.md, "Importing contacts", says how each was built.
+Kept as the record of what the UI relies on; `docs/decisions/2026-10-14-contacts-editing-and-import.md`, "Importing contacts", says how each was built.
 
 
 - **H1 (built). A file import hid no followed copy.** Shadowing is matched by account and UID and only for an account copy; a file's origins never hide anything. On the main path (a Contacts on a Mac export with This Mac on) every imported person is then listed twice and `find_contact` returns two, against the owner's "one result per person". Needed: on a file import, a followed card with a strong match (the same name and the same email or phone, emails normalised and phones in E.164; `followed_matches`) is hidden behind the imported copy, recorded as an origin of that followed card (account and UID), undone with the import, so each person is one result in myContacts and `find_contact`. Built before the import UI ships (Decisions, 7). Test it with a synthetic iCloud account also on the Mac: an account copy hides only the iCloud copies, and H1's match hides This Mac's copies of the same people too.
