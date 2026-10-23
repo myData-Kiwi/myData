@@ -2,8 +2,7 @@ import 'dart:ui' show SemanticsValidationResult;
 
 import 'package:flutter/material.dart';
 
-import '../generated/tokens.g.dart';
-import '../theme.dart';
+import '../theme/theme.dart';
 import 'app_frame.dart' show AppLayout, PhoneType;
 import 'form_scope.dart';
 import 'pressable.dart';
@@ -120,7 +119,7 @@ class MyDataTextField extends StatefulWidget {
   static const maxLines = 12;
 
   /// Spec: "Multi-line: `space-4` padding across and `space-3` down".
-  static const multilineVerticalPadding = MyDataSpace.s3;
+  static double multilineVerticalPadding(MyDataLook look) => look.space(3);
 
   /// Spec: "`surface` fill, 1px `line-strong` border".
   static const borderWidth = 1.0;
@@ -168,7 +167,7 @@ class _MyDataTextFieldState extends State<MyDataTextField> {
     final borderWidth = hasError ? MyDataTextField.errorBorderWidth : MyDataTextField.borderWidth;
     final phone = AppLayout.isPhone(context);
     final style =
-        (widget.mono ? MyDataType.mono : PhoneType.body(MyDataType.body, phone: phone)).copyWith(color: c.ink);
+        (widget.mono ? context.typeScale.mono : PhoneType.body(context.typeScale.body, phone: phone)).copyWith(color: c.ink);
 
     Widget field = _Field(
       controller: widget.controller,
@@ -184,15 +183,15 @@ class _MyDataTextFieldState extends State<MyDataTextField> {
       keyboardType: widget.keyboardType,
       textInputAction: widget.textInputAction,
       // The 2px error border grows inward; the text stays where it was.
-      horizontalInset: MyDataSpace.s4 - borderWidth,
+      horizontalInset: context.space(4) - borderWidth,
       verticalInset: borderWidth,
       multiline: widget.multiline,
       decoration: BoxDecoration(
         color: c.surface,
-        borderRadius: MyDataRadii.md,
+        borderRadius: MyDataRadii.md(context.look),
         border: Border.all(color: hasError ? c.danger : c.lineStrong, width: borderWidth),
       ),
-      borderRadius: MyDataRadii.md,
+      borderRadius: MyDataRadii.md(context.look),
       danger: hasError,
     );
 
@@ -212,14 +211,14 @@ class _MyDataTextFieldState extends State<MyDataTextField> {
       children: [
         if (widget.showLabel) ...[
           // Read out through the field's own semantics.
-          faded(ExcludeSemantics(child: Text(widget.label, style: MyDataType.label.copyWith(color: c.ink)))),
-          const SizedBox(height: MyDataSpace.s2),
+          faded(ExcludeSemantics(child: Text(widget.label, style: context.typeScale.label.copyWith(color: c.ink)))),
+          SizedBox(height: context.space(2)),
         ],
         faded(field),
         if (note != null) ...[
-          const SizedBox(height: MyDataSpace.s2),
+          SizedBox(height: context.space(2)),
           ExcludeSemantics(
-            child: Text(note, style: MyDataType.caption.copyWith(color: hasError ? c.danger : c.inkMuted)),
+            child: Text(note, style: context.typeScale.caption.copyWith(color: hasError ? c.danger : c.inkMuted)),
           ),
         ],
       ],
@@ -290,7 +289,7 @@ class _MyDataSearchFieldState extends State<MyDataSearchField> {
       child: _Field(
         controller: widget.controller,
         focusNode: _node,
-        style: MyDataType.body.copyWith(color: c.ink),
+        style: context.typeScale.body.copyWith(color: c.ink),
         placeholder: widget.placeholder,
         enabled: true,
         readOnly: false,
@@ -300,15 +299,15 @@ class _MyDataSearchFieldState extends State<MyDataSearchField> {
         onSubmitted: widget.onSubmitted,
         keyboardType: TextInputType.text,
         textInputAction: TextInputAction.search,
-        horizontalInset: MyDataSpace.s4,
+        horizontalInset: context.space(4),
         verticalInset: 0,
-        decoration: BoxDecoration(color: c.surfaceSunken, borderRadius: MyDataRadii.pill),
-        borderRadius: MyDataRadii.pill,
+        decoration: BoxDecoration(color: c.surfaceSunken, borderRadius: MyDataRadii.pill(context.look)),
+        borderRadius: MyDataRadii.pill(context.look),
         // The outer label is the name; reading the placeholder too would say it twice.
         readPlaceholder: false,
         leading: Padding(
-          padding: const EdgeInsets.only(left: MyDataSpace.s4),
-          child: Icon(Icons.search_rounded, size: MyDataSize.icon, color: c.inkMuted),
+          padding: EdgeInsets.only(left: context.space(4)),
+          child: Icon(Icons.search_rounded, size: context.density.icon, color: c.inkMuted),
         ),
       ),
     );
@@ -381,8 +380,8 @@ class _Field extends StatelessWidget {
     final c = context.colors;
     final lineHeight = style.fontSize! * style.height!;
     final vertical = multiline
-        ? MyDataTextField.multilineVerticalPadding - verticalInset
-        : (MyDataSize.controlHeight - lineHeight) / 2 - verticalInset;
+        ? MyDataTextField.multilineVerticalPadding(context.look) - verticalInset
+        : (context.density.controlHeight - lineHeight) / 2 - verticalInset;
     final hintStyle = style.copyWith(color: c.inkMuted);
     final text = TextField(
       controller: controller,
@@ -415,7 +414,7 @@ class _Field extends StatelessWidget {
         hintStyle: hintStyle,
         hintMaxLines: multiline ? MyDataTextField.minLines : 1,
         contentPadding: EdgeInsets.fromLTRB(
-            leading == null ? horizontalInset : MyDataSpace.s2, vertical, horizontalInset, vertical),
+            leading == null ? horizontalInset : context.space(2), vertical, horizontalInset, vertical),
       ),
     );
     return FocusRing(
@@ -423,7 +422,7 @@ class _Field extends StatelessWidget {
       borderRadius: borderRadius,
       danger: danger,
       child: Container(
-        height: multiline ? null : MyDataSize.controlHeight,
+        height: multiline ? null : context.density.controlHeight,
         decoration: decoration,
         child: leading == null
             ? text

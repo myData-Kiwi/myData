@@ -10,9 +10,9 @@ void _noop(bool _) {}
 /// The rows of a grouped list, as GroupedList will stack them: a `surface` group, `line` dividers.
 Widget _group(BuildContext context, List<Widget> rows) => DecoratedBox(
       decoration: BoxDecoration(
-          color: context.colors.surface, borderRadius: MyDataRadii.lg, boxShadow: context.shadows.shadow1),
+          color: context.colors.surface, borderRadius: MyDataRadii.lg(kiwiLook), boxShadow: context.shadows.shadow1),
       child: ClipRRect(
-        borderRadius: MyDataRadii.lg,
+        borderRadius: MyDataRadii.lg(kiwiLook),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           for (var i = 0; i < rows.length; i++) ...[
             if (i > 0) Divider(height: 1, thickness: 1, color: context.colors.line),

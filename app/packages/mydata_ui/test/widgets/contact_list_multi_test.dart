@@ -285,7 +285,7 @@ void main() {
           ));
       final field = tester.getRect(find.byType(MyDataSearchField));
       final button = tester.getRect(find.byType(MyDataIconButton));
-      expect(button.left - field.right, ContactList.searchTrailingGap);
+      expect(button.left - field.right, ContactList.searchTrailingGap(kiwiLook));
       expect(button.center.dy, closeTo(field.center.dy, 1));
       search.requestFocus();
       await tester.pump();

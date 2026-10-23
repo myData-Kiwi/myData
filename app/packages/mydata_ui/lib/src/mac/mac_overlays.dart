@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../generated/tokens.g.dart';
-import '../theme.dart';
+import '../theme/theme.dart';
 import '../widgets/kiwi.dart';
 import '../widgets/pressable.dart';
 import 'mac_icons.dart';
@@ -10,7 +10,7 @@ import 'mac_theme.dart';
 /// What opens over a window in the Mac frame (docs/2026-10-23-plan.md section 5: "Restyled: Dialog (push
 /// buttons, the default button in the accent), Inspector, and toasts"), drawn the way macOS 26 draws them.
 /// The branded widgets keep their behaviour (keys, focus, waiting for the host, announcements) and hand their
-/// parts here when [MacLook.of] is true:
+/// parts here when [MacWindow.of] is true:
 ///
 /// - [MacAlert]: MyDataDialog as an alert sheet (NSAlert run as a sheet on macOS 26): it comes down from the
 ///   window's toolbar edge with no scrim over the window, the app's own icon ([MacAppIcon]), the title in
@@ -24,10 +24,10 @@ abstract final class MacAlert {
   static const width = MyDataMacSize.alertWidth;
 
   /// Inside the panel.
-  static const padding = MyDataSpace.s5;
+  static double padding(MyDataLook look) => look.space(5);
 
   /// The app's icon at the top (an alert shows the app's icon).
-  static const markSize = MyDataSpace.s12;
+  static double markSize(MyDataLook look) => look.space(12);
 
   /// The panel's corners: macOS 26's larger window corners.
   static const radius = BorderRadius.all(Radius.circular(MyDataMacRadius.sidebar));
@@ -62,7 +62,7 @@ abstract final class MacAlert {
     final byDefault = destructive && cancel != null ? [confirm, cancel] : [?cancel, confirm];
     return Container(
       width: width,
-      padding: const EdgeInsets.all(padding),
+      padding: EdgeInsets.all(padding(context.look)),
       decoration: BoxDecoration(
         color: mac.windowBackground,
         borderRadius: radius,
@@ -73,37 +73,37 @@ abstract final class MacAlert {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Align(alignment: AlignmentDirectional.centerStart, child: MacAppIcon.image(context, size: markSize)),
-          const SizedBox(height: MyDataSpace.s3),
+          Align(alignment: AlignmentDirectional.centerStart, child: MacAppIcon.image(context, size: markSize(context.look))),
+          SizedBox(height: context.space(3)),
           Semantics(header: true, child: Text(title, style: MyDataMacType.bodyEmphasized.copyWith(color: mac.label))),
           if (body.isNotEmpty)
             Flexible(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.only(top: MyDataSpace.s2),
+                padding: EdgeInsets.only(top: context.space(2)),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
                   for (var i = 0; i < body.length; i++) ...[
-                    if (i > 0) const SizedBox(height: MyDataSpace.s3),
+                    if (i > 0) SizedBox(height: context.space(3)),
                     body[i],
                   ],
                 ]),
               ),
             ),
           if (failure != null) ...[
-            const SizedBox(height: MyDataSpace.s3),
+            SizedBox(height: context.space(3)),
             Text(failure, style: MyDataMacType.callout.copyWith(color: c.danger)),
           ],
-          const SizedBox(height: MyDataSpace.s5),
+          SizedBox(height: context.space(5)),
           if (_stacks(context, buttonLabels, byDefault.length))
             Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
               for (final (i, b) in byDefault.reversed.indexed) ...[
-                if (i > 0) const SizedBox(height: MyDataSpace.s2),
+                if (i > 0) SizedBox(height: context.space(2)),
                 b,
               ],
             ])
           else
             Row(children: [
               for (final (i, b) in byDefault.indexed) ...[
-                if (i > 0) const SizedBox(width: MyDataSpace.s2),
+                if (i > 0) SizedBox(width: context.space(2)),
                 Expanded(child: b),
               ],
             ]),
@@ -146,13 +146,13 @@ abstract final class MyDataAppIcons {
 /// `body` with its `space-3` padding each side, in its share of the panel's width.
 bool _stacks(BuildContext context, List<String> labels, int count) {
   if (count < 2 || labels.isEmpty) return false;
-  final share = (MacAlert.width - 2 * MacAlert.padding - (count - 1) * MyDataSpace.s2) / count;
+  final share = (MacAlert.width - 2 * MacAlert.padding(context.look) - (count - 1) * context.space(2)) / count;
   final painter = TextPainter(textDirection: TextDirection.ltr, textScaler: MediaQuery.textScalerOf(context));
   try {
     for (final l in labels) {
       painter.text = TextSpan(text: l, style: MyDataMacType.body);
       painter.layout();
-      if (painter.width + 2 * MyDataSpace.s3 > share) return true;
+      if (painter.width + 2 * context.space(3) > share) return true;
     }
     return false;
   } finally {
@@ -169,10 +169,10 @@ abstract final class MacMenuLook {
   static const itemRadius = BorderRadius.all(Radius.circular(MyDataMacRadius.selection - MyDataMacSize.tight));
 
   /// Inside the panel, around the items.
-  static const padding = EdgeInsets.all(MyDataSpace.s1 + 2 * MyDataMacSize.hairline);
+  static EdgeInsets padding(MyDataLook look) => EdgeInsets.all(look.space(1) + 2 * MyDataMacSize.hairline);
 
   /// An item's text from the highlight's edge.
-  static const itemInset = MyDataSpace.s2 + MyDataMacSize.tight;
+  static double itemInset(MyDataLook look) => look.space(2) + MyDataMacSize.tight;
 
   /// The panel: `window-background` with a `separator` hairline and `shadow-2`.
   static BoxDecoration panel(BuildContext context) {
@@ -208,7 +208,7 @@ abstract final class MacMenuLook {
   /// The separator between groups of items.
   static Widget separator(BuildContext context) => Container(
         height: 1,
-        margin: const EdgeInsets.symmetric(horizontal: itemInset, vertical: MyDataSpace.s1),
+        margin: EdgeInsets.symmetric(horizontal: itemInset(context.look), vertical: context.space(1)),
         color: context.mac.separator,
       );
 
@@ -239,7 +239,7 @@ abstract final class MacMenuLook {
     );
     return Container(
       constraints: const BoxConstraints(minHeight: MyDataMacSize.rowHeight),
-      padding: const EdgeInsets.symmetric(horizontal: itemInset),
+      padding: EdgeInsets.symmetric(horizontal: itemInset(context.look)),
       decoration: BoxDecoration(color: on ? mac.accent : null, borderRadius: itemRadius),
       child: Row(children: [
         // The check mark's column, as a macOS menu keeps it.
@@ -247,7 +247,7 @@ abstract final class MacMenuLook {
           width: MyDataMacSize.icon,
           child: checked ? Icon(MacIcons.check, size: MyDataMacSize.icon - MyDataMacSize.tight, color: fg) : null,
         ),
-        const SizedBox(width: MyDataSpace.s1),
+        SizedBox(width: context.space(1)),
         if (iconSpace) ...[
           Opacity(
             opacity: faded,
@@ -256,11 +256,11 @@ abstract final class MacMenuLook {
               child: icon == null ? null : Icon(icon, size: MyDataMacSize.icon, color: on ? fg : muted),
             ),
           ),
-          const SizedBox(width: MyDataSpace.s2),
+          SizedBox(width: context.space(2)),
         ],
         Expanded(child: text),
         if (shortcut != null) ...[
-          const SizedBox(width: MyDataSpace.s6),
+          SizedBox(width: context.space(6)),
           Opacity(opacity: faded, child: Text(shortcut, style: MyDataMacType.body.copyWith(color: muted))),
         ],
       ]),
@@ -284,7 +284,7 @@ abstract final class MacToastLook {
   }
 
   /// The panel's height at least: a push button and `space-2` above and below it.
-  static const minHeight = MyDataMacSize.pushButtonHeight + 2 * MyDataSpace.s2;
+  static double minHeight(MyDataLook look) => MyDataMacSize.pushButtonHeight + 2 * look.space(2);
 
   static TextStyle text(BuildContext context) => MyDataMacType.body.copyWith(color: context.mac.label);
 }

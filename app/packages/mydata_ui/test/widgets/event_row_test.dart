@@ -382,7 +382,7 @@ void main() {
       final caption = tester.getRect(find.text('Example Dental, 4 Sample Road · Family'));
       expect(barBox.top, title.top);
       expect(barBox.bottom, caption.bottom);
-      expect(barBox.width, DataBar.width);
+      expect(barBox.width, DataBar.width(kiwiLook));
     });
 
     testWidgets('the when column has a fixed width, so titles line up', (tester) async {
@@ -400,7 +400,7 @@ void main() {
       expect(lefts, hasLength(1));
       expect(
         tester.getTopLeft(find.text('Dentist')).dx - tester.getTopLeft(find.text('09:30')).dx,
-        EventRow.whenWidth + GroupedRow.gap + DataBar.width + GroupedRow.gap,
+        EventRow.whenWidth(kiwiLook) + GroupedRow.gap(kiwiLook) + DataBar.width(kiwiLook) + GroupedRow.gap(kiwiLook),
       );
     });
 
@@ -415,7 +415,7 @@ void main() {
       );
       expect(
         tester.getTopLeft(find.text('Dentist')).dx - tester.getTopLeft(find.text('09:30')).dx,
-        EventRow.whenWidth * 1.5 + GroupedRow.gap + DataBar.width + GroupedRow.gap,
+        EventRow.whenWidth(kiwiLook) * 1.5 + GroupedRow.gap(kiwiLook) + DataBar.width(kiwiLook) + GroupedRow.gap(kiwiLook),
       );
     });
 
@@ -498,12 +498,12 @@ void main() {
       );
       final lineHeight = MyDataType.body.fontSize! * MyDataType.body.height!;
       expect(tester.getSize(find.text('10:00 pm')).height, closeTo(lineHeight, 0.01));
-      final width = EventRow.whenColumnWidth(use24HourFormat: false, textScaler: TextScaler.noScaling);
-      expect(width, greaterThan(EventRow.whenWidth));
-      expect(EventRow.whenColumnWidth(use24HourFormat: true, textScaler: TextScaler.noScaling), EventRow.whenWidth);
+      final width = EventRow.whenColumnWidth(kiwiLook, use24HourFormat: false, textScaler: TextScaler.noScaling);
+      expect(width, greaterThan(EventRow.whenWidth(kiwiLook)));
+      expect(EventRow.whenColumnWidth(kiwiLook, use24HourFormat: true, textScaler: TextScaler.noScaling), EventRow.whenWidth(kiwiLook));
       expect(
         tester.getTopLeft(find.text('Late call')).dx - tester.getTopLeft(find.text('10:00 pm')).dx,
-        width + GroupedRow.gap + DataBar.width + GroupedRow.gap,
+        width + GroupedRow.gap(kiwiLook) + DataBar.width(kiwiLook) + GroupedRow.gap(kiwiLook),
       );
     });
 

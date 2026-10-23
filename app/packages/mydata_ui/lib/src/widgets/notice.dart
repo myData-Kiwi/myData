@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../generated/tokens.g.dart';
 import '../mac/mac_theme.dart';
-import '../theme.dart';
+import '../theme/theme.dart';
 import 'button.dart';
 import 'pressable.dart' show MyDataRadii;
 
@@ -70,45 +70,45 @@ class Notice extends StatelessWidget {
   final VoidCallback? onAction;
 
   /// Spec: "`space-3` padding down, `space-4` across".
-  static const padding = EdgeInsets.symmetric(horizontal: MyDataSpace.s4, vertical: MyDataSpace.s3);
+  static EdgeInsets padding(MyDataLook look) => EdgeInsets.symmetric(horizontal: look.space(4), vertical: look.space(3));
 
   /// Between the icon and the words, and between the words and the button (the preview's 12px gap).
-  static const gap = MyDataSpace.s3;
+  static double gap(MyDataLook look) => look.space(3);
 
   /// How far the button reaches into the well's padding above, below and at the end (the preview's -8px).
-  static const actionBleed = MyDataSpace.s2;
+  static double actionBleed(MyDataLook look) => look.space(2);
 
   /// Between a notice and the list or grid it is about.
-  static const contentGap = MyDataSpace.s4;
+  static double contentGap(MyDataLook look) => look.space(4);
 
   /// Between two notices, one per source.
-  static const stackGap = MyDataSpace.s2;
+  static double stackGap(MyDataLook look) => look.space(2);
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
     final label = actionLabel;
-    final icon = ExcludeSemantics(child: Icon(tone.icon, size: MyDataSize.icon, color: tone.iconColor(c)));
-    final words = ExcludeSemantics(child: Text(message, style: context.type(MyDataType.body).copyWith(color: c.ink)));
+    final icon = ExcludeSemantics(child: Icon(tone.icon, size: context.density.icon, color: tone.iconColor(c)));
+    final words = ExcludeSemantics(child: Text(message, style: context.type(MyDataTypeRole.body).copyWith(color: c.ink)));
     Widget content;
     if (label == null) {
       content = Padding(
-        padding: padding,
-        child: Row(children: [icon, const SizedBox(width: gap), Expanded(child: words)]),
+        padding: padding(context.look),
+        child: Row(children: [icon, SizedBox(width: gap(context.look)), Expanded(child: words)]),
       );
     } else {
       final button = Button(label: label, variant: ButtonVariant.plain, onPressed: onAction);
       // The button reaches into the well's padding by the bleed: the well's padding shrinks by it and the
       // words get it back, so the words sit exactly where they would without a button.
-      const bled = EdgeInsetsDirectional.fromSTEB(
-          MyDataSpace.s4, MyDataSpace.s3 - actionBleed, MyDataSpace.s4 - actionBleed, MyDataSpace.s3 - actionBleed);
+      final bled = EdgeInsetsDirectional.fromSTEB(
+          context.space(4), context.space(3) - actionBleed(context.look), context.space(4) - actionBleed(context.look), context.space(3) - actionBleed(context.look));
       content = Padding(
         padding: bled,
         child: Row(children: [
           icon,
-          const SizedBox(width: gap),
-          Expanded(child: Padding(padding: const EdgeInsets.symmetric(vertical: actionBleed), child: words)),
-          const SizedBox(width: gap),
+          SizedBox(width: gap(context.look)),
+          Expanded(child: Padding(padding: EdgeInsets.symmetric(vertical: actionBleed(context.look)), child: words)),
+          SizedBox(width: gap(context.look)),
           button,
         ]),
       );
@@ -119,7 +119,7 @@ class Notice extends StatelessWidget {
       liveRegion: true,
       label: message,
       child: DecoratedBox(
-        decoration: BoxDecoration(color: c.surfaceSunken, borderRadius: MyDataRadii.md),
+        decoration: BoxDecoration(color: c.surfaceSunken, borderRadius: MyDataRadii.md(context.look)),
         child: content,
       ),
     );
@@ -139,13 +139,13 @@ class NoticeStack extends StatelessWidget {
   Widget build(BuildContext context) {
     if (notices.isEmpty) return const SizedBox.shrink();
     return Padding(
-      padding: const EdgeInsets.only(bottom: Notice.contentGap),
+      padding: EdgeInsets.only(bottom: Notice.contentGap(context.look)),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           for (var i = 0; i < notices.length; i++) ...[
-            if (i > 0) const SizedBox(height: Notice.stackGap),
+            if (i > 0) SizedBox(height: Notice.stackGap(context.look)),
             notices[i],
           ],
         ],

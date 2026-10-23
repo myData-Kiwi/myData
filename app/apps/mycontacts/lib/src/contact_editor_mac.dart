@@ -11,14 +11,14 @@ part of 'contact_editor.dart';
 extension _MacContactForm on _ContactEditorState {
   /// The label column grows by this in the editor: its labels are pop-ups with a chevron, after a remove
   /// button.
-  static const _labelExtra = MyDataSpace.s8;
+  static double _labelExtra(MyDataLook look) => look.space(8);
 
   /// Between the kinds of value, and between the rows of one kind and its Add button: one pitch, so the Add
   /// rows are evenly spaced whether their kind has values or not.
-  static const _groupGap = MyDataSpace.s2;
+  static double _groupGap(MyDataLook look) => look.space(2);
 
   /// Between the rows of one kind.
-  static const _rowGap = MyDataSpace.s2;
+  static double _rowGap(MyDataLook look) => look.space(2);
 
   Widget _macForm() {
     final d = _draft;
@@ -38,18 +38,18 @@ extension _MacContactForm on _ContactEditorState {
         ExcludeSemantics(
           child: Avatar(name: d.shownName, givenName: d.given.text, familyName: d.family.text, size: AvatarSize.mac),
         ),
-        const SizedBox(width: MacRecordHeader.gap),
+        SizedBox(width: MacRecordHeader.gap(context.look)),
         // The name fields end where the value fields end: one trailing edge for the whole form.
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               nameField('given_name', 'First name', d.given, d.givenFocus),
-              const SizedBox(height: _rowGap),
+              SizedBox(height: _rowGap(context.look)),
               nameField('family_name', 'Last name', d.family, d.familyFocus),
-              const SizedBox(height: _rowGap),
+              SizedBox(height: _rowGap(context.look)),
               nameField('company', 'Company', d.company, d.companyFocus),
-              const SizedBox(height: _rowGap),
+              SizedBox(height: _rowGap(context.look)),
               nameField('job_title', 'Job title', d.jobTitle, d.jobTitleFocus),
             ],
           ),
@@ -58,7 +58,7 @@ extension _MacContactForm on _ContactEditorState {
     );
 
     final note = MacEditorRow(
-      extra: _labelExtra,
+      extra: _labelExtra(context.look),
       label: MacEditorRow.text(context, ContactEditor.macNoteLabel),
       child: MacEditField.multiline(
         label: ContactEditor.notesHeading,
@@ -98,7 +98,7 @@ extension _MacContactForm on _ContactEditorState {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Icon(MacIcons.error, size: MyDataMacSize.icon, color: context.colors.danger),
-                        const SizedBox(width: MyDataSpace.s2),
+                        SizedBox(width: context.space(2)),
                         Expanded(
                           child: Text(formError, style: MyDataMacType.callout.copyWith(color: context.colors.danger)),
                         ),
@@ -107,13 +107,13 @@ extension _MacContactForm on _ContactEditorState {
                   ),
                 ),
               ),
-              const SizedBox(height: MyDataSpace.s4),
+              SizedBox(height: context.space(4)),
             ],
             header,
-            const SizedBox(height: MyDataSpace.s6),
+            SizedBox(height: context.space(6)),
             Container(height: 1, color: mac.separator),
-            const SizedBox(height: MyDataSpace.s4),
-            for (final (i, g) in groups.indexed) ...[if (i > 0) const SizedBox(height: _groupGap), g],
+            SizedBox(height: context.space(4)),
+            for (final (i, g) in groups.indexed) ...[if (i > 0) SizedBox(height: _groupGap(context.look)), g],
           ],
         ),
       ),
@@ -132,12 +132,12 @@ extension _MacContactForm on _ContactEditorState {
         mainAxisSize: MainAxisSize.min,
         children: [
           for (final (i, r) in rows.indexed) ...[
-            if (i > 0) const SizedBox(height: _rowGap),
+            if (i > 0) SizedBox(height: _rowGap(context.look)),
             KeyedSubtree(key: ValueKey(r.key), child: _macRow(kind, r, i)),
           ],
-          if (rows.isNotEmpty) const SizedBox(height: _rowGap),
+          if (rows.isNotEmpty) SizedBox(height: _rowGap(context.look)),
           MacEditorRow(
-            extra: _labelExtra,
+            extra: _labelExtra(context.look),
             child: Align(
               alignment: AlignmentDirectional.centerStart,
               child: MacAddButton(label: kind.addLabel, focusNode: _macAddFocus[kind], onPressed: () => _macAdd(kind)),
@@ -204,7 +204,7 @@ extension _MacContactForm on _ContactEditorState {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(child: a),
-          const SizedBox(width: _rowGap),
+          SizedBox(width: _rowGap(context.look)),
           Expanded(child: b),
         ],
       );
@@ -213,9 +213,9 @@ extension _MacContactForm on _ContactEditorState {
         mainAxisSize: MainAxisSize.min,
         children: [
           part('Street', r.street, node: r.streetFocus, error: _error(id)),
-          const SizedBox(height: _rowGap),
+          SizedBox(height: _rowGap(context.look)),
           pair(part('City', r.locality), part('Region', r.region)),
-          const SizedBox(height: _rowGap),
+          SizedBox(height: _rowGap(context.look)),
           pair(part('Postcode', r.postalCode), part('Country', r.country)),
         ],
       );
@@ -235,7 +235,7 @@ extension _MacContactForm on _ContactEditorState {
         onChanged: (_) => _edited(id),
       );
     }
-    return MacEditorRow(extra: _labelExtra, leading: remove, label: picker, child: value);
+    return MacEditorRow(extra: _labelExtra(context.look), leading: remove, label: picker, child: value);
   }
 
   /// "Custom label…": a Dialog with one field; the label is the row's once confirmed.
@@ -253,7 +253,7 @@ extension _MacContactForm on _ContactEditorState {
     final label = MacEditorRow.text(context, ContactEditor.macBirthdayLabel);
     if (!_draft.hasBirthday) {
       return MacEditorRow(
-        extra: _labelExtra,
+        extra: _labelExtra(context.look),
         child: Align(
           alignment: AlignmentDirectional.centerStart,
           child: MacAddButton(
@@ -269,7 +269,7 @@ extension _MacContactForm on _ContactEditorState {
       );
     }
     return MacEditorRow(
-      extra: _labelExtra,
+      extra: _labelExtra(context.look),
       leading: MacRemoveButton(
         label: ContactEditor.removeBirthdayLabel,
         onPressed: () {

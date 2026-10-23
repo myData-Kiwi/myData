@@ -317,7 +317,7 @@ class ContactActions {
         : reasonFor(id);
     // The Mac frame's menus are in the Mac's title case, as its menu bar ("Edit Contact"); reasons stay
     // sentences.
-    final mac = MacLook.of(context());
+    final mac = MacWindow.of(context());
     String t(String label) => mac ? menuTitleCase(label) : label;
     return [
       MenuItem(

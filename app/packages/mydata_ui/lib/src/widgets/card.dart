@@ -3,9 +3,8 @@ import 'dart:math' as math;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
-import '../generated/tokens.g.dart';
-import '../motion.dart';
-import '../theme.dart';
+import '../theme/motion.dart';
+import '../theme/theme.dart';
 import 'icon_tile.dart';
 import 'pressable.dart' show MyDataRadii;
 import 'status.dart';
@@ -47,13 +46,13 @@ class MyDataCard extends StatelessWidget {
   final Widget? action;
 
   /// Between the header, the content and the action (preview: `gap: 12px`).
-  static const gap = MyDataSpace.s3;
+  static double gap(MyDataLook look) => look.space(3);
 
   /// Between the icon tile and the name (preview: `gap: 12px`).
-  static const headerGap = MyDataSpace.s3;
+  static double headerGap(MyDataLook look) => look.space(3);
 
   /// `space-5` on every side.
-  static const padding = EdgeInsets.all(MyDataSpace.s5);
+  static EdgeInsets padding(MyDataLook look) => EdgeInsets.all(look.space(5));
 
   @override
   Widget build(BuildContext context) {
@@ -74,9 +73,9 @@ class MyDataCard extends StatelessWidget {
       container: true,
       explicitChildNodes: true,
       child: DecoratedBox(
-        decoration: BoxDecoration(color: c.surface, borderRadius: MyDataRadii.lg, boxShadow: context.shadows.shadow1),
+        decoration: BoxDecoration(color: c.surface, borderRadius: MyDataRadii.lg(context.look), boxShadow: context.shadows.shadow1),
         child: Padding(
-          padding: padding,
+          padding: padding(context.look),
           child: _InsideCard(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -84,18 +83,18 @@ class MyDataCard extends StatelessWidget {
               children: [
                 Row(children: [
                   IconTile(icon: icon, tone: iconTone),
-                  const SizedBox(width: headerGap),
+                  SizedBox(width: headerGap(context.look)),
                   Expanded(
                     child: Semantics(
                       header: true,
-                      child: Text(name, style: MyDataType.bodyStrong.copyWith(color: c.ink)),
+                      child: Text(name, style: context.typeScale.bodyStrong.copyWith(color: c.ink)),
                     ),
                   ),
                 ]),
-                const SizedBox(height: gap),
-                DefaultTextStyle(style: MyDataType.body.copyWith(color: c.ink), child: child),
+                SizedBox(height: gap(context.look)),
+                DefaultTextStyle(style: context.typeScale.body.copyWith(color: c.ink), child: child),
                 if (action != null) ...[
-                  const SizedBox(height: gap),
+                  SizedBox(height: gap(context.look)),
                   Align(alignment: AlignmentDirectional.centerStart, child: action),
                 ],
               ],
@@ -158,13 +157,13 @@ class StatCard extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(figure, style: MyDataType.displayLg.copyWith(color: c.ink)),
-          const SizedBox(height: MyDataCard.gap),
+          Text(figure, style: context.typeScale.displayLg.copyWith(color: c.ink)),
+          SizedBox(height: MyDataCard.gap(context.look)),
           if (child != null) ...[
             child!,
-            const SizedBox(height: MyDataCard.gap),
+            SizedBox(height: MyDataCard.gap(context.look)),
           ],
-          Text(caption, style: MyDataType.caption.copyWith(color: c.inkMuted)),
+          Text(caption, style: context.typeScale.caption.copyWith(color: c.inkMuted)),
         ],
       ),
     );
@@ -201,7 +200,7 @@ class CardGrid extends StatefulWidget {
   final bool entrance;
 
   /// Between cards, across and down: `space-4`.
-  static const gap = MyDataSpace.s4;
+  static double gap(MyDataLook look) => look.space(4);
 
   /// Preview: `grid-template-columns: repeat(auto-fit, minmax(220px, 1fr))`.
   static const minCardWidth = 220.0;
@@ -216,8 +215,10 @@ class _CardGridState extends State<CardGrid> with SingleTickerProviderStateMixin
   bool _reduced = false;
 
   /// The whole entrance: the last staggered card starts after (max - 1) staggers and takes `base`.
-  static final _total =
-      MyDataMotion.base + MyDataMotion.entranceStagger * (MyDataMotion.entranceMaxStaggered - 1);
+  Duration get _total {
+    final m = context.lookNow.motion;
+    return m.base + m.entranceStagger * (m.entranceMaxStaggered - 1);
+  }
 
   @override
   void didChangeDependencies() {
@@ -226,7 +227,7 @@ class _CardGridState extends State<CardGrid> with SingleTickerProviderStateMixin
     _started = true;
     _reduced = MyDataMotion.reduced(context);
     if (_controller.value < 1) {
-      _controller.duration = _reduced ? MyDataMotion.fast : _total;
+      _controller.duration = _reduced ? context.motion.fast : _total;
       _controller.forward();
     }
   }
@@ -241,18 +242,18 @@ class _CardGridState extends State<CardGrid> with SingleTickerProviderStateMixin
   /// [CurvedAnimation]: each card listens to the one controller, so a rebuild adds no listeners to it.
   Curve _curve(int index) {
     // With reduced motion every card fades together over the whole (`fast`) run.
-    if (_reduced) return MyDataMotion.standard;
+    if (_reduced) return context.motion.standard;
     final total = _total.inMicroseconds;
-    final delay = (MyDataMotion.entranceStagger * math.min(index, MyDataMotion.entranceMaxStaggered - 1))
+    final delay = (context.motion.entranceStagger * math.min(index, context.motion.entranceMaxStaggered - 1))
         .inMicroseconds;
-    return Interval(delay / total, (delay + MyDataMotion.base.inMicroseconds) / total,
-        curve: MyDataMotion.standard);
+    return Interval(delay / total, (delay + context.motion.base.inMicroseconds) / total,
+        curve: context.motion.standard);
   }
 
   @override
   Widget build(BuildContext context) {
     return _CardGridLayout(
-      gap: CardGrid.gap,
+      gap: CardGrid.gap(context.look),
       minChildWidth: CardGrid.minCardWidth,
       children: [
         for (var i = 0; i < widget.children.length; i++)
@@ -283,7 +284,7 @@ class _Entrance extends AnimatedWidget {
     return Opacity(
       opacity: t.clamp(0.0, 1.0),
       child: Transform.translate(
-        offset: Offset(0, rise ? (1 - t) * MyDataMotion.entranceRise : 0),
+        offset: Offset(0, rise ? (1 - t) * context.motion.entranceRise : 0),
         child: child,
       ),
     );

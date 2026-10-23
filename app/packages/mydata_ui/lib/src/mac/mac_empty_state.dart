@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../generated/tokens.g.dart';
-import '../theme.dart';
+import '../theme/theme.dart';
 import '../widgets/kiwi.dart';
 import '../widgets/progress_bar.dart';
 import 'mac_icons.dart';
@@ -56,10 +56,10 @@ class MacEmptyState extends StatelessWidget {
   final String? progressLabel;
 
   /// The symbol's size: the kiwi mark's height, and a glyph's.
-  static const symbolSize = MyDataSpace.s12;
+  static double symbolSize(MyDataLook look) => look.space(12);
 
   /// The column's width at most.
-  static const maxWidth = MyDataMacSize.alertWidth + 2 * MyDataSpace.s12;
+  static double maxWidth(MyDataLook look) => MyDataMacSize.alertWidth + 2 * look.space(12);
 
   @override
   Widget build(BuildContext context) {
@@ -67,13 +67,13 @@ class MacEmptyState extends StatelessWidget {
     final Widget? lead = progress != null
         ? null
         : switch (symbol) {
-            MacEmptySymbol.kiwi => const MacKiwi(height: symbolSize),
-            MacEmptySymbol.working => const KiwiLoader(size: symbolSize),
-            MacEmptySymbol.info => Icon(MacIcons.info, size: symbolSize, color: mac.secondaryLabel),
-            MacEmptySymbol.error => Icon(MacIcons.warning, size: symbolSize, color: mac.secondaryLabel),
+            MacEmptySymbol.kiwi => MacKiwi(height: symbolSize(context.look)),
+            MacEmptySymbol.working => KiwiLoader(size: symbolSize(context.look)),
+            MacEmptySymbol.info => Icon(MacIcons.info, size: symbolSize(context.look), color: mac.secondaryLabel),
+            MacEmptySymbol.error => Icon(MacIcons.warning, size: symbolSize(context.look), color: mac.secondaryLabel),
           };
     final column = ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: maxWidth),
+      constraints: BoxConstraints(maxWidth: maxWidth(context.look)),
       child: Semantics(
         container: true,
         liveRegion: symbol != MacEmptySymbol.kiwi && symbol != MacEmptySymbol.info,
@@ -82,30 +82,30 @@ class MacEmptyState extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            if (lead != null) ...[ExcludeSemantics(child: lead), const SizedBox(height: MyDataSpace.s4)],
+            if (lead != null) ...[ExcludeSemantics(child: lead), SizedBox(height: context.space(4))],
             Semantics(
               header: true,
               child: Text(title, textAlign: TextAlign.center, style: MyDataMacType.title.copyWith(color: mac.label)),
             ),
             if (progress != null) ...[
-              const SizedBox(height: MyDataSpace.s4),
+              SizedBox(height: context.space(4)),
               MyDataProgressBar(label: progressLabel!, value: progress!, caption: line ?? ''),
             ] else if (line != null && line!.isNotEmpty) ...[
-              const SizedBox(height: MyDataSpace.s1),
+              SizedBox(height: context.space(1)),
               Text(line!, textAlign: TextAlign.center, style: MyDataMacType.body.copyWith(color: mac.secondaryLabel)),
             ],
             if (detail != null && detail!.isNotEmpty) ...[
-              const SizedBox(height: MyDataSpace.s3),
+              SizedBox(height: context.space(3)),
               SelectableText(detail!,
                   textAlign: TextAlign.center, style: MyDataMacType.caption.copyWith(color: mac.tertiaryLabel)),
             ],
-            if (action != null) ...[const SizedBox(height: MyDataSpace.s5), action!],
+            if (action != null) ...[SizedBox(height: context.space(5)), action!],
           ],
         ),
       ),
     );
     return LayoutBuilder(builder: (context, constraints) {
-      const pad = EdgeInsets.all(MyDataSpace.s6);
+      final pad = EdgeInsets.all(context.space(6));
       if (!constraints.hasBoundedHeight) return Padding(padding: pad, child: Center(heightFactor: 1, child: column));
       return SingleChildScrollView(
         padding: pad,

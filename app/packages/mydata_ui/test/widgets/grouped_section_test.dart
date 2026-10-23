@@ -136,7 +136,7 @@ void main() {
         .widget<DecoratedBox>(find.descendant(of: find.byType(GroupedSection), matching: find.byType(DecoratedBox)).first)
         .decoration as BoxDecoration;
     expect(box.color, c.surface);
-    expect(box.borderRadius, MyDataRadii.lg);
+    expect(box.borderRadius, MyDataRadii.lg(kiwiLook));
     expect(box.boxShadow, tester.element(find.byType(GroupedSection)).shadows.shadow1);
     expect(box.border, isNull);
     final heading = tester.widget<Text>(find.text('Agents'));
@@ -172,8 +172,8 @@ void main() {
     final theme = tester.getRect(find.widgetWithText(GroupedControl, 'Theme'));
     final mode = tester.getRect(find.widgetWithText(GroupedControl, 'Mode'));
     final sample = tester.getRect(find.byType(ThemeSample));
-    expect(mode.top - theme.bottom, GroupedStack.gap);
-    expect(sample.top - mode.bottom, GroupedStack.gap);
+    expect(mode.top - theme.bottom, GroupedStack.gap(kiwiLook));
+    expect(sample.top - mode.bottom, GroupedStack.gap(kiwiLook));
     // Start-aligned, each at its own width: the mode control is narrower than the part.
     expect(mode.left, stack.left);
     expect(sample.left, stack.left);
@@ -185,7 +185,7 @@ void main() {
     expect(label.style!.color, c.ink);
     expect(
       tester.getTopLeft(find.byType(SegmentedControl<_Mode>)).dy - tester.getBottomLeft(find.text('Mode')).dy,
-      GroupedControl.labelGap,
+      GroupedControl.labelGap(kiwiLook),
     );
   });
 

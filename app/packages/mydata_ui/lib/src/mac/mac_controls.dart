@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../generated/tokens.g.dart';
-import '../theme.dart';
+import '../theme/theme.dart';
 import '../widgets/form_row.dart' show FormRemoveButton;
 import '../widgets/form_scope.dart';
 import '../widgets/menu.dart';
@@ -33,10 +33,10 @@ abstract final class MacControl {
   static const radius = BorderRadius.all(Radius.circular(MyDataMacRadius.selection));
 
   /// Text inside a field, from its edge.
-  static const inset = MyDataSpace.s2;
+  static double inset(MyDataLook look) => look.space(2);
 
   /// Between a field and the line under it (its error).
-  static const noteGap = MyDataSpace.s1;
+  static double noteGap(MyDataLook look) => look.space(1);
 
   /// The field's bezel: `content-background` with a hairline in `tertiary-label` (a stronger hairline than
   /// `separator`, as an NSTextField's bezel), `danger` in error.
@@ -148,7 +148,7 @@ class _MacEditFieldState extends State<MacEditField> {
     final error = widget.error;
     final style = MyDataMacType.body.copyWith(color: mac.label);
     final line = style.fontSize! * style.height!;
-    final vertical = widget.multiline ? MyDataSpace.s1 : (MacControl.height - line) / 2 - MyDataMacSize.hairline * 2;
+    final vertical = widget.multiline ? context.space(1) : (MacControl.height - line) / 2 - MyDataMacSize.hairline * 2;
     final field = TextField(
       controller: widget.controller,
       focusNode: _node,
@@ -175,7 +175,7 @@ class _MacEditFieldState extends State<MacEditField> {
         hintText: widget.placeholder,
         hintStyle: style.copyWith(color: mac.tertiaryLabel),
         hintMaxLines: 1,
-        contentPadding: EdgeInsets.symmetric(horizontal: MacControl.inset - MyDataMacSize.hairline * 2, vertical: vertical),
+        contentPadding: EdgeInsets.symmetric(horizontal: MacControl.inset(context.look) - MyDataMacSize.hairline * 2, vertical: vertical),
       ),
     );
     Widget box = FocusRing(
@@ -198,7 +198,7 @@ class _MacEditFieldState extends State<MacEditField> {
         children: [
           box,
           if (error != null) ...[
-            const SizedBox(height: MacControl.noteGap),
+            SizedBox(height: MacControl.noteGap(context.look)),
             ExcludeSemantics(child: Text(error, style: MyDataMacType.caption.copyWith(color: c.danger))),
           ],
         ],
@@ -282,7 +282,7 @@ class _MacPopUpButtonState<T> extends State<MacPopUpButton<T>> {
     final rect = box.localToGlobal(Offset.zero) & box.size;
     await Menu.showAt(
       context,
-      position: rect.bottomLeft + const Offset(0, Menu.anchorGap),
+      position: rect.bottomLeft + Offset(0, Menu.anchorGap(context.look)),
       fromKeyboard: fromKeyboard,
       compact: true,
       entries: [
@@ -304,7 +304,7 @@ class _MacPopUpButtonState<T> extends State<MacPopUpButton<T>> {
     if (widget.bordered) {
       face = Container(
         height: MacControl.height,
-        padding: const EdgeInsetsDirectional.only(start: MacControl.inset, end: MyDataSpace.s1),
+        padding: EdgeInsetsDirectional.only(start: MacControl.inset(context.look), end: context.space(1)),
         decoration: MacControl.bezel(context),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           Flexible(
@@ -312,14 +312,14 @@ class _MacPopUpButtonState<T> extends State<MacPopUpButton<T>> {
                 maxLines: 1, overflow: TextOverflow.ellipsis, softWrap: false,
                 style: MyDataMacType.body.copyWith(color: mac.label)),
           ),
-          const SizedBox(width: MyDataSpace.s2),
-          Icon(MacIcons.upDown, size: MyDataMacSize.icon - MyDataSpace.s1, color: mac.accent),
+          SizedBox(width: context.space(2)),
+          Icon(MacIcons.upDown, size: MyDataMacSize.icon - context.space(1), color: mac.accent),
         ]),
       );
     } else {
       face = Container(
         height: MacControl.height,
-        padding: const EdgeInsets.symmetric(horizontal: MyDataSpace.s1),
+        padding: EdgeInsets.symmetric(horizontal: context.space(1)),
         decoration: BoxDecoration(color: _hovered && enabled ? mac.hover : null, borderRadius: MacControl.radius),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           Flexible(
@@ -327,8 +327,8 @@ class _MacPopUpButtonState<T> extends State<MacPopUpButton<T>> {
                 maxLines: 1, overflow: TextOverflow.ellipsis, softWrap: false, textAlign: TextAlign.end,
                 style: MyDataMacType.callout.copyWith(color: mac.secondaryLabel)),
           ),
-          const SizedBox(width: MyDataSpace.s1),
-          Icon(MacIcons.chevronDown, size: MyDataMacSize.icon - MyDataSpace.s1, color: mac.secondaryLabel),
+          SizedBox(width: context.space(1)),
+          Icon(MacIcons.chevronDown, size: MyDataMacSize.icon - context.space(1), color: mac.secondaryLabel),
         ]),
       );
     }
@@ -390,7 +390,7 @@ class MacEditorRow extends StatelessWidget {
   final double extra;
 
   /// Between the label column and the control.
-  static const gap = MyDataSpace.s3;
+  static double gap(MyDataLook look) => look.space(3);
 
   /// A label in the column: [text] in `callout` and `secondary-label`, right-aligned, on the control's line.
   static Widget text(BuildContext context, String text) => SizedBox(
@@ -418,7 +418,7 @@ class MacEditorRow extends StatelessWidget {
               ]),
             ),
           ),
-          const SizedBox(width: gap),
+          SizedBox(width: gap(context.look)),
           Expanded(child: child),
         ],
       );
@@ -482,7 +482,7 @@ class MacAddButton extends StatelessWidget {
       hoverFill: mac.hover,
       child: Container(
         height: MacControl.height,
-        padding: const EdgeInsetsDirectional.only(start: MyDataSpace.s1, end: MyDataSpace.s2),
+        padding: EdgeInsetsDirectional.only(start: context.space(1), end: context.space(2)),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           Container(
             width: size,
@@ -490,7 +490,7 @@ class MacAddButton extends StatelessWidget {
             decoration: BoxDecoration(color: mac.green, shape: BoxShape.circle),
             child: Icon(MacIcons.add, size: size - 2 * MyDataMacSize.tight, color: MyDataMacColors.light.onAccent),
           ),
-          const SizedBox(width: MyDataSpace.s2),
+          SizedBox(width: context.space(2)),
           Text(label, style: MyDataMacType.body.copyWith(color: mac.label)),
         ]),
       ),

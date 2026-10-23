@@ -101,13 +101,13 @@ class MacMonthGrid extends StatefulWidget {
   static const headingHeight = MyDataMacSize.rowHeight;
 
   /// Around a cell's contents.
-  static const cellPadding = MyDataSpace.s1;
+  static double cellPadding(MyDataLook look) => look.space(1);
 
   /// The day number's capsule height at the default text size.
   static const numberHeight = MyDataMacSize.controlMin + MyDataMacSize.tight;
 
   /// Between event lines, and between the number and the first line.
-  static const lineGap = MyDataSpace.s1 / 2;
+  static double lineGap(MyDataLook look) => look.space(1) / 2;
 
   /// An event line's padding above and below its text.
   static const linePadding = 1.0;
@@ -147,10 +147,10 @@ class MacMonthGrid extends StatefulWidget {
       scaler.scale(numberHeight), scaler.scale(MyDataMacType.body.fontSize!) * MyDataMacType.body.height!);
 
   /// How many event lines a cell [height] tall holds at [scaler].
-  static int linesFor(double height, TextScaler scaler) {
-    final room = height - 2 * cellPadding - numberRowHeight(scaler);
+  static int linesFor(MyDataLook look, double height, TextScaler scaler) {
+    final room = height - 2 * cellPadding(look) - numberRowHeight(scaler);
     if (room <= 0) return 0;
-    return math.max(0, ((room + lineGap) / (lineHeight(scaler) + lineGap)).floor());
+    return math.max(0, ((room + lineGap(look)) / (lineHeight(scaler) + lineGap(look))).floor());
   }
 
   @override
@@ -250,7 +250,7 @@ class _MacMonthGridState extends State<MacMonthGrid> {
           for (var d = 0; d < 7; d++)
             Expanded(
               child: Padding(
-                padding: const EdgeInsetsDirectional.only(end: MacMonthGrid.cellPadding + MyDataSpace.s1),
+                padding: EdgeInsetsDirectional.only(end: MacMonthGrid.cellPadding(context.look) + context.space(1)),
                 child: Align(
                   alignment: AlignmentDirectional.centerEnd,
                   child: Text(
@@ -377,7 +377,7 @@ class _CellState extends State<_Cell> {
     final ground = w.notRead ? mac.windowBackground : mac.contentBackground;
     final fill = _hovered && !w.selected ? Color.alphaBlend(mac.hover, ground) : ground;
     final scaler = MediaQuery.textScalerOf(context);
-    final events = w.notRead ? const <MacCellEvent>[] : w.events;
+    final events = w.notRead ? <MacCellEvent>[] : w.events;
     final label = MonthGrid.dayLabel(
       w.day,
       today: w.today,
@@ -387,7 +387,7 @@ class _CellState extends State<_Cell> {
 
     final body = LayoutBuilder(
       builder: (context, constraints) {
-        final fits = MacMonthGrid.linesFor(constraints.maxHeight, scaler);
+        final fits = MacMonthGrid.linesFor(context.look, constraints.maxHeight, scaler);
         final times = constraints.maxWidth >= scaler.scale(MacMonthGrid.timeMinCellWidth);
         final List<Widget> lines;
         if (events.length <= fits) {
@@ -401,7 +401,7 @@ class _CellState extends State<_Cell> {
           ];
         }
         return Padding(
-          padding: const EdgeInsets.all(MacMonthGrid.cellPadding),
+          padding: EdgeInsets.all(MacMonthGrid.cellPadding(context.look)),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -409,7 +409,7 @@ class _CellState extends State<_Cell> {
                 alignment: AlignmentDirectional.topEnd,
                 child: _Number(day: w.day, today: w.today, muted: !w.inMonth || w.notRead),
               ),
-              for (final l in lines) ...[const SizedBox(height: MacMonthGrid.lineGap), l],
+              for (final l in lines) ...[SizedBox(height: MacMonthGrid.lineGap(context.look)), l],
             ],
           ),
         );
@@ -487,7 +487,7 @@ class _Number extends StatelessWidget {
         child: ConstrainedBox(
           constraints: BoxConstraints(minWidth: height, minHeight: height, maxHeight: height),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: MyDataSpace.s1 + MyDataMacSize.tight),
+            padding: EdgeInsets.symmetric(horizontal: context.space(1) + MyDataMacSize.tight),
             child: Center(
               widthFactor: 1,
               child: Text(text, style: MyDataMacType.bodyEmphasized.copyWith(color: MyDataMacColors.dark.onAccent)),
@@ -499,7 +499,7 @@ class _Number extends StatelessWidget {
     return SizedBox(
       height: height,
       child: Padding(
-        padding: const EdgeInsetsDirectional.only(end: MyDataSpace.s1 + MyDataMacSize.tight),
+        padding: EdgeInsetsDirectional.only(end: context.space(1) + MyDataMacSize.tight),
         child: Align(
           alignment: AlignmentDirectional.centerEnd,
           widthFactor: 1,
@@ -544,7 +544,7 @@ class _EventLine extends StatelessWidget {
           : colour.withValues(alpha: dark ? MacMonthGrid.chipTintDark : MacMonthGrid.chipTintLight);
       return Container(
         height: height,
-        padding: const EdgeInsets.symmetric(horizontal: MyDataSpace.s1),
+        padding: EdgeInsets.symmetric(horizontal: context.space(1)),
         alignment: AlignmentDirectional.centerStart,
         decoration: BoxDecoration(color: Color.alphaBlend(tint, ground), borderRadius: MacMonthGrid.chipRadius),
         child: text,
@@ -554,7 +554,7 @@ class _EventLine extends StatelessWidget {
     return SizedBox(
       height: height,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: MyDataSpace.s1),
+        padding: EdgeInsets.symmetric(horizontal: context.space(1)),
         child: Row(
           children: [
             Container(
@@ -569,10 +569,10 @@ class _EventLine extends StatelessWidget {
                     : null,
               ),
             ),
-            const SizedBox(width: MyDataSpace.s1),
+            SizedBox(width: context.space(1)),
             Expanded(child: text),
             if (time && event.time != null) ...[
-              const SizedBox(width: MyDataSpace.s1),
+              SizedBox(width: context.space(1)),
               Text(event.time!, style: MyDataMacType.caption.copyWith(color: mac.secondaryLabel)),
             ],
           ],
@@ -591,7 +591,7 @@ class _MoreLine extends StatelessWidget {
   Widget build(BuildContext context) => SizedBox(
     height: MacMonthGrid.lineHeight(MediaQuery.textScalerOf(context)),
     child: Padding(
-      padding: const EdgeInsetsDirectional.only(start: MyDataSpace.s1 + MacMonthGrid.dotSize + MyDataSpace.s1),
+      padding: EdgeInsetsDirectional.only(start: context.space(1) + MacMonthGrid.dotSize + context.space(1)),
       child: Align(
         alignment: AlignmentDirectional.centerStart,
         child: Text(MacMonthGrid.moreText(count),

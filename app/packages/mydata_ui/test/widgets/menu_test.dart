@@ -44,7 +44,7 @@ Widget _page(List<String> log, {bool followed = false, FocusNode? rowNode}) => B
                 key: const Key('row'),
                 focusNode: rowNode,
                 onPressed: () => log.add('row'),
-                borderRadius: MyDataRadii.sm,
+                borderRadius: MyDataRadii.sm(kiwiLook),
                 semanticLabel: 'Ava Fictional',
                 child: Container(
                   height: MyDataSize.rowHeight,

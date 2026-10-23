@@ -276,7 +276,7 @@ class _ContactsHomeState extends State<ContactsHome> {
     );
   }
 
-  /// The Mac frame ([MacLook]): the translucent sidebar with the sections and the host's state, then the
+  /// The Mac frame ([MacWindow.of]): the translucent sidebar with the sections and the host's state, then the
   /// section on `content-background` under its toolbar band. Contacts draws its own bands (search, Edit, New).
   /// Its other states (no contacts yet, waiting, an error) have no New button in the band: + sits only at the
   /// list's top, and the empty state's one button is New Contact (⌘N works throughout).
@@ -302,7 +302,7 @@ class _ContactsHomeState extends State<ContactsHome> {
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: Listenable.merge([_host, _contacts, _contacts.selection, _review]),
     builder: (context, _) => _menuBar(
-      MacLook.of(context)
+      MacWindow.of(context)
           // Transparent: the window's sidebar material shows through the sidebar.
           ? Scaffold(backgroundColor: Colors.transparent, body: _macFrame(_connection()))
           : Scaffold(

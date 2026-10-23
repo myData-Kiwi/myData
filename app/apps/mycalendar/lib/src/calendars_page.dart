@@ -48,7 +48,7 @@ class CalendarsPage extends StatelessWidget {
       builder: (context, _) => PageScaffold(
         title: title,
         children: [
-          Text(calendars.isEmpty ? none : intro, style: MyDataType.body.copyWith(color: c.inkMuted)),
+          Text(calendars.isEmpty ? none : intro, style: context.typeScale.body.copyWith(color: c.inkMuted)),
           for (final (heading, items) in groups(calendars))
             GroupedList(
               heading: heading,

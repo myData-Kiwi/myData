@@ -71,12 +71,14 @@ void main() {
     }
   });
 
-  test('typeFor gives each branded style its Mac counterpart', () {
-    expect(MacTheme.typeFor(MyDataType.body), MyDataMacType.body);
-    expect(MacTheme.typeFor(MyDataType.bodyStrong), MyDataMacType.bodyEmphasized);
-    expect(MacTheme.typeFor(MyDataType.displayLg), MyDataMacType.name);
-    expect(MacTheme.typeFor(MyDataType.caption), MyDataMacType.caption);
-    expect(MacTheme.typeFor(MyDataType.mono).fontFamily, MyDataMacFont.text);
+  test('typeFor gives each branded role its Mac counterpart', () {
+    const kiwi = MyDataTypeScale.kiwi;
+    expect(MacTheme.typeFor(MyDataTypeRole.body, kiwi), MyDataMacType.body);
+    expect(MacTheme.typeFor(MyDataTypeRole.bodyStrong, kiwi), MyDataMacType.bodyEmphasized);
+    expect(MacTheme.typeFor(MyDataTypeRole.displayLg, kiwi), MyDataMacType.name);
+    expect(MacTheme.typeFor(MyDataTypeRole.caption, kiwi), MyDataMacType.caption);
+    expect(MacTheme.typeFor(MyDataTypeRole.mono, kiwi).fontFamily, MyDataMacFont.text);
+    expect(MacTheme.typeFor(MyDataTypeRole.mono, kiwi).fontSize, MyDataType.mono.fontSize);
   });
 
   test('the system palette reads the channel and keeps defaults for what is missing', () {
@@ -140,7 +142,7 @@ void main() {
     addTearDown(tester.view.reset);
     late bool on;
     await tester.pumpWidget(frame(Builder(builder: (context) {
-      on = MacLook.of(context);
+      on = MacWindow.of(context);
       return const SizedBox();
     })));
     expect(on, isFalse);

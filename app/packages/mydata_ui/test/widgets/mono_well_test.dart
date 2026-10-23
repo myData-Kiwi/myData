@@ -27,7 +27,7 @@ void _mockClipboard(WidgetTester tester) {
 /// A card-like `surface` behind the wells, as in the preview.
 Widget _onSurface(Widget child) => Builder(
   builder: (context) => DecoratedBox(
-    decoration: BoxDecoration(color: context.colors.surface, borderRadius: MyDataRadii.lg),
+    decoration: BoxDecoration(color: context.colors.surface, borderRadius: MyDataRadii.lg(kiwiLook)),
     child: Padding(padding: const EdgeInsets.all(MyDataSpace.s5), child: child),
   ),
 );
@@ -70,7 +70,7 @@ void main() {
         .widget<DecoratedBox>(find.descendant(of: find.byType(MonoWell), matching: find.byType(DecoratedBox)).first)
         .decoration as BoxDecoration;
     expect(box.color, c.surfaceSunken);
-    expect(box.borderRadius, MyDataRadii.md);
+    expect(box.borderRadius, MyDataRadii.md(kiwiLook));
     expect(box.border, isNull);
     final well = tester.getRect(find.byType(MonoWell));
     final text = tester.getRect(find.byType(SelectableText));
@@ -91,7 +91,7 @@ void main() {
     expect(label.style!.fontWeight, MyDataType.label.fontWeight);
     expect(label.style!.color, c.ink);
     final well = tester.getRect(find.descendant(of: find.byType(MonoWell), matching: find.byType(DecoratedBox)).first);
-    expect(well.top - tester.getRect(find.text('Token')).bottom, MonoWell.gap);
+    expect(well.top - tester.getRect(find.text('Token')).bottom, MonoWell.gap(kiwiLook));
   });
 
   testWidgets('Copy puts the value on the clipboard, reads Copied and announces it, until the value changes',
@@ -102,7 +102,7 @@ void main() {
     expect(button.variant, ButtonVariant.tonal);
     final before = tester.getSize(find.byType(Button).last);
     final wellRect = tester.getRect(find.descendant(of: find.byType(MonoWell), matching: find.byType(DecoratedBox)).first);
-    expect(tester.getRect(find.byType(Button).last).left - wellRect.right, MonoWell.gap);
+    expect(tester.getRect(find.byType(Button).last).left - wellRect.right, MonoWell.gap(kiwiLook));
 
     await tester.tap(find.text('Copy token'));
     await tester.pump();

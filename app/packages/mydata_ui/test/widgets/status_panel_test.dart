@@ -123,7 +123,7 @@ void main() {
     final message = tester.widget<Text>(find.textContaining('myData works without it'));
     expect(message.style!.color, c.inkMuted);
     expect(tester.getTopLeft(find.textContaining('myData works without it')).dy,
-        tester.getBottomLeft(find.text('The assistant is off')).dy + StatusPanel.titleGap);
+        tester.getBottomLeft(find.text('The assistant is off')).dy + StatusPanel.titleGap(kiwiLook));
     expect(tester.getSemantics(find.text('The assistant is off')),
         matchesSemantics(label: 'The assistant is off', isHeader: true));
   });
@@ -179,7 +179,7 @@ void main() {
     await tester.pumpAndSettle();
     final retry = tester.getRect(find.widgetWithText(Button, 'Retry'));
     // The pumped frame has 24px of padding around the 400 x 300 box.
-    expect(retry.bottom, moreOrLessEquals(24 + 300 - 80 - StatusPanel.padding));
+    expect(retry.bottom, moreOrLessEquals(24 + 300 - 80 - StatusPanel.padding(kiwiLook)));
     await tester.tap(find.text('Retry'));
     expect(retried, 1);
   });

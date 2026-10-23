@@ -3,8 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
-import '../generated/tokens.g.dart';
-import '../theme.dart';
+import '../theme/theme.dart';
 import 'badge.dart';
 import 'button.dart';
 import 'grouped_list.dart';
@@ -73,11 +72,11 @@ class ActionRow extends StatelessWidget {
   static const allowedVariants = {ButtonVariant.tonal, ButtonVariant.plain, ButtonVariant.plainDanger};
 
   /// Between the chip and the buttons, and between the buttons (preview: `.end{gap:8px}`).
-  static const endGap = MyDataSpace.s2;
+  static double endGap(MyDataLook look) => look.space(2);
 
   /// The least width the text keeps beside the chip and buttons before they move under it, unless the
   /// text is narrower than this anyway (preview: `.narrow .r .txt{flex:1 1 200px}`).
-  static const minTextWidth = MyDataSpace.s10 * 5;
+  static double minTextWidth(MyDataLook look) => look.space(10) * 5;
 
   @override
   Widget build(BuildContext context) {
@@ -87,20 +86,20 @@ class ActionRow extends StatelessWidget {
       container: true,
       explicitChildNodes: true,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: MyDataSize.rowHeight),
+        constraints: BoxConstraints(minHeight: context.density.rowHeight),
         child: Padding(
-          padding: GroupedRow.padding,
+          padding: GroupedRow.padding(context.look),
           child: _ActionRowLayout(
             tile: icon == null ? null : IconTile(icon: icon!, tone: tone),
-            title: Text(title, style: MyDataType.bodyStrong.copyWith(color: c.ink)),
+            title: Text(title, style: context.typeScale.bodyStrong.copyWith(color: c.ink)),
             subtitle: subtitle == null
                 ? null
-                : Text(subtitle!, style: MyDataType.caption.copyWith(color: c.inkMuted)),
+                : Text(subtitle!, style: context.typeScale.caption.copyWith(color: c.inkMuted)),
             end: end.isEmpty
                 ? null
                 : Wrap(
-                    spacing: endGap,
-                    runSpacing: endGap,
+                    spacing: endGap(context.look),
+                    runSpacing: endGap(context.look),
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: end,
                   ),
@@ -136,11 +135,13 @@ class _ActionRowLayout extends SlottedMultiChildRenderObjectWidget<_Slot, Render
   };
 
   @override
-  _RenderActionRow createRenderObject(BuildContext context) => _RenderActionRow(Directionality.of(context));
+  _RenderActionRow createRenderObject(BuildContext context) =>
+      _RenderActionRow(Directionality.of(context), context.look);
 
   @override
-  void updateRenderObject(BuildContext context, _RenderActionRow renderObject) =>
-      renderObject.textDirection = Directionality.of(context);
+  void updateRenderObject(BuildContext context, _RenderActionRow renderObject) => renderObject
+    ..textDirection = Directionality.of(context)
+    ..look = context.look;
 }
 
 typedef _Layout = ({
@@ -157,9 +158,16 @@ typedef _Layout = ({
 });
 
 class _RenderActionRow extends RenderBox with SlottedContainerRenderObjectMixin<_Slot, RenderBox> {
-  _RenderActionRow(this._textDirection);
+  _RenderActionRow(this._textDirection, this._look);
 
-  static const _gap = GroupedRow.gap;
+  double get _gap => GroupedRow.gap(_look);
+
+  MyDataLook _look;
+  set look(MyDataLook value) {
+    if (value == _look) return;
+    _look = value;
+    markNeedsLayout();
+  }
 
   TextDirection _textDirection;
   set textDirection(TextDirection value) {
@@ -184,7 +192,7 @@ class _RenderActionRow extends RenderBox with SlottedContainerRenderObjectMixin<
   /// wrap without becoming a narrow column ([ActionRow.minTextWidth], or the caption's own width if less).
   double get _textNeeds => math.max(
     _title.getMaxIntrinsicWidth(double.infinity),
-    math.min(ActionRow.minTextWidth, _subtitle?.getMaxIntrinsicWidth(double.infinity) ?? 0),
+    math.min(ActionRow.minTextWidth(_look), _subtitle?.getMaxIntrinsicWidth(double.infinity) ?? 0),
   );
 
   /// Whether the end part must go under the text in a row [width] wide.

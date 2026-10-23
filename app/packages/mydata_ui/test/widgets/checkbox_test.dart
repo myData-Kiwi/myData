@@ -111,7 +111,7 @@ void main() {
       final off = await deco(false);
       expect(off.color, _kiwi.surface);
       expect((off.border! as Border).top.color, _kiwi.lineStrong);
-      expect(off.borderRadius, MyDataRadii.xs);
+      expect(off.borderRadius, MyDataRadii.xs(kiwiLook));
       expect((await deco(false, hovered: true)).color, _kiwi.surfaceHover);
       expect((await deco(true)).color, _kiwi.accent);
       // A checked box does not change on hover.
@@ -159,7 +159,7 @@ void main() {
       await tester.pump();
       final ring = tester.widget<FocusRing>(find.byType(FocusRing));
       expect(ring.visible, isTrue);
-      expect(ring.borderRadius, MyDataRadii.xs);
+      expect(ring.borderRadius, MyDataRadii.xs(kiwiLook));
       expect(find.descendant(of: find.byType(FocusRing), matching: find.byType(CheckboxBox)), findsOneWidget);
       expect(find.descendant(of: find.byType(FocusRing), matching: find.text('Also remove')), findsNothing);
     });

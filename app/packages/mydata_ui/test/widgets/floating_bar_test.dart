@@ -17,12 +17,12 @@ Widget _stage(Widget bar, {bool solid = false, double width = _stageWidth}) {
     final c = context.colors;
     Widget block(int flex, Color color) => Expanded(
         flex: flex,
-        child: DecoratedBox(decoration: BoxDecoration(color: color, borderRadius: MyDataRadii.sm)));
+        child: DecoratedBox(decoration: BoxDecoration(color: color, borderRadius: MyDataRadii.sm(kiwiLook))));
     return SizedBox(
       width: width,
       height: _stageHeight,
       child: ClipRRect(
-        borderRadius: MyDataRadii.lg,
+        borderRadius: MyDataRadii.lg(kiwiLook),
         child: ColoredBox(
           color: c.surfaceSunken,
           child: FloatingBarHost(
@@ -99,7 +99,7 @@ Widget _composer() => FloatingBarSurface(
           ),
           Pressable(
             onPressed: () {},
-            borderRadius: MyDataRadii.pill,
+            borderRadius: MyDataRadii.pill(kiwiLook),
             semanticLabel: 'Send',
             child: SizedBox.square(
               dimension: MyDataSize.controlHeight,
@@ -186,8 +186,8 @@ void main() {
       expect(size.height, greaterThanOrEqualTo(MyDataSize.controlHeight));
       expect(size.width, greaterThanOrEqualTo(MyDataSize.controlHeight));
     }
-    expect(tester.getSize(find.byType(FloatingBar).first).height, FloatingBar.height);
-    expect(FloatingBar.height, MyDataSize.controlHeight + 2 * MyDataSpace.s1 + 2);
+    expect(tester.getSize(find.byType(FloatingBar).first).height, FloatingBar.height(kiwiLook));
+    expect(FloatingBar.height(kiwiLook), MyDataSize.controlHeight + 2 * MyDataSpace.s1 + 2);
   });
 
   testWidgets('the current tab is an accent-soft pill with accent bodyStrong text; others are ink body',
@@ -197,7 +197,7 @@ void main() {
     final c = tester.element(find.byType(FloatingBar)).colors;
     final pill = tester.widget<DecoratedBox>(find.descendant(of: _thumb, matching: find.byType(DecoratedBox)));
     expect((pill.decoration as BoxDecoration).color, c.accentSoft);
-    expect((pill.decoration as BoxDecoration).borderRadius, MyDataRadii.pill);
+    expect((pill.decoration as BoxDecoration).borderRadius, MyDataRadii.pill(kiwiLook));
     expect(tester.getRect(find.descendant(of: _thumb, matching: find.byType(DecoratedBox))),
         tester.getRect(find.ancestor(of: find.text('Albums'), matching: find.byType(Pressable))));
     final albums = tester.widget<Text>(find.text('Albums')).style!;
@@ -247,7 +247,7 @@ void main() {
         .first);
     final d = box.decoration as BoxDecoration;
     expect(d.color, c.glassFill);
-    expect(d.borderRadius, MyDataRadii.xl);
+    expect(d.borderRadius, MyDataRadii.xl(kiwiLook));
     expect((d.border! as Border).top, BorderSide(color: c.glassStroke, width: FloatingBarSurface.strokeWidth));
   });
 
@@ -261,8 +261,8 @@ void main() {
     expect(d.color, ctx.colors.surface);
     expect(d.boxShadow, ctx.shadows.shadow2);
     expect(d.border, isNull);
-    expect(d.borderRadius, MyDataRadii.xl);
-    expect(tester.getSize(find.byType(FloatingBar)).height, FloatingBar.height);
+    expect(d.borderRadius, MyDataRadii.xl(kiwiLook));
+    expect(tester.getSize(find.byType(FloatingBar)).height, FloatingBar.height(kiwiLook));
   });
 
   testWidgets('five tabs fit a 375px phone without cutting a label, with icons and without', (tester) async {
@@ -321,7 +321,7 @@ void main() {
     expect(d.color, ctx.colors.surface);
     expect(d.boxShadow, ctx.shadows.shadow2);
     expect(d.border, isNull);
-    expect(tester.getSize(find.byType(FloatingBar)).height, FloatingBar.height);
+    expect(tester.getSize(find.byType(FloatingBar)).height, FloatingBar.height(kiwiLook));
 
     await tester.pumpWidget(themedFrame(
         themeMatrix.first, const FloatingBarSurface(forceSolid: true, child: SizedBox(height: MyDataSize.controlHeight))));
@@ -364,7 +364,7 @@ void main() {
     expect(bar.left - host.left, MyDataSpace.s4);
     expect(host.right - bar.right, MyDataSpace.s4);
     expect(host.bottom - bar.bottom, MyDataSpace.s4 + safeBottom);
-    expect(bar.height, FloatingBar.height);
+    expect(bar.height, FloatingBar.height(kiwiLook));
     // The list fills the host, so it scrolls beneath the bar.
     expect(tester.getRect(find.byType(ListView)).bottom, host.bottom);
     await tester.drag(find.byType(ListView), const Offset(0, -2000));
@@ -390,7 +390,7 @@ void main() {
     ));
     await tester.pump();
     final barHeight = tester.getSize(find.byType(FloatingBarSurface)).height;
-    expect(barHeight, 100 + 2 * (FloatingBar.padding + FloatingBarSurface.strokeWidth));
+    expect(barHeight, 100 + 2 * (FloatingBar.padding(kiwiLook) + FloatingBarSurface.strokeWidth));
     expect(seen.bottom, MyDataSpace.s4 + barHeight + MyDataSpace.s4);
   });
 }

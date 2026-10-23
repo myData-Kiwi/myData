@@ -213,7 +213,7 @@ void main() {
       final deco = box.decoration! as BoxDecoration;
       expect(deco.color, _kiwi.surface);
       expect((deco.border! as Border).top.color, _kiwi.lineStrong);
-      expect(deco.borderRadius, MyDataRadii.md);
+      expect(deco.borderRadius, MyDataRadii.md(kiwiLook));
       expect(tester.getSize(find.byType(AnimatedContainer).first).height, MyDataSize.controlHeight);
       expect(tester.getRect(find.text('Book club')).top - tester.getRect(find.text('Calendar')).bottom,
           greaterThanOrEqualTo(MyDataSpace.s2));
@@ -429,7 +429,7 @@ void main() {
       final panel = find.ancestor(of: find.text('Work'), matching: find.byType(Container)).last;
       final deco = tester.widget<Container>(panel).decoration! as BoxDecoration;
       expect(deco.color, _kiwi.surfaceRaised);
-      expect(deco.borderRadius, MyDataRadii.md);
+      expect(deco.borderRadius, MyDataRadii.md(kiwiLook));
       final fieldRect = tester.getRect(_field);
       final panelRect = tester.getRect(panel);
       expect(panelRect.top - fieldRect.bottom, MyDataSpace.s1);

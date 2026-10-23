@@ -3,8 +3,8 @@ import 'package:flutter/semantics.dart';
 
 import '../accessibility.dart';
 import '../generated/tokens.g.dart';
-import '../motion.dart';
-import '../theme.dart';
+import '../theme/motion.dart';
+import '../theme/theme.dart';
 import 'app_frame.dart' show AppLayout;
 import 'button.dart';
 import 'icon_button.dart';
@@ -22,7 +22,7 @@ enum FormGround {
   page;
 
   /// Between the fields of a group.
-  double get fieldGap => this == panel ? MyDataSpace.s4 : MyDataSpace.s5;
+  double fieldGap(MyDataLook look) => this == panel ? look.space(4) : look.space(5);
 }
 
 /// One labelled field of an editing form (design/components/FormRow), for a control that has no label of
@@ -50,7 +50,7 @@ class FormRow extends StatelessWidget {
   final Widget child;
 
   /// Spec: "`space-2` above it"; help and error `space-2` below.
-  static const gap = MyDataSpace.s2;
+  static double gap(MyDataLook look) => look.space(2);
 
   @override
   Widget build(BuildContext context) {
@@ -61,14 +61,14 @@ class FormRow extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (label != null) ...[
-          ExcludeSemantics(child: Text(label!, style: MyDataType.label.copyWith(color: c.ink))),
-          const SizedBox(height: gap),
+          ExcludeSemantics(child: Text(label!, style: context.typeScale.label.copyWith(color: c.ink))),
+          SizedBox(height: gap(context.look)),
         ],
         Semantics(label: label, hint: note, child: child),
         if (note != null) ...[
-          const SizedBox(height: gap),
+          SizedBox(height: gap(context.look)),
           ExcludeSemantics(
-            child: Text(note, style: MyDataType.caption.copyWith(color: error != null ? c.danger : c.inkMuted)),
+            child: Text(note, style: context.typeScale.caption.copyWith(color: error != null ? c.danger : c.inkMuted)),
           ),
         ],
       ],
@@ -95,7 +95,7 @@ class MyDataForm extends StatelessWidget {
   final FocusNode? errorFocusNode;
 
   /// Spec: each group "`space-6` from the group before".
-  static const groupGap = MyDataSpace.s6;
+  static double groupGap(MyDataLook look) => look.space(6);
 
   @override
   Widget build(BuildContext context) {
@@ -104,7 +104,7 @@ class MyDataForm extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         for (var i = 0; i < groups.length; i++) ...[
-          if (i > 0) const SizedBox(height: groupGap),
+          if (i > 0) SizedBox(height: groupGap(context.look)),
           if (i == 0 && error != null)
             _FormErrorScope(message: error!, focusNode: errorFocusNode, child: groups[i])
           else
@@ -164,7 +164,7 @@ class FormGroup extends StatelessWidget {
       children: [
         if (error != null) FormErrorMessage(message: error.message, focusNode: error.focusNode),
         for (var i = 0; i < children.length; i++) ...[
-          if (i > 0) SizedBox(height: ground.fieldGap),
+          if (i > 0) SizedBox(height: ground.fieldGap(context.look)),
           children[i],
         ],
       ],
@@ -174,8 +174,8 @@ class FormGroup extends StatelessWidget {
         constraints: const BoxConstraints(maxWidth: MyDataSize.contentMax),
         child: DecoratedBox(
           decoration:
-              BoxDecoration(color: c.surface, borderRadius: MyDataRadii.lg, boxShadow: context.shadows.shadow1),
-          child: Padding(padding: EdgeInsets.all(phone ? MyDataSpace.s4 : MyDataSpace.s5), child: fields),
+              BoxDecoration(color: c.surface, borderRadius: MyDataRadii.lg(context.look), boxShadow: context.shadows.shadow1),
+          child: Padding(padding: EdgeInsets.all(phone ? context.space(4) : context.space(5)), child: fields),
         ),
       );
     }
@@ -206,17 +206,17 @@ class FormGroupHeading extends StatelessWidget {
   final String text;
 
   /// Under the heading, above the first field.
-  static const gap = MyDataSpace.s2;
+  static double gap(MyDataLook look) => look.space(2);
 
   /// The inset on a page's `bg`.
-  static const pageInset = MyDataSpace.s2;
+  static double pageInset(MyDataLook look) => look.space(2);
 
   @override
   Widget build(BuildContext context) {
     final inset = _FormGroundScope.of(context) == FormGround.page && !AppLayout.isPhone(context);
     return Padding(
-      padding: EdgeInsetsDirectional.only(start: inset ? pageInset : 0, bottom: gap),
-      child: Text(text, style: MyDataType.label.copyWith(color: context.colors.inkMuted)),
+      padding: EdgeInsetsDirectional.only(start: inset ? pageInset(context.look) : 0, bottom: gap(context.look)),
+      child: Text(text, style: context.typeScale.label.copyWith(color: context.colors.inkMuted)),
     );
   }
 }
@@ -231,14 +231,14 @@ class FormErrorMessage extends StatelessWidget {
   final FocusNode? focusNode;
 
   /// Preview: `.ferr{gap:8px;margin-bottom:16px}`.
-  static const gap = MyDataSpace.s2;
-  static const bottom = MyDataSpace.s4;
+  static double gap(MyDataLook look) => look.space(2);
+  static double bottom(MyDataLook look) => look.space(4);
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
     return Padding(
-      padding: const EdgeInsets.only(bottom: bottom),
+      padding: EdgeInsets.only(bottom: bottom(context.look)),
       child: Focus(
         focusNode: focusNode,
         skipTraversal: true,
@@ -247,9 +247,9 @@ class FormErrorMessage extends StatelessWidget {
           label: message,
           child: ExcludeSemantics(
             child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Icon(Icons.error_outline_rounded, size: MyDataSize.icon, color: c.danger),
-              const SizedBox(width: gap),
-              Expanded(child: Text(message, style: MyDataType.caption.copyWith(color: c.danger))),
+              Icon(Icons.error_outline_rounded, size: context.density.icon, color: c.danger),
+              SizedBox(width: gap(context.look)),
+              Expanded(child: Text(message, style: context.typeScale.caption.copyWith(color: c.danger))),
             ]),
           ),
         ),
@@ -284,13 +284,7 @@ class RepeatableFormRow extends StatelessWidget {
     required List<Widget> values,
     required this.removeLabel,
     required this.onRemove,
-  }) : value = Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            for (var i = 0; i < values.length; i++) ...[if (i > 0) const SizedBox(height: gap), values[i]],
-          ],
-        );
+  }) : value = _StackedValues(values);
 
   final Widget labelPicker;
   final Widget value;
@@ -302,17 +296,36 @@ class RepeatableFormRow extends StatelessWidget {
   final VoidCallback? onRemove;
 
   /// Spec: "`space-2` apart".
-  static const gap = MyDataSpace.s2;
+  static double gap(MyDataLook look) => look.space(2);
 
   @override
   Widget build(BuildContext context) => Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           labelPicker,
-          const SizedBox(width: gap),
+          SizedBox(width: gap(context.look)),
           Expanded(child: value),
-          const SizedBox(width: gap),
+          SizedBox(width: gap(context.look)),
           FormRemoveButton(label: removeLabel, onPressed: onRemove),
+        ],
+      );
+}
+
+/// An address's fields, stacked [RepeatableFormRow.gap] apart.
+class _StackedValues extends StatelessWidget {
+  const _StackedValues(this.values);
+
+  final List<Widget> values;
+
+  @override
+  Widget build(BuildContext context) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < values.length; i++) ...[
+            if (i > 0) SizedBox(height: RepeatableFormRow.gap(context.look)),
+            values[i],
+          ],
         ],
       );
 }
@@ -397,7 +410,7 @@ class RepeatableFormGroup<K> extends StatefulWidget {
   final FocusNode? addFocusNode;
 
   /// Spec: "Rows of one kind are `space-3` apart"; the Add button `space-3` under the last row.
-  static const rowGap = MyDataSpace.s3;
+  static double rowGap(MyDataLook look) => look.space(3);
 
   @override
   State<RepeatableFormGroup<K>> createState() => _RepeatableFormGroupState<K>();
@@ -425,14 +438,14 @@ class _RepeatableFormGroupState<K> extends State<RepeatableFormGroup<K>> with Ti
   }
 
   AnimationController _controller() =>
-      AnimationController(vsync: this, duration: MyDataMotion.base, reverseDuration: MyDataMotion.base);
+      AnimationController(vsync: this, duration: context.lookNow.motion.base, reverseDuration: context.lookNow.motion.base);
 
   @override
   void didUpdateWidget(RepeatableFormGroup<K> old) {
     super.didUpdateWidget(old);
     final now = widget.keys;
     final reduced = MyDataMotion.reduced(context);
-    final duration = reduced ? MyDataMotion.fast : MyDataMotion.base;
+    final duration = reduced ? context.motion.fast : context.motion.base;
     // Removed rows fade and close.
     String? removedMessage;
     K? removedKey;
@@ -506,9 +519,9 @@ class _RepeatableFormGroupState<K> extends State<RepeatableFormGroup<K>> with Ti
         row = widget.rowBuilder(context, r.key, index++);
         r.last = row;
       }
-      final curved = CurvedAnimation(parent: r.controller, curve: MyDataMotion.standard);
+      final curved = CurvedAnimation(parent: r.controller, curve: context.motion.standard);
       Widget item = Padding(
-        padding: EdgeInsets.only(top: i == 0 ? 0 : RepeatableFormGroup.rowGap),
+        padding: EdgeInsets.only(top: i == 0 ? 0 : RepeatableFormGroup.rowGap(context.look)),
         child: row,
       );
       item = FadeTransition(opacity: curved, child: item);
@@ -538,7 +551,7 @@ class _RepeatableFormGroupState<K> extends State<RepeatableFormGroup<K>> with Ti
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         ...children,
-        if (_rows.isNotEmpty) const SizedBox(height: RepeatableFormGroup.rowGap),
+        if (_rows.isNotEmpty) SizedBox(height: RepeatableFormGroup.rowGap(context.look)),
         Align(
           alignment: AlignmentDirectional.centerStart,
           child: Button(

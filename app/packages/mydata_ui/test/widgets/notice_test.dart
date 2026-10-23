@@ -31,7 +31,7 @@ Widget _allStates() => SizedBox(
         Builder(
           builder: (context) => Container(
             height: MyDataSize.rowHeight,
-            decoration: BoxDecoration(color: context.colors.surface, borderRadius: MyDataRadii.lg),
+            decoration: BoxDecoration(color: context.colors.surface, borderRadius: MyDataRadii.lg(kiwiLook)),
           ),
         ),
       ]),
@@ -72,7 +72,7 @@ void main() {
         find.descendant(of: find.byType(Notice), matching: find.byType(DecoratedBox)).first);
     final decoration = box.decoration as BoxDecoration;
     expect(decoration.color, c.surfaceSunken);
-    expect(decoration.borderRadius, MyDataRadii.md);
+    expect(decoration.borderRadius, MyDataRadii.md(kiwiLook));
     expect(decoration.border, isNull);
 
     final icon = tester.getRect(find.byType(Icon));
@@ -113,9 +113,9 @@ void main() {
     final words = tester.getRect(find.text(_notReadYet));
     expect(tester.widget<Button>(find.byType(Button)).variant, ButtonVariant.plain);
     expect(button.height, MyDataSize.controlHeight);
-    expect(button.right, notice.right - (MyDataSpace.s4 - Notice.actionBleed));
-    expect(button.top, notice.top + MyDataSpace.s3 - Notice.actionBleed);
-    expect(notice.bottom, button.bottom + MyDataSpace.s3 - Notice.actionBleed);
+    expect(button.right, notice.right - (MyDataSpace.s4 - Notice.actionBleed(kiwiLook)));
+    expect(button.top, notice.top + MyDataSpace.s3 - Notice.actionBleed(kiwiLook));
+    expect(notice.bottom, button.bottom + MyDataSpace.s3 - Notice.actionBleed(kiwiLook));
     expect(button.left, greaterThanOrEqualTo(words.right + MyDataSpace.s3));
     // One line of words beside a 44px button: the words sit centred, and never closer than space-3 to the
     // edge, as they do without a button.
@@ -148,7 +148,7 @@ void main() {
     final icon = tester.getRect(find.byType(Icon));
     expect(words.left, icon.right + MyDataSpace.s3);
     expect(button.left, words.right + MyDataSpace.s3);
-    expect(button.right, notice.right - (MyDataSpace.s4 - Notice.actionBleed));
+    expect(button.right, notice.right - (MyDataSpace.s4 - Notice.actionBleed(kiwiLook)));
     expect(button.height, MyDataSize.controlHeight);
     expect(button.center.dy, moreOrLessEquals(notice.center.dy));
     expect(icon.center.dy, moreOrLessEquals(notice.center.dy));
@@ -236,8 +236,8 @@ void main() {
     final notices = find.byType(Notice);
     final first = tester.getRect(notices.at(0));
     final second = tester.getRect(notices.at(1));
-    expect(second.top, first.bottom + Notice.stackGap);
-    expect(tester.getRect(find.byKey(const Key('content'))).top, second.bottom + Notice.contentGap);
+    expect(second.top, first.bottom + Notice.stackGap(kiwiLook));
+    expect(tester.getRect(find.byKey(const Key('content'))).top, second.bottom + Notice.contentGap(kiwiLook));
     expect(first.width, MyDataSize.contentMax);
 
     await _pump(tester, _frame(Column(mainAxisSize: MainAxisSize.min, children: [

@@ -1,12 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/semantics.dart';
 import 'package:flutter/physics.dart';
+import 'package:flutter/semantics.dart';
 
-import '../generated/tokens.g.dart';
-import '../motion.dart';
-import '../theme.dart';
+import '../theme/motion.dart';
+import '../theme/theme.dart';
 import 'app_frame.dart' show PhoneType;
 import 'button.dart';
 import 'dialog.dart';
@@ -33,6 +32,7 @@ Future<T?> showSheet<T>({required BuildContext context, required WidgetBuilder b
     builder: builder,
     scrim: context.colors.scrim,
     reduced: MyDataMotion.reduced(context),
+    motion: context.motion,
     capturedThemes: InheritedTheme.capture(from: context, to: navigator.context),
   ));
 }
@@ -54,11 +54,18 @@ class SheetScope extends InheritedWidget {
 }
 
 class _SheetRoute<T> extends PopupRoute<T> {
-  _SheetRoute({required this.builder, required this.scrim, required this.reduced, required this.capturedThemes});
+  _SheetRoute({
+    required this.builder,
+    required this.scrim,
+    required this.reduced,
+    required this.motion,
+    required this.capturedThemes,
+  });
 
   final WidgetBuilder builder;
   final Color scrim;
   final bool reduced;
+  final MyDataMotionSpec motion;
   final CapturedThemes capturedThemes;
 
   @override
@@ -72,10 +79,10 @@ class _SheetRoute<T> extends PopupRoute<T> {
   String? get barrierLabel => null;
 
   @override
-  Duration get transitionDuration => reduced ? MyDataMotion.fast : MyDataMotion.slow;
+  Duration get transitionDuration => reduced ? motion.fast : motion.slow;
 
   @override
-  Duration get reverseTransitionDuration => reduced ? MyDataMotion.fast : MyDataMotion.base;
+  Duration get reverseTransitionDuration => reduced ? motion.fast : motion.base;
 
   @override
   Widget buildPage(BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation) =>
@@ -168,15 +175,15 @@ class Sheet extends StatefulWidget {
   static const doneLabel = 'Done';
 
   /// The editor sheet leaves this much of the screen behind showing under the status bar.
-  static const topGap = MyDataSpace.s3;
+  static double topGap(MyDataLook look) => look.space(3);
 
   /// The grabber: a pill `icon-tile` wide and `space-1` tall, `space-2` from the top.
-  static const grabberWidth = MyDataSize.iconTile;
-  static const grabberHeight = MyDataSpace.s1;
-  static const grabberTop = MyDataSpace.s2;
+  static double grabberWidth(MyDataLook look) => look.density.iconTile;
+  static double grabberHeight(MyDataLook look) => look.space(1);
+  static double grabberTop(MyDataLook look) => look.space(2);
 
   /// How far a drag moves a sheet with pending input before it resists.
-  static const resistance = MyDataSpace.s8;
+  static double resistance(MyDataLook look) => look.space(8);
 
   /// Released past this share of its height, a drag is Cancel.
   static const dismissFraction = 1 / 3;
@@ -185,7 +192,7 @@ class Sheet extends StatefulWidget {
   static const flickVelocity = 700.0;
 
   /// Padding across the body.
-  static const bodyPadding = MyDataSpace.s4;
+  static double bodyPadding(MyDataLook look) => look.space(4);
 
   @override
   State<Sheet> createState() => _SheetState();
@@ -224,9 +231,9 @@ class _SheetState extends State<Sheet> with SingleTickerProviderStateMixin {
     _rise?.dispose();
     _rise = CurvedAnimation(
       parent: animation,
-      curve: Interval(0, MyDataMotion.springDuration.inMicroseconds / MyDataMotion.slow.inMicroseconds,
+      curve: Interval(0, context.motion.springDuration.inMicroseconds / context.motion.slow.inMicroseconds,
           curve: const SpringCurve()),
-      reverseCurve: MyDataMotion.standard,
+      reverseCurve: context.motion.standard,
     );
   }
 
@@ -264,7 +271,7 @@ class _SheetState extends State<Sheet> with SingleTickerProviderStateMixin {
     if (widget.busy || _left) return;
     _drag.stop();
     final next = _drag.value + d.delta.dy;
-    _drag.value = _pending ? next.clamp(0.0, Sheet.resistance) : next.clamp(0.0, double.infinity);
+    _drag.value = _pending ? next.clamp(0.0, Sheet.resistance(context.look)) : next.clamp(0.0, double.infinity);
   }
 
   void _dragEnd(DragEndDetails d) {
@@ -273,7 +280,7 @@ class _SheetState extends State<Sheet> with SingleTickerProviderStateMixin {
     if (_pending) {
       // Only a drag that would have closed the sheet asks: held down at the limit, or flicked down. Any other
       // (upward, or a few pixels) just springs back.
-      final wouldLeave = _drag.value >= Sheet.resistance - 0.5 || velocity > Sheet.flickVelocity;
+      final wouldLeave = _drag.value >= Sheet.resistance(context.look) - 0.5 || velocity > Sheet.flickVelocity;
       _springBack(velocity);
       if (wouldLeave) unawaited(_requestCancel());
       return;
@@ -286,7 +293,7 @@ class _SheetState extends State<Sheet> with SingleTickerProviderStateMixin {
   }
 
   void _springBack(double velocity) =>
-      _drag.animateWith(SpringSimulation(MyDataMotion.spring, _drag.value, 0, velocity));
+      _drag.animateWith(SpringSimulation(context.motion.spring, _drag.value, 0, velocity));
 
   bool _onScroll(ScrollNotification n) {
     if (n.metrics.axis != Axis.vertical) return false;
@@ -303,7 +310,7 @@ class _SheetState extends State<Sheet> with SingleTickerProviderStateMixin {
     final mq = MediaQuery.of(context);
     final scope = SheetScope.maybeOf(context);
     final editor = widget.kind == SheetKind.editor;
-    final topLimit = mq.padding.top + Sheet.topGap;
+    final topLimit = mq.padding.top + Sheet.topGap(context.look);
     final keyboard = mq.viewInsets.bottom;
 
     final header = GestureDetector(
@@ -314,18 +321,18 @@ class _SheetState extends State<Sheet> with SingleTickerProviderStateMixin {
         decoration: BoxDecoration(
           border: Border(bottom: BorderSide(color: _scrolled ? c.line : c.line.withValues(alpha: 0))),
         ),
-        padding: const EdgeInsets.fromLTRB(MyDataSpace.s2, Sheet.grabberTop, MyDataSpace.s2, MyDataSpace.s2),
+        padding: EdgeInsets.fromLTRB(context.space(2), Sheet.grabberTop(context.look), context.space(2), context.space(2)),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           ExcludeSemantics(
             child: Container(
-              width: Sheet.grabberWidth,
-              height: Sheet.grabberHeight,
-              decoration: BoxDecoration(color: c.lineStrong, borderRadius: MyDataRadii.pill),
+              width: Sheet.grabberWidth(context.look),
+              height: Sheet.grabberHeight(context.look),
+              decoration: BoxDecoration(color: c.lineStrong, borderRadius: MyDataRadii.pill(context.look)),
             ),
           ),
-          const SizedBox(height: MyDataSpace.s1),
+          SizedBox(height: context.space(1)),
           SizedBox(
-            height: MyDataSize.controlHeight,
+            height: context.density.controlHeight,
             // Cancel and the end button share the sides equally, so the title sits in the middle.
             child: LayoutBuilder(
               builder: (context, constraints) => Row(children: [
@@ -347,7 +354,7 @@ class _SheetState extends State<Sheet> with SingleTickerProviderStateMixin {
                         textAlign: TextAlign.center,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: MyDataType.heading.copyWith(color: c.ink)),
+                        style: context.typeScale.heading.copyWith(color: c.ink)),
                   ),
                 ),
                 Expanded(
@@ -364,8 +371,8 @@ class _SheetState extends State<Sheet> with SingleTickerProviderStateMixin {
     Widget body = Focus(focusNode: _bodyNode, child: FormCommit(scope: _commits, child: widget.body));
     if (widget.scrollable) {
       body = SingleChildScrollView(
-        padding: EdgeInsets.fromLTRB(Sheet.bodyPadding, editor ? MyDataSpace.s2 : 0, Sheet.bodyPadding,
-            Sheet.bodyPadding + (keyboard > 0 ? 0 : mq.padding.bottom)),
+        padding: EdgeInsets.fromLTRB(Sheet.bodyPadding(context.look), editor ? context.space(2) : 0, Sheet.bodyPadding(context.look),
+            Sheet.bodyPadding(context.look) + (keyboard > 0 ? 0 : mq.padding.bottom)),
         child: body,
       );
     } else {
@@ -377,7 +384,7 @@ class _SheetState extends State<Sheet> with SingleTickerProviderStateMixin {
       key: _panelKey,
       decoration: BoxDecoration(
         color: editor ? c.surface : c.surfaceRaised,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(MyDataRadius.xl)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(context.radius.xl)),
         boxShadow: context.shadows.shadow2,
       ),
       child: Padding(
@@ -478,21 +485,21 @@ class SheetPickerRow extends StatelessWidget {
       selected: chosen,
       child: ExcludeSemantics(
         child: Container(
-          constraints: const BoxConstraints(minHeight: MyDataSize.rowHeight),
-          padding: const EdgeInsets.symmetric(horizontal: Sheet.bodyPadding, vertical: MyDataSpace.s2),
+          constraints: BoxConstraints(minHeight: context.density.rowHeight),
+          padding: EdgeInsets.symmetric(horizontal: Sheet.bodyPadding(context.look), vertical: context.space(2)),
           decoration: BoxDecoration(border: Border(top: BorderSide(color: c.line))),
           child: Row(children: [
             if (leading != null) ...[
-              SizedBox.square(dimension: MyDataSize.iconTile, child: Center(child: leading)),
-              const SizedBox(width: MyDataSpace.s3),
+              SizedBox.square(dimension: context.density.iconTile, child: Center(child: leading)),
+              SizedBox(width: context.space(3)),
             ],
             Expanded(
               child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(label, style: PhoneType.body(MyDataType.body, phone: true).copyWith(color: c.ink)),
-                if (caption != null) Text(caption!, style: MyDataType.caption.copyWith(color: c.inkMuted)),
+                Text(label, style: PhoneType.body(context.typeScale.body, phone: true).copyWith(color: c.ink)),
+                if (caption != null) Text(caption!, style: context.typeScale.caption.copyWith(color: c.inkMuted)),
               ]),
             ),
-            if (chosen) Icon(Icons.check_rounded, size: MyDataSize.icon, color: c.accent),
+            if (chosen) Icon(Icons.check_rounded, size: context.density.icon, color: c.accent),
           ]),
         ),
       ),

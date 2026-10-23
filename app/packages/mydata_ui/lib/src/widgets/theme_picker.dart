@@ -4,8 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../generated/tokens.g.dart';
-import '../motion.dart';
-import '../theme.dart';
+import '../theme/theme.dart';
 import 'button.dart';
 import 'icon_tile.dart';
 import 'pressable.dart';
@@ -65,18 +64,18 @@ class ThemePicker extends StatefulWidget {
 
   /// Space before the disc. The preview's 11px snaps to `space-3`, which also keeps the disc about
   /// concentric with the pill's rounded end.
-  static const leadingPadding = MyDataSpace.s3;
+  static double leadingPadding(MyDataLook look) => look.space(3);
 
   /// Space after the name. The preview's 18px lies halfway between `space-4` and `space-5`; `space-4` is
   /// used.
-  static const trailingPadding = MyDataSpace.s4;
+  static double trailingPadding(MyDataLook look) => look.space(4);
 
   /// Space between the disc and the name (the preview's 8px).
-  static const discGap = MyDataSpace.s2;
+  static double discGap(MyDataLook look) => look.space(2);
 
   /// Space between swatches: the preview's 10px snapped to `space-2`, the chip and button gap (decided
   /// 2026-10-12).
-  static const gap = MyDataSpace.s2;
+  static double gap(MyDataLook look) => look.space(2);
 
   @override
   State<ThemePicker> createState() => _ThemePickerState();
@@ -160,8 +159,8 @@ class _ThemePickerState extends State<ThemePicker> {
         skipTraversal: true,
         onKeyEvent: _onKey,
         child: Wrap(
-          spacing: ThemePicker.gap,
-          runSpacing: ThemePicker.gap,
+          spacing: ThemePicker.gap(context.look),
+          runSpacing: ThemePicker.gap(context.look),
           children: [
             for (var i = 0; i < widget.themes.length; i++)
               Semantics(
@@ -170,7 +169,7 @@ class _ThemePickerState extends State<ThemePicker> {
                 checked: i == selected,
                 child: Pressable(
                   onPressed: _enabled ? () => _choose(i) : null,
-                  borderRadius: MyDataRadii.pill,
+                  borderRadius: MyDataRadii.pill(context.look),
                   focusNode: _nodes[i],
                   button: false,
                   child: _Swatch(theme: widget.themes[i], selected: i == selected, dark: dark),
@@ -194,14 +193,14 @@ class _Swatch extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return AnimatedContainer(
-      duration: MyDataMotion.fast,
-      curve: MyDataMotion.standard,
-      constraints: const BoxConstraints(minHeight: MyDataSize.controlHeight),
-      padding: const EdgeInsetsDirectional.only(
-          start: ThemePicker.leadingPadding, end: ThemePicker.trailingPadding),
+      duration: context.motion.fast,
+      curve: context.motion.standard,
+      constraints: BoxConstraints(minHeight: context.density.controlHeight),
+      padding: EdgeInsetsDirectional.only(
+          start: ThemePicker.leadingPadding(context.look), end: ThemePicker.trailingPadding(context.look)),
       decoration: BoxDecoration(
         color: c.surface,
-        borderRadius: MyDataRadii.pill,
+        borderRadius: MyDataRadii.pill(context.look),
         // Selected: the ring replaces the shadow (decided 2026-10-12).
         boxShadow: selected ? const [] : context.shadows.shadow1,
         border: selected
@@ -221,16 +220,16 @@ class _Swatch extends StatelessWidget {
             decoration: BoxDecoration(color: dark ? theme.accentDark : theme.accentLight, shape: BoxShape.circle),
             child: AnimatedOpacity(
               opacity: selected ? 1 : 0,
-              duration: MyDataMotion.fast,
-              curve: MyDataMotion.standard,
+              duration: context.motion.fast,
+              curve: context.motion.standard,
               child: CustomPaint(
                 size: const Size.square(ThemePicker.checkSize),
                 painter: _CheckPainter(dark ? theme.onAccentDark : theme.onAccentLight),
               ),
             ),
           ),
-          const SizedBox(width: ThemePicker.discGap),
-          Text(theme.name, maxLines: 1, softWrap: false, style: MyDataType.bodyStrong.copyWith(color: c.ink)),
+          SizedBox(width: ThemePicker.discGap(context.look)),
+          Text(theme.name, maxLines: 1, softWrap: false, style: context.typeScale.bodyStrong.copyWith(color: c.ink)),
         ],
       ),
     );
@@ -338,51 +337,51 @@ class _SampleScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     final shadow = context.shadows.shadow1;
-    final caption = MyDataType.caption.copyWith(color: c.inkMuted);
-    BoxDecoration card() => BoxDecoration(color: c.surface, borderRadius: MyDataRadii.lg, boxShadow: shadow);
+    final caption = context.typeScale.caption.copyWith(color: c.inkMuted);
+    BoxDecoration card() => BoxDecoration(color: c.surface, borderRadius: MyDataRadii.lg(context.look), boxShadow: shadow);
 
     // Preview: `.main{padding:16px 16px 16px 8px; gap:14px}`; 14px snaps to space-4, as cards are space-4
     // apart.
     final main = Padding(
-      padding: const EdgeInsetsDirectional.fromSTEB(MyDataSpace.s2, MyDataSpace.s4, MyDataSpace.s4, MyDataSpace.s4),
+      padding: EdgeInsetsDirectional.fromSTEB(context.space(2), context.space(4), context.space(4), context.space(4)),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('Library', style: MyDataType.title.copyWith(color: c.ink)),
-          const SizedBox(height: MyDataSpace.s4),
+          Text('Library', style: context.typeScale.title.copyWith(color: c.ink)),
+          SizedBox(height: context.space(4)),
           Container(
             decoration: card(),
-            padding: const EdgeInsets.all(MyDataSpace.s4),
+            padding: EdgeInsets.all(context.space(4)),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const IconTile(icon: Icons.photo_outlined, tone: MyDataTone.accent),
-                const SizedBox(width: MyDataSpace.s3),
+                SizedBox(width: context.space(3)),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Backing up 248 photos', style: MyDataType.bodyStrong.copyWith(color: c.ink)),
+                      Text('Backing up 248 photos', style: context.typeScale.bodyStrong.copyWith(color: c.ink)),
                       Text.rich(TextSpan(style: caption, children: [
                         const TextSpan(text: 'To the drive on this Mac. '),
                         TextSpan(
                           text: 'See details',
-                          style: MyDataType.label.copyWith(
+                          style: context.typeScale.label.copyWith(
                               color: c.accent, decoration: TextDecoration.underline, decorationColor: c.accent),
                         ),
                       ])),
-                      const SizedBox(height: MyDataSpace.s2),
+                      SizedBox(height: context.space(2)),
                       // The ProgressBar's track and fill, without its label and caption.
                       Container(
                         height: MyDataProgressBar.trackHeight,
-                        decoration: BoxDecoration(color: c.surfaceSunken, borderRadius: MyDataRadii.pill),
+                        decoration: BoxDecoration(color: c.surfaceSunken, borderRadius: MyDataRadii.pill(context.look)),
                         alignment: AlignmentDirectional.centerStart,
                         child: FractionallySizedBox(
                           widthFactor: ThemeSample.barValue,
                           heightFactor: 1,
                           child: DecoratedBox(
-                              decoration: BoxDecoration(color: c.accent, borderRadius: MyDataRadii.pill)),
+                              decoration: BoxDecoration(color: c.accent, borderRadius: MyDataRadii.pill(context.look))),
                         ),
                       ),
                     ],
@@ -391,27 +390,27 @@ class _SampleScreen extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: MyDataSpace.s4),
+          SizedBox(height: context.space(4)),
           Container(
             decoration: card(),
-            padding: const EdgeInsets.all(MyDataSpace.s4),
+            padding: EdgeInsets.all(context.space(4)),
             child: Row(
               children: [
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Group photos by face', style: MyDataType.bodyStrong.copyWith(color: c.ink)),
+                      Text('Group photos by face', style: context.typeScale.bodyStrong.copyWith(color: c.ink)),
                       Text('Runs on your host.', style: caption),
                     ],
                   ),
                 ),
-                const SizedBox(width: MyDataSpace.s3),
+                SizedBox(width: context.space(3)),
                 const SwitchTrack(value: true),
               ],
             ),
           ),
-          const SizedBox(height: MyDataSpace.s4),
+          SizedBox(height: context.space(4)),
           const ButtonRow(children: [
             Button(label: 'Add photos', onPressed: _noop, variant: ButtonVariant.filled),
             Button(label: 'New album', onPressed: _noop),
@@ -423,7 +422,7 @@ class _SampleScreen extends StatelessWidget {
     return Container(
       // A window on the ground, edged with a hairline of `line` as in the preview (no shadow, so no card
       // with both a border and a shadow).
-      decoration: BoxDecoration(color: c.bg, borderRadius: MyDataRadii.lg, border: Border.all(color: c.line)),
+      decoration: BoxDecoration(color: c.bg, borderRadius: MyDataRadii.lg(context.look), border: Border.all(color: c.line)),
       child: IntrinsicHeight(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -449,46 +448,46 @@ class _SampleSidebar extends StatelessWidget {
     // Preview: `.nav{padding:8px 12px;border-radius:999px;font-size:14px;line-height:20px}`, 14/20 snapping
     // to `body`; `.nav.sel{background:accent-soft;color:accent;font-weight:600}`.
     Widget place(String name, {bool selected = false}) => Container(
-          padding: const EdgeInsets.symmetric(horizontal: MyDataSpace.s3, vertical: MyDataSpace.s2),
-          decoration: BoxDecoration(color: selected ? c.accentSoft : null, borderRadius: MyDataRadii.pill),
+          padding: EdgeInsets.symmetric(horizontal: context.space(3), vertical: context.space(2)),
+          decoration: BoxDecoration(color: selected ? c.accentSoft : null, borderRadius: MyDataRadii.pill(context.look)),
           child: Text(name,
               maxLines: 1,
               softWrap: false,
               style: selected
-                  ? MyDataType.bodyStrong.copyWith(color: c.accent)
-                  : MyDataType.body.copyWith(color: c.inkMuted)),
+                  ? context.typeScale.bodyStrong.copyWith(color: c.accent)
+                  : context.typeScale.body.copyWith(color: c.inkMuted)),
         );
 
     // Preview: `.side{padding:16px 8px;gap:2px}`; the 2px gap snaps to space-1.
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: MyDataSpace.s2, vertical: MyDataSpace.s4),
+      padding: EdgeInsets.symmetric(horizontal: context.space(2), vertical: context.space(4)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Preview: `.app{font:700 17px/22px display;padding:0 10px 10px}`; 10px snaps to space-3, so the
           // name lines up with the places.
           Padding(
-            padding: const EdgeInsets.fromLTRB(MyDataSpace.s3, 0, MyDataSpace.s3, MyDataSpace.s3),
-            child: Text('myPhotos', maxLines: 1, softWrap: false, style: MyDataType.heading.copyWith(color: c.ink)),
+            padding: EdgeInsets.fromLTRB(context.space(3), 0, context.space(3), context.space(3)),
+            child: Text('myPhotos', maxLines: 1, softWrap: false, style: context.typeScale.heading.copyWith(color: c.ink)),
           ),
           place('Library', selected: true),
-          const SizedBox(height: MyDataSpace.s1),
+          SizedBox(height: context.space(1)),
           place('Albums'),
-          const SizedBox(height: MyDataSpace.s1),
+          SizedBox(height: context.space(1)),
           place('People'),
-          const SizedBox(height: MyDataSpace.s1),
+          SizedBox(height: context.space(1)),
           place('Places'),
           const Spacer(),
           // Preview: `.host{margin-top:auto;padding:8px 10px;font-size:12px}` with a 7px `brand` dot and a 6px
           // gap; 10px snaps to space-3, 12px text to `caption`, the 6px gap to space-2.
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: MyDataSpace.s3, vertical: MyDataSpace.s2),
+            padding: EdgeInsets.symmetric(horizontal: context.space(3), vertical: context.space(2)),
             child: Text.rich(
               TextSpan(children: [
                 WidgetSpan(
                   alignment: PlaceholderAlignment.middle,
                   child: Padding(
-                    padding: const EdgeInsetsDirectional.only(end: MyDataSpace.s2),
+                    padding: EdgeInsetsDirectional.only(end: context.space(2)),
                     child: Container(
                       key: const ValueKey('theme-sample-host-dot'),
                       width: ThemeSample.hostDotSize,
@@ -499,7 +498,7 @@ class _SampleSidebar extends StatelessWidget {
                 ),
                 const TextSpan(text: 'Connected to your host'),
               ]),
-              style: MyDataType.caption.copyWith(color: c.inkMuted),
+              style: context.typeScale.caption.copyWith(color: c.inkMuted),
             ),
           ),
         ],

@@ -1,7 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-import '../generated/tokens.g.dart';
-import '../theme.dart';
+import '../theme/theme.dart';
 import 'action_row.dart';
 import 'group_frame.dart';
 import 'grouped_list.dart';
@@ -54,10 +53,10 @@ class GroupedContentPart extends StatelessWidget {
   final Widget child;
 
   /// Spec: "A content part has `space-5` padding, like a card".
-  static const padding = EdgeInsets.all(MyDataSpace.s5);
+  static EdgeInsets padding(MyDataLook look) => EdgeInsets.all(look.space(5));
 
   @override
-  Widget build(BuildContext context) => Padding(padding: padding, child: child);
+  Widget build(BuildContext context) => Padding(padding: padding(context.look), child: child);
 }
 
 /// A control in a [GroupedContentPart] with its name above it: [label] in the `label` style and `ink`,
@@ -73,15 +72,15 @@ class GroupedControl extends StatelessWidget {
   final Widget child;
 
   /// Spec: "its name above it in the `label` style, `space-2` above the control".
-  static const labelGap = MyDataSpace.s2;
+  static double labelGap(MyDataLook look) => look.space(2);
 
   @override
   Widget build(BuildContext context) => Column(
     mainAxisSize: MainAxisSize.min,
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      ExcludeSemantics(child: Text(label, style: MyDataType.label.copyWith(color: context.colors.ink))),
-      const SizedBox(height: labelGap),
+      ExcludeSemantics(child: Text(label, style: context.typeScale.label.copyWith(color: context.colors.ink))),
+      SizedBox(height: labelGap(context.look)),
       child,
     ],
   );
@@ -95,14 +94,14 @@ class GroupedStack extends StatelessWidget {
   final List<Widget> children;
 
   /// Spec: "each control under the last, `space-5` apart".
-  static const gap = MyDataSpace.s5;
+  static double gap(MyDataLook look) => look.space(5);
 
   @override
   Widget build(BuildContext context) => Column(
     mainAxisSize: MainAxisSize.min,
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      for (var i = 0; i < children.length; i++) ...[if (i > 0) const SizedBox(height: gap), children[i]],
+      for (var i = 0; i < children.length; i++) ...[if (i > 0) SizedBox(height: gap(context.look)), children[i]],
     ],
   );
 }

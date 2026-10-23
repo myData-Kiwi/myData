@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../accessibility.dart';
 import '../generated/tokens.g.dart';
+import '../theme/theme.dart';
 import '../widgets/app_frame.dart' show AppConnection, AppConnectionState, AppSection;
 import 'mac_chrome.dart';
 import 'mac_theme.dart';
@@ -149,7 +150,7 @@ class _Row extends StatelessWidget {
               child: Row(
                 children: [
                   Icon(section.icon, size: MyDataMacSize.icon, color: icon),
-                  const SizedBox(width: MyDataSpace.s2),
+                  SizedBox(width: context.space(2)),
                   Expanded(
                     child: Text(section.label,
                         maxLines: 1, overflow: TextOverflow.ellipsis, style: MyDataMacType.body.copyWith(color: ink)),
@@ -294,8 +295,8 @@ class MacConnectionLine extends StatelessWidget {
     };
     final style = MyDataMacType.caption.copyWith(color: mac.secondaryLabel);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(
-          MyDataMacSize.rowInset + MyDataMacSize.rowPadding, MyDataSpace.s2, MyDataMacSize.rowInset, MyDataSpace.s3),
+      padding: EdgeInsets.fromLTRB(
+          MyDataMacSize.rowInset + MyDataMacSize.rowPadding, context.space(2), MyDataMacSize.rowInset, context.space(3)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

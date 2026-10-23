@@ -1,0 +1,21 @@
+{
+  "format": 1,
+  "id": "mydata.evil",
+  "name": "X",
+  "version": "1.0.0",
+  "licence": "MIT",
+  "frame": "drawn",
+  "default-palette": "main",
+  "palettes": [
+    {
+      "id": "main",
+      "name": "Main",
+      "light": { "bg": "url(http://x)", "surface": "#FFF", "ink": "#000000", "ink-muted": "#333333", "accent": "#0000FF", "on-accent": "#FFFFFF" },
+      "dark": { "bg": "#000000", "surface": "#111111", "ink": "#FFFFFF", "ink-muted": "#CCCCCC", "accent": "#8888FF", "on-accent": "#000000" }
+    }
+  ],
+  "density": { "desktop": { "control": 12 } },
+  "elevation": { "style": "neumorphic" },
+  "materials": { "window": { "kind": "image", "image": { "light": "../../etc/passwd", "dark": "\\\\server\\share\\a.jpg" } } },
+  "components": { "button": { "primary": "text" } }
+}

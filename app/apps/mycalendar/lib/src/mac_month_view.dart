@@ -143,7 +143,7 @@ class MacMonthView extends StatelessWidget {
     final title = SizedBox(
       height: MacDayList.headingHeight,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: MyDataSpace.s4),
+        padding: EdgeInsets.symmetric(horizontal: context.space(4)),
         child: Align(
           alignment: AlignmentDirectional.centerStart,
           child: Semantics(
@@ -181,7 +181,7 @@ class MacMonthView extends StatelessWidget {
         title,
         for (final n in content.notices)
           Padding(
-            padding: const EdgeInsets.fromLTRB(MyDataSpace.s4, 0, MyDataSpace.s4, MyDataSpace.s2),
+            padding: EdgeInsets.fromLTRB(context.space(4), 0, context.space(4), context.space(2)),
             child: n,
           ),
         Expanded(child: grid),

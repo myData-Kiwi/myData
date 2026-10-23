@@ -269,7 +269,7 @@ void main() {
     final deco = box.decoration! as BoxDecoration;
     expect(deco.color, MyDataColors.light.surfaceSunken);
     expect(deco.border, isNull);
-    expect(deco.borderRadius, MyDataRadii.pill);
+    expect(deco.borderRadius, MyDataRadii.pill(kiwiLook));
     expect(tester.getSize(find.byType(MyDataSearchField)).height, MyDataSize.controlHeight);
     expectOneNamedTarget();
 

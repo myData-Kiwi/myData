@@ -9,12 +9,12 @@ Widget _meter() => Builder(
       builder: (context) => SizedBox(
         height: 8,
         child: DecoratedBox(
-          decoration: BoxDecoration(color: context.colors.surfaceSunken, borderRadius: MyDataRadii.pill),
+          decoration: BoxDecoration(color: context.colors.surfaceSunken, borderRadius: MyDataRadii.pill(kiwiLook)),
           child: FractionallySizedBox(
             alignment: AlignmentDirectional.centerStart,
             widthFactor: 0.4,
             child: DecoratedBox(
-                decoration: BoxDecoration(color: context.colors.accent, borderRadius: MyDataRadii.pill)),
+                decoration: BoxDecoration(color: context.colors.accent, borderRadius: MyDataRadii.pill(kiwiLook))),
           ),
         ),
       ),
@@ -88,10 +88,10 @@ void main() {
         find.descendant(of: find.byType(MyDataCard), matching: find.byType(DecoratedBox)).first);
     final d = box.decoration as BoxDecoration;
     expect(d.color, context.colors.surface);
-    expect(d.borderRadius, MyDataRadii.lg);
+    expect(d.borderRadius, MyDataRadii.lg(kiwiLook));
     expect(d.boxShadow, context.shadows.shadow1);
     expect(d.border, isNull);
-    expect(MyDataCard.padding, const EdgeInsets.all(MyDataSpace.s5));
+    expect(MyDataCard.padding(kiwiLook), const EdgeInsets.all(MyDataSpace.s5));
     final tile = tester.getTopLeft(find.byType(IconTile)) - tester.getTopLeft(find.byType(MyDataCard));
     expect(tile, const Offset(MyDataSpace.s5, MyDataSpace.s5));
   });
@@ -106,7 +106,7 @@ void main() {
     final name = tester.widget<Text>(find.text('Storage'));
     expect(name.style, MyDataType.bodyStrong.copyWith(color: context.colors.ink));
     expect(tester.getTopLeft(find.text('Storage')).dx - tester.getTopRight(find.byType(IconTile)).dx,
-        MyDataCard.headerGap);
+        MyDataCard.headerGap(kiwiLook));
     final content = DefaultTextStyle.of(tester.element(find.text('Content')));
     expect(content.style.fontSize, MyDataType.body.fontSize);
     expect(content.style.color, context.colors.ink);
@@ -201,17 +201,17 @@ void main() {
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
       await tester.pumpWidget(themedFrame(themeMatrix.first, _grid(5, entrance: false)));
-      const column = (760 - 2 * CardGrid.gap) / 3;
+      final column = (760 - 2 * CardGrid.gap(kiwiLook)) / 3;
       for (var i = 0; i < 5; i++) {
         expect(tester.getSize(_card(i)).width, moreOrLessEquals(column));
       }
-      expect(tester.getTopLeft(_card(1)).dx - tester.getTopRight(_card(0)).dx, moreOrLessEquals(CardGrid.gap));
+      expect(tester.getTopLeft(_card(1)).dx - tester.getTopRight(_card(0)).dx, moreOrLessEquals(CardGrid.gap(kiwiLook)));
       // Card 1 has the long text; cards 0 and 2 stretch to its height.
       final rowHeight = tester.getSize(_card(1)).height;
       expect(tester.getSize(_card(0)).height, rowHeight);
       expect(tester.getSize(_card(2)).height, rowHeight);
       // The second row starts space-4 below the first, back at the leading edge.
-      expect(tester.getTopLeft(_card(3)).dy - tester.getBottomLeft(_card(0)).dy, moreOrLessEquals(CardGrid.gap));
+      expect(tester.getTopLeft(_card(3)).dy - tester.getBottomLeft(_card(0)).dy, moreOrLessEquals(CardGrid.gap(kiwiLook)));
       expect(tester.getTopLeft(_card(3)).dx, tester.getTopLeft(_card(0)).dx);
       // Cards in the second row are only as tall as their own content.
       expect(tester.getSize(_card(3)).height, lessThan(rowHeight));
@@ -222,13 +222,13 @@ void main() {
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
       await tester.pumpWidget(themedFrame(themeMatrix.first, _grid(2, entrance: false)));
-      expect(tester.getSize(_card(0)).width, moreOrLessEquals((760 - CardGrid.gap) / 2));
+      expect(tester.getSize(_card(0)).width, moreOrLessEquals((760 - CardGrid.gap(kiwiLook)) / 2));
 
       await tester.pumpWidget(themedFrame(themeMatrix.first, _grid(3, width: 400, entrance: false)));
       for (var i = 0; i < 3; i++) {
         expect(tester.getSize(_card(i)).width, 400);
       }
-      expect(tester.getTopLeft(_card(1)).dy - tester.getBottomLeft(_card(0)).dy, moreOrLessEquals(CardGrid.gap));
+      expect(tester.getTopLeft(_card(1)).dy - tester.getBottomLeft(_card(0)).dy, moreOrLessEquals(CardGrid.gap(kiwiLook)));
     });
 
     testWidgets('right to left fills each row from the right', (tester) async {

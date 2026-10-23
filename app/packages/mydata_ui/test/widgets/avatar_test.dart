@@ -59,7 +59,7 @@ class _ControlledCompleter extends ImageStreamCompleter {
 /// One avatar with its caption under it, as the preview's figures.
 Widget _figure(String caption, Widget avatar) => Builder(
       builder: (context) => SizedBox(
-        width: AvatarSize.large.diameter,
+        width: AvatarSize.large.diameter(kiwiLook),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           avatar,
           const SizedBox(height: MyDataSpace.s2),
@@ -250,7 +250,7 @@ void main() {
       final box = tester.widget<DecoratedBox>(_in(name, find.byType(DecoratedBox)).first);
       final d = box.decoration as BoxDecoration;
       expect(d.color, c.kiwiWash, reason: name);
-      expect(d.borderRadius, MyDataRadii.pill, reason: name);
+      expect(d.borderRadius, MyDataRadii.pill(kiwiLook), reason: name);
       expect(d.border, isNull, reason: name);
       expect(d.boxShadow, isNull, reason: name);
     }
@@ -311,7 +311,7 @@ void main() {
     expect(image.fit, BoxFit.cover);
     expect(image.alignment, Alignment.center);
     expect(tester.getSize(find.byType(Image)), const Size.square(96));
-    expect(tester.widget<ClipRRect>(find.byType(ClipRRect)).borderRadius, MyDataRadii.pill);
+    expect(tester.widget<ClipRRect>(find.byType(ClipRRect)).borderRadius, MyDataRadii.pill(kiwiLook));
     expect(_opacity(tester, 'Ava Fictional', 0), 0, reason: 'letters hidden');
     expect(_opacity(tester, 'Ava Fictional', 1), 1, reason: 'photo shown');
     expect(_duration(tester, 'Ava Fictional'), Duration.zero, reason: 'already in memory: no fade');

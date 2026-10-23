@@ -32,7 +32,7 @@ class MacDayList extends StatelessWidget {
   static const headingHeight = MyDataMacSize.toolbarHeight;
 
   /// Across a row.
-  static const rowPadding = EdgeInsets.symmetric(horizontal: MyDataSpace.s4, vertical: MyDataSpace.s2);
+  static EdgeInsets rowPadding(MyDataLook look) => EdgeInsets.symmetric(horizontal: look.space(4), vertical: look.space(2));
 
   @override
   Widget build(BuildContext context) {
@@ -58,12 +58,12 @@ class MacDayList extends StatelessWidget {
     ];
     return SelectionArea(
       child: ListView(
-        padding: const EdgeInsets.only(bottom: MyDataSpace.s4),
+        padding: EdgeInsets.only(bottom: context.space(4)),
         children: [
           SizedBox(
             height: headingHeight,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: MyDataSpace.s4),
+              padding: EdgeInsets.symmetric(horizontal: context.space(4)),
               child: Align(
                 alignment: AlignmentDirectional.centerStart,
                 child: Semantics(
@@ -78,7 +78,7 @@ class MacDayList extends StatelessWidget {
           for (var i = 0; i < rows.length; i++) ...[
             if (i > 0)
               Padding(
-                padding: const EdgeInsetsDirectional.only(start: MyDataSpace.s4),
+                padding: EdgeInsetsDirectional.only(start: context.space(4)),
                 child: Divider(height: 1, thickness: 1, color: mac.separator),
               ),
             rows[i],
@@ -114,13 +114,13 @@ class _Row extends StatelessWidget {
     final small = MyDataMacType.caption.copyWith(color: mac.secondaryLabel);
     return MergeSemantics(
       child: Padding(
-        padding: MacDayList.rowPadding,
+        padding: MacDayList.rowPadding(context.look),
         child: IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               DataBar(colour: event.calendarColour),
-              const SizedBox(width: MyDataSpace.s2),
+              SizedBox(width: context.space(2)),
               Expanded(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -152,7 +152,7 @@ class _Line extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: MacDayList.rowPadding,
+    padding: MacDayList.rowPadding(context.look),
     child: Text(text, style: MyDataMacType.body.copyWith(color: context.mac.secondaryLabel)),
   );
 }

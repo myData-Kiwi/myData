@@ -1,7 +1,7 @@
 import 'package:flutter/physics.dart';
 import 'package:flutter/widgets.dart';
 
-import 'accessibility.dart';
+import '../accessibility.dart';
 
 /// design/motion.md: soft and quick. Things ease into place; nothing snaps and nothing lingers.
 abstract final class MyDataMotion {

@@ -92,7 +92,7 @@ void main() {
         themeMatrix.first,
         Column(children: [
           _Host(initial: 2, onChanged: picked.add),
-          Pressable(onPressed: () => after++, borderRadius: MyDataRadii.control, child: const SizedBox(width: 80, height: 44)),
+          Pressable(onPressed: () => after++, borderRadius: MyDataRadii.control(kiwiLook), child: const SizedBox(width: 80, height: 44)),
         ])));
     FocusNode focusOf(String name) => Focus.of(tester.element(find.text(name)));
 

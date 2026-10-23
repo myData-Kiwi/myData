@@ -24,7 +24,7 @@ import 'merge_pane.dart';
 /// - **Several selected** (from 600px): the contact pane shows the count, up to three names, and "Delete 3
 ///   contacts" (design/components/MultiSelect); followed contacts are counted out, with the reason.
 /// - "New contact" sits beside the search field from 600px; on a phone it is in the large title.
-/// - **The Mac frame** ([MacLook]): the list column (`list-width`) with the title and New contact in the
+/// - **The Mac frame** ([MacWindow.of]): the list column (`list-width`) with the title and New contact in the
 ///   toolbar band above it and the plain list ([ContactListStyle.plain]) under it, holding the keyboard at
 ///   first; a hairline; then the contact column with Edit at the start of its band and the search field at
 ///   the end, and [MacContactPage] under it. Where SwiftUI's NavigationSplitView puts them on macOS 26 (as
@@ -53,7 +53,7 @@ class ContactsView extends StatefulWidget {
 
   /// Between the list and the contact pane (preview: `.two{gap:32px}`), split between their paddings so
   /// neither cuts off the groups' shadows.
-  static const paneGap = MyDataSpace.s8;
+  static double paneGap(MyDataLook look) => look.space(8);
 
   static const missingLinkText =
       'The contact that link opens is not on your host. It may have been deleted, '
@@ -92,7 +92,7 @@ class _ContactsViewState extends State<ContactsView> {
     // The Mac frame starts with the list holding the keyboard, as Contacts.app does: the selection shows in
     // the accent and the arrow keys move it at once.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !MacLook.of(context)) return;
+      if (!mounted || !MacWindow.of(context)) return;
       // Only when nothing has the keyboard yet (a scope, not a control, holds the primary focus).
       final focus = FocusManager.instance.primaryFocus;
       if (focus == null || focus is FocusScopeNode) _listFocus.requestFocus();
@@ -207,7 +207,7 @@ class _ContactsViewState extends State<ContactsView> {
             menuFor: _actions.menuFor,
             onReturn: (id) => unawaited(_actions.edit(id)),
             onDelete: () => unawaited(_actions.deleteSelected()),
-            padding: const EdgeInsets.symmetric(vertical: MyDataSpace.s2),
+            padding: EdgeInsets.symmetric(vertical: context.space(2)),
           ),
         ),
       ],
@@ -218,11 +218,11 @@ class _ContactsViewState extends State<ContactsView> {
       // The inspector where the contact's page was, its form starting where the page's content starts and as
       // wide (Contacts edits the card in place).
       pane = Padding(
-        padding: const EdgeInsetsDirectional.only(start: MyDataSpace.s8 - Inspector.padding),
+        padding: EdgeInsetsDirectional.only(start: context.space(8) - Inspector.padding(context.look)),
         child: Align(
           alignment: AlignmentDirectional.topStart,
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: MacContactPage.maxWidth + 2 * Inspector.padding),
+            constraints: BoxConstraints(maxWidth: MacContactPage.maxWidth + 2 * Inspector.padding(context.look)),
             child: _actions.editor(edit),
           ),
         ),
@@ -255,7 +255,7 @@ class _ContactsViewState extends State<ContactsView> {
         explicitChildNodes: true,
         child: SingleChildScrollView(
           controller: _paneScroll,
-          padding: const EdgeInsets.fromLTRB(MyDataSpace.s8, MyDataSpace.s6, MyDataSpace.s8, MyDataSpace.s8),
+          padding: EdgeInsets.fromLTRB(context.space(8), context.space(6), context.space(8), context.space(8)),
           child: Align(
             alignment: AlignmentDirectional.topStart,
             child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: MacContactPage.maxWidth), child: content),
@@ -313,11 +313,11 @@ class _ContactsViewState extends State<ContactsView> {
     listenable: _controller,
     builder: (context, _) {
       final layout = AppLayout.of(context);
-      final pad = PageScaffold.paddingFor(layout);
+      final pad = PageScaffold.paddingFor(context.look, layout);
       final insets = MediaQuery.paddingOf(context);
       final missing = _controller.missingLinkId != null;
 
-      if (MacLook.of(context)) return _macLayout(missing: missing);
+      if (MacWindow.of(context)) return _macLayout(missing: missing);
 
       if (layout == AppLayout.phone) {
         return Column(
@@ -336,7 +336,7 @@ class _ContactsViewState extends State<ContactsView> {
                 menuFor: _actions.menuFor,
                 padding: EdgeInsets.fromLTRB(
                   pad + insets.left,
-                  (missing ? MyDataSpace.s4 : pad) + (missing ? 0 : insets.top),
+                  (missing ? context.space(4) : pad) + (missing ? 0 : insets.top),
                   pad + insets.right,
                   pad + insets.bottom,
                 ),
@@ -348,7 +348,7 @@ class _ContactsViewState extends State<ContactsView> {
 
       return LayoutBuilder(
         builder: (context, constraints) {
-          final half = ContactsView.paneGap / 2;
+          final half = ContactsView.paneGap(context.look) / 2;
           final listWidth = (constraints.maxWidth * ContactsView.listShare - pad - half).clamp(
             ContactsView.listMinWidth,
             ContactsView.listMaxWidth,
@@ -459,7 +459,7 @@ class _Selection extends StatelessWidget {
         Button(
           label: n <= 1 ? 'Delete contact' : 'Delete $n contacts',
           // The Mac frame: a push button (the Delete key and the menu bar do the same).
-          variant: MacLook.of(context) ? ButtonVariant.tonal : ButtonVariant.plainDanger,
+          variant: MacWindow.of(context) ? ButtonVariant.tonal : ButtonVariant.plainDanger,
           onPressed: n == 0 ? null : () => unawaited(actions.delete(ids)),
         ),
       ],
@@ -487,7 +487,7 @@ class _PlainLine extends StatelessWidget {
   final String text;
 
   @override
-  Widget build(BuildContext context) => Text(text, style: context.type(MyDataType.body).copyWith(color: context.colors.inkMuted));
+  Widget build(BuildContext context) => Text(text, style: context.type(MyDataTypeRole.body).copyWith(color: context.colors.inkMuted));
 }
 
 /// A contact's page pushed over the list under 600px, with a back button to the list. If the window
@@ -544,7 +544,7 @@ class _PushedContactPageState extends State<_PushedContactPage> {
         if (context.mounted) Navigator.of(context).maybePop();
       });
     }
-    final pad = PageScaffold.paddingFor(layout);
+    final pad = PageScaffold.paddingFor(context.look, layout);
     final insets = MediaQuery.paddingOf(context);
     return Scaffold(
       backgroundColor: context.colors.bg,
@@ -566,7 +566,7 @@ class _PushedContactPageState extends State<_PushedContactPage> {
                 if (controller.detailOf(id) case DetailReady(:final contact) when contact.editable)
                   ContactPageActions(actions: widget.actions, contact: contact),
               ]),
-              const SizedBox(height: MyDataSpace.s4),
+              SizedBox(height: context.space(4)),
               ContactPage(
                 controller: controller,
                 id: id,

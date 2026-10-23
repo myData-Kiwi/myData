@@ -4,9 +4,8 @@ import 'dart:ui' show SemanticsRole;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../generated/tokens.g.dart';
-import '../motion.dart';
-import '../theme.dart';
+import '../theme/motion.dart';
+import '../theme/theme.dart';
 import 'pressable.dart';
 
 /// A row of pill tabs for the sections of one screen (design/components/Tabs).
@@ -46,10 +45,10 @@ class MyDataTabs extends StatefulWidget {
   final String? semanticLabel;
 
   /// Space between tabs, across and down: the preview's 6px gap snapped to a token (decision 2026-10-12).
-  static const gap = MyDataSpace.s2;
+  static double gap(MyDataLook look) => look.space(2);
 
   /// Space either side of a tab's label: the preview's `padding: 0 16px`.
-  static const labelPadding = MyDataSpace.s4;
+  static double labelPadding(MyDataLook look) => look.space(4);
 
   @override
   State<MyDataTabs> createState() => _MyDataTabsState();
@@ -57,7 +56,7 @@ class MyDataTabs extends StatefulWidget {
 
 class _MyDataTabsState extends State<MyDataTabs> with SingleTickerProviderStateMixin {
   late final AnimationController _slide =
-      AnimationController(vsync: this, duration: MyDataMotion.springDuration, value: 1);
+      AnimationController(vsync: this, duration: context.lookNow.motion.springDuration, value: 1);
   static const _curve = SpringCurve();
 
   final List<FocusNode> _nodes = [];
@@ -196,7 +195,7 @@ class _MyDataTabsState extends State<MyDataTabs> with SingleTickerProviderStateM
                   child: _sliding
                       ? Opacity(
                           opacity: enabled ? 1 : Pressable.disabledOpacity,
-                          child: DecoratedBox(decoration: BoxDecoration(color: c.accentSoft, borderRadius: MyDataRadii.pill)),
+                          child: DecoratedBox(decoration: BoxDecoration(color: c.accentSoft, borderRadius: MyDataRadii.pill(context.look))),
                         )
                       : const SizedBox.shrink(),
                 ),
@@ -217,7 +216,7 @@ class _MyDataTabsState extends State<MyDataTabs> with SingleTickerProviderStateM
         role: SemanticsRole.tab,
         child: Pressable(
           onPressed: enabled ? () => _pick(i) : null,
-          borderRadius: MyDataRadii.pill,
+          borderRadius: MyDataRadii.pill(context.look),
           focusNode: _nodes[i],
           button: false,
           selected: selected,
@@ -225,12 +224,12 @@ class _MyDataTabsState extends State<MyDataTabs> with SingleTickerProviderStateM
           child: DecoratedBox(
             decoration: BoxDecoration(
                 color: selected && !_sliding ? c.accentSoft : c.accentSoft.withValues(alpha: 0),
-                borderRadius: MyDataRadii.pill),
+                borderRadius: MyDataRadii.pill(context.look)),
             child: Center(
               child: AnimatedDefaultTextStyle(
-                duration: MyDataMotion.fast,
-                curve: MyDataMotion.standard,
-                style: selected ? MyDataType.bodyStrong.copyWith(color: c.accent) : MyDataType.body.copyWith(color: c.inkMuted),
+                duration: context.motion.fast,
+                curve: context.motion.standard,
+                style: selected ? context.typeScale.bodyStrong.copyWith(color: c.accent) : context.typeScale.body.copyWith(color: c.inkMuted),
                 child: Text(widget.tabs[i], maxLines: 1, softWrap: false, overflow: TextOverflow.ellipsis),
               ),
             ),
@@ -247,27 +246,27 @@ class _MyDataTabsState extends State<MyDataTabs> with SingleTickerProviderStateM
     final widths = <double>[];
     for (final name in widget.tabs) {
       final painter = TextPainter(
-        text: TextSpan(text: name, style: MyDataType.bodyStrong),
+        text: TextSpan(text: name, style: context.typeScale.bodyStrong),
         textDirection: direction,
         textScaler: scaler,
         maxLines: 1,
       )..layout();
-      var w = math.max(MyDataSize.controlHeight, painter.width.ceilToDouble() + 2 * MyDataTabs.labelPadding);
+      var w = math.max(context.density.controlHeight, painter.width.ceilToDouble() + 2 * MyDataTabs.labelPadding(context.look));
       painter.dispose();
       if (maxWidth.isFinite) w = math.min(w, maxWidth);
       widths.add(w);
     }
-    const h = MyDataSize.controlHeight;
+    final h = context.density.controlHeight;
     final rects = <Rect>[];
     var x = 0.0, y = 0.0, extent = 0.0;
     for (final w in widths) {
       if (x > 0 && x + w > maxWidth) {
         x = 0;
-        y += h + MyDataTabs.gap;
+        y += h + MyDataTabs.gap(context.look);
       }
       rects.add(Rect.fromLTWH(x, y, w, h));
       extent = math.max(extent, x + w);
-      x += w + MyDataTabs.gap;
+      x += w + MyDataTabs.gap(context.look);
     }
     final size = Size(extent, y + h);
     if (direction == TextDirection.rtl) {

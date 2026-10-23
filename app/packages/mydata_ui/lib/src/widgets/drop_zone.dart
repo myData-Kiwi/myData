@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart' show Icons;
 import 'package:flutter/widgets.dart';
 
-import '../generated/tokens.g.dart';
-import '../motion.dart';
-import '../theme.dart';
+import '../theme/theme.dart';
 import 'app_frame.dart' show AppLayout;
 import 'button.dart';
 import 'kiwi.dart';
@@ -123,7 +121,7 @@ class DropZone extends StatelessWidget {
   static const dropLabel = 'Drop to import';
 
   /// Spec: "`space-8` padding down and `space-6` across".
-  static const padding = EdgeInsets.symmetric(horizontal: MyDataSpace.s6, vertical: MyDataSpace.s8);
+  static EdgeInsets padding(MyDataLook look) => EdgeInsets.symmetric(horizontal: look.space(6), vertical: look.space(8));
 
   /// Spec: "a 2px `accent` line drawn inside its edge" while dragging.
   static const dragLineWidth = 2.0;
@@ -152,7 +150,7 @@ class DropZone extends StatelessWidget {
     Widget faded(Widget w) => disabled ? Opacity(opacity: Pressable.disabledOpacity, child: w) : w;
 
     final Widget tile = switch (state) {
-      DropZoneState.reading => const KiwiLoader(size: MyDataSize.iconTile, semanticLabel: 'Reading'),
+      DropZoneState.reading => KiwiLoader(size: context.density.iconTile, semanticLabel: 'Reading'),
       DropZoneState.error => _Tile(icon: Icons.warning_amber_rounded, fill: c.warningSoft, ink: c.warning),
       _ => _Tile(icon: Icons.move_to_inbox_outlined, fill: c.accentSoft, ink: c.accent),
     };
@@ -160,8 +158,8 @@ class DropZone extends StatelessWidget {
     final instructionText = this.instructionText();
     final captionText = this.captionText();
     final captionStyle = state == DropZoneState.error
-        ? MyDataType.body.copyWith(color: c.danger)
-        : MyDataType.caption.copyWith(color: c.inkMuted);
+        ? context.typeScale.body.copyWith(color: c.danger)
+        : context.typeScale.caption.copyWith(color: c.inkMuted);
 
     final Widget buttons = switch (state) {
       DropZoneState.reading => Button(
@@ -188,14 +186,14 @@ class DropZone extends StatelessWidget {
       children: [
         faded(tile),
         if (!phone || state == DropZoneState.reading) ...[
-          const SizedBox(height: MyDataSpace.s3),
+          SizedBox(height: context.space(3)),
           faded(ExcludeSemantics(
             child: Text(instructionText,
-                textAlign: TextAlign.center, style: MyDataType.bodyStrong.copyWith(color: c.ink)),
+                textAlign: TextAlign.center, style: context.typeScale.bodyStrong.copyWith(color: c.ink)),
           )),
-          const SizedBox(height: MyDataSpace.s1),
+          SizedBox(height: context.space(1)),
         ] else
-          const SizedBox(height: MyDataSpace.s3),
+          SizedBox(height: context.space(3)),
         Semantics(
           liveRegion: state == DropZoneState.error,
           child: ExcludeSemantics(
@@ -203,7 +201,7 @@ class DropZone extends StatelessWidget {
             child: Text(captionText, textAlign: TextAlign.center, style: captionStyle),
           ),
         ),
-        const SizedBox(height: MyDataSpace.s4),
+        SizedBox(height: context.space(4)),
         faded(buttons),
       ],
     );
@@ -214,16 +212,16 @@ class DropZone extends StatelessWidget {
       label: phone && state != DropZoneState.reading ? null : instructionText,
       hint: state == DropZoneState.error ? null : captionText,
       child: AnimatedContainer(
-        duration: MyDataMotion.fast,
-        curve: MyDataMotion.standard,
+        duration: context.motion.fast,
+        curve: context.motion.standard,
         width: double.infinity,
-        padding: padding,
+        padding: padding(context.look),
         decoration: BoxDecoration(
           color: dragging ? c.accentSoft : c.surfaceSunken,
-          borderRadius: MyDataRadii.lg,
+          borderRadius: MyDataRadii.lg(context.look),
         ),
         foregroundDecoration: BoxDecoration(
-          borderRadius: MyDataRadii.lg,
+          borderRadius: MyDataRadii.lg(context.look),
           border: Border.all(
             color: dragging ? c.accent : c.accent.withValues(alpha: 0),
             width: dragLineWidth,
@@ -244,10 +242,10 @@ class _Tile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        width: MyDataSize.iconTile,
-        height: MyDataSize.iconTile,
-        decoration: BoxDecoration(color: fill, borderRadius: MyDataRadii.sm),
+        width: context.density.iconTile,
+        height: context.density.iconTile,
+        decoration: BoxDecoration(color: fill, borderRadius: MyDataRadii.sm(context.look)),
         alignment: Alignment.center,
-        child: Icon(icon, size: MyDataSize.icon, color: ink),
+        child: Icon(icon, size: context.density.icon, color: ink),
       );
 }

@@ -47,7 +47,7 @@ class MacCalendarList extends StatelessWidget {
     final groups = CalendarsPage.groups(calendars);
     Widget heading(String text, {required bool strong}) => Padding(
       padding: EdgeInsets.fromLTRB(MyDataMacSize.rowInset + MyDataMacSize.rowPadding,
-          strong ? MyDataSpace.s3 : MyDataSpace.s2, MyDataMacSize.rowInset, MyDataSpace.s1),
+          strong ? context.space(3) : context.space(2), MyDataMacSize.rowInset, context.space(1)),
       child: Semantics(
         header: true,
         child: Text(text,
@@ -64,12 +64,12 @@ class MacCalendarList extends StatelessWidget {
         hint: CalendarsPage.intro,
         explicitChildNodes: true,
         child: ListView(
-          padding: const EdgeInsets.only(bottom: MyDataSpace.s2),
+          padding: EdgeInsets.only(bottom: context.space(2)),
           children: [
             if (calendars.isEmpty)
               Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: MyDataMacSize.rowInset + MyDataMacSize.rowPadding, vertical: MyDataSpace.s2),
+                padding: EdgeInsets.symmetric(
+                    horizontal: MyDataMacSize.rowInset + MyDataMacSize.rowPadding, vertical: context.space(2)),
                 child: Text(CalendarsPage.none, style: MyDataMacType.caption.copyWith(color: mac.secondaryLabel)),
               ),
             for (final (source, items) in groups) ...[
@@ -150,7 +150,7 @@ class _MacCalendarRowState extends State<MacCalendarRow> {
       child: Row(
         children: [
           MacColourCheckbox(colour: widget.colour, checked: widget.shown),
-          const SizedBox(width: MyDataSpace.s2),
+          SizedBox(width: context.space(2)),
           Expanded(
             child: Text(widget.name,
                 maxLines: 1, overflow: TextOverflow.ellipsis, style: MyDataMacType.body.copyWith(color: mac.label)),
@@ -190,7 +190,7 @@ class MacColourCheckbox extends StatelessWidget {
   static const size = MyDataMacSize.icon - MyDataMacSize.tight;
 
   /// The branded checkbox's corners, in proportion to this smaller box.
-  static const radius = BorderRadius.all(Radius.circular(MyDataRadius.xs * size / CheckboxBox.size));
+  static BorderRadius radius(MyDataLook look) => BorderRadius.all(Radius.circular(look.shape.xs * size / CheckboxBox.size(look)));
 
   static const outlineWidth = 1.5;
 
@@ -206,7 +206,7 @@ class MacColourCheckbox extends StatelessWidget {
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: checked ? fill : null,
-          borderRadius: radius,
+          borderRadius: radius(context.look),
           border: checked
               ? (weak ? Border.all(color: mac.tertiaryLabel, width: MyDataMacSize.hairline) : null)
               : Border.all(color: weak ? mac.tertiaryLabel : fill, width: outlineWidth),

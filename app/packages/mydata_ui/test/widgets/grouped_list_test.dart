@@ -335,7 +335,7 @@ void main() {
       expect(tester.getRect(find.text('Mail')).left - tile.right, MyDataSpace.s3);
       final chevron = tester.getRect(find.byIcon(Icons.chevron_right_rounded));
       expect(first.right - chevron.right, MyDataSpace.s4);
-      expect(chevron.left - tester.getRect(find.text('2')).right, GroupedRow.trailingGap);
+      expect(chevron.left - tester.getRect(find.text('2')).right, GroupedRow.trailingGap(kiwiLook));
       // Dividers: between rows only, 1px of `line`, the full width of the group.
       expect(tester.getRect(rows.at(1)).top - first.bottom, GroupedList.dividerWidth);
       final dividers = find.byWidgetPredicate((w) => w is Container && w.color == _kiwi.line);
@@ -351,7 +351,7 @@ void main() {
       );
       final d = group.decoration as BoxDecoration;
       expect(d.color, _kiwi.surface);
-      expect(d.borderRadius, MyDataRadii.lg);
+      expect(d.borderRadius, MyDataRadii.lg(kiwiLook));
       expect(d.border, isNull);
       expect(d.boxShadow, isNotEmpty);
       await expectLater(tester, meetsGuideline(iOSTapTargetGuideline));
@@ -489,7 +489,7 @@ void main() {
       final width = tester.getSize(find.byType(GroupedList)).width;
       expect(width, lessThan(480));
       final every = tester.getRect(find.text('Every night'));
-      expect(tester.getRect(find.text('Back up')).right + GroupedRow.gap, lessThanOrEqualTo(every.left + 0.5));
+      expect(tester.getRect(find.text('Back up')).right + GroupedRow.gap(kiwiLook), lessThanOrEqualTo(every.left + 0.5));
       final paragraph = tester.renderObject<RenderParagraph>(find.text('Every night'));
       expect(paragraph.didExceedMaxLines, isFalse);
     });
@@ -510,7 +510,7 @@ void main() {
         ),
       );
       final rows = find.byType(GroupedRow);
-      final inner = 480 - 2 * MyDataSpace.s4 - GroupedRow.gap;
+      final inner = 480 - 2 * MyDataSpace.s4 - GroupedRow.gap(kiwiLook);
       final values = find.text(long);
       // Short title: the value takes more than half and is not cut short.
       expect(tester.getSize(values.first).width, greaterThan(inner * GroupedRow.maxTrailingFraction));

@@ -94,11 +94,11 @@ class AssistantUnavailable extends StatelessWidget {
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: EmptyState.maxWidth),
             child: Padding(
-              padding: const EdgeInsets.only(top: EmptyState.reasonGap),
+              padding: EdgeInsets.only(top: EmptyState.reasonGap(context.look)),
               child: Text(
                 notice!,
                 textAlign: TextAlign.center,
-                style: context.type(MyDataType.caption).copyWith(color: c.inkMuted),
+                style: context.type(MyDataTypeRole.caption).copyWith(color: c.inkMuted),
               ),
             ),
           ),
@@ -107,11 +107,11 @@ class AssistantUnavailable extends StatelessWidget {
     // Centred in the space it has, and scrolling when a short window cannot hold it.
     return LayoutBuilder(
       builder: (context, constraints) => SingleChildScrollView(
-        padding: const EdgeInsets.all(StatusPanel.padding),
+        padding: EdgeInsets.all(StatusPanel.padding(context.look)),
         child: ConstrainedBox(
           constraints: BoxConstraints(
             minHeight: constraints.hasBoundedHeight
-                ? (constraints.maxHeight - 2 * StatusPanel.padding).clamp(0, double.infinity)
+                ? (constraints.maxHeight - 2 * StatusPanel.padding(context.look)).clamp(0, double.infinity)
                 : 0,
           ),
           child: Center(child: screen),

@@ -3,8 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../dates.dart';
-import '../generated/tokens.g.dart';
-import '../theme.dart';
+import '../theme/theme.dart';
 import 'data_colour.dart';
 import 'group_frame.dart';
 import 'grouped_list.dart';
@@ -354,12 +353,12 @@ class EventRow extends StatelessWidget {
   /// Preview: `.when{width:64px}`, the `space-16` step. Scaled with the text size, and widened when the
   /// longest time on the device's clock ("10:00 pm" on a 12-hour clock) would not fit on one line
   /// ([whenColumnWidth]).
-  static const whenWidth = MyDataSpace.s16;
+  static double whenWidth(MyDataLook look) => look.space(16);
 
   /// The "when" column's width for a clock and a text size: [whenWidth] scaled, or the widest thing the
   /// column can show on one line, whichever is wider. The same for every row, so titles line up.
-  static double whenColumnWidth({required bool use24HourFormat, required TextScaler textScaler}) {
-    final key = (use24HourFormat, textScaler.scale(MyDataType.body.fontSize!));
+  static double whenColumnWidth(MyDataLook look, {required bool use24HourFormat, required TextScaler textScaler}) {
+    final key = (use24HourFormat, textScaler.scale(look.typeScale.body.fontSize!), look.typeScale.body);
     return _whenWidths[key] ??= () {
       var widest = 0.0;
       final painter = TextPainter(textDirection: TextDirection.ltr, textScaler: textScaler, maxLines: 1);
@@ -368,20 +367,20 @@ class EventRow extends StatelessWidget {
         for (var hour = 0; hour < 24; hour++)
           formatEventTime(DateTime(2000, 1, 1, hour, 0), use24HourFormat: use24HourFormat),
       ]) {
-        painter.text = TextSpan(text: text, style: MyDataType.body);
+        painter.text = TextSpan(text: text, style: look.typeScale.body);
         painter.layout();
         if (painter.width > widest) widest = painter.width;
       }
       painter.dispose();
       // The minutes' digits vary in width: leave room for the widest pair.
-      return math.max(textScaler.scale(whenWidth), (widest + textScaler.scale(_digitSlack)).ceilToDouble());
+      return math.max(textScaler.scale(whenWidth(look)), (widest + textScaler.scale(_digitSlack(look))).ceilToDouble());
     }();
   }
 
-  static final _whenWidths = <(bool, double), double>{};
+  static final _whenWidths = <(bool, double, TextStyle), double>{};
 
   /// Room for minutes wider than ":00" in a proportional font.
-  static const _digitSlack = MyDataSpace.s1;
+  static double _digitSlack(MyDataLook look) => look.space(1);
 
   /// The title's line limit (preview: `-webkit-line-clamp:2`).
   static const titleMaxLines = 2;
@@ -409,12 +408,12 @@ class EventRow extends StatelessWidget {
     final w = when ?? (time: '', under: null);
     final title = event.title.trim();
     final caption = eventCaption(event, day, use24HourFormat: use24);
-    final width = whenColumnWidth(use24HourFormat: use24, textScaler: MediaQuery.textScalerOf(context));
+    final width = whenColumnWidth(context.look, use24HourFormat: use24, textScaler: MediaQuery.textScalerOf(context));
 
     final row = ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: MyDataSize.rowHeight),
+      constraints: BoxConstraints(minHeight: context.density.rowHeight),
       child: Padding(
-        padding: GroupedRow.padding,
+        padding: GroupedRow.padding(context.look),
         child: IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -430,17 +429,17 @@ class EventRow extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(w.time, style: MyDataType.body.copyWith(color: c.ink)),
-                          if (w.under != null) Text(w.under!, style: MyDataType.caption.copyWith(color: c.inkMuted)),
+                          Text(w.time, style: context.typeScale.body.copyWith(color: c.ink)),
+                          if (w.under != null) Text(w.under!, style: context.typeScale.caption.copyWith(color: c.inkMuted)),
                         ],
                       ),
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: GroupedRow.gap),
+              SizedBox(width: GroupedRow.gap(context.look)),
               DataBar(colour: event.calendarColour),
-              const SizedBox(width: GroupedRow.gap),
+              SizedBox(width: GroupedRow.gap(context.look)),
               Expanded(
                 child: Align(
                   alignment: AlignmentDirectional.centerStart,
@@ -452,9 +451,9 @@ class EventRow extends StatelessWidget {
                         title.isEmpty ? noTitle : title,
                         maxLines: titleMaxLines,
                         overflow: TextOverflow.ellipsis,
-                        style: MyDataType.bodyStrong.copyWith(color: title.isEmpty ? c.inkMuted : c.ink),
+                        style: context.typeScale.bodyStrong.copyWith(color: title.isEmpty ? c.inkMuted : c.ink),
                       ),
-                      Text(caption, style: MyDataType.caption.copyWith(color: c.inkMuted)),
+                      Text(caption, style: context.typeScale.caption.copyWith(color: c.inkMuted)),
                     ],
                   ),
                 ),
@@ -511,7 +510,7 @@ class DayList extends StatelessWidget {
   final bool? use24HourFormat;
 
   /// Between days (preview: `.sec{margin-bottom:24px}`).
-  static const gap = MyDataSpace.s6;
+  static double gap(MyDataLook look) => look.space(6);
 
   static const todayPrefix = 'Today, ';
   static const noEvents = 'No events';
@@ -553,7 +552,7 @@ class DayList extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          for (var i = 0; i < groups.length; i++) ...[if (i > 0) const SizedBox(height: gap), groups[i]],
+          for (var i = 0; i < groups.length; i++) ...[if (i > 0) SizedBox(height: gap(context.look)), groups[i]],
         ],
       ),
     );
@@ -567,12 +566,12 @@ class _LineRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ConstrainedBox(
-    constraints: const BoxConstraints(minHeight: MyDataSize.rowHeight),
+    constraints: BoxConstraints(minHeight: context.density.rowHeight),
     child: Padding(
-      padding: GroupedRow.padding,
+      padding: GroupedRow.padding(context.look),
       child: Align(
         alignment: AlignmentDirectional.centerStart,
-        child: Text(text, style: MyDataType.body.copyWith(color: context.colors.inkMuted)),
+        child: Text(text, style: context.typeScale.body.copyWith(color: context.colors.inkMuted)),
       ),
     ),
   );

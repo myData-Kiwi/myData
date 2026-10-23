@@ -2,7 +2,8 @@ import 'package:flutter/widgets.dart';
 
 import '../generated/tokens.g.dart';
 import '../mac/mac_theme.dart';
-import '../theme.dart';
+import '../mac/mac_window.dart';
+import '../theme/theme.dart';
 import 'pressable.dart';
 
 /// The five kinds of [Button] (design/components/Button/README.md).
@@ -98,14 +99,14 @@ class Button extends StatelessWidget {
 
   /// Space on each side of the label. The preview's 22px lies halfway between `space-5` and `space-6`;
   /// `space-5` (20px) is used.
-  static const horizontalPadding = MyDataSpace.s5;
+  static double horizontalPadding(MyDataLook look) => look.space(5);
 
   /// Space between the leading icon and the label.
-  static const iconGap = MyDataSpace.s2;
+  static double iconGap(MyDataLook look) => look.space(2);
 
   @override
   Widget build(BuildContext context) {
-    if (MacLook.of(context)) return _mac(context);
+    if (MacWindow.of(context)) return _mac(context);
     final c = context.colors;
     final fg = variant.foreground(c);
     final text = Text(
@@ -113,11 +114,11 @@ class Button extends StatelessWidget {
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
       softWrap: false,
-      style: MyDataType.bodyStrong.copyWith(color: fg),
+      style: context.typeScale.bodyStrong.copyWith(color: fg),
     );
     return Pressable(
       onPressed: onPressed,
-      borderRadius: MyDataRadii.control,
+      borderRadius: MyDataRadii.control(context.look),
       focusNode: focusNode,
       autofocus: autofocus,
       semanticLabel: semanticLabel ?? label,
@@ -125,17 +126,17 @@ class Button extends StatelessWidget {
       disabledReason: disabledReason,
       child: ExcludeSemantics(
         child: Container(
-          height: MyDataSize.controlHeight,
-          constraints: const BoxConstraints(minWidth: MyDataSize.controlHeight),
-          padding: const EdgeInsets.symmetric(horizontal: horizontalPadding),
-          decoration: BoxDecoration(color: variant.fill(c), borderRadius: MyDataRadii.control),
+          height: context.density.controlHeight,
+          constraints: BoxConstraints(minWidth: context.density.controlHeight),
+          padding: EdgeInsets.symmetric(horizontal: horizontalPadding(context.look)),
+          decoration: BoxDecoration(color: variant.fill(c), borderRadius: MyDataRadii.control(context.look)),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (icon != null) ...[
-                Icon(icon, size: MyDataSize.icon, color: fg),
-                const SizedBox(width: iconGap),
+                Icon(icon, size: context.density.icon, color: fg),
+                SizedBox(width: iconGap(context.look)),
               ],
               Flexible(child: text),
             ],
@@ -174,7 +175,7 @@ class Button extends StatelessWidget {
         child: Container(
           height: MyDataMacSize.pushButtonHeight,
           constraints: const BoxConstraints(minWidth: MyDataMacSize.pushButtonHeight * 3),
-          padding: EdgeInsets.symmetric(horizontal: fill == null ? MyDataSpace.s1 : MyDataSpace.s3),
+          padding: EdgeInsets.symmetric(horizontal: fill == null ? context.space(1) : context.space(3)),
           decoration: BoxDecoration(color: fill, borderRadius: shape),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -182,7 +183,7 @@ class Button extends StatelessWidget {
             children: [
               if (icon != null) ...[
                 Icon(icon, size: MyDataMacSize.icon, color: fg),
-                const SizedBox(width: MyDataSpace.s1),
+                SizedBox(width: context.space(1)),
               ],
               Flexible(
                 child: Text(label,
@@ -208,12 +209,12 @@ class ButtonRow extends StatelessWidget {
   final WrapAlignment alignment;
 
   /// The gap between buttons (the owner's decision: buttons are `space-2` apart).
-  static const gap = MyDataSpace.s2;
+  static double gap(MyDataLook look) => look.space(2);
 
   @override
   Widget build(BuildContext context) => Wrap(
-        spacing: gap,
-        runSpacing: gap,
+        spacing: gap(context.look),
+        runSpacing: gap(context.look),
         alignment: alignment,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: children,

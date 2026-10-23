@@ -460,7 +460,7 @@ void main() {
       final c = tester.element(_bar).colors;
       final decoration = bar.decoration! as BoxDecoration;
       expect(decoration.color, c.surfaceRaised);
-      expect(decoration.borderRadius, MyDataRadii.xl);
+      expect(decoration.borderRadius, MyDataRadii.xl(kiwiLook));
       expect(tester.getSize(_bar).height, greaterThanOrEqualTo(MyDataSize.controlHeight + 2 * MyDataSpace.s2));
       expect(360 - tester.getBottomLeft(_bar).dy, MyDataSpace.s6);
       // Centred in the content area.

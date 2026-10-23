@@ -5,9 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 
-import '../generated/tokens.g.dart';
-import '../motion.dart';
-import '../theme.dart';
+import '../theme/theme.dart';
 import 'app_frame.dart' show PhoneType;
 import 'form_scope.dart';
 import 'group_frame.dart';
@@ -35,7 +33,7 @@ class CheckboxBox extends StatelessWidget {
   final bool hovered;
 
   /// Spec: "`icon` (20px) across".
-  static const size = MyDataSize.icon;
+  static double size(MyDataLook look) => look.density.icon;
 
   /// Spec: "a 1px `line-strong` edge".
   static const edgeWidth = 1.0;
@@ -46,18 +44,18 @@ class CheckboxBox extends StatelessWidget {
     final on = value != false;
     return ExcludeSemantics(
       child: AnimatedContainer(
-        duration: MyDataMotion.fast,
-        curve: MyDataMotion.standard,
-        width: size,
-        height: size,
+        duration: context.motion.fast,
+        curve: context.motion.standard,
+        width: size(context.look),
+        height: size(context.look),
         decoration: BoxDecoration(
           color: on ? c.accent : (hovered ? c.surfaceHover : c.surface),
-          borderRadius: MyDataRadii.xs,
+          borderRadius: MyDataRadii.xs(context.look),
           border: Border.all(color: on ? c.accent : c.lineStrong, width: edgeWidth),
         ),
         child: AnimatedOpacity(
-          duration: MyDataMotion.fast,
-          curve: MyDataMotion.standard,
+          duration: context.motion.fast,
+          curve: context.motion.standard,
           opacity: on ? 1 : 0,
           child: CustomPaint(painter: _MarkPainter(mixed: value == null, color: c.onAccent)),
         ),
@@ -148,7 +146,7 @@ class MyDataCheckbox extends StatelessWidget {
   final bool autofocus;
 
   /// Spec: the box sits `space-3` from its label.
-  static const gap = MyDataSpace.s3;
+  static double gap(MyDataLook look) => look.space(3);
 
   @override
   Widget build(BuildContext context) {
@@ -158,7 +156,7 @@ class MyDataCheckbox extends StatelessWidget {
     final labelStyle = PhoneType.bodyOf(context).copyWith(color: c.ink);
     final line = labelStyle.fontSize! * labelStyle.height!;
     // The target is at least `control-height`: the label's line centred in it (the preview's 11px padding).
-    final vertical = math.max(0.0, (MyDataSize.controlHeight - line) / 2);
+    final vertical = math.max(0.0, (context.density.controlHeight - line) / 2);
     return MergeSemantics(
       child: Semantics(
         checked: value,
@@ -170,9 +168,9 @@ class MyDataCheckbox extends StatelessWidget {
           builder: (context, s) {
             Widget faded(Widget w) => enabled ? w : Opacity(opacity: Pressable.disabledOpacity, child: w);
             return AnimatedOpacity(
-              opacity: s.pressed ? MyDataMotion.pressOpacity : 1,
-              duration: s.pressed ? Duration.zero : MyDataMotion.fast,
-              curve: MyDataMotion.standard,
+              opacity: s.pressed ? context.motion.pressOpacity : 1,
+              duration: s.pressed ? Duration.zero : context.motion.fast,
+              curve: context.motion.standard,
               child: Padding(
                 padding: EdgeInsets.symmetric(vertical: vertical),
                 child: Row(
@@ -180,21 +178,21 @@ class MyDataCheckbox extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Padding(
-                      padding: EdgeInsets.only(top: (line - CheckboxBox.size) / 2),
+                      padding: EdgeInsets.only(top: (line - CheckboxBox.size(context.look)) / 2),
                       child: faded(FocusRing(
                         visible: s.focused,
-                        borderRadius: MyDataRadii.xs,
+                        borderRadius: MyDataRadii.xs(context.look),
                         child: CheckboxBox(value: value, hovered: s.hovered),
                       )),
                     ),
-                    const SizedBox(width: gap),
+                    SizedBox(width: gap(context.look)),
                     Flexible(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           faded(Text(label, style: labelStyle)),
-                          if (note != null) Text(note, style: MyDataType.caption.copyWith(color: c.inkMuted)),
+                          if (note != null) Text(note, style: context.typeScale.caption.copyWith(color: c.inkMuted)),
                         ],
                       ),
                     ),
@@ -215,14 +213,14 @@ class CheckboxStack extends StatelessWidget {
   final List<Widget> children;
 
   /// Spec: "several options stack `space-2` apart".
-  static const gap = MyDataSpace.s2;
+  static double gap(MyDataLook look) => look.space(2);
 
   @override
   Widget build(BuildContext context) => Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          for (var i = 0; i < children.length; i++) ...[if (i > 0) const SizedBox(height: gap), children[i]],
+          for (var i = 0; i < children.length; i++) ...[if (i > 0) SizedBox(height: gap(context.look)), children[i]],
         ],
       );
 }
@@ -530,8 +528,8 @@ class _SelectAllRow extends StatelessWidget {
             focused: s.focused,
             enabled: onToggle != null,
             box: CheckboxBox(value: value),
-            title: Text(title, style: PhoneType.bodyOf(context, MyDataType.bodyStrong).copyWith(color: c.ink)),
-            caption: Text(caption, style: MyDataType.caption.copyWith(color: c.inkMuted)),
+            title: Text(title, style: PhoneType.bodyOf(context, context.typeScale.bodyStrong).copyWith(color: c.ink)),
+            caption: Text(caption, style: context.typeScale.caption.copyWith(color: c.inkMuted)),
           ),
         ),
       ),
@@ -612,8 +610,8 @@ class _CheckboxListRowState extends State<_CheckboxListRow> {
               focused: focused,
               enabled: enabled,
               box: CheckboxBox(value: item.checked),
-              title: Text(item.title, style: PhoneType.bodyOf(context, MyDataType.bodyStrong).copyWith(color: c.ink)),
-              caption: note == null ? null : Text(note, style: MyDataType.caption.copyWith(color: c.inkMuted)),
+              title: Text(item.title, style: PhoneType.bodyOf(context, context.typeScale.bodyStrong).copyWith(color: c.ink)),
+              caption: note == null ? null : Text(note, style: context.typeScale.caption.copyWith(color: c.inkMuted)),
             ),
           ),
         ),
@@ -627,7 +625,7 @@ class _CheckboxListRowState extends State<_CheckboxListRow> {
         Expanded(child: target),
         if (trailing != null)
           Padding(
-            padding: const EdgeInsetsDirectional.only(end: MyDataSpace.s2),
+            padding: EdgeInsetsDirectional.only(end: context.space(2)),
             child: ExcludeFocusTraversal(excluding: !current, child: trailing),
           ),
       ]),
@@ -664,21 +662,21 @@ class _RowShell extends StatelessWidget {
     return CustomPaint(
       foregroundPainter: focused ? InsetRingPainter(color: FocusRing.colourFor(context), borderRadius: shape) : null,
       child: AnimatedContainer(
-        duration: MyDataMotion.fast,
-        curve: MyDataMotion.standard,
+        duration: context.motion.fast,
+        curve: context.motion.standard,
         decoration: BoxDecoration(
             color: hovered || pressed ? c.surfaceHover : c.surfaceHover.withValues(alpha: 0), borderRadius: shape),
         child: AnimatedOpacity(
-          opacity: pressed ? MyDataMotion.pressOpacity : 1,
-          duration: pressed ? Duration.zero : MyDataMotion.fast,
-          curve: MyDataMotion.standard,
+          opacity: pressed ? context.motion.pressOpacity : 1,
+          duration: pressed ? Duration.zero : context.motion.fast,
+          curve: context.motion.standard,
           child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: MyDataSize.rowHeight),
+            constraints: BoxConstraints(minHeight: context.density.rowHeight),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: MyDataSpace.s4, vertical: MyDataSpace.s2),
+              padding: EdgeInsets.symmetric(horizontal: context.space(4), vertical: context.space(2)),
               child: Row(children: [
-                faded(SizedBox.square(dimension: MyDataSize.iconTile, child: Center(child: box))),
-                const SizedBox(width: MyDataSpace.s3),
+                faded(SizedBox.square(dimension: context.density.iconTile, child: Center(child: box))),
+                SizedBox(width: context.space(3)),
                 Expanded(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,

@@ -13,7 +13,7 @@ import 'package:mydata_ui/mydata_ui.dart';
 /// connected (with a link that opens myData), or unreachable (with Retry). The web build, which cannot reach
 /// a host, shows only its panel, without the frame.
 ///
-/// **On a Mac** ([MacLook]) it draws the Mac frame with no sidebar: the host keeps one conversation per app
+/// **On a Mac** ([MacWindow.of]) it draws the Mac frame with no sidebar: the host keeps one conversation per app
 /// session and no history, so a sidebar would hold one row repeating the title. The toolbar band names the
 /// conversation by its first message ([conversationTitle]) at its leading edge, after the window's buttons,
 /// and says "Demo data" under it while the host serves sample data; then the chat, or the state's panel
@@ -159,7 +159,7 @@ class _AssistantHomeState extends State<AssistantHome> {
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: _host,
-    builder: (context, _) => MacLook.of(context)
+    builder: (context, _) => MacWindow.of(context)
         // Transparent: the window's sidebar material shows through the sidebar.
         ? Scaffold(backgroundColor: Colors.transparent, body: _macFrame())
         : Scaffold(
@@ -230,7 +230,7 @@ class _AssistantHomeState extends State<AssistantHome> {
     ),
     HostPhase.running =>
       assistantAvailability(status!) == AssistantAvailability.ready
-          ? (MacLook.of(context)
+          ? (MacWindow.of(context)
                 ? _MacChatPage(chat: _chat, apps: _apps, onOpen: _openItem, realMode: !status.demoDate)
                 : _ChatPage(chat: _chat, demoDate: status.demoDate, apps: _apps, onOpen: _openItem))
           : AssistantUnavailable(
@@ -264,10 +264,10 @@ class _ChatPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final pad = PageScaffold.paddingFor(AppLayout.of(context));
+    final pad = PageScaffold.paddingFor(context.look, AppLayout.of(context));
     final insets = MediaQuery.paddingOf(context);
     // Under a phone frame the app name is already the large title; the section's name is smaller.
-    final style = AppFrame.phoneAppNameOf(context) == null ? MyDataType.displayLg : MyDataType.title;
+    final style = AppFrame.phoneAppNameOf(context) == null ? context.typeScale.displayLg : context.typeScale.title;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -276,7 +276,7 @@ class _ChatPage extends StatelessWidget {
             pad + insets.left,
             pad + insets.top,
             pad + insets.right,
-            PageScaffold.titleGap - ChatView.topPadding,
+            PageScaffold.titleGap(context.look) - ChatView.topPadding(context.look),
           ),
           child: Align(
             alignment: AlignmentDirectional.topStart,
@@ -291,7 +291,7 @@ class _ChatPage extends StatelessWidget {
                     ),
                   ),
                   if (demoDate) ...[
-                    const SizedBox(width: MyDataSpace.s3),
+                    SizedBox(width: context.space(3)),
                     const MyDataBadge(AssistantHome.demoLabel, tone: MyDataTone.warning),
                   ],
                 ],

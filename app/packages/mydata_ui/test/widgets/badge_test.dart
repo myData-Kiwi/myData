@@ -36,7 +36,7 @@ void main() {
     for (final label in ['Host running', 'Up to date', 'Needs approval', 'Backup failed', 'Update available', 'Offline']) {
       final chip = find.ancestor(of: find.text(label), matching: find.byType(MyDataBadge));
       expect(tester.getSize(chip).height, MyDataBadge.height);
-      expect(_decoration(tester, label).borderRadius, MyDataRadii.pill);
+      expect(_decoration(tester, label).borderRadius, MyDataRadii.pill(kiwiLook));
     }
   });
 

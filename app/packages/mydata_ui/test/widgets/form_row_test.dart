@@ -200,7 +200,7 @@ void main() {
       final first = tester.getRect(find.byType(MyDataTextField).first);
       final second = tester.getRect(find.byType(MyDataTextField).at(1));
       expect(second.top - first.bottom, MyDataSpace.s4);
-      expect(tester.getRect(find.text('Notes')).top - second.bottom, MyDataForm.groupGap);
+      expect(tester.getRect(find.text('Notes')).top - second.bottom, MyDataForm.groupGap(kiwiLook));
       // A one-field group shows no label of its own: "Notes" appears once, as the heading.
       expect(find.text('Notes'), findsOneWidget);
       expect(find.byType(DecoratedBox).evaluate().where((e) {
@@ -225,7 +225,7 @@ void main() {
       final part = find.ancestor(of: find.byType(MyDataTextField).first, matching: find.byType(DecoratedBox)).first;
       final deco = tester.widget<DecoratedBox>(part).decoration as BoxDecoration;
       expect(deco.color, _kiwi.surface);
-      expect(deco.borderRadius, MyDataRadii.lg);
+      expect(deco.borderRadius, MyDataRadii.lg(kiwiLook));
       expect(tester.getRect(find.byType(MyDataTextField).first).left - tester.getRect(part).left, MyDataSpace.s5);
       expect(tester.getRect(find.byType(MyDataTextField).at(1)).top - tester.getRect(find.byType(MyDataTextField).first).bottom,
           MyDataSpace.s5);
@@ -244,8 +244,8 @@ void main() {
       final page = SizedBox(width: 520, child: MyDataForm(ground: FormGround.page, groups: [group()]));
       final part = await inset(page);
       expect(tester.getRect(find.text('Phone')).left - tester.getRect(find.byType(FormGroup)).left,
-          FormGroupHeading.pageInset);
-      expect(part, FormGroupHeading.pageInset - MyDataSpace.s5);
+          FormGroupHeading.pageInset(kiwiLook));
+      expect(part, FormGroupHeading.pageInset(kiwiLook) - MyDataSpace.s5);
     });
 
     testWidgets('on a phone, fields and the heading at 16px; no inset on a page', (tester) async {
@@ -304,9 +304,9 @@ void main() {
       expect(remove.left - value.right, MyDataSpace.s2);
       expect(remove.size, const Size.square(MyDataSize.controlHeight));
       final second = tester.getRect(find.byType(MyDataSelect<String>).at(1));
-      expect(second.top - picker.bottom, RepeatableFormGroup.rowGap);
+      expect(second.top - picker.bottom, RepeatableFormGroup.rowGap(kiwiLook));
       final add = tester.getRect(find.byType(Button).last);
-      expect(add.top - tester.getRect(find.byType(FormRemoveButton).last).bottom, RepeatableFormGroup.rowGap);
+      expect(add.top - tester.getRect(find.byType(FormRemoveButton).last).bottom, RepeatableFormGroup.rowGap(kiwiLook));
       expect(find.text('Add phone'), findsOneWidget);
     });
 

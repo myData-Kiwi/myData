@@ -2,7 +2,7 @@ import 'package:flutter/widgets.dart';
 
 import '../generated/tokens.g.dart';
 import '../mac/mac_theme.dart';
-import '../theme.dart';
+import '../theme/theme.dart';
 import 'pressable.dart' show MyDataRadii;
 
 // Not exported from the package: the one implementation of the grouped-list look, shared by GroupedList
@@ -26,7 +26,7 @@ class GroupFrame extends StatelessWidget {
   static const dividerWidth = 1.0;
 
   /// Preview: `.lbl{margin:0 0 8px 6px}`: `space-2` below; 6px in, snapped to `space-2`.
-  static const headingPadding = EdgeInsets.only(left: MyDataSpace.s2, bottom: MyDataSpace.s2);
+  static EdgeInsets headingPadding(MyDataLook look) => EdgeInsets.only(left: look.space(2), bottom: look.space(2));
 
   Widget _plain(BuildContext context) {
     final mac = context.mac;
@@ -39,8 +39,8 @@ class GroupFrame extends StatelessWidget {
           Container(
             height: MyDataMacSize.sectionHeight,
             alignment: AlignmentDirectional.bottomStart,
-            padding: const EdgeInsetsDirectional.only(
-                start: MyDataMacSize.rowInset + MyDataMacSize.rowPadding, bottom: MyDataSpace.s1),
+            padding: EdgeInsetsDirectional.only(
+                start: MyDataMacSize.rowInset + MyDataMacSize.rowPadding, bottom: context.space(1)),
             child: Semantics(
               header: true,
               child: Text(heading!, style: MyDataMacType.captionEmphasized.copyWith(color: mac.secondaryLabel)),
@@ -59,10 +59,10 @@ class GroupFrame extends StatelessWidget {
   Widget build(BuildContext context) {
     if (plain) return _plain(context);
     final c = context.colors;
-    const top = BorderRadius.vertical(top: Radius.circular(MyDataRadius.lg));
-    const bottom = BorderRadius.vertical(bottom: Radius.circular(MyDataRadius.lg));
+    final top = BorderRadius.vertical(top: Radius.circular(context.radius.lg));
+    final bottom = BorderRadius.vertical(bottom: Radius.circular(context.radius.lg));
     BorderRadius shapeOf(int i) {
-      if (parts.length == 1) return MyDataRadii.lg;
+      if (parts.length == 1) return MyDataRadii.lg(context.look);
       if (i == 0) return top;
       if (i == parts.length - 1) return bottom;
       return BorderRadius.zero;
@@ -71,7 +71,7 @@ class GroupFrame extends StatelessWidget {
     // Not clipped: each part takes the group's corners itself, so a row's selected fill and hover fill
     // follow them and a focus ring, drawn 2px outside, is not cut off at the group's edge.
     final group = DecoratedBox(
-      decoration: BoxDecoration(color: c.surface, borderRadius: MyDataRadii.lg, boxShadow: context.shadows.shadow1),
+      decoration: BoxDecoration(color: c.surface, borderRadius: MyDataRadii.lg(context.look), boxShadow: context.shadows.shadow1),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -89,10 +89,10 @@ class GroupFrame extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(
-          padding: headingPadding,
+          padding: headingPadding(context.look),
           child: Semantics(
             header: true,
-            child: Text(heading!, style: MyDataType.label.copyWith(color: c.inkMuted)),
+            child: Text(heading!, style: context.typeScale.label.copyWith(color: c.inkMuted)),
           ),
         ),
         group,

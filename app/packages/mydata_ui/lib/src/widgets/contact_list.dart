@@ -10,8 +10,7 @@ import 'package:flutter/widgets.dart';
 import '../generated/tokens.g.dart';
 import '../mac/mac_chrome.dart';
 import '../mac/mac_theme.dart';
-import '../motion.dart';
-import '../theme.dart';
+import '../theme/theme.dart';
 import 'app_frame.dart' show AppLayout;
 import 'app_menu_bar.dart' show AppMenuBar;
 import 'avatar.dart';
@@ -215,16 +214,16 @@ class ContactList extends StatefulWidget {
   final Widget? searchTrailing;
 
   /// Between the search field and [searchTrailing].
-  static const searchTrailingGap = MyDataSpace.s2;
+  static double searchTrailingGap(MyDataLook look) => look.space(2);
 
   /// The search field's placeholder, which is also its accessible name.
   static const searchPlaceholder = 'Search contacts';
 
   /// Between the search field and the first group (spec: `space-4`).
-  static const searchGap = MyDataSpace.s4;
+  static double searchGap(MyDataLook look) => look.space(4);
 
   /// Between letter groups (preview: `.sec{margin-bottom:24px}`).
-  static const groupGap = MyDataSpace.s6;
+  static double groupGap(MyDataLook look) => look.space(6);
 
   /// The selected row's `ink` ring, inside the row (preview: `box-shadow:inset 0 0 0 2px var(--ink)`).
   static const selectionRingWidth = 2.0;
@@ -645,8 +644,8 @@ class _ContactListState extends State<ContactList> {
     }
 
     if (widget.style == ContactListStyle.plain) {
-      final row = math.max(MyDataMacSize.rowHeight, line(MyDataMacType.body) + MyDataSpace.s2);
-      final heading = math.max(MyDataMacSize.sectionHeight, line(MyDataMacType.captionEmphasized) + MyDataSpace.s2);
+      final row = math.max(MyDataMacSize.rowHeight, line(MyDataMacType.body) + context.space(2));
+      final heading = math.max(MyDataMacSize.sectionHeight, line(MyDataMacType.captionEmphasized) + context.space(2));
       final extents = <double>[];
       final tops = <double>[];
       var y = _listTop;
@@ -660,12 +659,12 @@ class _ContactListState extends State<ContactList> {
       _tops = tops;
       return;
     }
-    final name = line(MyDataType.bodyStrong);
-    final caption = line(MyDataType.caption);
-    final label = line(MyDataType.label);
+    final name = line(context.typeScale.bodyStrong);
+    final caption = line(context.typeScale.caption);
+    final label = line(context.typeScale.label);
     double row(bool withCaption) => math.max(
-      MyDataSize.rowHeight,
-      GroupedRow.padding.vertical + math.max(AvatarSize.small.diameter, name + (withCaption ? caption : 0)),
+      context.density.rowHeight,
+      GroupedRow.padding(context.look).vertical + math.max(AvatarSize.small.diameter(context.look), name + (withCaption ? caption : 0)),
     );
     final plain = row(false);
     final captioned = row(true);
@@ -674,7 +673,7 @@ class _ContactListState extends State<ContactList> {
     var y = _listTop;
     for (final item in _model.items) {
       final h = switch (item) {
-        _HeadingItem(:final first) => (first ? 0 : ContactList.groupGap) + label + GroupFrame.headingPadding.bottom,
+        _HeadingItem(:final first) => (first ? 0 : ContactList.groupGap(context.look)) + label + GroupFrame.headingPadding(context.look).bottom,
         _RowItem(:final entry, :final first) =>
           (first ? 0 : GroupFrame.dividerWidth) + (entry.caption == null ? plain : captioned),
       };
@@ -687,11 +686,11 @@ class _ContactListState extends State<ContactList> {
   }
 
   /// Where the first heading starts in the scrolling content: under the search field's gap, or at the top.
-  double get _listTop => widget.showSearch ? ContactList.searchGap : 0;
+  double get _listTop => widget.showSearch ? ContactList.searchGap(context.look) : 0;
 
   /// A screenful's worth of rows, for Page Up and Page Down in the selection.
   double get _rowHeight =>
-      widget.style == ContactListStyle.plain ? MyDataMacSize.rowHeight : MyDataSize.rowHeight;
+      widget.style == ContactListStyle.plain ? MyDataMacSize.rowHeight : context.density.rowHeight;
 
   /// The row the keyboard is on: the cursor if it is shown; from 600px the selected row if it is shown;
   /// otherwise the first row. Null when no rows are shown.
@@ -785,7 +784,7 @@ class _ContactListState extends State<ContactList> {
       if (_model.items[item - 1] case _HeadingItem(:final first)) {
         top = first
             ? 0
-            : _tops[item - 1] + (widget.style == ContactListStyle.plain ? 0 : ContactList.groupGap);
+            : _tops[item - 1] + (widget.style == ContactListStyle.plain ? 0 : ContactList.groupGap(context.look));
       }
       final bottom = _tops[item] + _extents[item];
       final p = _scroll.position;
@@ -985,14 +984,14 @@ class _ContactListState extends State<ContactList> {
                   child: MyDataSearchField(
                       controller: _search, placeholder: ContactList.searchPlaceholder, focusNode: _searchFocus),
                 ),
-                const SizedBox(width: ContactList.searchTrailingGap),
+                SizedBox(width: ContactList.searchTrailingGap(context.look)),
                 widget.searchTrailing!,
               ]),
       ),
     );
 
     final plain = widget.style == ContactListStyle.plain;
-    final top = widget.showSearch ? ContactList.searchGap : pad.top;
+    final top = widget.showSearch ? ContactList.searchGap(context.look) : pad.top;
     final emphasised = _focused && MacChrome.of(context).windowActive;
     final Widget body;
     if (model.rows.isEmpty) {
@@ -1000,13 +999,13 @@ class _ContactListState extends State<ContactList> {
           ? const SizedBox.shrink()
           : Padding(
               // Preview: `.none{margin:8px}` under the field's 16px margin.
-              padding: EdgeInsets.fromLTRB(pad.left + MyDataSpace.s2, top, pad.right, pad.bottom),
+              padding: EdgeInsets.fromLTRB(pad.left + context.space(2), top, pad.right, pad.bottom),
               child: Align(
                 alignment: AlignmentDirectional.topStart,
                 child: Text(ContactList.noMatches(_query),
                     style: plain
                         ? MyDataMacType.body.copyWith(color: context.mac.secondaryLabel)
-                        : MyDataType.body.copyWith(color: c.inkMuted)),
+                        : context.typeScale.body.copyWith(color: c.inkMuted)),
               ),
             );
     } else if (plain) {
@@ -1107,7 +1106,7 @@ class _PlainHeading extends StatelessWidget {
     child: Align(
       alignment: AlignmentDirectional.bottomStart,
       child: Padding(
-        padding: const EdgeInsets.only(bottom: MyDataSpace.s1),
+        padding: EdgeInsets.only(bottom: context.space(1)),
         child: Semantics(
           header: true,
           child: Text(letter, maxLines: 1, style: MyDataMacType.captionEmphasized.copyWith(color: context.mac.secondaryLabel)),
@@ -1252,12 +1251,12 @@ class _Heading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: GroupFrame.headingPadding.add(EdgeInsets.only(top: first ? 0 : ContactList.groupGap)),
+    padding: GroupFrame.headingPadding(context.look).add(EdgeInsets.only(top: first ? 0 : ContactList.groupGap(context.look))),
     child: Align(
       alignment: AlignmentDirectional.topStart,
       child: Semantics(
         header: true,
-        child: Text(letter, maxLines: 1, style: MyDataType.label.copyWith(color: context.colors.inkMuted)),
+        child: Text(letter, maxLines: 1, style: context.typeScale.label.copyWith(color: context.colors.inkMuted)),
       ),
     ),
   );
@@ -1323,7 +1322,7 @@ class _ContactRowState extends State<_ContactRow> {
   Widget build(BuildContext context) {
     final c = context.colors;
     final e = widget.entry;
-    const corner = Radius.circular(MyDataRadius.lg);
+    final corner = Radius.circular(context.radius.lg);
     final shape = BorderRadius.vertical(
       top: widget.first ? corner : Radius.zero,
       bottom: widget.last ? corner : Radius.zero,
@@ -1331,11 +1330,11 @@ class _ContactRowState extends State<_ContactRow> {
     final caption = e.caption;
 
     Widget content = Padding(
-      padding: GroupedRow.padding,
+      padding: GroupedRow.padding(context.look),
       child: Row(
         children: [
           Avatar(name: e.name, givenName: e.givenName, familyName: e.familyName, photo: e.photo),
-          const SizedBox(width: GroupedRow.gap),
+          SizedBox(width: GroupedRow.gap(context.look)),
           Expanded(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -1346,7 +1345,7 @@ class _ContactRowState extends State<_ContactRow> {
                   maxLines: 1,
                   softWrap: false,
                   overflow: TextOverflow.ellipsis,
-                  style: MyDataType.bodyStrong.copyWith(color: c.ink),
+                  style: context.typeScale.bodyStrong.copyWith(color: c.ink),
                 ),
                 if (caption != null)
                   Text(
@@ -1354,14 +1353,14 @@ class _ContactRowState extends State<_ContactRow> {
                     maxLines: 1,
                     softWrap: false,
                     overflow: TextOverflow.ellipsis,
-                    style: MyDataType.caption.copyWith(color: c.inkMuted),
+                    style: context.typeScale.caption.copyWith(color: c.inkMuted),
                   ),
               ],
             ),
           ),
           if (widget.phone) ...[
-            const SizedBox(width: GroupedRow.gap),
-            Icon(Icons.chevron_right_rounded, size: MyDataSize.icon, color: c.inkMuted),
+            SizedBox(width: GroupedRow.gap(context.look)),
+            Icon(Icons.chevron_right_rounded, size: context.density.icon, color: c.inkMuted),
           ],
         ],
       ),
@@ -1370,8 +1369,8 @@ class _ContactRowState extends State<_ContactRow> {
     // Hover and press fill, under the content; a selected row keeps accent-soft.
     final lit = (_hovered || _pressed || _menuOpen) && !widget.selected;
     content = AnimatedContainer(
-      duration: MyDataMotion.fast,
-      curve: MyDataMotion.standard,
+      duration: context.motion.fast,
+      curve: context.motion.standard,
       decoration: BoxDecoration(
         color: lit ? c.surfaceHover : c.surfaceHover.withValues(alpha: 0),
         borderRadius: shape,
@@ -1380,9 +1379,9 @@ class _ContactRowState extends State<_ContactRow> {
     );
     // Press: dims at once, returns over `fast` (Pressable's press, without the scale: rows fill instead).
     content = AnimatedOpacity(
-      opacity: _pressed ? MyDataMotion.pressOpacity : 1,
-      duration: _pressed ? Duration.zero : MyDataMotion.fast,
-      curve: MyDataMotion.standard,
+      opacity: _pressed ? context.motion.pressOpacity : 1,
+      duration: _pressed ? Duration.zero : context.motion.fast,
+      curve: context.motion.standard,
       child: content,
     );
 
@@ -1462,7 +1461,7 @@ class _ContactRowState extends State<_ContactRow> {
     );
 
     return CustomPaint(
-      painter: _CardPieceShadow(context.shadows.shadow1, first: widget.first, last: widget.last),
+      painter: _CardPieceShadow(context.shadows.shadow1, radius: context.radius.lg, first: widget.first, last: widget.last),
       // A run of selected rows: one ring over the whole piece (its divider too), open where it joins the
       // next row, so the run's sides have no gap.
       foregroundPainter: widget.selected && (widget.joinsUp || widget.joinsDown)
@@ -1505,9 +1504,12 @@ class _ContactRowState extends State<_ContactRow> {
 /// own height there, so the pieces join into one card's shadow with no seams. The first and last pieces add
 /// the card's ends.
 class _CardPieceShadow extends CustomPainter {
-  _CardPieceShadow(this.shadows, {required this.first, required this.last});
+  _CardPieceShadow(this.shadows, {required this.radius, required this.first, required this.last});
 
   final List<BoxShadow> shadows;
+
+  /// The card's corner radius (`radius-lg`).
+  final double radius;
   final bool first;
   final bool last;
 
@@ -1516,7 +1518,7 @@ class _CardPieceShadow extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    const corner = Radius.circular(MyDataRadius.lg);
+    final corner = Radius.circular(radius);
     final clip = Rect.fromLTRB(
       -reach,
       first ? -reach : 0,
@@ -1539,5 +1541,6 @@ class _CardPieceShadow extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_CardPieceShadow old) => old.shadows != shadows || old.first != first || old.last != last;
+  bool shouldRepaint(_CardPieceShadow old) =>
+      old.shadows != shadows || old.radius != radius || old.first != first || old.last != last;
 }

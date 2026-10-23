@@ -6,9 +6,8 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 
 import '../accessibility.dart';
-import '../generated/tokens.g.dart';
-import '../motion.dart';
-import '../theme.dart';
+import '../theme/motion.dart';
+import '../theme/theme.dart';
 import 'app_frame.dart' show AppLayout, PhoneType;
 import 'button.dart';
 import 'contact_list.dart' show ContactList, foldForSearch;
@@ -276,11 +275,7 @@ class _MyDataSelectState<T> extends State<MyDataSelect<T>>
   final _portal = OverlayPortalController();
   final _fieldKey = GlobalKey();
   final _tapGroup = Object();
-  late final AnimationController _motion = AnimationController(
-    vsync: this,
-    duration: MyDataMotion.base,
-    reverseDuration: MyDataMotion.fast,
-  );
+  late final AnimationController _motion;
   final _scroll = ScrollController();
   final _search = TextEditingController();
   final _searchNode = FocusNode(debugLabel: 'MyDataSelect search');
@@ -310,6 +305,8 @@ class _MyDataSelectState<T> extends State<MyDataSelect<T>>
   @override
   void initState() {
     super.initState();
+    final motion = context.lookNow.motion;
+    _motion = AnimationController(vsync: this, duration: motion.base, reverseDuration: motion.fast);
     _node.addListener(_focusChanged);
     _search.addListener(_queryChanged);
     _customNode.addListener(_customFocusChanged);
@@ -429,16 +426,16 @@ class _MyDataSelectState<T> extends State<MyDataSelect<T>>
     return out;
   }
 
-  static double _extentOf<T>(_Entry<T> e) => switch (e) {
-    _ItemEntry(:final caption) => caption == null ? MyDataSize.controlHeight : MyDataSize.rowHeight,
-    _DividerEntry() => _dividerExtent,
-    _HeadingEntry() => _headingExtent,
-    _NoneEntry() => _noneExtent,
+  static double _extentOf<T>(MyDataLook look, _Entry<T> e) => switch (e) {
+    _ItemEntry(:final caption) => caption == null ? look.density.controlHeight : look.density.rowHeight,
+    _DividerEntry() => _dividerExtent(look),
+    _HeadingEntry() => _headingExtent(look),
+    _NoneEntry() => _noneExtent(look),
   };
 
-  static const _dividerExtent = 1 + 2 * MyDataSpace.s1;
-  static final _headingExtent = MyDataType.label.fontSize! * MyDataType.label.height! + MyDataSpace.s2 + MyDataSpace.s1;
-  static final _noneExtent = MyDataType.body.fontSize! * MyDataType.body.height! + 2 * MyDataSpace.s3;
+  static double _dividerExtent(MyDataLook look) => 1 + 2 * look.space(1);
+  static double _headingExtent(MyDataLook look) => look.typeScale.label.fontSize! * look.typeScale.label.height! + look.space(2) + look.space(1);
+  static double _noneExtent(MyDataLook look) => look.typeScale.body.fontSize! * look.typeScale.body.height! + 2 * look.space(3);
 
   bool _isItem(List<_Entry<T>> entries, int i) => i >= 0 && i < entries.length && entries[i] is _ItemEntry<T>;
 
@@ -598,9 +595,9 @@ class _MyDataSelectState<T> extends State<MyDataSelect<T>>
   int _pageFrom(List<_Entry<T>> entries, int from, int direction) {
     var to = from;
     var travelled = 0.0;
-    final page = MyDataSelect.visibleRows * MyDataSize.controlHeight;
+    final page = MyDataSelect.visibleRows * context.density.controlHeight;
     for (var i = from + direction; i >= 0 && i < entries.length; i += direction) {
-      travelled += _extentOf(entries[i]);
+      travelled += _extentOf(context.look, entries[i]);
       if (travelled > page) break;
       if (entries[i] is _ItemEntry<T>) to = i;
     }
@@ -753,9 +750,9 @@ class _MyDataSelectState<T> extends State<MyDataSelect<T>>
       if (index >= entries.length) return;
       var top = 0.0;
       for (var i = 0; i < index; i++) {
-        top += _extentOf(entries[i]);
+        top += _extentOf(context.look, entries[i]);
       }
-      final bottom = top + _extentOf(entries[index]);
+      final bottom = top + _extentOf(context.look, entries[index]);
       final p = _scroll.position;
       var to = p.pixels;
       if (centre) {
@@ -828,7 +825,7 @@ class _MyDataSelectState<T> extends State<MyDataSelect<T>>
 
   /// The field's room around its text: the padding, a dot and its gap, the gap and the chevron.
   double _chrome({required bool dot}) =>
-      2 * MyDataSpace.s4 + (dot ? MyDataSelect.dotSize + MyDataSpace.s2 : 0) + MyDataSpace.s2 + MyDataSize.icon;
+      2 * context.space(4) + (dot ? MyDataSelect.dotSize + context.space(2) : 0) + context.space(2) + context.density.icon;
 
   /// [MyDataSelect.fitToItems]: as wide as the longest preset. A longer custom label is cut short.
   double _fitWidth(BuildContext context, TextStyle style) {
@@ -865,7 +862,7 @@ class _MyDataSelectState<T> extends State<MyDataSelect<T>>
         children: [
           if (current != null && current.hasDot) ...[
             DataDot(colour: current.dot, ground: DataGround.surface, alsoOn: const [DataGround.surfaceHover]),
-            const SizedBox(width: MyDataSpace.s2),
+            SizedBox(width: context.space(2)),
           ],
           Expanded(
             child: Text(
@@ -876,19 +873,19 @@ class _MyDataSelectState<T> extends State<MyDataSelect<T>>
               style: valueStyle.copyWith(color: shown == null ? c.inkMuted : c.ink),
             ),
           ),
-          const SizedBox(width: MyDataSpace.s2),
-          Icon(Icons.unfold_more_rounded, size: MyDataSize.icon, color: c.inkMuted),
+          SizedBox(width: context.space(2)),
+          Icon(Icons.unfold_more_rounded, size: context.density.icon, color: c.inkMuted),
         ],
       );
       Widget box = AnimatedContainer(
         key: _fieldKey,
-        duration: MyDataMotion.fast,
-        curve: MyDataMotion.standard,
-        height: MyDataSize.controlHeight,
-        padding: EdgeInsets.symmetric(horizontal: MyDataSpace.s4 - borderWidth),
+        duration: context.motion.fast,
+        curve: context.motion.standard,
+        height: context.density.controlHeight,
+        padding: EdgeInsets.symmetric(horizontal: context.space(4) - borderWidth),
         decoration: BoxDecoration(
           color: _hovered && _enabled ? c.surfaceHover : c.surface,
-          borderRadius: MyDataRadii.md,
+          borderRadius: MyDataRadii.md(context.look),
           border: Border.all(color: hasError ? c.danger : c.lineStrong, width: borderWidth),
         ),
         child: ExcludeSemantics(child: value),
@@ -918,7 +915,7 @@ class _MyDataSelectState<T> extends State<MyDataSelect<T>>
               onKeyEvent: _onFieldKey,
               child: Pressable(
                 onPressed: _enabled ? _activate : null,
-                borderRadius: MyDataRadii.md,
+                borderRadius: MyDataRadii.md(context.look),
                 scaleOnPress: false,
                 focusNode: _node,
                 autofocus: widget.autofocus,
@@ -948,16 +945,16 @@ class _MyDataSelectState<T> extends State<MyDataSelect<T>>
         Opacity(
           opacity: _enabled ? 1 : Pressable.disabledOpacity,
           child: ExcludeSemantics(
-            child: Text(widget.label, style: MyDataType.label.copyWith(color: c.ink)),
+            child: Text(widget.label, style: context.typeScale.label.copyWith(color: c.ink)),
           ),
         ),
-        const SizedBox(height: MyDataSpace.s2),
+        SizedBox(height: context.space(2)),
       ],
       field,
       if (note != null) ...[
-        const SizedBox(height: MyDataSpace.s2),
+        SizedBox(height: context.space(2)),
         ExcludeSemantics(
-          child: Text(note, style: MyDataType.caption.copyWith(color: hasError ? c.danger : c.inkMuted)),
+          child: Text(note, style: context.typeScale.caption.copyWith(color: hasError ? c.danger : c.inkMuted)),
         ),
       ],
     ];
@@ -989,25 +986,25 @@ class _MyDataSelectState<T> extends State<MyDataSelect<T>>
     for (final e in entries) {
       final w = switch (e) {
         _ItemEntry<T>() =>
-          (e.hasDot ? MyDataSelect.dotSize + MyDataSpace.s2 : 0) +
+          (e.hasDot ? MyDataSelect.dotSize + context.space(2) : 0) +
               math.max(
-                measure(e.title, MyDataType.body),
-                e.caption == null ? 0.0 : measure(e.caption!, MyDataType.caption),
+                measure(e.title, context.typeScale.body),
+                e.caption == null ? 0.0 : measure(e.caption!, context.typeScale.caption),
               ) +
-              MyDataSpace.s2 +
-              MyDataSize.icon,
-        _NoneEntry<T>(:final text) => measure(text, MyDataType.body),
-        _HeadingEntry<T>(:final text) => measure(text, MyDataType.label),
+              context.space(2) +
+              context.density.icon,
+        _NoneEntry<T>(:final text) => measure(text, context.typeScale.body),
+        _HeadingEntry<T>(:final text) => measure(text, context.typeScale.label),
         _DividerEntry<T>() => 0.0,
       };
       widest = math.max(widest, w);
     }
-    final rows = 2 * MyDataSpace.s3 + widest.ceilToDouble() + 2 * MyDataSpace.s1;
+    final rows = 2 * context.space(3) + widest.ceilToDouble() + 2 * context.space(1);
     // The search pill needs room for its placeholder.
     final search = _searchable
-        ? 2 * MyDataSpace.s4 + MyDataSize.icon + MyDataSpace.s2 + measure(widget.searchPlaceholder!, MyDataType.body)
+        ? 2 * context.space(4) + context.density.icon + context.space(2) + measure(widget.searchPlaceholder!, context.typeScale.body)
         : 0.0;
-    return math.max(rows, search + 2 * MyDataSpace.s1);
+    return math.max(rows, search + 2 * context.space(1));
   }
 
   Widget _buildList(BuildContext context) {
@@ -1050,31 +1047,31 @@ class _MyDataSelectState<T> extends State<MyDataSelect<T>>
         case _DividerEntry<T>():
           rows.add(
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: MyDataSpace.s1),
+              padding: EdgeInsets.symmetric(vertical: context.space(1)),
               child: Container(height: 1, color: c.line),
             ),
           );
         case _HeadingEntry<T>(:final text):
           rows.add(
             Padding(
-              padding: const EdgeInsets.fromLTRB(MyDataSpace.s3, MyDataSpace.s2, MyDataSpace.s3, MyDataSpace.s1),
+              padding: EdgeInsets.fromLTRB(context.space(3), context.space(2), context.space(3), context.space(1)),
               child: Semantics(
                 header: true,
-                child: Text(text, style: MyDataType.label.copyWith(color: c.inkMuted)),
+                child: Text(text, style: context.typeScale.label.copyWith(color: c.inkMuted)),
               ),
             ),
           );
         case _NoneEntry<T>(:final text):
           rows.add(
             SizedBox(
-              height: _noneExtent,
+              height: _noneExtent(context.look),
               child: Padding(
-                padding: const EdgeInsets.all(MyDataSpace.s3),
+                padding: EdgeInsets.all(context.space(3)),
                 child: Text(
                   text,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: MyDataType.body.copyWith(color: c.inkMuted),
+                  style: context.typeScale.body.copyWith(color: c.inkMuted),
                 ),
               ),
             ),
@@ -1084,25 +1081,25 @@ class _MyDataSelectState<T> extends State<MyDataSelect<T>>
 
     var listHeight = 0.0;
     for (final e in entries) {
-      listHeight += _extentOf(e);
+      listHeight += _extentOf(context.look, e);
     }
     final width = _listWidth(context, entries);
-    final maxRows = MyDataSelect.visibleRows * MyDataSize.controlHeight;
+    final maxRows = MyDataSelect.visibleRows * context.density.controlHeight;
 
     Widget panel = Container(
       decoration: BoxDecoration(
         color: c.surfaceRaised,
-        borderRadius: MyDataRadii.md,
+        borderRadius: MyDataRadii.md(context.look),
         boxShadow: context.shadows.shadow2,
       ),
-      padding: const EdgeInsets.all(MyDataSpace.s1),
+      padding: EdgeInsets.all(context.space(1)),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (_searchable)
             Padding(
-              padding: const EdgeInsets.only(bottom: MyDataSpace.s1),
+              padding: EdgeInsets.only(bottom: context.space(1)),
               child: Focus(
                 canRequestFocus: false,
                 skipTraversal: true,
@@ -1135,14 +1132,14 @@ class _MyDataSelectState<T> extends State<MyDataSelect<T>>
     final below = overlayBox.size.height - anchor.bottom;
     final panelHeight =
         math.min(listHeight, maxRows) +
-        2 * MyDataSpace.s1 +
-        (_searchable ? MyDataSize.controlHeight + MyDataSpace.s1 : 0);
-    final up = below < panelHeight + MyDataSpace.s1 + MyDataSpace.s2 && anchor.top > below;
+        2 * context.space(1) +
+        (_searchable ? context.density.controlHeight + context.space(1) : 0);
+    final up = below < panelHeight + context.space(1) + context.space(2) && anchor.top > below;
 
     panel = AnimatedBuilder(
       animation: _motion,
       builder: (context, child) {
-        final t = MyDataMotion.standard.transform(_motion.value);
+        final t = context.motion.standard.transform(_motion.value);
         final grow = reduced || _motion.status == AnimationStatus.reverse ? 1.0 : 0.97 + 0.03 * t;
         return Opacity(
           opacity: reduced ? _motion.value : (_motion.status == AnimationStatus.reverse ? _motion.value : t),
@@ -1159,7 +1156,7 @@ class _MyDataSelectState<T> extends State<MyDataSelect<T>>
 
     return Positioned.fill(
       child: CustomSingleChildLayout(
-        delegate: _PopoverLayout(anchor: anchor, above: up, width: width),
+        delegate: _PopoverLayout(anchor: anchor, above: up, width: width, look: context.look),
         child: TapRegion(
           groupId: _tapGroup,
           child: Material(type: MaterialType.transparency, child: panel),
@@ -1172,33 +1169,35 @@ class _MyDataSelectState<T> extends State<MyDataSelect<T>>
 /// Places the open list `space-1` under the field (or above it), at least as wide as the field and no wider
 /// than the window less `space-2` each side.
 class _PopoverLayout extends SingleChildLayoutDelegate {
-  _PopoverLayout({required this.anchor, required this.above, required this.width});
+  _PopoverLayout({required this.anchor, required this.above, required this.width, required this.look});
   final Rect anchor;
   final bool above;
+  final MyDataLook look;
 
   /// The list's own width, from its widest row.
   final double width;
 
-  static const gap = MyDataSpace.s1;
-  static const margin = MyDataSpace.s2;
+  static double gap(MyDataLook look) => look.space(1);
+  static double margin(MyDataLook look) => look.space(2);
 
   @override
   BoxConstraints getConstraintsForChild(BoxConstraints constraints) {
-    final maxW = math.max(0.0, constraints.maxWidth - 2 * margin);
-    final room = above ? anchor.top - gap - margin : constraints.maxHeight - anchor.bottom - gap - margin;
+    final maxW = math.max(0.0, constraints.maxWidth - 2 * margin(look));
+    final room = above ? anchor.top - gap(look) - margin(look) : constraints.maxHeight - anchor.bottom - gap(look) - margin(look);
     final w = width.clamp(math.min(anchor.width, maxW), maxW).toDouble();
     return BoxConstraints(minWidth: w, maxWidth: w, maxHeight: math.max(0.0, room));
   }
 
   @override
   Offset getPositionForChild(Size size, Size childSize) {
-    final x = anchor.left.clamp(margin, math.max(margin, size.width - margin - childSize.width)).toDouble();
-    final y = above ? anchor.top - gap - childSize.height : anchor.bottom + gap;
+    final x = anchor.left.clamp(margin(look), math.max(margin(look), size.width - margin(look) - childSize.width)).toDouble();
+    final y = above ? anchor.top - gap(look) - childSize.height : anchor.bottom + gap(look);
     return Offset(x, y);
   }
 
   @override
-  bool shouldRelayout(_PopoverLayout old) => old.anchor != anchor || old.above != above || old.width != width;
+  bool shouldRelayout(_PopoverLayout old) =>
+      old.anchor != anchor || old.above != above || old.width != width || old.look != look;
 }
 
 /// One item row of the open list.
@@ -1231,7 +1230,7 @@ class _ListRow<T> extends StatelessWidget {
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
       softWrap: false,
-      style: MyDataType.body.copyWith(color: c.ink),
+      style: context.typeScale.body.copyWith(color: c.ink),
     );
     return Semantics(
       selected: chosen,
@@ -1248,17 +1247,17 @@ class _ListRow<T> extends StatelessWidget {
             onTap: onTap,
             child: CustomPaint(
               foregroundPainter: ring
-                  ? InsetRingPainter(color: FocusRing.colourFor(context), borderRadius: MyDataRadii.sm)
+                  ? InsetRingPainter(color: FocusRing.colourFor(context), borderRadius: MyDataRadii.sm(context.look))
                   : null,
               child: Container(
-                height: item.caption == null ? MyDataSize.controlHeight : MyDataSize.rowHeight,
-                padding: const EdgeInsets.symmetric(horizontal: MyDataSpace.s3),
-                decoration: BoxDecoration(color: highlighted ? c.surfaceHover : null, borderRadius: MyDataRadii.sm),
+                height: item.caption == null ? context.density.controlHeight : context.density.rowHeight,
+                padding: EdgeInsets.symmetric(horizontal: context.space(3)),
+                decoration: BoxDecoration(color: highlighted ? c.surfaceHover : null, borderRadius: MyDataRadii.sm(context.look)),
                 child: Row(
                   children: [
                     if (item.hasDot) ...[
                       DataDot(colour: item.dot, ground: DataGround.surfaceHover),
-                      const SizedBox(width: MyDataSpace.s2),
+                      SizedBox(width: context.space(2)),
                     ],
                     Expanded(
                       child: item.caption == null
@@ -1272,14 +1271,14 @@ class _ListRow<T> extends StatelessWidget {
                                   item.caption!,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: MyDataType.caption.copyWith(color: c.inkMuted),
+                                  style: context.typeScale.caption.copyWith(color: c.inkMuted),
                                 ),
                               ],
                             ),
                     ),
                     if (chosen) ...[
-                      const SizedBox(width: MyDataSpace.s2),
-                      Icon(Icons.check_rounded, size: MyDataSize.icon, color: c.accent),
+                      SizedBox(width: context.space(2)),
+                      Icon(Icons.check_rounded, size: context.density.icon, color: c.accent),
                     ],
                   ],
                 ),
@@ -1309,15 +1308,15 @@ class _CustomLabelField extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     final style = PhoneType.bodyOf(context).copyWith(color: c.ink);
-    final vertical = (MyDataSize.controlHeight - style.fontSize! * style.height!) / 2 - MyDataTextField.borderWidth;
+    final vertical = (context.density.controlHeight - style.fontSize! * style.height!) / 2 - MyDataTextField.borderWidth;
     return FocusRing(
       visible: true,
-      borderRadius: MyDataRadii.md,
+      borderRadius: MyDataRadii.md(context.look),
       child: Container(
-        height: MyDataSize.controlHeight,
+        height: context.density.controlHeight,
         decoration: BoxDecoration(
           color: c.surface,
-          borderRadius: MyDataRadii.md,
+          borderRadius: MyDataRadii.md(context.look),
           border: Border.all(color: c.lineStrong, width: MyDataTextField.borderWidth),
         ),
         child: Focus(
@@ -1338,7 +1337,7 @@ class _CustomLabelField extends StatelessWidget {
                 isCollapsed: true,
                 border: InputBorder.none,
                 contentPadding: EdgeInsets.symmetric(
-                  horizontal: MyDataSpace.s4 - MyDataTextField.borderWidth,
+                  horizontal: context.space(4) - MyDataTextField.borderWidth,
                   vertical: vertical,
                 ),
               ),
@@ -1520,7 +1519,7 @@ class _PickerPageState<T> extends State<_PickerPage<T>> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             SizedBox(
-              height: MyDataSize.controlHeight,
+              height: context.density.controlHeight,
               child: NavigationToolbar(
                 leading: Button(
                   label: 'Cancel',
@@ -1529,12 +1528,12 @@ class _PickerPageState<T> extends State<_PickerPage<T>> {
                 ),
                 middle: Semantics(
                   header: true,
-                  child: Text(widget.title, style: MyDataType.heading.copyWith(color: c.ink)),
+                  child: Text(widget.title, style: context.typeScale.heading.copyWith(color: c.ink)),
                 ),
               ),
             ),
             Padding(
-              padding: const EdgeInsets.all(MyDataSpace.s4),
+              padding: EdgeInsets.all(context.space(4)),
               child: MyDataSearchField(controller: _search, placeholder: widget.searchPlaceholder, autofocus: true),
             ),
             Expanded(
@@ -1542,15 +1541,15 @@ class _PickerPageState<T> extends State<_PickerPage<T>> {
                 children: [
                   if (q.isEmpty && widget.suggested.isNotEmpty) ...[
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(
-                        MyDataSpace.s4,
-                        MyDataSpace.s2,
-                        MyDataSpace.s4,
-                        MyDataSpace.s1,
+                      padding: EdgeInsets.fromLTRB(
+                        context.space(4),
+                        context.space(2),
+                        context.space(4),
+                        context.space(1),
                       ),
                       child: Semantics(
                         header: true,
-                        child: Text(widget.suggestedHeading, style: MyDataType.label.copyWith(color: c.inkMuted)),
+                        child: Text(widget.suggestedHeading, style: context.typeScale.label.copyWith(color: c.inkMuted)),
                       ),
                     ),
                     for (final i in widget.suggested) row(i),
@@ -1558,10 +1557,10 @@ class _PickerPageState<T> extends State<_PickerPage<T>> {
                   ],
                   if (matches.isEmpty)
                     Padding(
-                      padding: const EdgeInsets.all(MyDataSpace.s4),
+                      padding: EdgeInsets.all(context.space(4)),
                       child: Text(
                         widget.noMatches?.call(q) ?? 'Nothing matches “$q”',
-                        style: MyDataType.body.copyWith(color: c.inkMuted),
+                        style: context.typeScale.body.copyWith(color: c.inkMuted),
                       ),
                     )
                   else

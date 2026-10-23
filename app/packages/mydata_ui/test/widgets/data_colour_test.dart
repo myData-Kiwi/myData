@@ -72,7 +72,7 @@ Widget _swatches() => Builder(builder: (context) {
       final colours = <Color?>[_red, _yellow, _nearBlack, _white, parseDataColour('#3E7BFA80'), null];
       Widget ground(DataGround g, String label) => Container(
           padding: const EdgeInsets.all(MyDataSpace.s3),
-          decoration: BoxDecoration(color: g.of(c), borderRadius: MyDataRadii.md),
+          decoration: BoxDecoration(color: g.of(c), borderRadius: MyDataRadii.md(kiwiLook)),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(label, style: MyDataType.caption.copyWith(color: c.inkMuted)),
             const SizedBox(height: MyDataSpace.s2),
@@ -89,7 +89,7 @@ Widget _swatches() => Builder(builder: (context) {
           ]));
       Widget event(String when, String? end, Color? col, String title, String caption) => IntrinsicHeight(
           child: Padding(
-              padding: GroupedRow.padding,
+              padding: GroupedRow.padding(kiwiLook),
               child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                 SizedBox(
                     width: MyDataSpace.s16,
@@ -119,7 +119,7 @@ Widget _swatches() => Builder(builder: (context) {
             const SizedBox(height: MyDataSpace.s4),
             DecoratedBox(
                 decoration:
-                    BoxDecoration(color: c.surface, borderRadius: MyDataRadii.lg, boxShadow: context.shadows.shadow1),
+                    BoxDecoration(color: c.surface, borderRadius: MyDataRadii.lg(kiwiLook), boxShadow: context.shadows.shadow1),
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
                   event('All day', null, _yellow, 'Seed swap', 'Garden club'),
                   Container(height: 1, color: c.line),
@@ -204,7 +204,7 @@ void main() {
       expect(tester.getSize(find.byKey(const ValueKey('bare'))), const Size.square(8));
       expect(tester.getSize(find.byKey(const ValueKey('slot'))), const Size.square(MyDataSize.iconTile));
       final dot = find.descendant(of: find.byKey(const ValueKey('slot')), matching: find.byType(Container));
-      expect(tester.getSize(dot), const Size.square(DataDot.diameter));
+      expect(tester.getSize(dot), Size.square(DataDot.diameter(kiwiLook)));
       expect(tester.getCenter(dot), tester.getCenter(find.byKey(const ValueKey('slot'))));
       final d = _decorationOf(tester, find.byKey(const ValueKey('bare')));
       expect(d.color, _red);
@@ -287,7 +287,7 @@ void main() {
       expect(bar.top, tester.getRect(find.byKey(const ValueKey('title'))).top);
       expect(bar.bottom, tester.getRect(find.byKey(const ValueKey('caption'))).bottom);
       final d = _decorationOf(tester, find.byType(DataBar));
-      expect(d.borderRadius, MyDataRadii.pill);
+      expect(d.borderRadius, MyDataRadii.pill(kiwiLook));
       expect(d.color, _red);
     });
 
@@ -347,7 +347,7 @@ void main() {
         // One body line: the row is the text's height (the bar's 22 is the text's to within rounding), not the
         // cell's 98 or the bound's 300.
         expect(tester.getSize(find.byKey(ValueKey(k))).height, closeTo(text, 0.01), reason: k);
-        expect(tester.getSize(find.byKey(ValueKey('${k}Bar'))), Size(MyDataSpace.s1, DataBar.fallbackHeight),
+        expect(tester.getSize(find.byKey(ValueKey('${k}Bar'))), Size(MyDataSpace.s1, DataBar.fallbackHeight(kiwiLook)),
             reason: k);
       }
       // A bound smaller than one line clamps it.

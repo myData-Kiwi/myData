@@ -107,7 +107,7 @@ void main() {
     final context = tester.element(find.byType(ApprovalCard));
     final d = _cardDecoration(tester);
     expect(d.color, context.colors.surface);
-    expect(d.borderRadius, MyDataRadii.lg);
+    expect(d.borderRadius, MyDataRadii.lg(kiwiLook));
     expect(d.boxShadow, context.shadows.shadow2);
 
     final chip = tester.widget<MyDataBadge>(find.byType(MyDataBadge));
@@ -161,7 +161,7 @@ void main() {
       find.ancestor(of: find.byType(Table), matching: find.byType(Container)).first,
     );
     expect((well.decoration! as BoxDecoration).color, c.surfaceSunken);
-    expect((well.decoration! as BoxDecoration).borderRadius, MyDataRadii.md);
+    expect((well.decoration! as BoxDecoration).borderRadius, MyDataRadii.md(kiwiLook));
     expect(tester.takeException(), isNull);
   });
 
@@ -348,7 +348,7 @@ void main() {
         Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Pressable(onPressed: _noop, borderRadius: MyDataRadii.sm, child: const Text('Before')),
+            Pressable(onPressed: _noop, borderRadius: MyDataRadii.sm(kiwiLook), child: const Text('Before')),
             _Harness(key: key),
           ],
         ),
@@ -392,7 +392,7 @@ void main() {
       find.descendant(of: find.byType(ApprovalCard), matching: find.byType(FocusRing)).first,
     );
     expect(ring.visible, isTrue);
-    expect(ring.borderRadius, MyDataRadii.lg);
+    expect(ring.borderRadius, MyDataRadii.lg(kiwiLook));
 
     // The next Tab reaches the source link, inside the card.
     await tester.sendKeyEvent(LogicalKeyboardKey.tab);

@@ -4,8 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../generated/tokens.g.dart';
-import '../motion.dart';
-import '../theme.dart';
+import '../theme/theme.dart';
 import 'data_colour.dart';
 import 'form_scope.dart';
 import 'picker_field.dart' show pickerIsPhone;
@@ -75,7 +74,7 @@ class ColourPicker extends StatefulWidget {
   static const phoneColumns = 4;
 
   /// The disc: DataColour's swatch at `icon` size.
-  static const discSize = MyDataSize.icon;
+  static double discSize(MyDataLook look) => look.density.icon;
 
   /// The chosen swatch's ring: 2px `ink` inside the target's edge (MonthGrid's selection ring).
   static const ringWidth = 2.0;
@@ -195,12 +194,12 @@ class _ColourPickerState extends State<ColourPicker> {
     for (var i = 0; i < _nodes.length; i++) {
       _nodes[i].skipTraversal = chosen >= 0 ? i != chosen : i != 0;
     }
-    final target = widget.compact && !phone ? MyDataSize.controlHeightCompact : MyDataSize.controlHeight;
+    final target = widget.compact && !phone ? context.density.controlHeightCompact : context.density.controlHeight;
     final name = chosen >= 0 ? swatches[chosen].name : null;
 
     Widget row = Wrap(
-      spacing: MyDataSpace.s2,
-      runSpacing: MyDataSpace.s2,
+      spacing: context.space(2),
+      runSpacing: context.space(2),
       children: [
         for (var i = 0; i < swatches.length; i++)
           Semantics(
@@ -210,7 +209,7 @@ class _ColourPickerState extends State<ColourPicker> {
             child: Pressable(
               key: ValueKey('colour-swatch-${swatches[i].name}'),
               onPressed: () => _choose(swatches[i]),
-              borderRadius: MyDataRadii.pill,
+              borderRadius: MyDataRadii.pill(context.look),
               focusNode: _nodes[i],
               button: false,
               semanticLabel: swatches[i].name,
@@ -222,7 +221,7 @@ class _ColourPickerState extends State<ColourPicker> {
     );
     if (phone) {
       row = SizedBox(
-        width: ColourPicker.phoneColumns * target + (ColourPicker.phoneColumns - 1) * MyDataSpace.s2,
+        width: ColourPicker.phoneColumns * target + (ColourPicker.phoneColumns - 1) * context.space(2),
         child: row,
       );
     }
@@ -235,8 +234,8 @@ class _ColourPickerState extends State<ColourPicker> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ExcludeSemantics(child: Text(widget.label, style: MyDataType.label.copyWith(color: c.ink))),
-          const SizedBox(height: MyDataSpace.s2),
+          ExcludeSemantics(child: Text(widget.label, style: context.typeScale.label.copyWith(color: c.ink))),
+          SizedBox(height: context.space(2)),
           Focus(
             canRequestFocus: false,
             skipTraversal: true,
@@ -244,9 +243,9 @@ class _ColourPickerState extends State<ColourPicker> {
             child: row,
           ),
           if (name != null) ...[
-            const SizedBox(height: MyDataSpace.s2),
+            SizedBox(height: context.space(2)),
             // The chosen radio button already says it; not read twice.
-            ExcludeSemantics(child: Text(name, style: MyDataType.caption.copyWith(color: c.inkMuted))),
+            ExcludeSemantics(child: Text(name, style: context.typeScale.caption.copyWith(color: c.inkMuted))),
           ],
         ],
       ),
@@ -278,12 +277,12 @@ class _SwatchState extends State<_Swatch> {
       onExit: (_) => setState(() => _hovered = false),
       child: TweenAnimationBuilder<double>(
         tween: Tween(end: widget.chosen ? 1 : 0),
-        duration: MyDataMotion.fast,
-        curve: MyDataMotion.standard,
+        duration: context.motion.fast,
+        curve: context.motion.standard,
         builder: (context, chosen, _) => TweenAnimationBuilder<double>(
           tween: Tween(end: _hovered && !widget.chosen ? 1 : 0),
-          duration: MyDataMotion.fast,
-          curve: MyDataMotion.standard,
+          duration: context.motion.fast,
+          curve: context.motion.standard,
           builder: (context, hover, _) => CustomPaint(
             size: Size.square(widget.size),
             painter: _SwatchPainter(
@@ -294,6 +293,7 @@ class _SwatchState extends State<_Swatch> {
               hoverEdge: c.lineStrong,
               disc: widget.colour,
               discEdge: edge ? c.lineStrong : null,
+              discSize: ColourPicker.discSize(context.look),
             ),
           ),
         ),
@@ -311,6 +311,7 @@ class _SwatchPainter extends CustomPainter {
     required this.hoverEdge,
     required this.disc,
     required this.discEdge,
+    required this.discSize,
   });
 
   final double chosen;
@@ -320,6 +321,7 @@ class _SwatchPainter extends CustomPainter {
   final Color hoverEdge;
   final Color disc;
   final Color? discEdge;
+  final double discSize;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -344,7 +346,7 @@ class _SwatchPainter extends CustomPainter {
             ..style = PaintingStyle.stroke
             ..strokeWidth = ColourPicker.hoverWidth);
     }
-    const d = ColourPicker.discSize / 2;
+    final d = discSize / 2;
     canvas.drawCircle(centre, d, Paint()..color = disc);
     if (discEdge != null) {
       canvas.drawCircle(
@@ -365,5 +367,6 @@ class _SwatchPainter extends CustomPainter {
       old.ring != ring ||
       old.hoverEdge != hoverEdge ||
       old.disc != disc ||
-      old.discEdge != discEdge;
+      old.discEdge != discEdge ||
+      old.discSize != discSize;
 }

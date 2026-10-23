@@ -4,8 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../generated/tokens.g.dart';
-import '../theme.dart';
-import '../widgets/app_frame.dart' show AppLayout;
+import '../theme/theme.dart';
+import 'mac_window.dart';
 
 /// The Mac frame (docs/2026-10-23-plan.md section 5, "native frame, quiet brand"; Flutter on every platform,
 /// decided 2026-10-23): the platform owns the window, toolbar, sidebar, font, accent and focus ring; myData
@@ -15,8 +15,9 @@ import '../widgets/app_frame.dart' show AppLayout;
 ///   Other platforms keep the branded frame until their own pass (Material 3 on Android). Screens an app has
 ///   not moved to the Mac frame yet still draw their branded layout, in the system font and colours.
 /// - **The theme.** [MacTheme.data] keeps every token the other widgets read ([MyDataColors]) but maps them
-///   to the system's colours, and adds [MyDataMacColors] for the Mac widgets. Its presence is what
-///   [MacLook.of] reads.
+///   to the system's colours, and adds [MyDataMacColors] for the Mac widgets and a [MyDataLook] whose frame
+///   is [LookFrame.system].
+/// - **Asking where you are:** [MacWindow.of], the Mac window's skeleton is drawn here.
 abstract final class MacLook {
   /// Tests set this to draw the Mac frame on the test platform (or to keep it off); null follows the
   /// platform.
@@ -24,10 +25,6 @@ abstract final class MacLook {
 
   /// The app should build the Mac theme: on macOS (or as [debugOverride] says).
   static bool get forThisPlatform => debugOverride ?? (!kIsWeb && defaultTargetPlatform == TargetPlatform.macOS);
-
-  /// The Mac frame is drawn here: the theme is [MacTheme]'s and the window is wider than a phone's.
-  static bool of(BuildContext context) =>
-      Theme.of(context).extension<MyDataMacColors>() != null && !AppLayout.isPhone(context);
 }
 
 /// `context.mac`: the Mac frame's colours for this appearance (the defaults outside a [MacTheme]).
@@ -39,11 +36,15 @@ extension MacContext on BuildContext {
   }
 }
 
-/// `context.type(MyDataType.body)`: a branded type style, or in the Mac frame ([MacLook.of]) its Mac
-/// counterpart ([MacTheme.typeFor]), so the shared widgets (EmptyState, StatusPanel, Notice, Button, the
-/// several-selected summary) draw in the system font at Mac sizes there. Call it before `copyWith`.
+/// `context.type(MyDataTypeRole.body)`: the look's style for a role, or in the Mac frame ([MacWindow.of]) its
+/// Mac counterpart ([MacTheme.typeFor]), so the shared widgets
+/// (EmptyState, StatusPanel, Notice, Button, the several-selected summary) draw in the system font at Mac
+/// sizes there. Call it before `copyWith`.
 extension MacTypeContext on BuildContext {
-  TextStyle type(TextStyle branded) => MacLook.of(this) ? MacTheme.typeFor(branded) : branded;
+  TextStyle type(MyDataTypeRole role) {
+    final scale = MyDataLook.of(this).typeScale;
+    return MacWindow.of(this) ? MacTheme.typeFor(role, scale) : scale(role);
+  }
 }
 
 /// A row of a list in the Mac frame tells its content whether it is drawn on the accent (selected, in a
@@ -75,6 +76,7 @@ abstract final class MacTheme {
     final mac = onAccentWhite(system);
     final base = MyDataTheme.data(themeId, brightness);
     final brand = base.extension<MyDataColors>()!;
+    final look = base.extension<MyDataLook>()!;
     final soft = Color.alphaBlend(mac.accent.withValues(alpha: 0.18), mac.contentBackground);
     final colors = brand.copyWith(
       bg: mac.windowBackground,
@@ -96,7 +98,13 @@ abstract final class MacTheme {
     // which would turn the family into `packages/mydata_ui/.AppleSystemUIFont`, a font that does not exist.
     final text = _textTheme(brightness).apply(bodyColor: mac.label, displayColor: mac.label);
     return base.copyWith(
-      extensions: [colors, base.extension<MyDataShadows>()!, mac],
+      extensions: [
+        colors,
+        base.extension<MyDataShadows>()!,
+        mac,
+        // System, drawn by the Mac shell; its sizes and type are still Kiwi's for the branded widgets inside it.
+        look.copyWith(themeId: 'mydata.system', frame: LookFrame.system, colors: colors),
+      ],
       scaffoldBackgroundColor: mac.windowBackground,
       canvasColor: mac.windowBackground,
       textTheme: text,
@@ -169,27 +177,36 @@ abstract final class MacTheme {
     );
   }
 
-  /// The Mac counterpart of a branded type style: `display-xl` and `display-lg` are a pane's `pane-title`,
+  /// The Mac counterpart of a role's style: `display-xl` and `display-lg` are a pane's `pane-title`,
   /// `title` and `heading` the toolbar's `title`, `body-strong` is `body-emphasized`, `label` is `callout`,
-  /// `body` and `caption` keep their names. Anything else keeps its size and weight in the system font.
-  static TextStyle typeFor(TextStyle branded) {
-    if (identical(branded, MyDataType.displayXl) || identical(branded, MyDataType.displayLg)) {
-      return MyDataMacType.paneTitle;
+  /// `body` and `caption` keep their names. `mono` keeps its size and weight in the system font.
+  static TextStyle typeFor(MyDataTypeRole role, MyDataTypeScale branded) {
+    switch (role) {
+      case MyDataTypeRole.displayXl || MyDataTypeRole.displayLg:
+        return MyDataMacType.paneTitle;
+      case MyDataTypeRole.title || MyDataTypeRole.heading:
+        return MyDataMacType.title;
+      case MyDataTypeRole.bodyStrong:
+        return MyDataMacType.bodyEmphasized;
+      case MyDataTypeRole.body:
+        return MyDataMacType.body;
+      case MyDataTypeRole.label:
+        return MyDataMacType.callout;
+      case MyDataTypeRole.caption:
+        return MyDataMacType.caption;
+      case MyDataTypeRole.mono:
+        break;
     }
-    if (identical(branded, MyDataType.title) || identical(branded, MyDataType.heading)) return MyDataMacType.title;
-    if (identical(branded, MyDataType.bodyStrong)) return MyDataMacType.bodyEmphasized;
-    if (identical(branded, MyDataType.body)) return MyDataMacType.body;
-    if (identical(branded, MyDataType.label)) return MyDataMacType.callout;
-    if (identical(branded, MyDataType.caption)) return MyDataMacType.caption;
+    final style = branded(role);
     // A new TextStyle, not copyWith: the branded style carries mydata_ui's package (see [data]).
     return TextStyle(
       fontFamily: MyDataMacFont.text,
-      fontSize: branded.fontSize,
-      fontWeight: branded.fontWeight,
-      fontStyle: branded.fontStyle,
-      height: branded.height,
-      leadingDistribution: branded.leadingDistribution,
-      fontFeatures: branded.fontFeatures,
+      fontSize: style.fontSize,
+      fontWeight: style.fontWeight,
+      fontStyle: style.fontStyle,
+      height: style.height,
+      leadingDistribution: style.leadingDistribution,
+      fontFeatures: style.fontFeatures,
     );
   }
 }

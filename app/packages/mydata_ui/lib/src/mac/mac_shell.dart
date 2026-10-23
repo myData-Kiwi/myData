@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../accessibility.dart';
-import '../theme.dart';
+import '../theme/theme.dart';
 import '../widgets/app_frame.dart' show AppConnection, AppSection;
 import 'mac_overlays.dart' show MacAppIcon;
 import 'mac_source_list.dart';
@@ -35,7 +35,7 @@ import 'mac_window.dart';
 /// ```
 ///
 /// The Runner copies `macos_snippets/MacShell.swift` (its header says how). Screens then branch on
-/// [MacLook.of]: in the Mac frame, [MacAppFrame] with [MacPane]s; elsewhere AppFrame as before.
+/// [MacWindow.of]: in the Mac frame, [MacAppFrame] with [MacPane]s; elsewhere AppFrame as before.
 class MacShell extends StatelessWidget {
   const MacShell({super.key, required this.theme, required this.builder, this.appIcon});
 

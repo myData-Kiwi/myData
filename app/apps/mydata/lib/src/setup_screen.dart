@@ -87,7 +87,7 @@ class SetupScreen extends StatelessWidget {
     final Widget body;
     // On a Mac the accent is the system's, so there is no theme to choose at first run (Settings, Appearance
     // still sets the theme for other platforms).
-    if (running && !themeChosen && onChooseTheme != null && !MacLook.of(context)) {
+    if (running && !themeChosen && onChooseTheme != null && !MacWindow.of(context)) {
       body = ThemeStep(onChoose: onChooseTheme!);
     } else if (running && macStep && onAllowMac != null && onSkipMac != null) {
       body = ThisMacStep(
@@ -184,7 +184,7 @@ class ThemeStep extends StatefulWidget {
 
   /// The step's column: wide enough for the six theme swatches on one row (about 630 px in the bundled
   /// fonts) and the theme sample at its natural size. A test checks that the swatches stay on one row.
-  static const maxWidth = ThemeSample.naturalWidth + 3 * MyDataSpace.s12;
+  static double maxWidth(MyDataLook look) => ThemeSample.naturalWidth + 3 * look.space(12);
 
   @override
   State<ThemeStep> createState() => _ThemeStepState();
@@ -222,37 +222,37 @@ class _ThemeStepState extends State<ThemeStep> {
             color: c.bg,
             child: Center(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(MyDataSpace.s8),
+                padding: EdgeInsets.all(context.space(8)),
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: ThemeStep.maxWidth),
+                  constraints: BoxConstraints(maxWidth: ThemeStep.maxWidth(context.look)),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Semantics(
                         header: true,
-                        child: Text(ThemeStep.title, style: MyDataType.displayLg.copyWith(color: c.ink)),
+                        child: Text(ThemeStep.title, style: context.typeScale.displayLg.copyWith(color: c.ink)),
                       ),
-                      const SizedBox(height: MyDataSpace.s2),
-                      Text(ThemeStep.sentence, style: MyDataType.body.copyWith(color: c.inkMuted)),
-                      const SizedBox(height: MyDataSpace.s6),
+                      SizedBox(height: context.space(2)),
+                      Text(ThemeStep.sentence, style: context.typeScale.body.copyWith(color: c.inkMuted)),
+                      SizedBox(height: context.space(6)),
                       ThemePicker(
                         selected: _selected,
                         onChanged: _saving ? null : (id) => setState(() => _selected = id),
                       ),
-                      const SizedBox(height: MyDataSpace.s6),
+                      SizedBox(height: context.space(6)),
                       ThemeSample(themeId: _selected),
-                      const SizedBox(height: MyDataSpace.s6),
+                      SizedBox(height: context.space(6)),
                       Button(
                         label: ThemeStep.useLabel,
                         variant: ButtonVariant.filled,
                         onPressed: _saving ? null : _use,
                       ),
                       if (_error != null) ...[
-                        const SizedBox(height: MyDataSpace.s3),
+                        SizedBox(height: context.space(3)),
                         Semantics(
                           liveRegion: true,
-                          child: Text(_error!, style: MyDataType.caption.copyWith(color: c.danger)),
+                          child: Text(_error!, style: context.typeScale.caption.copyWith(color: c.danger)),
                         ),
                       ],
                     ],
@@ -427,7 +427,7 @@ class _ThisMacStepState extends State<ThisMacStep> {
         ],
       );
     }
-    if (MacLook.of(context)) return _macWelcome(context);
+    if (MacWindow.of(context)) return _macWelcome(context);
     return StatusPanel(
       kind: StatusPanelKind.info,
       title: ThisMacStep.title,
@@ -444,14 +444,14 @@ class _ThisMacStepState extends State<ThisMacStep> {
     final mac = context.mac;
     return Center(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(MyDataSpace.s8, MyDataMacSize.toolbarHeight, MyDataSpace.s8, MyDataSpace.s8),
+        padding: EdgeInsets.fromLTRB(context.space(8), MyDataMacSize.toolbarHeight, context.space(8), context.space(8)),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: MyDataSize.dialogWidth),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               const MacKiwi(height: MyDataMacSize.avatar),
-              const SizedBox(height: MyDataSpace.s6),
+              SizedBox(height: context.space(6)),
               Semantics(
                 header: true,
                 child: Text(
@@ -460,13 +460,13 @@ class _ThisMacStepState extends State<ThisMacStep> {
                   style: MyDataMacType.name.copyWith(color: mac.label),
                 ),
               ),
-              const SizedBox(height: MyDataSpace.s2),
+              SizedBox(height: context.space(2)),
               Text(
                 ThisMacStep.sentence,
                 textAlign: TextAlign.center,
                 style: MyDataMacType.body.copyWith(color: mac.secondaryLabel),
               ),
-              const SizedBox(height: MyDataSpace.s6),
+              SizedBox(height: context.space(6)),
               ButtonRow(
                 alignment: WrapAlignment.center,
                 children: [
@@ -484,7 +484,7 @@ class _ThisMacStepState extends State<ThisMacStep> {
                   ),
                 ],
               ),
-              const SizedBox(height: MyDataSpace.s5),
+              SizedBox(height: context.space(5)),
               Text(
                 ThisMacStep.macNote,
                 textAlign: TextAlign.center,

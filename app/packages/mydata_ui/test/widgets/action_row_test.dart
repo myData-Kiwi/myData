@@ -80,13 +80,13 @@ void main() {
     final chip = tester.getRect(find.byType(MyDataBadge));
     final tile = tester.getRect(find.byType(IconTile));
     // The 44px button and the row's vertical padding make it taller than row-height, as in the preview.
-    expect(row.height, MyDataSize.controlHeight + GroupedRow.padding.vertical);
-    expect(revoke.right, row.right - GroupedRow.padding.right);
-    expect(revoke.left - chip.right, ActionRow.endGap);
+    expect(row.height, MyDataSize.controlHeight + GroupedRow.padding(kiwiLook).vertical);
+    expect(revoke.right, row.right - GroupedRow.padding(kiwiLook).right);
+    expect(revoke.left - chip.right, ActionRow.endGap(kiwiLook));
     expect(revoke.center.dy, moreOrLessEquals(row.center.dy));
     expect(chip.center.dy, moreOrLessEquals(row.center.dy));
-    expect(tile.left, row.left + GroupedRow.padding.left);
-    expect(title.left, tile.right + GroupedRow.gap);
+    expect(tile.left, row.left + GroupedRow.padding(kiwiLook).left);
+    expect(title.left, tile.right + GroupedRow.gap(kiwiLook));
   });
 
   ActionRow laptop(String subtitle) => ActionRow(
@@ -124,8 +124,8 @@ void main() {
     final caption = tester.getRect(find.text(longCaption));
     final chip = tester.getRect(find.byType(MyDataBadge));
     expect(chip.left, title.left);
-    expect(chip.top, greaterThanOrEqualTo(caption.bottom + GroupedRow.gap - 0.01));
-    expect(caption.width, greaterThanOrEqualTo(ActionRow.minTextWidth));
+    expect(chip.top, greaterThanOrEqualTo(caption.bottom + GroupedRow.gap(kiwiLook) - 0.01));
+    expect(caption.width, greaterThanOrEqualTo(ActionRow.minTextWidth(kiwiLook)));
     expect(caption.height, lessThanOrEqualTo(captionLine * 2 + 0.5), reason: 'at most two caption lines');
   });
 
@@ -149,11 +149,11 @@ void main() {
     final chip = tester.getRect(find.byType(MyDataBadge));
     final revoke = tester.getRect(find.byType(Button));
     expect(chip.left, title.left);
-    expect(chip.top, greaterThanOrEqualTo(caption.bottom + GroupedRow.gap - 0.01));
-    expect(revoke.left - chip.right, ActionRow.endGap);
-    expect(revoke.right, lessThanOrEqualTo(row.right - GroupedRow.padding.right));
+    expect(chip.top, greaterThanOrEqualTo(caption.bottom + GroupedRow.gap(kiwiLook) - 0.01));
+    expect(revoke.left - chip.right, ActionRow.endGap(kiwiLook));
+    expect(revoke.right, lessThanOrEqualTo(row.right - GroupedRow.padding(kiwiLook).right));
     expect(row.height, greaterThan(MyDataSize.rowHeight));
-    expect(revoke.bottom, lessThanOrEqualTo(row.bottom - GroupedRow.padding.bottom + 0.01));
+    expect(revoke.bottom, lessThanOrEqualTo(row.bottom - GroupedRow.padding(kiwiLook).bottom + 0.01));
     // The title kept one line now that it has the full width.
     expect(title.height, moreOrLessEquals(MyDataType.bodyStrong.fontSize! * MyDataType.bodyStrong.height!, epsilon: 0.5));
   });
@@ -214,7 +214,7 @@ void main() {
     expect(tester.widget<IconTile>(find.byType(IconTile)).tone, MyDataTone.neutral);
     final row = tester.getRect(find.byType(ActionRow));
     final chip = tester.getRect(find.byType(MyDataBadge));
-    expect(chip.right, row.right - GroupedRow.padding.right);
+    expect(chip.right, row.right - GroupedRow.padding(kiwiLook).right);
   });
 
   testWidgets('a plain danger action is danger text with no fill', (tester) async {

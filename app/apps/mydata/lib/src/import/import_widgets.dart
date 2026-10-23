@@ -37,11 +37,11 @@ class StepPage extends StatelessWidget {
     final layout = AppLayout.of(context);
     // The Mac frame: Mac margins, the step's title as the pane's title (`pane-title`) under the toolbar's
     // "Import", and the steps in a centred column at `content-width`, as a Settings-style form.
-    final mac = MacLook.of(context);
-    final pad = mac ? MyDataSpace.s5 : PageScaffold.paddingFor(layout);
+    final mac = MacWindow.of(context);
+    final pad = mac ? context.space(5) : PageScaffold.paddingFor(context.look, layout);
     final insets = MediaQuery.paddingOf(context);
     final frameName = AppFrame.phoneAppNameOf(context);
-    final titleStyle = context.type(frameName != null ? MyDataType.title : MyDataType.displayLg);
+    final titleStyle = context.type(frameName != null ? MyDataTypeRole.title : MyDataTypeRole.displayLg);
     final hidden = mac && !macTitleShown;
     final column = Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       Focus(
@@ -51,16 +51,16 @@ class StepPage extends StatelessWidget {
             : Semantics(header: true, child: Text(title, style: titleStyle.copyWith(color: c.ink))),
       ),
       if (subtitle != null) ...[
-        const SizedBox(height: MyDataSpace.s2),
-        Text(subtitle!, style: context.type(MyDataType.body).copyWith(color: c.inkMuted)),
+        SizedBox(height: context.space(2)),
+        Text(subtitle!, style: context.type(MyDataTypeRole.body).copyWith(color: c.inkMuted)),
       ],
       for (var i = 0; i < children.length; i++) ...[
-        SizedBox(height: i == 0 ? (hidden ? 0 : PageScaffold.titleGap) : PageScaffold.gap),
+        SizedBox(height: i == 0 ? (hidden ? 0 : PageScaffold.titleGap(context.look)) : PageScaffold.gap(context.look)),
         children[i],
       ],
     ]);
     final body = DefaultTextStyle.merge(
-      style: context.type(MyDataType.body).copyWith(color: c.ink),
+      style: context.type(MyDataTypeRole.body).copyWith(color: c.ink),
       child: SingleChildScrollView(
         controller: scroll,
         padding: EdgeInsets.fromLTRB(pad + insets.left, pad + insets.top, pad + insets.right,
@@ -79,7 +79,7 @@ class StepPage extends StatelessWidget {
       Expanded(child: body),
       Container(height: 1, color: c.line),
       Padding(
-        padding: EdgeInsets.fromLTRB(pad + insets.left, MyDataSpace.s4, pad + insets.right, MyDataSpace.s4 + insets.bottom),
+        padding: EdgeInsets.fromLTRB(pad + insets.left, context.space(4), pad + insets.right, context.space(4) + insets.bottom),
         child: Align(
           alignment: AlignmentDirectional.topStart,
           child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: MyDataSize.contentMax), child: footer),
@@ -109,22 +109,22 @@ class StepFooter extends StatelessWidget {
     final c = context.colors;
     final phone = AppLayout.isPhone(context);
     final line = failure != null
-        ? Semantics(liveRegion: true, child: Text(failure!, style: context.type(MyDataType.body).copyWith(color: c.danger)))
+        ? Semantics(liveRegion: true, child: Text(failure!, style: context.type(MyDataTypeRole.body).copyWith(color: c.danger)))
         : reason != null
-            ? Text(reason!, style: context.type(MyDataType.caption).copyWith(color: c.inkMuted))
+            ? Text(reason!, style: context.type(MyDataTypeRole.caption).copyWith(color: c.inkMuted))
             : null;
     if (phone) {
       return Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
-        if (line != null) ...[line, const SizedBox(height: MyDataSpace.s2)],
+        if (line != null) ...[line, SizedBox(height: context.space(2))],
         for (var i = buttons.length - 1; i >= 0; i--) ...[
           buttons[i],
-          if (i > 0) const SizedBox(height: ButtonRow.gap),
+          if (i > 0) SizedBox(height: ButtonRow.gap(context.look)),
         ],
       ]);
     }
     return Row(children: [
       Expanded(child: line ?? const SizedBox.shrink()),
-      const SizedBox(width: MyDataSpace.s4),
+      SizedBox(width: context.space(4)),
       ButtonRow(alignment: WrapAlignment.end, children: buttons),
     ]);
   }
@@ -141,14 +141,14 @@ class TextRowPart extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: MyDataSize.rowHeight),
+      constraints: BoxConstraints(minHeight: context.density.rowHeight),
       child: Padding(
-        padding: GroupedRow.padding,
+        padding: GroupedRow.padding(context.look),
         child: Align(
           alignment: AlignmentDirectional.centerStart,
           child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-            if (title != null) Text(title!, style: context.type(MyDataType.bodyStrong).copyWith(color: c.ink)),
-            Text(text, style: context.type(title == null ? MyDataType.body : MyDataType.caption).copyWith(
+            if (title != null) Text(title!, style: context.type(MyDataTypeRole.bodyStrong).copyWith(color: c.ink)),
+            Text(text, style: context.type(title == null ? MyDataTypeRole.body : MyDataTypeRole.caption).copyWith(
                 color: title == null ? c.ink : c.inkMuted)),
           ]),
         ),
@@ -164,10 +164,10 @@ class PlainHeading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: GroupedList.headingPadding,
+        padding: GroupedList.headingPadding(context.look),
         child: Semantics(
           header: true,
-          child: Text(text, style: context.type(MyDataType.label).copyWith(color: context.colors.inkMuted)),
+          child: Text(text, style: context.type(MyDataTypeRole.label).copyWith(color: context.colors.inkMuted)),
         ),
       );
 }
@@ -211,21 +211,21 @@ class DisclosurePart extends StatelessWidget {
           semanticLabel: action == null ? title : '$title, $action',
           child: ExcludeSemantics(
             child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: MacLook.of(context) ? MacFormRow.minHeight : MyDataSize.rowHeight),
+              constraints: BoxConstraints(minHeight: MacWindow.of(context) ? MacFormRow.minHeight(context.look) : context.density.rowHeight),
               child: Padding(
-                padding: MacLook.of(context) ? MacFormRow.padding : GroupedRow.padding,
+                padding: MacWindow.of(context) ? MacFormRow.padding(context.look) : GroupedRow.padding(context.look),
                 child: Row(children: [
-                  Expanded(child: Text(title, style: context.type(MyDataType.bodyStrong).copyWith(color: c.ink))),
+                  Expanded(child: Text(title, style: context.type(MyDataTypeRole.bodyStrong).copyWith(color: c.ink))),
                   if (action != null) ...[
-                    const SizedBox(width: MyDataSpace.s3),
-                    Text(action!, style: context.type(MyDataType.caption).copyWith(color: c.inkMuted)),
-                    const SizedBox(width: MyDataSpace.s1),
+                    SizedBox(width: context.space(3)),
+                    Text(action!, style: context.type(MyDataTypeRole.caption).copyWith(color: c.inkMuted)),
+                    SizedBox(width: context.space(1)),
                   ],
                   AnimatedRotation(
                     turns: open ? 0.25 : 0,
-                    duration: MyDataMotion.reduced(context) ? Duration.zero : MyDataMotion.fast,
-                    curve: MyDataMotion.standard,
-                    child: Icon(Icons.chevron_right_rounded, size: MyDataSize.icon, color: c.inkMuted),
+                    duration: MyDataMotion.reduced(context) ? Duration.zero : context.motion.fast,
+                    curve: context.motion.standard,
+                    child: Icon(Icons.chevron_right_rounded, size: context.density.icon, color: c.inkMuted),
                   ),
                 ]),
               ),
@@ -235,7 +235,7 @@ class DisclosurePart extends StatelessWidget {
       ),
       if (open)
         Padding(
-          padding: const EdgeInsets.fromLTRB(MyDataSpace.s4, 0, MyDataSpace.s4, MyDataSpace.s4),
+          padding: EdgeInsets.fromLTRB(context.space(4), 0, context.space(4), context.space(4)),
           child: child,
         ),
     ]);
@@ -252,20 +252,20 @@ class NumberedSteps extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final style = context.type(MyDataType.body).copyWith(color: c.ink);
+    final style = context.type(MyDataTypeRole.body).copyWith(color: c.ink);
     return Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-      if (before != null) ...[Text(before!, style: style), const SizedBox(height: MyDataSpace.s2)],
+      if (before != null) ...[Text(before!, style: style), SizedBox(height: context.space(2))],
       for (var i = 0; i < steps.length; i++)
         Padding(
-          padding: const EdgeInsets.only(bottom: MyDataSpace.s1),
+          padding: EdgeInsets.only(bottom: context.space(1)),
           child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            SizedBox(width: MyDataSpace.s6, child: Text('${i + 1}.', style: style)),
+            SizedBox(width: context.space(6), child: Text('${i + 1}.', style: style)),
             Expanded(child: Text(steps[i], style: style)),
           ]),
         ),
       if (after != null) ...[
-        const SizedBox(height: MyDataSpace.s2),
-        Text(after!, style: context.type(MyDataType.caption).copyWith(color: c.inkMuted)),
+        SizedBox(height: context.space(2)),
+        Text(after!, style: context.type(MyDataTypeRole.caption).copyWith(color: c.inkMuted)),
       ],
     ]);
   }

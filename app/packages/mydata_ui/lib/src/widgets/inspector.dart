@@ -7,9 +7,9 @@ import 'package:flutter/services.dart';
 
 import '../accessibility.dart';
 import '../generated/tokens.g.dart';
-import '../mac/mac_theme.dart' show MacLook, MacTypeContext;
-import '../motion.dart';
-import '../theme.dart';
+import '../mac/mac_theme.dart' show MacTypeContext;
+import '../mac/mac_window.dart';
+import '../theme/theme.dart';
 import 'app_menu_bar.dart';
 import 'button.dart';
 import 'dialog.dart';
@@ -101,14 +101,14 @@ class Inspector extends StatefulWidget {
   static const savingLabel = 'Saving…';
 
   /// Padding across the panel.
-  static const padding = MyDataSpace.s5;
+  static double padding(MyDataLook look) => look.space(5);
 
   /// The title's distance from the top, and from the body.
-  static const headerTop = MyDataSpace.s5;
-  static const headerBottom = MyDataSpace.s4;
+  static double headerTop(MyDataLook look) => look.space(5);
+  static double headerBottom(MyDataLook look) => look.space(4);
 
   /// Space above and below the footer's buttons.
-  static const footerPadding = MyDataSpace.s4;
+  static double footerPadding(MyDataLook look) => look.space(4);
 
   @override
   State<Inspector> createState() => InspectorState();
@@ -332,14 +332,14 @@ class InspectorState extends State<Inspector> {
     );
     final action = widget.failureAction;
     // The Mac frame: the system's type (context.type) and a push button for Cancel; the panel is the same.
-    final mac = MacLook.of(context);
+    final mac = MacWindow.of(context);
     final failure = _failure == null
         ? null
         : action == null
-            ? Text(_failure!, style: context.type(MyDataType.body).copyWith(color: c.danger))
+            ? Text(_failure!, style: context.type(MyDataTypeRole.body).copyWith(color: c.danger))
             : Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-                Text(_failure!, style: context.type(MyDataType.body).copyWith(color: c.danger)),
-                const SizedBox(height: MyDataSpace.s2),
+                Text(_failure!, style: context.type(MyDataTypeRole.body).copyWith(color: c.danger)),
+                SizedBox(height: context.space(2)),
                 Button(label: action.label, onPressed: _saving ? _inert : action.onPressed),
               ]);
     final form = FormBusy(
@@ -365,7 +365,7 @@ class InspectorState extends State<Inspector> {
             },
             trailing: saveButton,
             body: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              if (failure != null) ...[failure, const SizedBox(height: MyDataSpace.s4)],
+              if (failure != null) ...[failure, SizedBox(height: context.space(4))],
               form,
             ]),
           ),
@@ -391,8 +391,8 @@ class InspectorState extends State<Inspector> {
             color: c.surface,
             child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(
-                    Inspector.padding, Inspector.headerTop, Inspector.padding, Inspector.headerBottom),
+                padding: EdgeInsets.fromLTRB(
+                    Inspector.padding(context.look), Inspector.headerTop(context.look), Inspector.padding(context.look), Inspector.headerBottom(context.look)),
                 child: Semantics(
                   header: true,
                   child: Text(widget.title,
@@ -402,11 +402,11 @@ class InspectorState extends State<Inspector> {
               Expanded(
                 child: SingleChildScrollView(
                   controller: _scroll,
-                  padding: const EdgeInsets.fromLTRB(Inspector.padding, 0, Inspector.padding, Inspector.padding),
+                  padding: EdgeInsets.fromLTRB(Inspector.padding(context.look), 0, Inspector.padding(context.look), Inspector.padding(context.look)),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                     form,
-                    if (failure != null) ...[const SizedBox(height: MyDataSpace.s4), failure],
-                    const SizedBox(height: MyDataSpace.s6),
+                    if (failure != null) ...[SizedBox(height: context.space(4)), failure],
+                    SizedBox(height: context.space(6)),
                     buttons,
                   ]),
                 ),
@@ -417,13 +417,13 @@ class InspectorState extends State<Inspector> {
       color: c.surface,
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Container(
-          padding: const EdgeInsets.fromLTRB(
-              Inspector.padding, Inspector.headerTop, Inspector.padding, Inspector.headerBottom),
+          padding: EdgeInsets.fromLTRB(
+              Inspector.padding(context.look), Inspector.headerTop(context.look), Inspector.padding(context.look), Inspector.headerBottom(context.look)),
           decoration: BoxDecoration(border: Border(bottom: BorderSide(color: _hiddenAbove ? line : none))),
           child: Semantics(
             header: true,
             child: Text(widget.title,
-                maxLines: 1, overflow: TextOverflow.ellipsis, style: context.type(MyDataType.title).copyWith(color: c.ink)),
+                maxLines: 1, overflow: TextOverflow.ellipsis, style: context.type(MyDataTypeRole.title).copyWith(color: c.ink)),
           ),
         ),
         Expanded(
@@ -434,18 +434,18 @@ class InspectorState extends State<Inspector> {
             },
             child: SingleChildScrollView(
               controller: _scroll,
-              padding: const EdgeInsets.fromLTRB(Inspector.padding, 0, Inspector.padding, Inspector.padding),
+              padding: EdgeInsets.fromLTRB(Inspector.padding(context.look), 0, Inspector.padding(context.look), Inspector.padding(context.look)),
               child: form,
             ),
           ),
         ),
         if (failure != null)
           Padding(
-            padding: const EdgeInsets.fromLTRB(Inspector.padding, MyDataSpace.s4, Inspector.padding, 0),
+            padding: EdgeInsets.fromLTRB(Inspector.padding(context.look), context.space(4), Inspector.padding(context.look), 0),
             child: failure,
           ),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: Inspector.padding, vertical: Inspector.footerPadding),
+          padding: EdgeInsets.symmetric(horizontal: Inspector.padding(context.look), vertical: Inspector.footerPadding(context.look)),
           decoration: BoxDecoration(border: Border(top: BorderSide(color: _hiddenBelow ? line : none))),
           child: buttons,
         ),
@@ -508,7 +508,7 @@ class InspectorGroupHeading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: EdgeInsets.only(top: first ? 0 : MyDataSpace.s6),
+        padding: EdgeInsets.only(top: first ? 0 : context.space(6)),
         child: Semantics(header: true, child: FormGroupHeading(text)),
       );
 }
@@ -544,8 +544,11 @@ class InspectorLayout extends StatefulWidget {
 
 class _InspectorLayoutState extends State<InspectorLayout> with SingleTickerProviderStateMixin {
   late final AnimationController _c = AnimationController(
-      vsync: this, duration: MyDataMotion.slow, reverseDuration: MyDataMotion.base, value: widget.inspector == null ? 0 : 1);
-  late final _curved = CurvedAnimation(parent: _c, curve: MyDataMotion.standard);
+      vsync: this,
+      duration: context.lookNow.motion.slow,
+      reverseDuration: context.lookNow.motion.base,
+      value: widget.inspector == null ? 0 : 1);
+  late final _curved = CurvedAnimation(parent: _c, curve: context.lookNow.motion.standard);
   Widget? _shown;
 
   /// Goes up with every opening, so each gets its own state.
@@ -564,8 +567,8 @@ class _InspectorLayoutState extends State<InspectorLayout> with SingleTickerProv
   void didUpdateWidget(InspectorLayout old) {
     super.didUpdateWidget(old);
     final reduced = MyDataAccessibility.of(context).reduceMotion;
-    _c.duration = reduced ? MyDataMotion.fast : MyDataMotion.slow;
-    _c.reverseDuration = reduced ? MyDataMotion.fast : MyDataMotion.base;
+    _c.duration = reduced ? context.motion.fast : context.motion.slow;
+    _c.reverseDuration = reduced ? context.motion.fast : context.motion.base;
     if (widget.inspector != null) {
       final reopened = old.inspector == null;
       final other = old.inspector != null &&

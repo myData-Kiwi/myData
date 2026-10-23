@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../generated/tokens.g.dart';
-import '../theme.dart';
+import '../theme/theme.dart';
 import '../widgets/avatar.dart';
 import '../widgets/button.dart';
 import '../widgets/duplicate_pair.dart';
@@ -56,7 +56,7 @@ class MacPairTable extends StatefulWidget {
   final List<Widget> actions;
 
   /// Between columns.
-  static const columnGap = MyDataSpace.s4;
+  static double columnGap(MyDataLook look) => look.space(4);
 
   @override
   State<MacPairTable> createState() => _MacPairTableState();
@@ -98,7 +98,7 @@ class _MacPairTableState extends State<MacPairTable> {
         Container(height: 1, color: mac.separator),
         if (rows.isEmpty && !widget.loading)
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: MyDataSpace.s2),
+            padding: EdgeInsets.symmetric(vertical: context.space(2)),
             child: Text(DuplicatePair.nothingDiffers, style: MyDataMacType.body.copyWith(color: mac.secondaryLabel)),
           ),
         for (final (i, f) in rows.indexed) ...[
@@ -109,13 +109,13 @@ class _MacPairTableState extends State<MacPairTable> {
       if (widget.after != null && !inlineAfter && !widget.loading) {
         final after = [_Col.after(widget.after!)];
         children.addAll([
-          const SizedBox(height: MyDataSpace.s5),
+          SizedBox(height: context.space(5)),
           Semantics(
             header: true,
             child: Text(widget.after!.title, style: MyDataMacType.bodyEmphasized.copyWith(color: mac.label)),
           ),
           Text(widget.after!.caption, style: MyDataMacType.caption.copyWith(color: mac.secondaryLabel)),
-          const SizedBox(height: MyDataSpace.s2),
+          SizedBox(height: context.space(2)),
           Container(height: 1, color: mac.separator),
           for (final (i, f) in rows.indexed) ...[
             if (i > 0) _hairline(context),
@@ -125,7 +125,7 @@ class _MacPairTableState extends State<MacPairTable> {
       }
       if (widget.mode != PairMode.merge && !widget.loading) {
         children.addAll([
-          const SizedBox(height: MyDataSpace.s2),
+          SizedBox(height: context.space(2)),
           Align(
             alignment: AlignmentDirectional.centerStart,
             child: Button(
@@ -138,13 +138,13 @@ class _MacPairTableState extends State<MacPairTable> {
       }
       if (widget.note != null) {
         children.addAll([
-          const SizedBox(height: MyDataSpace.s3),
+          SizedBox(height: context.space(3)),
           Text(widget.note!, style: MyDataMacType.caption.copyWith(color: mac.secondaryLabel)),
         ]);
       }
       if (widget.message != null) {
         children.addAll([
-          const SizedBox(height: MyDataSpace.s4),
+          SizedBox(height: context.space(4)),
           Semantics(
             liveRegion: true,
             child: Text(widget.message!,
@@ -154,7 +154,7 @@ class _MacPairTableState extends State<MacPairTable> {
       }
       if (widget.actions.isNotEmpty) {
         children.addAll([
-          const SizedBox(height: MyDataSpace.s5),
+          SizedBox(height: context.space(5)),
           ButtonRow(alignment: WrapAlignment.end, children: widget.actions),
         ]);
       }
@@ -163,18 +163,18 @@ class _MacPairTableState extends State<MacPairTable> {
   }
 
   Widget _hairline(BuildContext context) => Padding(
-        padding: const EdgeInsetsDirectional.only(start: MyDataMacSize.labelColumn + MacPairTable.columnGap),
+        padding: EdgeInsetsDirectional.only(start: MyDataMacSize.labelColumn + MacPairTable.columnGap(context.look)),
         child: Container(height: 1, color: context.mac.separator),
       );
 
   Widget _header(BuildContext context, List<_Col> columns) {
     final mac = context.mac;
     return Padding(
-      padding: const EdgeInsets.only(bottom: MyDataSpace.s2),
+      padding: EdgeInsets.only(bottom: context.space(2)),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         const SizedBox(width: MyDataMacSize.labelColumn),
         for (final col in columns) ...[
-          const SizedBox(width: MacPairTable.columnGap),
+          SizedBox(width: MacPairTable.columnGap(context.look)),
           Expanded(
             child: Semantics(
               header: true,
@@ -188,7 +188,7 @@ class _MacPairTableState extends State<MacPairTable> {
                     familyName: col.version!.familyName,
                     photo: col.version!.photo,
                   ),
-                  const SizedBox(width: MyDataSpace.s2),
+                  SizedBox(width: context.space(2)),
                 ],
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
@@ -220,7 +220,7 @@ class _MacPairTableState extends State<MacPairTable> {
       label: '${f.label}${differs && mark ? ', ${DuplicatePair.differsLabel}' : ''}. ${spoken.join('. ')}',
       excludeSemantics: !hasSelect,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: MyDataSpace.s1 + MyDataMacSize.tight),
+        padding: EdgeInsets.symmetric(vertical: context.space(1) + MyDataMacSize.tight),
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           SizedBox(
             width: MyDataMacSize.labelColumn,
@@ -234,7 +234,7 @@ class _MacPairTableState extends State<MacPairTable> {
             ]),
           ),
           for (final col in columns) ...[
-            const SizedBox(width: MacPairTable.columnGap),
+            SizedBox(width: MacPairTable.columnGap(context.look)),
             Expanded(child: _cell(context, f, col, differs: differs)),
           ],
         ]),
@@ -257,7 +257,7 @@ class _MacPairTableState extends State<MacPairTable> {
           value: chosen,
           onChanged: (i) => after.onChoose!(f, i),
         ),
-        const SizedBox(height: MyDataSpace.s1),
+        SizedBox(height: context.space(1)),
         ..._values(context, widget.versions[chosen].valuesOf(f)),
       ]);
     }
@@ -316,7 +316,7 @@ class _Bar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        height: MyDataSpace.s3,
+        height: context.space(3),
         margin: const EdgeInsets.symmetric(vertical: MyDataMacSize.tight),
         decoration: BoxDecoration(color: context.mac.quaternaryLabel, borderRadius: MacControl.radius),
       );

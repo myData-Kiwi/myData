@@ -8,9 +8,9 @@ import 'package:flutter/services.dart';
 
 import '../generated/tokens.g.dart';
 import '../mac/mac_overlays.dart' show MacAlert;
-import '../mac/mac_theme.dart' show MacLook;
-import '../motion.dart';
-import '../theme.dart';
+import '../mac/mac_window.dart';
+import '../theme/motion.dart';
+import '../theme/theme.dart';
 import 'app_frame.dart' show AppLayout;
 import 'button.dart';
 import 'form_scope.dart';
@@ -110,22 +110,22 @@ class MyDataDialog extends StatefulWidget {
   static const defaultCancelLabel = 'Cancel';
 
   /// The panel's padding, and the gap above the buttons.
-  static const padding = MyDataSpace.s6;
+  static double padding(MyDataLook look) => look.space(6);
 
   /// Between the title and the body.
-  static const titleGap = MyDataSpace.s2;
+  static double titleGap(MyDataLook look) => look.space(2);
 
   /// Between fields, and above the failure line.
-  static const fieldGap = MyDataSpace.s4;
+  static double fieldGap(MyDataLook look) => look.space(4);
 
   /// The space kept round the panel on a desktop window, and on a phone.
-  static const windowMargin = MyDataSpace.s8;
-  static const phoneMargin = MyDataSpace.s4;
+  static double windowMargin(MyDataLook look) => look.space(8);
+  static double phoneMargin(MyDataLook look) => look.space(4);
 
   /// The panel's width in a window [windowWidth] wide.
-  static double widthFor(double windowWidth) => windowWidth < phoneWidth
-      ? math.max(0, windowWidth - 2 * phoneMargin)
-      : math.max(0, math.min(MyDataSize.dialogWidth, windowWidth - 2 * windowMargin));
+  static double widthFor(MyDataLook look, double windowWidth) => windowWidth < phoneWidth
+      ? math.max(0, windowWidth - 2 * phoneMargin(look))
+      : math.max(0, math.min(MyDataSize.dialogWidth, windowWidth - 2 * windowMargin(look)));
 
   @override
   State<MyDataDialog> createState() => _MyDataDialogState();
@@ -140,6 +140,7 @@ Future<bool> showMyDataDialog({required BuildContext context, required WidgetBui
     builder: builder,
     scrim: context.colors.scrim,
     reduced: reduced,
+    motion: context.motion,
     capturedThemes: InheritedTheme.capture(from: context, to: Navigator.of(context, rootNavigator: true).context),
   ));
   return answer ?? false;
@@ -165,16 +166,23 @@ const keepEditingLabel = 'Keep editing';
 const discardLabel = 'Discard changes';
 
 class _DialogRoute extends PopupRoute<bool> {
-  _DialogRoute({required this.builder, required this.scrim, required this.reduced, required this.capturedThemes});
+  _DialogRoute({
+    required this.builder,
+    required this.scrim,
+    required this.reduced,
+    required this.motion,
+    required this.capturedThemes,
+  });
 
   final WidgetBuilder builder;
   final Color scrim;
   final bool reduced;
+  final MyDataMotionSpec motion;
   final CapturedThemes capturedThemes;
 
   /// No scrim in the Mac frame: a sheet leaves its window as it is (the barrier still takes the clicks).
   @override
-  Color? get barrierColor => MacLook.of(navigator!.context) ? null : scrim;
+  Color? get barrierColor => MacWindow.of(navigator!.context) ? null : scrim;
 
   @override
   bool get barrierDismissible => false;
@@ -183,10 +191,10 @@ class _DialogRoute extends PopupRoute<bool> {
   String? get barrierLabel => null;
 
   @override
-  Duration get transitionDuration => reduced ? MyDataMotion.fast : MyDataMotion.slow;
+  Duration get transitionDuration => reduced ? motion.fast : motion.slow;
 
   @override
-  Duration get reverseTransitionDuration => MyDataMotion.fast;
+  Duration get reverseTransitionDuration => motion.fast;
 
   @override
   Widget buildPage(BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation) =>
@@ -195,17 +203,17 @@ class _DialogRoute extends PopupRoute<bool> {
   @override
   Widget buildTransitions(
       BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation, Widget child) {
-    final curved = CurvedAnimation(parent: animation, curve: MyDataMotion.standard);
+    final curved = CurvedAnimation(parent: animation, curve: context.motion.standard);
     final faded = FadeTransition(opacity: curved, child: child);
     if (reduced) return faded;
     // The Mac frame's sheet comes down from the toolbar's edge.
-    if (MacLook.of(context)) {
+    if (MacWindow.of(context)) {
       return SlideTransition(
-        position: Tween(begin: const Offset(0, -MyDataMotion.sheetDrop), end: Offset.zero).animate(curved),
+        position: Tween(begin: Offset(0, -context.motion.sheetDrop), end: Offset.zero).animate(curved),
         child: faded,
       );
     }
-    return ScaleTransition(scale: Tween(begin: MyDataMotion.pressScale, end: 1.0).animate(curved), child: faded);
+    return ScaleTransition(scale: Tween(begin: context.motion.pressScale, end: 1.0).animate(curved), child: faded);
   }
 }
 
@@ -426,19 +434,19 @@ class _MyDataDialogState extends State<MyDataDialog> {
     final Widget buttons = phone
         ? Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
             confirm,
-            if (cancel != null) ...[const SizedBox(height: ButtonRow.gap), cancel],
+            if (cancel != null) ...[SizedBox(height: ButtonRow.gap(context.look)), cancel],
           ])
         : ButtonRow(alignment: WrapAlignment.end, children: [?cancel, confirm]);
 
     final bodyChildren = <Widget>[
-      if (widget.message != null) Text(widget.message!, style: MyDataType.body.copyWith(color: c.ink)),
+      if (widget.message != null) Text(widget.message!, style: context.typeScale.body.copyWith(color: c.ink)),
       ?widget.content,
       if (widget.fields.isNotEmpty)
         Focus(
           focusNode: _fieldsNode,
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
             for (var i = 0; i < widget.fields.length; i++) ...[
-              if (i > 0) const SizedBox(height: MyDataDialog.fieldGap),
+              if (i > 0) SizedBox(height: MyDataDialog.fieldGap(context.look)),
               widget.fields[i],
             ],
           ]),
@@ -447,7 +455,7 @@ class _MyDataDialogState extends State<MyDataDialog> {
 
     // The Mac frame: an alert as macOS 26 draws it (mac/mac_overlays.dart), with the same behaviour; Cancel
     // is a push button there.
-    final panel = MacLook.of(context)
+    final panel = MacWindow.of(context)
         ? MacAlert.panel(
             context,
             title: widget.title,
@@ -470,38 +478,38 @@ class _MyDataDialogState extends State<MyDataDialog> {
             buttonLabels: [?widget.cancelLabel, widget.confirmLabel, ?widget.workingLabel],
           )
         : Container(
-      width: MyDataDialog.widthFor(size.width),
-      padding: const EdgeInsets.all(MyDataDialog.padding),
-      decoration: BoxDecoration(color: c.surfaceRaised, borderRadius: MyDataRadii.xl, boxShadow: context.shadows.shadow2),
+      width: MyDataDialog.widthFor(context.look, size.width),
+      padding: EdgeInsets.all(MyDataDialog.padding(context.look)),
+      decoration: BoxDecoration(color: c.surfaceRaised, borderRadius: MyDataRadii.xl(context.look), boxShadow: context.shadows.shadow2),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Semantics(header: true, child: Text(widget.title, style: MyDataType.title.copyWith(color: c.ink))),
+          Semantics(header: true, child: Text(widget.title, style: context.typeScale.title.copyWith(color: c.ink))),
           if (bodyChildren.isNotEmpty)
             Flexible(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.only(top: MyDataDialog.titleGap),
+                padding: EdgeInsets.only(top: MyDataDialog.titleGap(context.look)),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
                   for (var i = 0; i < bodyChildren.length; i++) ...[
-                    if (i > 0) const SizedBox(height: MyDataDialog.fieldGap),
+                    if (i > 0) SizedBox(height: MyDataDialog.fieldGap(context.look)),
                     bodyChildren[i],
                   ],
                 ]),
               ),
             ),
           if (_failure != null) ...[
-            const SizedBox(height: MyDataDialog.fieldGap),
-            Text(_failure!, style: MyDataType.body.copyWith(color: c.danger)),
+            SizedBox(height: MyDataDialog.fieldGap(context.look)),
+            Text(_failure!, style: context.typeScale.body.copyWith(color: c.danger)),
           ],
-          const SizedBox(height: MyDataDialog.padding),
+          SizedBox(height: MyDataDialog.padding(context.look)),
           buttons,
         ],
       ),
     );
 
     final apple = defaultTargetPlatform == TargetPlatform.macOS;
-    final margin = phone ? MyDataDialog.phoneMargin : MyDataDialog.windowMargin;
+    final margin = phone ? MyDataDialog.phoneMargin(context.look) : MyDataDialog.windowMargin(context.look);
     return PopScope(
       canPop: !_working && !_onlyTells,
       onPopInvokedWithResult: (didPop, _) {
@@ -529,14 +537,14 @@ class _MyDataDialogState extends State<MyDataDialog> {
                 label: widget.title,
                 role: widget.destructive ? SemanticsRole.alertDialog : SemanticsRole.dialog,
                 child: AnimatedPadding(
-                  duration: MyDataMotion.base,
-                  curve: MyDataMotion.standard,
+                  duration: context.motion.base,
+                  curve: context.motion.standard,
                   padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
                   child: SafeArea(
                     // The Mac frame: a sheet, hanging from the toolbar's edge at the top of the window.
-                    child: MacLook.of(context)
+                    child: MacWindow.of(context)
                         ? Padding(
-                            padding: const EdgeInsets.only(top: MyDataMacSize.toolbarHeight, bottom: MyDataSpace.s8),
+                            padding: EdgeInsets.only(top: MyDataMacSize.toolbarHeight, bottom: context.space(8)),
                             child: Align(
                               alignment: Alignment.topCenter,
                               child: Material(type: MaterialType.transparency, child: panel),

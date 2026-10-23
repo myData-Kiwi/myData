@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../generated/tokens.g.dart';
-import '../theme.dart';
+import '../theme/theme.dart';
 import 'app_frame.dart' show AppLayout;
 import 'avatar.dart';
 
@@ -52,7 +51,7 @@ class ContactHeader extends StatefulWidget {
   final Avatar avatar;
 
   /// Between the avatar and the text from 600px (preview: `.ch{gap:20px}`).
-  static const sideGap = MyDataSpace.s5;
+  static double sideGap(MyDataLook look) => look.space(5);
 
   /// The least room the text needs beside the avatar, at the normal text size: about ten letters of the name
   /// in `display-lg`, so a name breaks between its words, not inside them. It grows with the system text size.
@@ -60,17 +59,17 @@ class ContactHeader extends StatefulWidget {
 
   /// The narrowest header that puts the text beside the avatar: the avatar, [sideGap] and [sideTextMin]
   /// (scaled by [textScaler]). A narrower header is stacked, whatever the window's width.
-  static double sideMinWidth(TextScaler textScaler) =>
-      AvatarSize.large.diameter + sideGap + textScaler.scale(sideTextMin);
+  static double sideMinWidth(MyDataLook look, TextScaler textScaler) =>
+      AvatarSize.large.diameter(look) + sideGap(look) + textScaler.scale(sideTextMin);
 
   /// Between the avatar and the text under 600px (preview: `.ch.ph{gap:16px}`).
-  static const stackGap = MyDataSpace.s4;
+  static double stackGap(MyDataLook look) => look.space(4);
 
   /// Above the source line (preview: `.ch .cap{margin:4px 0 0}`).
-  static const captionGap = MyDataSpace.s1;
+  static double captionGap(MyDataLook look) => look.space(1);
 
   /// Between the header and the contact's fields below it. The page that holds both puts it there.
-  static const fieldsGap = MyDataSpace.s6;
+  static double fieldsGap(MyDataLook look) => look.space(6);
 
   /// The line under the name: "Job title, Organisation", either one alone, or null for no line. Null also
   /// when [name] is the organisation (ignoring case and spaces at the ends), because the line would repeat
@@ -112,7 +111,7 @@ class _ContactHeaderState extends State<ContactHeader> {
   Widget build(BuildContext context) {
     // A phone window always stacks; a wider one stacks too when the pane gives the header too little room.
     final phone = AppLayout.of(context) == AppLayout.phone;
-    final minSide = ContactHeader.sideMinWidth(MediaQuery.textScalerOf(context));
+    final minSide = ContactHeader.sideMinWidth(context.look, MediaQuery.textScalerOf(context));
     return LayoutBuilder(
       builder: (context, constraints) => _build(context, stacked: phone || constraints.maxWidth < minSide),
     );
@@ -136,13 +135,13 @@ class _ContactHeaderState extends State<ContactHeader> {
         children: [
           Semantics(
             header: true,
-            child: Text(widget.name, textAlign: align, style: MyDataType.displayLg.copyWith(color: c.ink)),
+            child: Text(widget.name, textAlign: align, style: context.typeScale.displayLg.copyWith(color: c.ink)),
           ),
-          if (role != null) Text(role, textAlign: align, style: MyDataType.body.copyWith(color: c.inkMuted)),
+          if (role != null) Text(role, textAlign: align, style: context.typeScale.body.copyWith(color: c.inkMuted)),
           if (source.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.only(top: ContactHeader.captionGap),
-              child: Text(source, textAlign: align, style: MyDataType.caption.copyWith(color: c.inkMuted)),
+              padding: EdgeInsets.only(top: ContactHeader.captionGap(context.look)),
+              child: Text(source, textAlign: align, style: context.typeScale.caption.copyWith(color: c.inkMuted)),
             ),
         ],
       ),
@@ -155,14 +154,14 @@ class _ContactHeaderState extends State<ContactHeader> {
         heightFactor: 1,
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          children: [widget.avatar, const SizedBox(height: ContactHeader.stackGap), text],
+          children: [widget.avatar, SizedBox(height: ContactHeader.stackGap(context.look)), text],
         ),
       );
     }
     return Row(
       children: [
         widget.avatar,
-        const SizedBox(width: ContactHeader.sideGap),
+        SizedBox(width: ContactHeader.sideGap(context.look)),
         Expanded(child: text),
       ],
     );

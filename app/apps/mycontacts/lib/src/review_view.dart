@@ -164,24 +164,24 @@ class _ReviewViewState extends State<ReviewView> {
           }
           if (_m.keys.isEmpty && _m.paneLine == null) return const _Empty();
           final layout = AppLayout.of(context);
-          final pad = PageScaffold.paddingFor(layout);
+          final pad = PageScaffold.paddingFor(context.look, layout);
           final insets = MediaQuery.paddingOf(context);
           if (layout == AppLayout.phone) {
             return _list(EdgeInsets.fromLTRB(pad + insets.left, insets.top, pad + insets.right, pad + insets.bottom));
           }
           // The Mac frame: the list column (`list-width`, plain lists, the count in the toolbar's title), a
           // hairline, then the pane.
-          if (MacLook.of(context)) {
+          if (MacWindow.of(context)) {
             return Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               SizedBox(
                 width: MyDataMacSize.listWidth,
-                child: _list(const EdgeInsets.symmetric(vertical: MyDataSpace.s2)),
+                child: _list(EdgeInsets.symmetric(vertical: context.space(2))),
               ),
               VerticalDivider(width: 1, thickness: 1, color: context.mac.separator),
               Expanded(
                 child: SingleChildScrollView(
                   controller: _paneScroll,
-                  padding: const EdgeInsets.fromLTRB(MyDataSpace.s8, MyDataSpace.s6, MyDataSpace.s8, MyDataSpace.s8),
+                  padding: EdgeInsets.fromLTRB(context.space(8), context.space(6), context.space(8), context.space(8)),
                   child: Align(
                     alignment: AlignmentDirectional.topStart,
                     child: ConstrainedBox(
@@ -194,7 +194,7 @@ class _ReviewViewState extends State<ReviewView> {
             ]);
           }
           return LayoutBuilder(builder: (context, constraints) {
-            const gap = MyDataSpace.s8;
+            final gap = context.space(8);
             final listWidth = (constraints.maxWidth * 0.4 - pad - gap / 2).clamp(240.0, 340.0);
             return Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               SizedBox(
@@ -221,17 +221,17 @@ class _ReviewViewState extends State<ReviewView> {
 
   Widget _list(EdgeInsets padding) {
     final c = context.colors;
-    final pairs = _m.pairs ?? const <DuplicatePairOut>[];
+    final pairs = _m.pairs ?? <DuplicatePairOut>[];
     final changed = _m.changed;
     return SingleChildScrollView(
       padding: padding,
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        if (!_phone && !MacLook.of(context)) ...[
+        if (!_phone && !MacWindow.of(context)) ...[
           Semantics(
             header: true,
-            child: Text('${ReviewView.title}, ${_m.countText}', style: MyDataType.title.copyWith(color: c.ink)),
+            child: Text('${ReviewView.title}, ${_m.countText}', style: context.typeScale.title.copyWith(color: c.ink)),
           ),
-          const SizedBox(height: MyDataSpace.s4),
+          SizedBox(height: context.space(4)),
         ],
         if (pairs.isNotEmpty)
           GroupedList(
@@ -248,7 +248,7 @@ class _ReviewViewState extends State<ReviewView> {
             ],
           ),
         if (pairs.isNotEmpty && changed.isNotEmpty)
-          SizedBox(height: MacLook.of(context) ? MyDataSpace.s2 : PageScaffold.gap),
+          SizedBox(height: MacWindow.of(context) ? context.space(2) : PageScaffold.gap(context.look)),
         if (changed.isNotEmpty)
           GroupedList(
             heading: ReviewView.changedHeading(changed.length),
@@ -282,7 +282,7 @@ class _ReviewViewState extends State<ReviewView> {
             child: ListenableBuilder(
               listenable: _m,
               builder: (context, _) => SingleChildScrollView(
-                padding: const EdgeInsets.all(MyDataSpace.s4),
+                padding: EdgeInsets.all(context.space(4)),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                   Align(
                     alignment: AlignmentDirectional.centerStart,
@@ -293,7 +293,7 @@ class _ReviewViewState extends State<ReviewView> {
                       onPressed: () => Navigator.of(context).maybePop(),
                     ),
                   ),
-                  const SizedBox(height: MyDataSpace.s4),
+                  SizedBox(height: context.space(4)),
                   _pane(),
                 ]),
               ),
@@ -311,7 +311,7 @@ class _ReviewViewState extends State<ReviewView> {
       // The pair is no longer a duplicate: the line alone, with no actions.
       return Semantics(
         liveRegion: true,
-        child: Text(line, style: context.type(MyDataType.body).copyWith(color: context.colors.inkMuted)),
+        child: Text(line, style: context.type(MyDataTypeRole.body).copyWith(color: context.colors.inkMuted)),
       );
     }
     final pair = _m.pair;
@@ -351,7 +351,7 @@ class _ChangesPane extends StatelessWidget {
           final change = s.change;
           final data = s.data;
           if (!s.loading && (s.nothing || data == null || change == null)) {
-            return Text(s.message ?? ReviewView.nothingLine, style: context.type(MyDataType.body).copyWith(color: c.inkMuted));
+            return Text(s.message ?? ReviewView.nothingLine, style: context.type(MyDataTypeRole.body).copyWith(color: c.inkMuted));
           }
           final label = change?.sourceLabel ?? '';
           final apple = Theme.of(context).platform == TargetPlatform.macOS;
@@ -366,7 +366,7 @@ class _ChangesPane extends StatelessWidget {
                       name: ReviewView.followedColumn(label), caption: _changedCaption(change)),
                 ];
           final title = change == null ? 'Changed since import' : ReviewView.changesTitle(label);
-          final mac = MacLook.of(context);
+          final mac = MacWindow.of(context);
           final after = PairAfter(
             title: PairAfter.changesTitle,
             caption: ReviewView.afterSaving,
@@ -399,14 +399,14 @@ class _ChangesPane extends StatelessWidget {
               child: FormBusy(
                 busy: s.working,
                 child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
-                  Semantics(header: true, child: Text(title, style: context.type(MyDataType.displayLg).copyWith(color: c.ink))),
-                  const SizedBox(height: MyDataSpace.s2),
+                  Semantics(header: true, child: Text(title, style: context.type(MyDataTypeRole.displayLg).copyWith(color: c.ink))),
+                  SizedBox(height: context.space(2)),
                   if (change != null)
                     Text(
                       'This contact changed in ${change.sourceLabel} after you imported it.',
-                      style: context.type(MyDataType.body).copyWith(color: c.inkMuted),
+                      style: context.type(MyDataTypeRole.body).copyWith(color: c.inkMuted),
                     ),
-                  const SizedBox(height: MyDataSpace.s4),
+                  SizedBox(height: context.space(4)),
                   if (mac)
                     // The Mac frame: the same pair as a Mac table on the pane's ground (MacPairTable).
                     MacPairTable(
@@ -456,19 +456,19 @@ class _Empty extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     // The Mac frame: the one empty state, with the kiwi (MacEmptyState).
-    if (MacLook.of(context)) return const MacEmptyState(title: ReviewView.emptyTitle, line: ReviewView.emptySentence);
+    if (MacWindow.of(context)) return const MacEmptyState(title: ReviewView.emptyTitle, line: ReviewView.emptySentence);
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(MyDataSpace.s8),
+        padding: EdgeInsets.all(context.space(8)),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: EmptyState.maxWidth),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             Semantics(
               header: true,
-              child: Text(ReviewView.emptyTitle, textAlign: TextAlign.center, style: context.type(MyDataType.title).copyWith(color: c.ink)),
+              child: Text(ReviewView.emptyTitle, textAlign: TextAlign.center, style: context.type(MyDataTypeRole.title).copyWith(color: c.ink)),
             ),
-            const SizedBox(height: MyDataSpace.s2),
-            Text(ReviewView.emptySentence, textAlign: TextAlign.center, style: context.type(MyDataType.body).copyWith(color: c.inkMuted)),
+            SizedBox(height: context.space(2)),
+            Text(ReviewView.emptySentence, textAlign: TextAlign.center, style: context.type(MyDataTypeRole.body).copyWith(color: c.inkMuted)),
           ]),
         ),
       ),

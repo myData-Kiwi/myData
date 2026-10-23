@@ -6,9 +6,8 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 
 import '../accessibility.dart';
-import '../generated/tokens.g.dart';
-import '../motion.dart';
-import '../theme.dart';
+import '../theme/motion.dart';
+import '../theme/theme.dart';
 import 'pressable.dart';
 
 /// One item in a [FloatingBar]: a tab of the phone tab bar or an action of a toolbar.
@@ -68,17 +67,17 @@ class FloatingBar extends StatelessWidget {
 
   /// Space between the bar's edge and its items, and between items. The preview's 6px padding lies halfway
   /// between `space-1` and `space-2`; `space-1` keeps the item pill concentric with the `radius-xl` bar.
-  static const padding = MyDataSpace.s1;
-  static const gap = MyDataSpace.s1;
+  static double padding(MyDataLook look) => look.space(1);
+  static double gap(MyDataLook look) => look.space(1);
 
   /// Height of the bar: a `control-height` item, [padding] and the stroke on each side.
-  static const height = MyDataSize.controlHeight + 2 * (padding + FloatingBarSurface.strokeWidth);
+  static double height(MyDataLook look) => look.density.controlHeight + 2 * (padding(look) + FloatingBarSurface.strokeWidth);
 
   @override
   Widget build(BuildContext context) {
     final reduced = MyDataMotion.reduced(context);
     return FloatingBarSurface(
-      padding: const EdgeInsets.all(padding),
+      padding: EdgeInsets.all(padding(context.look)),
       forceSolid: forceSolid,
       child: Semantics(
         container: true,
@@ -87,26 +86,26 @@ class FloatingBar extends StatelessWidget {
         child: LayoutBuilder(builder: (context, constraints) {
           assert(constraints.hasBoundedWidth, 'A FloatingBar fills its width; give it a bounded one.');
           final n = items.length;
-          final itemWidth = (constraints.maxWidth - gap * (n - 1)) / n;
+          final itemWidth = (constraints.maxWidth - gap(context.look) * (n - 1)) / n;
           return SizedBox(
-            height: MyDataSize.controlHeight,
+            height: context.density.controlHeight,
             child: Stack(children: [
               if (current != null)
                 // Directional, so the pill follows the Row's reading order in right-to-left layouts.
                 AnimatedPositionedDirectional(
-                  start: current! * (itemWidth + gap),
+                  start: current! * (itemWidth + gap(context.look)),
                   top: 0,
                   width: itemWidth,
-                  height: MyDataSize.controlHeight,
-                  duration: reduced ? Duration.zero : MyDataMotion.springDuration,
+                  height: context.density.controlHeight,
+                  duration: reduced ? Duration.zero : context.motion.springDuration,
                   curve: const SpringCurve(),
                   child: DecoratedBox(
-                    decoration: BoxDecoration(color: context.colors.accentSoft, borderRadius: MyDataRadii.pill),
+                    decoration: BoxDecoration(color: context.colors.accentSoft, borderRadius: MyDataRadii.pill(context.look)),
                   ),
                 ),
               Row(children: [
                 for (var i = 0; i < n; i++) ...[
-                  if (i > 0) const SizedBox(width: gap),
+                  if (i > 0) SizedBox(width: gap(context.look)),
                   Expanded(
                     child: _FloatingBarButton(
                       item: items[i],
@@ -133,7 +132,7 @@ class _FloatingBarButton extends StatelessWidget {
 
   /// Side padding inside an item. `space-1`, not `space-2`, so a five-item tab bar on a 375px phone
   /// (about 63px per item) leaves room for a one-word label.
-  static const itemPadding = MyDataSpace.s1;
+  static double itemPadding(MyDataLook look) => look.space(1);
 
   @override
   Widget build(BuildContext context) {
@@ -141,26 +140,26 @@ class _FloatingBarButton extends StatelessWidget {
     final isCurrent = current ?? false;
     return Pressable(
       onPressed: item.onPressed,
-      borderRadius: MyDataRadii.pill,
+      borderRadius: MyDataRadii.pill(context.look),
       selected: current,
       semanticLabel: item.showLabel ? null : item.label,
       tooltip: item.showLabel ? null : item.label,
       child: SizedBox(
-        height: MyDataSize.controlHeight,
+        height: context.density.controlHeight,
         child: TweenAnimationBuilder<Color?>(
           tween: ColorTween(end: isCurrent ? c.accent : c.ink),
-          duration: MyDataMotion.fast,
-          curve: MyDataMotion.standard,
+          duration: context.motion.fast,
+          curve: context.motion.standard,
           builder: (context, color, _) {
-            final icon = item.icon == null ? null : Icon(item.icon, size: MyDataSize.icon, color: color);
+            final icon = item.icon == null ? null : Icon(item.icon, size: context.density.icon, color: color);
             if (!item.showLabel) return Center(child: icon);
             // The preview's 14px label is between `body` and `caption`. A text tab is `body` (400) or
             // `body-strong` (600), keeping the preview's weights. Under an icon the label is `caption` (400)
             // or `label` (600), the same weights one size down: a 20px icon and an 18px line fit the 44px item.
             final stacked = icon != null;
             final style = stacked
-                ? (isCurrent ? MyDataType.label : MyDataType.caption)
-                : (isCurrent ? MyDataType.bodyStrong : MyDataType.body);
+                ? (isCurrent ? context.typeScale.label : context.typeScale.caption)
+                : (isCurrent ? context.typeScale.bodyStrong : context.typeScale.body);
             final text = Text(
               item.label,
               maxLines: 1,
@@ -170,7 +169,7 @@ class _FloatingBarButton extends StatelessWidget {
               style: style.copyWith(color: color),
             );
             return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: itemPadding),
+              padding: EdgeInsets.symmetric(horizontal: itemPadding(context.look)),
               child: stacked
                   ? Column(mainAxisAlignment: MainAxisAlignment.center, children: [icon, text])
                   : Center(child: text),
@@ -194,7 +193,7 @@ class FloatingBarSurface extends StatelessWidget {
   const FloatingBarSurface({
     super.key,
     required this.child,
-    this.padding = const EdgeInsets.all(FloatingBar.padding),
+    this.padding,
     this.forceSolid = false,
   });
 
@@ -205,8 +204,8 @@ class FloatingBarSurface extends StatelessWidget {
   /// backdrop blur drops frames). False never forces glass: reduced transparency and the web stay solid.
   final bool forceSolid;
 
-  /// Space between the edge (inside the stroke) and [child].
-  final EdgeInsetsGeometry padding;
+  /// Space between the edge (inside the stroke) and [child]; [FloatingBar.padding] all round when null.
+  final EdgeInsetsGeometry? padding;
 
   /// Spec: "a 1px glass-stroke edge".
   static const strokeWidth = 1.0;
@@ -222,26 +221,28 @@ class FloatingBarSurface extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     final shadows = context.shadows;
-    final inner = Padding(padding: padding.add(const EdgeInsets.all(strokeWidth)), child: child);
+    final inner = Padding(
+        padding: (padding ?? EdgeInsets.all(FloatingBar.padding(context.look))).add(const EdgeInsets.all(strokeWidth)),
+        child: child);
     if (forceSolid || solid(context)) {
       return DecoratedBox(
-        decoration: BoxDecoration(color: c.surface, borderRadius: MyDataRadii.xl, boxShadow: shadows.shadow2),
+        decoration: BoxDecoration(color: c.surface, borderRadius: MyDataRadii.xl(context.look), boxShadow: shadows.shadow2),
         child: inner,
       );
     }
     return CustomPaint(
-      painter: _OutsideShadowPainter(shadows.shadowGlass, MyDataRadii.xl),
+      painter: _OutsideShadowPainter(shadows.shadowGlass, MyDataRadii.xl(context.look)),
       child: ClipRRect(
-        borderRadius: MyDataRadii.xl,
+        borderRadius: MyDataRadii.xl(context.look),
         child: BackdropFilter(
           filter: ImageFilter.compose(
             outer: const ColorFilter.matrix(_saturate),
-            inner: ImageFilter.blur(sigmaX: MyDataBlur.glass, sigmaY: MyDataBlur.glass),
+            inner: ImageFilter.blur(sigmaX: context.look.materials.blur, sigmaY: context.look.materials.blur),
           ),
           child: DecoratedBox(
             decoration: BoxDecoration(
               color: c.glassFill,
-              borderRadius: MyDataRadii.xl,
+              borderRadius: MyDataRadii.xl(context.look),
               border: Border.all(color: c.glassStroke, width: strokeWidth),
             ),
             child: inner,
@@ -307,14 +308,14 @@ class FloatingBarHost extends StatefulWidget {
   final Widget bar;
 
   /// Spec: "inset from the screen edges by space-4".
-  static const inset = MyDataSpace.s4;
+  static double inset(MyDataLook look) => look.space(4);
 
   @override
   State<FloatingBarHost> createState() => _FloatingBarHostState();
 }
 
 class _FloatingBarHostState extends State<FloatingBarHost> {
-  double _barHeight = FloatingBar.height;
+  late double _barHeight = FloatingBar.height(context.lookNow);
 
   void _measured(double height) {
     if (mounted && height != _barHeight) setState(() => _barHeight = height);
@@ -323,7 +324,7 @@ class _FloatingBarHostState extends State<FloatingBarHost> {
   @override
   Widget build(BuildContext context) {
     final mq = MediaQuery.of(context);
-    final clearance = FloatingBarHost.inset + _barHeight + FloatingBarHost.inset;
+    final clearance = FloatingBarHost.inset(context.look) + _barHeight + FloatingBarHost.inset(context.look);
     return Stack(children: [
       Positioned.fill(
         child: MediaQuery(
@@ -335,9 +336,9 @@ class _FloatingBarHostState extends State<FloatingBarHost> {
         ),
       ),
       Positioned(
-        left: FloatingBarHost.inset + mq.padding.left,
-        right: FloatingBarHost.inset + mq.padding.right,
-        bottom: FloatingBarHost.inset + mq.padding.bottom,
+        left: FloatingBarHost.inset(context.look) + mq.padding.left,
+        right: FloatingBarHost.inset(context.look) + mq.padding.right,
+        bottom: FloatingBarHost.inset(context.look) + mq.padding.bottom,
         child: MediaQuery.removePadding(
           context: context,
           removeLeft: true,

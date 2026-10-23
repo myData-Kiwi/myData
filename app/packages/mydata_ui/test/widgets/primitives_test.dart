@@ -29,8 +29,8 @@ void main() {
   testWidgets('Pressable: Enter activates it, Tab reaches it, disabled ignores everything', (tester) async {
     var taps = 0;
     await tester.pumpWidget(themedFrame(themeMatrix.first, Column(children: [
-      Pressable(onPressed: () => taps++, borderRadius: MyDataRadii.control, child: const SizedBox(width: 80, height: 44)),
-      const Pressable(onPressed: null, borderRadius: MyDataRadii.control, child: SizedBox(width: 80, height: 44)),
+      Pressable(onPressed: () => taps++, borderRadius: MyDataRadii.control(kiwiLook), child: const SizedBox(width: 80, height: 44)),
+      Pressable(onPressed: null, borderRadius: MyDataRadii.control(kiwiLook), child: SizedBox(width: 80, height: 44)),
     ])));
     await tester.sendKeyEvent(LogicalKeyboardKey.tab);
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
@@ -53,7 +53,7 @@ void main() {
           focusNode: node,
           hoverFill: hover,
           semanticLabel: tooltip == null ? 'Sync now' : null,
-          borderRadius: MyDataRadii.control,
+          borderRadius: MyDataRadii.control(kiwiLook),
           child: const SizedBox(width: 80, height: 44),
         );
 

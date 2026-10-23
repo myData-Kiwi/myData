@@ -6,34 +6,43 @@ import 'package:flutter/material.dart' show Icons;
 import 'package:flutter/widgets.dart';
 
 import '../generated/tokens.g.dart';
-import '../motion.dart';
-import '../theme.dart';
+import '../theme/motion.dart';
+import '../theme/theme.dart';
 import 'pressable.dart' show MyDataRadii;
 
 /// The two sizes of [Avatar] (design/components/Avatar).
 enum AvatarSize {
   /// `icon-tile` (36px): in a list row, in the icon tile's place.
-  small(MyDataSize.iconTile, MyDataSize.icon),
+  small,
 
   /// 96px: at the top of a contact's page (ContactHeader). The icon is twice the `icon` size.
-  large(96, MyDataSize.icon * 2),
+  large,
 
   /// The Mac frame's `avatar` (64pt), at the top of a record's page (MacRecordHeader), with the initials in
   /// the system font.
-  mac(MyDataMacSize.avatar, MyDataSize.icon * 1.5);
+  mac;
 
-  const AvatarSize(this.diameter, this.iconSize);
+  /// The preview's large avatar: `.av{width:96px}`.
+  static const largeDiameter = 96.0;
 
   /// The circle's width and height.
-  final double diameter;
+  double diameter(MyDataLook look) => switch (this) {
+        small => look.density.iconTile,
+        large => largeDiameter,
+        mac => MyDataMacSize.avatar,
+      };
 
   /// The person icon's size when there are no letters to use.
-  final double iconSize;
+  double iconSize(MyDataLook look) => switch (this) {
+        small => look.density.icon,
+        large => look.density.icon * 2,
+        mac => look.density.icon * 1.5,
+      };
 
   /// The initials' type style, without colour: `body-strong` at 36px, `display-lg` at 96px.
-  TextStyle get letterStyle => switch (this) {
-        small => MyDataType.bodyStrong,
-        large => MyDataType.displayLg,
+  TextStyle letterStyle(MyDataLook look) => switch (this) {
+        small => look.typeScale.bodyStrong,
+        large => look.typeScale.displayLg,
         mac => MyDataMacType.avatar,
       };
 }
@@ -91,15 +100,15 @@ class Avatar extends StatelessWidget {
     final photo = this.photo;
 
     Widget body = DecoratedBox(
-      decoration: BoxDecoration(color: c.kiwiWash, borderRadius: MyDataRadii.pill),
+      decoration: BoxDecoration(color: c.kiwiWash, borderRadius: MyDataRadii.pill(context.look)),
       child: photo == null
           ? letters
           : ClipRRect(
-              borderRadius: MyDataRadii.pill,
-              child: _Photo(image: photo, diameter: size.diameter, letters: letters),
+              borderRadius: MyDataRadii.pill(context.look),
+              child: _Photo(image: photo, diameter: size.diameter(context.look), letters: letters),
             ),
     );
-    body = SizedBox.square(dimension: size.diameter, child: body);
+    body = SizedBox.square(dimension: size.diameter(context.look), child: body);
 
     if (decorative) return ExcludeSemantics(child: body);
     return Semantics(container: true, image: true, label: name, child: ExcludeSemantics(child: body));
@@ -119,13 +128,13 @@ class _Letters extends StatelessWidget {
     final initials = this.initials;
     return Center(
       child: initials == null
-          ? Icon(Icons.person_outline_rounded, size: size.iconSize, color: c.inkMuted)
+          ? Icon(Icons.person_outline_rounded, size: size.iconSize(context.look), color: c.inkMuted)
           // At the default text size the letters keep their type size: the preview's 36px circle has no inset,
           // and two wide capitals ("WW", about 30px of body-strong) fit. A small side inset (2.25px at 36px)
           // keeps the corners of letters scaled down for a large system text size inside the circle: they are
           // scaled down, never cut. No inset above and below: the line box is narrower than the circle there.
           : Padding(
-              padding: EdgeInsets.symmetric(horizontal: size.diameter / 16),
+              padding: EdgeInsets.symmetric(horizontal: size.diameter(context.look) / 16),
               child: FittedBox(
                 fit: BoxFit.scaleDown,
                 child: Text(
@@ -133,7 +142,7 @@ class _Letters extends StatelessWidget {
                   maxLines: 1,
                   softWrap: false,
                   textAlign: TextAlign.center,
-                  style: size.letterStyle.copyWith(color: c.ink),
+                  style: size.letterStyle(context.look).copyWith(color: c.ink),
                 ),
               ),
             ),
@@ -155,7 +164,7 @@ class _Photo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final duration = MyDataMotion.reduced(context) ? Duration.zero : MyDataMotion.fast;
+    final duration = MyDataMotion.reduced(context) ? Duration.zero : context.motion.fast;
     final dpr = MediaQuery.maybeDevicePixelRatioOf(context) ?? View.of(context).devicePixelRatio;
     return Image(
       image: _CoverResize(image, (diameter * dpr).ceil()),

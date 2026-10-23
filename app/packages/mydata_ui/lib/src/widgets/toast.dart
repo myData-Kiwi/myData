@@ -9,9 +9,9 @@ import 'package:flutter/services.dart';
 import '../accessibility.dart';
 import '../generated/tokens.g.dart';
 import '../mac/mac_overlays.dart' show MacToastLook;
-import '../mac/mac_theme.dart' show MacLook;
-import '../motion.dart';
-import '../theme.dart';
+import '../mac/mac_window.dart';
+import '../theme/motion.dart';
+import '../theme/theme.dart';
 import 'app_menu_bar.dart';
 import 'button.dart';
 import 'dialog.dart';
@@ -116,12 +116,12 @@ class ToastHost extends StatefulWidget {
   static const closeLabel = 'Close';
 
   /// Space under the bar on desktop, on a phone, and above a floating tab bar.
-  static const bottomGap = MyDataSpace.s6;
-  static const phoneBottomGap = MyDataSpace.s4;
-  static const barGap = MyDataSpace.s2;
+  static double bottomGap(MyDataLook look) => look.space(6);
+  static double phoneBottomGap(MyDataLook look) => look.space(4);
+  static double barGap(MyDataLook look) => look.space(2);
 
   /// The rise as it appears.
-  static const rise = MyDataMotion.entranceRise;
+  static double rise(MyDataLook look) => look.motion.entranceRise;
 
   /// The controller of the nearest host.
   static ToastController of(BuildContext context) {
@@ -399,7 +399,7 @@ class _ToastHostState extends State<ToastHost> with SingleTickerProviderStateMix
       // the next toast's time must run.
       _hovered = false;
       _touched = false;
-      _entrance.duration = MyDataMotion.fast;
+      _entrance.duration = context.motion.fast;
       _entrance.reverse().whenCompleteOrCancel(() {
         if (mounted && _controller.current == null) setState(() => _shown = null);
       });
@@ -412,7 +412,7 @@ class _ToastHostState extends State<ToastHost> with SingleTickerProviderStateMix
         _undoing = false;
       });
       if (appearing) {
-        _entrance.duration = _reduced ? MyDataMotion.fast : MyDataMotion.base;
+        _entrance.duration = _reduced ? context.motion.fast : context.motion.base;
         _entrance.forward();
       }
       _restartTimer();
@@ -490,11 +490,11 @@ class _ToastHostState extends State<ToastHost> with SingleTickerProviderStateMix
     final phone = mq.size.width < phoneWidth;
     final double bottom;
     if (!phone) {
-      bottom = mq.padding.bottom + ToastHost.bottomGap;
+      bottom = mq.padding.bottom + ToastHost.bottomGap(context.look);
     } else if (widget.aboveFloatingBar) {
-      bottom = mq.padding.bottom - FloatingBarHost.inset + ToastHost.barGap;
+      bottom = mq.padding.bottom - FloatingBarHost.inset(context.look) + ToastHost.barGap(context.look);
     } else {
-      bottom = mq.padding.bottom + ToastHost.phoneBottomGap;
+      bottom = mq.padding.bottom + ToastHost.phoneBottomGap(context.look);
     }
 
     final shown = _shown;
@@ -517,15 +517,15 @@ class _ToastHostState extends State<ToastHost> with SingleTickerProviderStateMix
       toast = AnimatedBuilder(
         animation: _entrance,
         builder: (context, child) {
-          final t = MyDataMotion.standard.transform(_entrance.value);
+          final t = context.motion.standard.transform(_entrance.value);
           final faded = FadeTransition(opacity: _entrance, child: child);
           if (reduced) return faded;
-          return Transform.translate(offset: Offset(0, ToastHost.rise * (1 - t)), child: faded);
+          return Transform.translate(offset: Offset(0, ToastHost.rise(context.look) * (1 - t)), child: faded);
         },
         child: toast,
       );
       toast = Padding(
-        padding: EdgeInsets.symmetric(horizontal: phone ? MyDataSpace.s4 : MyDataSpace.s6),
+        padding: EdgeInsets.symmetric(horizontal: phone ? context.space(4) : context.space(6)),
         child: ConstrainedBox(
           constraints: BoxConstraints(maxWidth: phone ? double.infinity : MyDataSize.contentMax),
           child: toast,
@@ -605,15 +605,15 @@ class _ToastBar extends StatelessWidget {
     final reduced = MyDataAccessibility.of(context).reduceMotion;
     final hasUndo = message.undo != null;
     // The Mac frame: a small floating panel in the system's font and colours (mac/mac_overlays.dart).
-    final mac = MacLook.of(context);
-    final text = Text(message.message, style: mac ? MacToastLook.text(context) : MyDataType.body.copyWith(color: c.ink));
+    final mac = MacWindow.of(context);
+    final text = Text(message.message, style: mac ? MacToastLook.text(context) : context.typeScale.body.copyWith(color: c.ink));
     final content = Row(
       mainAxisSize: phone ? MainAxisSize.max : MainAxisSize.min,
       children: [
         Flexible(
           fit: phone ? FlexFit.tight : FlexFit.loose,
           child: AnimatedSwitcher(
-            duration: MyDataMotion.fast,
+            duration: context.motion.fast,
             layoutBuilder: (current, previous) =>
                 Stack(alignment: AlignmentDirectional.centerStart, children: [...previous, ?current]),
             child: KeyedSubtree(
@@ -623,7 +623,7 @@ class _ToastBar extends StatelessWidget {
           ),
         ),
         if (hasUndo) ...[
-          const SizedBox(width: MyDataSpace.s4),
+          SizedBox(width: context.space(4)),
           Actions(
             actions: {DismissIntent: CallbackAction<DismissIntent>(onInvoke: (_) => onClose())},
             child: Button(
@@ -639,23 +639,23 @@ class _ToastBar extends StatelessWidget {
 
     Widget bar = Container(
       constraints: BoxConstraints(
-          minHeight: mac ? MacToastLook.minHeight : MyDataSize.controlHeight + 2 * MyDataSpace.s2),
+          minHeight: mac ? MacToastLook.minHeight(context.look) : context.density.controlHeight + 2 * context.space(2)),
       padding: EdgeInsetsDirectional.fromSTEB(
-        mac ? MyDataSpace.s4 : MyDataSpace.s5,
-        MyDataSpace.s2,
-        hasUndo ? MyDataSpace.s2 : (mac ? MyDataSpace.s4 : MyDataSpace.s5),
-        MyDataSpace.s2,
+        mac ? context.space(4) : context.space(5),
+        context.space(2),
+        hasUndo ? context.space(2) : (mac ? context.space(4) : context.space(5)),
+        context.space(2),
       ),
       decoration: mac
           ? MacToastLook.decoration(context)
           : BoxDecoration(
               color: c.surfaceRaised,
-              borderRadius: MyDataRadii.xl,
+              borderRadius: MyDataRadii.xl(context.look),
               boxShadow: context.shadows.shadow2,
             ),
       child: AnimatedSize(
-        duration: reduced ? Duration.zero : MyDataMotion.fast,
-        curve: MyDataMotion.standard,
+        duration: reduced ? Duration.zero : context.motion.fast,
+        curve: context.motion.standard,
         alignment: Alignment.center,
         child: content,
       ),

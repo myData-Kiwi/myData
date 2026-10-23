@@ -7,9 +7,9 @@ import 'package:flutter/services.dart';
 
 import '../generated/tokens.g.dart';
 import '../mac/mac_controls.dart' show MacControl;
-import '../mac/mac_theme.dart' show MacLook;
-import '../motion.dart';
-import '../theme.dart';
+import '../mac/mac_window.dart';
+import '../theme/motion.dart';
+import '../theme/theme.dart';
 import 'app_frame.dart' show AppLayout, PhoneType;
 import 'pressable.dart';
 
@@ -22,12 +22,12 @@ import 'pressable.dart';
 bool pickerIsPhone(BuildContext context) => AppLayout.isPhone(context);
 
 /// The field's height: `control-height`, or `control-height-compact` in the Compact density on desktop.
-double pickerControlHeight({required bool compact, required bool phone}) =>
-    compact && !phone ? MyDataSize.controlHeightCompact : MyDataSize.controlHeight;
+double pickerControlHeight(MyDataLook look, {required bool compact, required bool phone}) =>
+    compact && !phone ? look.density.controlHeightCompact : look.density.controlHeight;
 
 /// The value's style: `body` in `ink`, at 16px on phones.
-TextStyle pickerValueStyle(MyDataColors c, {required bool phone}) =>
-    PhoneType.body(MyDataType.body, phone: phone).copyWith(color: c.ink);
+TextStyle pickerValueStyle(MyDataLook look, MyDataColors c, {required bool phone}) =>
+    PhoneType.body(look.typeScale.body, phone: phone).copyWith(color: c.ink);
 
 /// The width of a picker's field: as wide as the longest of [samples] in [style] at the current text size,
 /// plus the field's padding, the gap and the icon. Not the width of the form (the specs: "it is as wide as
@@ -44,7 +44,7 @@ double pickerFieldWidth(BuildContext context, Iterable<String> samples, TextStyl
   painter.dispose();
   // The text, the gap and the icon, `space-4` either side, and `space-1` for the caret, which a text field
   // keeps room for after the text (without it the longest value scrolls by a few pixels).
-  return (widest + MyDataSpace.s2 + scaler.scale(MyDataSize.icon) + 2 * MyDataSpace.s4 + MyDataSpace.s1)
+  return (widest + context.space(2) + scaler.scale(context.density.icon) + 2 * context.space(4) + context.space(1))
       .ceilToDouble();
 }
 
@@ -133,19 +133,19 @@ class PickerField extends StatelessWidget {
     final hasError = error != null && !_disabled;
     final note = _disabled ? disabledReason : (error ?? help);
     // The Mac frame: the field at Mac density, as MacEditField (mac/mac_controls.dart); the same behaviour.
-    final mac = !phone && MacLook.of(context);
+    final mac = !phone && MacWindow.of(context);
     final border = mac ? 1.0 : (hasError ? errorBorderWidth : borderWidth);
-    final style = mac ? MyDataMacType.body.copyWith(color: c.ink) : pickerValueStyle(c, phone: phone);
-    final height = mac ? MacControl.height : pickerControlHeight(compact: compact, phone: phone);
-    final inset = mac ? MacControl.inset : MyDataSpace.s4;
-    final radius = mac ? MacControl.radius : MyDataRadii.md;
+    final style = mac ? MyDataMacType.body.copyWith(color: c.ink) : pickerValueStyle(context.look, c, phone: phone);
+    final height = mac ? MacControl.height : pickerControlHeight(context.look, compact: compact, phone: phone);
+    final inset = mac ? MacControl.inset(context.look) : context.space(4);
+    final radius = mac ? MacControl.radius : MyDataRadii.md(context.look);
     final lineHeight = style.fontSize! * style.height!;
     final vertical = math.max(0.0, (height - lineHeight) / 2 - border);
 
     final Widget text;
     if (phone) {
       text = Padding(
-        padding: EdgeInsetsDirectional.only(start: MyDataSpace.s4 - border),
+        padding: EdgeInsetsDirectional.only(start: context.space(4) - border),
         child: Align(
           alignment: AlignmentDirectional.centerStart,
           child: ValueListenableBuilder(
@@ -194,13 +194,13 @@ class PickerField extends StatelessWidget {
           ? MacControl.bezel(context, error: hasError)
           : BoxDecoration(
               color: c.surface,
-              borderRadius: MyDataRadii.md,
+              borderRadius: MyDataRadii.md(context.look),
               border: Border.all(color: hasError ? c.danger : c.lineStrong, width: border),
             ),
       child: Row(children: [
         Expanded(child: text),
-        const SizedBox(width: MyDataSpace.s2),
-        ExcludeSemantics(child: Icon(icon, size: mac ? MyDataMacSize.icon : MyDataSize.icon, color: c.inkMuted)),
+        SizedBox(width: context.space(2)),
+        ExcludeSemantics(child: Icon(icon, size: mac ? MyDataMacSize.icon : context.density.icon, color: c.inkMuted)),
         SizedBox(width: inset - border),
       ]),
     );
@@ -213,7 +213,7 @@ class PickerField extends StatelessWidget {
         child: Pressable(
           onPressed: _disabled ? null : onTap,
           focusNode: focusNode,
-          borderRadius: MyDataRadii.md,
+          borderRadius: MyDataRadii.md(context.look),
           scaleOnPress: false,
           danger: hasError,
           semanticLabel: semanticLabel,
@@ -238,8 +238,8 @@ class PickerField extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (label != null) ...[
-          ExcludeSemantics(child: Text(label!, style: MyDataType.label.copyWith(color: c.ink))),
-          const SizedBox(height: MyDataSpace.s2),
+          ExcludeSemantics(child: Text(label!, style: context.typeScale.label.copyWith(color: c.ink))),
+          SizedBox(height: context.space(2)),
         ],
         box,
       ],
@@ -251,11 +251,11 @@ class PickerField extends StatelessWidget {
       children: [
         _disabled ? Opacity(opacity: Pressable.disabledOpacity, child: faded) : faded,
         if (note != null) ...[
-          const SizedBox(height: MyDataSpace.s2),
+          SizedBox(height: context.space(2)),
           ConstrainedBox(
             constraints: BoxConstraints(maxWidth: math.max(fieldWidth, MyDataSize.dialogWidth / 2)),
             child: ExcludeSemantics(
-              child: Text(note, style: MyDataType.caption.copyWith(color: hasError ? c.danger : c.inkMuted)),
+              child: Text(note, style: context.typeScale.caption.copyWith(color: hasError ? c.danger : c.inkMuted)),
             ),
           ),
         ],
@@ -292,10 +292,10 @@ class PickerPopover extends StatefulWidget {
   final String? semanticLabel;
 
   /// Spec: "`space-1` below it".
-  static const gap = MyDataSpace.s1;
+  static double gap(MyDataLook look) => look.space(1);
 
   /// Kept between the popover and the window's edges (the 16px side gutter).
-  static const margin = MyDataSpace.s4;
+  static double margin(MyDataLook look) => look.space(4);
 
   @override
   State<PickerPopover> createState() => _PickerPopoverState();
@@ -303,12 +303,13 @@ class PickerPopover extends StatefulWidget {
 
 class _PickerPopoverState extends State<PickerPopover> with SingleTickerProviderStateMixin {
   final _portal = OverlayPortalController();
-  late final AnimationController _fade = AnimationController(vsync: this, duration: MyDataMotion.base);
+  late final AnimationController _fade;
   final Object _group = Object();
 
   @override
   void initState() {
     super.initState();
+    _fade = AnimationController(vsync: this, duration: context.lookNow.motion.base);
     if (widget.open) _fade.value = 1;
     // The overlay child stays in the overlay; it is empty while the popover is closed and faded out.
     // (OverlayPortalController.show may not be called during a build.)
@@ -322,10 +323,10 @@ class _PickerPopoverState extends State<PickerPopover> with SingleTickerProvider
     super.didUpdateWidget(old);
     if (widget.open == old.open) return;
     if (widget.open) {
-      _fade.duration = MyDataMotion.reduced(context) ? MyDataMotion.fast : MyDataMotion.base;
+      _fade.duration = MyDataMotion.reduced(context) ? context.motion.fast : context.motion.base;
       _fade.forward();
     } else {
-      _fade.reverseDuration = MyDataMotion.fast;
+      _fade.reverseDuration = context.motion.fast;
       _fade.reverse();
     }
   }
@@ -346,7 +347,7 @@ class _PickerPopoverState extends State<PickerPopover> with SingleTickerProvider
     final rtl = Directionality.of(context) == TextDirection.rtl;
     Widget surface = Container(
       padding: widget.padding,
-      decoration: BoxDecoration(color: c.surfaceRaised, borderRadius: MyDataRadii.md, boxShadow: context.shadows.shadow2),
+      decoration: BoxDecoration(color: c.surfaceRaised, borderRadius: MyDataRadii.md(context.look), boxShadow: context.shadows.shadow2),
       child: Builder(builder: widget.popover),
     );
     if (widget.semanticLabel != null) {
@@ -362,7 +363,7 @@ class _PickerPopoverState extends State<PickerPopover> with SingleTickerProvider
     Widget popover = TapRegion(
       groupId: _group,
       child: FadeTransition(
-          opacity: CurvedAnimation(parent: _fade, curve: MyDataMotion.standard), child: surface),
+          opacity: CurvedAnimation(parent: _fade, curve: context.motion.standard), child: surface),
     );
     // A popover opened from inside another (the birthday's Year list) is inside that one too, so a tap in
     // it does not close the outer popover.
@@ -379,7 +380,7 @@ class _PickerPopoverState extends State<PickerPopover> with SingleTickerProvider
           final overlayOrigin = overlayBox.localToGlobal(Offset.zero);
           anchor = (origin - overlayOrigin) & anchorBox.size;
         }
-        return CustomSingleChildLayout(delegate: _PopoverLayout(anchor: anchor, rtl: rtl), child: popover);
+        return CustomSingleChildLayout(delegate: _PopoverLayout(anchor: anchor, rtl: rtl, look: context.look), child: popover);
       }),
     );
   }
@@ -404,12 +405,13 @@ class _PopoverGroup extends InheritedWidget {
 }
 
 class _PopoverLayout extends SingleChildLayoutDelegate {
-  _PopoverLayout({required this.anchor, required this.rtl});
+  _PopoverLayout({required this.anchor, required this.rtl, required this.look});
   final Rect anchor;
   final bool rtl;
+  final MyDataLook look;
 
-  static const _m = PickerPopover.margin;
-  static const _g = PickerPopover.gap;
+  double get _m => PickerPopover.margin(look);
+  double get _g => PickerPopover.gap(look);
 
   double _below(Size size) => size.height - anchor.bottom - _g - _m;
   double _above() => anchor.top - _g - _m;
@@ -433,7 +435,7 @@ class _PopoverLayout extends SingleChildLayoutDelegate {
   }
 
   @override
-  bool shouldRelayout(_PopoverLayout old) => old.anchor != anchor || old.rtl != rtl;
+  bool shouldRelayout(_PopoverLayout old) => old.anchor != anchor || old.rtl != rtl || old.look != look;
 }
 
 /// One row of a [PickerListBox].
@@ -499,7 +501,7 @@ class PickerListBox extends StatefulWidget {
   final double? rowHeight;
 
   /// The check mark's size: `icon`.
-  static const checkSize = MyDataSize.icon;
+  static double checkSize(MyDataLook look) => look.density.icon;
 
   /// The ring around a row reached with the keys: 2px of `focus`, inside the row's shape.
   static const ringWidth = 2.0;
@@ -521,7 +523,8 @@ class _PickerListBoxState extends State<PickerListBox> {
   FocusNode get _node => widget.focusNode ?? (_ownNode ??= FocusNode(debugLabel: 'PickerListBox'));
 
   double get _rowHeight =>
-      widget.rowHeight ?? (widget.compact ? MyDataSize.controlHeightCompact : MyDataSize.controlHeight);
+      widget.rowHeight ??
+      (widget.compact ? context.lookNow.density.controlHeightCompact : context.lookNow.density.controlHeight);
 
   double get _viewport => math.min(widget.items.length, widget.visibleRows) * _rowHeight;
 
@@ -630,19 +633,19 @@ class _PickerListBoxState extends State<PickerListBox> {
     final painter = TextPainter(textDirection: TextDirection.ltr, textScaler: MediaQuery.textScalerOf(context));
     var widest = 0.0;
     for (final item in widget.items) {
-      painter.text = TextSpan(text: item.title, style: MyDataType.body);
+      painter.text = TextSpan(text: item.title, style: context.typeScale.body);
       painter.layout();
       var w = painter.width;
       if (item.detail != null) {
-        painter.text = TextSpan(text: item.detail, style: MyDataType.body);
+        painter.text = TextSpan(text: item.detail, style: context.typeScale.body);
         painter.layout();
-        w += MyDataSpace.s2 + painter.width;
+        w += context.space(2) + painter.width;
       }
       widest = math.max(widest, w);
     }
     painter.dispose();
     // `space-1` of slack: a row is never cut short by a fraction of a pixel.
-    return (widest + 2 * MyDataSpace.s3 + MyDataSpace.s2 + PickerListBox.checkSize + MyDataSpace.s1).ceilToDouble();
+    return (widest + 2 * context.space(3) + context.space(2) + PickerListBox.checkSize(context.look) + context.space(1)).ceilToDouble();
   }
 
   @override
@@ -681,31 +684,31 @@ class _PickerListBoxState extends State<PickerListBox> {
                   onTap: () => widget.onPicked(i),
                   child: CustomPaint(
                     foregroundPainter: highlighted && _fromKeys && _node.hasFocus
-                        ? _RowRingPainter(FocusRing.colourFor(context))
+                        ? _RowRingPainter(FocusRing.colourFor(context), context.radius.sm)
                         : null,
                     child: Container(
                       key: ValueKey('picker-row-$i'),
                       decoration: BoxDecoration(
-                          color: highlighted ? c.surfaceHover : null, borderRadius: MyDataRadii.sm),
-                      padding: const EdgeInsets.symmetric(horizontal: MyDataSpace.s3),
+                          color: highlighted ? c.surfaceHover : null, borderRadius: MyDataRadii.sm(context.look)),
+                      padding: EdgeInsets.symmetric(horizontal: context.space(3)),
                       child: Row(children: [
-                        Text(item.title, maxLines: 1, softWrap: false, style: MyDataType.body.copyWith(color: c.ink)),
+                        Text(item.title, maxLines: 1, softWrap: false, style: context.typeScale.body.copyWith(color: c.ink)),
                         if (item.detail != null) ...[
-                          const SizedBox(width: MyDataSpace.s2),
+                          SizedBox(width: context.space(2)),
                           Expanded(
                             child: Text(item.detail!,
                                 maxLines: 1,
                                 softWrap: false,
                                 overflow: TextOverflow.ellipsis,
-                                style: MyDataType.body.copyWith(color: c.inkMuted)),
+                                style: context.typeScale.body.copyWith(color: c.inkMuted)),
                           ),
                         ] else
                           const Spacer(),
-                        const SizedBox(width: MyDataSpace.s2),
+                        SizedBox(width: context.space(2)),
                         SizedBox.square(
-                          dimension: PickerListBox.checkSize,
+                          dimension: PickerListBox.checkSize(context.look),
                           child: checked
-                              ? Icon(Icons.check_rounded, size: PickerListBox.checkSize, color: c.accent)
+                              ? Icon(Icons.check_rounded, size: PickerListBox.checkSize(context.look), color: c.accent)
                               : null,
                         ),
                       ]),
@@ -735,15 +738,18 @@ class _PickerListBoxState extends State<PickerListBox> {
 
 /// The 2px `focus` ring inside a list row's `radius-sm` shape.
 class _RowRingPainter extends CustomPainter {
-  _RowRingPainter(this.colour);
+  _RowRingPainter(this.colour, this.radius);
   final Color colour;
+
+  /// The row's corner radius (`radius-sm`).
+  final double radius;
 
   @override
   void paint(Canvas canvas, Size size) {
     const w = PickerListBox.ringWidth;
     final rect = (Offset.zero & size).deflate(w / 2);
     canvas.drawRRect(
-        RRect.fromRectAndRadius(rect, const Radius.circular(MyDataRadius.sm - w / 2)),
+        RRect.fromRectAndRadius(rect, Radius.circular(radius - w / 2)),
         Paint()
           ..color = colour
           ..style = PaintingStyle.stroke
@@ -751,5 +757,5 @@ class _RowRingPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_RowRingPainter old) => old.colour != colour;
+  bool shouldRepaint(_RowRingPainter old) => old.colour != colour || old.radius != radius;
 }

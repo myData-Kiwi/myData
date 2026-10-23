@@ -107,12 +107,12 @@ class ContactPage extends StatelessWidget {
     final Widget? below = switch (detail) {
       DetailReady(:final contact) => FieldGroups(fields: fieldRowsFor(contact, onOpenLink: onOpenLink)),
       DetailLoading() => null,
-      DetailMissing() => Text(missingText, style: MyDataType.body.copyWith(color: c.inkMuted)),
+      DetailMissing() => Text(missingText, style: context.typeScale.body.copyWith(color: c.inkMuted)),
       DetailFailed() => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(failedText, style: MyDataType.body.copyWith(color: c.inkMuted)),
-          const SizedBox(height: MyDataSpace.s3),
+          Text(failedText, style: context.typeScale.body.copyWith(color: c.inkMuted)),
+          SizedBox(height: context.space(3)),
           Button(label: retryLabel, onPressed: () => controller.retryDetail(id)),
         ],
       ),
@@ -127,23 +127,23 @@ class ContactPage extends StatelessWidget {
         if (error != null) ...[
           Semantics(
             liveRegion: true,
-            child: Text(error, style: MyDataType.body.copyWith(color: c.danger)),
+            child: Text(error, style: context.typeScale.body.copyWith(color: c.danger)),
           ),
-          const SizedBox(height: MyDataSpace.s4),
+          SizedBox(height: context.space(4)),
         ],
         if (actions != null && editable && showActions)
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(child: header),
-              const SizedBox(width: MyDataSpace.s4),
+              SizedBox(width: context.space(4)),
               ContactPageActions(actions: actions, contact: detail.contact),
             ],
           )
         else
           header,
         if (detail is DetailReady && detail.contact.changedInSource != null) ...[
-          const SizedBox(height: ContactHeader.fieldsGap),
+          SizedBox(height: ContactHeader.fieldsGap(context.look)),
           // Between the header and the fields (design/components/DuplicatePair, "The contact page flag").
           Align(
             alignment: AlignmentDirectional.topStart,
@@ -158,7 +158,7 @@ class ContactPage extends StatelessWidget {
           ),
         ],
         if (below != null) ...[
-          const SizedBox(height: ContactHeader.fieldsGap),
+          SizedBox(height: ContactHeader.fieldsGap(context.look)),
           Align(
             alignment: AlignmentDirectional.topStart,
             child: ConstrainedBox(
@@ -187,7 +187,7 @@ class ContactPageActions extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Button(label: ContactActions.editButton, onPressed: () => actions.edit(contact.id)),
-          const SizedBox(width: MyDataSpace.s2),
+          SizedBox(width: context.space(2)),
           MoreActionsButton(entries: () => actions.menuFor(contact.id)),
         ],
       );

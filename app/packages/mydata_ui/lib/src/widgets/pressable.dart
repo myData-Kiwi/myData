@@ -3,8 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../accessibility.dart';
 import '../generated/tokens.g.dart';
-import '../motion.dart';
-import '../theme.dart';
+import '../theme/theme.dart';
 
 /// The press, hover and focus behaviour every interactive control in the design system shares
 /// (design/motion.md, design/README.md "Accessibility"):
@@ -119,8 +118,8 @@ class _PressableState extends State<Pressable> {
     Widget body = widget.child;
     if (widget.hoverFill != null) {
       body = AnimatedContainer(
-        duration: MyDataMotion.fast,
-        curve: MyDataMotion.standard,
+        duration: context.motion.fast,
+        curve: context.motion.standard,
         decoration: BoxDecoration(
             color: (_hovered || down) && _enabled ? widget.hoverFill : widget.hoverFill!.withValues(alpha: 0),
             borderRadius: widget.borderRadius),
@@ -129,14 +128,14 @@ class _PressableState extends State<Pressable> {
     }
     // Press: in at once (duration zero on the way down), out over `fast`.
     body = AnimatedOpacity(
-      opacity: !_enabled ? Pressable.disabledOpacity : (down ? MyDataMotion.pressOpacity : 1),
-      duration: down ? Duration.zero : MyDataMotion.fast,
-      curve: MyDataMotion.standard,
+      opacity: !_enabled ? Pressable.disabledOpacity : (down ? context.motion.pressOpacity : 1),
+      duration: down ? Duration.zero : context.motion.fast,
+      curve: context.motion.standard,
       child: widget.scaleOnPress && !reduced
           ? AnimatedScale(
-              scale: down ? MyDataMotion.pressScale : 1,
-              duration: down ? Duration.zero : MyDataMotion.fast,
-              curve: MyDataMotion.standard,
+              scale: down ? context.motion.pressScale : 1,
+              duration: down ? Duration.zero : context.motion.fast,
+              curve: context.motion.standard,
               child: body)
           : body,
     );
@@ -266,11 +265,11 @@ class FocusRing extends StatelessWidget {
 
 /// Radii as BorderRadius, for the shapes the tokens name.
 abstract final class MyDataRadii {
-  static const xs = BorderRadius.all(Radius.circular(MyDataRadius.xs));
-  static const sm = BorderRadius.all(Radius.circular(MyDataRadius.sm));
-  static const md = BorderRadius.all(Radius.circular(MyDataRadius.md));
-  static const lg = BorderRadius.all(Radius.circular(MyDataRadius.lg));
-  static const xl = BorderRadius.all(Radius.circular(MyDataRadius.xl));
-  static const control = BorderRadius.all(Radius.circular(MyDataRadius.control));
-  static const pill = BorderRadius.all(Radius.circular(MyDataRadius.pill));
+  static BorderRadius xs(MyDataLook look) => BorderRadius.all(Radius.circular(look.shape.xs));
+  static BorderRadius sm(MyDataLook look) => BorderRadius.all(Radius.circular(look.shape.sm));
+  static BorderRadius md(MyDataLook look) => BorderRadius.all(Radius.circular(look.shape.md));
+  static BorderRadius lg(MyDataLook look) => BorderRadius.all(Radius.circular(look.shape.lg));
+  static BorderRadius xl(MyDataLook look) => BorderRadius.all(Radius.circular(look.shape.xl));
+  static BorderRadius control(MyDataLook look) => BorderRadius.all(Radius.circular(look.shape.control));
+  static BorderRadius pill(MyDataLook look) => BorderRadius.all(Radius.circular(look.shape.pill));
 }

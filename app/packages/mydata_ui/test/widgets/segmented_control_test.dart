@@ -365,8 +365,8 @@ void main() {
     for (final label in ['Day', 'Week', 'Month']) {
       final text = tester.getRect(find.text(label));
       final target = tester.getRect(_target(label));
-      expect(text.left - target.left, greaterThanOrEqualTo(SegmentedControl.minSidePadding));
-      expect(target.right - text.right, greaterThanOrEqualTo(SegmentedControl.minSidePadding));
+      expect(text.left - target.left, greaterThanOrEqualTo(SegmentedControl.minSidePadding(kiwiLook)));
+      expect(target.right - text.right, greaterThanOrEqualTo(SegmentedControl.minSidePadding(kiwiLook)));
     }
   });
 

@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../generated/tokens.g.dart';
-import '../motion.dart';
+import '../theme/motion.dart';
+import '../theme/theme.dart';
 import '../widgets/pressable.dart';
 import 'mac_chrome.dart';
 import 'mac_icons.dart';
@@ -32,7 +33,7 @@ class MacForm extends StatelessWidget {
   static const double columnWidth = MyDataMacSize.contentWidth;
 
   /// Between sections.
-  static const gap = MyDataSpace.s5;
+  static double gap(MyDataLook look) => look.space(5);
 
   @override
   Widget build(BuildContext context) {
@@ -41,14 +42,14 @@ class MacForm extends StatelessWidget {
       style: MyDataMacType.body.copyWith(color: mac.label),
       child: SingleChildScrollView(
         controller: controller,
-        padding: const EdgeInsets.fromLTRB(MyDataSpace.s5, MyDataSpace.s2, MyDataSpace.s5, MyDataSpace.s8),
+        padding: EdgeInsets.fromLTRB(context.space(5), context.space(2), context.space(5), context.space(8)),
         child: Center(
           child: ConstrainedBox(
             constraints: BoxConstraints(maxWidth: maxWidth),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                for (final (i, child) in children.indexed) ...[if (i > 0) const SizedBox(height: gap), child],
+                for (final (i, child) in children.indexed) ...[if (i > 0) SizedBox(height: gap(context.look)), child],
               ],
             ),
           ),
@@ -69,7 +70,7 @@ class MacFormSection extends StatelessWidget {
   final List<Widget> rows;
 
   /// The group's corners: a Settings group's, the nearest token.
-  static const radius = BorderRadius.all(Radius.circular(MyDataRadius.sm));
+  static BorderRadius radius(MyDataLook look) => BorderRadius.all(Radius.circular(look.shape.sm));
 
   /// The group's fill: `hover` over `content-background`, a shade off the page in both appearances.
   static Color fill(BuildContext context) => Color.alphaBlend(context.mac.hover, context.mac.contentBackground);
@@ -83,7 +84,7 @@ class MacFormSection extends StatelessWidget {
       children: [
         if (heading != null)
           Padding(
-            padding: const EdgeInsets.fromLTRB(MyDataSpace.s3, 0, MyDataSpace.s3, MyDataSpace.s2),
+            padding: EdgeInsets.fromLTRB(context.space(3), 0, context.space(3), context.space(2)),
             child: Semantics(
               header: true,
               child: Text(heading!, style: MyDataMacType.bodyEmphasized.copyWith(color: mac.label)),
@@ -93,7 +94,7 @@ class MacFormSection extends StatelessWidget {
           DecoratedBox(
             decoration: BoxDecoration(
               color: fill(context),
-              borderRadius: radius,
+              borderRadius: radius(context.look),
               border: Border.all(color: mac.separator, width: MyDataMacSize.hairline),
             ),
             child: Column(
@@ -103,7 +104,7 @@ class MacFormSection extends StatelessWidget {
                 for (final (i, row) in rows.indexed) ...[
                   if (i > 0)
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: MyDataSpace.s3),
+                      padding: EdgeInsets.symmetric(horizontal: context.space(3)),
                       child: Container(height: 1, color: mac.separator),
                     ),
                   row,
@@ -113,7 +114,7 @@ class MacFormSection extends StatelessWidget {
           ),
         if (footer != null)
           Padding(
-            padding: const EdgeInsets.fromLTRB(MyDataSpace.s3, MyDataSpace.s2, MyDataSpace.s3, 0),
+            padding: EdgeInsets.fromLTRB(context.space(3), context.space(2), context.space(3), 0),
             child: Text(footer!, style: MyDataMacType.caption.copyWith(color: mac.secondaryLabel)),
           ),
       ],
@@ -141,21 +142,21 @@ class MacFormRow extends StatelessWidget {
   /// The subtitle's colour when it says something is wrong; null: `secondary-label`.
   final Color? subtitleColor;
 
-  static const minHeight = MyDataMacSize.controlHeight + MyDataSpace.s3;
-  static const padding = EdgeInsets.symmetric(horizontal: MyDataSpace.s3, vertical: MyDataSpace.s2);
+  static double minHeight(MyDataLook look) => MyDataMacSize.controlHeight + look.space(3);
+  static EdgeInsets padding(MyDataLook look) => EdgeInsets.symmetric(horizontal: look.space(3), vertical: look.space(2));
 
   @override
   Widget build(BuildContext context) {
     final mac = context.mac;
     return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: minHeight),
+      constraints: BoxConstraints(minHeight: minHeight(context.look)),
       child: Padding(
-        padding: padding,
+        padding: padding(context.look),
         child: Row(
           children: [
             if (icon != null) ...[
               Icon(icon, size: MyDataMacSize.icon, color: mac.secondaryLabel),
-              const SizedBox(width: MyDataSpace.s2),
+              SizedBox(width: context.space(2)),
             ],
             Expanded(
               child: MergeSemantics(
@@ -177,7 +178,7 @@ class MacFormRow extends StatelessWidget {
               ),
             ),
             for (final (i, w) in trailing.indexed) ...[
-              SizedBox(width: i == 0 ? MyDataSpace.s3 : MyDataSpace.s2),
+              SizedBox(width: i == 0 ? context.space(3) : context.space(2)),
               w,
             ],
           ],
@@ -195,7 +196,7 @@ class MacFormPart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.all(MyDataSpace.s3),
+    padding: EdgeInsets.all(context.space(3)),
     child: DefaultTextStyle.merge(style: MyDataMacType.body.copyWith(color: context.mac.label), child: child),
   );
 }
@@ -213,7 +214,7 @@ class MacFormValue extends StatelessWidget {
   Widget build(BuildContext context) => Row(
     mainAxisSize: MainAxisSize.min,
     children: [
-      if (dot != null) ...[MacStatusDot(color: dot!), const SizedBox(width: MyDataSpace.s1 + MyDataMacSize.tight)],
+      if (dot != null) ...[MacStatusDot(color: dot!), SizedBox(width: context.space(1) + MyDataMacSize.tight)],
       Text(text, style: MyDataMacType.body.copyWith(color: context.mac.secondaryLabel)),
     ],
   );
@@ -225,13 +226,13 @@ class MacStatusDot extends StatelessWidget {
 
   final Color color;
 
-  static const size = MyDataSpace.s2;
+  static double size(MyDataLook look) => look.space(2);
 
   @override
   Widget build(BuildContext context) => ExcludeSemantics(
     child: Container(
-      width: size,
-      height: size,
+      width: size(context.look),
+      height: size(context.look),
       decoration: BoxDecoration(color: color, shape: BoxShape.circle),
     ),
   );
@@ -264,8 +265,8 @@ class MacSwitch extends StatelessWidget {
       toggled: value,
       semanticLabel: semanticLabel,
       child: AnimatedContainer(
-        duration: MyDataMotion.reduced(context) ? Duration.zero : MyDataMotion.fast,
-        curve: MyDataMotion.standard,
+        duration: MyDataMotion.reduced(context) ? Duration.zero : context.motion.fast,
+        curve: context.motion.standard,
         width: width,
         height: height,
         padding: const EdgeInsets.all(inset),
@@ -360,8 +361,8 @@ class _MacSegmentedState<T> extends State<MacSegmented<T>> {
                 behavior: HitTestBehavior.opaque,
                 onTap: enabled ? () => widget.onChanged!(value) : null,
                 child: AnimatedContainer(
-                  duration: MyDataMotion.reduced(context) ? Duration.zero : MyDataMotion.fast,
-                  padding: EdgeInsets.symmetric(horizontal: toolbar ? MyDataSpace.s4 : MyDataSpace.s3),
+                  duration: MyDataMotion.reduced(context) ? Duration.zero : context.motion.fast,
+                  padding: EdgeInsets.symmetric(horizontal: toolbar ? context.space(4) : context.space(3)),
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     color: value == widget.selected ? (toolbar ? mac.sidebarSelection : mac.toolbarItem) : null,
@@ -424,23 +425,23 @@ class MacDisclosure extends StatelessWidget {
           expanded: open,
           child: Pressable(
             onPressed: onToggle,
-            borderRadius: MacFormSection.radius,
+            borderRadius: MacFormSection.radius(context.look),
             scaleOnPress: false,
             semanticLabel: title,
             child: ExcludeSemantics(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(minHeight: MacFormRow.minHeight),
+                constraints: BoxConstraints(minHeight: MacFormRow.minHeight(context.look)),
                 child: Padding(
-                  padding: MacFormRow.padding,
+                  padding: MacFormRow.padding(context.look),
                   child: Row(
                     children: [
                       AnimatedRotation(
                         turns: open ? 0.25 : 0,
-                        duration: MyDataMotion.reduced(context) ? Duration.zero : MyDataMotion.fast,
-                        curve: MyDataMotion.standard,
+                        duration: MyDataMotion.reduced(context) ? Duration.zero : context.motion.fast,
+                        curve: context.motion.standard,
                         child: Icon(MacIcons.chevronRight, size: MyDataMacSize.icon - MyDataMacSize.tight, color: mac.secondaryLabel),
                       ),
-                      const SizedBox(width: MyDataSpace.s2),
+                      SizedBox(width: context.space(2)),
                       Expanded(child: Text(title, style: MyDataMacType.body.copyWith(color: mac.label))),
                       if (subtitle != null)
                         Text(subtitle!, style: MyDataMacType.body.copyWith(color: mac.secondaryLabel)),

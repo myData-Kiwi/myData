@@ -70,7 +70,7 @@ class MacContactPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(ContactPage.failedText, style: MyDataMacType.body.copyWith(color: mac.secondaryLabel)),
-          const SizedBox(height: MyDataSpace.s2),
+          SizedBox(height: context.space(2)),
           MacToolbarButton.text(
             text: ContactPage.retryLabel,
             label: ContactPage.retryLabel,
@@ -85,7 +85,7 @@ class MacContactPage extends StatelessWidget {
       children: [
         if (error != null) ...[
           Semantics(liveRegion: true, child: Text(error, style: MyDataMacType.body.copyWith(color: context.colors.danger))),
-          const SizedBox(height: MyDataSpace.s4),
+          SizedBox(height: context.space(4)),
         ],
         if (entry != null || d != null)
           MacRecordHeader(
@@ -96,7 +96,7 @@ class MacContactPage extends StatelessWidget {
             badge: d == null ? null : MacSourceBadge(icon: sourceIcon(d), sentence: ContactPage.sourceLineOf(d)),
           ),
         if (d?.changedInSource != null) ...[
-          const SizedBox(height: MyDataSpace.s5),
+          SizedBox(height: context.space(5)),
           Notice(
             message: ContactPage.changedNotice(d!.changedInSourceLabel),
             actionLabel: actions?.onReview == null ? null : ContactPage.reviewLabel,
@@ -104,7 +104,7 @@ class MacContactPage extends StatelessWidget {
           ),
         ],
         if (below != null) ...[
-          const SizedBox(height: MyDataSpace.s6),
+          SizedBox(height: context.space(6)),
           below,
         ],
       ],

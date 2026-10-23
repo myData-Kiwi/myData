@@ -5,9 +5,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-import '../generated/tokens.g.dart';
-import '../motion.dart';
-import '../theme.dart';
+import '../theme/theme.dart';
 import 'button.dart';
 import 'data_colour.dart';
 import 'icon_button.dart';
@@ -156,13 +154,13 @@ class MonthGrid extends StatefulWidget {
 
   /// The side of a day number's box, and today's disc, at [textScaler]: [todayDiameter] scaled, and never
   /// less than one scaled line of `body`, so the number always fits inside the disc.
-  static double numberBoxSize(TextScaler textScaler) => math.max(
-      textScaler.scale(todayDiameter), textScaler.scale(MyDataType.body.fontSize!) * MyDataType.body.height!);
+  static double numberBoxSize(MyDataLook look, TextScaler textScaler) => math.max(
+      textScaler.scale(todayDiameter), textScaler.scale(look.typeScale.body.fontSize!) * look.typeScale.body.height!);
 
   /// One line of `caption` at [textScaler]: the height of an event's bar ("as tall as the text it marks")
   /// and, under 600px, of the line of dots.
-  static double captionLineHeight(TextScaler textScaler) =>
-      textScaler.scale(MyDataType.caption.fontSize!) * MyDataType.caption.height!;
+  static double captionLineHeight(MyDataLook look, TextScaler textScaler) =>
+      textScaler.scale(look.typeScale.caption.fontSize!) * look.typeScale.caption.height!;
 
   /// The selection ring: "2px `ink` inside the cell's edge".
   static const selectionRingWidth = 2.0;
@@ -174,28 +172,28 @@ class MonthGrid extends StatefulWidget {
   static const focusRingWidth = 2.0;
 
   /// Spec: a cell has `space-2` padding.
-  static const cellPadding = MyDataSpace.s2;
+  static double cellPadding(MyDataLook look) => look.space(2);
 
   /// Under 600px: the preview's 4px (`space-1`), so the number and the dots fit a `row-height` cell.
-  static const compactCellPadding = MyDataSpace.s1;
+  static double compactCellPadding(MyDataLook look) => look.space(1);
 
   /// Between the number and the event lines, and between lines (preview: `gap:4px`).
-  static const lineGap = MyDataSpace.s1;
+  static double lineGap(MyDataLook look) => look.space(1);
 
   /// Between a bar or dot and the next thing on its line (preview: `gap:4px`).
-  static const markGap = MyDataSpace.s1;
+  static double markGap(MyDataLook look) => look.space(1);
 
   /// Spec: "on desktop, a cell is at least twice `row-height` tall".
-  static const cellMinHeight = 2 * MyDataSize.rowHeight;
+  static double cellMinHeight(MyDataLook look) => 2 * look.density.rowHeight;
 
   /// Spec: "under 600px, cells are `row-height` tall".
-  static const compactCellHeight = MyDataSize.rowHeight;
+  static double compactCellHeight(MyDataLook look) => look.density.rowHeight;
 
   /// Between the header's parts (preview: `gap:8px`).
-  static const headerGap = MyDataSpace.s2;
+  static double headerGap(MyDataLook look) => look.space(2);
 
   /// Below the header, and below the [notice] (preview: `margin:0 0 16px`).
-  static const sectionGap = MyDataSpace.s4;
+  static double sectionGap(MyDataLook look) => look.space(4);
 
   /// The divider between cells, as between grouped-list rows.
   static const dividerWidth = 1.0;
@@ -472,8 +470,8 @@ class _MonthGridState extends State<MonthGrid> {
           onPrevious: () => _stepMonth(-1),
           onNext: () => _stepMonth(1),
         ),
-        const SizedBox(height: MonthGrid.sectionGap),
-        if (widget.notice != null) ...[widget.notice!, const SizedBox(height: MonthGrid.sectionGap)],
+        SizedBox(height: MonthGrid.sectionGap(context.look)),
+        if (widget.notice != null) ...[widget.notice!, SizedBox(height: MonthGrid.sectionGap(context.look))],
         grid,
       ],
     );
@@ -495,15 +493,15 @@ class _Header extends StatelessWidget {
     return _HeaderLayout(
       // Never cut short: on a narrow phone "September 2026" wraps after the month, and a word that would
       // not fit beside the buttons moves the title to its own line rather than breaking.
-      title: Semantics(header: true, child: Text(title, style: MyDataType.title.copyWith(color: c.ink))),
+      title: Semantics(header: true, child: Text(title, style: context.typeScale.title.copyWith(color: c.ink))),
       buttons: Row(mainAxisSize: MainAxisSize.min, children: [
         Button(label: MonthGrid.todayLabel, onPressed: onToday),
-        const SizedBox(width: MonthGrid.headerGap),
+        SizedBox(width: MonthGrid.headerGap(context.look)),
         MyDataIconButton(
             icon: rtl ? Icons.chevron_right_rounded : Icons.chevron_left_rounded,
             label: MonthGrid.previousMonthLabel,
             onPressed: onPrevious),
-        const SizedBox(width: MonthGrid.headerGap),
+        SizedBox(width: MonthGrid.headerGap(context.look)),
         MyDataIconButton(
             icon: rtl ? Icons.chevron_left_rounded : Icons.chevron_right_rounded,
             label: MonthGrid.nextMonthLabel,
@@ -522,11 +520,12 @@ class _HeaderLayout extends MultiChildRenderObjectWidget {
   _HeaderLayout({required Widget title, required Widget buttons}) : super(children: [title, buttons]);
 
   @override
-  RenderObject createRenderObject(BuildContext context) => _RenderHeaderLayout(Directionality.of(context));
+  RenderObject createRenderObject(BuildContext context) => _RenderHeaderLayout(Directionality.of(context), context.look);
 
   @override
-  void updateRenderObject(BuildContext context, _RenderHeaderLayout renderObject) =>
-      renderObject.textDirection = Directionality.of(context);
+  void updateRenderObject(BuildContext context, _RenderHeaderLayout renderObject) => renderObject
+    ..textDirection = Directionality.of(context)
+    ..look = context.look;
 }
 
 class _HeaderParentData extends ContainerBoxParentData<RenderBox> {}
@@ -537,9 +536,16 @@ class _RenderHeaderLayout extends RenderBox
     with
         ContainerRenderObjectMixin<RenderBox, _HeaderParentData>,
         RenderBoxContainerDefaultsMixin<RenderBox, _HeaderParentData> {
-  _RenderHeaderLayout(this._textDirection);
+  _RenderHeaderLayout(this._textDirection, this._look);
 
-  static const _gap = MonthGrid.headerGap;
+  double get _gap => MonthGrid.headerGap(_look);
+
+  MyDataLook _look;
+  set look(MyDataLook value) {
+    if (value == _look) return;
+    _look = value;
+    markNeedsLayout();
+  }
 
   TextDirection _textDirection;
   set textDirection(TextDirection value) {
@@ -659,7 +665,7 @@ class _Grid extends StatelessWidget {
     final c = context.colors;
     final days = MonthGrid.visibleDays(month, firstDay);
     final divider = Container(height: MonthGrid.dividerWidth, color: c.line);
-    final weekdayStyle = MyDataType.caption.copyWith(color: c.inkMuted);
+    final weekdayStyle = context.typeScale.caption.copyWith(color: c.inkMuted);
 
     Widget columns(List<Widget> children) => Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           for (var i = 0; i < children.length; i++) ...[
@@ -673,8 +679,8 @@ class _Grid extends StatelessWidget {
         Expanded(
             child: Padding(
                 padding: compact
-                    ? const EdgeInsets.symmetric(vertical: MonthGrid.cellPadding, horizontal: MonthGrid.compactCellPadding)
-                    : const EdgeInsets.all(MonthGrid.cellPadding),
+                    ? EdgeInsets.symmetric(vertical: MonthGrid.cellPadding(context.look), horizontal: MonthGrid.compactCellPadding(context.look))
+                    : EdgeInsets.all(MonthGrid.cellPadding(context.look)),
                 child: Text(MonthGrid.weekdayShortName((firstDay - 1 + i) % 7 + 1),
                     semanticsLabel: MonthGrid.weekdayName((firstDay - 1 + i) % 7 + 1),
                     maxLines: 1,
@@ -684,7 +690,7 @@ class _Grid extends StatelessWidget {
                     style: weekdayStyle))),
     ]);
 
-    const corner = Radius.circular(MyDataRadius.lg);
+    final corner = Radius.circular(context.radius.lg);
     final weeksBody = Column(
       key: ValueKey(_key(month)),
       mainAxisSize: MainAxisSize.min,
@@ -706,9 +712,9 @@ class _Grid extends StatelessWidget {
                   showFocus: showFocus,
                   gridFocused: hasFocus,
                   shape: w == MonthGrid.weeks - 1 && d == 0
-                      ? const BorderRadiusDirectional.only(bottomStart: corner)
+                      ? BorderRadiusDirectional.only(bottomStart: corner)
                       : w == MonthGrid.weeks - 1 && d == 6
-                          ? const BorderRadiusDirectional.only(bottomEnd: corner)
+                          ? BorderRadiusDirectional.only(bottomEnd: corner)
                           : BorderRadiusDirectional.zero,
                   onPressed: onPressed,
                 ),
@@ -719,16 +725,16 @@ class _Grid extends StatelessWidget {
     );
 
     return DecoratedBox(
-      decoration: BoxDecoration(color: c.surface, borderRadius: MyDataRadii.lg, boxShadow: context.shadows.shadow1),
+      decoration: BoxDecoration(color: c.surface, borderRadius: MyDataRadii.lg(context.look), boxShadow: context.shadows.shadow1),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           ExcludeSemantics(child: headings),
           AnimatedSwitcher(
-            duration: MyDataMotion.fast,
-            switchInCurve: MyDataMotion.standard,
-            switchOutCurve: MyDataMotion.standard,
+            duration: context.motion.fast,
+            switchInCurve: context.motion.standard,
+            switchOutCurve: context.motion.standard,
             layoutBuilder: (current, previous) =>
                 Stack(alignment: Alignment.topCenter, children: [...previous, ?current]),
             child: weeksBody,
@@ -779,7 +785,7 @@ class _CellState extends State<_Cell> {
     final c = context.colors;
     final shape = widget.shape.resolve(Directionality.of(context));
     final sorted = MonthGrid.sortEvents(widget.events);
-    final shown = widget.notRead ? const <MonthGridEvent>[] : sorted;
+    final shown = widget.notRead ? <MonthGridEvent>[] : sorted;
     final ground = widget.notRead
         ? DataGround.surfaceSunken
         : (widget.selected ? DataGround.accentSoft : DataGround.surface);
@@ -794,9 +800,9 @@ class _CellState extends State<_Cell> {
     final visible = overflow ? shown.sublist(0, MonthGrid.maxLines - 1) : shown;
     final more = overflow
         ? Text('+${shown.length - visible.length}',
-            maxLines: 1, softWrap: false, style: MyDataType.caption.copyWith(color: c.inkMuted))
+            maxLines: 1, softWrap: false, style: context.typeScale.caption.copyWith(color: c.inkMuted))
         : null;
-    final captionLine = MonthGrid.captionLineHeight(scaler);
+    final captionLine = MonthGrid.captionLineHeight(context.look, scaler);
 
     final List<Widget> marks;
     if (widget.compact) {
@@ -810,7 +816,7 @@ class _CellState extends State<_Cell> {
               alignment: WrapAlignment.center,
               runAlignment: WrapAlignment.center,
               crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: MonthGrid.markGap,
+              spacing: MonthGrid.markGap(context.look),
               children: [
                 for (final e in visible) DataDot(colour: e.colour, ground: ground),
                 ?more,
@@ -824,20 +830,20 @@ class _CellState extends State<_Cell> {
         for (final e in visible)
           Row(children: [
             DataBar(colour: e.colour, ground: ground, height: captionLine),
-            const SizedBox(width: MonthGrid.markGap),
+            SizedBox(width: MonthGrid.markGap(context.look)),
             Expanded(
                 child: Text(e.title.isEmpty ? MonthGrid.noTitle : e.title,
                     maxLines: 1,
                     softWrap: false,
                     overflow: TextOverflow.ellipsis,
-                    style: MyDataType.caption.copyWith(color: e.title.isEmpty ? c.inkMuted : textColour))),
+                    style: context.typeScale.caption.copyWith(color: e.title.isEmpty ? c.inkMuted : textColour))),
           ]),
         ?more,
       ];
     }
 
     final content = Padding(
-      padding: EdgeInsets.all(widget.compact ? MonthGrid.compactCellPadding : MonthGrid.cellPadding),
+      padding: EdgeInsets.all(widget.compact ? MonthGrid.compactCellPadding(context.look) : MonthGrid.cellPadding(context.look)),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: widget.compact ? CrossAxisAlignment.center : CrossAxisAlignment.start,
@@ -845,19 +851,19 @@ class _CellState extends State<_Cell> {
           number,
           // Under 600px the dots sit right under the number's box (28px at the default text size), whose
           // own space below the digits is the gap, so the number and the dots fit a `row-height` cell.
-          for (final m in marks) ...[if (!widget.compact) const SizedBox(height: MonthGrid.lineGap), m],
+          for (final m in marks) ...[if (!widget.compact) SizedBox(height: MonthGrid.lineGap(context.look)), m],
         ],
       ),
     );
 
     final cell = ConstrainedBox(
-      constraints: BoxConstraints(minHeight: widget.compact ? MonthGrid.compactCellHeight : MonthGrid.cellMinHeight),
+      constraints: BoxConstraints(minHeight: widget.compact ? MonthGrid.compactCellHeight(context.look) : MonthGrid.cellMinHeight(context.look)),
       child: DecoratedBox(
         decoration: BoxDecoration(color: fill, borderRadius: shape),
         child: TweenAnimationBuilder<double>(
           tween: Tween(end: _hovered && !widget.selected ? 1 : 0),
-          duration: MyDataMotion.fast,
-          curve: MyDataMotion.standard,
+          duration: context.motion.fast,
+          curve: context.motion.standard,
           builder: (context, hover, child) => CustomPaint(
             foregroundPainter: _MarksPainter(
               shape: shape,
@@ -923,7 +929,7 @@ class _DayNumber extends StatelessWidget {
             : selected
                 ? c.ink
                 : (outside ? c.inkMuted : c.ink);
-    final box = MonthGrid.numberBoxSize(MediaQuery.textScalerOf(context));
+    final box = MonthGrid.numberBoxSize(context.look, MediaQuery.textScalerOf(context));
     return Container(
       width: box,
       height: box,
@@ -932,7 +938,7 @@ class _DayNumber extends StatelessWidget {
       child: Text('${day.day}',
           maxLines: 1,
           softWrap: false,
-          style: (today ? MyDataType.bodyStrong : MyDataType.body).copyWith(color: colour)),
+          style: (today ? context.typeScale.bodyStrong : context.typeScale.body).copyWith(color: colour)),
     );
   }
 }
@@ -952,7 +958,7 @@ class MonthGridDay extends StatefulWidget {
   const MonthGridDay({
     super.key,
     required this.day,
-    this.size = MyDataSize.controlHeight,
+    this.size,
     this.inMonth = true,
     this.today = false,
     this.selected = false,
@@ -964,8 +970,8 @@ class MonthGridDay extends StatefulWidget {
   /// The day; only the date is used.
   final DateTime day;
 
-  /// The cell's side: `control-height`, or `control-height-compact` in the Compact density.
-  final double size;
+  /// The cell's side: `control-height` (when null), or `control-height-compact` in the Compact density.
+  final double? size;
   final bool inMonth;
   final bool today;
   final bool selected;
@@ -992,18 +998,18 @@ class _MonthGridDayState extends State<MonthGridDay> {
     Widget number = _DayNumber(day: w.day, today: w.today, selected: w.selected, notRead: false, outside: !w.inMonth);
     if (w.unavailable) number = Opacity(opacity: Pressable.disabledOpacity, child: number);
     final cell = SizedBox.square(
-      dimension: w.size,
+      dimension: w.size ?? context.density.controlHeight,
       child: AnimatedContainer(
-        duration: MyDataMotion.fast,
-        curve: MyDataMotion.standard,
+        duration: context.motion.fast,
+        curve: context.motion.standard,
         decoration: BoxDecoration(color: w.selected ? c.accentSoft : c.accentSoft.withValues(alpha: 0), shape: BoxShape.circle),
         child: TweenAnimationBuilder<double>(
           tween: Tween(end: _hovered && !w.selected && !w.unavailable ? 1 : 0),
-          duration: MyDataMotion.fast,
-          curve: MyDataMotion.standard,
+          duration: context.motion.fast,
+          curve: context.motion.standard,
           builder: (context, hover, child) => CustomPaint(
             foregroundPainter: _MarksPainter(
-              shape: MyDataRadii.pill,
+              shape: MyDataRadii.pill(context.look),
               hover: hover,
               hoverColour: c.lineStrong,
               selected: w.selected,

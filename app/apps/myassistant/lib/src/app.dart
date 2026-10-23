@@ -12,7 +12,7 @@ import 'home.dart';
 /// myData shows here within one poll) and this device's mode (re-read from the device store on the same
 /// interval), and follows the system's reduced motion and reduced transparency.
 ///
-/// On a Mac it draws the Mac frame ([MacShell], [MacLook]): the system's window, translucent sidebar, font,
+/// On a Mac it draws the Mac frame ([MacShell], [MacWindow.of]): the system's window, translucent sidebar, font,
 /// colours and accent; this device's mode still chooses light or dark. Elsewhere the branded frame.
 class MyAssistantApp extends StatefulWidget {
   const MyAssistantApp({super.key, required this.host, this.store, this.backend, this.apps, this.openLink});

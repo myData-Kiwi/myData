@@ -119,11 +119,11 @@ class _MacStatusViewState extends State<MacStatusView> {
     final mac = context.mac;
     final demo = s.mode == StatusOutModeEnum.demo;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: MyDataSpace.s3),
+      padding: EdgeInsets.symmetric(vertical: context.space(3)),
       child: Row(
         children: [
           const KiwiTile(size: MyDataMacSize.avatar),
-          const SizedBox(width: MyDataSpace.s4),
+          SizedBox(width: context.space(4)),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -131,7 +131,7 @@ class _MacStatusViewState extends State<MacStatusView> {
                 Row(
                   children: [
                     MacStatusDot(color: context.toneStrong(MyDataTone.success)),
-                    const SizedBox(width: MyDataSpace.s2),
+                    SizedBox(width: context.space(2)),
                     Flexible(
                       child: Semantics(
                         header: true,
@@ -140,10 +140,10 @@ class _MacStatusViewState extends State<MacStatusView> {
                     ),
                   ],
                 ),
-                const SizedBox(height: MyDataSpace.s1),
+                SizedBox(height: context.space(1)),
                 Text(MacStatusView.line(s, widget.sources), style: MyDataMacType.body.copyWith(color: mac.secondaryLabel)),
                 if (demo) ...[
-                  const SizedBox(height: MyDataSpace.s2),
+                  SizedBox(height: context.space(2)),
                   Button(
                     label: MacStatusView.useYourData,
                     variant: ButtonVariant.filled,
@@ -182,7 +182,7 @@ class _MacStatusViewState extends State<MacStatusView> {
     final error = s.lastError;
     final m = s.model;
     return Padding(
-      padding: const EdgeInsetsDirectional.only(start: MyDataSpace.s5, bottom: MyDataSpace.s3),
+      padding: EdgeInsetsDirectional.only(start: context.space(5), bottom: context.space(3)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -195,7 +195,7 @@ class _MacStatusViewState extends State<MacStatusView> {
           _fact('Last error', error == null ? 'None' : formatWhen(error.at)),
           if (error != null)
             Padding(
-              padding: const EdgeInsets.fromLTRB(MyDataSpace.s3, MyDataSpace.s1, MyDataSpace.s3, 0),
+              padding: EdgeInsets.fromLTRB(context.space(3), context.space(1), context.space(3), 0),
               child: MonoWell(value: error.message),
             ),
         ],
@@ -211,11 +211,11 @@ class _MacStatusViewState extends State<MacStatusView> {
         child: ConstrainedBox(
           constraints: const BoxConstraints(minHeight: MyDataMacSize.rowHeight),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: MyDataSpace.s3, vertical: MyDataMacSize.tight),
+            padding: EdgeInsets.symmetric(horizontal: context.space(3), vertical: MyDataMacSize.tight),
             child: Row(
               children: [
                 Text(label, style: MyDataMacType.body.copyWith(color: mac.label)),
-                const SizedBox(width: MyDataSpace.s3),
+                SizedBox(width: context.space(3)),
                 Expanded(
                   child: SelectableText(
                     value,

@@ -11,7 +11,7 @@ Widget _card(BuildContext context, Widget child) => Container(
       padding: const EdgeInsets.all(MyDataSpace.s5),
       decoration: BoxDecoration(
         color: context.colors.surface,
-        borderRadius: MyDataRadii.lg,
+        borderRadius: MyDataRadii.lg(kiwiLook),
         boxShadow: context.shadows.shadow1,
       ),
       child: child,
@@ -103,7 +103,7 @@ void main() {
         .toList();
     expect(decorations.map((d) => d.color), [context.colors.surfaceSunken, context.colors.accent]);
     for (final d in decorations) {
-      expect(d.borderRadius, MyDataRadii.pill);
+      expect(d.borderRadius, MyDataRadii.pill(kiwiLook));
     }
   });
 

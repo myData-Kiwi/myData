@@ -72,7 +72,7 @@ class MergePane extends StatelessWidget {
             for (final x in contacts) ContactPair.ofContact(x, caption: added(x)),
           ];
           final preview = s.preview;
-          final mac = MacLook.of(context);
+          final mac = MacWindow.of(context);
           final after = preview == null
               ? (s.loading ? null : PairAfter(title: PairAfter.mergingTitle, caption: afterCaption(s.ids.length), fields: const {}))
               : ContactPair.afterOfMerge(
@@ -136,17 +136,17 @@ class MergePane extends StatelessWidget {
               child: FormBusy(
                 busy: s.working,
                 child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
-                  Semantics(header: true, child: Text(title, style: context.type(MyDataType.displayLg).copyWith(color: c.ink))),
+                  Semantics(header: true, child: Text(title, style: context.type(MyDataTypeRole.displayLg).copyWith(color: c.ink))),
                   if (reason != null) ...[
-                    const SizedBox(height: MyDataSpace.s2),
-                    Text(reason!, style: context.type(MyDataType.body).copyWith(color: c.inkMuted)),
+                    SizedBox(height: context.space(2)),
+                    Text(reason!, style: context.type(MyDataTypeRole.body).copyWith(color: c.inkMuted)),
                   ],
-                  const SizedBox(height: MyDataSpace.s4),
+                  SizedBox(height: context.space(4)),
                   if (names && mac)
                     // The Mac frame: a pop-up button after its label, as a Mac form writes it.
                     Row(children: [
                       Text('$keepLabel:', style: MyDataMacType.body.copyWith(color: context.mac.label)),
-                      const SizedBox(width: MyDataSpace.s2),
+                      SizedBox(width: context.space(2)),
                       Flexible(
                         child: MacPopUpButton<String>(
                           label: keepLabel,
@@ -157,7 +157,7 @@ class MergePane extends StatelessWidget {
                           autofocus: true,
                         ),
                       ),
-                      const SizedBox(width: MyDataSpace.s4),
+                      SizedBox(width: context.space(4)),
                       const Spacer(),
                       ButtonRow(alignment: WrapAlignment.end, children: actions),
                     ])
@@ -183,7 +183,7 @@ class MergePane extends StatelessWidget {
                         ),
                       ),
                     ),
-                  SizedBox(height: mac ? MyDataSpace.s5 : MyDataSpace.s4),
+                  SizedBox(height: mac ? context.space(5) : context.space(4)),
                   pair,
                 ]),
               ),

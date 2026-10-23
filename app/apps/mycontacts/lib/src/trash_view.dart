@@ -206,11 +206,11 @@ class _TrashViewState extends State<TrashView> {
       padding: padding,
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         if (!_phone) ...[
-          Semantics(header: true, child: Text(TrashView.title, style: MyDataType.title.copyWith(color: c.ink))),
-          const SizedBox(height: MyDataSpace.s2),
+          Semantics(header: true, child: Text(TrashView.title, style: context.typeScale.title.copyWith(color: c.ink))),
+          SizedBox(height: context.space(2)),
         ],
-        Text(TrashView.intro, style: MyDataType.body.copyWith(color: c.inkMuted)),
-        const SizedBox(height: MyDataSpace.s4),
+        Text(TrashView.intro, style: context.typeScale.body.copyWith(color: c.inkMuted)),
+        SizedBox(height: context.space(4)),
         MultiSelectList<String>(
           controller: _selection,
           label: TrashView.title,
@@ -235,13 +235,13 @@ class _TrashViewState extends State<TrashView> {
     final contact = t.contact;
     return Row(children: [
       Avatar(name: t.title, givenName: contact?.givenName ?? '', familyName: contact?.familyName ?? ''),
-      const SizedBox(width: GroupedRow.gap),
+      SizedBox(width: GroupedRow.gap(context.look)),
       Expanded(
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
           Text(t.title,
-              maxLines: 1, overflow: TextOverflow.ellipsis, style: MyDataType.bodyStrong.copyWith(color: c.ink)),
+              maxLines: 1, overflow: TextOverflow.ellipsis, style: context.typeScale.bodyStrong.copyWith(color: c.ink)),
           Text('Deleted ${TrashView.day(t.deletedAt)}',
-              maxLines: 1, overflow: TextOverflow.ellipsis, style: MyDataType.caption.copyWith(color: c.inkMuted)),
+              maxLines: 1, overflow: TextOverflow.ellipsis, style: context.typeScale.caption.copyWith(color: c.inkMuted)),
         ]),
       ),
     ]);
@@ -275,8 +275,8 @@ class _TrashViewState extends State<TrashView> {
     }
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       if (error != null) ...[
-        Semantics(liveRegion: true, child: Text(error, style: context.type(MyDataType.body).copyWith(color: c.danger))),
-        const SizedBox(height: MyDataSpace.s4),
+        Semantics(liveRegion: true, child: Text(error, style: context.type(MyDataTypeRole.body).copyWith(color: c.danger))),
+        SizedBox(height: context.space(4)),
       ],
       body,
     ]);
@@ -290,7 +290,7 @@ class _TrashViewState extends State<TrashView> {
       SizedBox(
         width: MyDataMacSize.listWidth,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(vertical: MyDataSpace.s2),
+          padding: EdgeInsets.symmetric(vertical: context.space(2)),
           child: MultiSelectList<String>(
             controller: _selection,
             label: TrashView.title,
@@ -307,7 +307,7 @@ class _TrashViewState extends State<TrashView> {
       Expanded(
         child: SingleChildScrollView(
           controller: _paneScroll,
-          padding: const EdgeInsets.fromLTRB(MyDataSpace.s8, MyDataSpace.s6, MyDataSpace.s8, MyDataSpace.s8),
+          padding: EdgeInsets.fromLTRB(context.space(8), context.space(6), context.space(8), context.space(8)),
           child: Align(
             alignment: AlignmentDirectional.topStart,
             child: ConstrainedBox(
@@ -338,15 +338,15 @@ class _TrashViewState extends State<TrashView> {
   }
 
   Widget _layout(BuildContext context) {
-    if (MacLook.of(context)) return _macLayout();
+    if (MacWindow.of(context)) return _macLayout();
     final layout = AppLayout.of(context);
-    final pad = PageScaffold.paddingFor(layout);
+    final pad = PageScaffold.paddingFor(context.look, layout);
     final insets = MediaQuery.paddingOf(context);
     if (layout == AppLayout.phone) {
       return _list(EdgeInsets.fromLTRB(pad + insets.left, insets.top, pad + insets.right, pad + insets.bottom));
     }
     return LayoutBuilder(builder: (context, constraints) {
-      const gap = MyDataSpace.s8;
+      final gap = context.space(8);
       final listWidth = (constraints.maxWidth * 0.4 - pad - gap / 2).clamp(240.0, 340.0);
       return Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         SizedBox(
@@ -361,7 +361,7 @@ class _TrashViewState extends State<TrashView> {
               alignment: AlignmentDirectional.topStart,
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: MyDataSize.contentMax),
-                child: AnimatedSwitcher(duration: MyDataMotion.fast, child: KeyedSubtree(
+                child: AnimatedSwitcher(duration: context.motion.fast, child: KeyedSubtree(
                   key: ValueKey(_selection.selected.join(',')),
                   child: _pane(),
                 )),
@@ -383,7 +383,7 @@ class _TrashViewState extends State<TrashView> {
             builder: (context, _) {
               final t = _item(id);
               return SingleChildScrollView(
-                padding: const EdgeInsets.all(MyDataSpace.s4),
+                padding: EdgeInsets.all(context.space(4)),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                   Align(
                     alignment: AlignmentDirectional.centerStart,
@@ -394,7 +394,7 @@ class _TrashViewState extends State<TrashView> {
                       onPressed: () => Navigator.of(context).maybePop(),
                     ),
                   ),
-                  const SizedBox(height: MyDataSpace.s4),
+                  SizedBox(height: context.space(4)),
                   if (t != null) _One(item: t, onRestore: () => _restore([id]), onPurge: () => _purge([id])),
                 ]),
               );
@@ -418,16 +418,16 @@ class _One extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    if (MacLook.of(context)) return _mac(context);
+    if (MacWindow.of(context)) return _mac(context);
     return Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-      Semantics(header: true, child: Text(item.title, style: context.type(MyDataType.displayLg).copyWith(color: c.ink))),
-      const SizedBox(height: MyDataSpace.s2),
+      Semantics(header: true, child: Text(item.title, style: context.type(MyDataTypeRole.displayLg).copyWith(color: c.ink))),
+      SizedBox(height: context.space(2)),
       Text(
         'Deleted on ${TrashView.day(item.deletedAt)}. It is deleted for good on ${TrashView.day(item.purgeAfter)}, '
         'unless you restore it.',
-        style: context.type(MyDataType.body).copyWith(color: c.inkMuted),
+        style: context.type(MyDataTypeRole.body).copyWith(color: c.inkMuted),
       ),
-      const SizedBox(height: MultiSelectSummary.actionsGap),
+      SizedBox(height: MultiSelectSummary.actionsGap(context.look)),
       ButtonRow(children: [
         Button(label: TrashView.restoreLabel, onPressed: onRestore),
         Button(label: TrashView.purgeLabel, variant: ButtonVariant.plainDanger, onPressed: onPurge),
@@ -452,12 +452,12 @@ class _One extends StatelessWidget {
         name: item.title,
         subtitle: 'Deleted ${TrashView.day(item.deletedAt)}',
       ),
-      const SizedBox(height: MyDataSpace.s5),
+      SizedBox(height: context.space(5)),
       Text(
         'It is deleted for good on ${TrashView.day(item.purgeAfter)}, unless you restore it.',
         style: MyDataMacType.callout.copyWith(color: mac.secondaryLabel),
       ),
-      const SizedBox(height: MyDataSpace.s4),
+      SizedBox(height: context.space(4)),
       ButtonRow(children: [
         Button(label: TrashView.restoreLabel, variant: ButtonVariant.filled, onPressed: onRestore),
         Button(label: TrashView.purgeLabel, variant: ButtonVariant.tonal, onPressed: onPurge),

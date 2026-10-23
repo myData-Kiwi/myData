@@ -177,7 +177,7 @@ void main() {
       final pill = find.ancestor(of: find.text('Albums'), matching: find.byType(AnimatedContainer)).last;
       final box = tester.widget<AnimatedContainer>(pill).decoration! as BoxDecoration;
       expect(box.color, c.accentSoft);
-      expect(box.borderRadius, MyDataRadii.pill);
+      expect(box.borderRadius, MyDataRadii.pill(kiwiLook));
       expect(tester.getSize(pill).height, greaterThanOrEqualTo(MyDataSize.controlHeight));
     });
 
@@ -241,7 +241,7 @@ void main() {
           reduceMotion: true,
         ));
         await tester.pump();
-        expect(padding.bottom, greaterThanOrEqualTo(FloatingBar.height + 2 * FloatingBarHost.inset),
+        expect(padding.bottom, greaterThanOrEqualTo(FloatingBar.height(kiwiLook) + 2 * FloatingBarHost.inset(kiwiLook)),
             reason: 'the last section must clear the tab bar (${connection.state})');
         expect(padding.top, 0, reason: 'the frame has already kept clear of the top (${connection.state})');
       }

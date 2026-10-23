@@ -380,7 +380,7 @@ void main() {
       expect(tester.takeException(), isNull);
       final value = tester.getRect(find.byType(SelectableText));
       final button = tester.getRect(_copyButton(find.byType(FieldRow)));
-      expect(value.right, lessThanOrEqualTo(button.left - FieldRow.gap));
+      expect(value.right, lessThanOrEqualTo(button.left - FieldRow.gap(kiwiLook)));
       expect(value.height, greaterThan(MyDataType.body.fontSize! * MyDataType.body.height! * 1.5));
     });
 
@@ -388,7 +388,7 @@ void main() {
       await _pump(tester, const FieldRow(kind: FieldKind.phone, label: 'Mobile', value: '+44 7700 900123'));
       final row = find.byType(FieldRow);
       final pressable = tester.widget<Pressable>(_copyButton(row));
-      expect(pressable.borderRadius, MyDataRadii.pill);
+      expect(pressable.borderRadius, MyDataRadii.pill(kiwiLook));
       expect(pressable.hoverFill, _kiwi.surfaceHover);
       expect(_copyIcon(tester, row), Icons.content_copy_outlined);
       expect(tester.widget<Icon>(find.byType(Icon)).color, _kiwi.inkMuted);
@@ -758,7 +758,7 @@ void main() {
       );
       final groups = find.byType(FieldGroup);
       expect(groups, findsNWidgets(6));
-      expect(tester.getTopLeft(groups.at(1)).dy - tester.getBottomLeft(groups.at(0)).dy, FieldGroups.gap);
+      expect(tester.getTopLeft(groups.at(1)).dy - tester.getBottomLeft(groups.at(0)).dy, FieldGroups.gap(kiwiLook));
     });
 
     testWidgets('a kind with no values, or only empty values, is left out entirely: no Notes from This Mac', (

@@ -213,7 +213,7 @@ class _HomeShellState extends State<HomeShell> {
           ),
       ],
       onSettings: () => _select(_settings),
-      child: MacLook.of(context)
+      child: MacWindow.of(context)
           // Transparent: the window's sidebar material shows through the sidebar.
           ? Scaffold(
               backgroundColor: Colors.transparent,

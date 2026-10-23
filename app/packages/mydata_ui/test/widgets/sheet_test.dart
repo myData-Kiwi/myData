@@ -145,7 +145,7 @@ void main() {
         await drag.moveBy(const Offset(0, 30));
       }
       await tester.pump();
-      expect(tester.getTopLeft(find.text('Edit contact')).dy - top, lessThanOrEqualTo(Sheet.resistance + 0.5));
+      expect(tester.getTopLeft(find.text('Edit contact')).dy - top, lessThanOrEqualTo(Sheet.resistance(kiwiLook) + 0.5));
       await drag.up();
       await tester.pumpAndSettle();
       expect(find.text(discardTitle), findsOneWidget);
@@ -219,7 +219,7 @@ void main() {
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
       final editor = find.ancestor(of: find.text('Edit contact'), matching: find.byType(Container)).last;
-      expect(tester.getTopLeft(editor).dy, Sheet.topGap);
+      expect(tester.getTopLeft(editor).dy, Sheet.topGap(kiwiLook));
       expect(tester.getBottomLeft(editor).dy, 667);
       final c = tester.element(editor).colors;
       expect((tester.widget<Container>(editor).decoration! as BoxDecoration).color, c.surface);

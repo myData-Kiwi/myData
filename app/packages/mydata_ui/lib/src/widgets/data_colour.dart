@@ -1,8 +1,8 @@
 import 'package:flutter/widgets.dart';
 
 import '../generated/tokens.g.dart';
-import '../mac/mac_theme.dart' show MacLook;
-import '../theme.dart';
+import '../mac/mac_window.dart';
+import '../theme/theme.dart';
 import 'group_frame.dart' show GroupPartShape;
 import 'grouped_list.dart';
 import 'pressable.dart';
@@ -85,7 +85,7 @@ const _edgeWidth = 1.0;
 Border? _edge(BuildContext context, MyDataColors c, bool edge) => edge
     ? Border.all(
         color: c.lineStrong,
-        width: MacLook.of(context) ? MyDataMacSize.hairline : _edgeWidth,
+        width: MacWindow.of(context) ? MyDataMacSize.hairline : _edgeWidth,
         strokeAlign: BorderSide.strokeAlignInside,
       )
     : null;
@@ -128,7 +128,7 @@ class DataDot extends StatelessWidget {
   final bool slot;
 
   /// Spec: "an 8px circle" (the `space-2` step).
-  static const diameter = MyDataSpace.s2;
+  static double diameter(MyDataLook look) => look.space(2);
 
   @override
   Widget build(BuildContext context) {
@@ -136,11 +136,11 @@ class DataDot extends StatelessWidget {
     final s = _swatch(c, colour, ground, alsoOn);
     Widget dot = ExcludeSemantics(
         child: Container(
-            width: diameter,
-            height: diameter,
+            width: diameter(context.look),
+            height: diameter(context.look),
             decoration: BoxDecoration(color: s.fill, shape: BoxShape.circle, border: _edge(context, c, s.edge))));
     if (slot) {
-      dot = SizedBox.square(dimension: MyDataSize.iconTile, child: Center(child: dot));
+      dot = SizedBox.square(dimension: context.density.iconTile, child: Center(child: dot));
     }
     return dot;
   }
@@ -176,10 +176,10 @@ class DataBar extends StatelessWidget {
   final double? height;
 
   /// Spec: "`space-1` (4px) wide".
-  static const width = MyDataSpace.s1;
+  static double width(MyDataLook look) => look.space(1);
 
   /// The height with no [height] and no tight height from the parent: one line of `body`.
-  static final double fallbackHeight = MyDataType.body.fontSize! * MyDataType.body.height!;
+  static double fallbackHeight(MyDataLook look) => look.typeScale.body.fontSize! * look.typeScale.body.height!;
 
   @override
   Widget build(BuildContext context) {
@@ -187,7 +187,7 @@ class DataBar extends StatelessWidget {
     final s = _swatch(c, colour, ground, alsoOn);
     return ExcludeSemantics(
         child: DecoratedBox(
-            decoration: BoxDecoration(color: s.fill, borderRadius: MyDataRadii.pill, border: _edge(context, c, s.edge)),
+            decoration: BoxDecoration(color: s.fill, borderRadius: MyDataRadii.pill(context.look), border: _edge(context, c, s.edge)),
             child: _BarBox(height: height)));
   }
 }
@@ -201,14 +201,23 @@ class _BarBox extends LeafRenderObjectWidget {
   final double? height;
 
   @override
-  RenderObject createRenderObject(BuildContext context) => _RenderBarBox(height);
+  RenderObject createRenderObject(BuildContext context) => _RenderBarBox(height, context.look);
 
   @override
-  void updateRenderObject(BuildContext context, _RenderBarBox renderObject) => renderObject.height = height;
+  void updateRenderObject(BuildContext context, _RenderBarBox renderObject) => renderObject
+    ..height = height
+    ..look = context.look;
 }
 
 class _RenderBarBox extends RenderBox {
-  _RenderBarBox(this._height);
+  _RenderBarBox(this._height, this._look);
+
+  MyDataLook _look;
+  set look(MyDataLook value) {
+    if (value == _look) return;
+    _look = value;
+    markNeedsLayout();
+  }
 
   double? _height;
   set height(double? value) {
@@ -218,20 +227,20 @@ class _RenderBarBox extends RenderBox {
   }
 
   double _heightFor(BoxConstraints constraints) =>
-      _height ?? (constraints.hasTightHeight ? constraints.maxHeight : DataBar.fallbackHeight);
+      _height ?? (constraints.hasTightHeight ? constraints.maxHeight : DataBar.fallbackHeight(_look));
 
   @override
   Size computeDryLayout(covariant BoxConstraints constraints) =>
-      constraints.constrain(Size(DataBar.width, _heightFor(constraints)));
+      constraints.constrain(Size(DataBar.width(_look), _heightFor(constraints)));
 
   @override
   void performLayout() => size = computeDryLayout(constraints);
 
   @override
-  double computeMinIntrinsicWidth(double height) => DataBar.width;
+  double computeMinIntrinsicWidth(double height) => DataBar.width(_look);
 
   @override
-  double computeMaxIntrinsicWidth(double height) => DataBar.width;
+  double computeMaxIntrinsicWidth(double height) => DataBar.width(_look);
 
   @override
   double computeMinIntrinsicHeight(double width) => _height ?? 0;
@@ -311,23 +320,23 @@ class CalendarListRow extends GroupedRow {
             button: false,
             toggled: shown,
             child: ConstrainedBox(
-                constraints: const BoxConstraints(minHeight: MyDataSize.rowHeight),
+                constraints: BoxConstraints(minHeight: context.density.rowHeight),
                 child: Padding(
-                    padding: GroupedRow.padding,
+                    padding: GroupedRow.padding(context.look),
                     child: Row(children: [
                       // The row's hover and press fill is `surface-hover`: the edge rule covers both grounds.
                       DataDot.slot(colour: colour, alsoOn: const [DataGround.surfaceHover]),
-                      const SizedBox(width: GroupedRow.gap),
+                      SizedBox(width: GroupedRow.gap(context.look)),
                       Expanded(
                           child: Column(
                               mainAxisSize: MainAxisSize.min,
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                             // The name is already in the accessible name ("Show Family").
-                            ExcludeSemantics(child: Text(name, style: MyDataType.bodyStrong.copyWith(color: c.ink))),
-                            if (caption != null) Text(caption!, style: MyDataType.caption.copyWith(color: c.inkMuted))
+                            ExcludeSemantics(child: Text(name, style: context.typeScale.bodyStrong.copyWith(color: c.ink))),
+                            if (caption != null) Text(caption!, style: context.typeScale.caption.copyWith(color: c.inkMuted))
                           ])),
-                      const SizedBox(width: GroupedRow.gap),
+                      SizedBox(width: GroupedRow.gap(context.look)),
                       SwitchTrack(value: shown)
                     ])))));
   }

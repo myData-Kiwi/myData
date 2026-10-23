@@ -1,0 +1,13 @@
+{
+  "format": 1,
+  "id": "11111111-2222-3333-4444-555555555555",
+  "name": "System, red",
+  "version": "1.0.0",
+  "licence": "NOASSERTION",
+  "frame": "system",
+  "default-palette": "red",
+  "palettes": [
+    { "id": "red", "name": "Red", "light": { "accent": "#B3261E", "ink": "#000000" }, "dark": { "accent": "#F2867E" } }
+  ],
+  "shape": { "corners": "cut" }
+}

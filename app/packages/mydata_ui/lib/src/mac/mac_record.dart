@@ -5,6 +5,7 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 
 import '../generated/tokens.g.dart';
+import '../theme/theme.dart';
 import '../widgets/menu.dart';
 import 'mac_overlays.dart' show MacMenuLook;
 import 'mac_theme.dart';
@@ -31,10 +32,10 @@ class MacRecordHeader extends StatelessWidget {
   final Widget? badge;
 
   /// Between the avatar and the name.
-  static const gap = MyDataSpace.s4;
+  static double gap(MyDataLook look) => look.space(4);
 
   /// Between the round actions.
-  static const actionGap = MyDataSpace.s4;
+  static double actionGap(MyDataLook look) => look.space(4);
 
   @override
   Widget build(BuildContext context) {
@@ -43,12 +44,12 @@ class MacRecordHeader extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         avatar,
-        const SizedBox(width: gap),
+        SizedBox(width: gap(context.look)),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: MyDataSpace.s1),
+              SizedBox(height: context.space(1)),
               SelectionArea(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -60,7 +61,7 @@ class MacRecordHeader extends StatelessWidget {
                           child: Text(name, style: MyDataMacType.name.copyWith(color: mac.label)),
                         ),
                       ),
-                      if (badge != null) ...[const SizedBox(width: MyDataSpace.s2), badge!],
+                      if (badge != null) ...[SizedBox(width: context.space(2)), badge!],
                     ]),
                     if (subtitle.isNotEmpty)
                       Text(subtitle, style: MyDataMacType.body.copyWith(color: mac.secondaryLabel)),
@@ -68,8 +69,8 @@ class MacRecordHeader extends StatelessWidget {
                 ),
               ),
               if (actions.isNotEmpty) ...[
-                const SizedBox(height: MyDataSpace.s3),
-                Wrap(spacing: actionGap, runSpacing: MyDataSpace.s2, children: actions),
+                SizedBox(height: context.space(3)),
+                Wrap(spacing: actionGap(context.look), runSpacing: context.space(2), children: actions),
               ],
             ],
           ),
@@ -147,7 +148,7 @@ class _MacQuickActionState extends State<MacQuickAction> {
                   ),
                   child: Icon(widget.icon, size: MyDataMacSize.icon, color: tint),
                 ),
-                const SizedBox(height: MyDataSpace.s1),
+                SizedBox(height: context.space(1)),
                 Text(widget.label, style: MyDataMacType.action.copyWith(color: enabled ? mac.secondaryLabel : tint)),
               ],
             ),
@@ -198,14 +199,14 @@ class MacFieldTable extends StatelessWidget {
   static const openMenuLabel = 'Open';
 
   /// Between the label column and the values.
-  static const gap = MyDataSpace.s3;
+  static double gap(MyDataLook look) => look.space(3);
 
   @override
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
       for (final (i, group) in groups.where((g) => g.isNotEmpty).indexed) ...[
-        if (i > 0) const SizedBox(height: MyDataSpace.s4),
+        if (i > 0) SizedBox(height: context.space(4)),
         for (final field in group) _FieldLine(field: field),
       ],
     ],
@@ -257,7 +258,7 @@ class _FieldLineState extends State<_FieldLine> {
       style: MyDataMacType.callout.copyWith(color: _copied ? mac.accent : mac.secondaryLabel),
     );
     Widget value = Container(
-      padding: const EdgeInsets.symmetric(horizontal: MyDataSpace.s1, vertical: 2 * MyDataMacSize.hairline),
+      padding: EdgeInsets.symmetric(horizontal: context.space(1), vertical: 2 * MyDataMacSize.hairline),
       decoration: BoxDecoration(
         color: _hovered ? mac.hover : null,
         borderRadius: const BorderRadius.all(Radius.circular(MyDataMacRadius.selection)),
@@ -298,7 +299,7 @@ class _FieldLineState extends State<_FieldLine> {
                 child: label,
               ),
             ),
-            const SizedBox(width: MacFieldTable.gap - MyDataSpace.s1),
+            SizedBox(width: MacFieldTable.gap(context.look) - context.space(1)),
             Flexible(child: value),
           ],
         ),

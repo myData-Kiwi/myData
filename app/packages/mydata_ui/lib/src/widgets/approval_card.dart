@@ -1,8 +1,8 @@
 import 'package:flutter/widgets.dart';
 
 import '../generated/tokens.g.dart';
-import '../motion.dart';
-import '../theme.dart';
+import '../theme/motion.dart';
+import '../theme/theme.dart';
 import 'badge.dart';
 import 'button.dart';
 import 'pressable.dart';
@@ -125,20 +125,20 @@ class ApprovalCard extends StatefulWidget {
   static const sourcePrefix = 'Source: ';
 
   /// Card padding: `space-5` (design/README.md "Cards have space-5 padding"; the preview's 20px).
-  static const padding = MyDataSpace.s5;
+  static double padding(MyDataLook look) => look.space(5);
 
   /// The card's bottom padding when the source line has a link: `space-2`, plus the link target's own air.
-  static const linkedBottomPadding = MyDataSpace.s2;
+  static double linkedBottomPadding(MyDataLook look) => look.space(2);
 
   /// Between the header, the well, the source line and the actions. The preview's 14px; the nearest
   /// token, `space-3`.
-  static const gap = MyDataSpace.s3;
+  static double gap(MyDataLook look) => look.space(3);
 
   /// Between the question and the chip (the preview's 12px).
-  static const headerGap = MyDataSpace.s3;
+  static double headerGap(MyDataLook look) => look.space(3);
 
   /// The well's padding. The preview's 14px 16px: `space-3` (nearest to 14) by `space-4`.
-  static const wellPadding = EdgeInsets.symmetric(vertical: MyDataSpace.s3, horizontal: MyDataSpace.s4);
+  static EdgeInsets wellPadding(MyDataLook look) => EdgeInsets.symmetric(vertical: look.space(3), horizontal: look.space(4));
 
   /// Preview: the argument names sit in a 72px column. A minimum: a longer name widens the column, up to
   /// [nameMaxFraction] of the well.
@@ -148,8 +148,8 @@ class ApprovalCard extends StatefulWidget {
   static const nameMaxFraction = 0.4;
 
   /// Preview: 8px between arguments (`space-2`) and 12px between a name and its value (`space-3`).
-  static const rowGap = MyDataSpace.s2;
-  static const columnGap = MyDataSpace.s3;
+  static double rowGap(MyDataLook look) => look.space(2);
+  static double columnGap(MyDataLook look) => look.space(3);
 
   /// Whether [value] reads as an address or a path, so it is shown in `mono` (design/README.md "Type":
   /// mono for paths, addresses and copied values): an email address (`Name <a@b.c>` too), a URL, an
@@ -198,12 +198,12 @@ class _ApprovalCardState extends State<ApprovalCard> {
     super.dispose();
   }
 
-  static const padding = ApprovalCard.padding;
-  static const linkedBottomPadding = ApprovalCard.linkedBottomPadding;
-  static const gap = ApprovalCard.gap;
-  static const headerGap = ApprovalCard.headerGap;
-  static const rowGap = ApprovalCard.rowGap;
-  static const columnGap = ApprovalCard.columnGap;
+  double get padding => ApprovalCard.padding(context.look);
+  double get linkedBottomPadding => ApprovalCard.linkedBottomPadding(context.look);
+  double get gap => ApprovalCard.gap(context.look);
+  double get headerGap => ApprovalCard.headerGap(context.look);
+  double get rowGap => ApprovalCard.rowGap(context.look);
+  double get columnGap => ApprovalCard.columnGap(context.look);
   static const sourcePrefix = ApprovalCard.sourcePrefix;
 
   bool get _pending => widget.state == ApprovalState.pending;
@@ -219,8 +219,8 @@ class _ApprovalCardState extends State<ApprovalCard> {
     // after it the actions need no gap, and the card's bottom padding gives up that air: when the link line
     // is last (after a decision) the card still ends about `space-5` below the text.
     final lastPadding = linked
-        ? const EdgeInsets.only(bottom: padding - linkedBottomPadding)
-        : const EdgeInsets.only(top: gap);
+        ? EdgeInsets.only(bottom: padding - linkedBottomPadding)
+        : EdgeInsets.only(top: gap);
     final Widget bottom = switch (widget.state) {
       ApprovalState.pending => Padding(
         key: const ValueKey('actions'),
@@ -240,16 +240,16 @@ class _ApprovalCardState extends State<ApprovalCard> {
       ApprovalState.failed when widget.error != null => Padding(
         key: const ValueKey('error'),
         padding: lastPadding,
-        child: Text(widget.error!, style: MyDataType.body.copyWith(color: c.danger)),
+        child: Text(widget.error!, style: context.typeScale.body.copyWith(color: c.danger)),
       ),
       _ => const SizedBox(key: ValueKey('none'), width: double.infinity),
     };
     final bottomKey = bottom.key;
 
     Widget bottomSwitcher = AnimatedSwitcher(
-      duration: MyDataMotion.fast,
-      switchInCurve: MyDataMotion.standard,
-      switchOutCurve: MyDataMotion.standard,
+      duration: context.motion.fast,
+      switchInCurve: context.motion.standard,
+      switchOutCurve: context.motion.standard,
       layoutBuilder: (current, previous) => Stack(alignment: Alignment.topLeft, children: [...previous, ?current]),
       // Outgoing actions fade out but can no longer be pressed, focused or read.
       transitionBuilder: (child, animation) => FadeTransition(
@@ -264,20 +264,20 @@ class _ApprovalCardState extends State<ApprovalCard> {
     );
     if (!reduced) {
       bottomSwitcher = AnimatedSize(
-        duration: MyDataMotion.fast,
-        curve: MyDataMotion.standard,
+        duration: context.motion.fast,
+        curve: context.motion.standard,
         alignment: Alignment.topLeft,
         child: bottomSwitcher,
       );
     }
 
     final card = AnimatedContainer(
-      duration: MyDataMotion.fast,
-      curve: MyDataMotion.standard,
+      duration: context.motion.fast,
+      curve: context.motion.standard,
       padding: EdgeInsets.fromLTRB(padding, padding, padding, linked ? linkedBottomPadding : padding),
       decoration: BoxDecoration(
         color: c.surface,
-        borderRadius: MyDataRadii.lg,
+        borderRadius: MyDataRadii.lg(context.look),
         boxShadow: _pending ? context.shadows.shadow2 : context.shadows.shadow1,
       ),
       child: Column(
@@ -285,9 +285,9 @@ class _ApprovalCardState extends State<ApprovalCard> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _header(c, reduced),
-          const SizedBox(height: gap),
+          SizedBox(height: gap),
           _well(c),
-          if (hasSource) ...[if (!linked) const SizedBox(height: gap), _source(c)],
+          if (hasSource) ...[if (!linked) SizedBox(height: gap), _source(c)],
           bottomSwitcher,
         ],
       ),
@@ -302,7 +302,7 @@ class _ApprovalCardState extends State<ApprovalCard> {
         // The region's semantics stay as they are; this node exists for keyboard focus only.
         includeFocusSemantics: false,
         onShowFocusHighlight: (v) => setState(() => _ring = v),
-        child: FocusRing(visible: _ring, borderRadius: MyDataRadii.lg, child: card),
+        child: FocusRing(visible: _ring, borderRadius: MyDataRadii.lg(context.look), child: card),
       ),
     );
   }
@@ -331,16 +331,16 @@ class _ApprovalCardState extends State<ApprovalCard> {
       ),
     };
     Widget switcher = AnimatedSwitcher(
-      duration: MyDataMotion.fast,
-      switchInCurve: MyDataMotion.standard,
-      switchOutCurve: MyDataMotion.standard,
+      duration: context.motion.fast,
+      switchInCurve: context.motion.standard,
+      switchOutCurve: context.motion.standard,
       layoutBuilder: (current, previous) => Stack(alignment: Alignment.centerRight, children: [...previous, ?current]),
       child: chip,
     );
     if (!reduced) {
       switcher = AnimatedSize(
-        duration: MyDataMotion.fast,
-        curve: MyDataMotion.standard,
+        duration: context.motion.fast,
+        curve: context.motion.standard,
         alignment: Alignment.centerRight,
         child: switcher,
       );
@@ -350,10 +350,10 @@ class _ApprovalCardState extends State<ApprovalCard> {
         Expanded(
           child: Semantics(
             header: true,
-            child: Text(widget.question, style: MyDataType.title.copyWith(color: c.ink)),
+            child: Text(widget.question, style: context.typeScale.title.copyWith(color: c.ink)),
           ),
         ),
-        const SizedBox(width: headerGap),
+        SizedBox(width: headerGap),
         // The chip changes when the decision lands; screen readers announce the new word.
         Semantics(liveRegion: true, child: switcher),
       ],
@@ -361,7 +361,7 @@ class _ApprovalCardState extends State<ApprovalCard> {
   }
 
   Widget _well(MyDataColors c) {
-    final nameStyle = MyDataType.caption.copyWith(color: c.inkMuted);
+    final nameStyle = context.typeScale.caption.copyWith(color: c.inkMuted);
     TableRow row(int i, String name, String value) {
       final top = i == 0 ? 0.0 : rowGap;
       final Widget shown = value.isEmpty
@@ -370,8 +370,8 @@ class _ApprovalCardState extends State<ApprovalCard> {
           : Text(
               value,
               style: ApprovalCard.looksLikeAddress(value)
-                  ? MyDataType.mono.copyWith(color: c.ink)
-                  : MyDataType.body.copyWith(color: c.ink),
+                  ? context.typeScale.mono.copyWith(color: c.ink)
+                  : context.typeScale.body.copyWith(color: c.ink),
             );
       return TableRow(
         children: [
@@ -388,10 +388,10 @@ class _ApprovalCardState extends State<ApprovalCard> {
     }
 
     return Container(
-      padding: ApprovalCard.wellPadding,
-      decoration: BoxDecoration(color: c.surfaceSunken, borderRadius: MyDataRadii.md),
+      padding: ApprovalCard.wellPadding(context.look),
+      decoration: BoxDecoration(color: c.surfaceSunken, borderRadius: MyDataRadii.md(context.look)),
       child: Table(
-        columnWidths: const {
+        columnWidths: {
           0: MinColumnWidth(
             MaxColumnWidth(FixedColumnWidth(ApprovalCard.nameWidth + columnGap), IntrinsicColumnWidth()),
             FractionColumnWidth(ApprovalCard.nameMaxFraction),
@@ -406,7 +406,7 @@ class _ApprovalCardState extends State<ApprovalCard> {
   }
 
   Widget _source(MyDataColors c) {
-    final style = MyDataType.caption.copyWith(color: c.inkMuted);
+    final style = context.typeScale.caption.copyWith(color: c.inkMuted);
     if (widget.sourceLabel == null || widget.onSourceTap == null) {
       return Text.rich(
         TextSpan(
@@ -446,7 +446,7 @@ class _ApprovalCardState extends State<ApprovalCard> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: gap),
+            SizedBox(height: gap),
             if (widget.sourceNote != null) Text(widget.sourceNote!, style: style),
             line(sourcePrefix),
           ],
@@ -472,17 +472,17 @@ class _SourceLink extends StatelessWidget {
         onPressed: onTap,
         button: false,
         scaleOnPress: false,
-        borderRadius: MyDataRadii.sm,
+        borderRadius: MyDataRadii.sm(context.look),
         semanticLabel: label,
         child: ExcludeSemantics(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: MyDataSize.controlHeight, minWidth: MyDataSize.controlHeight),
+            constraints: BoxConstraints(minHeight: context.density.controlHeight, minWidth: context.density.controlHeight),
             child: Align(
               widthFactor: 1,
               heightFactor: 1,
               child: Text(
                 label,
-                style: MyDataType.caption.copyWith(
+                style: context.typeScale.caption.copyWith(
                   color: c.accent,
                   decoration: TextDecoration.underline,
                   decorationColor: c.accent,

@@ -145,7 +145,7 @@ void main() {
         themeMatrix.first,
         Column(children: [
           _Host(initial: 'dusk', onChanged: picked.add),
-          Pressable(onPressed: () => after++, borderRadius: MyDataRadii.control, child: const SizedBox(width: 80, height: 44)),
+          Pressable(onPressed: () => after++, borderRadius: MyDataRadii.control(kiwiLook), child: const SizedBox(width: 80, height: 44)),
         ])));
     FocusNode focusOf(String name) => Focus.of(tester.element(find.text(name)));
 
@@ -401,7 +401,7 @@ void main() {
             const SizedBox(width: 400, child: ThemeSample(themeId: 'dusk', brightness: Brightness.light)),
             Pressable(
                 onPressed: () => after++,
-                borderRadius: MyDataRadii.control,
+                borderRadius: MyDataRadii.control(kiwiLook),
                 child: const SizedBox(width: 80, height: 44)),
           ])));
       expect(find.bySemanticsLabel('Sample of the Dusk theme in light mode'), findsOneWidget);

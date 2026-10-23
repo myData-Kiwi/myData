@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 
-import 'generated/tokens.g.dart';
+import '../generated/tokens.g.dart';
+import 'library.dart';
+import 'look.dart';
+
+export 'look.dart' show MyDataLook, MyDataTypeRole, MyDataTypeScale, MyDataShape, MyDataDensity, MyDataMotionSpec, LookFrame;
 
 /// Light, dark, or whatever the device uses. Stored per device.
 enum MyDataMode {
@@ -18,8 +22,10 @@ enum MyDataMode {
   static MyDataMode parse(String? name) => values.firstWhere((m) => m.name == name, orElse: () => system);
 }
 
-/// The theme of every myData app, built from a theme id (stored on the host, the same in every app) and a
-/// mode (stored per device). Widgets read colours through `context.colors`, never a literal.
+/// The theme of every myData app, built from a theme id and a mode (stored per device). Until themes phase 2
+/// the id is one of today's six colours, stored on the host and the same in every app: Kiwi in that colour
+/// (`ThemeLibrary.kiwiLook`). Widgets read the look through `context.colors`, `context.typeScale`,
+/// `context.space(n)` and the other `context` shortcuts, never a literal.
 ///
 /// ```dart
 /// final theme = MyDataTheme(themeId: status.theme, mode: mode);
@@ -42,12 +48,19 @@ class MyDataTheme {
   @override
   int get hashCode => Object.hash(spec.id, mode);
 
-  /// ThemeData for one theme and brightness. Material widgets that remain (selection, scroll bars, dialogs,
-  /// tooltips) take their colours from the same tokens.
-  static ThemeData data(String? themeId, Brightness brightness) {
-    final dark = brightness == Brightness.dark;
-    final c = (dark ? MyDataColors.dark : MyDataColors.light).withTheme(MyDataThemes.byId(themeId), brightness);
-    final shadows = dark ? MyDataShadows.dark : MyDataShadows.light;
+  /// ThemeData for Kiwi in today's colour [themeId] and [brightness].
+  static ThemeData data(String? themeId, Brightness brightness) =>
+      fromLook(ThemeLibrary.kiwiLook(MyDataThemes.byId(themeId).id, brightness));
+
+  /// ThemeData for [look]: the look itself as an extension, its colours ([MyDataColors]) and shadows
+  /// ([MyDataShadows]) as their own, and the Material widgets that remain (selection, scroll bars, dialogs,
+  /// tooltips) set from the same values.
+  static ThemeData fromLook(MyDataLook look) {
+    final brightness = look.brightness;
+    final c = look.colors;
+    final shadows = look.elevation.shadows;
+    final type = look.typeScale;
+    final r = look.shape;
     final scheme = ColorScheme(
       brightness: brightness,
       primary: c.accent,
@@ -74,85 +87,105 @@ class MyDataTheme {
       surfaceContainerHighest: c.surfaceSunken,
       outline: c.lineStrong,
       outlineVariant: c.line,
-      shadow: shadows.shadow1.first.color,
+      shadow: shadows.shadow1.isEmpty ? c.shadow : shadows.shadow1.first.color,
       scrim: c.scrim,
       inverseSurface: c.ink,
       onInverseSurface: c.bg,
       inversePrimary: c.accentSoft,
     );
     final text = TextTheme(
-      displayLarge: MyDataType.displayXl,
-      displayMedium: MyDataType.displayLg,
-      displaySmall: MyDataType.title,
-      headlineLarge: MyDataType.displayLg,
-      headlineMedium: MyDataType.title,
-      headlineSmall: MyDataType.title,
-      titleLarge: MyDataType.title,
-      titleMedium: MyDataType.heading,
-      titleSmall: MyDataType.bodyStrong,
-      bodyLarge: MyDataType.body,
-      bodyMedium: MyDataType.body,
-      bodySmall: MyDataType.caption,
-      labelLarge: MyDataType.bodyStrong,
-      labelMedium: MyDataType.label,
-      labelSmall: MyDataType.caption,
+      displayLarge: type.displayXl,
+      displayMedium: type.displayLg,
+      displaySmall: type.title,
+      headlineLarge: type.displayLg,
+      headlineMedium: type.title,
+      headlineSmall: type.title,
+      titleLarge: type.title,
+      titleMedium: type.heading,
+      titleSmall: type.bodyStrong,
+      bodyLarge: type.body,
+      bodyMedium: type.body,
+      bodySmall: type.caption,
+      labelLarge: type.bodyStrong,
+      labelMedium: type.label,
+      labelSmall: type.caption,
     ).apply(bodyColor: c.ink, displayColor: c.ink);
-    const xl = BorderRadius.all(Radius.circular(MyDataRadius.xl));
+    final xl = BorderRadius.all(Radius.circular(r.xl));
     return ThemeData(
       useMaterial3: true,
       brightness: brightness,
       colorScheme: scheme,
       scaffoldBackgroundColor: c.bg,
       canvasColor: c.bg,
-      fontFamily: MyDataFontFamily.body,
-      package: MyDataFontFamily.package,
+      fontFamily: type.body.fontFamily == null ? null : _bareFamily(type.body),
+      package: type.body.fontFamily == null ? null : MyDataFontFamily.package,
       textTheme: text,
-      extensions: [c, shadows],
+      extensions: [c, shadows, look],
       // Presses dim and shrink (motion.md); no ink ripples.
       splashFactory: NoSplash.splashFactory,
       highlightColor: Colors.transparent,
       hoverColor: c.ink.withValues(alpha: 0.04),
       focusColor: c.focus.withValues(alpha: 0.12),
       dividerTheme: DividerThemeData(color: c.line, thickness: 1, space: 1),
-      iconTheme: IconThemeData(color: c.ink, size: MyDataSize.icon),
+      iconTheme: IconThemeData(color: c.ink, size: look.density.icon),
       textSelectionTheme: TextSelectionThemeData(
           cursorColor: c.accent, selectionColor: c.accent.withValues(alpha: 0.25), selectionHandleColor: c.accent),
       tooltipTheme: TooltipThemeData(
         decoration: BoxDecoration(
             color: c.surfaceRaised,
-            borderRadius: const BorderRadius.all(Radius.circular(MyDataRadius.sm)),
+            borderRadius: BorderRadius.all(Radius.circular(r.sm)),
             boxShadow: shadows.shadow2),
-        textStyle: MyDataType.caption.copyWith(color: c.ink),
+        textStyle: type.caption.copyWith(color: c.ink),
       ),
       dialogTheme: DialogThemeData(
           backgroundColor: c.surfaceRaised,
           surfaceTintColor: Colors.transparent,
-          shape: const RoundedRectangleBorder(borderRadius: xl),
-          titleTextStyle: MyDataType.title.copyWith(color: c.ink),
-          contentTextStyle: MyDataType.body.copyWith(color: c.ink),
+          shape: RoundedRectangleBorder(borderRadius: xl),
+          titleTextStyle: type.title.copyWith(color: c.ink),
+          contentTextStyle: type.body.copyWith(color: c.ink),
           barrierColor: c.scrim),
       bottomSheetTheme: BottomSheetThemeData(
           backgroundColor: c.surfaceRaised,
           surfaceTintColor: Colors.transparent,
           modalBarrierColor: c.scrim,
-          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(MyDataRadius.xl)))),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(r.xl)))),
       popupMenuTheme: PopupMenuThemeData(
           color: c.surfaceRaised,
           surfaceTintColor: Colors.transparent,
-          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(MyDataRadius.md))),
-          textStyle: MyDataType.body.copyWith(color: c.ink)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(r.md))),
+          textStyle: type.body.copyWith(color: c.ink)),
       snackBarTheme: SnackBarThemeData(
           backgroundColor: c.ink,
-          contentTextStyle: MyDataType.body.copyWith(color: c.bg),
+          contentTextStyle: type.body.copyWith(color: c.bg),
           behavior: SnackBarBehavior.floating,
-          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(MyDataRadius.md)))),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(r.md)))),
       scrollbarTheme: ScrollbarThemeData(thumbColor: WidgetStatePropertyAll(c.inkMuted.withValues(alpha: 0.5))),
     );
   }
+
+  /// A packaged style's family without its `packages/<name>/` prefix, for ThemeData, which adds it back.
+  static String _bareFamily(TextStyle style) {
+    final f = style.fontFamily!;
+    final prefix = 'packages/${MyDataFontFamily.package}/';
+    return f.startsWith(prefix) ? f.substring(prefix.length) : f;
+  }
 }
 
-/// `context.colors.accent`, `context.shadows.shadow1`: the current theme's tokens.
+/// `context.colors.accent`, `context.shadows.shadow1`: the current look's colours and shadows.
 extension MyDataContext on BuildContext {
   MyDataColors get colors => Theme.of(this).extension<MyDataColors>() ?? MyDataColors.light;
   MyDataShadows get shadows => Theme.of(this).extension<MyDataShadows>() ?? MyDataShadows.light;
+}
+
+/// The current look and its shortcuts: `context.space(4)`, `context.typeScale.body`, `context.radius.lg`,
+/// `context.density.controlHeight`, `context.motion.fast`. Each makes the widget depend on the theme, as
+/// `Theme.of` does; `context.lookNow` reads without depending, for `initState` and fields first used there.
+extension MyDataLookContext on BuildContext {
+  MyDataLook get look => MyDataLook.of(this);
+  MyDataLook get lookNow => MyDataLook.of(this, listen: false);
+  MyDataTypeScale get typeScale => look.typeScale;
+  double space(num n) => look.density.space(n);
+  MyDataShape get radius => look.shape;
+  MyDataDensity get density => look.density;
+  MyDataMotionSpec get motion => look.motion;
 }

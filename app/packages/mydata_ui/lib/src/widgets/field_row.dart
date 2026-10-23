@@ -3,8 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 
-import '../generated/tokens.g.dart';
-import '../theme.dart';
+import '../theme/theme.dart';
 import 'group_frame.dart';
 import 'grouped_list.dart';
 import 'icon_button.dart';
@@ -103,10 +102,10 @@ class FieldRow extends StatefulWidget {
   static const copyMenuLabel = 'Copy';
 
   /// Preview: `.r{padding:8px 16px}`; the same as a [GroupedRow].
-  static const padding = GroupedRow.padding;
+  static EdgeInsets padding(MyDataLook look) => GroupedRow.padding(look);
 
   /// Between the text and the copy button (preview: `gap:12px`).
-  static const gap = GroupedRow.gap;
+  static double gap(MyDataLook look) => GroupedRow.gap(look);
 
   /// The copy button's name for a value of [kind] with [label]: "Copy" and what it copies. A label whose
   /// last word already names the thing is used alone ("Copy website", "Copy work fax"); otherwise the
@@ -276,7 +275,7 @@ class _FieldRowState extends State<FieldRow> {
     final link = widget.kind == FieldKind.link && widget.onOpenLink != null ? safeWebLink(widget.value) : null;
     final copyName = widget.copyName ?? FieldRow.copyNameFor(widget.kind, widget.label);
 
-    final labelText = label == null ? null : Text(label, style: MyDataType.caption.copyWith(color: c.inkMuted));
+    final labelText = label == null ? null : Text(label, style: context.typeScale.caption.copyWith(color: c.inkMuted));
     final Widget text;
     if (link != null) {
       text = Align(
@@ -300,7 +299,7 @@ class _FieldRowState extends State<FieldRow> {
             child: SelectableText(
               widget.value,
               focusNode: _valueFocus,
-              style: MyDataType.body.copyWith(color: c.ink),
+              style: context.typeScale.body.copyWith(color: c.ink),
               onSelectionChanged: _valueSelectionChanged,
               contextMenuBuilder: _valueMenu,
             ),
@@ -310,13 +309,13 @@ class _FieldRowState extends State<FieldRow> {
     }
 
     Widget row = ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: MyDataSize.rowHeight),
+      constraints: BoxConstraints(minHeight: context.density.rowHeight),
       child: Padding(
-        padding: FieldRow.padding,
+        padding: FieldRow.padding(context.look),
         child: Row(
           children: [
             Expanded(child: text),
-            const SizedBox(width: FieldRow.gap),
+            SizedBox(width: FieldRow.gap(context.look)),
             _CopyButton(name: copyName, copied: _copied, onPressed: _copy),
           ],
         ),
@@ -359,11 +358,11 @@ class _Link extends StatelessWidget {
         onPressed: onOpen,
         button: false,
         scaleOnPress: false,
-        borderRadius: MyDataRadii.sm,
+        borderRadius: MyDataRadii.sm(context.look),
         semanticLabel: label == null ? value : '$label, $value',
         child: ExcludeSemantics(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: MyDataSize.controlHeight, minWidth: MyDataSize.controlHeight),
+            constraints: BoxConstraints(minHeight: context.density.controlHeight, minWidth: context.density.controlHeight),
             child: Align(
               alignment: AlignmentDirectional.centerStart,
               widthFactor: 1,
@@ -375,7 +374,7 @@ class _Link extends StatelessWidget {
                   ?labelText,
                   Text(
                     value,
-                    style: MyDataType.body.copyWith(
+                    style: context.typeScale.body.copyWith(
                       color: c.accent,
                       decoration: TextDecoration.underline,
                       decorationColor: c.accent,
@@ -444,7 +443,7 @@ class FieldGroups extends StatelessWidget {
   final List<FieldRow> fields;
 
   /// Between groups (preview: `.sec{margin-bottom:24px}`).
-  static const gap = MyDataSpace.s6;
+  static double gap(MyDataLook look) => look.space(6);
 
   @override
   Widget build(BuildContext context) {
@@ -458,7 +457,7 @@ class FieldGroups extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        for (var i = 0; i < groups.length; i++) ...[if (i > 0) const SizedBox(height: gap), groups[i]],
+        for (var i = 0; i < groups.length; i++) ...[if (i > 0) SizedBox(height: gap(context.look)), groups[i]],
       ],
     );
   }

@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import '../generated/tokens.g.dart';
-import '../theme.dart';
+import '../theme/theme.dart';
 
 /// The status colours (design/README.md "Colour"): each a strong colour for text and icons and a `-soft`
 /// fill for chips and tiles. [neutral] is the inactive state: `surface-sunken` with `ink-muted`.

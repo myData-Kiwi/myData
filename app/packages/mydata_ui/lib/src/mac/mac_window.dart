@@ -5,6 +5,8 @@ import 'package:macos_window_utils/macos_window_utils.dart';
 import 'package:macos_window_utils/widgets/macos_toolbar_passthrough.dart';
 import 'package:macos_window_utils/widgets/transparent_macos_sidebar.dart';
 
+import '../generated/tokens.g.dart';
+import '../widgets/app_frame.dart' show AppLayout;
 import 'mac_chrome.dart';
 
 /// The Mac shell's window, through macos_window_utils (pinned in pubspec.yaml). Apps reach it through
@@ -20,6 +22,13 @@ import 'mac_chrome.dart';
 /// Why this package and not macos_ui: macos_ui is a whole widget set and theme of its own (it depends on this
 /// one for the window). The apps keep mydata_ui's widgets and tokens; they need the window only.
 abstract final class MacWindow {
+  /// The Mac window's skeleton is drawn here: the theme is the Mac shell's ([MacTheme]) and the window is
+  /// wider than a phone's. Layout asks this (three columns, the toolbar band, the source list); how things
+  /// look asks `context.look.frame` (design/themes/ARCHITECTURE.md 3.3). In phase 1 the two agree, since the
+  /// Mac shell draws only System; from phase 3 a drawn theme keeps this skeleton and draws inside it.
+  static bool of(BuildContext context) =>
+      Theme.of(context).extension<MyDataMacColors>() != null && !AppLayout.isPhone(context);
+
   static bool _ready = false;
   static Brightness? _brightness;
 

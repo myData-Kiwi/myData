@@ -5,9 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 
-import '../generated/tokens.g.dart';
-import '../motion.dart';
-import '../theme.dart';
+import '../theme/theme.dart';
 import 'field_row.dart' show formatBirthday;
 import 'form_scope.dart';
 import 'icon_button.dart';
@@ -843,7 +841,7 @@ class _DatePickerState extends State<DatePicker> with PendingInputRegistration<D
       selected: selected == null || (selected.year == null) != noYear ? null : _asDate(selected),
       focusDay: _focusDay,
       earliest: widget.earliest == null ? null : _date(widget.earliest!),
-      cellSize: widget.compact && !phone ? MyDataSize.controlHeightCompact : MyDataSize.controlHeight,
+      cellSize: widget.compact && !phone ? context.density.controlHeightCompact : context.density.controlHeight,
       calendarNode: _calendarNode,
       showFocus: !phone && _calendarNode.hasFocus,
       onKey: _onCalendarKey,
@@ -868,7 +866,7 @@ class _DatePickerState extends State<DatePicker> with PendingInputRegistration<D
   Widget build(BuildContext context) {
     final phone = pickerIsPhone(context);
     final c = context.colors;
-    final style = pickerValueStyle(c, phone: phone);
+    final style = pickerValueStyle(context.look, c, phone: phone);
     final year = widget.today.year;
     final samples = widget.yearOptional
         ? [for (final m in _monthNames) '28 $m $year']
@@ -910,7 +908,7 @@ class _DatePickerState extends State<DatePicker> with PendingInputRegistration<D
     return PickerPopover(
       open: _open,
       anchorKey: _boxKey,
-      padding: const EdgeInsets.all(MyDataSpace.s3),
+      padding: EdgeInsets.all(context.space(3)),
       semanticLabel: DatePicker.popoverLabel(name),
       onDismiss: () {
         _commit();
@@ -993,7 +991,7 @@ class _Calendar extends StatelessWidget {
               selected: month - 1,
               onSelected: (i) => onMonth(i + 1),
             ),
-            const SizedBox(width: MyDataSpace.s2),
+            SizedBox(width: context.space(2)),
             _MiniSelect(
               label: DatePicker.yearLabel,
               items: [DatePicker.noYearLabel, for (var y = thisYear; y > thisYear - DatePicker.birthdayYears; y--) '$y'],
@@ -1002,25 +1000,25 @@ class _Calendar extends StatelessWidget {
             ),
           ])
         : Padding(
-            padding: const EdgeInsetsDirectional.only(start: MyDataSpace.s1),
+            padding: EdgeInsetsDirectional.only(start: context.space(1)),
             child: Semantics(
               header: true,
               liveRegion: true,
-              child: Text(title, maxLines: 1, style: MyDataType.heading.copyWith(color: c.ink)),
+              child: Text(title, maxLines: 1, style: context.typeScale.heading.copyWith(color: c.ink)),
             ),
           );
 
     final header = Padding(
-      padding: const EdgeInsets.only(bottom: MyDataSpace.s1),
+      padding: EdgeInsets.only(bottom: context.space(1)),
       child: Row(children: [
         if (birthday) start else Expanded(child: start),
         if (birthday) const Spacer(),
-        const SizedBox(width: MyDataSpace.s1),
+        SizedBox(width: context.space(1)),
         _MonthButton(
             icon: rtl ? Icons.chevron_right_rounded : Icons.chevron_left_rounded,
             label: DatePicker.previousMonthLabel,
             onPressed: onPrevious),
-        const SizedBox(width: MyDataSpace.s1),
+        SizedBox(width: context.space(1)),
         _MonthButton(
             icon: rtl ? Icons.chevron_left_rounded : Icons.chevron_right_rounded,
             label: DatePicker.nextMonthLabel,
@@ -1036,7 +1034,7 @@ class _Calendar extends StatelessWidget {
             height: DatePicker.weekdayRowHeight,
             child: Center(
               child: Text(MonthGrid.weekdayShortName((firstDay - 1 + i) % 7 + 1),
-                  maxLines: 1, softWrap: false, style: MyDataType.caption.copyWith(color: c.inkMuted)),
+                  maxLines: 1, softWrap: false, style: context.typeScale.caption.copyWith(color: c.inkMuted)),
             ),
           ),
       ]),
@@ -1061,9 +1059,9 @@ class _Calendar extends StatelessWidget {
         explicitChildNodes: true,
         label: title,
         child: AnimatedSwitcher(
-          duration: MyDataMotion.fast,
-          switchInCurve: MyDataMotion.standard,
-          switchOutCurve: MyDataMotion.standard,
+          duration: context.motion.fast,
+          switchInCurve: context.motion.standard,
+          switchOutCurve: context.motion.standard,
           layoutBuilder: (current, previous) => Stack(alignment: Alignment.topCenter, children: [...previous, ?current]),
           child: weeks,
         ),
@@ -1174,20 +1172,20 @@ class _MiniSelectState extends State<_MiniSelect> {
     final c = context.colors;
     final box = Container(
       key: _key,
-      height: MyDataSize.controlHeight,
-      padding: const EdgeInsetsDirectional.only(start: MyDataSpace.s3, end: MyDataSpace.s2),
+      height: context.density.controlHeight,
+      padding: EdgeInsetsDirectional.only(start: context.space(3), end: context.space(2)),
       decoration: BoxDecoration(
-          color: c.surface, borderRadius: MyDataRadii.md, border: Border.all(color: c.lineStrong)),
+          color: c.surface, borderRadius: MyDataRadii.md(context.look), border: Border.all(color: c.lineStrong)),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Text(widget.items[widget.selected], maxLines: 1, style: MyDataType.body.copyWith(color: c.ink)),
-        const SizedBox(width: MyDataSpace.s1),
-        Icon(Icons.unfold_more_rounded, size: MyDataSize.icon, color: c.inkMuted),
+        Text(widget.items[widget.selected], maxLines: 1, style: context.typeScale.body.copyWith(color: c.ink)),
+        SizedBox(width: context.space(1)),
+        Icon(Icons.unfold_more_rounded, size: context.density.icon, color: c.inkMuted),
       ]),
     );
     return PickerPopover(
       open: _open,
       anchorKey: _key,
-      padding: const EdgeInsets.all(MyDataSpace.s1),
+      padding: EdgeInsets.all(context.space(1)),
       onDismiss: () => setState(() => _open = false),
       popover: (context) => PickerListBox(
         items: [for (final i in widget.items) PickerListItem(title: i)],
@@ -1210,7 +1208,7 @@ class _MiniSelectState extends State<_MiniSelect> {
           child: Pressable(
             onPressed: () => _setOpen(!_open),
             focusNode: _fieldNode,
-            borderRadius: MyDataRadii.md,
+            borderRadius: MyDataRadii.md(context.look),
             scaleOnPress: false,
             hoverFill: c.surfaceHover,
             semanticLabel: widget.label,

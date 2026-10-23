@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../generated/tokens.g.dart';
 import '../mac/mac_empty_state.dart';
 import '../mac/mac_theme.dart';
-import '../theme.dart';
+import '../mac/mac_window.dart';
+import '../theme/theme.dart';
 import 'button.dart';
 import 'icon_tile.dart';
 import 'kiwi.dart';
@@ -75,26 +75,26 @@ class StatusPanel extends StatelessWidget {
   static const maxWidth = 520.0;
 
   /// The loading kiwi's size: larger than the inline loader, as the one thing on the screen.
-  static const loaderSize = MyDataSpace.s12;
+  static double loaderSize(MyDataLook look) => look.space(12);
 
   /// Around the panel.
-  static const padding = MyDataSpace.s6;
+  static double padding(MyDataLook look) => look.space(6);
 
   /// Between the leading tile or loader and the title.
-  static const leadGap = MyDataSpace.s4;
+  static double leadGap(MyDataLook look) => look.space(4);
 
   /// Between the title and the message.
-  static const titleGap = MyDataSpace.s2;
+  static double titleGap(MyDataLook look) => look.space(2);
 
   /// Between the message, the progress bar, the detail and the actions.
-  static const sectionGap = MyDataSpace.s5;
+  static double sectionGap(MyDataLook look) => look.space(5);
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
     final hasDetail = detail != null && detail!.isNotEmpty;
     // The Mac frame: one symbol, the title, one line, the detail as selectable small text, the actions.
-    if (MacLook.of(context)) {
+    if (MacWindow.of(context)) {
       return MacEmptyState(
         symbol: switch (kind) {
           StatusPanelKind.working => MacEmptySymbol.working,
@@ -115,7 +115,7 @@ class StatusPanel extends StatelessWidget {
     }
     final showBar = kind == StatusPanelKind.working && progress != null;
     final Widget? lead = switch (kind) {
-      StatusPanelKind.working => showBar ? null : const KiwiLoader(size: loaderSize),
+      StatusPanelKind.working => showBar ? null : KiwiLoader(size: loaderSize(context.look)),
       StatusPanelKind.info => const IconTile(icon: Icons.info_outline_rounded, tone: MyDataTone.accent),
       StatusPanelKind.error => const IconTile(icon: Icons.error_outline_rounded, tone: MyDataTone.danger),
     };
@@ -126,32 +126,32 @@ class StatusPanel extends StatelessWidget {
         liveRegion: kind != StatusPanelKind.info,
         explicitChildNodes: true,
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          if (lead != null) ...[Center(child: lead), const SizedBox(height: leadGap)],
+          if (lead != null) ...[Center(child: lead), SizedBox(height: leadGap(context.look))],
           Semantics(
             header: true,
-            child: Text(title, textAlign: TextAlign.center, style: context.type(MyDataType.title).copyWith(color: c.ink)),
+            child: Text(title, textAlign: TextAlign.center, style: context.type(MyDataTypeRole.title).copyWith(color: c.ink)),
           ),
           if (showBar) ...[
-            const SizedBox(height: sectionGap),
+            SizedBox(height: sectionGap(context.look)),
             MyDataProgressBar(label: progressLabel!, value: progress!, caption: message),
           ] else ...[
-            const SizedBox(height: titleGap),
-            Text(message, textAlign: TextAlign.center, style: context.type(MyDataType.body).copyWith(color: c.inkMuted)),
+            SizedBox(height: titleGap(context.look)),
+            Text(message, textAlign: TextAlign.center, style: context.type(MyDataTypeRole.body).copyWith(color: c.inkMuted)),
           ],
           if (hasDetail) ...[
-            const SizedBox(height: sectionGap),
+            SizedBox(height: sectionGap(context.look)),
             MonoWell(value: detail!),
           ],
           if (actions.isNotEmpty) ...[
-            const SizedBox(height: sectionGap),
+            SizedBox(height: sectionGap(context.look)),
             ButtonRow(alignment: WrapAlignment.center, children: actions),
           ],
         ]),
       ),
     );
     final insets = MediaQuery.paddingOf(context);
-    final outer = EdgeInsets.fromLTRB(
-        padding + insets.left, padding + insets.top, padding + insets.right, padding + insets.bottom);
+    final pad = padding(context.look);
+    final outer = EdgeInsets.fromLTRB(pad + insets.left, pad + insets.top, pad + insets.right, pad + insets.bottom);
     return LayoutBuilder(builder: (context, constraints) {
       if (!constraints.hasBoundedHeight) {
         return Padding(padding: outer, child: Center(heightFactor: 1, child: panel));

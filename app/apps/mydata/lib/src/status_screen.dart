@@ -43,7 +43,7 @@ class StatusScreen extends StatelessWidget {
               icon: Icons.dns_outlined,
               name: 'Host',
               child: _Facts([
-                Fact('Version', Text(s.version, style: MyDataType.mono)),
+                Fact('Version', Text(s.version, style: context.typeScale.mono)),
                 Fact('Running for', Text(formatUptime(s.uptimeSeconds))),
                 if (s.demoDate)
                   Fact(
@@ -51,8 +51,8 @@ class StatusScreen extends StatelessWidget {
                     Wrap(
                       alignment: WrapAlignment.end,
                       crossAxisAlignment: WrapCrossAlignment.center,
-                      spacing: MyDataSpace.s2,
-                      runSpacing: MyDataSpace.s1,
+                      spacing: context.space(2),
+                      runSpacing: context.space(1),
                       children: [
                         Text(formatDate(s.today)),
                         const MyDataBadge('Demo date', tone: MyDataTone.warning),
@@ -78,13 +78,13 @@ class StatusScreen extends StatelessWidget {
               icon: Icons.report_outlined,
               name: 'Last error',
               child: error == null
-                  ? Text('None', style: MyDataType.body.copyWith(color: context.colors.inkMuted))
+                  ? Text('None', style: context.typeScale.body.copyWith(color: context.colors.inkMuted))
                   : Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         _Facts([Fact('When', Text(formatWhen(error.at)))]),
-                        const SizedBox(height: MyDataSpace.s3),
+                        SizedBox(height: context.space(3)),
                         MonoWell(value: error.message),
                       ],
                     ),
@@ -130,14 +130,14 @@ class _Facts extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         for (var i = 0; i < facts.length; i++) ...[
-          if (i > 0) const SizedBox(height: MyDataSpace.s2),
+          if (i > 0) SizedBox(height: context.space(2)),
           ConstrainedBox(
             // A chip is taller than a line of text; every line gets its height, so they sit evenly.
             constraints: const BoxConstraints(minHeight: MyDataBadge.height),
             child: Row(
               children: [
-                Text(facts[i].label, style: MyDataType.body.copyWith(color: c.inkMuted)),
-                const SizedBox(width: MyDataSpace.s3),
+                Text(facts[i].label, style: context.typeScale.body.copyWith(color: c.inkMuted)),
+                SizedBox(width: context.space(3)),
                 Expanded(
                   child: Align(
                     alignment: AlignmentDirectional.centerEnd,

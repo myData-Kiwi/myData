@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mydata_assistant/mydata_assistant.dart';
 import 'package:mydata_core/mydata_core.dart';
+import 'package:mydata_testing/mydata_testing.dart';
 import 'package:mydata_ui/mydata_ui.dart';
 
 import 'fixtures.dart';
@@ -146,7 +147,7 @@ void main() {
     final bubble = find.ancestor(of: find.text('Hello there'), matching: find.byType(DecoratedBox)).first;
     final decoration = tester.widget<DecoratedBox>(bubble).decoration as BoxDecoration;
     expect(decoration.color, c.accentSoft);
-    expect(decoration.borderRadius, MyDataRadii.lg);
+    expect(decoration.borderRadius, MyDataRadii.lg(kiwiLook));
     expect(tester.widget<Text>(find.text('Hello there')).style?.color, c.ink);
     // Right-aligned: the bubble ends at the column's end, the reply starts at its start.
     expect(tester.getTopRight(bubble).dx, greaterThan(tester.getTopRight(find.text('Hello.')).dx));

@@ -616,7 +616,7 @@ void main() {
       final title = find.text('Dentist');
       final bar = find.descendant(of: today, matching: find.byType(DataBar)).first;
       expect(tester.getSize(bar).height, closeTo(tester.getSize(title).height, 0.5)); // the text box rounds up
-      expect(tester.getSize(bar).height, closeTo(MonthGrid.captionLineHeight(const TextScaler.linear(_largeText)), 0.01));
+      expect(tester.getSize(bar).height, closeTo(MonthGrid.captionLineHeight(kiwiLook, const TextScaler.linear(_largeText)), 0.01));
       // The cell grows to hold them: the 16th's two lines and "+2" are inside it.
       final friday = find.bySemanticsLabel('Friday 16 October, 4 events in Work, Personal and Family');
       final more = find.descendant(of: friday, matching: find.text('+2'));
@@ -625,8 +625,8 @@ void main() {
     });
 
     test('the default size is unchanged: a 28px box and an 18px bar', () {
-      expect(MonthGrid.numberBoxSize(TextScaler.noScaling), MonthGrid.todayDiameter);
-      expect(MonthGrid.captionLineHeight(TextScaler.noScaling), MyDataType.caption.fontSize! * MyDataType.caption.height!);
+      expect(MonthGrid.numberBoxSize(kiwiLook, TextScaler.noScaling), MonthGrid.todayDiameter);
+      expect(MonthGrid.captionLineHeight(kiwiLook, TextScaler.noScaling), MyDataType.caption.fontSize! * MyDataType.caption.height!);
     });
 
     testWidgets('on a phone "+n" stays whole and the title never breaks a word', (tester) async {

@@ -7,9 +7,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 
 import '../accessibility.dart';
-import '../generated/tokens.g.dart';
-import '../motion.dart';
-import '../theme.dart';
+import '../theme/theme.dart';
 import 'app_frame.dart' show AppLayout, PhoneType;
 import 'contact_list.dart' show foldForSearch;
 import 'form_scope.dart';
@@ -338,7 +336,7 @@ class _TokenFieldState extends State<TokenField> with PendingInputRegistration<T
     });
     // It fades out over `fast` (with or without reduced motion), then goes.
     _timers.add(
-      Timer(MyDataMotion.fast, () {
+      Timer(context.motion.fast, () {
         if (mounted) setState(() => _leaving.removeWhere((l) => l.value == value));
       }),
     );
@@ -651,9 +649,9 @@ class _TokenFieldState extends State<TokenField> with PendingInputRegistration<T
       final options = _options;
       var top = 0.0;
       for (var n = 0; n < i && n < options.length; n++) {
-        top += _rowExtent(options[n]);
+        top += _rowExtent(context.look, options[n]);
       }
-      final bottom = top + (i < options.length ? _rowExtent(options[i]) : 0);
+      final bottom = top + (i < options.length ? _rowExtent(context.look, options[i]) : 0);
       final p = _listScroll.position;
       var to = p.pixels;
       if (bottom > to + p.viewportDimension) to = bottom - p.viewportDimension;
@@ -662,8 +660,8 @@ class _TokenFieldState extends State<TokenField> with PendingInputRegistration<T
     });
   }
 
-  static double _rowExtent(_Option o) =>
-      o.suggestion?.caption != null ? MyDataSize.rowHeight : MyDataSize.controlHeight;
+  static double _rowExtent(MyDataLook look, _Option o) =>
+      o.suggestion?.caption != null ? look.density.rowHeight : look.density.controlHeight;
 
   // ----- Building --------------------------------------------------------------------------------------
 
@@ -692,7 +690,7 @@ class _TokenFieldState extends State<TokenField> with PendingInputRegistration<T
     final border = hasError ? MyDataTextField.errorBorderWidth : MyDataTextField.borderWidth;
     final focused = _node.hasFocus;
     final phone = AppLayout.of(context) == AppLayout.phone;
-    final bodyStyle = MyDataType.body.copyWith(color: c.ink);
+    final bodyStyle = context.typeScale.body.copyWith(color: c.ink);
 
     final shown = _shown;
     var position = 0;
@@ -718,8 +716,8 @@ class _TokenFieldState extends State<TokenField> with PendingInputRegistration<T
       token = TweenAnimationBuilder<double>(
         key: ValueKey('fade:${s.value}:${s.leaving}'),
         tween: Tween(begin: entering || s.leaving ? (s.leaving ? 1 : 0) : 1, end: s.leaving ? 0 : 1),
-        duration: MyDataMotion.fast,
-        curve: MyDataMotion.standard,
+        duration: context.motion.fast,
+        curve: context.motion.standard,
         builder: (context, t, child) => Opacity(opacity: t, child: child),
         child: token,
       );
@@ -751,31 +749,31 @@ class _TokenFieldState extends State<TokenField> with PendingInputRegistration<T
             hintText: values.isEmpty ? widget.placeholder : null,
             hintStyle: bodyStyle.copyWith(color: c.inkMuted),
             contentPadding: EdgeInsets.symmetric(
-              horizontal: MyDataSpace.s3,
-              vertical: (MyDataSize.controlHeightCompact - bodyStyle.fontSize! * bodyStyle.height!) / 2,
+              horizontal: context.space(3),
+              vertical: (context.density.controlHeightCompact - bodyStyle.fontSize! * bodyStyle.height!) / 2,
             ),
           ),
         ),
       ),
     );
 
-    final line = MyDataSize.controlHeightCompact;
-    final inner = TokenField.maxLines * line + (TokenField.maxLines - 1) * MyDataSpace.s1;
+    final line = context.density.controlHeightCompact;
+    final inner = TokenField.maxLines * line + (TokenField.maxLines - 1) * context.space(1);
     Widget field = Container(
       key: _fieldKey,
-      constraints: const BoxConstraints(minHeight: MyDataSize.controlHeight),
+      constraints: BoxConstraints(minHeight: context.density.controlHeight),
       decoration: BoxDecoration(
         color: c.surface,
-        borderRadius: MyDataRadii.md,
+        borderRadius: MyDataRadii.md(context.look),
         border: Border.all(color: hasError ? c.danger : c.lineStrong, width: border),
       ),
       child: ConstrainedBox(
-        constraints: BoxConstraints(maxHeight: inner + 2 * (MyDataSpace.s1 - border)),
+        constraints: BoxConstraints(maxHeight: inner + 2 * (context.space(1) - border)),
         child: SingleChildScrollView(
           controller: _scroll,
           child: _TokenFlow(
-            padding: EdgeInsets.all(MyDataSpace.s1 - border),
-            reach: MyDataSpace.s1,
+            padding: EdgeInsets.all(context.space(1) - border),
+            reach: context.space(1),
             children: [...tokens, typing],
           ),
         ),
@@ -783,7 +781,7 @@ class _TokenFieldState extends State<TokenField> with PendingInputRegistration<T
     );
     field = FocusRing(
       visible: focused && _selected == null && _flash == null,
-      borderRadius: MyDataRadii.md,
+      borderRadius: MyDataRadii.md(context.look),
       danger: hasError,
       child: field,
     );
@@ -806,18 +804,18 @@ class _TokenFieldState extends State<TokenField> with PendingInputRegistration<T
         children: [
           if (widget.showLabel) ...[
             ExcludeSemantics(
-              child: Text(widget.label, style: MyDataType.label.copyWith(color: c.ink)),
+              child: Text(widget.label, style: context.typeScale.label.copyWith(color: c.ink)),
             ),
-            const SizedBox(height: MyDataSpace.s2),
+            SizedBox(height: context.space(2)),
           ],
           field,
           if (note != null) ...[
-            const SizedBox(height: MyDataSpace.s2),
+            SizedBox(height: context.space(2)),
             ExcludeSemantics(
-              child: Text(note, style: MyDataType.caption.copyWith(color: hasError ? c.danger : c.inkMuted)),
+              child: Text(note, style: context.typeScale.caption.copyWith(color: hasError ? c.danger : c.inkMuted)),
             ),
           ],
-          if (phone && _showList) ...[const SizedBox(height: MyDataSpace.s2), _phoneList(context)],
+          if (phone && _showList) ...[SizedBox(height: context.space(2)), _phoneList(context)],
         ],
       ),
     );
@@ -828,7 +826,7 @@ class _TokenFieldState extends State<TokenField> with PendingInputRegistration<T
     final title = o.isNew ? (widget.newValueLabel?.call(o.typed!) ?? 'New “${o.typed}”') : o.suggestion!.shown;
     final caption = o.suggestion?.caption;
     final highlighted = i == _hi && !phone;
-    final style = PhoneType.body(MyDataType.body, phone: phone).copyWith(color: c.ink);
+    final style = PhoneType.body(context.typeScale.body, phone: phone).copyWith(color: c.ink);
     return Semantics(
       selected: highlighted,
       label: [title, ?caption].join(', '),
@@ -849,15 +847,15 @@ class _TokenFieldState extends State<TokenField> with PendingInputRegistration<T
             onTap: () => _take(o),
             child: CustomPaint(
               foregroundPainter: highlighted && _keyHighlight
-                  ? InsetRingPainter(color: FocusRing.colourFor(context), borderRadius: MyDataRadii.sm)
+                  ? InsetRingPainter(color: FocusRing.colourFor(context), borderRadius: MyDataRadii.sm(context.look))
                   : null,
               child: Container(
-                height: phone ? MyDataSize.rowHeight : _rowExtent(o),
-                padding: EdgeInsets.symmetric(horizontal: phone ? MyDataSpace.s4 : MyDataSpace.s3),
+                height: phone ? context.density.rowHeight : _rowExtent(context.look, o),
+                padding: EdgeInsets.symmetric(horizontal: phone ? context.space(4) : context.space(3)),
                 alignment: AlignmentDirectional.centerStart,
                 decoration: BoxDecoration(
                   color: highlighted ? c.surfaceHover : null,
-                  borderRadius: phone ? null : MyDataRadii.sm,
+                  borderRadius: phone ? null : MyDataRadii.sm(context.look),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -869,7 +867,7 @@ class _TokenFieldState extends State<TokenField> with PendingInputRegistration<T
                         caption,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: MyDataType.caption.copyWith(color: c.inkMuted),
+                        style: context.typeScale.caption.copyWith(color: c.inkMuted),
                       ),
                   ],
                 ),
@@ -887,9 +885,9 @@ class _TokenFieldState extends State<TokenField> with PendingInputRegistration<T
     return TapRegion(
       groupId: _tapGroup,
       child: DecoratedBox(
-        decoration: BoxDecoration(color: c.surface, borderRadius: MyDataRadii.lg),
+        decoration: BoxDecoration(color: c.surface, borderRadius: MyDataRadii.lg(context.look)),
         child: ClipRRect(
-          borderRadius: MyDataRadii.lg,
+          borderRadius: MyDataRadii.lg(context.look),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -915,18 +913,18 @@ class _TokenFieldState extends State<TokenField> with PendingInputRegistration<T
     if (options.isEmpty) return const SizedBox.shrink();
     var height = 0.0;
     for (final o in options) {
-      height += _rowExtent(o);
+      height += _rowExtent(context.look, o);
     }
     final reduced = MyDataAccessibility.of(context).reduceMotion;
     final panel = Container(
       decoration: BoxDecoration(
         color: c.surfaceRaised,
-        borderRadius: MyDataRadii.md,
+        borderRadius: MyDataRadii.md(context.look),
         boxShadow: context.shadows.shadow2,
       ),
-      padding: const EdgeInsets.all(MyDataSpace.s1),
+      padding: EdgeInsets.all(context.space(1)),
       child: ConstrainedBox(
-        constraints: BoxConstraints(maxHeight: math.min(height, TokenField.visibleRows * MyDataSize.controlHeight)),
+        constraints: BoxConstraints(maxHeight: math.min(height, TokenField.visibleRows * context.density.controlHeight)),
         child: Semantics(
           container: true,
           explicitChildNodes: true,
@@ -945,14 +943,14 @@ class _TokenFieldState extends State<TokenField> with PendingInputRegistration<T
     );
     return Positioned(
       left: anchor.left,
-      top: anchor.bottom + MyDataSpace.s1,
+      top: anchor.bottom + context.space(1),
       width: anchor.width,
       child: TapRegion(
         groupId: _tapGroup,
         child: TweenAnimationBuilder<double>(
           tween: Tween(begin: 0, end: 1),
-          duration: reduced ? MyDataMotion.fast : MyDataMotion.base,
-          curve: MyDataMotion.standard,
+          duration: reduced ? context.motion.fast : context.motion.base,
+          curve: context.motion.standard,
           builder: (context, t, child) => Opacity(
             opacity: t,
             child: reduced
@@ -1000,18 +998,18 @@ class _Token extends StatelessWidget {
     final fg = invalid ? c.danger : c.ink;
     final fill = invalid ? c.dangerSoft : (selected ? c.accentSoft : c.surfaceSunken);
     Widget pill = Container(
-      height: MyDataSize.controlHeightCompact,
+      height: context.density.controlHeightCompact,
       padding: EdgeInsetsDirectional.only(
-        start: invalid ? MyDataSpace.s2 : MyDataSpace.s3,
-        end: removable ? 0 : MyDataSpace.s3,
+        start: invalid ? context.space(2) : context.space(3),
+        end: removable ? 0 : context.space(3),
       ),
-      decoration: BoxDecoration(color: fill, borderRadius: MyDataRadii.pill),
+      decoration: BoxDecoration(color: fill, borderRadius: MyDataRadii.pill(context.look)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (invalid) ...[
-            Icon(Icons.error_outline_rounded, size: MyDataSize.icon, color: c.danger),
-            const SizedBox(width: MyDataSpace.s2),
+            Icon(Icons.error_outline_rounded, size: context.density.icon, color: c.danger),
+            SizedBox(width: context.space(2)),
           ],
           Flexible(
             child: Text(
@@ -1019,17 +1017,17 @@ class _Token extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               softWrap: false,
-              style: MyDataType.body.copyWith(color: fg),
+              style: context.typeScale.body.copyWith(color: fg),
             ),
           ),
           if (removable) ...[
-            const SizedBox(width: MyDataSpace.s1),
+            SizedBox(width: context.space(1)),
             _RemoveX(colour: invalid ? c.danger : c.inkMuted, onTap: onRemove),
           ],
         ],
       ),
     );
-    pill = FocusRing(visible: ring, borderRadius: MyDataRadii.pill, danger: invalid, child: pill);
+    pill = FocusRing(visible: ring, borderRadius: MyDataRadii.pill(context.look), danger: invalid, child: pill);
     pill = Tooltip(message: full, excludeFromSemantics: true, child: pill);
     return Semantics(
       selected: selected,
@@ -1059,14 +1057,14 @@ class _RemoveX extends StatelessWidget {
       child: ToggleTarget(
         onToggle: onTap,
         builder: (context, s) => AnimatedOpacity(
-          opacity: s.pressed ? MyDataMotion.pressOpacity : 1,
-          duration: s.pressed ? Duration.zero : MyDataMotion.fast,
+          opacity: s.pressed ? context.motion.pressOpacity : 1,
+          duration: s.pressed ? Duration.zero : context.motion.fast,
           child: Container(
-            width: MyDataSize.iconTile,
-            height: MyDataSize.iconTile,
+            width: context.density.iconTile,
+            height: context.density.iconTile,
             decoration: BoxDecoration(color: s.hovered ? c.surface : null, shape: BoxShape.circle),
             alignment: Alignment.center,
-            child: Icon(Icons.close_rounded, size: MyDataSize.icon, color: colour),
+            child: Icon(Icons.close_rounded, size: context.density.icon, color: colour),
           ),
         ),
       ),
@@ -1087,14 +1085,15 @@ class _TokenFlow extends MultiChildRenderObjectWidget {
 
   @override
   RenderObject createRenderObject(BuildContext context) =>
-      _RenderTokenFlow(padding, reach, Directionality.of(context) == TextDirection.rtl);
+      _RenderTokenFlow(padding, reach, Directionality.of(context) == TextDirection.rtl, context.look);
 
   @override
   void updateRenderObject(BuildContext context, _RenderTokenFlow renderObject) {
     renderObject
       ..padding = padding
       ..reach = reach
-      ..rtl = Directionality.of(context) == TextDirection.rtl;
+      ..rtl = Directionality.of(context) == TextDirection.rtl
+      ..look = context.look;
   }
 }
 
@@ -1104,7 +1103,14 @@ class _RenderTokenFlow extends RenderBox
     with
         ContainerRenderObjectMixin<RenderBox, _FlowParentData>,
         RenderBoxContainerDefaultsMixin<RenderBox, _FlowParentData> {
-  _RenderTokenFlow(this._padding, this._reach, this._rtl);
+  _RenderTokenFlow(this._padding, this._reach, this._rtl, this._look);
+
+  MyDataLook _look;
+  set look(MyDataLook value) {
+    if (value == _look) return;
+    _look = value;
+    markNeedsLayout();
+  }
 
   EdgeInsets _padding;
   set padding(EdgeInsets v) {
@@ -1123,8 +1129,8 @@ class _RenderTokenFlow extends RenderBox
     markNeedsLayout();
   }
 
-  static const _gap = MyDataSpace.s1;
-  static const _line = MyDataSize.controlHeightCompact;
+  double get _gap => _look.space(1);
+  double get _line => _look.density.controlHeightCompact;
 
   @override
   void setupParentData(RenderBox child) {

@@ -4,33 +4,33 @@ import 'package:mydata_ui/mydata_ui.dart';
 import 'chat_controller.dart';
 
 // The chat in the Mac frame (MacLook; docs/2026-10-23-plan.md section 5, "native frame, quiet brand"). Not
-// exported: ChatView, ResultCard and AssistantApprovalCard switch to these themselves when MacLook.of says
+// exported: ChatView, ResultCard and AssistantApprovalCard switch to these themselves when `MacWindow.of` says
 // so, and draw their branded look everywhere else.
 
 /// The Mac chat's measures. The reading column keeps the branded column's measure (characters per line) at
 /// the Mac's 13 pt body, about 760 pt; the conversation is centred in the window's content, as Messages and
 /// other chat apps on the Mac draw it.
 abstract final class MacChat {
-  static final columnMax = MyDataSize.contentMax * MyDataMacType.body.fontSize! / MyDataType.body.fontSize!;
+  static double columnMax(MyDataLook look) => MyDataSize.contentMax * MyDataMacType.body.fontSize! / look.typeScale.body.fontSize!;
 
   /// Between the column and the content's edges when the window is narrow.
-  static const sidePadding = MyDataSpace.s6;
+  static double sidePadding(MyDataLook look) => look.space(6);
 
   /// Between items in the conversation; consecutive progress lines sit closer.
-  static const itemGap = MyDataSpace.s4;
-  static const progressGap = MyDataSpace.s1;
+  static double itemGap(MyDataLook look) => look.space(4);
+  static double progressGap(MyDataLook look) => look.space(1);
 
   /// The user's message: a neutral bubble (the accent is kept for the one tinted action, Send).
-  static const bubbleRadius = MyDataRadii.lg;
-  static const bubblePadding = EdgeInsets.symmetric(horizontal: MyDataSpace.s3, vertical: MyDataSpace.s2);
+  static BorderRadius bubbleRadius(MyDataLook look) => MyDataRadii.lg(look);
+  static EdgeInsets bubblePadding(MyDataLook look) => EdgeInsets.symmetric(horizontal: look.space(3), vertical: look.space(2));
 
   /// A result's list and the approval card: a rounded box with a hairline outline, as the system draws a
   /// grouped box (System Settings' groups, Mail's message cards).
-  static const boxRadius = MyDataRadii.sm;
+  static BorderRadius boxRadius(MyDataLook look) => MyDataRadii.sm(look);
 
   /// Inside a box's row, and inside the approval card.
-  static const rowPadding = EdgeInsets.symmetric(horizontal: MyDataSpace.s3, vertical: MyDataSpace.s2);
-  static const cardPadding = EdgeInsets.all(MyDataSpace.s4);
+  static EdgeInsets rowPadding(MyDataLook look) => EdgeInsets.symmetric(horizontal: look.space(3), vertical: look.space(2));
+  static EdgeInsets cardPadding(MyDataLook look) => EdgeInsets.all(look.space(4));
 
   /// The composer: a rounded field that grows to six lines, with the round Send button inside it.
   static const composerHeight = MyDataMacSize.toolbarItemHeight;
@@ -49,9 +49,9 @@ abstract final class MacChat {
     final mac = context.mac;
     return DecoratedBox(
       position: DecorationPosition.foreground,
-      decoration: BoxDecoration(borderRadius: boxRadius, border: Border.all(color: mac.separator, width: MyDataMacSize.hairline)),
+      decoration: BoxDecoration(borderRadius: boxRadius(context.look), border: Border.all(color: mac.separator, width: MyDataMacSize.hairline)),
       child: ClipRRect(
-        borderRadius: boxRadius,
+        borderRadius: boxRadius(context.look),
         child: ColoredBox(color: boxFill(context), child: child),
       ),
     );
@@ -73,9 +73,9 @@ class MacUserMessage extends StatelessWidget {
         child: ConstrainedBox(
           constraints: BoxConstraints(maxWidth: constraints.maxWidth * maxShare),
           child: DecoratedBox(
-            decoration: BoxDecoration(color: mac.quaternaryLabel, borderRadius: MacChat.bubbleRadius),
+            decoration: BoxDecoration(color: mac.quaternaryLabel, borderRadius: MacChat.bubbleRadius(context.look)),
             child: Padding(
-              padding: MacChat.bubblePadding,
+              padding: MacChat.bubblePadding(context.look),
               child: Text(text, style: MyDataMacType.body.copyWith(color: mac.label)),
             ),
           ),
@@ -114,7 +114,7 @@ class MacProgressRow extends StatelessWidget {
               ? Icon(MacIcons.check, size: MyDataMacSize.icon, color: mac.secondaryLabel)
               : const ExcludeSemantics(child: KiwiLoader(size: MyDataMacSize.icon)),
         ),
-        const SizedBox(width: MyDataSpace.s2),
+        SizedBox(width: context.space(2)),
         Flexible(child: Text(label, style: MyDataMacType.callout.copyWith(color: mac.secondaryLabel))),
       ],
     );
@@ -172,7 +172,7 @@ class MacErrorRow extends StatelessWidget {
           padding: EdgeInsets.only(top: (lineHeight - MyDataMacSize.icon) / 2),
           child: Icon(MacIcons.error, size: MyDataMacSize.icon, color: context.colors.danger),
         ),
-        const SizedBox(width: MyDataSpace.s2),
+        SizedBox(width: context.space(2)),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -180,7 +180,7 @@ class MacErrorRow extends StatelessWidget {
             children: [
               Text(title, style: MyDataMacType.bodyEmphasized.copyWith(color: mac.label)),
               Text(message, style: MyDataMacType.body.copyWith(color: mac.secondaryLabel)),
-              const SizedBox(height: MyDataSpace.s2),
+              SizedBox(height: context.space(2)),
               Button(label: retryLabel, onPressed: onRetry),
             ],
           ),
@@ -242,7 +242,7 @@ class MacComposer extends StatelessWidget {
           borderRadius: MacChat.composerRadius,
           border: Border.all(color: mac.separator, width: MyDataMacSize.hairline),
         ),
-        padding: EdgeInsetsDirectional.only(start: MyDataSpace.s4, end: buttonInset),
+        padding: EdgeInsetsDirectional.only(start: context.space(4), end: buttonInset),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
@@ -267,7 +267,7 @@ class MacComposer extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(width: MyDataSpace.s2),
+            SizedBox(width: context.space(2)),
             // Grey and inert until there is something to send, as Messages draws it; the reason is its
             // help tag and hint.
             ValueListenableBuilder<TextEditingValue>(
@@ -280,7 +280,7 @@ class MacComposer extends StatelessWidget {
                   child: Pressable(
                     key: sendKey,
                     onPressed: ready ? onSend : null,
-                    borderRadius: MyDataRadii.pill,
+                    borderRadius: MyDataRadii.pill(context.look),
                     semanticLabel: sendLabel,
                     tooltip: sendLabel,
                     disabledReason: reason,

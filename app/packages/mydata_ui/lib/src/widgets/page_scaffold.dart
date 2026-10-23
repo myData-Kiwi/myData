@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import '../generated/tokens.g.dart';
-import '../theme.dart';
+import '../theme/theme.dart';
 import 'app_frame.dart';
 import 'button.dart';
 
@@ -45,36 +45,36 @@ class PageScaffold extends StatelessWidget {
   final bool fullWidth;
 
   /// Between sections: `space-4`, the same as between cards (design/README.md, CardGrid.gap).
-  static const gap = MyDataSpace.s4;
+  static double gap(MyDataLook look) => look.space(4);
 
   /// Between the title row and the first section.
-  static const titleGap = MyDataSpace.s6;
+  static double titleGap(MyDataLook look) => look.space(6);
 
   /// Between the title and its actions.
-  static const actionsGap = MyDataSpace.s4;
+  static double actionsGap(MyDataLook look) => look.space(4);
 
   /// The share of the title row the actions may take before they wrap, so a long set of actions never
   /// squeezes the title to nothing.
   static const actionsMaxShare = 2 / 3;
 
   /// The screen padding for [layout]: `space-8`, or `space-4` on phones.
-  static double paddingFor(AppLayout layout) => layout == AppLayout.phone ? MyDataSpace.s4 : MyDataSpace.s8;
+  static double paddingFor(MyDataLook look, AppLayout layout) => layout == AppLayout.phone ? look.space(4) : look.space(8);
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
     final layout = AppLayout.of(context);
     final phone = layout == AppLayout.phone;
-    final pad = paddingFor(layout);
+    final pad = paddingFor(context.look, layout);
     final insets = MediaQuery.paddingOf(context);
     final frameName = AppFrame.phoneAppNameOf(context);
 
     // Under a phone frame the app name is the large title, so the section's name is smaller, or left out.
     final TextStyle titleStyle;
     if (frameName != null) {
-      titleStyle = MyDataType.title;
+      titleStyle = context.typeScale.title;
     } else {
-      titleStyle = phone ? MyDataType.displayXl : MyDataType.displayLg;
+      titleStyle = phone ? context.typeScale.displayXl : context.typeScale.displayLg;
     }
     final Widget? heading = frameName == title
         ? null
@@ -88,16 +88,16 @@ class PageScaffold extends StatelessWidget {
     } else if (phone || frameName != null) {
       top = Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         heading,
-        const SizedBox(height: actionsGap),
+        SizedBox(height: actionsGap(context.look)),
         ButtonRow(children: actions),
       ]);
     } else {
       top = LayoutBuilder(builder: (context, constraints) {
         // A Wrap in a Row has no width to wrap at; cap it so the actions wrap instead of overflowing.
-        final actionsMax = (constraints.maxWidth - actionsGap) * actionsMaxShare;
+        final actionsMax = (constraints.maxWidth - actionsGap(context.look)) * actionsMaxShare;
         return Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
           Expanded(child: heading),
-          const SizedBox(width: actionsGap),
+          SizedBox(width: actionsGap(context.look)),
           ConstrainedBox(
             constraints: BoxConstraints(maxWidth: actionsMax < 0 ? 0 : actionsMax),
             child: ButtonRow(alignment: WrapAlignment.end, children: actions),
@@ -110,9 +110,9 @@ class PageScaffold extends StatelessWidget {
       ?top,
       for (var i = 0; i < children.length; i++) ...[
         if (i > 0)
-          const SizedBox(height: gap)
+          SizedBox(height: gap(context.look))
         else if (top != null)
-          const SizedBox(height: titleGap),
+          SizedBox(height: titleGap(context.look)),
         children[i],
       ],
     ]);
@@ -123,7 +123,7 @@ class PageScaffold extends StatelessWidget {
       );
     }
     return DefaultTextStyle.merge(
-      style: MyDataType.body.copyWith(color: c.ink),
+      style: context.typeScale.body.copyWith(color: c.ink),
       child: SingleChildScrollView(
         padding: EdgeInsets.fromLTRB(
             pad + insets.left, pad + insets.top, pad + insets.right, pad + insets.bottom),

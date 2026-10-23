@@ -14,7 +14,7 @@ import 'home.dart';
 /// myData shows here within one poll) and this device's mode, and follows the system's reduced motion and
 /// reduced transparency.
 ///
-/// On a Mac it draws the Mac frame ([MacLook]): the system font and the system's colours and accent
+/// On a Mac it draws the Mac frame ([MacWindow.of]): the system font and the system's colours and accent
 /// ([MacShell]); this device's mode still chooses light or dark.
 class MyContactsApp extends StatefulWidget {
   const MyContactsApp({

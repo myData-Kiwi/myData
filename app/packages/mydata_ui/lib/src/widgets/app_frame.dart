@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../generated/tokens.g.dart';
-import '../motion.dart';
-import '../theme.dart';
+import '../theme/theme.dart';
 import 'button.dart';
 import 'floating_bar.dart';
 import 'grouped_list.dart' show GroupedRow;
@@ -47,8 +46,8 @@ abstract final class PhoneType {
   static TextStyle body(TextStyle style, {required bool phone}) => phone ? style.copyWith(fontSize: bodySize) : style;
 
   /// [style] at the size for the window [context] is in.
-  static TextStyle bodyOf(BuildContext context, [TextStyle style = MyDataType.body]) =>
-      body(style, phone: AppLayout.isPhone(context));
+  static TextStyle bodyOf(BuildContext context, [TextStyle? style]) =>
+      body(style ?? context.typeScale.body, phone: AppLayout.isPhone(context));
 }
 
 /// One of an app's own top-level sections ("Library", "Albums"), as the frame lists it.
@@ -194,7 +193,7 @@ class AppFrame extends StatelessWidget {
   static const railWidth = 96.0;
 
   /// Between section rows: the preview's 2px, rounded to the nearest token.
-  static const rowGap = MyDataSpace.s1;
+  static double rowGap(MyDataLook look) => look.space(1);
 
   /// The app name when [context] is in a phone frame, under the frame's large title, so a [PageScaffold]
   /// there shows its own title smaller; null anywhere else.
@@ -236,23 +235,23 @@ class _Sidebar extends StatelessWidget {
     return Container(
       width: MyDataSize.sidebarWidth,
       color: c.surface,
-      padding: const EdgeInsets.symmetric(vertical: MyDataSpace.s4),
+      padding: EdgeInsets.symmetric(vertical: context.space(4)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Padding(
           // Lines the name up with the row labels: the list's inset plus the row's own.
-          padding: const EdgeInsets.fromLTRB(
-              MyDataSpace.s3 + MyDataSpace.s3, MyDataSpace.s2, MyDataSpace.s3 + MyDataSpace.s3, MyDataSpace.s4),
+          padding: EdgeInsets.fromLTRB(
+              context.space(3) + context.space(3), context.space(2), context.space(3) + context.space(3), context.space(4)),
           child: Semantics(
             header: true,
             child: Text(frame.appName,
-                maxLines: 1, overflow: TextOverflow.ellipsis, style: MyDataType.title.copyWith(color: c.ink)),
+                maxLines: 1, overflow: TextOverflow.ellipsis, style: context.typeScale.title.copyWith(color: c.ink)),
           ),
         ),
         Expanded(
           child: _SectionNav(frame: frame, rail: false),
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(MyDataSpace.s3 + MyDataSpace.s3, MyDataSpace.s3, MyDataSpace.s3, 0),
+          padding: EdgeInsets.fromLTRB(context.space(3) + context.space(3), context.space(3), context.space(3), 0),
           child: _ConnectionLine(connection: frame.connection),
         ),
       ]),
@@ -269,11 +268,11 @@ class _Rail extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         width: AppFrame.railWidth,
         color: context.colors.surface,
-        padding: const EdgeInsets.symmetric(vertical: MyDataSpace.s4),
+        padding: EdgeInsets.symmetric(vertical: context.space(4)),
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Expanded(child: _SectionNav(frame: frame, rail: true)),
           Padding(
-            padding: const EdgeInsets.fromLTRB(MyDataSpace.s2, MyDataSpace.s3, MyDataSpace.s2, 0),
+            padding: EdgeInsets.fromLTRB(context.space(2), context.space(3), context.space(2), 0),
             child: _RailConnection(connection: frame.connection),
           ),
         ]),
@@ -360,10 +359,10 @@ class _SectionNavState extends State<_SectionNav> {
         child: SingleChildScrollView(
           // Inside the scroll view, so the focus ring is not clipped at the edges.
           padding: EdgeInsets.symmetric(
-              horizontal: widget.rail ? MyDataSpace.s2 : MyDataSpace.s3, vertical: MyDataSpace.s1),
+              horizontal: widget.rail ? context.space(2) : context.space(3), vertical: context.space(1)),
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             for (var i = 0; i < f.sections.length; i++) ...[
-              if (i > 0) const SizedBox(height: AppFrame.rowGap),
+              if (i > 0) SizedBox(height: AppFrame.rowGap(context.look)),
               widget.rail
                   ? _RailItem(
                       section: f.sections[i], current: i == f.current, focusNode: _nodes[i], onPressed: () => f.onSelect(i))
@@ -390,36 +389,36 @@ class _SidebarRow extends StatelessWidget {
     final c = context.colors;
     final fg = current ? c.accent : c.inkMuted;
     return AnimatedContainer(
-      duration: MyDataMotion.fast,
-      curve: MyDataMotion.standard,
-      decoration: BoxDecoration(color: current ? c.accentSoft : c.accentSoft.withValues(alpha: 0), borderRadius: MyDataRadii.pill),
+      duration: context.motion.fast,
+      curve: context.motion.standard,
+      decoration: BoxDecoration(color: current ? c.accentSoft : c.accentSoft.withValues(alpha: 0), borderRadius: MyDataRadii.pill(context.look)),
       child: Pressable(
         onPressed: onPressed,
         focusNode: focusNode,
-        borderRadius: MyDataRadii.pill,
+        borderRadius: MyDataRadii.pill(context.look),
         scaleOnPress: false,
         hoverFill: current ? c.ink.withValues(alpha: GroupedRow.selectedHoverInk) : c.surfaceHover,
         selected: current,
         semanticLabel: section.spoken,
         child: ExcludeSemantics(
           child: Container(
-            height: MyDataSize.controlHeight,
-            padding: const EdgeInsets.symmetric(horizontal: MyDataSpace.s3),
+            height: context.density.controlHeight,
+            padding: EdgeInsets.symmetric(horizontal: context.space(3)),
             child: Row(children: [
-              Icon(section.icon, size: MyDataSize.icon, color: fg),
-              const SizedBox(width: MyDataSpace.s3),
+              Icon(section.icon, size: context.density.icon, color: fg),
+              SizedBox(width: context.space(3)),
               Expanded(
                 child: Text(
                   section.label,
                   maxLines: 1,
                   softWrap: false,
                   overflow: TextOverflow.ellipsis,
-                  style: (current ? MyDataType.bodyStrong : MyDataType.body).copyWith(color: fg),
+                  style: (current ? context.typeScale.bodyStrong : context.typeScale.body).copyWith(color: fg),
                 ),
               ),
               if ((section.count ?? 0) > 0) ...[
-                const SizedBox(width: MyDataSpace.s2),
-                Text(section.countText, style: MyDataType.caption.copyWith(color: c.inkMuted)),
+                SizedBox(width: context.space(2)),
+                Text(section.countText, style: context.typeScale.caption.copyWith(color: c.inkMuted)),
               ],
             ]),
           ),
@@ -438,8 +437,8 @@ class _RailItem extends StatelessWidget {
   final VoidCallback onPressed;
 
   /// The pill behind the icon. No token: `row-height` across and `space-8` down, like a tab bar's pill.
-  static const indicatorWidth = MyDataSize.rowHeight;
-  static const indicatorHeight = MyDataSpace.s8;
+  static double indicatorWidth(MyDataLook look) => look.density.rowHeight;
+  static double indicatorHeight(MyDataLook look) => look.space(8);
 
   @override
   Widget build(BuildContext context) {
@@ -448,7 +447,7 @@ class _RailItem extends StatelessWidget {
     return Pressable(
       onPressed: onPressed,
       focusNode: focusNode,
-      borderRadius: MyDataRadii.md,
+      borderRadius: MyDataRadii.md(context.look),
       scaleOnPress: false,
       hoverFill: c.surfaceHover,
       selected: current,
@@ -456,26 +455,26 @@ class _RailItem extends StatelessWidget {
       tooltip: section.label,
       child: ExcludeSemantics(
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: MyDataSpace.s1),
+          padding: EdgeInsets.symmetric(vertical: context.space(1)),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             AnimatedContainer(
-              duration: MyDataMotion.fast,
-              curve: MyDataMotion.standard,
-              width: indicatorWidth,
-              height: indicatorHeight,
+              duration: context.motion.fast,
+              curve: context.motion.standard,
+              width: indicatorWidth(context.look),
+              height: indicatorHeight(context.look),
               decoration: BoxDecoration(
-                  color: current ? c.accentSoft : c.accentSoft.withValues(alpha: 0), borderRadius: MyDataRadii.pill),
+                  color: current ? c.accentSoft : c.accentSoft.withValues(alpha: 0), borderRadius: MyDataRadii.pill(context.look)),
               alignment: Alignment.center,
-              child: Icon(section.icon, size: MyDataSize.icon, color: fg),
+              child: Icon(section.icon, size: context.density.icon, color: fg),
             ),
-            const SizedBox(height: MyDataSpace.s1),
+            SizedBox(height: context.space(1)),
             Text(
               section.label,
               maxLines: 1,
               softWrap: false,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
-              style: (current ? MyDataType.label : MyDataType.caption).copyWith(color: fg),
+              style: (current ? context.typeScale.label : context.typeScale.caption).copyWith(color: fg),
             ),
           ]),
         ),
@@ -501,23 +500,23 @@ class _Phone extends StatelessWidget {
         bottom: false,
         child: Padding(
           // The page's own phone padding at the sides, so the title lines up with the content.
-          padding: const EdgeInsets.fromLTRB(MyDataSpace.s4, MyDataSpace.s4, MyDataSpace.s4, 0),
+          padding: EdgeInsets.fromLTRB(context.space(4), context.space(4), context.space(4), 0),
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
             Row(children: [
               Expanded(
                 child: Semantics(
                   header: true,
                   child: Text(f.appName,
-                      maxLines: 1, overflow: TextOverflow.ellipsis, style: MyDataType.displayXl.copyWith(color: c.ink)),
+                      maxLines: 1, overflow: TextOverflow.ellipsis, style: context.typeScale.displayXl.copyWith(color: c.ink)),
                 ),
               ),
               for (var i = 0; i < f.phoneTitleActions.length; i++) ...[
-                if (i > 0) const SizedBox(width: MyDataSpace.s1),
+                if (i > 0) SizedBox(width: context.space(1)),
                 f.phoneTitleActions[i],
               ],
             ]),
             if (f.connection.state != AppConnectionState.connected) ...[
-              const SizedBox(height: MyDataSpace.s2),
+              SizedBox(height: context.space(2)),
               _ConnectionLine(connection: f.connection, inline: true),
             ],
           ]),
@@ -568,15 +567,15 @@ class _ConnectionLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final muted = MyDataType.caption.copyWith(color: c.inkMuted);
+    final muted = context.typeScale.caption.copyWith(color: c.inkMuted);
     switch (connection.state) {
       case AppConnectionState.connected:
         return Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-          _lead(const _HostDot(), Text(AppConnection.connectedText, style: muted)),
+          _lead(context, const _HostDot(), Text(AppConnection.connectedText, style: muted)),
           if (connection.onOpenMyData != null)
             Padding(
               // Under the words, not the dot.
-              padding: const EdgeInsetsDirectional.only(start: MyDataSize.icon + MyDataSpace.s2),
+              padding: EdgeInsetsDirectional.only(start: context.density.icon + context.space(2)),
               child: _Link(label: AppConnection.openMyDataText, onTap: connection.onOpenMyData!),
             ),
         ]);
@@ -584,19 +583,19 @@ class _ConnectionLine extends StatelessWidget {
         return Semantics(
           liveRegion: true,
           child: SizedBox(
-            height: MyDataSize.controlHeight,
-            child: _lead(const KiwiLoader(size: _HostDot.loaderSize, semanticLabel: AppConnection.startingText),
+            height: context.density.controlHeight,
+            child: _lead(context, KiwiLoader(size: _HostDot.loaderSize(context.look), semanticLabel: AppConnection.startingText),
                 ExcludeSemantics(child: Text(AppConnection.startingText, style: muted))),
           ),
         );
       case AppConnectionState.unreachable:
-        final line = _lead(
-          Icon(Icons.warning_amber_rounded, size: MyDataSize.icon, color: c.warning),
-          Text(AppConnection.unreachableText, style: MyDataType.label.copyWith(color: c.warning)),
+        final line = _lead(context,
+          Icon(Icons.warning_amber_rounded, size: context.density.icon, color: c.warning),
+          Text(AppConnection.unreachableText, style: context.typeScale.label.copyWith(color: c.warning)),
         );
         // Captions under the words, not the icon.
         Widget caption(String text) => Padding(
-              padding: const EdgeInsetsDirectional.only(start: MyDataSize.icon + MyDataSpace.s2),
+              padding: EdgeInsetsDirectional.only(start: context.density.icon + context.space(2)),
               child: Text(text, style: muted),
             );
         final updated = connection.lastUpdated;
@@ -614,17 +613,17 @@ class _ConnectionLine extends StatelessWidget {
                       if (connection.retrying) caption(AppConnection.retryingText),
                     ]),
                   ),
-                  const SizedBox(width: MyDataSpace.s3),
+                  SizedBox(width: context.space(3)),
                   retry,
                 ])
               : Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
                   line,
                   if (updated != null) caption(updated),
-                  const SizedBox(height: MyDataSpace.s2),
+                  SizedBox(height: context.space(2)),
                   Row(children: [
                     retry,
                     if (connection.retrying) ...[
-                      const SizedBox(width: MyDataSpace.s2),
+                      SizedBox(width: context.space(2)),
                       Flexible(child: Text(AppConnection.retryingText, style: muted)),
                     ],
                   ]),
@@ -634,9 +633,9 @@ class _ConnectionLine extends StatelessWidget {
   }
 
   /// [leading] centred in a `icon`-wide slot, so the dot, loader and warning icon line up with the row icons.
-  Widget _lead(Widget leading, Widget text) => Row(children: [
-        SizedBox(width: MyDataSize.icon, child: Center(child: leading)),
-        const SizedBox(width: MyDataSpace.s2),
+  Widget _lead(BuildContext context, Widget leading, Widget text) => Row(children: [
+        SizedBox(width: context.density.icon, child: Center(child: leading)),
+        SizedBox(width: context.space(2)),
         Flexible(child: text),
       ]);
 }
@@ -649,8 +648,8 @@ class _RailConnection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final muted = MyDataType.caption.copyWith(color: c.inkMuted);
-    const gap = SizedBox(height: MyDataSpace.s1);
+    final muted = context.typeScale.caption.copyWith(color: c.inkMuted);
+    final gap = SizedBox(height: context.space(1));
     return switch (connection.state) {
       AppConnectionState.connected => Column(mainAxisSize: MainAxisSize.min, children: [
           Tooltip(
@@ -672,7 +671,7 @@ class _RailConnection extends StatelessWidget {
       AppConnectionState.starting => Semantics(
           liveRegion: true,
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const KiwiLoader(size: _HostDot.loaderSize, semanticLabel: AppConnection.startingText),
+            KiwiLoader(size: _HostDot.loaderSize(context.look), semanticLabel: AppConnection.startingText),
             gap,
             ExcludeSemantics(child: Text(AppConnection.startingText, style: muted, textAlign: TextAlign.center)),
           ]),
@@ -682,15 +681,15 @@ class _RailConnection extends StatelessWidget {
           container: true,
           explicitChildNodes: true,
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Icon(Icons.warning_amber_rounded, size: MyDataSize.icon, color: c.warning),
+            Icon(Icons.warning_amber_rounded, size: context.density.icon, color: c.warning),
             gap,
             Text(AppConnection.unreachableText,
-                textAlign: TextAlign.center, style: MyDataType.label.copyWith(color: c.warning)),
+                textAlign: TextAlign.center, style: context.typeScale.label.copyWith(color: c.warning)),
             if (connection.lastUpdated != null) ...[
               gap,
               Text(connection.lastUpdated!, style: muted, textAlign: TextAlign.center),
             ],
-            const SizedBox(height: MyDataSpace.s2),
+            SizedBox(height: context.space(2)),
             Button(label: AppConnection.retryText, onPressed: connection.onRetry),
             if (connection.retrying) ...[
               gap,
@@ -719,7 +718,7 @@ class _HostDot extends StatelessWidget {
 
   /// The loader that stands in for the dot while the host starts: the `space-6` badge, a little larger
   /// than an icon so the kiwi can be made out.
-  static const loaderSize = MyDataSpace.s6;
+  static double loaderSize(MyDataLook look) => look.space(6);
 
   @override
   Widget build(BuildContext context) => Container(
@@ -746,11 +745,11 @@ class _Link extends StatelessWidget {
         onPressed: onTap,
         button: false,
         scaleOnPress: false,
-        borderRadius: MyDataRadii.sm,
+        borderRadius: MyDataRadii.sm(context.look),
         semanticLabel: label,
         child: ExcludeSemantics(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: MyDataSize.controlHeight, minWidth: MyDataSize.controlHeight),
+            constraints: BoxConstraints(minHeight: context.density.controlHeight, minWidth: context.density.controlHeight),
             child: Align(
               widthFactor: 1,
               heightFactor: 1,
@@ -758,7 +757,7 @@ class _Link extends StatelessWidget {
               child: Text(
                 label,
                 textAlign: center ? TextAlign.center : TextAlign.start,
-                style: MyDataType.caption.copyWith(
+                style: context.typeScale.caption.copyWith(
                   color: c.accent,
                   decoration: TextDecoration.underline,
                   decorationColor: c.accent,

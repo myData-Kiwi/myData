@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../generated/tokens.g.dart';
-import '../motion.dart';
+import '../theme/theme.dart';
 import '../widgets/pressable.dart' show FocusRing;
 import 'mac_chrome.dart';
 import 'mac_overlays.dart' show MacMenuLook;
@@ -96,10 +96,10 @@ class _PartState extends State<_Part> {
         : null;
     final height = MyDataMacSize.toolbarItemHeight - 2 * MacToolbarGroup.inset;
     Widget part = AnimatedContainer(
-      duration: MyDataMotion.fast,
+      duration: context.motion.fast,
       height: height,
       constraints: BoxConstraints(minWidth: height),
-      padding: EdgeInsets.symmetric(horizontal: s.icon != null ? 0 : MyDataSpace.s3),
+      padding: EdgeInsets.symmetric(horizontal: s.icon != null ? 0 : context.space(3)),
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: fill,

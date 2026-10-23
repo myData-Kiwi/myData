@@ -6,7 +6,8 @@ import 'package:flutter/widgets.dart';
 
 import '../generated/tokens.g.dart';
 import '../mac/mac_theme.dart';
-import '../theme.dart';
+import '../mac/mac_window.dart';
+import '../theme/theme.dart';
 import 'badge.dart';
 import 'group_frame.dart';
 import 'icon_tile.dart';
@@ -50,10 +51,10 @@ class GroupedList extends StatelessWidget {
   static const dividerWidth = GroupFrame.dividerWidth;
 
   /// Preview: `.lbl{margin:0 0 8px 6px}`: `space-2` below; 6px in, snapped to `space-2`.
-  static const headingPadding = GroupFrame.headingPadding;
+  static EdgeInsets headingPadding(MyDataLook look) => GroupFrame.headingPadding(look);
 
   @override
-  Widget build(BuildContext context) => GroupFrame(heading: heading, parts: rows, plain: MacLook.of(context));
+  Widget build(BuildContext context) => GroupFrame(heading: heading, parts: rows, plain: MacWindow.of(context));
 }
 
 /// What sits at the right end of a [GroupedRow]: a status chip, a value, a chevron, or a value and a
@@ -196,13 +197,13 @@ class GroupedRow extends StatelessWidget {
   bool get isSwitch => switchValue != null;
 
   /// Row geometry: `space-4` across, `space-2` down (preview: `padding:8px 16px`).
-  static const padding = EdgeInsets.symmetric(horizontal: MyDataSpace.s4, vertical: MyDataSpace.s2);
+  static EdgeInsets padding(MyDataLook look) => EdgeInsets.symmetric(horizontal: look.space(4), vertical: look.space(2));
 
   /// Between the tile, the text and the trailing part (preview: `gap:12px`).
-  static const gap = MyDataSpace.s3;
+  static double gap(MyDataLook look) => look.space(3);
 
   /// Between a value and its chevron (preview: `.end{gap:8px}`).
-  static const trailingGap = MyDataSpace.s2;
+  static double trailingGap(MyDataLook look) => look.space(2);
 
   /// Not in the spec: when the title and a long value cannot both fit, the value keeps at most this much
   /// of the row's inner width and is cut short, so it never squeezes the title out.
@@ -230,26 +231,26 @@ class GroupedRow extends StatelessWidget {
 
     final end = isSwitch ? SwitchTrack(value: switchValue!) : (trailing == null ? null : _trailing(context, trailing!));
     // The Mac frame: a plain list's row, `row-height` at least, its text in the system's styles.
-    final mac = MacLook.of(context);
+    final mac = MacWindow.of(context);
     Widget content = ConstrainedBox(
-      constraints: BoxConstraints(minHeight: mac ? MyDataMacSize.rowHeight : MyDataSize.rowHeight),
+      constraints: BoxConstraints(minHeight: mac ? MyDataMacSize.rowHeight : context.density.rowHeight),
       child: Padding(
         padding: mac
-            ? const EdgeInsets.symmetric(horizontal: MyDataMacSize.rowPadding, vertical: MyDataSpace.s1)
-            : padding,
+            ? EdgeInsets.symmetric(horizontal: MyDataMacSize.rowPadding, vertical: context.space(1))
+            : padding(context.look),
         child: _RowLine(
           children: [
             Row(
               children: [
-                if (icon != null) ...[IconTile(icon: icon!, tone: tone), const SizedBox(width: gap)],
+                if (icon != null) ...[IconTile(icon: icon!, tone: tone), SizedBox(width: gap(context.look))],
                 Expanded(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(title, style: context.type(mac ? MyDataType.body : MyDataType.bodyStrong).copyWith(color: c.ink)),
+                      Text(title, style: context.type(mac ? MyDataTypeRole.body : MyDataTypeRole.bodyStrong).copyWith(color: c.ink)),
                       if (subtitle != null)
-                        Text(subtitle!, style: context.type(MyDataType.caption).copyWith(color: c.inkMuted)),
+                        Text(subtitle!, style: context.type(MyDataTypeRole.caption).copyWith(color: c.inkMuted)),
                     ],
                   ),
                 ),
@@ -296,9 +297,9 @@ class GroupedRow extends StatelessWidget {
       text,
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
-      style: context.type(MyDataType.body).copyWith(color: c.inkMuted),
+      style: context.type(MyDataTypeRole.body).copyWith(color: c.inkMuted),
     );
-    final chevron = Icon(Icons.chevron_right_rounded, size: MyDataSize.icon, color: c.inkMuted);
+    final chevron = Icon(Icons.chevron_right_rounded, size: context.density.icon, color: c.inkMuted);
     return switch (t) {
       GroupedBadge(:final label, :final tone) => MyDataBadge(label, tone: tone),
       GroupedValue(:final text) => value(text),
@@ -307,7 +308,7 @@ class GroupedRow extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Flexible(child: value(text)),
-          const SizedBox(width: trailingGap),
+          SizedBox(width: trailingGap(context.look)),
           chevron,
         ],
       ),
@@ -327,11 +328,12 @@ class _RowLine extends MultiChildRenderObjectWidget {
   const _RowLine({required super.children});
 
   @override
-  RenderObject createRenderObject(BuildContext context) => _RenderRowLine(Directionality.of(context));
+  RenderObject createRenderObject(BuildContext context) => _RenderRowLine(Directionality.of(context), context.look);
 
   @override
-  void updateRenderObject(BuildContext context, _RenderRowLine renderObject) =>
-      renderObject.textDirection = Directionality.of(context);
+  void updateRenderObject(BuildContext context, _RenderRowLine renderObject) => renderObject
+    ..textDirection = Directionality.of(context)
+    ..look = context.look;
 }
 
 class _RowLineParentData extends ContainerBoxParentData<RenderBox> {}
@@ -342,9 +344,16 @@ class _RenderRowLine extends RenderBox
     with
         ContainerRenderObjectMixin<RenderBox, _RowLineParentData>,
         RenderBoxContainerDefaultsMixin<RenderBox, _RowLineParentData> {
-  _RenderRowLine(this._textDirection);
+  _RenderRowLine(this._textDirection, this._look);
 
-  static const _gap = GroupedRow.gap;
+  double get _gap => GroupedRow.gap(_look);
+
+  MyDataLook _look;
+  set look(MyDataLook value) {
+    if (value == _look) return;
+    _look = value;
+    markNeedsLayout();
+  }
 
   TextDirection _textDirection;
   set textDirection(TextDirection value) {

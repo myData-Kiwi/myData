@@ -1,9 +1,9 @@
 import 'package:flutter/widgets.dart';
 
-import '../generated/tokens.g.dart';
 import '../mac/mac_empty_state.dart';
 import '../mac/mac_theme.dart';
-import '../theme.dart';
+import '../mac/mac_window.dart';
+import '../theme/theme.dart';
 import 'button.dart';
 import 'kiwi.dart';
 import 'pressable.dart';
@@ -55,21 +55,21 @@ class EmptyState extends StatelessWidget {
   static const markWidth = 72.0;
 
   /// The preview's column gap (12px).
-  static const gap = MyDataSpace.s3;
+  static double gap(MyDataLook look) => look.space(3);
 
   /// The tile-to-title and sentence-to-button gaps: the preview's 12px gap plus a 6px margin (18px), which
   /// lies halfway between `space-4` and `space-5`; `space-4` is used.
-  static const wideGap = MyDataSpace.s4;
+  static double wideGap(MyDataLook look) => look.space(4);
 
   /// Between the disabled button and its reason.
-  static const reasonGap = MyDataSpace.s2;
+  static double reasonGap(MyDataLook look) => look.space(2);
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
     final reason = onAction == null ? disabledReason : null;
     // The Mac frame: the bare kiwi, the title, one line and the button (ContentUnavailableView).
-    if (MacLook.of(context)) {
+    if (MacWindow.of(context)) {
       return MacEmptyState(
         title: title,
         line: sentence,
@@ -96,22 +96,22 @@ class EmptyState extends StatelessWidget {
                 alignment: Alignment.center,
                 // The preview's `.mark`: `border-radius:28px`, which is `radius-xl`.
                 decoration:
-                    BoxDecoration(color: c.paper, borderRadius: MyDataRadii.xl, boxShadow: context.shadows.shadow1),
+                    BoxDecoration(color: c.paper, borderRadius: MyDataRadii.xl(context.look), boxShadow: context.shadows.shadow1),
                 child: const KiwiMark(height: markWidth / KiwiMark.aspect, semanticLabel: null),
               ),
             ),
-            const SizedBox(height: wideGap),
+            SizedBox(height: wideGap(context.look)),
             Semantics(
               header: true,
-              child: Text(title, textAlign: TextAlign.center, style: context.type(MyDataType.title).copyWith(color: c.ink)),
+              child: Text(title, textAlign: TextAlign.center, style: context.type(MyDataTypeRole.title).copyWith(color: c.ink)),
             ),
-            const SizedBox(height: gap),
-            Text(sentence, textAlign: TextAlign.center, style: context.type(MyDataType.body).copyWith(color: c.inkMuted)),
-            const SizedBox(height: wideGap),
+            SizedBox(height: gap(context.look)),
+            Text(sentence, textAlign: TextAlign.center, style: context.type(MyDataTypeRole.body).copyWith(color: c.inkMuted)),
+            SizedBox(height: wideGap(context.look)),
             Button(label: actionLabel, variant: ButtonVariant.filled, onPressed: onAction),
             if (reason != null) ...[
-              const SizedBox(height: reasonGap),
-              Text(reason, textAlign: TextAlign.center, style: context.type(MyDataType.caption).copyWith(color: c.inkMuted)),
+              SizedBox(height: reasonGap(context.look)),
+              Text(reason, textAlign: TextAlign.center, style: context.type(MyDataTypeRole.caption).copyWith(color: c.inkMuted)),
             ],
           ],
         ),

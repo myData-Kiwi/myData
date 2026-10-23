@@ -54,7 +54,7 @@ class MonthPage extends StatelessWidget {
   static const besideMinWidth = 860.0;
 
   /// Between the grid and the day list.
-  static const gap = MyDataSpace.s6;
+  static double gap(MyDataLook look) => look.space(6);
 
   /// The six weeks the grid shows for [month].
   static List<DateTime> visibleDays(DateTime month, int firstDayOfWeek) =>
@@ -90,7 +90,7 @@ class MonthPage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 for (var i = 0; i < notices.length; i++) ...[
-                  if (i > 0) const SizedBox(height: Notice.stackGap),
+                  if (i > 0) SizedBox(height: Notice.stackGap(context.look)),
                   notices[i],
                 ],
               ],
@@ -127,12 +127,12 @@ class MonthPage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(child: grid),
-                  const SizedBox(width: gap),
+                  SizedBox(width: gap(context.look)),
                   // Level with the month's title row, so the day's heading starts where the header does.
                   SizedBox(
                     width: dayListWidth,
                     child: Padding(
-                      padding: EdgeInsets.only(top: _dayListTopFor(MediaQuery.textScalerOf(context))),
+                      padding: EdgeInsets.only(top: _dayListTopFor(context.look, MediaQuery.textScalerOf(context))),
                       child: dayList,
                     ),
                   ),
@@ -141,7 +141,7 @@ class MonthPage extends StatelessWidget {
             }
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [grid, const SizedBox(height: gap), dayList],
+              children: [grid, SizedBox(height: gap(context.look)), dayList],
             );
           },
         ),
@@ -151,9 +151,9 @@ class MonthPage extends StatelessWidget {
 
   /// Beside the grid, the day list's group lines up with the top of the notices or the grid: under the
   /// month's header row (`control-height` and the header's gap), less the day's heading above the group.
-  static double _dayListTopFor(TextScaler scaler) => (MyDataSize.controlHeight +
-          MonthGrid.sectionGap -
-          scaler.scale(MyDataType.label.fontSize!) * MyDataType.label.height! -
-          GroupedList.headingPadding.bottom)
+  static double _dayListTopFor(MyDataLook look, TextScaler scaler) => (look.density.controlHeight +
+          MonthGrid.sectionGap(look) -
+          scaler.scale(look.typeScale.label.fontSize!) * look.typeScale.label.height! -
+          GroupedList.headingPadding(look).bottom)
       .clamp(0.0, double.infinity);
 }

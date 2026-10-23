@@ -1,9 +1,8 @@
 import 'package:flutter/semantics.dart';
 import 'package:flutter/widgets.dart';
 
-import '../generated/tokens.g.dart';
-import '../motion.dart';
-import '../theme.dart';
+import '../theme/motion.dart';
+import '../theme/theme.dart';
 import 'pressable.dart' show MyDataRadii;
 
 /// A rounded bar showing how much of a known amount of work is done (design/components/ProgressBar).
@@ -52,7 +51,7 @@ class MyDataProgressBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     final reduced = MyDataMotion.reduced(context);
-    final strong = MyDataType.bodyStrong.copyWith(color: c.ink);
+    final strong = context.typeScale.bodyStrong.copyWith(color: c.ink);
 
     return Semantics(
       container: true,
@@ -72,35 +71,35 @@ class MyDataProgressBar extends StatelessWidget {
             children: [
               Expanded(child: Text(label, style: strong)),
               // Preview: 12px between label and figure, space-3.
-              const SizedBox(width: MyDataSpace.s3),
+              SizedBox(width: context.space(3)),
               Text(valueLabel ?? '$percent%',
                   style: strong.copyWith(fontFeatures: const [FontFeature.tabularFigures()])),
             ],
           ),
           // Preview: a 10px gap, between space-2 and space-3; the nearest token on the larger side.
-          const SizedBox(height: MyDataSpace.s3),
+          SizedBox(height: context.space(3)),
           SizedBox(
             height: trackHeight,
             child: DecoratedBox(
-              decoration: BoxDecoration(color: c.surfaceSunken, borderRadius: MyDataRadii.pill),
+              decoration: BoxDecoration(color: c.surfaceSunken, borderRadius: MyDataRadii.pill(context.look)),
               child: TweenAnimationBuilder<double>(
                 // Begin is left null, so the first build shows [fraction] at once; later changes animate.
                 tween: Tween<double>(end: fraction),
-                duration: reduced ? Duration.zero : MyDataMotion.base,
-                curve: MyDataMotion.standard,
+                duration: reduced ? Duration.zero : context.motion.base,
+                curve: context.motion.standard,
                 builder: (context, t, _) => FractionallySizedBox(
                   alignment: AlignmentDirectional.centerStart,
                   widthFactor: t.clamp(0.0, 1.0),
                   heightFactor: 1,
                   child: t <= 0
                       ? const SizedBox.shrink()
-                      : DecoratedBox(decoration: BoxDecoration(color: c.accent, borderRadius: MyDataRadii.pill)),
+                      : DecoratedBox(decoration: BoxDecoration(color: c.accent, borderRadius: MyDataRadii.pill(context.look))),
                 ),
               ),
             ),
           ),
-          const SizedBox(height: MyDataSpace.s3),
-          Text(caption, style: MyDataType.caption.copyWith(color: c.inkMuted)),
+          SizedBox(height: context.space(3)),
+          Text(caption, style: context.typeScale.caption.copyWith(color: c.inkMuted)),
         ],
       ),
     );

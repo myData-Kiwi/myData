@@ -215,13 +215,13 @@ void main() {
       final name = tester.getRect(find.text('Ava Fictional'));
       final role = tester.getRect(find.text('Head of research, Example Labs'));
       final source = tester.getRect(find.text(_icloud));
-      expect(name.left - avatar.right, ContactHeader.sideGap);
+      expect(name.left - avatar.right, ContactHeader.sideGap(kiwiLook));
       expect(role.left, name.left);
       expect(source.left, name.left);
       // The text block, top of the name to bottom of the source line, is centred on the avatar.
       expect((name.top + source.bottom) / 2, moreOrLessEquals(avatar.center.dy, epsilon: 0.5));
       expect(role.top, name.bottom);
-      expect(source.top - role.bottom, ContactHeader.captionGap);
+      expect(source.top - role.bottom, ContactHeader.captionGap(kiwiLook));
     });
 
     testWidgets('under 600px the avatar is above the text, space-4 apart, and everything is centred', (tester) async {
@@ -232,18 +232,18 @@ void main() {
       final role = tester.getRect(find.text('Head of research, Example Labs'));
       final source = tester.getRect(find.text(_icloud));
       expect(avatar.center.dx, frame.center.dx);
-      expect(name.top - avatar.bottom, ContactHeader.stackGap);
+      expect(name.top - avatar.bottom, ContactHeader.stackGap(kiwiLook));
       expect(name.center.dx, moreOrLessEquals(frame.center.dx, epsilon: 0.5));
       expect(role.center.dx, moreOrLessEquals(frame.center.dx, epsilon: 0.5));
-      expect(source.top - role.bottom, ContactHeader.captionGap);
+      expect(source.top - role.bottom, ContactHeader.captionGap(kiwiLook));
       for (final t in ['Ava Fictional', 'Head of research, Example Labs', _icloud]) {
         expect(tester.widget<Text>(find.text(t)).textAlign, TextAlign.center);
       }
     });
 
     testWidgets('in a wider window, a header narrower than sideMinWidth stacks like a phone', (tester) async {
-      final min = ContactHeader.sideMinWidth(TextScaler.noScaling);
-      expect(min, AvatarSize.large.diameter + ContactHeader.sideGap + ContactHeader.sideTextMin);
+      final min = ContactHeader.sideMinWidth(kiwiLook, TextScaler.noScaling);
+      expect(min, AvatarSize.large.diameter(kiwiLook) + ContactHeader.sideGap(kiwiLook) + ContactHeader.sideTextMin);
 
       await _pump(tester, _ava(), width: 600, paneWidth: min - 1);
       expect(_side(tester), isFalse);
@@ -251,7 +251,7 @@ void main() {
       final frame = tester.getRect(find.byType(ContactHeader));
       final name = tester.getRect(find.text('Ava Fictional'));
       expect(avatar.center.dx, frame.center.dx);
-      expect(name.top - avatar.bottom, ContactHeader.stackGap);
+      expect(name.top - avatar.bottom, ContactHeader.stackGap(kiwiLook));
       expect(name.center.dx, moreOrLessEquals(frame.center.dx, epsilon: 0.5));
       expect(tester.widget<Text>(find.text('Ava Fictional')).textAlign, TextAlign.center);
 
@@ -379,7 +379,7 @@ void main() {
         tester,
         Column(children: [
           _ava(),
-          Pressable(onPressed: () => pressed++, borderRadius: MyDataRadii.sm, semanticLabel: 'After', child: const SizedBox.square(dimension: 44)),
+          Pressable(onPressed: () => pressed++, borderRadius: MyDataRadii.sm(kiwiLook), semanticLabel: 'After', child: const SizedBox.square(dimension: 44)),
         ]),
       );
       await tester.sendKeyEvent(LogicalKeyboardKey.tab);

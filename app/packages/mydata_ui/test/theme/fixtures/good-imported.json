@@ -1,0 +1,30 @@
+{
+  "format": 1,
+  "id": "7f3c2a9e-5b1d-4c8e-9a2f-1e6d0b4c8a71",
+  "name": "Harbour Fog",
+  "version": "1.2.0",
+  "author": "Ava Fictional",
+  "licence": "CC-BY-4.0",
+  "description": "A grey-blue morning with glass bars. Made for ava@example.org's calendar.",
+  "based-on": "mydata.kiwi",
+  "frame": "drawn",
+  "default-palette": "fog",
+  "palettes": [
+    {
+      "id": "fog",
+      "name": "Fog",
+      "light": { "bg": "#F4F6F7", "surface": "#FFFFFF", "ink": "#1B2328", "ink-muted": "#4E5A61", "accent": "#2F6F8F", "on-accent": "#FFFFFF" },
+      "dark": { "bg": "#12181C", "surface": "#1A2227", "ink": "#E3EAEE", "ink-muted": "#A3B1B9", "accent": "#8CC3DE", "on-accent": "#0B1A22" }
+    },
+    {
+      "id": "lantern",
+      "name": "Lantern",
+      "light": { "bg": "#F7F5F2", "surface": "#FFFFFF", "ink": "#221E1A", "ink-muted": "#5A534C", "accent": "#8A4B12", "on-accent": "#FFFFFF" },
+      "dark": { "bg": "#171410", "surface": "#201C17", "ink": "#EEE8E1", "ink-muted": "#B4AAA0", "accent": "#E8A866", "on-accent": "#24160A" }
+    }
+  ],
+  "motion": { "personality": "calm" },
+  "components": { "list": "cards", "toolbar": "floating" },
+  "futureKey": { "ignored": true },
+  "sound": "none"
+}

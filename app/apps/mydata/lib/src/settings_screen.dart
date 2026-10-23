@@ -79,7 +79,7 @@ class AppearanceSection extends StatelessWidget {
     listenable: appearance,
     builder: (context, _) {
       final themeId = appearance.themeId ?? MyDataThemes.fallback.id;
-      if (MacLook.of(context)) {
+      if (MacWindow.of(context)) {
         return MacFormSection(
           rows: [
             MacFormRow(
@@ -172,7 +172,7 @@ class _AssistantSectionState extends State<AssistantSection> {
         ? 'Off. myData works without it. Switching it on prepares its model, '
               'downloading it first (several gigabytes) if it is not on this computer yet.'
         : '${describeModel(status!.model)}. Switching it off unloads the model; the rest of myData keeps working.';
-    if (MacLook.of(context)) {
+    if (MacWindow.of(context)) {
       return MacFormSection(
         footer: text,
         rows: [
@@ -266,7 +266,7 @@ class MacThemeDots extends StatelessWidget {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final mac = context.mac;
     return Wrap(
-      spacing: MyDataSpace.s2,
+      spacing: context.space(2),
       children: [
         for (final t in MyDataThemes.all)
           Tooltip(
@@ -274,7 +274,7 @@ class MacThemeDots extends StatelessWidget {
             waitDuration: MacMenuLook.helpTagDelay,
             child: Pressable(
               onPressed: onChanged == null ? null : () => onChanged!(t.id),
-              borderRadius: const BorderRadius.all(Radius.circular(MyDataRadius.pill)),
+              borderRadius: BorderRadius.all(Radius.circular(context.radius.pill)),
               scaleOnPress: false,
               semanticLabel: t.name,
               selected: t.id == selected,
@@ -321,17 +321,17 @@ class AboutSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SizedBox(height: MyDataSpace.s5),
+        SizedBox(height: context.space(5)),
         const Center(child: KiwiTile(size: MyDataMacSize.avatar * 1.25)),
-        const SizedBox(height: MyDataSpace.s3),
+        SizedBox(height: context.space(3)),
         Center(
           child: Semantics(header: true, child: Text('myData', style: MyDataMacType.name.copyWith(color: mac.label))),
         ),
-        const SizedBox(height: MyDataSpace.s1),
+        SizedBox(height: context.space(1)),
         Center(
           child: Text(tagline, textAlign: TextAlign.center, style: MyDataMacType.body.copyWith(color: mac.secondaryLabel)),
         ),
-        const SizedBox(height: MyDataSpace.s6),
+        SizedBox(height: context.space(6)),
         MacFormSection(
           footer: privacy,
           rows: [

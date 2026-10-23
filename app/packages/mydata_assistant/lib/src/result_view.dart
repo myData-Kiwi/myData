@@ -30,7 +30,8 @@ class ResultLinks {
 /// Enter and Space. Otherwise (demo data, the app not installed, an item without an id or a day, mail and
 /// photos) the row is not interactive.
 ///
-/// **The Mac frame** ([MacLook]): the header in `body-emphasized`, then the rows in one rounded box with a
+/// **The Mac frame** ([MacWindow.of]): the header in `body-emphasized`,
+/// then the rows in one rounded box with a
 /// hairline outline and hairlines between rows (as Mail and System Settings group things), each with its
 /// kind's Lucide icon ([macIconFor]; events in the accent, the rest in `secondary-label`) instead of a
 /// branded tile. A row that opens its item takes the `hover` fill under the pointer, the system's focus ring
@@ -84,7 +85,7 @@ class ResultCard extends StatelessWidget {
   }
 
   /// Between the header line and the list.
-  static const headerGap = MyDataSpace.s2;
+  static double headerGap(MyDataLook look) => look.space(2);
 
   /// The icon on each row's tile for [kind].
   static IconData iconFor(String kind) => switch (kind) {
@@ -126,7 +127,7 @@ class ResultCard extends StatelessWidget {
             if (i > 0)
               Padding(
                 // Under the text, not the icon, as the system's grouped lists draw it.
-                padding: const EdgeInsetsDirectional.only(start: _MacRow.textStart),
+                padding: EdgeInsetsDirectional.only(start: _MacRow.textStart(context.look)),
                 child: Container(height: MyDataMacSize.hairline, color: mac.separator),
               ),
             _MacRow(row: row),
@@ -147,7 +148,7 @@ class ResultCard extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         headerLine,
-        const SizedBox(height: headerGap),
+        SizedBox(height: headerGap(context.look)),
         box([for (final item in items) _row(item)]),
       ],
     );
@@ -155,7 +156,7 @@ class ResultCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (MacLook.of(context)) return _mac(context);
+    if (MacWindow.of(context)) return _mac(context);
     final c = context.colors;
     if (kind == 'event_created') {
       // The header says what was added; the list's one row carries it.
@@ -167,7 +168,7 @@ class ResultCard extends StatelessWidget {
     }
     final headerLine = Semantics(
       header: true,
-      child: Text(header, style: MyDataType.bodyStrong.copyWith(color: c.ink)),
+      child: Text(header, style: context.typeScale.bodyStrong.copyWith(color: c.ink)),
     );
     if (items.isEmpty) return headerLine;
     return Column(
@@ -175,7 +176,7 @@ class ResultCard extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         headerLine,
-        const SizedBox(height: headerGap),
+        SizedBox(height: headerGap(context.look)),
         GroupedList(rows: [for (final item in items) _row(item)]),
       ],
     );
@@ -280,11 +281,11 @@ class _Line {
     _LineStyle.mono => MyDataMacType.body.copyWith(color: mac.secondaryLabel),
   };
 
-  TextStyle styleIn(MyDataColors c) => switch (style) {
-    _LineStyle.strong => MyDataType.bodyStrong.copyWith(color: c.ink),
-    _LineStyle.body => MyDataType.body.copyWith(color: c.ink),
-    _LineStyle.caption => MyDataType.caption.copyWith(color: c.inkMuted),
-    _LineStyle.mono => MyDataType.mono.copyWith(color: c.ink),
+  TextStyle styleIn(MyDataColors c, MyDataTypeScale type) => switch (style) {
+    _LineStyle.strong => type.bodyStrong.copyWith(color: c.ink),
+    _LineStyle.body => type.body.copyWith(color: c.ink),
+    _LineStyle.caption => type.caption.copyWith(color: c.inkMuted),
+    _LineStyle.mono => type.mono.copyWith(color: c.ink),
   };
 }
 
@@ -325,13 +326,13 @@ class _ResultRow extends GroupedRow {
     ];
     final opensIn = opens;
     Widget row = ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: MyDataSize.rowHeight),
+      constraints: BoxConstraints(minHeight: context.density.rowHeight),
       child: Padding(
-        padding: GroupedRow.padding,
+        padding: GroupedRow.padding(context.look),
         child: Row(
           children: [
             IconTile(icon: icon!, tone: tone),
-            const SizedBox(width: GroupedRow.gap),
+            SizedBox(width: GroupedRow.gap(context.look)),
             Expanded(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -340,7 +341,7 @@ class _ResultRow extends GroupedRow {
                   for (final l in shown)
                     Text(
                       l.text,
-                      style: l.styleIn(c),
+                      style: l.styleIn(c, context.typeScale),
                       maxLines: l.maxLines,
                       overflow: l.maxLines == null ? null : TextOverflow.ellipsis,
                     ),
@@ -348,12 +349,12 @@ class _ResultRow extends GroupedRow {
               ),
             ),
             if (end != null && end!.isNotEmpty) ...[
-              const SizedBox(width: GroupedRow.gap),
-              Text(end!, style: MyDataType.caption.copyWith(color: c.inkMuted)),
+              SizedBox(width: GroupedRow.gap(context.look)),
+              Text(end!, style: context.typeScale.caption.copyWith(color: c.inkMuted)),
             ],
             if (onPressed != null) ...[
-              const SizedBox(width: GroupedRow.gap),
-              Icon(Icons.chevron_right_rounded, size: MyDataSize.icon, color: c.inkMuted),
+              SizedBox(width: GroupedRow.gap(context.look)),
+              Icon(Icons.chevron_right_rounded, size: context.density.icon, color: c.inkMuted),
             ],
           ],
         ),
@@ -383,7 +384,7 @@ class _MacRow extends StatelessWidget {
   final _ResultRow row;
 
   /// Where the text starts, for the hairline between rows.
-  static const textStart = MyDataSpace.s3 + MyDataMacSize.icon + MyDataSpace.s2;
+  static double textStart(MyDataLook look) => look.space(3) + MyDataMacSize.icon + look.space(2);
 
   @override
   Widget build(BuildContext context) {
@@ -397,7 +398,7 @@ class _MacRow extends StatelessWidget {
     // The icon sits on the first line.
     final firstLine = MyDataMacType.bodyEmphasized.fontSize! * MyDataMacType.bodyEmphasized.height!;
     Widget content = Padding(
-      padding: MacChat.rowPadding,
+      padding: MacChat.rowPadding(context.look),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -409,7 +410,7 @@ class _MacRow extends StatelessWidget {
               color: row.tone == MyDataTone.accent ? mac.accent : mac.secondaryLabel,
             ),
           ),
-          const SizedBox(width: MyDataSpace.s2),
+          SizedBox(width: context.space(2)),
           Expanded(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -426,11 +427,11 @@ class _MacRow extends StatelessWidget {
             ),
           ),
           if (end != null && end.isNotEmpty) ...[
-            const SizedBox(width: MyDataSpace.s3),
+            SizedBox(width: context.space(3)),
             Text(end, style: MyDataMacType.callout.copyWith(color: mac.secondaryLabel)),
           ],
           if (row.onPressed != null) ...[
-            const SizedBox(width: MyDataSpace.s2),
+            SizedBox(width: context.space(2)),
             Padding(
               padding: EdgeInsets.only(top: (firstLine - MyDataMacSize.icon) / 2),
               child: Icon(MacIcons.chevronRight, size: MyDataMacSize.icon, color: mac.tertiaryLabel),

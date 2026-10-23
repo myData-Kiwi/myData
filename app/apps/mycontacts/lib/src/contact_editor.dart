@@ -425,7 +425,7 @@ class _ContactEditorState extends State<ContactEditor> {
           error: _hostErrors['birthday'],
         ),
       ),
-      const SizedBox(width: RepeatableFormRow.gap),
+      SizedBox(width: RepeatableFormRow.gap(context.look)),
       FormRemoveButton(
         label: ContactEditor.removeBirthdayLabel,
         onPressed: () {
@@ -441,7 +441,7 @@ class _ContactEditorState extends State<ContactEditor> {
   @override
   Widget build(BuildContext context) {
     final d = _draft;
-    final form = MacLook.of(context) ? _macForm() : MyDataForm(
+    final form = MacWindow.of(context) ? _macForm() : MyDataForm(
       error: _checks.formError,
       errorFocusNode: _checks.formErrorFocus,
       groups: [

@@ -4,8 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 
-import '../generated/tokens.g.dart';
-import '../theme.dart';
+import '../theme/theme.dart';
 import 'button.dart';
 import 'pressable.dart' show MyDataRadii;
 
@@ -39,10 +38,10 @@ class MonoWell extends StatefulWidget {
   static const copiedLabel = 'Copied';
 
   /// Spec: "`space-3` padding across and `space-2` down".
-  static const padding = EdgeInsets.symmetric(horizontal: MyDataSpace.s3, vertical: MyDataSpace.s2);
+  static EdgeInsets padding(MyDataLook look) => EdgeInsets.symmetric(horizontal: look.space(3), vertical: look.space(2));
 
   /// Between the well and its copy button, and between the label and the well.
-  static const gap = MyDataSpace.s2;
+  static double gap(MyDataLook look) => look.space(2);
 
   @override
   State<MonoWell> createState() => _MonoWellState();
@@ -67,7 +66,7 @@ class _MonoWellState extends State<MonoWell> {
   /// The width of a [Button] for the wider of [copyLabel] and [MonoWell.copiedLabel].
   double _buttonWidth(BuildContext context, String copyLabel) {
     // Measured as the button's Text lays its label out: the label style over the inherited text style.
-    final style = DefaultTextStyle.of(context).style.merge(MyDataType.bodyStrong);
+    final style = DefaultTextStyle.of(context).style.merge(context.typeScale.bodyStrong);
     double textWidth(String text) {
       final painter = TextPainter(
         text: TextSpan(text: text, style: style),
@@ -81,22 +80,22 @@ class _MonoWellState extends State<MonoWell> {
     }
 
     final text = math.max(textWidth(copyLabel), textWidth(MonoWell.copiedLabel));
-    return math.max(MyDataSize.controlHeight, (text + 2 * Button.horizontalPadding).ceilToDouble());
+    return math.max(context.density.controlHeight, (text + 2 * Button.horizontalPadding(context.look)).ceilToDouble());
   }
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
     Widget well = DecoratedBox(
-      decoration: BoxDecoration(color: c.surfaceSunken, borderRadius: MyDataRadii.md),
-      child: Padding(padding: MonoWell.padding, child: _WellText(value: widget.value)),
+      decoration: BoxDecoration(color: c.surfaceSunken, borderRadius: MyDataRadii.md(context.look)),
+      child: Padding(padding: MonoWell.padding(context.look), child: _WellText(value: widget.value)),
     );
     final copyLabel = widget.copyLabel;
     if (copyLabel != null) {
       well = Row(
         children: [
           Expanded(child: well),
-          const SizedBox(width: MonoWell.gap),
+          SizedBox(width: MonoWell.gap(context.look)),
           // As wide as the wider of its two words, so it does not change width when it says "Copied".
           SizedBox(
             width: _buttonWidth(context, copyLabel),
@@ -111,8 +110,8 @@ class _MonoWellState extends State<MonoWell> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(label, style: MyDataType.label.copyWith(color: c.ink)),
-        const SizedBox(height: MonoWell.gap),
+        Text(label, style: context.typeScale.label.copyWith(color: c.ink)),
+        SizedBox(height: MonoWell.gap(context.look)),
         well,
       ],
     );
@@ -142,5 +141,5 @@ class _WellTextState extends State<_WellText> {
 
   @override
   Widget build(BuildContext context) =>
-      SelectableText(widget.value, focusNode: _focusNode, style: MyDataType.mono.copyWith(color: context.colors.ink));
+      SelectableText(widget.value, focusNode: _focusNode, style: context.typeScale.mono.copyWith(color: context.colors.ink));
 }

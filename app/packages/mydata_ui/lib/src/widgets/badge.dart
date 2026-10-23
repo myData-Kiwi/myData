@@ -1,7 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-import '../generated/tokens.g.dart';
-import '../theme.dart';
+import '../theme/theme.dart';
 import 'pressable.dart';
 import 'status.dart';
 
@@ -53,7 +52,7 @@ class MyDataBadge extends StatelessWidget {
       softWrap: false,
       overflow: TextOverflow.ellipsis,
       // Preview: 600 13px, which is the `label` type style.
-      style: MyDataType.label.copyWith(color: host ? c.ink : tone.strong(c)),
+      style: context.typeScale.label.copyWith(color: host ? c.ink : tone.strong(c)),
     );
     return Semantics(
       container: true,
@@ -64,10 +63,10 @@ class MyDataBadge extends StatelessWidget {
         // (Larger Text) it grows instead of clipping the word, which is the only non-colour signal.
         constraints: const BoxConstraints(minHeight: height),
         // Preview: 10px either side, between space-2 and space-3; the nearest token on the larger side.
-        padding: const EdgeInsets.symmetric(horizontal: MyDataSpace.s3),
+        padding: EdgeInsets.symmetric(horizontal: context.space(3)),
         decoration: BoxDecoration(
           color: host ? c.surface : tone.fill(c),
-          borderRadius: MyDataRadii.pill,
+          borderRadius: MyDataRadii.pill(context.look),
           boxShadow: host ? context.shadows.shadow1 : null,
         ),
         child: Row(
@@ -80,7 +79,7 @@ class MyDataBadge extends StatelessWidget {
                 decoration: BoxDecoration(color: c.brand, shape: BoxShape.circle),
               ),
               // Preview: 6px, between space-1 and space-2; the nearest token on the larger side.
-              const SizedBox(width: MyDataSpace.s2),
+              SizedBox(width: context.space(2)),
             ],
             Flexible(child: text),
           ],

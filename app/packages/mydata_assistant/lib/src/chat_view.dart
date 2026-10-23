@@ -20,7 +20,7 @@ import 'result_view.dart';
 ///   transparency), holding a borderless field and a send button named "Send". The conversation scrolls
 ///   beneath it. Both are disabled while a reply is coming in; the field gets focus back afterwards.
 /// - Everything in the conversation can be selected and copied.
-/// - **The Mac frame** ([MacLook]): the conversation is a column centred in the content (the branded
+/// - **The Mac frame** ([MacWindow.of]): the conversation is a column centred in the content (the branded
 ///   column's measure at 13 pt), the user's messages in a neutral bubble, the assistant's in plain `body`,
 ///   progress in `callout` / `secondary-label`. The composer sits at the bottom under the conversation, as in
 ///   Messages: a rounded field with the round accent Send button inside it, and the system's focus ring. The
@@ -64,12 +64,12 @@ class ChatView extends StatefulWidget {
   static const workingLabel = 'Working on your message';
 
   /// Between items in the conversation; consecutive progress lines sit closer ([progressGap]).
-  static const itemGap = MyDataSpace.s4;
-  static const progressGap = MyDataSpace.s2;
+  static double itemGap(MyDataLook look) => look.space(4);
+  static double progressGap(MyDataLook look) => look.space(2);
 
   /// Above the first item. Small, because the conversation scrolls up under whatever sits above it (the
   /// page's title); the page adds the rest of its title gap outside the scrolling area.
-  static const topPadding = MyDataSpace.s2;
+  static double topPadding(MyDataLook look) => look.space(2);
 
   /// The widest a message of the user's gets, as a share of the column.
   static const bubbleMaxShare = 3 / 4;
@@ -210,16 +210,16 @@ class _ChatViewState extends State<ChatView> {
     return LayoutBuilder(
       builder: (context, constraints) {
         // The column is centred; narrower windows keep side-padding on each side.
-        final side = ((constraints.maxWidth - MacChat.columnMax) / 2).clamp(MacChat.sidePadding, double.infinity);
+        final side = ((constraints.maxWidth - MacChat.columnMax(context.look)) / 2).clamp(MacChat.sidePadding(context.look), double.infinity);
         final Widget conversation = _chat.items.isEmpty
             ? Padding(
                 padding: EdgeInsets.symmetric(horizontal: side),
                 child: MacEmptyState(title: ChatView.emptyTitle, line: ChatView.emptyLineFor(widget.realMode)),
               )
             : _list(
-                EdgeInsets.fromLTRB(side, MyDataSpace.s4, side, MyDataSpace.s4),
-                itemGap: MacChat.itemGap,
-                progressGap: MacChat.progressGap,
+                EdgeInsets.fromLTRB(side, context.space(4), side, context.space(4)),
+                itemGap: MacChat.itemGap(context.look),
+                progressGap: MacChat.progressGap(context.look),
                 working: const MacWorking(label: ChatView.workingLabel),
                 view: (item) => _MacItemView(item: item, chat: _chat, links: widget.links),
               );
@@ -228,7 +228,7 @@ class _ChatViewState extends State<ChatView> {
           children: [
             Expanded(child: conversation),
             Padding(
-              padding: EdgeInsets.fromLTRB(side, MyDataSpace.s2, side, MyDataSpace.s4),
+              padding: EdgeInsets.fromLTRB(side, context.space(2), side, context.space(4)),
               child: composer,
             ),
           ],
@@ -239,9 +239,9 @@ class _ChatViewState extends State<ChatView> {
 
   @override
   Widget build(BuildContext context) {
-    if (MacLook.of(context)) return _mac(context);
+    if (MacWindow.of(context)) return _mac(context);
     final items = _chat.items;
-    final pad = PageScaffold.paddingFor(AppLayout.of(context));
+    final pad = PageScaffold.paddingFor(context.look, AppLayout.of(context));
     return FloatingBarHost(
       bar: _ComposerBar(
         pad: pad,
@@ -260,15 +260,15 @@ class _ChatViewState extends State<ChatView> {
           final right = (constraints.maxWidth - pad - MyDataSize.contentMax).clamp(pad, double.infinity);
           final padding = EdgeInsets.fromLTRB(
             pad + insets.left,
-            ChatView.topPadding + insets.top,
+            ChatView.topPadding(context.look) + insets.top,
             right + insets.right,
             insets.bottom,
           );
           if (items.isEmpty) return Padding(padding: padding, child: const _EmptyChat());
           return _list(
             padding,
-            itemGap: ChatView.itemGap,
-            progressGap: ChatView.progressGap,
+            itemGap: ChatView.itemGap(context.look),
+            progressGap: ChatView.progressGap(context.look),
             working: const _Working(),
             view: (item) => _ItemView(item: item, chat: _chat, links: widget.links),
           );
@@ -287,7 +287,7 @@ class _ComposerBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
     // The host already insets the bar by space-4; add the rest of the page padding.
-    padding: EdgeInsets.symmetric(horizontal: (pad - FloatingBarHost.inset).clamp(0, double.infinity)),
+    padding: EdgeInsets.symmetric(horizontal: (pad - FloatingBarHost.inset(context.look)).clamp(0, double.infinity)),
     child: Align(
       alignment: AlignmentDirectional.topStart,
       heightFactor: 1,
@@ -309,13 +309,13 @@ class _EmptyChat extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           const ExcludeSemantics(child: KiwiTile(size: EmptyState.tileSize)),
-          const SizedBox(height: EmptyState.wideGap),
+          SizedBox(height: EmptyState.wideGap(context.look)),
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: EmptyState.maxWidth),
             child: Text(
               ChatView.emptyText,
               textAlign: TextAlign.center,
-              style: MyDataType.body.copyWith(color: context.colors.inkMuted),
+              style: context.typeScale.body.copyWith(color: context.colors.inkMuted),
             ),
           ),
         ],
@@ -394,10 +394,10 @@ class _UserMessage extends StatelessWidget {
         child: ConstrainedBox(
           constraints: BoxConstraints(maxWidth: constraints.maxWidth * ChatView.bubbleMaxShare),
           child: DecoratedBox(
-            decoration: BoxDecoration(color: c.accentSoft, borderRadius: MyDataRadii.lg),
+            decoration: BoxDecoration(color: c.accentSoft, borderRadius: MyDataRadii.lg(context.look)),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: MyDataSpace.s4, vertical: MyDataSpace.s3),
-              child: Text(text, style: MyDataType.body.copyWith(color: c.ink)),
+              padding: EdgeInsets.symmetric(horizontal: context.space(4), vertical: context.space(3)),
+              child: Text(text, style: context.typeScale.body.copyWith(color: c.ink)),
             ),
           ),
         ),
@@ -414,7 +414,7 @@ class _AssistantText extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Align(
     alignment: AlignmentDirectional.centerStart,
-    child: Text(text, style: MyDataType.body.copyWith(color: context.colors.ink)),
+    child: Text(text, style: context.typeScale.body.copyWith(color: context.colors.ink)),
   );
 }
 
@@ -430,13 +430,13 @@ class _ProgressRow extends StatelessWidget {
     return Row(
       children: [
         SizedBox.square(
-          dimension: MyDataSize.icon,
+          dimension: context.density.icon,
           child: line.done
-              ? Icon(Icons.check_rounded, size: MyDataSize.icon, color: c.inkMuted)
-              : const ExcludeSemantics(child: KiwiLoader(size: MyDataSize.icon)),
+              ? Icon(Icons.check_rounded, size: context.density.icon, color: c.inkMuted)
+              : ExcludeSemantics(child: KiwiLoader(size: context.density.icon)),
         ),
-        const SizedBox(width: MyDataSpace.s2),
-        Flexible(child: Text(label, style: MyDataType.caption.copyWith(color: c.inkMuted))),
+        SizedBox(width: context.space(2)),
+        Flexible(child: Text(label, style: context.typeScale.caption.copyWith(color: c.inkMuted))),
       ],
     );
   }
@@ -455,7 +455,7 @@ class _NoticeRow extends StatelessWidget {
       child: Text(
         text,
         textAlign: TextAlign.center,
-        style: MyDataType.caption.copyWith(color: context.colors.inkMuted),
+        style: context.typeScale.caption.copyWith(color: context.colors.inkMuted),
       ),
     ),
   );
@@ -466,9 +466,9 @@ class _Working extends StatelessWidget {
   const _Working();
 
   @override
-  Widget build(BuildContext context) => const Align(
+  Widget build(BuildContext context) => Align(
     alignment: AlignmentDirectional.centerStart,
-    child: KiwiLoader(size: MyDataSize.icon, semanticLabel: ChatView.workingLabel),
+    child: KiwiLoader(size: context.density.icon, semanticLabel: ChatView.workingLabel),
   );
 }
 
@@ -478,7 +478,7 @@ class _ErrorRow extends StatelessWidget {
   final ChatError error;
   final VoidCallback? onRetry;
 
-  static final _lineHeight = MyDataType.bodyStrong.fontSize! * MyDataType.bodyStrong.height!;
+  static double _lineHeight(MyDataLook look) => look.typeScale.bodyStrong.fontSize! * look.typeScale.bodyStrong.height!;
 
   @override
   Widget build(BuildContext context) {
@@ -488,18 +488,18 @@ class _ErrorRow extends StatelessWidget {
       children: [
         Padding(
           // Centres the icon on the title's first line.
-          padding: EdgeInsets.only(top: (_lineHeight - MyDataSize.icon) / 2),
-          child: Icon(Icons.error_outline_rounded, size: MyDataSize.icon, color: c.danger),
+          padding: EdgeInsets.only(top: (_lineHeight(context.look) - context.density.icon) / 2),
+          child: Icon(Icons.error_outline_rounded, size: context.density.icon, color: c.danger),
         ),
-        const SizedBox(width: MyDataSpace.s2),
+        SizedBox(width: context.space(2)),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(ChatView.errorTitle, style: MyDataType.bodyStrong.copyWith(color: c.ink)),
-              Text(error.message, style: MyDataType.body.copyWith(color: c.inkMuted)),
-              const SizedBox(height: MyDataSpace.s3),
+              Text(ChatView.errorTitle, style: context.typeScale.bodyStrong.copyWith(color: c.ink)),
+              Text(error.message, style: context.typeScale.body.copyWith(color: c.inkMuted)),
+              SizedBox(height: context.space(3)),
               Button(label: ChatView.retryLabel, onPressed: onRetry),
             ],
           ),
@@ -526,20 +526,20 @@ class _Composer extends StatelessWidget {
   final VoidCallback onSend;
 
   /// Centres one line of `body` in a `control-height` field.
-  static final fieldInset = (MyDataSize.controlHeight - MyDataType.body.fontSize! * MyDataType.body.height!) / 2;
+  static double fieldInset(MyDataLook look) => (look.density.controlHeight - look.typeScale.body.fontSize! * look.typeScale.body.height!) / 2;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
     return FocusRing(
       visible: ring,
-      borderRadius: MyDataRadii.xl,
+      borderRadius: MyDataRadii.xl(context.look),
       child: FloatingBarSurface(
-        padding: const EdgeInsetsDirectional.fromSTEB(
-          MyDataSpace.s4,
-          FloatingBar.padding,
-          FloatingBar.padding,
-          FloatingBar.padding,
+        padding: EdgeInsetsDirectional.fromSTEB(
+          context.space(4),
+          FloatingBar.padding(context.look),
+          FloatingBar.padding(context.look),
+          FloatingBar.padding(context.look),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.end,
@@ -553,30 +553,30 @@ class _Composer extends StatelessWidget {
                 autofocus: true,
                 minLines: 1,
                 maxLines: 6,
-                style: MyDataType.body.copyWith(color: c.ink),
+                style: context.typeScale.body.copyWith(color: c.ink),
                 cursorColor: c.accent,
                 decoration: InputDecoration(
                   isCollapsed: true,
                   border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(vertical: fieldInset),
+                  contentPadding: EdgeInsets.symmetric(vertical: fieldInset(context.look)),
                   hintText: ChatView.placeholder,
-                  hintStyle: MyDataType.body.copyWith(color: c.inkMuted),
+                  hintStyle: context.typeScale.body.copyWith(color: c.inkMuted),
                 ),
               ),
             ),
-            const SizedBox(width: MyDataSpace.s2),
+            SizedBox(width: context.space(2)),
             Pressable(
               key: ChatView.sendKey,
               onPressed: busy ? null : onSend,
-              borderRadius: MyDataRadii.pill,
+              borderRadius: MyDataRadii.pill(context.look),
               semanticLabel: ChatView.sendLabel,
               tooltip: ChatView.sendLabel,
               child: Container(
-                width: MyDataSize.controlHeight,
-                height: MyDataSize.controlHeight,
+                width: context.density.controlHeight,
+                height: context.density.controlHeight,
                 decoration: BoxDecoration(color: c.accent, shape: BoxShape.circle),
                 alignment: Alignment.center,
-                child: Icon(Icons.arrow_upward_rounded, size: MyDataSize.icon, color: c.onAccent),
+                child: Icon(Icons.arrow_upward_rounded, size: context.density.icon, color: c.onAccent),
               ),
             ),
           ],

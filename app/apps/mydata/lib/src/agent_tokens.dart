@@ -112,7 +112,7 @@ class _AgentTokensSectionState extends State<AgentTokensSection> {
       if (_agents.error != null) {
         return AgentListProblem(heading: AgentTokensSection.heading, error: _agents.error!, onRetry: _agents.load);
       }
-      if (MacLook.of(context)) return _mac(context);
+      if (MacWindow.of(context)) return _mac(context);
       return GroupedSection(heading: AgentTokensSection.heading, parts: [_form(context), ..._rows()]);
     },
   );
@@ -135,7 +135,7 @@ class _AgentTokensSectionState extends State<AgentTokensSection> {
               for (final a in list) AgentTokenRow(key: ValueKey(a.id), agent: a, onRevoke: () => _revoke(a)),
           ],
         ),
-        const SizedBox(height: MacForm.gap),
+        SizedBox(height: MacForm.gap(context.look)),
         MacFormSection(
           heading: AgentTokensSection.newHeading,
           footer: AgentTokensSection.nameHelp,
@@ -152,7 +152,7 @@ class _AgentTokensSectionState extends State<AgentTokensSection> {
                       onSubmitted: (_) => _create(),
                     ),
                   ),
-                  const SizedBox(width: MyDataSpace.s3),
+                  SizedBox(width: context.space(3)),
                   ListenableBuilder(
                     listenable: _name,
                     builder: (context, _) => Button(
@@ -180,9 +180,9 @@ class _AgentTokensSectionState extends State<AgentTokensSection> {
         children: [
           Text(
             'An agent (an MCP client such as a desktop AI app) reaches myData\'s tools with a token of its own.',
-            style: MyDataType.body.copyWith(color: c.inkMuted),
+            style: context.typeScale.body.copyWith(color: c.inkMuted),
           ),
-          const SizedBox(height: MyDataSpace.s4),
+          SizedBox(height: context.space(4)),
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: AgentTokenRow.fieldMaxWidth),
             child: MyDataTextField(
@@ -194,7 +194,7 @@ class _AgentTokensSectionState extends State<AgentTokensSection> {
               onSubmitted: (_) => _create(),
             ),
           ),
-          const SizedBox(height: MyDataSpace.s4),
+          SizedBox(height: context.space(4)),
           ListenableBuilder(
             listenable: _name,
             builder: (context, _) => Button(
@@ -255,7 +255,7 @@ class AgentTokenRow extends StatelessWidget {
     final a = agent;
     final lastSeen = a.lastSeenAt == null ? 'never used' : 'last seen ${formatWhen(a.lastSeenAt!)}';
     final (label, tone) = state(a);
-    if (MacLook.of(context)) {
+    if (MacWindow.of(context)) {
       return MacFormRow(
         icon: MacIcons.key,
         title: a.name,
@@ -287,7 +287,7 @@ class AgentListProblem extends StatelessWidget {
   final VoidCallback onRetry;
 
   @override
-  Widget build(BuildContext context) => MacLook.of(context)
+  Widget build(BuildContext context) => MacWindow.of(context)
       ? MacFormSection(
           heading: heading,
           rows: [
@@ -329,15 +329,15 @@ class NewTokenDialog extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Copy it now. It will not be shown again.', style: MyDataType.bodyStrong.copyWith(color: c.danger)),
-            const SizedBox(height: MyDataSpace.s4),
+            Text('Copy it now. It will not be shown again.', style: context.typeScale.bodyStrong.copyWith(color: c.danger)),
+            SizedBox(height: context.space(4)),
             MonoWell(label: 'Token', value: agent.token, copyLabel: 'Copy token'),
-            const SizedBox(height: MyDataSpace.s4),
+            SizedBox(height: context.space(4)),
             MonoWell(label: 'MCP URL', value: mcpUrl, copyLabel: 'Copy URL'),
-            const SizedBox(height: MyDataSpace.s4),
+            SizedBox(height: context.space(4)),
             Text(
               'Give the agent the MCP URL, with the token as a bearer token.',
-              style: MyDataType.caption.copyWith(color: c.inkMuted),
+              style: context.typeScale.caption.copyWith(color: c.inkMuted),
             ),
           ],
         ),

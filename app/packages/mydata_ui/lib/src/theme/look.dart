@@ -1,0 +1,762 @@
+/// The run-time look (design/themes/ARCHITECTURE.md 3.1): one theme and palette resolved for one brightness,
+/// carried in ThemeData as a [ThemeExtension] and read by widgets through `context.look` and its shortcuts
+/// (`context.space(4)`, `context.typeScale.body`, `context.radius.lg`, `context.density.controlHeight`,
+/// `context.motion.fast`).
+///
+/// Phase 1 draws exactly what the apps drew before: Kiwi from design/tokens.json, in one of today's six
+/// colours. The groups phase 3 brings to the widgets (edges, materials, icons, variants) are resolved and
+/// carried already, but no widget reads them yet.
+library;
+
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+
+import '../generated/tokens.g.dart';
+import 'builtin_themes.g.dart';
+import 'catalogue.dart';
+import 'colour.dart' show Rgb;
+import 'motion.dart';
+import 'resolve.dart';
+import 'roles.dart';
+import 'theme_file.dart';
+
+/// A text role, as widgets name it: `context.type(MyDataTypeRole.body)`.
+typedef MyDataTypeRole = TypeRole;
+
+/// Who draws the frame: the platform (System: the Mac shell on macOS) or myData, from the theme's rules.
+enum LookFrame { system, drawn }
+
+Color _color(Rgb c) => Color(c.argb);
+
+/// The type styles of a look, without colour (widgets take colour from `context.colors`).
+@immutable
+class MyDataTypeScale {
+  const MyDataTypeScale({
+    required this.displayXl,
+    required this.displayLg,
+    required this.title,
+    required this.heading,
+    required this.body,
+    required this.bodyStrong,
+    required this.label,
+    required this.caption,
+    required this.mono,
+  });
+
+  final TextStyle displayXl, displayLg, title, heading, body, bodyStrong, label, caption, mono;
+
+  /// The style of [role].
+  TextStyle call(MyDataTypeRole role) => switch (role) {
+        TypeRole.displayXl => displayXl,
+        TypeRole.displayLg => displayLg,
+        TypeRole.title => title,
+        TypeRole.heading => heading,
+        TypeRole.body => body,
+        TypeRole.bodyStrong => bodyStrong,
+        TypeRole.label => label,
+        TypeRole.caption => caption,
+        TypeRole.mono => mono,
+      };
+
+  /// The role whose style is [style] (the same object), or null.
+  MyDataTypeRole? roleOf(TextStyle style) {
+    for (final r in TypeRole.values) {
+      if (identical(call(r), style)) return r;
+    }
+    return null;
+  }
+
+  /// Today's Kiwi type (design/tokens.json), the fallback.
+  static const kiwi = MyDataTypeScale(
+    displayXl: MyDataType.displayXl,
+    displayLg: MyDataType.displayLg,
+    title: MyDataType.title,
+    heading: MyDataType.heading,
+    body: MyDataType.body,
+    bodyStrong: MyDataType.bodyStrong,
+    label: MyDataType.label,
+    caption: MyDataType.caption,
+    mono: MyDataType.mono,
+  );
+
+  /// The styles a theme's `type` group gives. A stack's first font that this build bundles is used; a
+  /// generic family is the platform's default (phase 3 maps each generic to the platform's own font).
+  factory MyDataTypeScale.of(TypeSpec spec) {
+    TextStyle style(TypeRole role) {
+      final r = spec.roles[role]!;
+      CatalogueFont? font;
+      for (final id in spec.stack(r.stack)) {
+        final f = fontCatalogue[id];
+        if (f != null && f.bundled) {
+          font = f;
+          break;
+        }
+        if (genericFonts.contains(id)) break;
+      }
+      final weight = FontWeight.values[((r.weight / 100).round() - 1).clamp(0, FontWeight.values.length - 1)];
+      return TextStyle(
+        fontFamily: font?.family,
+        package: font == null ? null : fontPackage,
+        fontSize: r.size,
+        // Rounded as tokens.g.dart rounds them, so Kiwi's styles are today's exactly.
+        height: double.parse(r.lineHeight.toStringAsFixed(4)),
+        leadingDistribution: TextLeadingDistribution.even,
+        fontWeight: weight,
+        letterSpacing: r.tracking == null ? null : double.parse((r.tracking! * r.size).toStringAsFixed(3)),
+        fontFeatures: spec.tabular ? const [FontFeature.tabularFigures()] : null,
+      );
+    }
+
+    return MyDataTypeScale(
+      displayXl: style(TypeRole.displayXl),
+      displayLg: style(TypeRole.displayLg),
+      title: style(TypeRole.title),
+      heading: style(TypeRole.heading),
+      body: style(TypeRole.body),
+      bodyStrong: style(TypeRole.bodyStrong),
+      label: style(TypeRole.label),
+      caption: style(TypeRole.caption),
+      mono: style(TypeRole.mono),
+    );
+  }
+
+  static MyDataTypeScale lerp(MyDataTypeScale a, MyDataTypeScale b, double t) => MyDataTypeScale(
+        displayXl: TextStyle.lerp(a.displayXl, b.displayXl, t)!,
+        displayLg: TextStyle.lerp(a.displayLg, b.displayLg, t)!,
+        title: TextStyle.lerp(a.title, b.title, t)!,
+        heading: TextStyle.lerp(a.heading, b.heading, t)!,
+        body: TextStyle.lerp(a.body, b.body, t)!,
+        bodyStrong: TextStyle.lerp(a.bodyStrong, b.bodyStrong, t)!,
+        label: TextStyle.lerp(a.label, b.label, t)!,
+        caption: TextStyle.lerp(a.caption, b.caption, t)!,
+        mono: TextStyle.lerp(a.mono, b.mono, t)!,
+      );
+}
+
+/// Corner radii and the corner style.
+@immutable
+class MyDataShape {
+  const MyDataShape({
+    required this.corners,
+    required this.xs,
+    required this.sm,
+    required this.md,
+    required this.lg,
+    required this.xl,
+    required this.control,
+    required this.pill,
+    required this.cutSize,
+  });
+
+  final CornerStyle corners;
+  final double xs, sm, md, lg, xl;
+
+  /// Buttons (a capsule, or [sm] when the theme's controls match).
+  final double control;
+
+  /// Chips, segmented controls, switches and avatars.
+  final double pill;
+
+  /// The chamfer when [corners] is cut.
+  final double cutSize;
+
+  static const kiwi = MyDataShape(
+    corners: CornerStyle.round,
+    xs: MyDataRadius.xs,
+    sm: MyDataRadius.sm,
+    md: MyDataRadius.md,
+    lg: MyDataRadius.lg,
+    xl: MyDataRadius.xl,
+    control: MyDataRadius.control,
+    pill: MyDataRadius.pill,
+    cutSize: 0,
+  );
+
+  factory MyDataShape.of(ShapeSpec s) {
+    final square = s.corners == CornerStyle.square;
+    double r(double v) => square ? 0 : v;
+    return MyDataShape(
+      corners: s.corners,
+      xs: r(s.xs),
+      sm: r(s.sm),
+      md: r(s.md),
+      lg: r(s.lg),
+      xl: r(s.xl),
+      control: r(s.pillControls ? MyDataRadius.control : s.sm),
+      pill: r(s.pillControls ? MyDataRadius.pill : s.sm),
+      cutSize: s.cutSize,
+    );
+  }
+
+  /// The outline of a shape with corner [radius], in this look's corner style (3.2). Not used by the widgets
+  /// until phase 3, which also measures `continuous` against the system's corners.
+  OutlinedBorder border(double radius, {BorderSide side = BorderSide.none}) => switch (corners) {
+        CornerStyle.round => RoundedRectangleBorder(borderRadius: BorderRadius.circular(radius), side: side),
+        CornerStyle.continuous =>
+          RoundedSuperellipseBorder(borderRadius: BorderRadius.circular(radius), side: side),
+        CornerStyle.cut => BeveledRectangleBorder(borderRadius: BorderRadius.circular(cutSize), side: side),
+        CornerStyle.square => RoundedRectangleBorder(side: side),
+      };
+
+  static MyDataShape lerp(MyDataShape a, MyDataShape b, double t) => MyDataShape(
+        corners: t < 0.5 ? a.corners : b.corners,
+        xs: lerpDouble(a.xs, b.xs, t),
+        sm: lerpDouble(a.sm, b.sm, t),
+        md: lerpDouble(a.md, b.md, t),
+        lg: lerpDouble(a.lg, b.lg, t),
+        xl: lerpDouble(a.xl, b.xl, t),
+        control: lerpDouble(a.control, b.control, t),
+        pill: lerpDouble(a.pill, b.pill, t),
+        cutSize: lerpDouble(a.cutSize, b.cutSize, t),
+      );
+}
+
+double lerpDouble(double a, double b, double t) => a + (b - a) * t;
+
+/// Control, row and icon sizes and the spacing scale, for this device's class (desktop or phone).
+@immutable
+class MyDataDensity {
+  const MyDataDensity({
+    required this.controlHeight,
+    required this.controlHeightCompact,
+    required this.rowHeight,
+    required this.icon,
+    required this.iconTile,
+    required this.spaceScale,
+  });
+
+  /// Buttons, inputs, chips and the minimum touch target.
+  final double controlHeight;
+
+  /// Desktop-only compact controls: 8 below [controlHeight], never under 24.
+  final double controlHeightCompact;
+
+  /// Rows in a grouped list.
+  final double rowHeight;
+
+  /// The icon box.
+  final double icon;
+
+  /// The tile behind a row's icon: the icon and 8 on each side.
+  final double iconTile;
+
+  /// Multiplier on the 4px spacing scale.
+  final double spaceScale;
+
+  /// `space-n` (`space(4)` is 16 at 1×).
+  double space(num n) => n * 4 * spaceScale;
+
+  static const kiwi = MyDataDensity(
+    controlHeight: MyDataSize.controlHeight,
+    controlHeightCompact: MyDataSize.controlHeightCompact,
+    rowHeight: MyDataSize.rowHeight,
+    icon: MyDataSize.icon,
+    iconTile: MyDataSize.iconTile,
+    spaceScale: 1,
+  );
+
+  /// The platform floors of ARCHITECTURE.md 1.4 are applied from phase 3; phase 1 draws the file's numbers.
+  factory MyDataDensity.of(DensitySet d) => MyDataDensity(
+        controlHeight: d.control,
+        controlHeightCompact: (d.control - 8).clamp(24, d.control).toDouble(),
+        rowHeight: d.row,
+        icon: d.icon,
+        iconTile: d.icon + 16,
+        spaceScale: d.space,
+      );
+
+  static MyDataDensity lerp(MyDataDensity a, MyDataDensity b, double t) => MyDataDensity(
+        controlHeight: lerpDouble(a.controlHeight, b.controlHeight, t),
+        controlHeightCompact: lerpDouble(a.controlHeightCompact, b.controlHeightCompact, t),
+        rowHeight: lerpDouble(a.rowHeight, b.rowHeight, t),
+        icon: lerpDouble(a.icon, b.icon, t),
+        iconTile: lerpDouble(a.iconTile, b.iconTile, t),
+        spaceScale: lerpDouble(a.spaceScale, b.spaceScale, t),
+      );
+}
+
+/// Borders (theme.schema.json `borders`), for the widgets' variants in phase 3.
+@immutable
+class MyDataEdges {
+  const MyDataEdges(this.spec);
+  final BordersSpec spec;
+
+  /// The line width: a hairline is the Mac's half point.
+  double get width => switch (spec.width) {
+        BorderWidth.hairline => MyDataMacSize.hairline,
+        BorderWidth.one => 1,
+        BorderWidth.two => 2,
+        BorderWidth.three => 3,
+      };
+}
+
+/// Shadows and how a press changes them.
+@immutable
+class MyDataElevation {
+  const MyDataElevation({required this.style, required this.shadows, required this.collapse});
+
+  final ElevationStyle style;
+
+  /// The resting, raised and floating shadows (`shadow-1`, `shadow-2`, `shadow-glass`).
+  final MyDataShadows shadows;
+
+  /// A pressed hard or offset shadow drops to 0.
+  final bool collapse;
+
+  /// The CSS-to-Flutter blur conversion tokens.g.dart uses: CSS draws a blur radius r as a Gaussian with
+  /// sigma r/2; Flutter's sigma is blurRadius × 0.57735 + 0.5. Rounded to 0.01 as the generated file is.
+  static double blurRadiusOf(double cssBlur) =>
+      cssBlur <= 1 ? 0.0 : double.parse(((cssBlur / 2 - 0.5) / 0.57735).toStringAsFixed(2));
+
+  factory MyDataElevation.of(ElevationSpec e, {required Color shadow, required Color accent, required bool dark}) {
+    List<BoxShadow> level(int i, {double? strength}) {
+      final l = softElevationLevels[i];
+      final base = dark ? l.alphaDark : l.alphaLight;
+      final alpha = (base * (strength ?? e.strength) / 0.5).round().clamp(0, 255);
+      return [
+        BoxShadow(
+          color: shadow.withAlpha(alpha),
+          offset: Offset(0, l.y.toDouble()),
+          blurRadius: blurRadiusOf(l.cssBlur.toDouble()),
+        ),
+      ];
+    }
+
+    List<BoxShadow> hard(double alpha) => [
+          BoxShadow(color: shadow.withValues(alpha: alpha), offset: Offset(e.offset, e.offset)),
+        ];
+
+    final shadows = switch (e.style) {
+      ElevationStyle.none || ElevationStyle.bevel =>
+        const MyDataShadows(shadow1: [], shadow2: [], shadowGlass: []),
+      ElevationStyle.soft => MyDataShadows(shadow1: level(0), shadow2: level(1), shadowGlass: level(2)),
+      ElevationStyle.hard || ElevationStyle.offset =>
+        MyDataShadows(shadow1: hard(e.strength), shadow2: hard(e.strength), shadowGlass: hard(e.strength)),
+      // Glow lights the primary button and the selection marker only (phase 3); overlays keep a soft lift.
+      ElevationStyle.glow => MyDataShadows(shadow1: const [], shadow2: level(1, strength: 0.5), shadowGlass: level(2, strength: 0.5)),
+    };
+    return MyDataElevation(style: e.style, shadows: shadows, collapse: e.collapse);
+  }
+}
+
+/// Window ground, sidebar and bars (theme.schema.json `materials`).
+@immutable
+class MyDataMaterials {
+  const MyDataMaterials({required this.spec, required this.blur});
+  final MaterialsSpec spec;
+
+  /// The backdrop blur behind glass, as a sigma.
+  final double blur;
+}
+
+/// The icon set (Lucide until phase 3 cuts the others).
+@immutable
+class MyDataIconTheme {
+  const MyDataIconTheme({required this.spec, required this.fontFamily});
+  final IconsSpec spec;
+
+  /// The font the icons are drawn from.
+  final String fontFamily;
+}
+
+/// Durations, curves, press and entrance (theme.schema.json `motion`). `standard` at scale 1 is
+/// design/motion.md ([MyDataMotion]).
+@immutable
+class MyDataMotionSpec {
+  const MyDataMotionSpec({
+    required this.personality,
+    required this.fast,
+    required this.base,
+    required this.slow,
+    required this.standard,
+    required this.spring,
+    required this.springDuration,
+    required this.pressScale,
+    required this.pressOpacity,
+    required this.press,
+    required this.enter,
+    required this.entranceRise,
+    required this.entranceStagger,
+    required this.entranceMaxStaggered,
+    required this.sheetDrop,
+  });
+
+  final MotionPersonality personality;
+  final Duration fast, base, slow;
+
+  /// Movement within the screen.
+  final Curve standard;
+
+  /// Sheets, the segmented control's thumb and the tab pill.
+  final SpringDescription spring;
+  final Duration springDuration;
+
+  /// A pressed control scales to [pressScale] and dims to [pressOpacity] at once, and returns over [fast].
+  final double pressScale, pressOpacity;
+  final PressStyle press;
+  final EnterStyle enter;
+
+  /// Cards entering a screen rise [entranceRise] px over [base], [entranceStagger] apart, at most
+  /// [entranceMaxStaggered].
+  final double entranceRise;
+  final Duration entranceStagger;
+  final int entranceMaxStaggered;
+
+  /// How far a Mac frame's sheet travels as it comes down, as a share of the window's height.
+  final double sheetDrop;
+
+  static final kiwi = MyDataMotionSpec(
+    personality: MotionPersonality.standard,
+    fast: MyDataMotion.fast,
+    base: MyDataMotion.base,
+    slow: MyDataMotion.slow,
+    standard: MyDataMotion.standard,
+    spring: MyDataMotion.spring,
+    springDuration: MyDataMotion.springDuration,
+    pressScale: MyDataMotion.pressScale,
+    pressOpacity: MyDataMotion.pressOpacity,
+    press: PressStyle.dimScale,
+    enter: EnterStyle.fadeRise,
+    entranceRise: MyDataMotion.entranceRise,
+    entranceStagger: MyDataMotion.entranceStagger,
+    entranceMaxStaggered: MyDataMotion.entranceMaxStaggered,
+    sheetDrop: MyDataMotion.sheetDrop,
+  );
+
+  /// The personalities other than `standard` are first values, tuned when phase 3 draws them.
+  factory MyDataMotionSpec.of(MotionSpec m) {
+    final (fast, base, slow, curve, spring, springMs) = switch (m.personality) {
+      MotionPersonality.standard => (
+          MyDataMotion.fast, MyDataMotion.base, MyDataMotion.slow, MyDataMotion.standard, MyDataMotion.spring,
+          MyDataMotion.springDuration,
+        ),
+      MotionPersonality.none => (
+          Duration.zero, Duration.zero, Duration.zero, MyDataMotion.standard, MyDataMotion.spring, Duration.zero,
+        ),
+      MotionPersonality.calm => (
+          MyDataMotion.fast * 4 ~/ 3, MyDataMotion.base * 4 ~/ 3, MyDataMotion.slow * 5 ~/ 4,
+          const Cubic(0.25, 0.1, 0.25, 1), SpringDescription.withDampingRatio(mass: 1, stiffness: 120, ratio: 1),
+          MyDataMotion.springDuration * 9 ~/ 7,
+        ),
+      MotionPersonality.crisp => (
+          MyDataMotion.fast * 3 ~/ 4, MyDataMotion.base * 3 ~/ 4, MyDataMotion.slow * 3 ~/ 4,
+          const Cubic(0.3, 0, 0, 1), SpringDescription.withDampingRatio(mass: 1, stiffness: 300, ratio: 0.95),
+          MyDataMotion.springDuration * 5 ~/ 7,
+        ),
+      MotionPersonality.lively => (
+          MyDataMotion.fast, MyDataMotion.base * 13 ~/ 12, MyDataMotion.slow * 20 ~/ 19,
+          const Cubic(0.34, 1.3, 0.64, 1), SpringDescription.withDampingRatio(mass: 1, stiffness: 220, ratio: 0.6),
+          MyDataMotion.springDuration * 9 ~/ 7,
+        ),
+    };
+    Duration scaled(Duration d, {Duration? cap}) {
+      final v = Duration(microseconds: (d.inMicroseconds * m.scale).round());
+      return cap != null && v > cap ? cap : v;
+    }
+
+    final pressScale = m.press == PressStyle.dimScale ? MyDataMotion.pressScale : 1.0;
+    final pressOpacity = m.press == PressStyle.dim || m.press == PressStyle.dimScale ? MyDataMotion.pressOpacity : 1.0;
+    return MyDataMotionSpec(
+      personality: m.personality,
+      fast: scaled(fast),
+      base: scaled(base),
+      slow: scaled(slow, cap: const Duration(milliseconds: 500)),
+      standard: curve,
+      spring: spring,
+      springDuration: scaled(springMs),
+      pressScale: pressScale,
+      pressOpacity: pressOpacity,
+      press: m.press,
+      enter: m.enter,
+      entranceRise: m.enter == EnterStyle.fadeRise ? MyDataMotion.entranceRise : 0,
+      entranceStagger: m.enter == EnterStyle.none ? Duration.zero : MyDataMotion.entranceStagger,
+      entranceMaxStaggered: m.enter == EnterStyle.none ? 0 : MyDataMotion.entranceMaxStaggered,
+      sheetDrop: MyDataMotion.sheetDrop,
+    );
+  }
+}
+
+/// How each component is drawn (theme.schema.json `components`), read by the widgets' variant switches in
+/// phase 3.
+@immutable
+class MyDataVariants {
+  const MyDataVariants(this.values);
+  final Map<String, String> values;
+
+  /// `variants['list']`, `variants['button.primary']`.
+  String? operator [](String key) => values[key];
+}
+
+/// One theme and palette, resolved for one brightness.
+@immutable
+class MyDataLook extends ThemeExtension<MyDataLook> {
+  const MyDataLook({
+    required this.themeId,
+    required this.paletteId,
+    required this.frame,
+    required this.brightness,
+    this.increasedContrast = false,
+    required this.colors,
+    required this.typeScale,
+    required this.shape,
+    required this.density,
+    required this.edges,
+    required this.elevation,
+    required this.materials,
+    required this.icons,
+    required this.motion,
+    required this.variants,
+  });
+
+  final String themeId;
+
+  /// Null for a theme without palettes (System).
+  final String? paletteId;
+  final LookFrame frame;
+  final Brightness brightness;
+  final bool increasedContrast;
+  final MyDataColors colors;
+
+  /// The text styles. Not `type`: ThemeExtension keys extensions by their `type`.
+  final MyDataTypeScale typeScale;
+  final MyDataShape shape;
+  final MyDataDensity density;
+  final MyDataEdges edges;
+  final MyDataElevation elevation;
+  final MyDataMaterials materials;
+  final MyDataIconTheme icons;
+  final MyDataMotionSpec motion;
+  final MyDataVariants variants;
+
+  /// `space-n` in this look (`space(4)` is 16 at Kiwi's density).
+  double space(num n) => density.space(n);
+
+  /// [theme] in [paletteId] (its default palette when null or unknown) for [brightness]. The density class
+  /// is the platform's: phones (iOS, Android) take the theme's phone set, everything else the desktop set.
+  factory MyDataLook.resolve(
+    ThemeFile theme, {
+    String? paletteId,
+    required Brightness brightness,
+    required RoleDefaults defaults,
+    bool increasedContrast = false,
+    TargetPlatform? platform,
+  }) {
+    final palette = theme.palette(paletteId)!;
+    final mode = brightness == Brightness.dark ? LookMode.dark : LookMode.light;
+    final p = resolvePalette(theme, palette, mode, defaults: defaults, increasedContrast: increasedContrast);
+    final fixed = brightness == Brightness.dark ? MyDataColors.dark : MyDataColors.light;
+    final colors = colorsOf(p, fixed: fixed);
+    final s = theme.style;
+    final phone = switch (platform ?? defaultTargetPlatform) {
+      TargetPlatform.iOS || TargetPlatform.android => true,
+      _ => false,
+    };
+    return MyDataLook(
+      themeId: theme.id,
+      paletteId: palette.id,
+      frame: theme.frame == ThemeFrame.system ? LookFrame.system : LookFrame.drawn,
+      brightness: brightness,
+      increasedContrast: increasedContrast,
+      colors: colors,
+      typeScale: MyDataTypeScale.of(s.type),
+      shape: MyDataShape.of(s.shape),
+      density: MyDataDensity.of(phone ? s.density.phone : s.density.desktop),
+      edges: MyDataEdges(s.borders),
+      elevation: MyDataElevation.of(s.elevation,
+          shadow: colors.shadow, accent: colors.accent, dark: brightness == Brightness.dark),
+      materials: MyDataMaterials(spec: s.materials, blur: s.materials.blur),
+      icons: MyDataIconTheme(spec: s.icons, fontFamily: MyDataMacFont.icons),
+      motion: MyDataMotionSpec.of(s.motion),
+      variants: MyDataVariants(s.components.values),
+    );
+  }
+
+  /// Kiwi in its own colour from the generated constants: the first frame, tests, and whenever no look is
+  /// in the theme, so nothing is ever drawn unthemed.
+  static MyDataLook fallback(Brightness brightness) =>
+      brightness == Brightness.dark ? (_fallbackDark ??= _fallback(Brightness.dark)) : (_fallbackLight ??= _fallback(Brightness.light));
+
+  static MyDataLook? _fallbackLight, _fallbackDark;
+
+  static MyDataLook _fallback(Brightness b) {
+    final dark = b == Brightness.dark;
+    return MyDataLook(
+      themeId: 'mydata.kiwi',
+      paletteId: MyDataThemes.fallback.id,
+      frame: LookFrame.drawn,
+      brightness: b,
+      colors: dark ? MyDataColors.dark : MyDataColors.light,
+      typeScale: MyDataTypeScale.kiwi,
+      shape: MyDataShape.kiwi,
+      density: MyDataDensity.kiwi,
+      edges: const MyDataEdges(_kiwiBorders),
+      elevation: MyDataElevation(
+          style: ElevationStyle.soft, shadows: dark ? MyDataShadows.dark : MyDataShadows.light, collapse: false),
+      materials: const MyDataMaterials(spec: _kiwiMaterials, blur: MyDataBlur.glass),
+      icons: const MyDataIconTheme(spec: _kiwiIcons, fontFamily: MyDataMacFont.icons),
+      motion: MyDataMotionSpec.kiwi,
+      variants: const MyDataVariants(_kiwiVariants),
+    );
+  }
+
+  /// The look in [context]'s theme. With [listen] false the widget is not rebuilt when the theme changes, and
+  /// it may be read where a dependency cannot be made (`initState`, a late field first used there).
+  static MyDataLook of(BuildContext context, {bool listen = true}) {
+    final theme = listen ? Theme.of(context) : context.findAncestorWidgetOfExactType<Theme>()?.data;
+    return theme?.extension<MyDataLook>() ?? fallback(theme?.brightness ?? Brightness.light);
+  }
+
+  @override
+  MyDataLook copyWith({
+    String? themeId,
+    String? paletteId,
+    LookFrame? frame,
+    Brightness? brightness,
+    bool? increasedContrast,
+    MyDataColors? colors,
+    MyDataTypeScale? typeScale,
+    MyDataShape? shape,
+    MyDataDensity? density,
+    MyDataEdges? edges,
+    MyDataElevation? elevation,
+    MyDataMaterials? materials,
+    MyDataIconTheme? icons,
+    MyDataMotionSpec? motion,
+    MyDataVariants? variants,
+  }) =>
+      MyDataLook(
+        themeId: themeId ?? this.themeId,
+        paletteId: paletteId ?? this.paletteId,
+        frame: frame ?? this.frame,
+        brightness: brightness ?? this.brightness,
+        increasedContrast: increasedContrast ?? this.increasedContrast,
+        colors: colors ?? this.colors,
+        typeScale: typeScale ?? this.typeScale,
+        shape: shape ?? this.shape,
+        density: density ?? this.density,
+        edges: edges ?? this.edges,
+        elevation: elevation ?? this.elevation,
+        materials: materials ?? this.materials,
+        icons: icons ?? this.icons,
+        motion: motion ?? this.motion,
+        variants: variants ?? this.variants,
+      );
+
+  /// Colours, sizes and shadows are interpolated; everything else switches at the half way point.
+  @override
+  MyDataLook lerp(MyDataLook? other, double t) {
+    if (other == null) return this;
+    final o = t < 0.5 ? this : other;
+    return MyDataLook(
+      themeId: o.themeId,
+      paletteId: o.paletteId,
+      frame: o.frame,
+      brightness: o.brightness,
+      increasedContrast: o.increasedContrast,
+      colors: colors.lerp(other.colors, t),
+      typeScale: MyDataTypeScale.lerp(typeScale, other.typeScale, t),
+      shape: MyDataShape.lerp(shape, other.shape, t),
+      density: MyDataDensity.lerp(density, other.density, t),
+      edges: o.edges,
+      elevation: MyDataElevation(
+          style: o.elevation.style,
+          shadows: elevation.shadows.lerp(other.elevation.shadows, t),
+          collapse: o.elevation.collapse),
+      materials: MyDataMaterials(spec: o.materials.spec, blur: lerpDouble(materials.blur, other.materials.blur, t)),
+      icons: o.icons,
+      motion: o.motion,
+      variants: o.variants,
+    );
+  }
+}
+
+/// MyDataColors from a resolved palette. The artwork colours (`brand`, `skin`, `cream`, `paper`) are never
+/// a theme's: they come from [fixed].
+MyDataColors colorsOf(ResolvedPalette p, {required MyDataColors fixed}) {
+  Color v(ColourRole r) => _color(p[r]);
+  return MyDataColors(
+    bg: v(ColourRole.bg),
+    surface: v(ColourRole.surface),
+    surfaceRaised: v(ColourRole.surfaceRaised),
+    surfaceSunken: v(ColourRole.surfaceSunken),
+    surfaceHover: v(ColourRole.surfaceHover),
+    line: v(ColourRole.line),
+    lineStrong: v(ColourRole.lineStrong),
+    ink: v(ColourRole.ink),
+    inkMuted: v(ColourRole.inkMuted),
+    accent: v(ColourRole.accent),
+    onAccent: v(ColourRole.onAccent),
+    accentSoft: v(ColourRole.accentSoft),
+    brand: fixed.brand,
+    kiwiWash: v(ColourRole.avatarFill),
+    skin: fixed.skin,
+    cream: fixed.cream,
+    paper: fixed.paper,
+    success: v(ColourRole.success),
+    successSoft: v(ColourRole.successSoft),
+    warning: v(ColourRole.warning),
+    warningSoft: v(ColourRole.warningSoft),
+    danger: v(ColourRole.danger),
+    dangerSoft: v(ColourRole.dangerSoft),
+    onDanger: v(ColourRole.onDanger),
+    info: v(ColourRole.info),
+    infoSoft: v(ColourRole.infoSoft),
+    focus: v(ColourRole.focus),
+    glassFill: v(ColourRole.glassFill),
+    glassStroke: v(ColourRole.glassStroke),
+    scrim: v(ColourRole.scrim),
+    dataRed: v(ColourRole.dataRed),
+    dataOrange: v(ColourRole.dataOrange),
+    dataYellow: v(ColourRole.dataYellow),
+    dataGreen: v(ColourRole.dataGreen),
+    dataBlue: v(ColourRole.dataBlue),
+    dataPurple: v(ColourRole.dataPurple),
+    dataBrown: v(ColourRole.dataBrown),
+    dataGrey: v(ColourRole.dataGrey),
+    sidebar: v(ColourRole.sidebar),
+    toolbar: v(ColourRole.toolbar),
+    edge: v(ColourRole.edge),
+    link: v(ColourRole.link),
+    selection: v(ColourRole.selection),
+    onSelection: v(ColourRole.onSelection),
+    selectionInactive: v(ColourRole.selectionInactive),
+    focusOnDanger: v(ColourRole.focusOnDanger),
+    avatarFill: v(ColourRole.avatarFill),
+    shadow: v(ColourRole.shadow),
+    onAvatar: _color(p.onAvatar),
+  );
+}
+
+const _kiwiBorders = BordersSpec(
+  width: BorderWidth.one,
+  style: BorderStyleKind.solid,
+  colour: BorderColour.line,
+  cards: false,
+  controls: false,
+  separators: Separators.inset,
+  titleRule: TitleRule.none,
+);
+const _kiwiMaterials = MaterialsSpec(
+  window: WindowKind.solid,
+  sidebar: SidebarMaterial.solid,
+  bars: BarMaterial.blur,
+  blur: MyDataBlur.glass,
+);
+const _kiwiIcons = IconsSpec(set: 'lucide', weight: 'regular', fillSelected: false, tiles: 'tinted');
+const _kiwiVariants = {
+  'button.primary': 'filled',
+  'button.secondary': 'tonal',
+  'button.shape': 'pill',
+  'list': 'inset',
+  'sidebar': 'column',
+  'toolbar': 'flat',
+  'inputs': 'outlined',
+  'selection': 'tint',
+  'avatar': 'circle',
+  'tabs': 'pill',
+  'chat': 'bubbles',
+  'month': 'boxed',
+  'today': 'disc',
+  'data-colours': 'colour',
+};

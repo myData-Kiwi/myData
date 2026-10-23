@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 
-import '../generated/tokens.g.dart';
-import '../motion.dart';
-import '../theme.dart';
+import '../theme/motion.dart';
+import '../theme/theme.dart';
 import 'button.dart';
 import 'event_row.dart' show formatEventTime;
 import 'form_row.dart' show FormGroupHeading;
@@ -469,7 +468,7 @@ class _TimePickerState extends State<TimePicker> with PendingInputRegistration<T
   Widget build(BuildContext context) {
     final phone = pickerIsPhone(context);
     final c = context.colors;
-    final style = pickerValueStyle(c, phone: phone);
+    final style = pickerValueStyle(context.look, c, phone: phone);
     final samples = [for (var m = 0; m < _day; m += TimePicker.step) _format(_time(m))];
     final rows = TimePicker.rows(start: widget.start);
     final (anchor, exact) = _anchor(rows);
@@ -509,7 +508,7 @@ class _TimePickerState extends State<TimePicker> with PendingInputRegistration<T
     return PickerPopover(
       open: _open,
       anchorKey: _boxKey,
-      padding: const EdgeInsets.all(MyDataSpace.s1),
+      padding: EdgeInsets.all(context.space(1)),
       onDismiss: () {
         _commit();
         _close(refocus: false);
@@ -520,7 +519,7 @@ class _TimePickerState extends State<TimePicker> with PendingInputRegistration<T
         checked: exact ? anchor : null,
         focusNode: _listNode,
         compact: widget.compact,
-        width: width - 2 * MyDataSpace.s1,
+        width: width - 2 * context.space(1),
         semanticLabel: widget.semanticLabel,
         onPicked: (i) {
           _pickRow(rows[i]);
@@ -593,7 +592,7 @@ class _TimeSheetState extends State<_TimeSheet> {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final style = pickerValueStyle(c, phone: true);
+    final style = pickerValueStyle(context.look, c, phone: true);
     return Sheet(
       kind: SheetKind.picker,
       title: widget.title,
@@ -604,7 +603,7 @@ class _TimeSheetState extends State<_TimeSheet> {
       scrollable: false,
       body: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(Sheet.bodyPadding, 0, Sheet.bodyPadding, MyDataSpace.s2),
+          padding: EdgeInsets.fromLTRB(Sheet.bodyPadding(context.look), 0, Sheet.bodyPadding(context.look), context.space(2)),
           child: Align(
             alignment: AlignmentDirectional.centerStart,
             child: PickerField(
@@ -627,10 +626,10 @@ class _TimeSheetState extends State<_TimeSheet> {
               items: widget.items,
               highlighted: widget.anchor.$1,
               checked: widget.anchor.$2 ? widget.anchor.$1 : null,
-              rowHeight: MyDataSize.rowHeight,
+              rowHeight: context.density.rowHeight,
               width: constraints.maxWidth,
               visibleRows: constraints.maxHeight.isFinite
-                  ? (constraints.maxHeight / MyDataSize.rowHeight).floor().clamp(1, 8)
+                  ? (constraints.maxHeight / context.density.rowHeight).floor().clamp(1, 8)
                   : 8,
               semanticLabel: widget.title,
               onPicked: (i) {
@@ -705,23 +704,23 @@ class EventWhenGroup extends StatelessWidget {
   static const setTimeZoneLabel = 'Set time zone';
 
   /// Fields in an Inspector are `space-4` apart (design/components/FormRow).
-  static const rowGap = MyDataSpace.s4;
+  static double rowGap(MyDataLook look) => look.space(4);
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
     final reduced = MyDataMotion.reduced(context);
-    final duration = reduced ? MyDataMotion.fast : MyDataMotion.base;
+    final duration = reduced ? context.motion.fast : context.motion.base;
     final phone = pickerIsPhone(context);
 
     Widget timed(Widget child) => AnimatedSize(
           duration: reduced ? Duration.zero : duration,
-          curve: MyDataMotion.standard,
+          curve: context.motion.standard,
           alignment: AlignmentDirectional.topStart,
           child: AnimatedSwitcher(
             duration: duration,
-            switchInCurve: MyDataMotion.standard,
-            switchOutCurve: MyDataMotion.standard,
+            switchInCurve: context.motion.standard,
+            switchOutCurve: context.motion.standard,
             child: allDay ? const SizedBox.shrink(key: ValueKey('none')) : child,
           ),
         );
@@ -730,12 +729,12 @@ class EventWhenGroup extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ExcludeSemantics(child: Text(label, style: MyDataType.label.copyWith(color: c.ink))),
-            const SizedBox(height: MyDataSpace.s2),
+            ExcludeSemantics(child: Text(label, style: context.typeScale.label.copyWith(color: c.ink))),
+            SizedBox(height: context.space(2)),
             // Side by side when both fit, else the time under the date; nothing is cut short.
             Wrap(
-              spacing: MyDataSpace.s2,
-              runSpacing: MyDataSpace.s2,
+              spacing: context.space(2),
+              runSpacing: context.space(2),
               direction: phone ? Axis.vertical : Axis.horizontal,
               children: [
                 date,
@@ -748,9 +747,9 @@ class EventWhenGroup extends StatelessWidget {
     final zone = zoneDiffers
         ? Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
             if (zoneCaption != null)
-              Text(zoneCaption!, style: MyDataType.caption.copyWith(color: c.inkMuted)),
+              Text(zoneCaption!, style: context.typeScale.caption.copyWith(color: c.inkMuted)),
             if (timeZoneField != null) ...[
-              if (zoneCaption != null) const SizedBox(height: rowGap),
+              if (zoneCaption != null) SizedBox(height: rowGap(context.look)),
               timeZoneField!,
             ],
           ])
@@ -770,18 +769,18 @@ class EventWhenGroup extends StatelessWidget {
         children: [
           const ExcludeSemantics(child: FormGroupHeading(heading)),
           allDaySwitch,
-          const SizedBox(height: rowGap),
+          SizedBox(height: rowGap(context.look)),
           line(startsLabel, startDate, startTime),
-          const SizedBox(height: rowGap),
+          SizedBox(height: rowGap(context.look)),
           line(endsLabel, endDate, endTime),
           timed(KeyedSubtree(
             key: const ValueKey('zone'),
             child: Padding(
-              padding: const EdgeInsets.only(top: MyDataSpace.s2),
+              padding: EdgeInsets.only(top: context.space(2)),
               child: Align(alignment: AlignmentDirectional.centerStart, child: zone),
             ),
           )),
-          if (repeat != null) ...[const SizedBox(height: rowGap), repeat!],
+          if (repeat != null) ...[SizedBox(height: rowGap(context.look)), repeat!],
         ],
       ),
     );

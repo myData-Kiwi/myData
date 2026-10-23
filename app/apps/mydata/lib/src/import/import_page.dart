@@ -294,7 +294,7 @@ class _ImportPageState extends State<ImportPage> {
     setState(() => _open.add(ImportText.places.first.title));
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final target = _macRowKey.currentContext;
-      if (target != null) unawaited(Scrollable.ensureVisible(target, duration: MyDataMotion.base));
+      if (target != null) unawaited(Scrollable.ensureVisible(target, duration: context.motion.base));
     });
   }
 
@@ -326,7 +326,7 @@ class _ImportPageState extends State<ImportPage> {
         ),
       if (!c.reachable && at != null)
         GroupedContentPart(
-          child: Text(ImportText.historyAsOf(at), style: context.type(MyDataType.caption).copyWith(color: context.colors.inkMuted)),
+          child: Text(ImportText.historyAsOf(at), style: context.type(MyDataTypeRole.caption).copyWith(color: context.colors.inkMuted)),
         ),
     ];
     return GroupedSection(heading: ImportText.historyHeading, parts: parts);
@@ -340,8 +340,8 @@ class _ImportPageState extends State<ImportPage> {
           message: ImportText.undoBody,
           content: Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
             for (final (n, line) in [if (i.source_ == 'icloud') ImportText.undoAccount, ImportText.undoCannot].indexed) ...[
-              if (n > 0) const SizedBox(height: MyDataSpace.s4),
-              Text(line, style: context.type(MyDataType.body).copyWith(color: context.colors.ink)),
+              if (n > 0) SizedBox(height: context.space(4)),
+              Text(line, style: context.type(MyDataTypeRole.body).copyWith(color: context.colors.ink)),
             ],
           ]),
           confirmLabel: ImportText.undoImport,
@@ -367,13 +367,13 @@ class _ImportPageState extends State<ImportPage> {
           label: '${ImportText.savingLabel}. ${ImportText.savingCaption}',
           excludeSemantics: true,
           child: Row(children: [
-            const KiwiLoader(size: MyDataSize.iconTile, semanticLabel: ImportText.savingLabel),
-            const SizedBox(width: MyDataSpace.s4),
+            KiwiLoader(size: context.density.iconTile, semanticLabel: ImportText.savingLabel),
+            SizedBox(width: context.space(4)),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(ImportText.savingLabel, style: context.type(MyDataType.bodyStrong).copyWith(color: c.ink)),
-                const SizedBox(height: MyDataSpace.s1),
-                Text(ImportText.savingCaption, style: context.type(MyDataType.caption).copyWith(color: c.inkMuted)),
+                Text(ImportText.savingLabel, style: context.type(MyDataTypeRole.bodyStrong).copyWith(color: c.ink)),
+                SizedBox(height: context.space(1)),
+                Text(ImportText.savingCaption, style: context.type(MyDataTypeRole.caption).copyWith(color: c.inkMuted)),
               ]),
             ),
           ]),
@@ -427,7 +427,7 @@ class _ImportPageState extends State<ImportPage> {
       if (rows.isNotEmpty) GroupedSection(parts: rows),
       phone
           ? Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              for (var i = 0; i < buttons.length; i++) ...[if (i > 0) const SizedBox(height: ButtonRow.gap), buttons[i]],
+              for (var i = 0; i < buttons.length; i++) ...[if (i > 0) SizedBox(height: ButtonRow.gap(context.look)), buttons[i]],
             ])
           : ButtonRow(children: buttons),
       if (r.stopFollowing != null && !c.followingSettled) _keepFollowing(r.stopFollowing!),
@@ -445,7 +445,7 @@ class _ImportPageState extends State<ImportPage> {
         onToggle: () => setState(() => _showWhich = !_showWhich),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           for (final row in _c.doneSkippedRows.take(_skippedShown))
-            Text(ImportText.skippedCard(row.item), style: context.type(MyDataType.body).copyWith(color: context.colors.ink)),
+            Text(ImportText.skippedCard(row.item), style: context.type(MyDataTypeRole.body).copyWith(color: context.colors.ink)),
           if (_c.doneSkippedRows.length > _skippedShown)
             Button(
               label: ImportText.showMore(math.min(200, _c.doneSkippedRows.length - _skippedShown)),
@@ -453,7 +453,7 @@ class _ImportPageState extends State<ImportPage> {
               onPressed: () => setState(() => _skippedShown += 200),
             ),
           for (final l in _c.doneLosses)
-            if (ImportText.loss(l) case final text?) Text(text, style: context.type(MyDataType.body).copyWith(color: context.colors.ink)),
+            if (ImportText.loss(l) case final text?) Text(text, style: context.type(MyDataTypeRole.body).copyWith(color: context.colors.ink)),
         ]),
       );
 
@@ -489,20 +489,20 @@ class _ImportPageState extends State<ImportPage> {
     ];
     // The question in `heading` over a GroupedSection holding its sentences and buttons (ImportFlow, Done).
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      const SizedBox(height: MyDataSpace.s4),
+      SizedBox(height: context.space(4)),
       Semantics(
         header: true,
-        child: Text(ImportText.keepFollowingTitle(email), style: context.type(MyDataType.heading).copyWith(color: c.ink)),
+        child: Text(ImportText.keepFollowingTitle(email), style: context.type(MyDataTypeRole.heading).copyWith(color: c.ink)),
       ),
-      const SizedBox(height: MyDataSpace.s3),
+      SizedBox(height: context.space(3)),
       GroupedSection(parts: [
         GroupedContentPart(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           for (var i = 0; i < lines.length; i++) ...[
-            if (i > 0) const SizedBox(height: MyDataSpace.s2),
-            Text(lines[i], style: context.type(MyDataType.body).copyWith(color: c.ink)),
+            if (i > 0) SizedBox(height: context.space(2)),
+            Text(lines[i], style: context.type(MyDataTypeRole.body).copyWith(color: c.ink)),
           ],
-          const SizedBox(height: MyDataSpace.s4),
+          SizedBox(height: context.space(4)),
           ButtonRow(children: [
             Button(label: ImportText.stopFollowing, onPressed: () => unawaited(_stopFollowing(s, email))),
             Button(label: ImportText.keepFollowing, variant: ButtonVariant.plain, onPressed: _c.keepFollowing),

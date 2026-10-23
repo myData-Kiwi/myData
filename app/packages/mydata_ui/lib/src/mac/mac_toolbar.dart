@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../generated/tokens.g.dart';
-import '../motion.dart';
+import '../theme/theme.dart';
 import 'mac_chrome.dart';
 import 'mac_icons.dart';
 import 'mac_overlays.dart' show MacMenuLook;
@@ -42,7 +42,7 @@ class MacToolbar extends StatelessWidget {
   final bool windowControls;
 
   /// Between items in the band.
-  static const itemGap = MyDataSpace.s2;
+  static double itemGap(MyDataLook look) => look.space(2);
 
   @override
   Widget build(BuildContext context) {
@@ -59,12 +59,12 @@ class MacToolbar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          for (final (i, w) in leading.indexed) ...[if (i > 0) const SizedBox(width: itemGap), w],
-          if (leading.isNotEmpty && title != null) const SizedBox(width: itemGap),
+          for (final (i, w) in leading.indexed) ...[if (i > 0) SizedBox(width: itemGap(context.look)), w],
+          if (leading.isNotEmpty && title != null) SizedBox(width: itemGap(context.look)),
           if (title != null)
             Expanded(
               child: Padding(
-                padding: EdgeInsetsDirectional.only(start: leading.isEmpty ? MyDataSpace.s3 : 0),
+                padding: EdgeInsetsDirectional.only(start: leading.isEmpty ? context.space(3) : 0),
                 child: Semantics(
                 header: true,
                 child: Column(
@@ -82,7 +82,7 @@ class MacToolbar extends StatelessWidget {
               ),
             ),
           if (title == null && trailing.isNotEmpty) const Spacer(),
-          for (final (i, w) in trailing.indexed) ...[if (i > 0) const SizedBox(width: itemGap), w],
+          for (final (i, w) in trailing.indexed) ...[if (i > 0) SizedBox(width: itemGap(context.look)), w],
         ],
       ),
     );
@@ -143,11 +143,11 @@ class _MacToolbarButtonState extends State<MacToolbarButton> {
         ? Icon(widget.icon, size: MyDataMacSize.icon, color: ink)
         : Text(widget.text!, style: MyDataMacType.body.copyWith(color: enabled ? mac.label : mac.tertiaryLabel));
     Widget button = AnimatedContainer(
-      duration: MyDataMotion.fast,
+      duration: context.motion.fast,
       height: MyDataMacSize.toolbarItemHeight,
       constraints: const BoxConstraints(minWidth: MyDataMacSize.toolbarItemHeight),
       // A word is a capsule (macOS 26's toolbar text items), wider than tall: never a circle round a word.
-      padding: EdgeInsets.symmetric(horizontal: widget.icon != null ? 0 : MyDataSpace.s4),
+      padding: EdgeInsets.symmetric(horizontal: widget.icon != null ? 0 : context.space(4)),
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: enabled && (_hovered || _pressed)
@@ -269,7 +269,7 @@ class _MacSearchFieldState extends State<MacSearchField> {
     final field = Container(
       width: widget.width,
       height: MyDataMacSize.toolbarItemHeight,
-      padding: const EdgeInsets.symmetric(horizontal: MyDataSpace.s3),
+      padding: EdgeInsets.symmetric(horizontal: context.space(3)),
       decoration: BoxDecoration(
         color: mac.toolbarItem,
         borderRadius: const BorderRadius.all(Radius.circular(MyDataMacRadius.field)),
@@ -280,7 +280,7 @@ class _MacSearchFieldState extends State<MacSearchField> {
       child: Row(
         children: [
           Icon(MacIcons.search, size: MyDataMacSize.icon, color: mac.secondaryLabel),
-          const SizedBox(width: MyDataSpace.s2),
+          SizedBox(width: context.space(2)),
           Expanded(
             child: Focus(
               onKeyEvent: _onKey,

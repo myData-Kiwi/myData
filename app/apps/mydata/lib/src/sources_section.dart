@@ -31,9 +31,9 @@ class SourcesSections extends StatelessWidget {
     builder: (context, _) {
       final list = sources.sources;
       if (list == null && sources.error != null) {
-        return MacLook.of(context) ? _macProblem(sources.error!) : _problem(sources.error!);
+        return MacWindow.of(context) ? _macProblem(sources.error!) : _problem(sources.error!);
       }
-      if (list == null && MacLook.of(context)) {
+      if (list == null && MacWindow.of(context)) {
         return const MacFormSection(heading: heading, rows: [MacFormRow(title: 'Loading the sources')]);
       }
       if (list == null) {
@@ -43,7 +43,7 @@ class SourcesSections extends StatelessWidget {
         );
       }
       final mac = sources.mac;
-      if (MacLook.of(context)) {
+      if (MacWindow.of(context)) {
         final icloud = IcloudSection(
           controller: controller,
           sources: sources,
@@ -55,10 +55,10 @@ class SourcesSections extends StatelessWidget {
           children: [
             if (mac != null) ...[
               ThisMacSection(controller: controller, sources: sources, mac: mac, system: system ?? macSystem),
-              const SizedBox(height: MacForm.gap),
+              SizedBox(height: MacForm.gap(context.look)),
               if (mac.enabled) ...[
                 IncludedSection(controller: controller, sources: sources, mac: mac),
-                const SizedBox(height: MacForm.gap),
+                SizedBox(height: MacForm.gap(context.look)),
               ],
             ],
             icloud,
@@ -77,10 +77,10 @@ class SourcesSections extends StatelessWidget {
         children: [
           ThisMacSection(controller: controller, sources: sources, mac: mac, system: system ?? macSystem),
           if (mac.enabled) ...[
-            const SizedBox(height: PageScaffold.gap),
+            SizedBox(height: PageScaffold.gap(context.look)),
             IncludedSection(controller: controller, sources: sources, mac: mac),
           ],
-          const SizedBox(height: PageScaffold.gap),
+          SizedBox(height: PageScaffold.gap(context.look)),
           icloud,
         ],
       );
@@ -320,7 +320,7 @@ class _ThisMacSectionState extends State<ThisMacSection> {
 
   @override
   Widget build(BuildContext context) {
-    if (MacLook.of(context)) return _macBuild(context);
+    if (MacWindow.of(context)) return _macBuild(context);
     final mac = _mac;
     return GroupedSection(
       heading: SourcesSections.heading,
@@ -425,7 +425,7 @@ class _IncludedSectionState extends State<IncludedSection> {
     final c = context.colors;
     final contactsReadable = ThisMacText.readable('contacts', mac.contactsStatus);
     final calendarsReadable = ThisMacText.readable('calendars', mac.calendarsStatus);
-    if (MacLook.of(context)) {
+    if (MacWindow.of(context)) {
       return MacFormSection(
         heading: SourcesSections.includedHeading,
         footer: IncludedSection.note(mac),
@@ -515,7 +515,7 @@ class _IncludedSectionState extends State<IncludedSection> {
               onChanged: _saving ? null : (on) => _set(calendar: k.id, include: on),
             ),
         GroupedContentPart(
-          child: Text(IncludedSection.note(mac), style: MyDataType.body.copyWith(color: c.inkMuted)),
+          child: Text(IncludedSection.note(mac), style: context.typeScale.body.copyWith(color: c.inkMuted)),
         ),
       ],
     );
@@ -684,7 +684,7 @@ class _IcloudSectionState extends State<IcloudSection> {
   Widget _macForm(BuildContext context) {
     final mac = context.mac;
     Widget field(String label, Widget input) => Padding(
-      padding: const EdgeInsets.only(bottom: MyDataSpace.s2),
+      padding: EdgeInsets.only(bottom: context.space(2)),
       child: Row(
         children: [
           SizedBox(
@@ -703,7 +703,7 @@ class _IcloudSectionState extends State<IcloudSection> {
             '${widget.onMacHost ? IcloudSection.forOtherHosts : ''}${IcloudSection.why}',
             style: MyDataMacType.caption.copyWith(color: mac.secondaryLabel),
           ),
-          const SizedBox(height: MyDataSpace.s3),
+          SizedBox(height: context.space(3)),
           field(
             'Apple Account email',
             MacEditField(
@@ -737,13 +737,13 @@ class _IcloudSectionState extends State<IcloudSection> {
             ),
           ),
           if (_error != null) ...[
-            const SizedBox(height: MyDataSpace.s2),
+            SizedBox(height: context.space(2)),
             Semantics(
               liveRegion: true,
               child: Text(_error!, style: MyDataMacType.caption.copyWith(color: context.colors.danger)),
             ),
           ],
-          const SizedBox(height: MyDataSpace.s3),
+          SizedBox(height: context.space(3)),
           Align(
             alignment: AlignmentDirectional.centerEnd,
             child: Button(
@@ -793,7 +793,7 @@ class _IcloudSectionState extends State<IcloudSection> {
 
   @override
   Widget build(BuildContext context) {
-    if (MacLook.of(context)) return _macBuild(context);
+    if (MacWindow.of(context)) return _macBuild(context);
     final accounts = widget.sources.icloud;
     // This Mac is on, so a followed account is usually read twice: say so on a line of its own under it.
     final twice = widget.onMacHost && (widget.sources.mac?.enabled ?? false);
@@ -809,13 +809,13 @@ class _IcloudSectionState extends State<IcloudSection> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(IcloudSection.title, style: MyDataType.bodyStrong.copyWith(color: c.ink)),
-          const SizedBox(height: MyDataSpace.s1),
+          Text(IcloudSection.title, style: context.typeScale.bodyStrong.copyWith(color: c.ink)),
+          SizedBox(height: context.space(1)),
           Text(
             '${widget.onMacHost ? IcloudSection.forOtherHosts : ''}${IcloudSection.why}',
-            style: MyDataType.body.copyWith(color: c.inkMuted),
+            style: context.typeScale.body.copyWith(color: c.inkMuted),
           ),
-          const SizedBox(height: MyDataSpace.s4),
+          SizedBox(height: context.space(4)),
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: IcloudForm.fieldMaxWidth),
             child: Column(
@@ -830,7 +830,7 @@ class _IcloudSectionState extends State<IcloudSection> {
                   enabled: !_adding,
                   onChanged: (_) => setState(() {}),
                 ),
-                const SizedBox(height: MyDataSpace.s4),
+                SizedBox(height: context.space(4)),
                 MyDataTextField(
                   label: 'App-specific password',
                   controller: _password,
@@ -845,17 +845,17 @@ class _IcloudSectionState extends State<IcloudSection> {
               ],
             ),
           ),
-          const SizedBox(height: MyDataSpace.s4),
+          SizedBox(height: context.space(4)),
           Button(
             label: _adding ? 'Checking with Apple' : IcloudSection.followLabel,
             variant: widget.onMacHost ? ButtonVariant.tonal : ButtonVariant.filled,
             onPressed: _ready ? _follow : null,
           ),
           if (_error != null) ...[
-            const SizedBox(height: MyDataSpace.s3),
+            SizedBox(height: context.space(3)),
             Semantics(
               liveRegion: true,
-              child: Text(_error!, style: MyDataType.caption.copyWith(color: c.danger)),
+              child: Text(_error!, style: context.typeScale.caption.copyWith(color: c.danger)),
             ),
           ],
         ],

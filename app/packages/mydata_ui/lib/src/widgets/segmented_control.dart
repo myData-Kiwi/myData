@@ -5,9 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import '../accessibility.dart';
-import '../generated/tokens.g.dart';
-import '../motion.dart';
-import '../theme.dart';
+import '../theme/motion.dart';
+import '../theme/theme.dart';
 import 'pressable.dart';
 
 /// A pill-shaped set of two to five mutually exclusive options that switch or filter the view below it
@@ -62,7 +61,7 @@ class SegmentedControl<T> extends StatefulWidget {
   static const maxSegments = 5;
 
   /// Not in the spec: the least side padding a label keeps when the parent is too narrow for `space-4`.
-  static const minSidePadding = MyDataSpace.s2;
+  static double minSidePadding(MyDataLook look) => look.space(2);
 
   @override
   State<SegmentedControl<T>> createState() => _SegmentedControlState<T>();
@@ -144,31 +143,31 @@ class _SegmentedControlState<T> extends State<SegmentedControl<T>> {
 
     return [
       for (final s in widget.segments)
-        math.max(measure(s.$2, MyDataType.bodyStrong), measure(s.$2, MyDataType.body)).ceilToDouble(),
+        math.max(measure(s.$2, context.typeScale.bodyStrong), measure(s.$2, context.typeScale.body)).ceilToDouble(),
     ];
   }
 
   /// Each segment's width: the label plus `space-4` each side when that fits in [maxWidth]; otherwise the side
   /// padding shrinks evenly to [SegmentedControl.minSidePadding]; otherwise the widest segments share what is
   /// left equally (their labels ellipsize), never below `control-height`.
-  static List<double> _fitWidths(List<double> labels, double maxWidth) {
+  static List<double> _fitWidths(MyDataLook look, List<double> labels, double maxWidth) {
     final n = labels.length;
-    final chrome = (n + 1) * MyDataSpace.s1; // The track's padding at both ends and the gaps.
+    final chrome = (n + 1) * look.space(1); // The track's padding at both ends and the gaps.
     final labelSum = labels.fold(0.0, (a, w) => a + w);
-    final natural = [for (final w in labels) w + 2 * MyDataSpace.s4];
-    if (!maxWidth.isFinite || labelSum + 2 * n * MyDataSpace.s4 + chrome <= maxWidth) return natural;
+    final natural = [for (final w in labels) w + 2 * look.space(4)];
+    if (!maxWidth.isFinite || labelSum + 2 * n * look.space(4) + chrome <= maxWidth) return natural;
 
     final available = maxWidth - chrome;
     final pad = (available - labelSum) / (2 * n);
     final shortest = labels.reduce(math.min);
-    if (pad >= SegmentedControl.minSidePadding && shortest + 2 * pad >= MyDataSize.controlHeight) {
+    if (pad >= SegmentedControl.minSidePadding(look) && shortest + 2 * pad >= look.density.controlHeight) {
       return [for (final w in labels) w + 2 * pad];
     }
 
     // Water-fill: segments narrower than the cap keep their label, the least padding and a 44px target; the
     // rest are cut to the cap.
     final wanted = [
-      for (final w in labels) math.max(MyDataSize.controlHeight, w + 2 * SegmentedControl.minSidePadding),
+      for (final w in labels) math.max(look.density.controlHeight, w + 2 * SegmentedControl.minSidePadding(look)),
     ];
     final sorted = [...wanted]..sort();
     var remaining = available;
@@ -179,7 +178,7 @@ class _SegmentedControlState<T> extends State<SegmentedControl<T>> {
       remaining -= sorted[k];
       cap = sorted[k];
     }
-    return [for (final w in wanted) math.max(MyDataSize.controlHeight, math.min(w, cap))];
+    return [for (final w in wanted) math.max(look.density.controlHeight, math.min(w, cap))];
   }
 
   @override
@@ -216,20 +215,20 @@ class _SegmentedControlState<T> extends State<SegmentedControl<T>> {
     }
 
     final lineHeight = MediaQuery.textScalerOf(context)
-        .scale(MyDataType.bodyStrong.fontSize! * MyDataType.bodyStrong.height!)
+        .scale(context.typeScale.bodyStrong.fontSize! * context.typeScale.bodyStrong.height!)
         .ceilToDouble();
-    final thumbHeight = math.max(MyDataSize.controlHeightCompact, lineHeight + MyDataSpace.s2);
-    final trackHeight = thumbHeight + 2 * MyDataSpace.s1;
-    final widths = _fitWidths(_labelWidths(context), constraints.maxWidth);
+    final thumbHeight = math.max(context.density.controlHeightCompact, lineHeight + context.space(2));
+    final trackHeight = thumbHeight + 2 * context.space(1);
+    final widths = _fitWidths(context.look, _labelWidths(context), constraints.maxWidth);
 
-    var thumbStart = MyDataSpace.s1;
+    var thumbStart = context.space(1);
     for (var i = 0; i < selected; i++) {
-      thumbStart += widths[i] + MyDataSpace.s1;
+      thumbStart += widths[i] + context.space(1);
     }
 
     final segments = <Widget>[];
     for (var i = 0; i < widget.segments.length; i++) {
-      if (i > 0) segments.add(const SizedBox(width: MyDataSpace.s1));
+      if (i > 0) segments.add(SizedBox(width: context.space(1)));
       final isSelected = i == selected;
       final choose = _enabled ? () => _choose(i) : null;
       // The target is the full track height (44px); the pressable shape, and so the focus ring, is the thumb's
@@ -250,21 +249,21 @@ class _SegmentedControlState<T> extends State<SegmentedControl<T>> {
                 width: widths[i],
                 height: trackHeight,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: MyDataSpace.s1),
+                  padding: EdgeInsets.symmetric(vertical: context.space(1)),
                   child: Pressable(
                     onPressed: choose,
-                    borderRadius: MyDataRadii.pill,
+                    borderRadius: MyDataRadii.pill(context.look),
                     focusNode: _nodes[i],
                     button: false,
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: SegmentedControl.minSidePadding),
+                      padding: EdgeInsets.symmetric(horizontal: SegmentedControl.minSidePadding(context.look)),
                       child: Center(
                         child: AnimatedDefaultTextStyle(
-                          duration: MyDataMotion.fast,
-                          curve: MyDataMotion.standard,
+                          duration: context.motion.fast,
+                          curve: context.motion.standard,
                           style: isSelected
-                              ? MyDataType.bodyStrong.copyWith(color: c.ink)
-                              : MyDataType.body.copyWith(color: c.inkMuted),
+                              ? context.typeScale.bodyStrong.copyWith(color: c.ink)
+                              : context.typeScale.body.copyWith(color: c.inkMuted),
                           child: Text(
                             widget.segments[i].$2,
                             maxLines: 1,
@@ -290,16 +289,16 @@ class _SegmentedControlState<T> extends State<SegmentedControl<T>> {
           child: Opacity(
             opacity: disabledOpacity,
             child: DecoratedBox(
-              decoration: BoxDecoration(color: c.surfaceSunken, borderRadius: MyDataRadii.pill),
+              decoration: BoxDecoration(color: c.surfaceSunken, borderRadius: MyDataRadii.pill(context.look)),
             ),
           ),
         ),
         if (selected >= 0)
           AnimatedPositionedDirectional(
-            duration: reduced ? Duration.zero : MyDataMotion.springDuration,
+            duration: reduced ? Duration.zero : context.motion.springDuration,
             curve: const SpringCurve(),
             start: thumbStart,
-            top: MyDataSpace.s1,
+            top: context.space(1),
             width: widths[selected],
             height: thumbHeight,
             child: Opacity(
@@ -307,14 +306,14 @@ class _SegmentedControlState<T> extends State<SegmentedControl<T>> {
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   color: c.surface,
-                  borderRadius: MyDataRadii.pill,
+                  borderRadius: MyDataRadii.pill(context.look),
                   boxShadow: context.shadows.shadow1,
                 ),
               ),
             ),
           ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: MyDataSpace.s1),
+          padding: EdgeInsets.symmetric(horizontal: context.space(1)),
           child: Row(mainAxisSize: MainAxisSize.min, children: segments),
         ),
       ],

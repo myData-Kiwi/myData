@@ -7,11 +7,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 
-import '../generated/tokens.g.dart';
 import '../mac/mac_overlays.dart' show MacMenuLook;
-import '../mac/mac_theme.dart' show MacLook;
-import '../motion.dart';
-import '../theme.dart';
+import '../mac/mac_window.dart';
+import '../theme/motion.dart';
+import '../theme/theme.dart';
 import 'dialog.dart' show phoneWidth;
 import 'icon_button.dart';
 import 'pressable.dart';
@@ -96,13 +95,13 @@ class MenuSeparator extends MenuEntry {
 ///   flips to stay `space-2` inside the window.
 abstract final class Menu {
   /// Space kept between the menu and the window's edges.
-  static const windowMargin = MyDataSpace.s2;
+  static double windowMargin(MyDataLook look) => look.space(2);
 
   /// Gap between an overflow menu and its button.
-  static const anchorGap = MyDataSpace.s1;
+  static double anchorGap(MyDataLook look) => look.space(1);
 
   /// Gap between the label and the shortcut, at least.
-  static const shortcutGap = MyDataSpace.s6;
+  static double shortcutGap(MyDataLook look) => look.space(6);
 
   /// How long typed letters add up before a new search starts.
   static const typeAheadReset = Duration(milliseconds: 800);
@@ -137,6 +136,7 @@ abstract final class Menu {
       fromKeyboard: fromKeyboard,
       compact: compact,
       reduced: MyDataMotion.reduced(context),
+      look: context.look,
       textDirection: Directionality.of(context),
       capturedThemes: InheritedTheme.capture(from: context, to: navigator.context),
     ));
@@ -152,6 +152,7 @@ class _MenuRoute extends PopupRoute<VoidCallback> {
     required this.fromKeyboard,
     required this.compact,
     required this.reduced,
+    required this.look,
     required this.textDirection,
     required this.capturedThemes,
   });
@@ -162,6 +163,7 @@ class _MenuRoute extends PopupRoute<VoidCallback> {
   final bool fromKeyboard;
   final bool compact;
   final bool reduced;
+  final MyDataLook look;
   final TextDirection textDirection;
   final CapturedThemes capturedThemes;
 
@@ -178,10 +180,10 @@ class _MenuRoute extends PopupRoute<VoidCallback> {
   String? get barrierLabel => Menu.closeLabel;
 
   @override
-  Duration get transitionDuration => reduced ? MyDataMotion.fast : MyDataMotion.base;
+  Duration get transitionDuration => reduced ? look.motion.fast : look.motion.base;
 
   @override
-  Duration get reverseTransitionDuration => instant || reduced ? Duration.zero : MyDataMotion.fast;
+  Duration get reverseTransitionDuration => instant || reduced ? Duration.zero : look.motion.fast;
 
   /// The point the menu grows from: the pointer, or the button's bottom end corner.
   Offset get _origin => overflow
@@ -197,7 +199,7 @@ class _MenuRoute extends PopupRoute<VoidCallback> {
         removeLeft: true,
         removeRight: true,
         child: CustomSingleChildLayout(
-          delegate: _MenuLayout(anchor: anchor, overflow: overflow, textDirection: textDirection),
+          delegate: _MenuLayout(anchor: anchor, overflow: overflow, textDirection: textDirection, look: look),
           child: _MenuPanel(route: this),
         ),
       ));
@@ -205,13 +207,13 @@ class _MenuRoute extends PopupRoute<VoidCallback> {
   @override
   Widget buildTransitions(
       BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation, Widget child) {
-    final curved = CurvedAnimation(parent: animation, curve: MyDataMotion.standard);
+    final curved = CurvedAnimation(parent: animation, curve: context.motion.standard);
     final faded = FadeTransition(opacity: curved, child: child);
     if (reduced) return faded;
     return AnimatedBuilder(
       animation: curved,
       builder: (context, child) {
-        final s = MyDataMotion.pressScale + (1 - MyDataMotion.pressScale) * curved.value;
+        final s = context.motion.pressScale + (1 - context.motion.pressScale) * curved.value;
         final o = _origin;
         final m = Matrix4.identity()
           ..translateByDouble(o.dx, o.dy, 0, 1)
@@ -232,26 +234,27 @@ class _MenuRoute extends PopupRoute<VoidCallback> {
 
 /// Places the panel at the pointer or under its button, flipping and moving it to stay inside the window.
 class _MenuLayout extends SingleChildLayoutDelegate {
-  _MenuLayout({required this.anchor, required this.overflow, required this.textDirection});
+  _MenuLayout({required this.anchor, required this.overflow, required this.textDirection, required this.look});
 
   final Rect anchor;
   final bool overflow;
   final TextDirection textDirection;
+  final MyDataLook look;
 
   @override
   BoxConstraints getConstraintsForChild(BoxConstraints constraints) =>
-      BoxConstraints.loose(constraints.biggest).deflate(const EdgeInsets.all(Menu.windowMargin));
+      BoxConstraints.loose(constraints.biggest).deflate(EdgeInsets.all(Menu.windowMargin(look)));
 
   @override
   Offset getPositionForChild(Size size, Size child) {
-    const m = Menu.windowMargin;
+    final m = Menu.windowMargin(look);
     final ltr = textDirection == TextDirection.ltr;
     double x;
     double y;
     if (overflow) {
       x = ltr ? anchor.right - child.width : anchor.left;
-      y = anchor.bottom + Menu.anchorGap;
-      if (y + child.height > size.height - m) y = anchor.top - Menu.anchorGap - child.height;
+      y = anchor.bottom + Menu.anchorGap(look);
+      if (y + child.height > size.height - m) y = anchor.top - Menu.anchorGap(look) - child.height;
     } else {
       x = ltr ? anchor.left : anchor.left - child.width;
       y = anchor.top;
@@ -266,7 +269,7 @@ class _MenuLayout extends SingleChildLayoutDelegate {
 
   @override
   bool shouldRelayout(_MenuLayout old) =>
-      old.anchor != anchor || old.overflow != overflow || old.textDirection != textDirection;
+      old.anchor != anchor || old.overflow != overflow || old.textDirection != textDirection || old.look != look;
 }
 
 class _MenuPanel extends StatefulWidget {
@@ -374,7 +377,7 @@ class _MenuPanelState extends State<_MenuPanel> {
     final compact = widget.route.compact;
     final phone = MediaQuery.sizeOf(context).width < phoneWidth;
     // The Mac frame: a macOS menu (mac/mac_overlays.dart), with the same behaviour.
-    final mac = MacLook.of(context);
+    final mac = MacWindow.of(context);
     final iconSpace = _items.any((i) => i.icon != null);
     final children = <Widget>[];
     var index = 0;
@@ -384,7 +387,7 @@ class _MenuPanelState extends State<_MenuPanel> {
           children.add(ExcludeSemantics(
             child: mac
                 ? MacMenuLook.separator(context)
-                : Container(height: 1, margin: const EdgeInsets.symmetric(vertical: MyDataSpace.s1), color: c.line),
+                : Container(height: 1, margin: EdgeInsets.symmetric(vertical: context.space(1)), color: c.line),
           ));
         case MenuItem():
           final i = index++;
@@ -420,10 +423,10 @@ class _MenuPanelState extends State<_MenuPanel> {
         child: Material(
           type: MaterialType.transparency,
           child: Container(
-            padding: mac ? MacMenuLook.padding : const EdgeInsets.all(MyDataSpace.s1),
+            padding: mac ? MacMenuLook.padding(context.look) : EdgeInsets.all(context.space(1)),
             decoration: mac
                 ? MacMenuLook.panel(context)
-                : BoxDecoration(color: c.surfaceRaised, borderRadius: MyDataRadii.md, boxShadow: context.shadows.shadow2),
+                : BoxDecoration(color: c.surfaceRaised, borderRadius: MyDataRadii.md(context.look), boxShadow: context.shadows.shadow2),
             child: IntrinsicWidth(
               child: SingleChildScrollView(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: children),
@@ -476,12 +479,12 @@ class _MenuItemTile extends StatelessWidget {
     final faded = item.enabled ? 1.0 : Pressable.disabledOpacity;
     final reason = item.enabled ? null : item.disabledReason;
 
-    Widget label = Text(item.label, maxLines: 1, softWrap: false, style: MyDataType.body.copyWith(color: fg));
+    Widget label = Text(item.label, maxLines: 1, softWrap: false, style: context.typeScale.body.copyWith(color: fg));
     label = Opacity(opacity: faded, child: label);
     if (reason != null) {
       label = Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
         label,
-        Text(reason, maxLines: 1, softWrap: false, style: MyDataType.caption.copyWith(color: c.inkMuted)),
+        Text(reason, maxLines: 1, softWrap: false, style: context.typeScale.caption.copyWith(color: c.inkMuted)),
       ]);
     }
 
@@ -490,33 +493,33 @@ class _MenuItemTile extends StatelessWidget {
         Opacity(
           opacity: faded,
           child: SizedBox.square(
-            dimension: MyDataSize.icon,
-            child: item.icon == null ? null : Icon(item.icon, size: MyDataSize.icon, color: iconColour),
+            dimension: context.density.icon,
+            child: item.icon == null ? null : Icon(item.icon, size: context.density.icon, color: iconColour),
           ),
         ),
-        const SizedBox(width: MyDataSpace.s3),
+        SizedBox(width: context.space(3)),
       ],
       Expanded(child: label),
       if (shortcut != null && showShortcut) ...[
-        const SizedBox(width: Menu.shortcutGap),
+        SizedBox(width: Menu.shortcutGap(context.look)),
         Opacity(
           opacity: faded,
           child: Text(MyDataShortcut.shown(shortcut, platform: Theme.of(context).platform),
-              style: MyDataType.body.copyWith(color: c.inkMuted)),
+              style: context.typeScale.body.copyWith(color: c.inkMuted)),
         ),
       ],
       if (item.checked) ...[
-        const SizedBox(width: Menu.shortcutGap),
-        Icon(Icons.check_rounded, size: MyDataSize.icon, color: c.accent),
+        SizedBox(width: Menu.shortcutGap(context.look)),
+        Icon(Icons.check_rounded, size: context.density.icon, color: c.accent),
       ],
     ]);
 
     final height = reason != null
-        ? MyDataSize.rowHeight
-        : (compact ? MyDataSize.controlHeightCompact : MyDataSize.controlHeight);
+        ? context.density.rowHeight
+        : (compact ? context.density.controlHeightCompact : context.density.controlHeight);
     // The Mac frame: a macOS menu item (mac/mac_overlays.dart); the keyboard's item is on the accent. A macOS
     // menu item has no second line: a disabled item's reason is its help tag (a tooltip) and its hint.
-    final mac = MacLook.of(context);
+    final mac = MacWindow.of(context);
     Widget tile = mac
         ? MacMenuLook.item(
             context,
@@ -532,23 +535,23 @@ class _MenuItemTile extends StatelessWidget {
             destructive: item.destructive,
           )
         : AnimatedContainer(
-      duration: MyDataMotion.fast,
-      curve: MyDataMotion.standard,
+      duration: context.motion.fast,
+      curve: context.motion.standard,
       constraints: BoxConstraints(minHeight: height),
-      padding: EdgeInsets.symmetric(horizontal: MyDataSpace.s3, vertical: reason != null ? MyDataSpace.s2 : 0),
+      padding: EdgeInsets.symmetric(horizontal: context.space(3), vertical: reason != null ? context.space(2) : 0),
       decoration: BoxDecoration(
         color: active && item.enabled ? fill : fill.withValues(alpha: 0),
-        borderRadius: MyDataRadii.sm,
+        borderRadius: MyDataRadii.sm(context.look),
       ),
       foregroundDecoration: ring
           ? BoxDecoration(
-              borderRadius: MyDataRadii.sm,
+              borderRadius: MyDataRadii.sm(context.look),
               border: Border.all(color: FocusRing.colourFor(context, danger: item.destructive), width: ringWidth),
             )
           : null,
       child: row,
     );
-    tile = Opacity(opacity: pressed ? MyDataMotion.pressOpacity : 1, child: tile);
+    tile = Opacity(opacity: pressed ? context.motion.pressOpacity : 1, child: tile);
     if (mac && reason != null) tile = MacMenuLook.helpTag(context, message: reason, child: tile);
 
     final spokenShortcut = shortcut == null ? null : MyDataShortcut.spoken(shortcut);

@@ -266,9 +266,9 @@ void main() {
     });
 
     testWidgets('width: dialog-width, the window less space-8 each side, or a phone less space-4', (tester) async {
-      expect(MyDataDialog.widthFor(1280), MyDataSize.dialogWidth);
-      expect(MyDataDialog.widthFor(800), MyDataSize.dialogWidth);
-      expect(MyDataDialog.widthFor(375), 375 - 2 * MyDataSpace.s4);
+      expect(MyDataDialog.widthFor(kiwiLook, 1280), MyDataSize.dialogWidth);
+      expect(MyDataDialog.widthFor(kiwiLook, 800), MyDataSize.dialogWidth);
+      expect(MyDataDialog.widthFor(kiwiLook, 375), 375 - 2 * MyDataSpace.s4);
       tester.view.physicalSize = const Size(1024, 768);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);

@@ -208,7 +208,7 @@ class _CalendarHomeState extends State<CalendarHome> {
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: _host,
     builder: (context, _) {
-      if (MacLook.of(context)) return _macFrame(context);
+      if (MacWindow.of(context)) return _macFrame(context);
       return Scaffold(
         backgroundColor: context.colors.bg,
         body: switch (_connection()) {
@@ -226,7 +226,7 @@ class _CalendarHomeState extends State<CalendarHome> {
     },
   );
 
-  /// The Mac frame ([MacLook]), as Calendar.app's window: the calendar list in the translucent sidebar (with
+  /// The Mac frame ([MacWindow.of]), as Calendar.app's window: the calendar list in the translucent sidebar (with
   /// the host's state at its bottom when something is wrong), and the month under its own toolbar
   /// ([MacMonthView]). Every other state (starting, an error, no source on) fills the window under an empty
   /// toolbar band, with no sidebar: there is nothing to list, and the state says what is wrong once.
@@ -338,7 +338,7 @@ class _CalendarHomeState extends State<CalendarHome> {
     }
     if (_data.anySourceOn == false) {
       return Padding(
-        padding: const EdgeInsets.all(MyDataSpace.s8),
+        padding: EdgeInsets.all(context.space(8)),
         child: EmptyState(
           title: CalendarHome.emptyTitle,
           sentence: CalendarHome.emptySentence,
@@ -347,7 +347,7 @@ class _CalendarHomeState extends State<CalendarHome> {
         ),
       );
     }
-    final mac = MacLook.of(context);
+    final mac = MacWindow.of(context);
     if (_section == 1 && !mac) {
       return CalendarsPage(calendars: _data.calendars!, visibility: widget.visibility);
     }

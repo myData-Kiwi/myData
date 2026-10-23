@@ -356,7 +356,7 @@ void main() {
           find.descendant(of: find.byKey(const ValueKey('token:Family')), matching: find.byType(Container)).first);
       final deco = pill.decoration! as BoxDecoration;
       expect(deco.color, _kiwi.surfaceSunken);
-      expect(deco.borderRadius, MyDataRadii.pill);
+      expect(deco.borderRadius, MyDataRadii.pill(kiwiLook));
       final field = tester.getRect(find.ancestor(of: find.byKey(const ValueKey('token:Family')), matching: find.byType(Container)).last);
       expect(field.height, MyDataSize.controlHeight);
       expect(a.left - field.left, MyDataSpace.s1);

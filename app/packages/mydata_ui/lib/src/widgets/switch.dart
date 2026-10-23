@@ -4,9 +4,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
 import '../accessibility.dart';
-import '../generated/tokens.g.dart';
-import '../motion.dart';
-import '../theme.dart';
+import '../theme/theme.dart';
 import 'app_frame.dart' show AppLayout, PhoneType;
 import 'icon_tile.dart';
 import 'pressable.dart';
@@ -54,7 +52,7 @@ class MyDataSwitch extends StatelessWidget {
         child: _TargetPadding(
           child: Pressable(
             onPressed: onChanged == null ? null : () => onChanged!(!value),
-            borderRadius: MyDataRadii.pill,
+            borderRadius: MyDataRadii.pill(context.look),
             focusNode: focusNode,
             autofocus: autofocus,
             semanticLabel: semanticLabel,
@@ -92,24 +90,24 @@ class SwitchTrack extends StatelessWidget {
     final reduced = MyDataAccessibility.of(context).reduceMotion;
     return ExcludeSemantics(
       child: AnimatedContainer(
-        duration: MyDataMotion.fast,
-        curve: MyDataMotion.standard,
+        duration: context.motion.fast,
+        curve: context.motion.standard,
         width: width,
         height: height,
         padding: const EdgeInsets.all(thumbInset),
         decoration: BoxDecoration(
           color: value ? c.accent : c.surfaceSunken,
-          borderRadius: MyDataRadii.pill,
+          borderRadius: MyDataRadii.pill(context.look),
           border: Border.all(color: value ? c.accent : c.lineStrong, width: borderWidth),
         ),
         child: AnimatedAlign(
           // Movement: slides over `fast`; with reduced motion it jumps.
-          duration: reduced ? Duration.zero : MyDataMotion.fast,
-          curve: MyDataMotion.standard,
+          duration: reduced ? Duration.zero : context.motion.fast,
+          curve: context.motion.standard,
           alignment: value ? Alignment.centerRight : Alignment.centerLeft,
           child: AnimatedContainer(
-            duration: MyDataMotion.fast,
-            curve: MyDataMotion.standard,
+            duration: context.motion.fast,
+            curve: context.motion.standard,
             width: thumbSize,
             height: thumbSize,
             decoration: BoxDecoration(color: value ? c.onAccent : c.lineStrong, shape: BoxShape.circle),
@@ -172,8 +170,8 @@ class SwitchRow extends StatelessWidget {
   final bool autofocus;
 
   /// GroupedList row geometry: `space-4` across, `space-2` down, `space-3` between parts.
-  static const padding = EdgeInsets.symmetric(horizontal: MyDataSpace.s4, vertical: MyDataSpace.s2);
-  static const gap = MyDataSpace.s3;
+  static EdgeInsets padding(MyDataLook look) => EdgeInsets.symmetric(horizontal: look.space(4), vertical: look.space(2));
+  static double gap(MyDataLook look) => look.space(3);
 
   @override
   Widget build(BuildContext context) {
@@ -189,25 +187,25 @@ class SwitchRow extends StatelessWidget {
         button: false,
         toggled: value,
         child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: MyDataSize.rowHeight),
+          constraints: BoxConstraints(minHeight: context.density.rowHeight),
           child: Padding(
-            padding: padding,
+            padding: padding(context.look),
             child: Row(children: [
               if (icon != null) ...[
                 IconTile(icon: icon!, tone: tone),
-                const SizedBox(width: gap),
+                SizedBox(width: gap(context.look)),
               ],
               Expanded(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: MyDataType.bodyStrong.copyWith(color: c.ink)),
-                    Text(description, style: MyDataType.caption.copyWith(color: c.inkMuted)),
+                    Text(title, style: context.typeScale.bodyStrong.copyWith(color: c.ink)),
+                    Text(description, style: context.typeScale.caption.copyWith(color: c.inkMuted)),
                   ],
                 ),
               ),
-              const SizedBox(width: gap),
+              SizedBox(width: gap(context.look)),
               SwitchTrack(value: value),
             ]),
           ),
@@ -269,10 +267,10 @@ class FormSwitchRow extends StatelessWidget {
   final bool autofocus;
 
   /// Between the title and the switch (preview: `.swrow{gap:12px}`).
-  static const gap = MyDataSpace.s3;
+  static double gap(MyDataLook look) => look.space(3);
 
   /// How far the hover fill reaches past each side of the row.
-  static const hoverOutset = MyDataSpace.s2;
+  static double hoverOutset(MyDataLook look) => look.space(2);
 
   void _flip(BuildContext context) {
     final next = !value;
@@ -300,30 +298,30 @@ class FormSwitchRow extends StatelessWidget {
           autofocus: autofocus,
           builder: (context, s) => TweenAnimationBuilder<Color?>(
             tween: ColorTween(end: s.hovered || s.pressed ? c.surfaceHover : c.surfaceHover.withValues(alpha: 0)),
-            duration: MyDataMotion.fast,
-            curve: MyDataMotion.standard,
+            duration: context.motion.fast,
+            curve: context.motion.standard,
             builder: (context, fill, child) =>
-                CustomPaint(painter: _OutsetFill(color: fill!, outset: hoverOutset), child: child),
+                CustomPaint(painter: _OutsetFill(color: fill!, outset: hoverOutset(context.look), radius: context.radius.sm), child: child),
             child: AnimatedOpacity(
-              opacity: s.pressed ? MyDataMotion.pressOpacity : 1,
-              duration: s.pressed ? Duration.zero : MyDataMotion.fast,
-              curve: MyDataMotion.standard,
+              opacity: s.pressed ? context.motion.pressOpacity : 1,
+              duration: s.pressed ? Duration.zero : context.motion.fast,
+              curve: context.motion.standard,
               child: ConstrainedBox(
                 constraints:
-                    BoxConstraints(minHeight: phone ? MyDataSize.rowHeight : MyDataSize.controlHeight),
+                    BoxConstraints(minHeight: phone ? context.density.rowHeight : context.density.controlHeight),
                 child: Row(children: [
                   Expanded(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        faded(Text(title, style: PhoneType.body(MyDataType.body, phone: phone).copyWith(color: c.ink))),
-                        if (note != null) Text(note, style: MyDataType.caption.copyWith(color: c.inkMuted)),
+                        faded(Text(title, style: PhoneType.body(context.typeScale.body, phone: phone).copyWith(color: c.ink))),
+                        if (note != null) Text(note, style: context.typeScale.caption.copyWith(color: c.inkMuted)),
                       ],
                     ),
                   ),
-                  const SizedBox(width: gap),
-                  faded(FocusRing(visible: s.focused, borderRadius: MyDataRadii.pill, child: SwitchTrack(value: value))),
+                  SizedBox(width: gap(context.look)),
+                  faded(FocusRing(visible: s.focused, borderRadius: MyDataRadii.pill(context.look), child: SwitchTrack(value: value))),
                 ]),
               ),
             ),
@@ -336,19 +334,22 @@ class FormSwitchRow extends StatelessWidget {
 
 /// The form switch row's hover fill: `radius-sm`, reaching [outset] past the row's start and end.
 class _OutsetFill extends CustomPainter {
-  _OutsetFill({required this.color, required this.outset});
+  _OutsetFill({required this.color, required this.outset, required this.radius});
   final Color color;
   final double outset;
+
+  /// `radius-sm`.
+  final double radius;
 
   @override
   void paint(Canvas canvas, Size size) {
     if (color.a == 0) return;
     final rect = Rect.fromLTRB(-outset, 0, size.width + outset, size.height);
-    canvas.drawRRect(MyDataRadii.sm.toRRect(rect), Paint()..color = color);
+    canvas.drawRRect(RRect.fromRectAndRadius(rect, Radius.circular(radius)), Paint()..color = color);
   }
 
   @override
-  bool shouldRepaint(_OutsetFill old) => old.color != color || old.outset != outset;
+  bool shouldRepaint(_OutsetFill old) => old.color != color || old.outset != outset || old.radius != radius;
 }
 
 /// Makes the switch's target at least `control-height` square-ish without growing the drawn track or its
@@ -357,13 +358,23 @@ class _TargetPadding extends SingleChildRenderObjectWidget {
   const _TargetPadding({required Widget super.child});
 
   @override
-  RenderObject createRenderObject(BuildContext context) => _RenderTargetPadding();
+  RenderObject createRenderObject(BuildContext context) => _RenderTargetPadding(context.density.controlHeight);
+
+  @override
+  void updateRenderObject(BuildContext context, _RenderTargetPadding renderObject) =>
+      renderObject.minSide = context.density.controlHeight;
 }
 
 class _RenderTargetPadding extends RenderShiftedBox {
-  _RenderTargetPadding() : super(null);
+  _RenderTargetPadding(this._min) : super(null);
 
-  static const _min = MyDataSize.controlHeight;
+  /// `control-height`.
+  double _min;
+  set minSide(double value) {
+    if (value == _min) return;
+    _min = value;
+    markNeedsLayout();
+  }
 
   @override
   void performLayout() {

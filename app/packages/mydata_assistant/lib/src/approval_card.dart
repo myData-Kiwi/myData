@@ -18,7 +18,8 @@ import 'mac_chat.dart';
 /// Pending: "Approve and send" (or "Approve and run") and Reject, both disabled while [deciding]. There is
 /// no Edit: the host has no way to change a held call.
 ///
-/// **The Mac frame** ([MacLook]): the same card drawn as the system would ([_MacApprovalCard]): a rounded box
+/// **The Mac frame** ([MacWindow.of]): the same card drawn as the system
+/// would ([_MacApprovalCard]): a rounded box
 /// with a hairline outline, the question in the toolbar's `title` with the state as a small glyph and word
 /// at its end, every argument in Contacts' label and value columns ([MacFieldTable]: click a value to copy
 /// it), and push buttons at the bottom right, Reject before the default "Approve and send" in the accent, as
@@ -69,8 +70,8 @@ class AssistantApprovalCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final mac = MacLook.of(context);
-    final caption = context.type(MyDataType.caption).copyWith(color: c.inkMuted);
+    final mac = MacWindow.of(context);
+    final caption = context.type(MyDataTypeRole.caption).copyWith(color: c.inkMuted);
     final state = _state;
     final pending = state == ApprovalState.pending;
     final arguments = [for (final MapEntry(:key, :value) in approval.args.entries) (nameFor(key), _show(value))];
@@ -79,7 +80,7 @@ class AssistantApprovalCard extends StatelessWidget {
     final failure = state == ApprovalState.failed
         ? 'Running it failed: ${_clause(approval.error ?? 'the host gave no reason')}. Ask again to try once more.'
         : null;
-    final sidePadding = mac ? MyDataSpace.s4 : MyDataSpace.s5;
+    final sidePadding = mac ? context.space(4) : context.space(5);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
@@ -107,7 +108,7 @@ class AssistantApprovalCard extends StatelessWidget {
             error: failure,
           ),
         Padding(
-          padding: EdgeInsets.fromLTRB(sidePadding, MyDataSpace.s2, sidePadding, 0),
+          padding: EdgeInsets.fromLTRB(sidePadding, context.space(2), sidePadding, 0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
@@ -116,11 +117,11 @@ class AssistantApprovalCard extends StatelessWidget {
               Text('Asked by ${approval.caller}', style: caption),
               if (pending && deciding)
                 Padding(
-                  padding: const EdgeInsets.only(top: MyDataSpace.s1),
+                  padding: EdgeInsets.only(top: context.space(1)),
                   child: Row(
                     children: [
-                      KiwiLoader(size: mac ? MyDataMacSize.icon : MyDataSize.icon, semanticLabel: sendingText),
-                      const SizedBox(width: MyDataSpace.s2),
+                      KiwiLoader(size: mac ? MyDataMacSize.icon : context.density.icon, semanticLabel: sendingText),
+                      SizedBox(width: context.space(2)),
                       Flexible(
                         child: ExcludeSemantics(child: Text(sendingText, style: caption)),
                       ),
@@ -130,7 +131,7 @@ class AssistantApprovalCard extends StatelessWidget {
               if (pending && error != null)
                 Text(
                   'Your decision was not recorded: ${_clause(error!)}. Try again.',
-                  style: context.type(MyDataType.caption).copyWith(color: c.danger),
+                  style: context.type(MyDataTypeRole.caption).copyWith(color: c.danger),
                 ),
               if (approval.decidedBy != null) Text('Decided by ${approval.decidedBy}', style: caption),
               if (approval.result != null)
@@ -141,7 +142,7 @@ class AssistantApprovalCard extends StatelessWidget {
                       const TextSpan(text: 'Result: '),
                       TextSpan(
                         text: _show(approval.result),
-                        style: MyDataType.mono.copyWith(color: c.inkMuted),
+                        style: context.typeScale.mono.copyWith(color: c.inkMuted),
                       ),
                     ],
                   ),
@@ -239,7 +240,7 @@ class _MacApprovalCardState extends State<_MacApprovalCard> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: MyDataMacSize.icon, color: colour),
-          const SizedBox(width: MyDataSpace.s1),
+          SizedBox(width: context.space(1)),
           Text(text, style: MyDataMacType.callout.copyWith(color: mac.secondaryLabel)),
         ],
       ),
@@ -253,7 +254,7 @@ class _MacApprovalCardState extends State<_MacApprovalCard> {
     final card = MacChat.box(
       context,
       Padding(
-        padding: MacChat.cardPadding,
+        padding: MacChat.cardPadding(context.look),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -266,11 +267,11 @@ class _MacApprovalCardState extends State<_MacApprovalCard> {
                     child: Text(widget.question, style: MyDataMacType.title.copyWith(color: mac.label)),
                   ),
                 ),
-                const SizedBox(width: MyDataSpace.s3),
+                SizedBox(width: context.space(3)),
                 _status(context),
               ],
             ),
-            const SizedBox(height: MyDataSpace.s3),
+            SizedBox(height: context.space(3)),
             // Every argument in full, exactly as it will run. The label column is Contacts'; an empty value
             // still has its line.
             MacFieldTable(groups: [
@@ -278,7 +279,7 @@ class _MacApprovalCardState extends State<_MacApprovalCard> {
             ]),
             if (_pending)
               Padding(
-                padding: const EdgeInsets.only(top: MyDataSpace.s4),
+                padding: EdgeInsets.only(top: context.space(4)),
                 child: Focus(
                   focusNode: _actionsNode,
                   includeSemantics: false,
@@ -286,7 +287,7 @@ class _MacApprovalCardState extends State<_MacApprovalCard> {
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       Button(label: ApprovalCard.rejectLabel, onPressed: widget.onReject),
-                      const SizedBox(width: ButtonRow.gap),
+                      SizedBox(width: ButtonRow.gap(context.look)),
                       Button(label: widget.approveLabel, variant: ButtonVariant.filled, onPressed: widget.onApprove),
                     ],
                   ),
@@ -294,7 +295,7 @@ class _MacApprovalCardState extends State<_MacApprovalCard> {
               )
             else if (widget.state == ApprovalState.failed && widget.error != null)
               Padding(
-                padding: const EdgeInsets.only(top: MyDataSpace.s3),
+                padding: EdgeInsets.only(top: context.space(3)),
                 child: Text(widget.error!, style: MyDataMacType.body.copyWith(color: c.danger)),
               ),
           ],
@@ -309,7 +310,7 @@ class _MacApprovalCardState extends State<_MacApprovalCard> {
         focusNode: _cardNode,
         includeFocusSemantics: false,
         onShowFocusHighlight: (v) => setState(() => _ring = v),
-        child: FocusRing(visible: _ring, borderRadius: MacChat.boxRadius, child: card),
+        child: FocusRing(visible: _ring, borderRadius: MacChat.boxRadius(context.look), child: card),
       ),
     );
   }

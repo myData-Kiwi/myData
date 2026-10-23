@@ -63,7 +63,7 @@ void main() {
     final c = tester.element(find.byType(DropZone)).colors;
     final decoration = box.decoration! as BoxDecoration;
     expect(decoration.color, c.surfaceSunken);
-    expect(decoration.borderRadius, MyDataRadii.lg);
+    expect(decoration.borderRadius, MyDataRadii.lg(kiwiLook));
     expect(find.text(_instruction), findsOneWidget);
     expect(find.text(_caption), findsOneWidget);
     final button = tester.widget<Button>(find.byType(Button));

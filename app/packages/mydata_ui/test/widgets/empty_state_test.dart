@@ -63,7 +63,7 @@ void main() {
     expect(button.onPressed, isNull);
     expect(find.text(_reason), findsOneWidget);
     expect(tester.getTopLeft(find.text(_reason)).dy,
-        tester.getBottomLeft(find.byType(Button)).dy + EmptyState.reasonGap);
+        tester.getBottomLeft(find.byType(Button)).dy + EmptyState.reasonGap(kiwiLook));
     final reason = tester.widget<Text>(find.text(_reason));
     final c = tester.element(find.byType(EmptyState)).colors;
     expect(reason.style!.fontSize, MyDataType.caption.fontSize);
@@ -99,7 +99,7 @@ void main() {
     final tile = tester.getRect(tileFinder);
     expect(tile.size, const Size.square(EmptyState.tileSize));
     final tileBox = tester.widget<Container>(tileFinder).decoration! as BoxDecoration;
-    expect(tileBox.borderRadius, MyDataRadii.xl);
+    expect(tileBox.borderRadius, MyDataRadii.xl(kiwiLook));
     expect(tileBox.color, tester.element(find.byType(EmptyState)).colors.paper);
     expect(tileBox.boxShadow, tester.element(find.byType(EmptyState)).shadows.shadow1);
     final markRect = tester.getRect(mark);
@@ -110,9 +110,9 @@ void main() {
     final title = tester.getRect(find.text(_title));
     final sentence = tester.getRect(find.text(_sentence));
     final button = tester.getRect(find.byType(Button));
-    expect(title.top, tile.bottom + EmptyState.wideGap);
-    expect(sentence.top, title.bottom + EmptyState.gap);
-    expect(button.top, sentence.bottom + EmptyState.wideGap);
+    expect(title.top, tile.bottom + EmptyState.wideGap(kiwiLook));
+    expect(sentence.top, title.bottom + EmptyState.gap(kiwiLook));
+    expect(button.top, sentence.bottom + EmptyState.wideGap(kiwiLook));
     expect(button.center.dx, frame.center.dx);
     expect(button.height, greaterThanOrEqualTo(MyDataSize.controlHeight));
     expect(button.width, greaterThanOrEqualTo(MyDataSize.controlHeight));

@@ -470,7 +470,7 @@ void main() {
         await drag.moveBy(const Offset(0, 30));
       }
       await tester.pump();
-      expect(tester.getTopLeft(title).dy - top, lessThanOrEqualTo(Sheet.resistance + 0.5));
+      expect(tester.getTopLeft(title).dy - top, lessThanOrEqualTo(Sheet.resistance(kiwiLook) + 0.5));
       await drag.up();
       await tester.pumpAndSettle();
       expect(find.text(discardTitle), findsOneWidget);

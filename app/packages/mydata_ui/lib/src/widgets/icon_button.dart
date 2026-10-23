@@ -3,8 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../generated/tokens.g.dart';
-import '../motion.dart';
-import '../theme.dart';
+import '../theme/theme.dart';
 import 'pressable.dart';
 
 /// The three tones of [MyDataIconButton] (design/components/IconButton, "Tones").
@@ -116,7 +115,7 @@ class MyDataIconButton extends StatefulWidget {
   final bool autofocus;
 
   /// The fill of a toggled-on button changes over `fast`, as the hover fill does.
-  static const fillDuration = MyDataMotion.fast;
+  static Duration fillDuration(MyDataLook look) => look.motion.fast;
 
   @override
   State<MyDataIconButton> createState() => _MyDataIconButtonState();
@@ -168,26 +167,26 @@ class _MyDataIconButtonState extends State<MyDataIconButton> {
   Widget build(BuildContext context) {
     final c = context.colors;
     final on = widget.toggled == true;
-    final size = widget.compact ? MyDataSize.controlHeightCompact : MyDataSize.controlHeight;
+    final size = widget.compact ? context.density.controlHeightCompact : context.density.controlHeight;
     final fg = on ? c.accent : widget.tone.foreground(c);
     final glyph = widget.done
         ? Icons.check_rounded
         : (on && widget.toggledIcon != null ? widget.toggledIcon! : widget.icon);
 
     Widget body = AnimatedContainer(
-      duration: MyDataIconButton.fillDuration,
-      curve: MyDataMotion.standard,
+      duration: MyDataIconButton.fillDuration(context.look),
+      curve: context.motion.standard,
       width: size,
       height: size,
       decoration: BoxDecoration(
-          color: on ? c.accentSoft : c.accentSoft.withValues(alpha: 0), borderRadius: MyDataRadii.pill),
+          color: on ? c.accentSoft : c.accentSoft.withValues(alpha: 0), borderRadius: MyDataRadii.pill(context.look)),
       alignment: Alignment.center,
-      child: Icon(glyph, size: MyDataSize.icon, color: fg),
+      child: Icon(glyph, size: context.density.icon, color: fg),
     );
 
     body = Pressable(
       onPressed: widget.onPressed,
-      borderRadius: MyDataRadii.pill,
+      borderRadius: MyDataRadii.pill(context.look),
       hoverFill: widget.tone.hoverFill(c),
       focusNode: _node,
       autofocus: widget.autofocus,
@@ -216,8 +215,8 @@ class _MyDataIconButtonState extends State<MyDataIconButton> {
       key: _tooltipKey,
       excludeFromSemantics: true,
       preferBelow: true,
-      verticalOffset: size / 2 + MyDataSpace.s1,
-      padding: const EdgeInsets.symmetric(vertical: MyDataSpace.s1, horizontal: MyDataSpace.s2),
+      verticalOffset: size / 2 + context.space(1),
+      padding: EdgeInsets.symmetric(vertical: context.space(1), horizontal: context.space(2)),
       richMessage: TextSpan(text: name, children: [
         if (shortcut != null && !widget.done)
           TextSpan(text: ' ${MyDataShortcut.shown(shortcut, platform: Theme.of(context).platform)}', style: TextStyle(color: c.inkMuted)),

@@ -7,10 +7,10 @@ import 'package:flutter/services.dart';
 
 import '../accessibility.dart';
 import '../generated/tokens.g.dart';
-import '../motion.dart';
 import '../mac/mac_chrome.dart';
 import '../mac/mac_theme.dart';
-import '../theme.dart';
+import '../mac/mac_window.dart';
+import '../theme/theme.dart';
 import 'button.dart';
 import 'checkbox.dart';
 import 'pressable.dart';
@@ -269,16 +269,16 @@ class MultiSelectRowFrame extends StatelessWidget {
           : null,
       child: TweenAnimationBuilder<Color?>(
         tween: ColorTween(end: selected ? c.ink : c.ink.withValues(alpha: 0)),
-        duration: MyDataMotion.fast,
-        curve: MyDataMotion.standard,
+        duration: context.motion.fast,
+        curve: context.motion.standard,
         builder: (context, ring, child) => CustomPaint(
           foregroundPainter: InsetRingPainter(
               color: ring!, borderRadius: shape, width: ringWidth, top: !joinsUp, bottom: !joinsDown),
           child: child,
         ),
         child: AnimatedContainer(
-          duration: MyDataMotion.fast,
-          curve: MyDataMotion.standard,
+          duration: context.motion.fast,
+          curve: context.motion.standard,
           decoration: BoxDecoration(
             color: selected ? c.accentSoft : (hovered ? c.surfaceHover : c.surfaceHover.withValues(alpha: 0)),
             borderRadius: shape,
@@ -340,7 +340,7 @@ class MultiSelectList<K> extends StatefulWidget {
   final FocusNode? focusNode;
 
   /// Between the checkbox slot and the row's content.
-  static const slotGap = MyDataSpace.s3;
+  static double slotGap(MyDataLook look) => look.space(3);
 
   @override
   State<MultiSelectList<K>> createState() => _MultiSelectListState<K>();
@@ -462,7 +462,8 @@ class _MultiSelectListState<K> extends State<MultiSelectList<K>> {
         ),
       );
 
-  /// The Mac frame's list ([MacLook]): no card and no dividers; rows `row-inset` from the sides, at least
+  /// The Mac frame's list ([MacWindow.of]): no card and no dividers; rows
+  /// `row-inset` from the sides, at least
   /// `row-height` tall; the selection a `selection` rounded fill (a run of rows joins into one block), the
   /// accent while the list has focus in the active window, with its rows' content told so through
   /// [MacRowEmphasis], and `selection-inactive` otherwise; the keyboard's row, when not selected, gets a
@@ -490,7 +491,7 @@ class _MultiSelectListState<K> extends State<MultiSelectList<K>> {
                 padding: const EdgeInsets.symmetric(horizontal: MyDataMacSize.rowInset),
                 child: Container(
                   constraints: const BoxConstraints(minHeight: MyDataMacSize.rowHeight),
-                  padding: const EdgeInsets.symmetric(horizontal: MyDataMacSize.rowPadding, vertical: MyDataSpace.s1),
+                  padding: EdgeInsets.symmetric(horizontal: MyDataMacSize.rowPadding, vertical: context.space(1)),
                   alignment: AlignmentDirectional.centerStart,
                   decoration: BoxDecoration(
                     color: selected ? (active ? mac.accent : mac.selectionInactive) : null,
@@ -513,13 +514,13 @@ class _MultiSelectListState<K> extends State<MultiSelectList<K>> {
 
   @override
   Widget build(BuildContext context) {
-    if (MacLook.of(context)) return _mac(context);
+    if (MacWindow.of(context)) return _mac(context);
     final c = context.colors;
     final ctrl = widget.controller;
     final rows = ctrl.rows;
     final reduced = MyDataAccessibility.of(context).reduceMotion;
     final showFocus = _keyboard && _focus.hasFocus;
-    const outer = BorderRadius.all(Radius.circular(MyDataRadius.lg));
+    final outer = BorderRadius.all(Radius.circular(context.radius.lg));
     BorderRadius shapeOf(int i) => BorderRadius.only(
           topLeft: i == 0 ? outer.topLeft : Radius.zero,
           topRight: i == 0 ? outer.topRight : Radius.zero,
@@ -548,22 +549,22 @@ class _MultiSelectListState<K> extends State<MultiSelectList<K>> {
             : Container(height: 1, color: c.line));
       }
       final slot = AnimatedContainer(
-        duration: reduced ? Duration.zero : MyDataMotion.base,
-        curve: MyDataMotion.standard,
-        width: widget.selectMode ? MyDataSize.iconTile + MultiSelectList.slotGap : 0,
-        height: MyDataSize.iconTile,
+        duration: reduced ? Duration.zero : context.motion.base,
+        curve: context.motion.standard,
+        width: widget.selectMode ? context.density.iconTile + MultiSelectList.slotGap(context.look) : 0,
+        height: context.density.iconTile,
         child: ClipRect(
           child: AnimatedOpacity(
-            duration: reduced ? MyDataMotion.fast : MyDataMotion.base,
+            duration: reduced ? context.motion.fast : context.motion.base,
             opacity: widget.selectMode ? 1 : 0,
             child: OverflowBox(
               alignment: AlignmentDirectional.centerStart,
               minWidth: 0,
-              maxWidth: MyDataSize.iconTile + MultiSelectList.slotGap,
+              maxWidth: context.density.iconTile + MultiSelectList.slotGap(context.look),
               child: Row(mainAxisSize: MainAxisSize.min, children: [
                 SizedBox.square(
-                    dimension: MyDataSize.iconTile, child: Center(child: CheckboxBox(value: selected))),
-                const SizedBox(width: MultiSelectList.slotGap),
+                    dimension: context.density.iconTile, child: Center(child: CheckboxBox(value: selected))),
+                SizedBox(width: MultiSelectList.slotGap(context.look)),
               ]),
             ),
           ),
@@ -580,9 +581,9 @@ class _MultiSelectListState<K> extends State<MultiSelectList<K>> {
           hovered: _hovered == key,
           borderRadius: shapeOf(i),
           child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: MyDataSize.rowHeight),
+            constraints: BoxConstraints(minHeight: context.density.rowHeight),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: MyDataSpace.s4, vertical: MyDataSpace.s2),
+              padding: EdgeInsets.symmetric(horizontal: context.space(4), vertical: context.space(2)),
               child: Row(children: [slot, Expanded(child: widget.itemBuilder(context, key))]),
             ),
           ),
@@ -591,7 +592,7 @@ class _MultiSelectListState<K> extends State<MultiSelectList<K>> {
     }
 
     return _focusable(DecoratedBox(
-      decoration: BoxDecoration(color: c.surface, borderRadius: MyDataRadii.lg, boxShadow: context.shadows.shadow1),
+      decoration: BoxDecoration(color: c.surface, borderRadius: MyDataRadii.lg(context.look), boxShadow: context.shadows.shadow1),
       child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: children),
     ));
   }
@@ -615,7 +616,7 @@ class MultiSelectSummary extends StatelessWidget {
   final List<Widget> actions;
 
   /// Preview: `.pane .acts{margin-top:24px}`.
-  static const actionsGap = MyDataSpace.s6;
+  static double actionsGap(MyDataLook look) => look.space(6);
 
   @override
   Widget build(BuildContext context) {
@@ -627,15 +628,15 @@ class MultiSelectSummary extends StatelessWidget {
         Semantics(
             header: true,
             liveRegion: true,
-            child: Text(title, style: context.type(MyDataType.displayLg).copyWith(color: c.ink))),
-        const SizedBox(height: MyDataSpace.s2),
-        Text(names, style: context.type(MyDataType.body).copyWith(color: c.inkMuted)),
+            child: Text(title, style: context.type(MyDataTypeRole.displayLg).copyWith(color: c.ink))),
+        SizedBox(height: context.space(2)),
+        Text(names, style: context.type(MyDataTypeRole.body).copyWith(color: c.inkMuted)),
         if (leftOut != null) ...[
-          const SizedBox(height: MyDataSpace.s2),
-          Text(leftOut!, style: context.type(MyDataType.caption).copyWith(color: c.inkMuted)),
+          SizedBox(height: context.space(2)),
+          Text(leftOut!, style: context.type(MyDataTypeRole.caption).copyWith(color: c.inkMuted)),
         ],
         if (actions.isNotEmpty) ...[
-          const SizedBox(height: actionsGap),
+          SizedBox(height: actionsGap(context.look)),
           ButtonRow(children: actions),
         ],
       ],

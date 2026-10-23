@@ -1,7 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-import '../generated/tokens.g.dart';
-import '../theme.dart';
+import '../theme/theme.dart';
 import 'pressable.dart';
 import 'status.dart';
 
@@ -24,11 +23,11 @@ class IconTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Container(
-      width: MyDataSize.iconTile,
-      height: MyDataSize.iconTile,
-      decoration: BoxDecoration(color: tone.fill(c), borderRadius: MyDataRadii.sm),
+      width: context.density.iconTile,
+      height: context.density.iconTile,
+      decoration: BoxDecoration(color: tone.fill(c), borderRadius: MyDataRadii.sm(context.look)),
       alignment: Alignment.center,
-      child: Icon(icon, size: MyDataSize.icon, color: tone.strong(c), semanticLabel: semanticLabel),
+      child: Icon(icon, size: context.density.icon, color: tone.strong(c), semanticLabel: semanticLabel),
     );
   }
 }

@@ -74,6 +74,11 @@ Future<bool> loadMacFonts({bool systemFont = false}) async {
   return false;
 }
 
+/// Kiwi's look in its own colour, light: what the widgets' static measures (`Card.gap`) are in a
+/// test that has no BuildContext at hand. Spacing, sizes, radii and type do not change with the colour or
+/// the mode, so it serves goldens in every theme.
+final kiwiLook = MyDataLook.fallback(Brightness.light);
+
 /// For test/flutter_test_config.dart:
 /// `Future<void> testExecutable(FutureOr<void> Function() main) => myDataTestExecutable(main);`
 Future<void> myDataTestExecutable(FutureOr<void> Function() testMain) async {
