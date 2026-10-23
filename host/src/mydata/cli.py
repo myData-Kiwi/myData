@@ -103,6 +103,19 @@ def _start_error(settings: Settings, since: float | None = None) -> str | None:
         return None
 
 
+def _wait_for_exit(settings: Settings, pid: int, wait: float = 30) -> bool:
+    """A host that holds the folder but does not answer is starting or stopping (Stop host, then Start host at
+    once: its graceful shutdown takes up to 15 s). Wait until it answers or exits; True once it has exited."""
+    deadline = time.time() + wait
+    while time.time() < deadline:
+        if not daemon_pid(settings):
+            return True
+        if _get_status(settings, timeout=1):
+            return False
+        time.sleep(0.3)
+    return not daemon_pid(settings)
+
+
 def _wait_until_answering(settings: Settings, failed) -> int:
     """Wait up to 20 s for /status after a start. `failed()` returns why the start failed, or None."""
     started = time.time()
@@ -138,7 +151,15 @@ def _start_agent(settings: Settings, agent) -> int:
     when it was booted out."""
     from .service import launchd
     try:
-        if launchd.job(agent.label) is not None:
+        info = launchd.job(agent.label)
+        # The host that held the folder has let it go, but launchd may still see it exiting: kickstart does
+        # nothing to a running job, so wait until it is gone (or a new one holds the folder).
+        deadline = time.time() + 5
+        while (info is not None and info["state"] == "running" and not daemon_pid(settings)
+               and time.time() < deadline):
+            time.sleep(0.2)
+            info = launchd.job(agent.label)
+        if info is not None:
             launchd.kickstart(agent.label)
         elif agent.plist.exists():
             launchd.bootstrap(agent.plist)
@@ -183,11 +204,22 @@ def cmd_start(settings: Settings) -> int:
             print(f"mydatad (pid {pid}) could not start: {error}; see {settings.log_dir / 'mydatad.log'}",
                   file=sys.stderr)
             return 1
-        print(f"mydatad is already running (pid {pid})")
-        return 0
+        if not _wait_for_exit(settings, pid):
+            status = _get_status(settings)
+            if status:
+                print(_describe(status))
+                return 0
+            print(f"mydatad (pid {pid}) is running but not answering; see {settings.log_dir / 'mydatad.log'}",
+                  file=sys.stderr)
+            return EXIT_STILL_STARTING
     agent = _agent(settings)
     if agent is not None:
         return _start_agent(settings, agent)
+    return _start_detached(settings)
+
+
+def _start_detached(settings: Settings) -> int:
+    """Start the host as a detached process (no login service)."""
     from .service.config import private_dir, private_file
     private_dir(settings.home)
     private_dir(settings.log_dir)

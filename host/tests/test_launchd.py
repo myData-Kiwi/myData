@@ -452,3 +452,25 @@ def test_launchd_output_is_trimmed(tmp_path, monkeypatch):
     small = text
     daemon._trim_output(out)
     assert out.read_bytes() == small
+
+
+def test_start_waits_for_a_host_that_is_still_stopping(home, monkeypatch, capsys):
+    """Stop host, then Start host at once: the old host still holds the folder for up to 15 s."""
+    pids = iter([4242, 4242, 4242, None])
+    monkeypatch.setattr(cli, "daemon_pid", lambda settings: next(pids, None))
+    monkeypatch.setattr(cli, "_get_status", lambda settings, timeout=2: None)
+    monkeypatch.setattr(cli.time, "sleep", lambda s: None)
+    started = []
+    monkeypatch.setattr(cli, "_start_detached", lambda settings: started.append(1) or 0)
+    assert cli.cmd_start(Settings(home=home)) == 0
+    assert started == [1]
+
+
+def test_start_does_not_start_a_second_host_beside_one_that_is_starting(home, monkeypatch):
+    monkeypatch.setattr(cli, "daemon_pid", lambda settings: 4242)
+    answers = iter([None, None, {"version": "x"}])
+    monkeypatch.setattr(cli, "_get_status", lambda settings, timeout=2: next(answers, {"version": "x"}))
+    monkeypatch.setattr(cli, "_describe", lambda status: "running")
+    monkeypatch.setattr(cli.time, "sleep", lambda s: None)
+    monkeypatch.setattr(cli, "_start_detached", lambda settings: pytest.fail("started a second host"))
+    assert cli.cmd_start(Settings(home=home)) == 0
