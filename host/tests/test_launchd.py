@@ -1,0 +1,338 @@
+"""The host as a login service (service/launchd.py, `mydata service`, launchd-aware start and stop).
+
+launchctl is replaced by a fake that records its calls: no test loads anything into the real launchd. The
+daemon's exit codes, which the LaunchAgent's KeepAlive relies on, are checked against a real mydatad process.
+"""
+
+import json
+import os
+import plistlib
+import signal
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+import pytest
+
+from mydata import cli
+from mydata.service import launchd
+from mydata.service.config import DEFAULT_CONFIG, Settings
+from mydata.service.daemon import acquire_pid_lock, daemon_pid
+
+from service_helpers import free_port
+
+
+class FakeLaunchctl:
+    """launchctl with jobs in memory: print, bootstrap, bootout, kickstart."""
+
+    def __init__(self):
+        self.calls: list[tuple[str, ...]] = []
+        self.loaded: dict[str, dict] = {}  # label -> {"state", "pid", "last_exit"}
+        self.fail: set[str] = set()
+
+    def __call__(self, *args: str) -> subprocess.CompletedProcess:
+        self.calls.append(args)
+        verb = args[0]
+        if verb in self.fail:
+            return subprocess.CompletedProcess(args, 5, "", f"{verb}: Input/output error")
+        if verb == "print":
+            label = args[1].rsplit("/", 1)[1]
+            job = self.loaded.get(label)
+            if job is None:
+                return subprocess.CompletedProcess(args, 113, "", "Could not find service")
+            out = f"{args[1]} = {{\n\tstate = {job['state']}\n"
+            if job.get("pid"):
+                out += f"\tpid = {job['pid']}\n"
+            out += f"\tlast exit code = {job.get('last_exit', '(never exited)')}\n}}\n"
+            return subprocess.CompletedProcess(args, 0, out, "")
+        if verb == "bootstrap":
+            data = plistlib.loads(Path(args[2]).read_bytes())
+            self.loaded[data["Label"]] = {"state": "running", "pid": 4242}
+        elif verb == "bootout":
+            self.loaded.pop(args[1].rsplit("/", 1)[1], None)
+        elif verb == "kickstart":
+            self.loaded[args[1].rsplit("/", 1)[1]]["state"] = "running"
+        return subprocess.CompletedProcess(args, 0, "", "")
+
+    def verbs(self) -> list[str]:
+        return [c[0] for c in self.calls if c[0] != "print"]
+
+
+@pytest.fixture
+def fake(monkeypatch):
+    f = FakeLaunchctl()
+    monkeypatch.setattr(launchd, "_launchctl", f)
+    monkeypatch.setattr(launchd, "supported", lambda: True)
+    return f
+
+
+@pytest.fixture
+def home(tmp_path, monkeypatch):
+    h = tmp_path / "home"
+    h.mkdir()
+    monkeypatch.setenv("MYDATA_HOME", str(h))
+    return h
+
+
+@pytest.fixture
+def app(tmp_path):
+    a = tmp_path / "Applications" / "myData Host.app"
+    (a / "Contents" / "MacOS").mkdir(parents=True)
+    for name in ("mydatad", "mydata"):
+        (a / "Contents" / "MacOS" / name).write_text("#!/bin/sh\n")
+    return a
+
+
+@pytest.fixture
+def answering(monkeypatch):
+    """The installed host 'answers' at once (no real daemon behind the fake launchd)."""
+    seen = []
+    monkeypatch.setattr(cli, "_wait_until_answering", lambda settings, failed: seen.append(failed) or 0)
+    return seen
+
+
+def test_the_plist_restarts_only_after_an_error_and_logs_to_the_host_folder(tmp_path):
+    agent = launchd.Agent("kiwi.mydata.host", tmp_path / "a.plist", Path("/Apps/myData Host.app"))
+    p = launchd.plist_dict(agent, Path("/h"), home_from_env=False)
+    assert p["Label"] == "kiwi.mydata.host"
+    assert p["ProgramArguments"] == ["/Apps/myData Host.app/Contents/MacOS/mydatad"]
+    assert p["RunAtLoad"] is True
+    assert p["KeepAlive"] == {"SuccessfulExit": False}
+    assert p["ThrottleInterval"] >= 10 and p["ExitTimeOut"] > 15
+    assert p["StandardOutPath"] == p["StandardErrorPath"] == "/h/logs/mydatad.out"
+    assert p["Umask"] == 0o077
+    assert p["AssociatedBundleIdentifiers"] == ["kiwi.mydata.host"]
+    assert p["EnvironmentVariables"] == {"MYDATA_DETACHED": "1", launchd.LABEL_ENV: "kiwi.mydata.host"}
+    with_home = launchd.plist_dict(agent, Path("/h"), home_from_env=True)
+    assert with_home["EnvironmentVariables"]["MYDATA_HOME"] == "/h"
+    assert plistlib.loads(launchd.plist_bytes(agent, Path("/h"), home_from_env=True)) == with_home
+
+
+def test_labels_are_checked():
+    assert launchd.check_label("kiwi.mydata.host-test") == "kiwi.mydata.host-test"
+    for bad in ("", "a b", "../x", "-x", "a/b"):
+        with pytest.raises(launchd.LaunchdError):
+            launchd.check_label(bad)
+
+
+def test_app_config_round_trip_and_uninstall_keeps_other_commands(tmp_path):
+    agent = launchd.Agent("kiwi.mydata.host", tmp_path / "x.plist", tmp_path / "myData Host.app")
+    config = launchd.installed_config(tmp_path, agent)
+    assert config["host_command"] == [str(agent.cli), "start"]
+    assert config["stop_command"] == [str(agent.cli), "stop"]
+    launchd.write_app_config(tmp_path, config)
+    assert (tmp_path / "app_config.json").stat().st_mode & 0o777 == 0o600
+    assert launchd.recorded_agent(tmp_path) == agent
+    assert launchd.uninstalled_config(config, agent) == {}
+    dev = {"host_command": ["/py", "-m", "mydata.cli", "start"], "launch_agent": config["launch_agent"]}
+    assert launchd.uninstalled_config(dev, agent) == {"host_command": ["/py", "-m", "mydata.cli", "start"]}
+    (tmp_path / "app_config.json").write_text("not json")
+    assert launchd.recorded_agent(tmp_path) is None
+
+
+def test_job_reads_launchctl_print(fake):
+    assert launchd.job("kiwi.mydata.host") is None
+    fake.loaded["kiwi.mydata.host"] = {"state": "not running", "last_exit": "0"}
+    assert launchd.job("kiwi.mydata.host") == {"state": "not running", "pid": None, "last_exit": "0"}
+    fake.loaded["kiwi.mydata.host"] = {"state": "running", "pid": 77}
+    assert launchd.job("kiwi.mydata.host")["pid"] == 77
+    assert fake.calls[-1] == ("print", f"gui/{os.getuid()}/kiwi.mydata.host")
+
+
+def test_install_dry_run_changes_nothing(fake, home, app, tmp_path, capsys):
+    agents = tmp_path / "agents"
+    assert cli.main(["service", "install", "--app", str(app), "--label", "kiwi.mydata.host-test",
+                     "--agents-dir", str(agents), "--dry-run"]) == 0
+    out = capsys.readouterr().out
+    assert "would write" in out and "would bootstrap" in out and "<key>KeepAlive</key>" in out
+    assert fake.verbs() == []
+    assert not agents.exists() and not (home / "app_config.json").exists()
+
+
+def test_install_writes_the_plist_and_app_config_then_bootstraps(fake, home, app, tmp_path, answering):
+    agents = tmp_path / "agents"
+    assert cli.main(["service", "install", "--app", str(app), "--label", "kiwi.mydata.host-test",
+                     "--agents-dir", str(agents)]) == 0
+    plist = agents / "kiwi.mydata.host-test.plist"
+    data = plistlib.loads(plist.read_bytes())
+    assert data["EnvironmentVariables"]["MYDATA_HOME"] == str(home)
+    assert data["ProgramArguments"] == [str(app / "Contents" / "MacOS" / "mydatad")]
+    config = json.loads((home / "app_config.json").read_text())
+    assert config["host_command"] == [str(app / "Contents" / "MacOS" / "mydata"), "start"]
+    assert config["stop_command"] == [str(app / "Contents" / "MacOS" / "mydata"), "stop"]
+    assert config["launch_agent"]["label"] == "kiwi.mydata.host-test"
+    assert fake.verbs() == ["bootstrap"]
+    assert (home / "logs").is_dir()
+    # Again: idempotent; the loaded agent is booted out first so the new plist and app take effect.
+    assert cli.main(["service", "install", "--app", str(app), "--agents-dir", str(agents)]) == 0
+    assert fake.verbs() == ["bootstrap", "bootout", "bootstrap"]
+
+
+def test_install_never_takes_over_a_label_that_serves_another_folder(fake, home, app, tmp_path):
+    agents = tmp_path / "agents"
+    agents.mkdir()
+    other = launchd.Agent("kiwi.mydata.host", agents / "kiwi.mydata.host.plist", app)
+    (agents / "kiwi.mydata.host.plist").write_bytes(launchd.plist_bytes(other, tmp_path / "elsewhere",
+                                                                        home_from_env=True))
+    assert cli.main(["service", "install", "--app", str(app), "--agents-dir", str(agents)]) == 1
+    assert fake.verbs() == []
+    # Nor uninstall it.
+    assert cli.main(["service", "uninstall", "--agents-dir", str(agents)]) == 1
+    assert (agents / "kiwi.mydata.host.plist").exists()
+
+
+def test_install_refuses_something_that_is_not_the_app(fake, home, tmp_path):
+    assert cli.main(["service", "install", "--app", str(tmp_path / "nothing.app"),
+                     "--agents-dir", str(tmp_path / "agents")]) == 1
+    assert fake.verbs() == []
+
+
+def test_uninstall_boots_out_and_removes_only_the_service(fake, home, app, tmp_path, answering):
+    agents = tmp_path / "agents"
+    assert cli.main(["service", "install", "--app", str(app), "--label", "kiwi.mydata.host-test",
+                     "--agents-dir", str(agents)]) == 0
+    (home / "contacts.sqlite").write_bytes(b"data")
+    assert cli.main(["service", "uninstall", "--dry-run"]) == 0
+    assert fake.verbs() == ["bootstrap"] and (agents / "kiwi.mydata.host-test.plist").exists()
+    assert cli.main(["service", "uninstall"]) == 0
+    assert fake.verbs() == ["bootstrap", "bootout"]
+    assert not (agents / "kiwi.mydata.host-test.plist").exists()
+    assert json.loads((home / "app_config.json").read_text()) == {}
+    assert (home / "contacts.sqlite").read_bytes() == b"data"
+    assert cli.main(["service", "uninstall"]) == 0  # again: nothing to do
+    assert fake.verbs() == ["bootstrap", "bootout"]
+
+
+def test_dev_setup_refuses_a_folder_served_by_the_installed_host(fake, home, app, tmp_path, answering):
+    assert cli.main(["service", "install", "--app", str(app), "--agents-dir", str(tmp_path / "a")]) == 0
+    before = (home / "app_config.json").read_text()
+    assert cli.main(["dev-setup"]) == 1
+    assert (home / "app_config.json").read_text() == before
+
+
+def test_start_asks_launchd(fake, home, app, tmp_path, answering):
+    agents = tmp_path / "agents"
+    assert cli.main(["service", "install", "--app", str(app), "--agents-dir", str(agents)]) == 0
+    fake.loaded["kiwi.mydata.host"] = {"state": "not running", "last_exit": "0"}  # after a clean stop
+    assert cli.main(["start"]) == 0
+    assert fake.verbs()[-1] == "kickstart"
+    fake.loaded.clear()  # booted out (a stop that had to kill it): loaded again from the plist
+    assert cli.main(["start"]) == 0
+    assert fake.verbs()[-1] == "bootstrap"
+    fake.loaded.clear()
+    (agents / "kiwi.mydata.host.plist").unlink()
+    assert cli.main(["start"]) == 1
+
+
+def test_a_start_launchd_could_not_run_is_reported(fake, home, app, tmp_path, monkeypatch):
+    agents = tmp_path / "agents"
+    monkeypatch.setattr(cli, "_wait_until_answering", lambda s, f: 0)
+    assert cli.main(["service", "install", "--app", str(app), "--agents-dir", str(agents)]) == 0
+    fake.loaded["kiwi.mydata.host"] = {"state": "not running", "last_exit": "1"}
+    clock = [1000.0]
+    monkeypatch.setattr(cli.time, "time", lambda: clock[0])
+    failed = cli._launchd_failed(Settings(home=home), "kiwi.mydata.host")
+    assert failed() is None  # too early to tell
+    clock[0] += 5
+    assert "exited (1)" in failed()
+
+
+def test_launchd_started_host_exits_cleanly_when_another_runs(tmp_path, monkeypatch):
+    """KeepAlive would otherwise start it again every few seconds while another host holds the folder."""
+    from mydata.service import daemon
+    monkeypatch.setenv("MYDATA_HOME", str(tmp_path))
+    (tmp_path / "config.toml").write_text(DEFAULT_CONFIG.replace("port = 47821", f"port = {free_port()}"))
+    fd = acquire_pid_lock(Settings(home=tmp_path))
+    try:
+        monkeypatch.setenv(launchd.LABEL_ENV, "kiwi.mydata.host-test")
+        assert daemon.main() == 0
+        monkeypatch.delenv(launchd.LABEL_ENV)
+        assert daemon.main() == 1
+    finally:
+        os.close(fd)
+
+
+def test_the_daemon_exits_with_0_on_sigterm(tmp_path):
+    """`mydata stop` and /shutdown send SIGTERM; exit code 0 is what keeps launchd from restarting the host."""
+    port = free_port()
+    (tmp_path / "config.toml").write_text(
+        DEFAULT_CONFIG.replace("port = 47821", f"port = {port}")
+        .replace("http://127.0.0.1:11434", f"http://127.0.0.1:{free_port()}")
+        .replace("start_ollama = true", "start_ollama = false"))
+    env = {**os.environ, "MYDATA_HOME": str(tmp_path), "MYDATA_DETACHED": "1"}
+    proc = subprocess.Popen([sys.executable, "-m", "mydata.service.daemon"], env=env,
+                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    try:
+        deadline = time.time() + 30
+        while not daemon_pid(Settings(home=tmp_path)) and time.time() < deadline:
+            time.sleep(0.1)
+        time.sleep(1)  # serving
+        proc.send_signal(signal.SIGTERM)
+        assert proc.wait(timeout=30) == 0
+    finally:
+        if proc.poll() is None:
+            proc.kill()
+
+
+def test_a_stop_that_has_to_kill_an_installed_host_unloads_its_agent(fake, home, app, tmp_path, answering,
+                                                                     monkeypatch):
+    """launchd would start a killed host again (KeepAlive), so a host that ignores SIGTERM is booted out."""
+    assert cli.main(["service", "install", "--app", str(app), "--agents-dir", str(tmp_path / "a")]) == 0
+    running = {"pid": 4242}
+    signals = []
+
+    def kill(pid, sig):
+        signals.append(sig)
+
+    def bootout_kills(*args):
+        r = fake(*args)
+        if args[0] == "bootout":
+            running["pid"] = None
+        return r
+
+    monkeypatch.setattr(launchd, "_launchctl", bootout_kills)
+    monkeypatch.setattr(cli, "daemon_pid", lambda settings: running["pid"])
+    monkeypatch.setattr(cli.os, "kill", kill)
+    clock = [1000.0]
+    monkeypatch.setattr(cli.time, "time", lambda: clock[0])
+    monkeypatch.setattr(cli.time, "sleep", lambda s: clock.__setitem__(0, clock[0] + s))
+    assert cli.main(["stop"]) == 1
+    assert signals == [signal.SIGTERM]  # never SIGKILL: the bootout stopped it
+    assert fake.verbs() == ["bootstrap", "bootout"]
+
+
+def test_a_clean_stop_leaves_the_agent_loaded(fake, home, app, tmp_path, answering, monkeypatch):
+    assert cli.main(["service", "install", "--app", str(app), "--agents-dir", str(tmp_path / "a")]) == 0
+    running = {"pid": 4242}
+    monkeypatch.setattr(cli, "daemon_pid", lambda settings: running["pid"])
+    monkeypatch.setattr(cli.os, "kill", lambda pid, sig: running.update(pid=None))
+    assert cli.main(["stop"]) == 0
+    assert fake.verbs() == ["bootstrap"]
+    assert "kiwi.mydata.host" in fake.loaded
+
+
+def test_bootout_waits_until_launchd_has_let_the_job_go(fake, monkeypatch):
+    """launchctl bootout returns while the job is torn down; bootstrapping the label before then fails (EIO)."""
+    fake.loaded["kiwi.mydata.host"] = {"state": "running", "pid": 4242}
+    lingering = {"prints": 3}
+    real = fake.__call__
+
+    def slow(*args):
+        if args[0] == "bootout":
+            fake.calls.append(args)
+            return subprocess.CompletedProcess(args, 0, "", "")
+        if args[0] == "print" and fake.loaded:
+            lingering["prints"] -= 1
+            if lingering["prints"] == 0:
+                fake.loaded.clear()
+        return real(*args)
+
+    monkeypatch.setattr(launchd, "_launchctl", slow)
+    monkeypatch.setattr(launchd.time, "sleep", lambda s: None)
+    launchd.bootout("kiwi.mydata.host")
+    assert launchd.job("kiwi.mydata.host") is None
+    fake.loaded["kiwi.mydata.host"] = {"state": "running", "pid": 4242}
+    lingering["prints"] = 10**6
+    with pytest.raises(launchd.LaunchdError, match="still has"):
+        launchd.bootout("kiwi.mydata.host", wait=0)

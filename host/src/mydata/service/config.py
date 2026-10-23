@@ -113,6 +113,11 @@ def private_file(path: Path) -> Path:
 def home_dir() -> Path:
     if os.environ.get("MYDATA_HOME"):
         return Path(os.environ["MYDATA_HOME"])
+    return default_home_dir()
+
+
+def default_home_dir() -> Path:
+    """The folder used when MYDATA_HOME is not set."""
     if sys.platform == "darwin":
         return Path.home() / "Library" / "Application Support" / "myData"
     if sys.platform.startswith("win"):

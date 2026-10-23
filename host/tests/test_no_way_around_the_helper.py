@@ -44,6 +44,7 @@ SUBPROCESS_ALLOWED = {
                               "the measurement report",
     "service/model.py": "starts `ollama serve` when Ollama is installed but not running",
     "service/backup.py": "asks /usr/bin/fdesetup whether FileVault is on",
+    "service/launchd.py": "loads, starts, unloads and asks about the host's own LaunchAgent with /bin/launchctl",
 }
 
 # path -> the programs it may start. Checked: the first item of a literal argument list given to any call
@@ -56,6 +57,7 @@ PROGRAMS = {
     "service/model.py": {"/usr/local/bin/ollama", "/opt/homebrew/bin/ollama", "/usr/bin/ollama",
                          "/Applications/Ollama.app/Contents/Resources/ollama"},
     "service/backup.py": {"/usr/bin/fdesetup"},
+    "service/launchd.py": {"/bin/launchctl"},
 }
 _PROGRAM_DIRS = ("/usr/", "/bin/", "/sbin/", "/opt/", "/System/", "/Applications/", "/Library/")
 

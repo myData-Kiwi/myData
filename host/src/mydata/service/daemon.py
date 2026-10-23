@@ -1,4 +1,6 @@
-"""mydatad: the host service. Runs in the foreground; `mydata start` runs it in the background.
+"""mydatad: the host service. Runs in the foreground; `mydata start` runs it in the background, or asks launchd to
+when the host is installed as a login service (launchd.py). Exit code 0 means a clean stop (SIGTERM, /shutdown):
+launchd then leaves it stopped; anything else is an error, and launchd starts it again.
 
 On start: read config.toml (create it with defaults), create the token on first start, set up
 structured logging, refuse to run twice, start getting the model ready in the background, start the
@@ -27,6 +29,7 @@ from .modes import ModeController
 from .state import HostState
 from .auth import AgentStore, Authenticator, ensure_app_tokens
 from .backup import BackupService
+from .launchd import LABEL_ENV as LAUNCHD_LABEL_ENV
 from .sync import SyncService
 from .trash import TrashExpiry
 
@@ -128,7 +131,9 @@ def main(argv: list[str] | None = None) -> int:
     lock_fd = acquire_pid_lock(settings)
     if lock_fd is None:
         log(logger, logging.ERROR, "already running", pid=daemon_pid(settings))
-        return 1
+        # Started by launchd (its LaunchAgent) while another host runs on this folder: exit cleanly, so launchd
+        # does not start it again every few seconds. That host is the one running.
+        return 0 if os.environ.get(LAUNCHD_LABEL_ENV) else 1
 
     backups = BackupService(settings.home)
     app, models, sources, mode = build(settings, backups=backups)
