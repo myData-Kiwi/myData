@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mydata_core/mydata_core.dart' show DeviceStoreUnreadable;
 import 'package:mydata_core/src/file_device_store.dart';
 
 void main() {
@@ -13,13 +14,57 @@ void main() {
   });
   tearDown(() => dir.deleteSync(recursive: true));
 
-  test('reads what was written, and nothing from a missing or broken file', () async {
+  test('reads what was written, and nothing from a missing or empty file', () async {
     expect(await store.read(), isEmpty);
     await store.write({'mode': 'dark'});
     expect(await store.read(), {'mode': 'dark'});
-    File('${dir.path}/device/settings.json').writeAsStringSync('{not json');
+    File('${dir.path}/device/settings.json').writeAsStringSync('  \n');
     expect(await store.read(), isEmpty);
   });
+
+  for (final (what, text) in [('not JSON', '{not json'), ('not an object', '["mode"]')]) {
+    test('a file that is $what is never taken for "nothing stored", and update never writes over it', () async {
+      final file = File('${dir.path}/device/settings.json')
+        ..createSync(recursive: true)
+        ..writeAsStringSync(text);
+      await expectLater(store.read(), throwsA(isA<DeviceStoreUnreadable>()));
+      await expectLater(
+        store.update((now) => {...now, 'lastOpened': 'c-1'}),
+        throwsA(isA<DeviceStoreUnreadable>()),
+      );
+      expect(file.readAsStringSync(), text);
+      expect(Directory('${dir.path}/device').listSync().map((f) => f.uri.pathSegments.last), ['settings.json']);
+    });
+  }
+
+  test('update reads again when the file could not be read for a moment', () async {
+    final file = File('${dir.path}/device/settings.json')
+      ..createSync(recursive: true)
+      ..writeAsStringSync('{not json');
+    // an app's own write lands while this one waits to read again
+    Future<void>.delayed(
+      FileDeviceStore.unreadablePause ~/ 2,
+      () => file.writeAsStringSync('{"mode": "dark"}'),
+    );
+    final out = await store.update((now) => {...now, 'lastOpened': 'c-1'});
+    expect(out, {'mode': 'dark', 'lastOpened': 'c-1'});
+  });
+
+  test('a file that cannot be read (no permission) is refused the same way', () async {
+    final file = File('${dir.path}/device/settings.json')
+      ..createSync(recursive: true)
+      ..writeAsStringSync('{"mode": "dark"}');
+    final made = Process.runSync('chmod', ['000', file.path]);
+    addTearDown(() => Process.runSync('chmod', ['600', file.path]));
+    if (made.exitCode != 0 || _readable(file)) {
+      markTestSkipped('this user can read any file');
+      return;
+    }
+    await expectLater(store.read(), throwsA(isA<DeviceStoreUnreadable>()));
+    await expectLater(store.update((now) => {...now, 'k': 1}), throwsA(isA<DeviceStoreUnreadable>()));
+    Process.runSync('chmod', ['600', file.path]);
+    expect(await store.read(), {'mode': 'dark'});
+  }, skip: Platform.isWindows ? 'no chmod' : false);
 
   test('writes at the same time (four apps on one device) never fail or leave half a file', () async {
     // With one shared temporary name, one write's rename found its file already moved by another (or moved
@@ -73,4 +118,13 @@ void main() {
     }
     expect(events, isNotEmpty);
   });
+}
+
+bool _readable(File f) {
+  try {
+    f.readAsStringSync();
+    return true;
+  } on FileSystemException {
+    return false;
+  }
 }

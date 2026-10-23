@@ -90,10 +90,11 @@ class CalendarVisibility extends ChangeNotifier {
     // write one change at a time.
     _pending++;
     final write = _writes.then((_) async {
-      final values = await store.read();
-      final ids = _parse(values[storeKey]);
-      apply(ids);
-      await store.write({...values, storeKey: ids.toList()..sort()});
+      await store.update((values) {
+        final ids = _parse(values[storeKey]);
+        apply(ids);
+        return {...values, storeKey: ids.toList()..sort()};
+      });
     });
     // The queue outlives a failed write: the next change is still written.
     _writes = write.then<void>((_) {}, onError: (Object _) {}).whenComplete(() {

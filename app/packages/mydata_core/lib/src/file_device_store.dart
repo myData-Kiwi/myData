@@ -17,6 +17,9 @@ import 'platform_types.dart';
 ///   one process run one at a time; between processes the check and the rename are not one step, so a write
 ///   from another app that lands between them is still lost, which is rare for settings people change by
 ///   hand.
+/// - **A file that cannot be read** (no permission, not a JSON object) is never taken for "nothing stored":
+///   [read] throws [DeviceStoreUnreadable], and [update] tries again briefly, then throws it, writing
+///   nothing. No file, or an empty one, is no settings yet.
 /// - **[changes]** fires when the file is written, by this app or another, through the folder's file system
 ///   events; apps keep polling as well, since such events are not promised on every file system.
 class FileDeviceStore extends DeviceStore {
@@ -37,23 +40,32 @@ class FileDeviceStore extends DeviceStore {
   @override
   Future<Map<String, Object?>> read() async => _decode(await _text());
 
-  /// The file's text, or null when there is none or it cannot be read.
+  /// The file's text, or null when there is no file. Throws [DeviceStoreUnreadable] when there is one that
+  /// cannot be read.
   Future<String?> _text() async {
+    final f = _file;
     try {
-      return await _file.readAsString();
-    } on Object {
-      return null;
+      return await f.readAsString();
+    } on FileSystemException catch (e) {
+      if (!await f.exists()) return null;
+      throw DeviceStoreUnreadable('cannot read it: ${e.osError?.message ?? e.message}');
+    } on FormatException {
+      throw const DeviceStoreUnreadable('not UTF-8 text');
     }
   }
 
+  /// [text] as the settings: none for no file or an empty one. Throws [DeviceStoreUnreadable] when it is not
+  /// a JSON object.
   static Map<String, Object?> _decode(String? text) {
-    if (text == null) return {};
+    if (text == null || text.trim().isEmpty) return {};
+    final Object? v;
     try {
-      final v = jsonDecode(text);
-      return v is Map<String, Object?> ? v : {};
-    } on Object {
-      return {};
+      v = jsonDecode(text);
+    } on FormatException {
+      throw const DeviceStoreUnreadable('not JSON');
     }
+    if (v is! Map<String, Object?>) throw const DeviceStoreUnreadable('not a JSON object');
+    return v;
   }
 
   @override
@@ -83,10 +95,30 @@ class FileDeviceStore extends DeviceStore {
 
   Future<Map<String, Object?>> _update(Map<String, Object?> Function(Map<String, Object?> values) change) async {
     for (var attempt = 1; ; attempt++) {
-      final text = await _text();
+      final text = await _readable();
       final next = change(_decode(text));
       final last = attempt >= updateAttempts;
       if (await _write(next, expect: last ? null : (text,))) return next;
+    }
+  }
+
+  /// How many times [update] reads a file it cannot read or parse before it gives up, and the pause between.
+  static const unreadableAttempts = 3;
+  static const unreadablePause = Duration(milliseconds: 50);
+
+  /// The file's text for [update], read again after a short pause while it cannot be read or parsed (a disk
+  /// that is slow to answer). Throws [DeviceStoreUnreadable] after [unreadableAttempts], so nothing is ever
+  /// written over settings that could not be read.
+  Future<String?> _readable() async {
+    for (var attempt = 1; ; attempt++) {
+      try {
+        final text = await _text();
+        _decode(text);
+        return text;
+      } on DeviceStoreUnreadable {
+        if (attempt >= unreadableAttempts) rethrow;
+        await Future<void>.delayed(unreadablePause);
+      }
     }
   }
 
@@ -99,7 +131,7 @@ class FileDeviceStore extends DeviceStore {
     final tmp = File('${f.path}.$pid.${_random.nextInt(1 << 32).toRadixString(16)}.tmp');
     try {
       await tmp.writeAsString(jsonEncode(values), flush: true);
-      if (expect != null && await _text() != expect.$1) {
+      if (expect != null && await _textOrUnreadable() != expect.$1) {
         await tmp.delete();
         return false;
       }
@@ -112,6 +144,15 @@ class FileDeviceStore extends DeviceStore {
         // already gone
       }
       rethrow;
+    }
+  }
+
+  /// The text for [_write]'s check: a file that cannot be read now is not the one [update] read.
+  Future<Object?> _textOrUnreadable() async {
+    try {
+      return await _text();
+    } on DeviceStoreUnreadable catch (e) {
+      return e;
     }
   }
 

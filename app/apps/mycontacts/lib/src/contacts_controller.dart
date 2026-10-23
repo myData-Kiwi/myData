@@ -989,11 +989,11 @@ class ContactsController extends ChangeNotifier {
   void _remember(String id) {
     if (_lastOpened == id) return;
     _lastOpened = id;
-    // Merged into what is stored now, so the mode and the other apps' settings are kept; one write at a time.
+    // Through update, so the mode, the themes and the other apps' settings are kept, and a file that cannot
+    // be read is never written over; one write at a time.
     _writes = _writes.then((_) async {
       try {
-        final values = await store.read();
-        await store.write({...values, lastOpenedKey: id});
+        await store.update((values) => {...values, lastOpenedKey: id});
       } on Object {
         // Not remembered this time: the app works the same without it.
       }

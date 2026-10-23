@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show visibleForTesting;
+
 import 'host_version.g.dart';
 
 /// Where the host keeps its files, how to reach it, and how to start and stop it.
@@ -82,17 +84,24 @@ abstract class HostPlatform {
 }
 
 /// Settings that belong to this device, not to the host, shared by every myData app on it (light or dark
-/// mode, each app's theme). Swapped for [MemoryDeviceStore] in tests.
+/// mode, each app's theme, hidden calendars, the last contact opened). Swapped for [MemoryDeviceStore] in
+/// tests.
+///
+/// Apps change it only through [update], which keeps every key another app (or another part of this app)
+/// wrote; [write] replaces the whole object and is for tests and for stores to implement.
 abstract class DeviceStore {
-  /// The stored JSON object, or an empty map if there is none or it cannot be read.
+  /// The stored JSON object; an empty map when there is none yet. Throws [DeviceStoreUnreadable] when there
+  /// is one that cannot be read or is not a JSON object, so a reader never mistakes it for "nothing stored".
   Future<Map<String, Object?>> read();
 
-  /// Replaces the stored object.
+  /// Replaces the stored object. Apps use [update]: a plain read and write loses what another app wrote in
+  /// between, and turns a file that could not be read into one with a single key.
+  @visibleForTesting
   Future<void> write(Map<String, Object?> values);
 
   /// Reads, applies [change] and writes, keeping what another app wrote there meanwhile as far as the
   /// store can tell ([FileDeviceStore] reads again and retries when the file changed under it). Returns
-  /// what was written.
+  /// what was written. Never writes over a file it cannot read: throws [DeviceStoreUnreadable] instead.
   Future<Map<String, Object?>> update(Map<String, Object?> Function(Map<String, Object?> values) change) async {
     final next = change(await read());
     await write(next);
@@ -102,6 +111,18 @@ abstract class DeviceStore {
   /// Fires when the stored object may have changed, from this app or another; nothing where the store cannot
   /// tell (readers poll as well).
   Stream<void> get changes => const Stream.empty();
+}
+
+/// This device's settings exist but cannot be read (no permission, a disk error) or are not a JSON object
+/// (a hand-edited file). Nothing is written over them.
+class DeviceStoreUnreadable implements Exception {
+  const DeviceStoreUnreadable(this.reason);
+
+  /// Why, for the log: never the file's contents.
+  final String reason;
+
+  @override
+  String toString() => "This device's settings cannot be read ($reason).";
 }
 
 /// A [DeviceStore] in memory: the web build (no files) and tests. Two controllers given the same one see

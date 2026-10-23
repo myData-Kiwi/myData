@@ -1,8 +1,10 @@
 import 'dart:async';
-import 'dart:io' show FileSystemException;
+import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mydata_core/mydata_core.dart';
+import 'package:mydata_core/src/file_device_store.dart';
 
 const _poll = Duration(milliseconds: 20);
 
@@ -161,4 +163,68 @@ void main() {
     expect(v.isHidden('cal-a'), isTrue);
     v.dispose();
   });
+
+  group('through the device file', () {
+    late Directory dir;
+    late File file;
+    setUp(() {
+      dir = Directory.systemTemp.createTempSync('mydata-visibility-');
+      file = File('${dir.path}/device/settings.json')..createSync(recursive: true);
+    });
+    tearDown(() => dir.deleteSync(recursive: true));
+
+    test("a theme another app stores while a calendar is hidden is kept", () async {
+      file.writeAsStringSync('{"mode": "dark"}');
+      final store = FileDeviceStore(() => file.path);
+      final v = _visibility(store);
+      await v.start();
+      var first = true;
+      // the theme lands between this change's read and its write
+      final racing = _RacingStore(store, () {
+        if (!first) return;
+        first = false;
+        file.writeAsStringSync('{"mode": "dark", "themes": {"everywhere": {"theme": "mydata.system"}}}');
+      });
+      final w = _visibility(racing);
+      await w.setHidden('cal-a', true);
+      expect(jsonDecode(file.readAsStringSync()), {
+        'mode': 'dark',
+        'themes': {
+          'everywhere': {'theme': 'mydata.system'},
+        },
+        'hiddenCalendars': ['cal-a'],
+      });
+      v.dispose();
+      w.dispose();
+    });
+
+    test('a settings file that cannot be read is never written over with only the hidden calendars', () async {
+      file.writeAsStringSync('{"mode": "dark", "themes": ');
+      final v = _visibility(FileDeviceStore(() => file.path));
+      await v.start();
+      await expectLater(v.setHidden('cal-a', true), throwsA(isA<DeviceStoreUnreadable>()));
+      expect(file.readAsStringSync(), '{"mode": "dark", "themes": ');
+      v.dispose();
+    });
+  });
+}
+
+/// [inner], calling [during] inside each update's change, as another app writing at that moment.
+class _RacingStore extends DeviceStore {
+  _RacingStore(this.inner, this.during);
+  final DeviceStore inner;
+  final void Function() during;
+
+  @override
+  Future<Map<String, Object?>> read() => inner.read();
+
+  @override
+  Future<void> write(Map<String, Object?> values) => inner.write(values);
+
+  @override
+  Future<Map<String, Object?>> update(Map<String, Object?> Function(Map<String, Object?> values) change) =>
+      inner.update((now) {
+        during();
+        return change(now);
+      });
 }

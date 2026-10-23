@@ -195,6 +195,27 @@ void main() {
       expect(stored['hiddenCalendars'], ['cal-1']);
     });
 
+    testWidgets("remembering it never writes the whole file, so a theme another app stores meanwhile is kept", (
+      tester,
+    ) async {
+      desktop(tester);
+      final store = _UpdateOnlyStore({'mode': 'dark'});
+      final h = Harness(store: store);
+      await tester.pumpWidget(h.app);
+      await tester.pumpAndSettle();
+      // another app stores a theme between this app's start and its next write
+      await store.otherAppWrites('themes', {
+        'everywhere': {'theme': 'mydata.system'},
+      });
+      await tester.tap(row('Eli Sample'));
+      await tester.pumpAndSettle();
+      final stored = await store.read();
+      expect(stored[ContactsController.lastOpenedKey], 'c-eli');
+      expect(stored['themes'], {
+        'everywhere': {'theme': 'mydata.system'},
+      });
+    });
+
     testWidgets('Down in the list moves the selection and the pane follows', (tester) async {
       desktop(tester);
       final h = Harness();
@@ -437,4 +458,29 @@ void main() {
       expect(find.byType(ContactList), findsOneWidget);
     });
   });
+}
+
+/// A device store that refuses a whole-file write outside [update], as the shared file needs.
+class _UpdateOnlyStore extends MemoryDeviceStore {
+  _UpdateOnlyStore(super.initial);
+  bool _updating = false;
+
+  /// Another app's write, which this app does not see coming.
+  Future<void> otherAppWrites(String key, Object? value) async => super.write({...await read(), key: value});
+
+  @override
+  Future<void> write(Map<String, Object?> values) async {
+    if (!_updating) throw StateError('a whole-file write outside update');
+    await super.write(values);
+  }
+
+  @override
+  Future<Map<String, Object?>> update(Map<String, Object?> Function(Map<String, Object?> values) change) async {
+    _updating = true;
+    try {
+      return await super.update(change);
+    } finally {
+      _updating = false;
+    }
+  }
 }

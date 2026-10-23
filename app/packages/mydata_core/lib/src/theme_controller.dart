@@ -84,6 +84,8 @@ class ThemeSettings {
 ///   [DeviceStore.changes] and, where those are not promised, the [pollInterval] read.
 /// - **Preview** ([preview]) draws a choice without storing it, while the gallery is open; [use],
 ///   [useEverywhere] or `preview(null)` end it.
+/// - **A settings file that cannot be read** ([DeviceStoreUnreadable]) changes nothing on screen: a read
+///   that fails is ignored, and a change fails with that error, writing nothing.
 /// - **Migration**, once per device, when the file has no `themes` key (ARCHITECTURE.md 4.2): on macOS every
 ///   app starts on System (the Mac shell already ignored the host's theme, so nothing on screen changes);
 ///   elsewhere "everywhere" is seeded with the theme the host gave the apps as Kiwi in that palette
@@ -184,18 +186,24 @@ class ThemeController extends ChangeNotifier {
 
   Future<void> _readDevice() async {
     final generation = ++_generation;
-    var v = await store.read();
-    if (_disposed || generation != _generation) return;
-    if (v[ThemeSettings.key] == null) {
-      final seed = _seed(v);
-      if (seed != null) {
-        v = await store.update(
-          (now) => now[ThemeSettings.key] == null
-              ? {...now, ThemeSettings.key: ThemeSettings(everywhere: seed).toJson()}
-              : now,
-        );
-        if (_disposed || generation != _generation) return;
+    Map<String, Object?> v;
+    try {
+      v = await store.read();
+      if (_disposed || generation != _generation) return;
+      if (v[ThemeSettings.key] == null) {
+        final seed = _seed(v);
+        if (seed != null) {
+          v = await store.update(
+            (now) => now[ThemeSettings.key] == null
+                ? {...now, ThemeSettings.key: ThemeSettings(everywhere: seed).toJson()}
+                : now,
+          );
+          if (_disposed || generation != _generation) return;
+        }
       }
+    } on DeviceStoreUnreadable {
+      // Keep drawing what was read last; the next poll tries again.
+      return;
     }
     _apply(v);
   }
@@ -269,13 +277,23 @@ class ThemeController extends ChangeNotifier {
   /// Reset: [app] (this app when null) follows the everywhere choice again.
   Future<void> reset([String? app]) => _change((s) => s.copyWith(apps: {...s.apps}..remove(app ?? appId)));
 
-  /// Light, dark or match system, for this device (every myData app on it follows).
+  /// Light, dark or match system, for this device (every myData app on it follows). Drawn at once; when it
+  /// cannot be stored, the mode before is drawn again and the error is passed on.
   Future<void> setMode(MyDataMode mode) async {
     if (_disposed) return;
     ++_generation;
+    final before = _mode;
     _mode = mode;
     notifyListeners();
-    await store.update((now) => {...now, 'mode': mode.name});
+    try {
+      await store.update((now) => {...now, 'mode': mode.name});
+    } on Object {
+      if (!_disposed && _mode == mode) {
+        _mode = before;
+        notifyListeners();
+      }
+      rethrow;
+    }
   }
 
   @override

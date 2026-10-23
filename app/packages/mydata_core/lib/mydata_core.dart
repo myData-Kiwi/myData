@@ -20,6 +20,7 @@ export 'src/platform.dart'
         CommandResult,
         CommandRunner,
         DeviceStore,
+        DeviceStoreUnreadable,
         HostEnvironment,
         HostExit,
         HostPlatform,

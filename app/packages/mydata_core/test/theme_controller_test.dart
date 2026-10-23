@@ -330,6 +330,32 @@ void main() {
     c.dispose();
   });
 
+  group('a settings file that cannot be read', () {
+    test('changes nothing on screen, and a choice fails without writing over it', () async {
+      final dir = Directory.systemTemp.createTempSync('mydata-themes-');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final file = File('${dir.path}/device/settings.json')..createSync(recursive: true);
+      file.writeAsStringSync('{"mode": "dark", "themes": {"everywhere": {"theme": "mydata.kiwi", "palette": "plum"}}}');
+      final c = _controller(FileDeviceStore(() => file.path), mac: true, poll: const Duration(milliseconds: 20));
+      await c.start();
+      expect(c.choice, kiwiPlum);
+      expect(c.mode, MyDataMode.dark);
+      var repaints = 0;
+      c.addListener(() => repaints++);
+      // a hand edit leaves it broken: the window keeps drawing what it drew, not System in match-system
+      file.writeAsStringSync('{"mode": "dark", "themes": ');
+      await Future<void>.delayed(const Duration(milliseconds: 120));
+      expect(c.choice, kiwiPlum);
+      expect(c.mode, MyDataMode.dark);
+      expect(repaints, 0);
+      await expectLater(c.use(kiwiDusk), throwsA(isA<DeviceStoreUnreadable>()));
+      await expectLater(c.setMode(MyDataMode.light), throwsA(isA<DeviceStoreUnreadable>()));
+      expect(c.mode, MyDataMode.dark, reason: 'the mode that could not be stored is not drawn');
+      expect(file.readAsStringSync(), '{"mode": "dark", "themes": ');
+      c.dispose();
+    });
+  });
+
   group('two apps on one device', () {
     test('a choice made in myData reaches myContacts without a restart', () async {
       final store = MemoryDeviceStore();

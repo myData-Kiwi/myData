@@ -114,6 +114,15 @@ class AppearanceSection extends StatelessWidget {
     initialApp: app ?? MyDataAppId.mydata,
   );
 
+  Future<void> _setMode(BuildContext context, MyDataMode mode) async {
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    try {
+      await themes.setMode(mode);
+    } on Object {
+      messenger?.showSnackBar(const SnackBar(content: Text(failed)));
+    }
+  }
+
   Future<void> _reset(BuildContext context, MyDataAppId app) async {
     final messenger = ScaffoldMessenger.maybeOf(context);
     try {
@@ -168,7 +177,7 @@ class AppearanceSection extends StatelessWidget {
                     MacSegmented<MyDataMode>(
                       segments: modes,
                       selected: themes.mode,
-                      onChanged: themes.setMode,
+                      onChanged: (m) => _setMode(context, m),
                       semanticLabel: heading,
                     ),
                   ],
@@ -226,7 +235,7 @@ class AppearanceSection extends StatelessWidget {
                       child: SegmentedControl<MyDataMode>(
                         segments: modes,
                         selected: themes.mode,
-                        onChanged: themes.setMode,
+                        onChanged: (m) => _setMode(context, m),
                         semanticLabel: modeLabel,
                       ),
                     ),
