@@ -55,7 +55,7 @@ class AppearanceController extends ChangeNotifier {
   /// The host's theme id, the last one seen on this device, or null (the default theme) before either.
   String? get themeId => _themeId;
   MyDataMode get mode => _mode;
-  MyDataTheme get theme => MyDataTheme(themeId: _themeId, mode: _mode);
+  MyDataTheme get theme => MyDataTheme.kiwi(_themeId, mode: _mode);
 
   /// Read this device's settings, then follow the host and the device file.
   Future<void> start() async {

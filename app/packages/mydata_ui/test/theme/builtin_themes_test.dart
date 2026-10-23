@@ -12,7 +12,6 @@ import 'package:mydata_ui/src/theme/colour.dart';
 import 'package:mydata_ui/src/theme/resolve.dart';
 import 'package:mydata_ui/src/theme/roles.dart';
 import 'package:mydata_ui/src/theme/strict_json.dart';
-import 'package:mydata_ui/src/theme/theme_file.dart';
 import 'package:mydata_ui/src/theme/validate.dart';
 
 /// The designed theme files as bundled, by id.

@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../generated/tokens.g.dart';
+import '../theme/choice.dart';
+import '../theme/library.dart';
 import '../theme/theme.dart';
 import 'mac_window.dart';
 
@@ -114,7 +116,7 @@ abstract final class MacTheme {
     );
     // Built afresh, not by applying the system font to the branded styles: those carry mydata_ui's package,
     // which would turn the family into `packages/mydata_ui/.AppleSystemUIFont`, a font that does not exist.
-    final text = _textTheme(brightness).apply(bodyColor: mac.label, displayColor: mac.label);
+    final text = _inheriting(_textTheme(brightness).apply(bodyColor: mac.label, displayColor: mac.label));
     return base.copyWith(
       extensions: [
         colors,
@@ -148,6 +150,49 @@ abstract final class MacTheme {
     );
   }
 
+  /// The Mac shell's ThemeData for [choice] in [brightness]: System is [data] (the system's colours over
+  /// [system]); a drawn theme is [drawn], drawn inside the Mac window.
+  static ThemeData forChoice(ThemeChoice? choice, Brightness brightness, MyDataMacColors system) {
+    final look = ThemeLibrary.lookFor(choice, brightness, platform: TargetPlatform.macOS);
+    if (look.frame == LookFrame.system) return data(null, brightness, system);
+    return drawn(look);
+  }
+
+  /// A drawn theme in the Mac window (design/themes/ARCHITECTURE.md 3.4): the theme's own ThemeData, plus
+  /// Mac colours made from its palette ([colorsFor]), so the window keeps its skeleton ([MacWindow.of]: the
+  /// sidebar, the columns, the toolbar band) and the Mac widgets draw in the theme's colours. Until phase 3
+  /// those widgets keep the Mac's type and sizes; the shared widgets draw the theme's variants.
+  static ThemeData drawn(MyDataLook look) {
+    final base = MyDataTheme.fromLook(look);
+    return base.copyWith(extensions: [...base.extensions.values, colorsFor(look.colors, look.brightness)]);
+  }
+
+  /// The Mac widgets' colours from a drawn theme's palette: the window is `bg`, the content `surface`, the
+  /// sidebar `sidebar`, labels `ink` and `ink-muted`, the accent, ring and selection the palette's. The
+  /// faint label shades keep the system's opacity over `ink`.
+  static MyDataMacColors colorsFor(MyDataColors c, Brightness brightness) {
+    final base = brightness == Brightness.dark ? MyDataMacColors.dark : MyDataMacColors.light;
+    return MyDataMacColors(
+      accent: c.accent,
+      onAccent: c.onAccent,
+      label: c.ink,
+      secondaryLabel: c.inkMuted,
+      tertiaryLabel: c.ink.withValues(alpha: base.tertiaryLabel.a),
+      quaternaryLabel: c.ink.withValues(alpha: base.quaternaryLabel.a),
+      separator: c.line,
+      contentBackground: c.surface,
+      windowBackground: c.bg,
+      sidebarBackground: c.sidebar,
+      selectionInactive: c.selectionInactive,
+      sidebarSelection: c.accentSoft,
+      hover: c.ink.withValues(alpha: base.hover.a),
+      focusRing: c.focus,
+      red: c.danger,
+      green: c.success,
+      toolbarItem: c.surfaceRaised,
+    );
+  }
+
   /// The least contrast white text needs on the accent (WCAG's for large text and controls; the system's
   /// blue in dark mode, #0A84FF, has 3.6).
   static const accentContrast = 3.0;
@@ -171,6 +216,30 @@ abstract final class MacTheme {
   static double _contrast(Color a, Color b) {
     final la = a.computeLuminance(), lb = b.computeLuminance();
     return (math.max(la, lb) + 0.05) / (math.min(la, lb) + 0.05);
+  }
+
+  /// [t] with every style marked `inherit`, as a drawn theme's are, so the app's theme animation can lerp
+  /// between System and a drawn theme (TextStyle.lerp refuses styles that differ in `inherit`). Each style
+  /// gives every field, so Theme.of's merge with the platform's geometry changes nothing on screen.
+  static TextTheme _inheriting(TextTheme t) {
+    TextStyle? i(TextStyle? s) => s?.copyWith(inherit: true);
+    return TextTheme(
+      displayLarge: i(t.displayLarge),
+      displayMedium: i(t.displayMedium),
+      displaySmall: i(t.displaySmall),
+      headlineLarge: i(t.headlineLarge),
+      headlineMedium: i(t.headlineMedium),
+      headlineSmall: i(t.headlineSmall),
+      titleLarge: i(t.titleLarge),
+      titleMedium: i(t.titleMedium),
+      titleSmall: i(t.titleSmall),
+      bodyLarge: i(t.bodyLarge),
+      bodyMedium: i(t.bodyMedium),
+      bodySmall: i(t.bodySmall),
+      labelLarge: i(t.labelLarge),
+      labelMedium: i(t.labelMedium),
+      labelSmall: i(t.labelSmall),
+    );
   }
 
   /// The Mac's type ramp: Flutter's macOS typography (the system font) for the large styles, and the Mac

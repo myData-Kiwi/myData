@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../generated/tokens.g.dart';
+import 'choice.dart';
 import 'library.dart';
 import 'look.dart';
 
@@ -22,35 +23,48 @@ enum MyDataMode {
   static MyDataMode parse(String? name) => values.firstWhere((m) => m.name == name, orElse: () => system);
 }
 
-/// The theme of every myData app, built from a theme id and a mode (stored per device). Until themes phase 2
-/// the id is one of today's six colours, stored on the host and the same in every app: Kiwi in that colour
-/// (`ThemeLibrary.kiwiLook`). Widgets read the look through `context.colors`, `context.typeScale`,
-/// `context.space(n)` and the other `context` shortcuts, never a literal.
+/// The theme an app draws with: a [ThemeChoice] (a theme and its palette, chosen per app and per device;
+/// System by default) and a [mode] (light, dark or match system, per device). Widgets read the look through
+/// `context.colors`, `context.typeScale`, `context.space(n)` and the other `context` shortcuts, never a
+/// literal.
 ///
 /// ```dart
-/// final theme = MyDataTheme(themeId: status.theme, mode: mode);
+/// final theme = MyDataTheme(choice: const ThemeChoice('mydata.kiwi', 'plum'), mode: mode);
 /// MaterialApp(theme: theme.light, darkTheme: theme.dark, themeMode: theme.themeMode, ...);
 /// ```
+///
+/// On a Mac the Mac shell builds the ThemeData itself (`MacShell`): System is the system's own colours there.
 @immutable
 class MyDataTheme {
-  MyDataTheme({String? themeId, this.mode = MyDataMode.system}) : spec = MyDataThemes.byId(themeId);
+  /// [choice] is drawn as [ThemeLibrary.normalise] says: an unknown theme is System, an unknown palette the
+  /// theme's default.
+  MyDataTheme({ThemeChoice? choice, this.mode = MyDataMode.system}) : choice = ThemeLibrary.normalise(choice);
 
-  final MyDataThemeSpec spec;
+  /// Kiwi in one of today's colours (`plum`): the colour ids of the host's old `/appearance`, and tests.
+  factory MyDataTheme.kiwi(String? colour, {MyDataMode mode = MyDataMode.system}) =>
+      MyDataTheme(choice: ThemeChoice(ThemeLibrary.kiwiId, colour), mode: mode);
+
+  final ThemeChoice choice;
   final MyDataMode mode;
 
-  ThemeData get light => data(spec.id, Brightness.light);
-  ThemeData get dark => data(spec.id, Brightness.dark);
+  ThemeData get light => dataFor(choice, Brightness.light);
+  ThemeData get dark => dataFor(choice, Brightness.dark);
   ThemeMode get themeMode => mode.themeMode;
 
   @override
-  bool operator ==(Object other) => other is MyDataTheme && other.spec.id == spec.id && other.mode == mode;
+  bool operator ==(Object other) => other is MyDataTheme && other.choice == choice && other.mode == mode;
 
   @override
-  int get hashCode => Object.hash(spec.id, mode);
+  int get hashCode => Object.hash(choice, mode);
 
   /// ThemeData for Kiwi in today's colour [themeId] and [brightness].
   static ThemeData data(String? themeId, Brightness brightness) =>
       fromLook(ThemeLibrary.kiwiLook(MyDataThemes.byId(themeId).id, brightness));
+
+  /// ThemeData for [choice] in [brightness], off the Mac shell (System is Kiwi's style in Kiwi's colour there
+  /// until each platform's pass).
+  static ThemeData dataFor(ThemeChoice? choice, Brightness brightness) =>
+      fromLook(ThemeLibrary.lookFor(choice, brightness));
 
   /// ThemeData for [look]: the look itself as an extension, its colours ([MyDataColors]) and shadows
   /// ([MyDataShadows]) as their own, and the Material widgets that remain (selection, scroll bars, dialogs,

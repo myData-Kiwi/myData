@@ -7,7 +7,9 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
+import '../generated/tokens.g.dart';
 import 'builtin_themes.g.dart';
+import 'choice.dart';
 import 'look.dart';
 import 'resolve.dart';
 import 'roles.dart';
@@ -38,11 +40,83 @@ abstract final class ThemeLibrary {
 
   static List<ThemeFile> get builtIns => [system, kiwi];
 
+  /// The themes the gallery offers, in its order (ARCHITECTURE.md 4.4): System, then the built-ins. Until
+  /// phase 3 that is Kiwi alone, in today's six colours: the other five styles are drawn from phase 3, so
+  /// offering them now would only be Kiwi in another colour under another name.
+  static List<ThemeFile> get offered => builtIns;
+
   static ThemeFile? byId(String? id) => switch (id) {
         systemId => system,
         kiwiId => kiwi,
         _ => null,
       };
+
+  /// [choice] as it is drawn: a theme this build has (else System) and, for a theme with palettes, one it
+  /// has (else its default); never a palette for System (ARCHITECTURE.md 4.1). Null is System.
+  static ThemeChoice normalise(ThemeChoice? choice) {
+    final theme = byId(choice?.theme);
+    if (theme == null || theme.palettes.isEmpty) return ThemeChoice.system;
+    return ThemeChoice(theme.id, theme.palette(choice!.palette)!.id);
+  }
+
+  /// Whether [choice] names a theme this build has, in a palette that theme has (or none): a choice that
+  /// is not falls back ([normalise]), which myData's Appearance says once.
+  static bool knows(ThemeChoice choice) {
+    final theme = byId(choice.theme);
+    if (theme == null) return false;
+    final p = choice.palette;
+    return p == null || theme.palettes.isEmpty || theme.palettes.any((x) => x.id == p);
+  }
+
+  /// [theme] with its default palette: what the gallery shows when the theme changes, since palette ids
+  /// belong to one theme.
+  static ThemeChoice defaultChoice(ThemeFile theme) =>
+      theme.palettes.isEmpty ? ThemeChoice(theme.id) : ThemeChoice(theme.id, theme.defaultPalette!.id);
+
+  /// One of today's colour ids (the host's old `/appearance` theme, `lastTheme` in the device's settings) as
+  /// a choice: Kiwi in that palette, which is what phases 1 and 2 draw for it (ARCHITECTURE.md 4.2). Null
+  /// for anything else.
+  static ThemeChoice? fromColour(String? colour) =>
+      kiwi.palettes.any((p) => p.id == colour) ? ThemeChoice(kiwiId, colour) : null;
+
+  /// How people see a choice: "System", or the theme and its palette ("Kiwi, Plum"; "Kiwi, Kiwi" too, so the
+  /// palette is always named when the theme has more than one).
+  static String describe(ThemeChoice choice) {
+    final c = normalise(choice);
+    final theme = byId(c.theme)!;
+    if (theme.palettes.length < 2) return theme.name;
+    return '${theme.name}, ${theme.palette(c.palette)!.name}';
+  }
+
+  /// [theme]'s palettes as the swatches a palette row shows: each one's name, and its accent, on-accent and
+  /// accent-soft in light and dark as resolved.
+  static List<MyDataThemeSpec> paletteSwatches(ThemeFile theme) => _swatches[theme] ??= [
+        for (final p in theme.palettes)
+          () {
+            final l = look(theme, paletteId: p.id, brightness: Brightness.light).colors;
+            final d = look(theme, paletteId: p.id, brightness: Brightness.dark).colors;
+            return MyDataThemeSpec(
+              id: p.id,
+              name: p.name,
+              accentLight: l.accent,
+              accentDark: d.accent,
+              onAccentLight: l.onAccent,
+              onAccentDark: d.onAccent,
+              accentSoftLight: l.accentSoft,
+              accentSoftDark: d.accentSoft,
+            );
+          }(),
+      ];
+
+  static final _swatches = Expando<List<MyDataThemeSpec>>('swatches');
+
+  /// [choice]'s look for [brightness] (after [normalise]).
+  static MyDataLook lookFor(ThemeChoice? choice, Brightness brightness,
+      {bool increasedContrast = false, TargetPlatform? platform}) {
+    final c = normalise(choice);
+    return look(byId(c.theme)!,
+        paletteId: c.palette, brightness: brightness, increasedContrast: increasedContrast, platform: platform);
+  }
 
   /// Today's colours, the resolver's starting point for roles a palette leaves out (Kiwi's own palette).
   static final RoleDefaults defaults = RoleDefaults(

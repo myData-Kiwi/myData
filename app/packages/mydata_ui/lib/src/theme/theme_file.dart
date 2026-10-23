@@ -462,14 +462,18 @@ class ThemeFile {
   /// leaves out, come from [base] (the built-in it is `based-on`, else Kiwi).
   factory ThemeFile.fromJson(Map<String, Object?> json, {required Map<String, Object?> base}) {
     final preview = json['preview'] as Map<String, Object?>?;
-    final colourUse = json['colour-use'] as Map<String, Object?>?;
+    final frame = _byKey(ThemeFrame.values, json['frame']);
+    // System draws its base's style off macOS until each platform's pass (Kiwi's), `colour-use` included,
+    // so it is Kiwi in Kiwi's colour there; a drawn theme's `colour-use` is its own.
+    final colourUse = (json['colour-use'] ?? (frame == ThemeFrame.system ? base['colour-use'] : null))
+        as Map<String, Object?>?;
     final same = (colourUse?['same-as'] as Map<String, Object?>?) ?? const {};
     return ThemeFile(
       id: json['id'] as String,
       name: json['name'] as String,
       version: json['version'] as String,
       licence: json['licence'] as String,
-      frame: _byKey(ThemeFrame.values, json['frame']),
+      frame: frame,
       author: json['author'] as String?,
       description: json['description'] as String?,
       basedOn: json['based-on'] as String?,

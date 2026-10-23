@@ -15,15 +15,37 @@ double contrast(Color a, Color b) {
 }
 
 void main() {
-  test('a theme is built from an id and a mode; unknown ids fall back to Kiwi', () {
-    final t = MyDataTheme(themeId: 'dusk', mode: MyDataMode.dark);
-    expect(t.spec.id, 'dusk');
+  test('a theme is built from a choice and a mode; unknown themes are System, unknown palettes the default', () {
+    final t = MyDataTheme(choice: const ThemeChoice('mydata.kiwi', 'dusk'), mode: MyDataMode.dark);
+    expect(t.choice, const ThemeChoice('mydata.kiwi', 'dusk'));
     expect(t.themeMode, ThemeMode.dark);
-    expect(MyDataTheme(themeId: 'nonsense').spec.id, 'kiwi');
-    expect(MyDataTheme().spec.id, 'kiwi');
+    expect(MyDataTheme(choice: const ThemeChoice('nonsense', 'plum')).choice, ThemeChoice.system);
+    expect(MyDataTheme(choice: const ThemeChoice('mydata.kiwi', 'nonsense')).choice,
+        const ThemeChoice('mydata.kiwi', 'kiwi'));
+    expect(MyDataTheme().choice, ThemeChoice.system);
+    expect(MyDataTheme.kiwi('plum'), MyDataTheme(choice: const ThemeChoice('mydata.kiwi', 'plum')));
     expect(MyDataMode.parse('light'), MyDataMode.light);
     expect(MyDataMode.parse(null), MyDataMode.system);
     expect(MyDataThemes.all.map((t) => t.id), ['kiwi', 'graphite', 'dusk', 'plum', 'rose', 'amber']);
+  });
+
+  test("Kiwi in one of today's colours draws exactly what that colour drew before", () {
+    for (final spec in MyDataThemes.all) {
+      for (final b in Brightness.values) {
+        final before = MyDataTheme.data(spec.id, b);
+        final now = MyDataTheme.dataFor(ThemeChoice(ThemeLibrary.kiwiId, spec.id), b);
+        expect(roles(now.extension<MyDataColors>()!), roles(before.extension<MyDataColors>()!),
+            reason: '${spec.id} ${b.name}');
+                expect(now.colorScheme, before.colorScheme, reason: '${spec.id} ${b.name}');
+      }
+    }
+  });
+
+  test('off a Mac, System is Kiwi in its own colour until each platform has its pass', () {
+    for (final b in Brightness.values) {
+      expect(roles(MyDataTheme.dataFor(ThemeChoice.system, b).extension<MyDataColors>()!),
+          roles(MyDataTheme.data('kiwi', b).extension<MyDataColors>()!));
+    }
   });
 
   test('a theme replaces accent, on-accent and accent-soft and nothing else', () {
@@ -143,3 +165,6 @@ void main() {
     expect(MyDataType.mono.fontFamily, endsWith(MyDataFontFamily.mono));
   });
 }
+
+/// Every colour role of [c], to compare two sets (MyDataColors has no ==).
+List<Color> roles(MyDataColors c) => [c.bg, c.surface, c.surfaceRaised, c.surfaceSunken, c.surfaceHover, c.line, c.lineStrong, c.ink, c.inkMuted, c.accent, c.onAccent, c.accentSoft, c.brand, c.kiwiWash, c.skin, c.cream, c.paper, c.success, c.successSoft, c.warning, c.warningSoft, c.danger, c.dangerSoft, c.onDanger, c.info, c.infoSoft, c.focus, c.glassFill, c.glassStroke, c.scrim, c.dataRed, c.dataOrange, c.dataYellow, c.dataGreen, c.dataBlue, c.dataPurple, c.dataBrown, c.dataGrey, c.sidebar, c.toolbar, c.edge, c.link, c.selection, c.onSelection, c.selectionInactive, c.focusOnDanger, c.avatarFill, c.shadow, c.onAvatar];

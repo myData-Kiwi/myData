@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mydata_ui/mydata_ui.dart';
 
+import 'theme_test.dart' show roles;
+
 void main() {
   tearDown(() => MacLook.debugOverride = null);
 
@@ -47,7 +49,7 @@ void main() {
     MacLook.debugOverride = false;
     late ThemeData light;
     late ThemeMode mode;
-    final theme = MyDataTheme(themeId: 'graphite', mode: MyDataMode.dark);
+    final theme = MyDataTheme.kiwi('graphite', mode: MyDataMode.dark);
     await tester.pumpWidget(shell(theme, (l, _, m) => (light, mode) = (l, m)));
     expect(light.extension<MyDataMacColors>(), isNull);
     expect(light.extension<MyDataColors>()!.accent, theme.light.extension<MyDataColors>()!.accent);
@@ -56,17 +58,35 @@ void main() {
     expect(find.byType(MacChrome), findsNothing);
   });
 
-  testWidgets("on a Mac the shell gives the Mac themes, the system's accent and the window chrome", (tester) async {
+  testWidgets("on a Mac, System gives the Mac themes, the system's accent and the window chrome", (tester) async {
     MacLook.debugOverride = true;
     late ThemeData light, dark;
-    await tester.pumpWidget(shell(MyDataTheme(themeId: 'plum'), (l, d, _) => (light, dark) = (l, d)));
+    await tester.pumpWidget(shell(MyDataTheme(), (l, d, _) => (light, dark) = (l, d)));
     expect(light.extension<MyDataMacColors>(), MyDataMacColors.light);
     expect(dark.extension<MyDataMacColors>(), MyDataMacColors.dark);
-    // The accent is the system's (its fallback here), not the host's Plum.
+    // The accent is the system's (its fallback here).
     expect(light.extension<MyDataColors>()!.accent, MyDataMacColors.light.accent);
     expect(find.byType(MyDataAccessibilityScope), findsOneWidget);
     expect(find.byType(MacChrome), findsOneWidget);
     expect(MacChrome.of(tester.element(find.byType(SizedBox).last)).windowActive, isTrue);
+  });
+
+  testWidgets('on a Mac, a drawn theme keeps the Mac window and draws its palette inside it', (tester) async {
+    MacLook.debugOverride = true;
+    late ThemeData light, dark;
+    await tester.pumpWidget(shell(MyDataTheme.kiwi('plum'), (l, d, _) => (light, dark) = (l, d)));
+    for (final (data, b) in [(light, Brightness.light), (dark, Brightness.dark)]) {
+      final drawn = MyDataTheme.data('plum', b).extension<MyDataColors>()!;
+      expect(roles(data.extension<MyDataColors>()!), roles(drawn));
+      final mac = data.extension<MyDataMacColors>()!;
+      expect(mac.accent, drawn.accent);
+      expect(mac.label, drawn.ink);
+      expect(mac.contentBackground, drawn.surface);
+      expect(mac.focusRing, drawn.focus);
+    }
+    expect(find.byType(MacChrome), findsOneWidget);
+    expect(MacWindow.of(tester.element(find.byType(SizedBox).last)), isTrue);
+    expect(tester.element(find.byType(SizedBox).last).isSystemLook, isFalse);
   });
 
   testWidgets('MacAppFrame: the sidebar beside the content, or the content alone without a host', (tester) async {

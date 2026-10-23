@@ -29,7 +29,7 @@ void main() {
     final host = _Host();
     final a = _controller(host, store);
     await a.start();
-    expect(a.theme.spec.id, 'plum');
+    expect(a.theme.choice.palette, 'plum');
     expect(a.theme.themeMode.name, 'dark');
     host.set('dusk');
     expect(a.themeId, 'dusk');

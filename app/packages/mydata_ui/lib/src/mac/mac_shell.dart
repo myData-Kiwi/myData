@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../accessibility.dart';
+import '../theme/choice.dart';
 import '../theme/theme.dart';
 import '../widgets/app_frame.dart' show AppConnection, AppSection;
 import 'mac_overlays.dart' show MacAppIcon;
@@ -21,9 +22,9 @@ import 'mac_window.dart';
 ///   runApp(const MyApp());
 /// }
 ///
-/// // Above the MaterialApp; `appearance` is mydata_core's AppearanceController.
+/// // Above the MaterialApp; `themes` is mydata_core's ThemeController.
 /// MacShell(
-///   theme: appearance.theme,
+///   theme: themes.theme,
 ///   builder: (context, light, dark, mode) => MaterialApp(
 ///     theme: light,
 ///     darkTheme: dark,
@@ -39,8 +40,8 @@ import 'mac_window.dart';
 class MacShell extends StatelessWidget {
   const MacShell({super.key, required this.theme, required this.builder, this.appIcon});
 
-  /// The app's theme (the host's theme id, this device's mode). On macOS only its mode is used: the colours
-  /// and the accent are the system's (the plan's "System" accent, the Mac's default).
+  /// The app's theme (its choice and this device's mode). On macOS, System is the system's own colours,
+  /// accent and font; a drawn theme is drawn inside the Mac window ([MacTheme.forChoice]).
   final MyDataTheme theme;
 
   /// The app's own icon ([MyDataAppIcons]), which its alerts show ([MacAppIcon]); null shows the kiwi.
@@ -66,6 +67,15 @@ class MacShell extends StatelessWidget {
     return MacAppIcon(icon: appIcon, child: _frame());
   }
 
+  /// The ThemeData an app draws [choice] in, for [brightness], as this shell would: on a Mac with the
+  /// system's colours read by the shell above [context] (System) or inside the Mac window (a drawn theme);
+  /// elsewhere [MyDataTheme.dataFor]. The theme gallery draws its cards with it.
+  static ThemeData themeDataFor(BuildContext context, ThemeChoice choice, Brightness brightness) {
+    if (!MacLook.forThisPlatform) return MyDataTheme.dataFor(choice, brightness);
+    final palette = context.getInheritedWidgetOfExactType<_MacPaletteScope>()?.palette ?? MacSystemPalette.fallback;
+    return MacTheme.forChoice(choice, brightness, brightness == Brightness.dark ? palette.dark : palette.light);
+  }
+
   Widget _frame() {
     return MacSystemColorsScope(
       builder: (context, palette) {
@@ -75,15 +85,28 @@ class MacShell extends StatelessWidget {
           ThemeMode.system => MediaQuery.platformBrightnessOf(context),
         };
         MacWindow.follow(brightness);
-        return builder(
-          context,
-          MacTheme.data(theme.spec.id, Brightness.light, palette.light),
-          MacTheme.data(theme.spec.id, Brightness.dark, palette.dark),
-          theme.themeMode,
+        return _MacPaletteScope(
+          palette: palette,
+          child: builder(
+            context,
+            MacTheme.forChoice(theme.choice, Brightness.light, palette.light),
+            MacTheme.forChoice(theme.choice, Brightness.dark, palette.dark),
+            theme.themeMode,
+          ),
         );
       },
     );
   }
+}
+
+/// The system's colours the shell read, for [MacShell.themeDataFor].
+class _MacPaletteScope extends InheritedWidget {
+  const _MacPaletteScope({required this.palette, required super.child});
+
+  final MacSystemPalette palette;
+
+  @override
+  bool updateShouldNotify(_MacPaletteScope old) => old.palette != palette;
 }
 
 /// Follows whether the app is active (its window is the key window), for [MacChrome.windowActive].

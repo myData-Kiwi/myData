@@ -11,7 +11,6 @@ import 'package:mydata_ui/mydata_ui.dart';
 import 'package:mydata_ui/src/theme/resolve.dart';
 import 'package:mydata_ui/src/theme/roles.dart';
 import 'package:mydata_ui/src/theme/strict_json.dart';
-import 'package:mydata_ui/src/theme/theme_file.dart';
 import 'package:mydata_ui/src/theme/validate.dart';
 
 /// The files mutated: the good imported example and the designed themes, as an import would see them (ids

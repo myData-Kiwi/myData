@@ -189,7 +189,8 @@ class MacSidebar extends StatelessWidget {
   Widget build(BuildContext context) {
     final mac = context.mac;
     final chrome = MacChrome.of(context);
-    final solid = chrome.sidebar == null || MyDataAccessibility.of(context).reduceTransparency;
+    // A drawn theme paints its own `sidebar`: the window's material is System's.
+    final solid = chrome.sidebar == null || MyDataAccessibility.of(context).reduceTransparency || !context.isSystemLook;
     final list = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
