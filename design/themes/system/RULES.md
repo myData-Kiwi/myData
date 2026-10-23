@@ -1,6 +1,6 @@
 # System
 
-`mydata.system`, the default for every app on every device. File: `theme.json` (frame `system`, nothing else). **It has no palettes:** its colour is the platform's accent, with no alternatives on macOS, so the picker shows no palette row for it (decided 2026-10-23). "System, tinted" (phase 5) is a custom `system`-frame theme whose palettes give an accent only.
+`mydata.system`, the default for every app on every device. File: `theme.json` (frame `system`, nothing else). **It has no palettes:** its colour is the platform's accent, with no alternatives on macOS, so the picker shows no palette row for it (decided 2026-10-23). "System, tinted" (a custom `system`-frame theme whose palettes give an accent only) is never applied on macOS, and whether it exists at all is open for the owner (phase 5; `ARCHITECTURE.md` 1.6).
 
 ## Personality
 
@@ -12,7 +12,7 @@ Looks like the rest of your computer. myData disappears into the platform: the u
 |---|---|---|---|
 | Frame | Native window, transparent title bar, unified toolbar, traffic lights, floating sidebar on the window's own sidebar material | Material 3 | Kiwi's branded frame, labelled "System: Kiwi until this platform's own look" in the picker |
 | Colour | NSColor read live in both appearances (`mydata/system_colors` channel); `design/tokens.json` `macos` values are fallbacks only | Wallpaper colours through `dynamic_color` (Android 12+), else Material baseline | Kiwi's colours with the platform's accent where one can be read |
-| Accent | The system accent (`controlAccentColor`); "System, tinted" copies may override it | Dynamic colour | Kiwi green |
+| Accent | The system accent (`controlAccentColor`), with no alternatives: a "System, tinted" file's accent is ignored on macOS | Dynamic colour | Kiwi green |
 | Type | `.AppleSystemUIFont` (SF Pro through CoreText), never bundled. Body 13/16, title 15/20 bold, pane title 22/28 bold, caption 11/14 | Roboto (the device font) | The platform font: Segoe UI Variable on Windows (to verify), the fontconfig default on Linux (to verify), bundled Figtree on the web |
 | Density | Mac: 28 pt controls, 24 pt list rows, 32 pt sidebar rows, 16 px icons | 48 dp targets | Kiwi's |
 | Focus | The system ring (`keyboardFocusIndicatorColor`, follows the accent), on every control, red ones included | Material | Kiwi's red ring and its `ink` rule |

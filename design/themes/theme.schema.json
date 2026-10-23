@@ -67,7 +67,7 @@
         "system",
         "drawn"
       ],
-      "description": "system: the platform's own look (the Mac shell on macOS); only the built-in System and 'System, tinted' copies may use it, and their palettes may set an accent only (the built-in System has none: its colour is the platform's accent). drawn: myData draws everything inside the window with this file's rules."
+      "description": "system: the platform's own look (the Mac shell on macOS); only the built-in System and 'System, tinted' copies may use it, and their palettes may set an accent only (the built-in System has none: its colour is the platform's accent). A 'System, tinted' palette is never applied on macOS, where the accent is always the system's (ARCHITECTURE.md 1.6). drawn: myData draws everything inside the window with this file's rules."
     },
     "preview": {
       "type": "object",
@@ -346,9 +346,11 @@
       "additionalProperties": false,
       "required": [
         "id",
-        "name"
+        "name",
+        "light",
+        "dark"
       ],
-      "description": "A palette of a system-frame theme (\"System, tinted\", phase 5): an accent only. The built-in System has no palettes: its colour is the platform's accent.",
+      "description": "A palette of a system-frame theme (\"System, tinted\", phase 5, open for the owner): an accent in both modes and nothing else. Never applied on macOS, where the accent is always the system's. Checked as a palette on the grounds System draws on that platform, text at 4.5:1 (ARCHITECTURE.md 1.6). The built-in System has no palettes: its colour is the platform's accent.",
       "properties": {
         "id": {
           "$ref": "#/$defs/paletteId"
@@ -364,7 +366,10 @@
             "accent": {
               "$ref": "#/$defs/opaque"
             }
-          }
+          },
+          "required": [
+            "accent"
+          ]
         },
         "dark": {
           "type": "object",
@@ -373,7 +378,10 @@
             "accent": {
               "$ref": "#/$defs/opaque"
             }
-          }
+          },
+          "required": [
+            "accent"
+          ]
         }
       }
     },

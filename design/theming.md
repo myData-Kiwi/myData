@@ -31,7 +31,7 @@ A theme changes how the whole app looks: type, shape, density, borders, depth, i
 | Sticker (was Rose) | Chunky, round and cheerful: 2 px outlines, sticker shadows | Rose, Mint, Mustard | `themes/sticker/` |
 | Paperback (was Amber) | Paper under a reading lamp: a book serif, italic secondary text | Amber, Sepia, Linen | `themes/paperback/` |
 
-Each folder holds the theme file and its `RULES.md` (its design language, its palettes, do and don't, accessibility, font and icon licences). The six drawn themes are the phase 3 targets; until then the apps draw Kiwi, and the old colours are Kiwi's palettes. New built-ins are the owner's pick from the prototype gallery; none is added until then. "System, tinted" (System with another accent) is a custom theme, phase 5.
+Each folder holds the theme file and its `RULES.md` (its design language, its palettes, do and don't, accessibility, font and icon licences). The six drawn themes are the phase 3 targets; until then the apps draw Kiwi, and the old colours are Kiwi's palettes. New built-ins are the owner's pick from the prototype gallery; none is added until then. "System, tinted" (System with another accent) is never applied on macOS; whether it exists elsewhere is open for the owner (phase 5).
 
 ## Palettes
 
