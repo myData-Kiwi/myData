@@ -1,12 +1,16 @@
 # myData
 
-The design system for the myData family of apps: myData, myAssistant, myPhotos, myMail, myCalendar, myContacts and the apps that follow. Soft, airy and modern, with quiet grey grounds and one theme colour, kiwi green by default.
+The design system for the myData family of apps: myData, myAssistant, myPhotos, myMail, myCalendar, myContacts and the apps that follow.
 
-**The platform owns the frame** (decided 2026-10-23; `platforms.md`). On macOS the apps draw the Mac shell: the system's window, toolbar, translucent sidebar, font, colours, accent, focus ring and density (the `macos` tokens in `tokens.json`). What follows describes the branded frame, which the other platforms keep until their own pass, and the content that is ours everywhere: the kiwi, app icons, avatars, person pages, empty states, the approval card, `data-*` colours and wording.
+**A theme sets the whole look, per app and per device** (decided 2026-10-23; `theming.md`, `themes/`). The default theme is **System**: on macOS the Mac shell, with the system's window, toolbar, translucent sidebar, font, colours, accent, focus ring and density (the `macos` tokens in `tokens.json`; `platforms.md`). A drawn theme (Kiwi, Graphite, Dusk, Plum, Rose, Amber) draws everything inside the platform's window by its own rules (`themes/<slug>/RULES.md`). Ours in every theme: the kiwi, app icons, avatars, person pages, empty states, the approval card's structure, `data-*` colours and wording.
+
+**What holds in every theme:** Principles, Voice, the colour roles and the rules marked "every theme" below, Focus and danger, Accessibility, and `theming.md`'s "Rules every theme keeps". **What is Kiwi's:** the idea below, Kiwi's colour rules, Type, Shape, depth and space, Floating bars and the icon tiles. Kiwi is also what System draws on Windows, Linux and the web until their own passes.
 
 Tagline: Your data, kept at home.
 
-## The idea: soft grounds, one colour
+## Kiwi: soft grounds, one colour
+
+Until 2026-10-23 this was the look of every app; it is now the Kiwi theme's language (`themes/kiwi/RULES.md`).
 
 A light grey room with white furniture in it.
 
@@ -20,9 +24,9 @@ The kiwi stays in the logo, the app icon, empty screens and the loading slice. I
 
 ## Principles
 
-1. **Calm, not empty.** Quiet does not mean plain. Depth, rounded shapes, tinted tiles and strong titles give it character.
+1. **Calm, not empty.** Quiet does not mean plain: each theme gives it character in its own way (Kiwi with depth, rounded shapes, tinted tiles and strong titles).
 2. **The user's content is the loudest thing on screen.**
-3. **Air over lines.** Separate things with space and a soft lift. Use a divider only inside a grouped list.
+3. **One way to separate things per theme.** Kiwi uses air over lines: space and a soft lift, a divider only inside a grouped list. Other themes say theirs in their RULES.md (Plum: ink rules; Graphite: hairlines).
 4. **Say what will happen.** A button states its result; anything irreversible shows exactly what it will do first.
 5. **Works without AI.** Every screen is complete with the assistant off.
 6. **One family.** The same controls, places and words in every app.
@@ -34,7 +38,7 @@ Warm and plain.
 - Name things by what people recognise: "your host", "this Mac", "your phone".
 - Buttons are verbs that state the result: "Approve and send", "Add a device".
 - Errors say what went wrong and what to do next.
-- Sentence case everywhere, including labels. No uppercase labels, no exclamation marks.
+- Sentence case everywhere in what we write, including labels; no exclamation marks. A theme may set `label` and `caption` in upper case (Kiwi does not), never on text that holds a name (`theming.md`).
 - App names are written exactly: myData, myPhotos, myAssistant.
 
 ## Colour
@@ -51,18 +55,24 @@ Warm and plain.
 | Artwork | `kiwi-wash`, `skin`, `cream`, `paper` |
 | Data | `data-red`, `data-orange`, `data-yellow`, `data-green`, `data-blue`, `data-purple`, `data-brown`, `data-grey`: the palette for calendars myData owns (ColourPicker). Data colours, never control colours (DataColour) |
 
-Rules:
+Each theme gives these roles their values (`themes/<slug>/theme.json`; 43 roles, the rest derived: `themes/ARCHITECTURE.md` 1.3).
+
+Rules in every theme:
+
+- Status is a tonal chip: the `-soft` fill with text in the matching status colour, always with a word.
+- Links are underlined, so a theme whose accent is close to the text (Graphite) still shows them.
+- `data-*` colours are data, never control colours.
+
+Kiwi's rules:
 
 - One filled `accent` button per screen or card. Other actions are tonal (`accent-soft` with `accent` text) or plain.
-- Status is a tonal chip: the `-soft` fill with text in the matching status colour, always with a word.
 - Icon tiles use `accent-soft`, a status `-soft` fill, or `surface-sunken`. Use at most three different tile colours on one screen.
 - Never put a card on a card. Never give a card a border and a shadow together.
-- Links are `accent` and underlined, because the Graphite theme's accent is close to the text colour.
 - The focus ring uses `focus`, a warm colour, so it shows beside every theme's accent. On anything already red it is `ink` (below).
 
 ## Focus and danger
 
-On macOS the focus ring is the system's (`focus-ring` in `tokens.json` "macos", read from the system) on every control, red ones included; this section is the branded frame's.
+Every drawn theme: its own `focus` colour (Rose's is blue), with the `ink` rule below and a two-tone ring where it sits on a fill (`themes/ARCHITECTURE.md` 2.3). Under System on macOS the focus ring is the system's (`focus-ring` in `tokens.json` "macos", read from the system) on every control, red ones included; the values below are Kiwi's.
 
 `focus` and `danger` have the same values (#B3261E light, #F2867E dark). The red ring shows beside every theme's accent and on every ground (5.2 to 6.5:1 in light mode, 5.4 to 8.0:1 in dark, on `bg`, the surfaces and the soft fills), but next to anything red it cannot be told apart from the red. So:
 
@@ -77,7 +87,9 @@ On macOS the focus ring is the system's (`focus-ring` in `tokens.json` "macos", 
 - **For implementers:** the focus ring takes its colour from one place, with a flag the component sets when it is in its red state; no widget picks `ink` or `focus` by itself.
 - Decided 2026-10-14: keep the red `focus` ring, and draw it in `ink` on red elements (the alternatives were a new `focus` hue, or a second inner `ink` line).
 
-## Type
+## Type (Kiwi)
+
+Each theme sets its own fonts from the catalogue (`themes/ARCHITECTURE.md` 1.5).
 
 - **Plus Jakarta Sans** (`display`) at weight 700 for titles and large figures.
 - **Figtree** (`body`) for everything else. 
@@ -85,9 +97,11 @@ On macOS the focus ring is the system's (`focus-ring` in `tokens.json` "macos", 
 
 Styles: `display-xl`, `display-lg`, `title`, `heading`, `body`, `body-strong`, `caption`, `label`, `mono`. Body is 15px on desktop and 16px on phones.
 
-On macOS the apps use the system font at the Mac's sizes instead (`macos` type tokens: `body` 13 pt, `callout`, `caption`, `title`, a record's `name` at 22 pt); Plus Jakarta Sans and Figtree are the branded frame's.
+On macOS the apps use the system font at the Mac's sizes instead (`macos` type tokens: `body` 13 pt, `callout`, `caption`, `title`, a record's `name` at 22 pt); Plus Jakarta Sans and Figtree are Kiwi's.
 
-## Shape, depth and space
+## Shape, depth and space (Kiwi)
+
+Other themes set their own corners, radii, density, borders and elevation (`themes/<slug>/RULES.md`), above the platform floors.
 
 - Cards and grouped lists: `radius-lg` (20px), `surface`, `shadow-1`, no border.
 - Buttons: `radius-control` (a pill). Chips, segmented controls and switches: `radius-pill`.
@@ -99,7 +113,7 @@ On macOS the apps use the system font at the Mac's sizes instead (`macos` type t
 - A Dialog is `dialog-width` (520px) wide and an Inspector `inspector-width` (440px), each narrower when the window is.
 - In dark mode the shadow is barely visible; cards separate from the ground by being lighter than it.
 
-## Floating bars
+## Floating bars (Kiwi)
 
 A phone tab bar, a toolbar over a photo grid and the assistant's input bar float above content as glass: `glass-fill` over a `blur-glass` blur, with `glass-stroke` and `shadow-glass`. Nothing else is glass. With reduced transparency, on the web and on slow devices, the bar is `surface` with `shadow-2` and no blur.
 
@@ -110,7 +124,7 @@ A phone tab bar, a toolbar over a photo grid and the assistant's input bar float
 - An icon alone always has an accessible name.
 - Illustration is the kiwi, in first-run, empty screens and loading only.
 
-On macOS the icons are Lucide (`MacIcons` in `mydata_ui`, one set for every app) at 16px; the branded frame still uses Material outline icons. Android moves to Material Symbols in its own pass.
+Those are Kiwi's sizes. Under System on macOS the icons are Lucide (`MacIcons` in `mydata_ui`, one set for every app) at 16px; the branded frame still uses Material outline icons. A theme picks its own set and weight (from phase 3, through semantic icon ids). Android moves to Material Symbols in its own pass.
 
 ## Accessibility
 
@@ -122,11 +136,11 @@ On macOS the icons are Lucide (`MacIcons` in `mydata_ui`, one set for every app)
 
 ## Themes
 
-The values in `tokens.json` are the Kiwi theme, the default. A theme replaces `accent`, `on-accent` and `accent-soft` only. The six themes are in the Theming section and in `themes.json`.
+System is the default; the built-ins are in `themes/` and `theming.md`. Until phase 3 the code reads today's values: `tokens.json` is Kiwi, and `themes.json` gives the other five their `accent`, `on-accent` and `accent-soft`. From phase 3 the theme files are the source and `themes.json` goes.
 
 ## For implementers
 
-- Build `MyDataTheme` from a theme id and a mode, reading `tokens.json` and `themes.json`. No widget reads a theme or a literal colour directly.
-- Token names map one to one to the Flutter package: `accent` becomes `MyDataColors.accent`, `space-4` becomes `MyDataSpace.s4`.
+- Today `MyDataTheme` is built from a theme id and a mode, reading `tokens.json` and `themes.json`. From phase 1 it is built from a resolved look (`MyDataLook`, `themes/ARCHITECTURE.md` 3.1), read by widgets through `context`. No widget reads a theme file or a literal colour directly, and no app passes style overrides to a widget.
+- Token names map one to one to the Flutter package: `accent` becomes `MyDataColors.accent`, `space-4` becomes `MyDataSpace.s4` (phase 1's codemod makes it `context.space(4)`).
 - Components here are specifications with HTML previews; the Flutter widgets are the implementation.
-- `tokens.json` is the source of truth for values.
+- `tokens.json` is the source of truth for values a theme does not set, and until phase 3 for Kiwi's; from phase 3 a theme's values come from its `themes/<slug>/theme.json`.
