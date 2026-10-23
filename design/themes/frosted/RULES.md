@@ -40,6 +40,8 @@ Colour is chosen inside the theme (decided 2026-10-23; `ARCHITECTURE.md` 1.6). "
 
 Every palette gives all 43 roles in both modes and passes the contrast pairs of `ARCHITECTURE.md` 2.2 in both modes at normal contrast (prototype validator, 2026-10-23). **Increased contrast is unverified:** these palettes have no `contrast` set of their own and rely on the resolver's 7:1 derivation, which does not exist yet; the prototype only counted the pairs it would have to move (34 to 35 per palette, both modes together). Phase 1's built-in test fails on any palette whose derived set does not pass; that palette then gets its own `contrast` set. Alternative palettes were made from the default by moving the accent and the tinted roles' hue at the same lightness, then fixing each failing pair by lightness only.
 
+**The focus ring is blue in Sand** (`#2457C5` / `#8CB4FF`, as in Sticker): its tan selection is 31° and 40° of hue from the red ring at about 1:1, so the ring would be lost on a selected row (`ARCHITECTURE.md` 2.2, "Kept apart"). It is 5.1:1 or more on every ground it touches. Dusk and Aurora keep the red ring, 117° and 160° from their accents.
+
 ## Depth and materials
 
 The gradient, the translucent sidebar and the glass come with phase 6 (materials); until then the ground, sidebar and bars are solid `bg`, `sidebar` and `toolbar`.
@@ -80,7 +82,7 @@ Calm: about 260 ms (`base` × 1.2) on an ease-in-out curve, no overshoot. Press 
 
 ## Accessibility (checked by the prototype validator, both modes)
 
-- `ink` on `bg` 14.7:1 light, 15.6:1 dark; `ink-muted` on `surface` 7.0 / 7.6; white on the accent 6.5:1; accent as text 6.0 / 7.7; the red focus ring 5.6 / 7.4 on `bg`; `line-strong` 3.3 / 3.1.
+- `ink` on `bg` 14.7:1 light, 15.6:1 dark; `ink-muted` on `surface` 7.0 / 7.6; white on the accent 6.5:1; accent as text 6.0 / 7.7; the red focus ring 5.6 / 7.4 on `bg` (Dusk); `line-strong` 3.3 / 3.1.
 - Every text pair also passes over the glass composited on each gradient stop.
 - Reduce transparency: the sidebar, toolbar and composer become `surface`; the gradient stays (it is not transparency) and still passes.
 

@@ -43,6 +43,8 @@ Colour is chosen inside the theme (decided 2026-10-23; `ARCHITECTURE.md` 1.6). "
 
 Every palette gives all 43 roles in both modes and passes the contrast pairs of `ARCHITECTURE.md` 2.2 in both modes at normal contrast (prototype validator, 2026-10-23). **Increased contrast is unverified:** these palettes have no `contrast` set of their own and rely on the resolver's 7:1 derivation, which does not exist yet; the prototype only counted the pairs it would have to move (24 to 33 per palette, both modes together). Phase 1's built-in test fails on any palette whose derived set does not pass; that palette then gets its own `contrast` set. Alternative palettes were made from the default by moving the accent and the tinted roles' hue at the same lightness, then fixing each failing pair by lightness only.
 
+**The focus ring is blue in Amber and Sepia** (`#2457C5` / `#8CB4FF`, as in Sticker): their amber and brown selection is 28° to 50° of hue from the red ring at about 1:1, so the ring would be lost on a selected row (`ARCHITECTURE.md` 2.2, "Kept apart"). It is 5.1:1 or more on every ground it touches. Linen keeps the red ring, 174° from its teal.
+
 ## Depth and materials
 
 The grain comes with phase 6 (materials); until then the window ground is solid `bg`.
@@ -81,7 +83,7 @@ Calm: about 250 ms ease-in-out; press dims; pages fade. Reduced motion: a fast f
 
 ## Accessibility (checked by the prototype validator, both modes)
 
-- `ink` on `bg` 13.4:1 / 14.1:1; `ink-muted` on `surface` 6.7 / 7.1; white on the accent 6.4:1 and dark on the dark accent 8.9:1; accent as text 6.0 / 9.1; the focus ring 5.6 / 7.3; `line-strong` 3.4 / 3.1.
+- `ink` on `bg` 13.4:1 / 14.1:1; `ink-muted` on `surface` 6.7 / 7.1; white on the accent 6.4:1 and dark on the dark accent 8.9:1; accent as text 6.0 / 9.1; the blue focus ring 5.5 / 8.7 on `bg`; `line-strong` 3.4 / 3.1.
 - Italic secondary text keeps `ink-muted` at 6.7:1 or better, so the italic never relies on lightness to read.
 - Underlined fields keep a 3:1 underline (`line-strong`).
 
