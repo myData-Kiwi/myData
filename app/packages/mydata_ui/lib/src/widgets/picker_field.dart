@@ -7,7 +7,7 @@ import 'package:flutter/services.dart';
 
 import '../generated/tokens.g.dart';
 import '../mac/mac_controls.dart' show MacControl;
-import '../mac/mac_window.dart';
+import '../mac/mac_theme.dart' show MacSystemLook;
 import '../theme/motion.dart';
 import '../theme/theme.dart';
 import 'app_frame.dart' show AppLayout, PhoneType;
@@ -133,7 +133,7 @@ class PickerField extends StatelessWidget {
     final hasError = error != null && !_disabled;
     final note = _disabled ? disabledReason : (error ?? help);
     // The Mac frame: the field at Mac density, as MacEditField (mac/mac_controls.dart); the same behaviour.
-    final mac = !phone && MacWindow.of(context);
+    final mac = !phone && context.isSystemLook;
     final border = mac ? 1.0 : (hasError ? errorBorderWidth : borderWidth);
     final style = mac ? MyDataMacType.body.copyWith(color: c.ink) : pickerValueStyle(context.look, c, phone: phone);
     final height = mac ? MacControl.height : pickerControlHeight(context.look, compact: compact, phone: phone);

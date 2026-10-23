@@ -9,7 +9,7 @@ import 'package:flutter/services.dart';
 import '../accessibility.dart';
 import '../generated/tokens.g.dart';
 import '../mac/mac_overlays.dart' show MacToastLook;
-import '../mac/mac_window.dart';
+import '../mac/mac_theme.dart' show MacSystemLook;
 import '../theme/motion.dart';
 import '../theme/theme.dart';
 import 'app_menu_bar.dart';
@@ -605,7 +605,7 @@ class _ToastBar extends StatelessWidget {
     final reduced = MyDataAccessibility.of(context).reduceMotion;
     final hasUndo = message.undo != null;
     // The Mac frame: a small floating panel in the system's font and colours (mac/mac_overlays.dart).
-    final mac = MacWindow.of(context);
+    final mac = context.isSystemLook;
     final text = Text(message.message, style: mac ? MacToastLook.text(context) : context.typeScale.body.copyWith(color: c.ink));
     final content = Row(
       mainAxisSize: phone ? MainAxisSize.max : MainAxisSize.min,

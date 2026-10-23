@@ -96,11 +96,12 @@ void main() {
   testWidgets('the System look is drawn only in the Mac window: context.type maps roles to the Mac\'s styles there',
       (tester) async {
     late TextStyle mac, branded;
-    late bool window;
+    late bool window, system;
     await tester.pumpWidget(MaterialApp(
       theme: MacTheme.data('kiwi', Brightness.light, MyDataMacColors.light),
       home: Builder(builder: (context) {
         window = MacWindow.of(context);
+        system = context.isSystemLook;
         mac = context.type(MyDataTypeRole.body);
         return Theme(
           data: MyDataTheme.data('kiwi', Brightness.light),
@@ -112,6 +113,7 @@ void main() {
       }),
     ));
     expect(window, isTrue);
+    expect(system, isTrue);
     expect(mac, MyDataMacType.body);
     expect(branded, MyDataType.body);
   });

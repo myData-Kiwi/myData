@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../mac/mac_empty_state.dart';
 import '../mac/mac_theme.dart';
-import '../mac/mac_window.dart';
 import '../theme/theme.dart';
 import 'button.dart';
 import 'icon_tile.dart';
@@ -94,7 +93,7 @@ class StatusPanel extends StatelessWidget {
     final c = context.colors;
     final hasDetail = detail != null && detail!.isNotEmpty;
     // The Mac frame: one symbol, the title, one line, the detail as selectable small text, the actions.
-    if (MacWindow.of(context)) {
+    if (context.isSystemLook) {
       return MacEmptyState(
         symbol: switch (kind) {
           StatusPanelKind.working => MacEmptySymbol.working,

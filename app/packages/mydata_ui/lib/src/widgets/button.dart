@@ -2,7 +2,6 @@ import 'package:flutter/widgets.dart';
 
 import '../generated/tokens.g.dart';
 import '../mac/mac_theme.dart';
-import '../mac/mac_window.dart';
 import '../theme/theme.dart';
 import 'pressable.dart';
 
@@ -106,7 +105,7 @@ class Button extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (MacWindow.of(context)) return _mac(context);
+    if (context.isSystemLook) return _mac(context);
     final c = context.colors;
     final fg = variant.foreground(c);
     final text = Text(

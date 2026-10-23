@@ -20,7 +20,7 @@ import 'result_view.dart';
 ///   transparency), holding a borderless field and a send button named "Send". The conversation scrolls
 ///   beneath it. Both are disabled while a reply is coming in; the field gets focus back afterwards.
 /// - Everything in the conversation can be selected and copied.
-/// - **The Mac frame** ([MacWindow.of]): the conversation is a column centred in the content (the branded
+/// - **The Mac frame** ([MacSystemLook.isSystemLook]): the conversation is a column centred in the content (the branded
 ///   column's measure at 13 pt), the user's messages in a neutral bubble, the assistant's in plain `body`,
 ///   progress in `callout` / `secondary-label`. The composer sits at the bottom under the conversation, as in
 ///   Messages: a rounded field with the round accent Send button inside it, and the system's focus ring. The
@@ -239,7 +239,7 @@ class _ChatViewState extends State<ChatView> {
 
   @override
   Widget build(BuildContext context) {
-    if (MacWindow.of(context)) return _mac(context);
+    if (context.isSystemLook) return _mac(context);
     final items = _chat.items;
     final pad = PageScaffold.paddingFor(context.look, AppLayout.of(context));
     return FloatingBarHost(

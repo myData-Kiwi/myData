@@ -9,7 +9,6 @@ import '../accessibility.dart';
 import '../generated/tokens.g.dart';
 import '../mac/mac_chrome.dart';
 import '../mac/mac_theme.dart';
-import '../mac/mac_window.dart';
 import '../theme/theme.dart';
 import 'button.dart';
 import 'checkbox.dart';
@@ -462,7 +461,7 @@ class _MultiSelectListState<K> extends State<MultiSelectList<K>> {
         ),
       );
 
-  /// The Mac frame's list ([MacWindow.of]): no card and no dividers; rows
+  /// The System look's list in the Mac window ([MacSystemLook.isSystemLook]): no card and no dividers; rows
   /// `row-inset` from the sides, at least
   /// `row-height` tall; the selection a `selection` rounded fill (a run of rows joins into one block), the
   /// accent while the list has focus in the active window, with its rows' content told so through
@@ -514,7 +513,7 @@ class _MultiSelectListState<K> extends State<MultiSelectList<K>> {
 
   @override
   Widget build(BuildContext context) {
-    if (MacWindow.of(context)) return _mac(context);
+    if (context.isSystemLook) return _mac(context);
     final c = context.colors;
     final ctrl = widget.controller;
     final rows = ctrl.rows;

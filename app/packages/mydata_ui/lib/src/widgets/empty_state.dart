@@ -2,7 +2,6 @@ import 'package:flutter/widgets.dart';
 
 import '../mac/mac_empty_state.dart';
 import '../mac/mac_theme.dart';
-import '../mac/mac_window.dart';
 import '../theme/theme.dart';
 import 'button.dart';
 import 'kiwi.dart';
@@ -69,7 +68,7 @@ class EmptyState extends StatelessWidget {
     final c = context.colors;
     final reason = onAction == null ? disabledReason : null;
     // The Mac frame: the bare kiwi, the title, one line and the button (ContentUnavailableView).
-    if (MacWindow.of(context)) {
+    if (context.isSystemLook) {
       return MacEmptyState(
         title: title,
         line: sentence,

@@ -459,7 +459,7 @@ class _Selection extends StatelessWidget {
         Button(
           label: n <= 1 ? 'Delete contact' : 'Delete $n contacts',
           // The Mac frame: a push button (the Delete key and the menu bar do the same).
-          variant: MacWindow.of(context) ? ButtonVariant.tonal : ButtonVariant.plainDanger,
+          variant: context.isSystemLook ? ButtonVariant.tonal : ButtonVariant.plainDanger,
           onPressed: n == 0 ? null : () => unawaited(actions.delete(ids)),
         ),
       ],

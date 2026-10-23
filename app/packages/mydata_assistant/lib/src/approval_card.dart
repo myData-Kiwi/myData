@@ -18,7 +18,7 @@ import 'mac_chat.dart';
 /// Pending: "Approve and send" (or "Approve and run") and Reject, both disabled while [deciding]. There is
 /// no Edit: the host has no way to change a held call.
 ///
-/// **The Mac frame** ([MacWindow.of]): the same card drawn as the system
+/// **The System look in the Mac window** ([MacSystemLook.isSystemLook]): the same card drawn as the system
 /// would ([_MacApprovalCard]): a rounded box
 /// with a hairline outline, the question in the toolbar's `title` with the state as a small glyph and word
 /// at its end, every argument in Contacts' label and value columns ([MacFieldTable]: click a value to copy
@@ -70,7 +70,7 @@ class AssistantApprovalCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final mac = MacWindow.of(context);
+    final mac = context.isSystemLook;
     final caption = context.type(MyDataTypeRole.caption).copyWith(color: c.inkMuted);
     final state = _state;
     final pending = state == ApprovalState.pending;

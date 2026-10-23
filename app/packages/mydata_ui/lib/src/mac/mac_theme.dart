@@ -17,7 +17,8 @@ import 'mac_window.dart';
 /// - **The theme.** [MacTheme.data] keeps every token the other widgets read ([MyDataColors]) but maps them
 ///   to the system's colours, and adds [MyDataMacColors] for the Mac widgets and a [MyDataLook] whose frame
 ///   is [LookFrame.system].
-/// - **Asking where you are:** [MacWindow.of], the Mac window's skeleton is drawn here.
+/// - **Asking where you are** (design/themes/ARCHITECTURE.md 3.3): layout asks [MacWindow.of] (the Mac
+///   window's skeleton); how a thing is drawn asks [MacSystemLook.isSystemLook] (System in the Mac window).
 abstract final class MacLook {
   /// Tests set this to draw the Mac frame on the test platform (or to keep it off); null follows the
   /// platform.
@@ -25,6 +26,12 @@ abstract final class MacLook {
 
   /// The app should build the Mac theme: on macOS (or as [debugOverride] says).
   static bool get forThisPlatform => debugOverride ?? (!kIsWeb && defaultTargetPlatform == TargetPlatform.macOS);
+}
+
+/// `context.isSystemLook`: the System look is drawn here, in the Mac window ([MacWindow.of]): the system's
+/// colours, font, sizes and controls. Visual branches ask this; layout branches ask [MacWindow.of].
+extension MacSystemLook on BuildContext {
+  bool get isSystemLook => MacWindow.of(this) && MyDataLook.of(this).frame == LookFrame.system;
 }
 
 /// `context.mac`: the Mac frame's colours for this appearance (the defaults outside a [MacTheme]).
@@ -36,14 +43,14 @@ extension MacContext on BuildContext {
   }
 }
 
-/// `context.type(MyDataTypeRole.body)`: the look's style for a role, or in the Mac frame ([MacWindow.of]) its
-/// Mac counterpart ([MacTheme.typeFor]), so the shared widgets
+/// `context.type(MyDataTypeRole.body)`: the look's style for a role, or in the System look on a Mac
+/// ([MacSystemLook.isSystemLook]) its Mac counterpart ([MacTheme.typeFor]), so the shared widgets
 /// (EmptyState, StatusPanel, Notice, Button, the several-selected summary) draw in the system font at Mac
 /// sizes there. Call it before `copyWith`.
 extension MacTypeContext on BuildContext {
   TextStyle type(MyDataTypeRole role) {
     final scale = MyDataLook.of(this).typeScale;
-    return MacWindow.of(this) ? MacTheme.typeFor(role, scale) : scale(role);
+    return isSystemLook ? MacTheme.typeFor(role, scale) : scale(role);
   }
 }
 

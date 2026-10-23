@@ -4,7 +4,7 @@ import 'package:mydata_ui/mydata_ui.dart';
 import 'chat_controller.dart';
 
 // The chat in the Mac frame (MacLook; docs/2026-10-23-plan.md section 5, "native frame, quiet brand"). Not
-// exported: ChatView, ResultCard and AssistantApprovalCard switch to these themselves when `MacWindow.of` says
+// exported: ChatView, ResultCard and AssistantApprovalCard switch to these themselves when `context.isSystemLook` says
 // so, and draw their branded look everywhere else.
 
 /// The Mac chat's measures. The reading column keeps the branded column's measure (characters per line) at

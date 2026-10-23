@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import '../generated/tokens.g.dart';
-import '../mac/mac_window.dart';
+import '../mac/mac_theme.dart' show MacSystemLook;
 import '../theme/theme.dart';
 import 'group_frame.dart' show GroupPartShape;
 import 'grouped_list.dart';
@@ -85,7 +85,7 @@ const _edgeWidth = 1.0;
 Border? _edge(BuildContext context, MyDataColors c, bool edge) => edge
     ? Border.all(
         color: c.lineStrong,
-        width: MacWindow.of(context) ? MyDataMacSize.hairline : _edgeWidth,
+        width: context.isSystemLook ? MyDataMacSize.hairline : _edgeWidth,
         strokeAlign: BorderSide.strokeAlignInside,
       )
     : null;

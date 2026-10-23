@@ -6,7 +6,6 @@ import 'package:flutter/widgets.dart';
 
 import '../generated/tokens.g.dart';
 import '../mac/mac_theme.dart';
-import '../mac/mac_window.dart';
 import '../theme/theme.dart';
 import 'badge.dart';
 import 'group_frame.dart';
@@ -54,7 +53,7 @@ class GroupedList extends StatelessWidget {
   static EdgeInsets headingPadding(MyDataLook look) => GroupFrame.headingPadding(look);
 
   @override
-  Widget build(BuildContext context) => GroupFrame(heading: heading, parts: rows, plain: MacWindow.of(context));
+  Widget build(BuildContext context) => GroupFrame(heading: heading, parts: rows, plain: context.isSystemLook);
 }
 
 /// What sits at the right end of a [GroupedRow]: a status chip, a value, a chevron, or a value and a
@@ -231,7 +230,7 @@ class GroupedRow extends StatelessWidget {
 
     final end = isSwitch ? SwitchTrack(value: switchValue!) : (trailing == null ? null : _trailing(context, trailing!));
     // The Mac frame: a plain list's row, `row-height` at least, its text in the system's styles.
-    final mac = MacWindow.of(context);
+    final mac = context.isSystemLook;
     Widget content = ConstrainedBox(
       constraints: BoxConstraints(minHeight: mac ? MyDataMacSize.rowHeight : context.density.rowHeight),
       child: Padding(

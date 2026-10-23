@@ -30,7 +30,7 @@ class ResultLinks {
 /// Enter and Space. Otherwise (demo data, the app not installed, an item without an id or a day, mail and
 /// photos) the row is not interactive.
 ///
-/// **The Mac frame** ([MacWindow.of]): the header in `body-emphasized`,
+/// **The System look in the Mac window** ([MacSystemLook.isSystemLook]): the header in `body-emphasized`,
 /// then the rows in one rounded box with a
 /// hairline outline and hairlines between rows (as Mail and System Settings group things), each with its
 /// kind's Lucide icon ([macIconFor]; events in the accent, the rest in `secondary-label`) instead of a
@@ -156,7 +156,7 @@ class ResultCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (MacWindow.of(context)) return _mac(context);
+    if (context.isSystemLook) return _mac(context);
     final c = context.colors;
     if (kind == 'event_created') {
       // The header says what was added; the list's one row carries it.

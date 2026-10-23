@@ -8,7 +8,7 @@ import 'package:flutter/services.dart';
 
 import '../generated/tokens.g.dart';
 import '../mac/mac_overlays.dart' show MacAlert;
-import '../mac/mac_window.dart';
+import '../mac/mac_theme.dart' show MacSystemLook;
 import '../theme/motion.dart';
 import '../theme/theme.dart';
 import 'app_frame.dart' show AppLayout;
@@ -182,7 +182,7 @@ class _DialogRoute extends PopupRoute<bool> {
 
   /// No scrim in the Mac frame: a sheet leaves its window as it is (the barrier still takes the clicks).
   @override
-  Color? get barrierColor => MacWindow.of(navigator!.context) ? null : scrim;
+  Color? get barrierColor => navigator!.context.isSystemLook ? null : scrim;
 
   @override
   bool get barrierDismissible => false;
@@ -207,7 +207,7 @@ class _DialogRoute extends PopupRoute<bool> {
     final faded = FadeTransition(opacity: curved, child: child);
     if (reduced) return faded;
     // The Mac frame's sheet comes down from the toolbar's edge.
-    if (MacWindow.of(context)) {
+    if (context.isSystemLook) {
       return SlideTransition(
         position: Tween(begin: Offset(0, -context.motion.sheetDrop), end: Offset.zero).animate(curved),
         child: faded,
@@ -455,7 +455,7 @@ class _MyDataDialogState extends State<MyDataDialog> {
 
     // The Mac frame: an alert as macOS 26 draws it (mac/mac_overlays.dart), with the same behaviour; Cancel
     // is a push button there.
-    final panel = MacWindow.of(context)
+    final panel = context.isSystemLook
         ? MacAlert.panel(
             context,
             title: widget.title,
@@ -542,7 +542,7 @@ class _MyDataDialogState extends State<MyDataDialog> {
                   padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
                   child: SafeArea(
                     // The Mac frame: a sheet, hanging from the toolbar's edge at the top of the window.
-                    child: MacWindow.of(context)
+                    child: context.isSystemLook
                         ? Padding(
                             padding: EdgeInsets.only(top: MyDataMacSize.toolbarHeight, bottom: context.space(8)),
                             child: Align(

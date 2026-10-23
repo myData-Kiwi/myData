@@ -7,8 +7,7 @@ import 'package:flutter/services.dart';
 
 import '../accessibility.dart';
 import '../generated/tokens.g.dart';
-import '../mac/mac_theme.dart' show MacTypeContext;
-import '../mac/mac_window.dart';
+import '../mac/mac_theme.dart' show MacTypeContext, MacSystemLook;
 import '../theme/theme.dart';
 import 'app_menu_bar.dart';
 import 'button.dart';
@@ -332,7 +331,7 @@ class InspectorState extends State<Inspector> {
     );
     final action = widget.failureAction;
     // The Mac frame: the system's type (context.type) and a push button for Cancel; the panel is the same.
-    final mac = MacWindow.of(context);
+    final mac = context.isSystemLook;
     final failure = _failure == null
         ? null
         : action == null

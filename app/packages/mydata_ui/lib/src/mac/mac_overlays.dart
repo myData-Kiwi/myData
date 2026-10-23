@@ -10,7 +10,7 @@ import 'mac_theme.dart';
 /// What opens over a window in the Mac frame (docs/2026-10-23-plan.md section 5: "Restyled: Dialog (push
 /// buttons, the default button in the accent), Inspector, and toasts"), drawn the way macOS 26 draws them.
 /// The branded widgets keep their behaviour (keys, focus, waiting for the host, announcements) and hand their
-/// parts here when [MacWindow.of] is true:
+/// parts here when [MacSystemLook.isSystemLook] is true:
 ///
 /// - [MacAlert]: MyDataDialog as an alert sheet (NSAlert run as a sheet on macOS 26): it comes down from the
 ///   window's toolbar edge with no scrim over the window, the app's own icon ([MacAppIcon]), the title in

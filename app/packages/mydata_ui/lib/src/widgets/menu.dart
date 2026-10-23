@@ -8,7 +8,7 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 
 import '../mac/mac_overlays.dart' show MacMenuLook;
-import '../mac/mac_window.dart';
+import '../mac/mac_theme.dart' show MacSystemLook;
 import '../theme/motion.dart';
 import '../theme/theme.dart';
 import 'dialog.dart' show phoneWidth;
@@ -377,7 +377,7 @@ class _MenuPanelState extends State<_MenuPanel> {
     final compact = widget.route.compact;
     final phone = MediaQuery.sizeOf(context).width < phoneWidth;
     // The Mac frame: a macOS menu (mac/mac_overlays.dart), with the same behaviour.
-    final mac = MacWindow.of(context);
+    final mac = context.isSystemLook;
     final iconSpace = _items.any((i) => i.icon != null);
     final children = <Widget>[];
     var index = 0;
@@ -519,7 +519,7 @@ class _MenuItemTile extends StatelessWidget {
         : (compact ? context.density.controlHeightCompact : context.density.controlHeight);
     // The Mac frame: a macOS menu item (mac/mac_overlays.dart); the keyboard's item is on the accent. A macOS
     // menu item has no second line: a disabled item's reason is its help tag (a tooltip) and its hint.
-    final mac = MacWindow.of(context);
+    final mac = context.isSystemLook;
     Widget tile = mac
         ? MacMenuLook.item(
             context,
