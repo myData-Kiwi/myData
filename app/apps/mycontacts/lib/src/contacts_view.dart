@@ -27,8 +27,8 @@ import 'merge_pane.dart';
 /// - **The Mac frame** ([MacLook]): the list column (`list-width`) with the title and New contact in the
 ///   toolbar band above it and the plain list ([ContactListStyle.plain]) under it, holding the keyboard at
 ///   first; a hairline; then the contact column with Edit at the start of its band and the search field at
-///   the end, and [MacContactPage] under it. Where SwiftUI's NavigationSplitView puts them on macOS 26 (the
-///   stack gate compares the two with the same items in the same places). The inspector, several selected and
+///   the end, and [MacContactPage] under it. Where SwiftUI's NavigationSplitView puts them on macOS 26 (as
+///   the M1a stack gate laid them out). The inspector, several selected and
 ///   Merge take the contact column's place under the band, as above.
 class ContactsView extends StatefulWidget {
   const ContactsView({super.key, required this.controller, required this.onOpenLink, required this.actions});

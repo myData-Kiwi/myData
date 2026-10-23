@@ -48,8 +48,8 @@ const macSystemFontFile = '/System/Library/Fonts/SFNS.ttf';
 /// - By default that font is the bundled Figtree (SIL OFL), so committed screenshots of the Mac frame hold no
 ///   rasterised SF Pro (Apple's font licence; the repo is public) and look the same on any machine.
 /// - With [systemFont], on a Mac, it is the system font itself, read from [macSystemFontFile] and never copied
-///   into the repo: for the stack gate's screenshots, which are written outside the checkout
-///   (`MYDATA_GATE_OUT`). Elsewhere the system font is missing and Figtree is used.
+///   into the repo: for a local check of the real font, written outside the checkout and never committed.
+///   Elsewhere the system font is missing and Figtree is used.
 ///
 /// Returns whether the system font was loaded.
 Future<bool> loadMacFonts({bool systemFont = false}) async {

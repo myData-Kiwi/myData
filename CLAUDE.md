@@ -67,7 +67,7 @@ Technical names: repo `mydata-kiwi/mydata`, command `mydata`, background service
 5. **Push** at the end of every session.
 6. **Backups:** Time Machine to an external disk or NAS, live `*.sqlite*` files excluded; the M1b off-machine backup gate stands.
 7. The mail spike app is deleted; the owner switches off its two stale grants.
-8. **Flutter is the stack on every platform, the Mac included** (the owner, after the M1a side-by-side of the People screen: Flutter's app has more to it, the SwiftUI one felt basic, and SwiftUI is Mac only). The family of separate apps stays. **Native frame, quiet brand:** on macOS the system's window, unified toolbar and translucent sidebar, the system font at 13 pt, the system accent and focus ring, Mac density; ours are the kiwi, the app icons, avatars, person pages, empty states and wording. Other platforms keep building and keep today's look until their own pass (Material 3 on Android). The SwiftUI prototype stays on the local branch `stack-gate-swiftui`, never pushed.
+8. **Flutter is the stack on every platform, the Mac included** (the owner, after the M1a side-by-side of the People screen: Flutter's app has more to it, the SwiftUI one felt basic, and SwiftUI is Mac only). The family of separate apps stays. **Native frame, quiet brand:** on macOS the system's window, unified toolbar and translucent sidebar, the system font at 13 pt, the system accent and focus ring, Mac density; ours are the kiwi, the app icons, avatars, person pages, empty states and wording. Other platforms keep building and keep today's look until their own pass (Material 3 on Android). The SwiftUI prototype stays on the local branch `stack-gate-swiftui`, never pushed (`docs/decisions/2026-10-23-stack-gate.md`).
 
 ## Architecture
 
@@ -220,4 +220,5 @@ Moved verbatim from this file on 2026-10-23:
 - `docs/decisions/2026-10-14-data-safety-and-writers.md`: data layer, data safety and the writers in full.
 - `docs/decisions/2026-10-14-contacts-editing-and-import.md`: contacts editing, import and the import UI.
 - `docs/decisions/2026-10-14-status-and-build-order.md`: phase status, the 2026-10-13 direction in full, assets, the old build order, open questions and rough edges.
+- `docs/decisions/2026-10-23-stack-gate.md`: the M1a side-by-side of Flutter and SwiftUI, and where each side's pieces are.
 - `docs/2026-10-13-own-data-plan.md` (superseded) and `docs/2026-10-23-plan.md` (current).

@@ -1,7 +1,6 @@
-// The Mac frame (MacLook) of the People screen, for the M1a stack gate: its behaviour, and screenshots at
-// 1280x800 in light and dark (test/screenshots/mac_*.png). The screenshots use the Mac's own system font when
-// the test runs on a Mac (loadMacFonts); refresh with
-// `flutter test --update-goldens test/mac_frame_test.dart` on a Mac.
+// The Mac frame (MacLook) of the People screen: its behaviour, and screenshots at 1280x800 in light and dark
+// (test/screenshots/mac_*.png), with the bundled Figtree under the system font's names (loadMacFonts); refresh
+// with `flutter test --update-goldens test/mac_frame_test.dart` on a Mac.
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

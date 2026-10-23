@@ -12,7 +12,8 @@ class MainFlutterWindow: NSWindow {
     let windowUtils = MacOSWindowUtilsViewController()
     let flutterViewController = windowUtils.flutterViewController
     self.contentViewController = windowUtils
-    // The size the stack gate compares at (Contacts.app beside it); the system restores the user's size later.
+    // The first window's size (as the M1a stack gate compared it with Contacts.app); the system restores the
+    // user's size later.
     self.setContentSize(NSSize(width: 1280, height: 800))
     self.minSize = NSSize(width: 720, height: 480)
     self.center()
