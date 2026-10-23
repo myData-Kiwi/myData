@@ -3,6 +3,7 @@ name = "mydata"
 version = "0.0.1"
 description = "myData host: self-hosted personal cloud with a local assistant"
 readme = "README.md"
+license = "AGPL-3.0-or-later"
 requires-python = ">=3.11"
 dependencies = [
     "defusedxml>=0.7.1",
