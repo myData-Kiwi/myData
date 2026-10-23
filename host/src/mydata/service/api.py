@@ -6,8 +6,8 @@
   GET  /approvals/{id}         one approval
   POST /approvals/{id}         approve or reject; approving runs exactly the held call, once
   PUT  /assistant/settings     switch the assistant on or off
-  GET  /appearance             the theme every app uses, and the themes to choose from
-  PUT  /appearance             set the theme every app uses (light or dark mode is per device, not here)
+  GET  /appearance             deprecated: the host's old theme, read once by each device to seed its own
+  PUT  /appearance             retired (410): themes are chosen on each device, per app
   POST /shutdown               stop the host (the myData app and the mydata command only)
   GET  /tools                  the tool registry
   GET  /agents                 agent tokens (never the tokens themselves), and which are connected
@@ -74,7 +74,7 @@ from starlette.routing import Route
 
 from .. import __version__
 from ..tools import ApprovalError, Registry
-from .appearance import DEFAULT_THEME, THEME_IDS, THEMES
+from .appearance import DEFAULT_THEME, THEMES
 from .assistant import Assistant
 from .auth import SCOPES, Authenticator
 from ..sources._db import MigrationError
@@ -186,7 +186,10 @@ class StatusOut(BaseModel):
     agents_connected: int = Field(description="agent tokens used in the last five minutes")
     today: str = Field(description="the date the host treats as today")
     demo_date: bool = Field(description="true while today is pinned to the demo data's date")
-    theme: str = Field(description="the theme every app uses; mode is per device and not stored here")
+    theme: str = Field(deprecated=True,
+                       description="deprecated, kept for one release: the theme the host gave every app before "
+                                   "themes were chosen on each device; an app reads it once, to seed that "
+                                   "device's choice")
     mode: Literal["demo", "real"] = Field(description="real when a source is on (an account is linked, or This "
                                                       "Mac is turned on) or the host owns data (an address book "
                                                       "or calendar of its own): the tools serve that data, with "
@@ -230,13 +233,12 @@ class ThemeOut(BaseModel):
 
 
 class AppearanceOut(BaseModel):
-    theme: str = Field(description="the theme every app uses; mode is per device and not stored here")
-    themes: list[ThemeOut] = Field(description="every theme, in the order to show them")
-    chosen: bool = Field(description="false until someone has chosen a theme; first run offers the choice")
+    theme: str = Field(description="the theme the host gave every app before themes were chosen on each device")
+    themes: list[ThemeOut] = Field(description="the old themes, in the order they were shown")
+    chosen: bool = Field(description="whether someone chose a theme on the host")
 
 
-class AppearanceIn(BaseModel):
-    theme: str = Field(description="a theme id from GET /appearance")
+THEMES_PER_DEVICE = "Themes are chosen on each device now."
 
 
 class DecisionIn(BaseModel):
@@ -981,7 +983,7 @@ def create_app(auth: Authenticator, registry: Registry, models: ModelManager, as
     /status has no backup section."""
     started = time.time()
     session_manager = build_mcp(registry)
-    # Without a state file (the OpenAPI document), the theme lives in memory only.
+    # Without a state file (the OpenAPI document), the old theme is the default.
     no_state = {"theme": DEFAULT_THEME, "chosen": False}
 
     def current_theme() -> str:
@@ -1060,23 +1062,19 @@ def create_app(auth: Authenticator, registry: Registry, models: ModelManager, as
         return AppearanceOut(theme=current_theme(), themes=[ThemeOut(id=i, name=n) for i, n in THEMES],
                              chosen=chosen)
 
-    @app.get("/appearance", dependencies=needs("status"), tags=["appearance"], response_model=AppearanceOut)
+    @app.get("/appearance", dependencies=needs("status"), tags=["appearance"], response_model=AppearanceOut,
+             deprecated=True)
     def appearance() -> AppearanceOut:
-        """The theme every app uses, and the themes to choose from. Light or dark mode is per device."""
+        """Deprecated, kept for one release (design/themes/ARCHITECTURE.md 4.2): the theme the host gave every
+        app before themes were chosen on each device. Each device reads it once to seed its own choice."""
         return appearance_out()
 
-    @app.put("/appearance", dependencies=needs("admin"), tags=["appearance"], response_model=AppearanceOut,
-             responses={400: {"description": "no such theme"}})
-    def set_appearance(body: AppearanceIn) -> AppearanceOut:
-        """Set the theme every app uses. Apps follow the change through GET /status."""
-        if body.theme not in THEME_IDS:
-            raise HTTPException(400, f"no such theme: {body.theme}; choose one of {', '.join(THEME_IDS)}")
-        if state is not None:
-            state.set_theme(body.theme)
-        else:
-            no_state["theme"] = body.theme
-            no_state["chosen"] = True
-        return appearance_out()
+    @app.put("/appearance", dependencies=needs("admin"), tags=["appearance"], deprecated=True, status_code=410,
+             responses={410: {"description": THEMES_PER_DEVICE}})
+    def set_appearance() -> None:
+        """Retired: themes are chosen on each device, per app (the device's settings, never the host). Always
+        410, and the host's stored theme is left as it was."""
+        raise HTTPException(410, THEMES_PER_DEVICE)
 
     @app.post("/shutdown", dependencies=needs("shutdown"), tags=["host"], status_code=202,
               responses={403: {"description": "only the myData app can stop the host"}})

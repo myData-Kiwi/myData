@@ -18,13 +18,13 @@ class AppearanceOut {
     this.themes = const [],
   });
 
-  /// false until someone has chosen a theme; first run offers the choice
+  /// whether someone chose a theme on the host
   bool chosen;
 
-  /// the theme every app uses; mode is per device and not stored here
+  /// the theme the host gave every app before themes were chosen on each device
   String theme;
 
-  /// every theme, in the order to show them
+  /// the old themes, in the order they were shown
   List<ThemeOut> themes;
 
   @override

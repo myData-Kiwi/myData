@@ -44,7 +44,6 @@ part 'model/account_sync_out.dart';
 part 'model/agent_created.dart';
 part 'model/agent_in.dart';
 part 'model/agent_out.dart';
-part 'model/appearance_in.dart';
 part 'model/appearance_out.dart';
 part 'model/approval_out.dart';
 part 'model/assistant_settings_in.dart';

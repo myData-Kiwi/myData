@@ -218,8 +218,6 @@ class ApiClient {
           return AgentIn.fromJson(value);
         case 'AgentOut':
           return AgentOut.fromJson(value);
-        case 'AppearanceIn':
-          return AppearanceIn.fromJson(value);
         case 'AppearanceOut':
           return AppearanceOut.fromJson(value);
         case 'ApprovalOut':

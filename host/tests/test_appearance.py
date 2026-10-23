@@ -1,4 +1,4 @@
-"""The theme is stored on the host and applies to every app; light or dark mode is per device."""
+"""The host's old theme: PUT /appearance is retired (410); GET and /status's `theme` stay for one release."""
 
 import json
 from pathlib import Path
@@ -50,36 +50,27 @@ def test_get_lists_six_themes_in_order(tmp_path):
                       {"id": "rose", "name": "Rose"}, {"id": "amber", "name": "Amber"}]
 
 
-def test_put_persists_shows_in_status_and_survives_a_restart(tmp_path):
+def test_put_is_retired_with_410_and_changes_nothing(tmp_path):
     c, _ = _app(tmp_path)
+    HostState(tmp_path).set_theme("plum")  # chosen on the host before themes moved to each device
     r = c.put("/appearance", json={"theme": "dusk"}, headers=_h(TOKEN))
-    assert r.status_code == 200 and r.json()["theme"] == "dusk" and len(r.json()["themes"]) == 6
-    # another app, polling /status, sees the change
-    assert c.get("/status", headers=_h(ASSISTANT_TOKEN)).json()["theme"] == "dusk"
-    assert c.get("/appearance", headers=_h(ASSISTANT_TOKEN)).json()["theme"] == "dusk"
-    # a new HostState on the same folder (a restarted host) reads it back
-    assert HostState(tmp_path).theme == "dusk"
-    c2, _ = _app(tmp_path)
-    assert c2.get("/status", headers=_h(TOKEN)).json()["theme"] == "dusk"
+    assert r.status_code == 410
+    assert r.json()["detail"] == "Themes are chosen on each device now."
+    # without a body too (the route takes none now)
+    assert c.put("/appearance", headers=_h(TOKEN)).status_code == 410
+    # the host's old theme stays readable for one release, so each device can seed its own choice
+    assert HostState(tmp_path).theme == "plum"
+    assert c.get("/status", headers=_h(ASSISTANT_TOKEN)).json()["theme"] == "plum"
+    assert c.get("/appearance", headers=_h(ASSISTANT_TOKEN)).json()["theme"] == "plum"
 
 
-def test_theme_and_assistant_switch_do_not_overwrite_each_other(tmp_path):
-    c, _ = _app(tmp_path)
-    c.put("/appearance", json={"theme": "plum"}, headers=_h(TOKEN))
-    c.put("/assistant/settings", json={"enabled": False}, headers=_h(TOKEN))
-    s = HostState(tmp_path)
-    assert s.theme == "plum" and s.assistant_enabled is False
-
-
-def test_unknown_theme_is_400_and_changes_nothing(tmp_path):
-    c, _ = _app(tmp_path)
-    c.put("/appearance", json={"theme": "rose"}, headers=_h(TOKEN))
-    r = c.put("/appearance", json={"theme": "neon"}, headers=_h(TOKEN))
-    assert r.status_code == 400
-    detail = r.json()["detail"]
-    assert "neon" in detail and all(t in detail for t, _ in THEMES)
-    assert HostState(tmp_path).theme == "rose"
-    assert c.get("/status", headers=_h(TOKEN)).json()["theme"] == "rose"
+def test_the_old_theme_routes_are_marked_deprecated_in_the_document():
+    from mydata.service.openapi import openapi_document
+    doc = openapi_document()
+    assert doc["paths"]["/appearance"]["get"]["deprecated"] is True
+    put = doc["paths"]["/appearance"]["put"]
+    assert put["deprecated"] is True and "410" in put["responses"] and "requestBody" not in put
+    assert doc["components"]["schemas"]["StatusOut"]["properties"]["theme"]["deprecated"] is True
 
 
 def test_agent_tokens_cannot_read_or_set_the_theme(tmp_path):
@@ -90,18 +81,18 @@ def test_agent_tokens_cannot_read_or_set_the_theme(tmp_path):
     assert HostState(tmp_path).theme == "kiwi"
 
 
+def test_only_admin_apps_reach_the_retired_put(tmp_path):
+    c, _ = _app(tmp_path)
+    assert c.put("/appearance", headers=_h(ASSISTANT_TOKEN)).status_code == 403
+
+
 def test_hand_edited_unknown_theme_reads_as_default(tmp_path):
     (tmp_path / "state.json").write_text(json.dumps({"theme": "neon", "assistant_enabled": False}))
     assert HostState(tmp_path).theme == "kiwi"
 
 
-def test_first_run_until_a_theme_is_chosen(tmp_path):
+def test_chosen_says_whether_a_theme_was_ever_chosen_on_the_host(tmp_path):
     c, _ = _app(tmp_path)
     assert c.get("/appearance", headers=_h(TOKEN)).json()["chosen"] is False
-    # choosing Kiwi, the default, still counts as a choice: first run is over
-    assert c.put("/appearance", json={"theme": "kiwi"}, headers=_h(TOKEN)).json()["chosen"] is True
-    assert HostState(tmp_path).theme_chosen
-    # the assistant switch alone does not end first run
-    other = tmp_path / "other"
-    HostState(other).set_assistant_enabled(False)
-    assert not HostState(other).theme_chosen
+    HostState(tmp_path).set_theme("kiwi")
+    assert c.get("/appearance", headers=_h(TOKEN)).json()["chosen"] is True

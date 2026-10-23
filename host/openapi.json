@@ -298,34 +298,20 @@
         "title": "AgentOut",
         "type": "object"
       },
-      "AppearanceIn": {
-        "properties": {
-          "theme": {
-            "description": "a theme id from GET /appearance",
-            "title": "Theme",
-            "type": "string"
-          }
-        },
-        "required": [
-          "theme"
-        ],
-        "title": "AppearanceIn",
-        "type": "object"
-      },
       "AppearanceOut": {
         "properties": {
           "chosen": {
-            "description": "false until someone has chosen a theme; first run offers the choice",
+            "description": "whether someone chose a theme on the host",
             "title": "Chosen",
             "type": "boolean"
           },
           "theme": {
-            "description": "the theme every app uses; mode is per device and not stored here",
+            "description": "the theme the host gave every app before themes were chosen on each device",
             "title": "Theme",
             "type": "string"
           },
           "themes": {
-            "description": "every theme, in the order to show them",
+            "description": "the old themes, in the order they were shown",
             "items": {
               "$ref": "#/components/schemas/ThemeOut"
             },
@@ -3999,7 +3985,8 @@
             "type": "boolean"
           },
           "theme": {
-            "description": "the theme every app uses; mode is per device and not stored here",
+            "deprecated": true,
+            "description": "deprecated, kept for one release: the theme the host gave every app before themes were chosen on each device; an app reads it once, to seed that device's choice",
             "title": "Theme",
             "type": "string"
           },
@@ -4852,7 +4839,8 @@
     },
     "/appearance": {
       "get": {
-        "description": "The theme every app uses, and the themes to choose from. Light or dark mode is per device.",
+        "deprecated": true,
+        "description": "Deprecated, kept for one release (design/themes/ARCHITECTURE.md 4.2): the theme the host gave every\napp before themes were chosen on each device. Each device reads it once to seed its own choice.",
         "operationId": "appearance",
         "responses": {
           "200": {
@@ -4905,32 +4893,10 @@
         ]
       },
       "put": {
-        "description": "Set the theme every app uses. Apps follow the change through GET /status.",
+        "deprecated": true,
+        "description": "Retired: themes are chosen on each device, per app (the device's settings, never the host). Always\n410, and the host's stored theme is left as it was.",
         "operationId": "set_appearance",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AppearanceIn"
-              }
-            }
-          },
-          "required": true
-        },
         "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppearanceOut"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "400": {
-            "description": "no such theme"
-          },
           "401": {
             "content": {
               "application/json": {
@@ -4951,6 +4917,14 @@
             },
             "description": "this token may not use this route: an app token needs one of x-mydata-scopes, and agent tokens can only use /mcp"
           },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Themes are chosen on each device now."
+          },
           "421": {
             "content": {
               "application/json": {
@@ -4960,16 +4934,6 @@
               }
             },
             "description": "the Host header is not this machine"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
           }
         },
         "summary": "Set Appearance",

@@ -126,7 +126,6 @@ Class | Method | HTTP request | Description
  - [AgentCreated](doc//AgentCreated.md)
  - [AgentIn](doc//AgentIn.md)
  - [AgentOut](doc//AgentOut.md)
- - [AppearanceIn](doc//AppearanceIn.md)
  - [AppearanceOut](doc//AppearanceOut.md)
  - [ApprovalOut](doc//ApprovalOut.md)
  - [AssistantSettingsIn](doc//AssistantSettingsIn.md)

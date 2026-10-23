@@ -21,7 +21,7 @@ Name | Type | Description | Notes
 **model** | [**ModelOut**](ModelOut.md) |  | 
 **ready** | **bool** | true when the assistant can answer | 
 **stale** | **bool** | true when the host's code on disk changed since it started; an app replaces it when the code on disk is the API it was built against | [optional] [default to false]
-**theme** | **String** | the theme every app uses; mode is per device and not stored here | 
+**theme** | **String** | deprecated, kept for one release: the theme the host gave every app before themes were chosen on each device; an app reads it once, to seed that device's choice | 
 **today** | **String** | the date the host treats as today | 
 **uptimeSeconds** | **num** |  | 
 **version** | **String** |  | 

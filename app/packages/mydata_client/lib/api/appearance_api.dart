@@ -18,7 +18,7 @@ class AppearanceApi {
 
   /// Appearance
   ///
-  /// The theme every app uses, and the themes to choose from. Light or dark mode is per device.
+  /// Deprecated, kept for one release (design/themes/ARCHITECTURE.md 4.2): the theme the host gave every app before themes were chosen on each device. Each device reads it once to seed its own choice.
   ///
   /// Note: This method returns the HTTP [Response].
   Future<Response> appearanceWithHttpInfo({
@@ -50,7 +50,7 @@ class AppearanceApi {
 
   /// Appearance
   ///
-  /// The theme every app uses, and the themes to choose from. Light or dark mode is per device.
+  /// Deprecated, kept for one release (design/themes/ARCHITECTURE.md 4.2): the theme the host gave every app before themes were chosen on each device. Each device reads it once to seed its own choice.
   Future<AppearanceOut?> appearance({
     Future<void>? abortTrigger,
   }) async {
@@ -75,28 +75,23 @@ class AppearanceApi {
 
   /// Set Appearance
   ///
-  /// Set the theme every app uses. Apps follow the change through GET /status.
+  /// Retired: themes are chosen on each device, per app (the device's settings, never the host). Always 410, and the host's stored theme is left as it was.
   ///
   /// Note: This method returns the HTTP [Response].
-  ///
-  /// Parameters:
-  ///
-  /// * [AppearanceIn] appearanceIn (required):
-  Future<Response> setAppearanceWithHttpInfo(
-    AppearanceIn appearanceIn, {
+  Future<Response> setAppearanceWithHttpInfo({
     Future<void>? abortTrigger,
   }) async {
     // ignore: prefer_const_declarations
     final path = r'/appearance';
 
     // ignore: prefer_final_locals
-    Object? postBody = appearanceIn;
+    Object? postBody;
 
     final queryParams = <QueryParam>[];
     final headerParams = <String, String>{};
     final formParams = <String, String>{};
 
-    const contentTypes = <String>['application/json'];
+    const contentTypes = <String>[];
 
     return apiClient.invokeAPI(
       path,
@@ -112,32 +107,15 @@ class AppearanceApi {
 
   /// Set Appearance
   ///
-  /// Set the theme every app uses. Apps follow the change through GET /status.
-  ///
-  /// Parameters:
-  ///
-  /// * [AppearanceIn] appearanceIn (required):
-  Future<AppearanceOut?> setAppearance(
-    AppearanceIn appearanceIn, {
+  /// Retired: themes are chosen on each device, per app (the device's settings, never the host). Always 410, and the host's stored theme is left as it was.
+  Future<void> setAppearance({
     Future<void>? abortTrigger,
   }) async {
     final response = await setAppearanceWithHttpInfo(
-      appearanceIn,
       abortTrigger: abortTrigger,
     );
     if (response.statusCode >= HttpStatus.badRequest) {
       throw ApiException(response.statusCode, await _decodeBodyBytes(response));
     }
-    // When a remote server returns no body with a status of 204, we shall not decode it.
-    // At the time of writing this, `dart:convert` will throw an "Unexpected end of input"
-    // FormatException when trying to decode an empty string.
-    if (response.body.isNotEmpty &&
-        response.statusCode != HttpStatus.noContent) {
-      return await apiClient.deserializeAsync(
-        await _decodeBodyBytes(response),
-        'AppearanceOut',
-      ) as AppearanceOut;
-    }
-    return null;
   }
 }

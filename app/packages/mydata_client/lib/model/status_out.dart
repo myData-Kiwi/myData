@@ -70,7 +70,7 @@ class StatusOut {
   /// true when the host's code on disk changed since it started; an app replaces it when the code on disk is the API it was built against
   bool stale;
 
-  /// the theme every app uses; mode is per device and not stored here
+  /// deprecated, kept for one release: the theme the host gave every app before themes were chosen on each device; an app reads it once, to seed that device's choice
   String theme;
 
   /// the date the host treats as today

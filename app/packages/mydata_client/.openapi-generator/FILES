@@ -10,7 +10,6 @@ doc/AgentIn.md
 doc/AgentOut.md
 doc/AgentsApi.md
 doc/AppearanceApi.md
-doc/AppearanceIn.md
 doc/AppearanceOut.md
 doc/ApprovalOut.md
 doc/ApprovalsApi.md
@@ -115,7 +114,6 @@ lib/model/account_sync_out.dart
 lib/model/agent_created.dart
 lib/model/agent_in.dart
 lib/model/agent_out.dart
-lib/model/appearance_in.dart
 lib/model/appearance_out.dart
 lib/model/approval_out.dart
 lib/model/assistant_settings_in.dart
@@ -198,7 +196,6 @@ test/agent_in_test.dart
 test/agent_out_test.dart
 test/agents_api_test.dart
 test/appearance_api_test.dart
-test/appearance_in_test.dart
 test/appearance_out_test.dart
 test/approval_out_test.dart
 test/approvals_api_test.dart

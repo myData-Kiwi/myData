@@ -38,8 +38,8 @@ APPS = ("mydata", "myassistant", "mycontacts", "mycalendar", "cli")
 # Every scope, and what it allows. Each route in api.py declares the one it needs; /mcp needs "mcp" from
 # an app token (agent tokens reach /mcp only, and need no scope there).
 SCOPES = {
-    "status": "GET /status and GET /appearance: the host's state and the theme every app follows",
-    "admin": "agent tokens, the theme, switching the assistant on or off, the tool list",
+    "status": "GET /status and GET /appearance: the host's state (and, deprecated, its old theme)",
+    "admin": "agent tokens, switching the assistant on or off, the tool list",
     "assistant": "talk to the assistant, and ask the host to get the model ready again",
     "approve": "list held calls and approve or reject them",
     "contacts:read": "the contacts the host holds",

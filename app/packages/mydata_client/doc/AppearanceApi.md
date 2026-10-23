@@ -18,7 +18,7 @@ Method | HTTP request | Description
 
 Appearance
 
-The theme every app uses, and the themes to choose from. Light or dark mode is per device.
+Deprecated, kept for one release (design/themes/ARCHITECTURE.md 4.2): the theme the host gave every app before themes were chosen on each device. Each device reads it once to seed its own choice.
 
 ### Example
 ```dart
@@ -59,11 +59,11 @@ This endpoint does not need any parameter.
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **setAppearance**
-> AppearanceOut setAppearance(appearanceIn)
+> setAppearance()
 
 Set Appearance
 
-Set the theme every app uses. Apps follow the change through GET /status.
+Retired: themes are chosen on each device, per app (the device's settings, never the host). Always 410, and the host's stored theme is left as it was.
 
 ### Example
 ```dart
@@ -76,25 +76,20 @@ import 'package:mydata_client/api.dart';
 //defaultApiClient.getAuthentication<HttpBearerAuth>('bearer').setAccessToken(yourTokenGeneratorFunction);
 
 final api_instance = AppearanceApi();
-final appearanceIn = AppearanceIn(); // AppearanceIn | 
 
 try {
-    final result = api_instance.setAppearance(appearanceIn);
-    print(result);
+    api_instance.setAppearance();
 } catch (e) {
     print('Exception when calling AppearanceApi->setAppearance: $e\n');
 }
 ```
 
 ### Parameters
-
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **appearanceIn** | [**AppearanceIn**](AppearanceIn.md)|  | 
+This endpoint does not need any parameter.
 
 ### Return type
 
-[**AppearanceOut**](AppearanceOut.md)
+void (empty response body)
 
 ### Authorization
 
@@ -102,7 +97,7 @@ Name | Type | Description  | Notes
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
+ - **Content-Type**: Not defined
  - **Accept**: application/json
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
