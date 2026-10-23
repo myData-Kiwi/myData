@@ -67,7 +67,7 @@ class MacRecordHeader extends StatelessWidget {
 }
 
 /// A round quick action under a record's name (message, call, video, mail, map): an `action-button` circle
-/// on `quaternary-label` with the icon in the accent, its word under it in `action` and the accent. Disabled
+/// on `quaternary-label` with the icon in the accent, its word under it in `action` and `secondary-label`. Disabled
 /// (no number, no address): both in `tertiary-label`, the [disabledReason] in its tooltip and hint.
 class MacQuickAction extends StatefulWidget {
   const MacQuickAction({
@@ -135,7 +135,7 @@ class _MacQuickActionState extends State<MacQuickAction> {
                   child: Icon(widget.icon, size: MyDataMacSize.icon, color: tint),
                 ),
                 const SizedBox(height: MyDataSpace.s1),
-                Text(widget.label, style: MyDataMacType.action.copyWith(color: tint)),
+                Text(widget.label, style: MyDataMacType.action.copyWith(color: enabled ? mac.secondaryLabel : tint)),
               ],
             ),
           ),

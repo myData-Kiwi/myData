@@ -681,6 +681,7 @@ class MyDataMacColors extends ThemeExtension<MyDataMacColors> {
     required this.selectionInactive,
     required this.sidebarSelection,
     required this.hover,
+    required this.toolbarItem,
   });
 
   /// The system's accent colour (controlAccentColor) when it cannot be read: macOS's default blue. Selection in a focused list, the default button, links, sidebar icons.
@@ -722,6 +723,9 @@ class MyDataMacColors extends ThemeExtension<MyDataMacColors> {
   /// Under the pointer on a toolbar item or a borderless button.
   final Color hover;
 
+  /// The flat stand-in for a toolbar item's Liquid Glass (Flutter cannot draw glass): the same stand-in as the SwiftUI prototype's off-screen renderer, with a 0.5 pt `separator` outline.
+  final Color toolbarItem;
+
   /// The system defaults, light appearance.
   static const light = MyDataMacColors(
     accent: Color(0xFF007AFF),
@@ -737,6 +741,7 @@ class MyDataMacColors extends ThemeExtension<MyDataMacColors> {
     selectionInactive: Color(0xFFDCDCDC),
     sidebarSelection: Color(0x1A000000),
     hover: Color(0x0D000000),
+    toolbarItem: Color(0xFFFCFCFC),
   );
 
   /// The system defaults, dark appearance.
@@ -754,10 +759,11 @@ class MyDataMacColors extends ThemeExtension<MyDataMacColors> {
     selectionInactive: Color(0xFF464646),
     sidebarSelection: Color(0x1FFFFFFF),
     hover: Color(0x12FFFFFF),
+    toolbarItem: Color(0xFF3D3D3D),
   );
 
   /// The token names, as the system channel reports them.
-  static const tokenNames = ['accent', 'on-accent', 'label', 'secondary-label', 'tertiary-label', 'quaternary-label', 'separator', 'content-background', 'window-background', 'sidebar-background', 'selection-inactive', 'sidebar-selection', 'hover'];
+  static const tokenNames = ['accent', 'on-accent', 'label', 'secondary-label', 'tertiary-label', 'quaternary-label', 'separator', 'content-background', 'window-background', 'sidebar-background', 'selection-inactive', 'sidebar-selection', 'hover', 'toolbar-item'];
 
   /// These colours with the ones in [system] (by token name) in their place.
   MyDataMacColors withSystem(Map<String, Color> system) => MyDataMacColors(
@@ -774,11 +780,12 @@ class MyDataMacColors extends ThemeExtension<MyDataMacColors> {
         selectionInactive: system['selection-inactive'] ?? selectionInactive,
         sidebarSelection: system['sidebar-selection'] ?? sidebarSelection,
         hover: system['hover'] ?? hover,
+        toolbarItem: system['toolbar-item'] ?? toolbarItem,
       );
 
   @override
-  MyDataMacColors copyWith({Color? accent, Color? onAccent, Color? label, Color? secondaryLabel, Color? tertiaryLabel, Color? quaternaryLabel, Color? separator, Color? contentBackground, Color? windowBackground, Color? sidebarBackground, Color? selectionInactive, Color? sidebarSelection, Color? hover}) =>
-      MyDataMacColors(accent: accent ?? this.accent, onAccent: onAccent ?? this.onAccent, label: label ?? this.label, secondaryLabel: secondaryLabel ?? this.secondaryLabel, tertiaryLabel: tertiaryLabel ?? this.tertiaryLabel, quaternaryLabel: quaternaryLabel ?? this.quaternaryLabel, separator: separator ?? this.separator, contentBackground: contentBackground ?? this.contentBackground, windowBackground: windowBackground ?? this.windowBackground, sidebarBackground: sidebarBackground ?? this.sidebarBackground, selectionInactive: selectionInactive ?? this.selectionInactive, sidebarSelection: sidebarSelection ?? this.sidebarSelection, hover: hover ?? this.hover);
+  MyDataMacColors copyWith({Color? accent, Color? onAccent, Color? label, Color? secondaryLabel, Color? tertiaryLabel, Color? quaternaryLabel, Color? separator, Color? contentBackground, Color? windowBackground, Color? sidebarBackground, Color? selectionInactive, Color? sidebarSelection, Color? hover, Color? toolbarItem}) =>
+      MyDataMacColors(accent: accent ?? this.accent, onAccent: onAccent ?? this.onAccent, label: label ?? this.label, secondaryLabel: secondaryLabel ?? this.secondaryLabel, tertiaryLabel: tertiaryLabel ?? this.tertiaryLabel, quaternaryLabel: quaternaryLabel ?? this.quaternaryLabel, separator: separator ?? this.separator, contentBackground: contentBackground ?? this.contentBackground, windowBackground: windowBackground ?? this.windowBackground, sidebarBackground: sidebarBackground ?? this.sidebarBackground, selectionInactive: selectionInactive ?? this.selectionInactive, sidebarSelection: sidebarSelection ?? this.sidebarSelection, hover: hover ?? this.hover, toolbarItem: toolbarItem ?? this.toolbarItem);
 
   @override
   MyDataMacColors lerp(MyDataMacColors? other, double t) {
@@ -797,6 +804,7 @@ class MyDataMacColors extends ThemeExtension<MyDataMacColors> {
       selectionInactive: Color.lerp(selectionInactive, other.selectionInactive, t)!,
       sidebarSelection: Color.lerp(sidebarSelection, other.sidebarSelection, t)!,
       hover: Color.lerp(hover, other.hover, t)!,
+      toolbarItem: Color.lerp(toolbarItem, other.toolbarItem, t)!,
     );
   }
 }
@@ -888,24 +896,24 @@ abstract final class MyDataMacType {
 abstract final class MyDataMacSize {
   /// The unified toolbar: the title bar and the toolbar in one band.
   static const double toolbarHeight = 52;
-  /// The translucent sidebar with the app's sections.
-  static const double sidebarWidth = 220;
+  /// The sidebar column: the floating panel (`sidebar-margin` in from the window's left, top and bottom edges) with the app's sections. 208 is SwiftUI's default on macOS 26 (a 200 pt panel 8 pt in).
+  static const double sidebarWidth = 208;
   /// The list column beside the record it opens.
   static const double listWidth = 280;
   /// A row in a plain list: about 30 in an 800pt window.
   static const double rowHeight = 24;
   /// A list's section heading (its letter).
   static const double sectionHeight = 22;
-  /// A sidebar row.
-  static const double sidebarRowHeight = 28;
+  /// A sidebar row (macOS 26: 32 pt, as SwiftUI's sidebar).
+  static const double sidebarRowHeight = 32;
   /// Toolbar items and the search field.
   static const double controlHeight = 28;
   /// A push button (Restore, Retry, a dialog's buttons) in the Mac frame: a capsule with the label in `body`.
   static const double pushButtonHeight = 24;
   /// The smallest target: a push button in a dense row.
   static const double controlMin = 20;
-  /// The toolbar's search field.
-  static const double searchWidth = 220;
+  /// The toolbar's search field (as SwiftUI's `.searchable` in the toolbar on macOS 26).
+  static const double searchWidth = 325;
   /// Icons in the sidebar, the toolbar and buttons.
   static const double icon = 16;
   /// The avatar at the top of a record's page.
@@ -918,6 +926,12 @@ abstract final class MyDataMacSize {
   static const double rowInset = 10;
   /// Between the selection fill's side and the row's text.
   static const double rowPadding = 8;
+  /// A toolbar item's capsule or circle (macOS 26 toolbar items, 36 pt).
+  static const double toolbarItemHeight = 36;
+  /// From the column's edges to the first and last toolbar items.
+  static const double toolbarInset = 8;
+  /// The floating sidebar panel's gap to the window's left, top and bottom edges (macOS 26).
+  static const double sidebarMargin = 8;
 }
 
 /// The Mac frame's corner radii (tokens.json "macos.radius").
@@ -930,5 +944,7 @@ abstract final class MyDataMacRadius {
   static const double control = 7;
   /// The toolbar's search field: a capsule.
   static const double field = 999;
+  /// The floating sidebar panel's corners (macOS 26).
+  static const double sidebar = 16;
 }
 

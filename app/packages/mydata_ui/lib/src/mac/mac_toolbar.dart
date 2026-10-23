@@ -7,9 +7,11 @@ import 'mac_icons.dart';
 import 'mac_theme.dart';
 
 /// The Mac frame's toolbar band: `toolbar-height` tall across the content, in the window's title bar
-/// (the window has a full-size content view and a unified toolbar), on [background] with a `separator`
-/// hairline under it. [leading] and [trailing] are toolbar items ([MacToolbarButton], [MacSearchField]);
-/// [title] is the section shown, in `title`. The empty parts of the band drag the window, as the system's do.
+/// (the window has a full-size content view and a unified toolbar), on [background], items `toolbar-inset`
+/// from the column's edges. No hairline under it by default: macOS 26 toolbars have none. [leading] and
+/// [trailing] are toolbar items ([MacToolbarButton], [MacSearchField]); [title] is the section shown, in
+/// `title`, 20 pt in as the system's toolbar titles are. The empty parts of the band drag the window, as the
+/// system's do.
 class MacToolbar extends StatelessWidget {
   const MacToolbar({
     super.key,
@@ -18,7 +20,7 @@ class MacToolbar extends StatelessWidget {
     this.subtitle,
     this.trailing = const [],
     this.background,
-    this.separator = true,
+    this.separator = false,
   });
 
   final List<Widget> leading;
@@ -40,7 +42,7 @@ class MacToolbar extends StatelessWidget {
     final mac = context.mac;
     return Container(
       height: MyDataMacSize.toolbarHeight,
-      padding: const EdgeInsets.symmetric(horizontal: MyDataSpace.s3),
+      padding: const EdgeInsets.symmetric(horizontal: MyDataMacSize.toolbarInset),
       decoration: BoxDecoration(
         color: background ?? mac.contentBackground,
         border: separator ? Border(bottom: BorderSide(color: mac.separator)) : null,
@@ -50,8 +52,10 @@ class MacToolbar extends StatelessWidget {
           for (final (i, w) in leading.indexed) ...[if (i > 0) const SizedBox(width: itemGap), w],
           if (leading.isNotEmpty && title != null) const SizedBox(width: itemGap),
           if (title != null)
-            Flexible(
-              child: Semantics(
+            Expanded(
+              child: Padding(
+                padding: EdgeInsetsDirectional.only(start: leading.isEmpty ? MyDataSpace.s3 : 0),
+                child: Semantics(
                 header: true,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -65,8 +69,9 @@ class MacToolbar extends StatelessWidget {
                   ],
                 ),
               ),
+              ),
             ),
-          if (title != null || trailing.isNotEmpty) const Spacer(),
+          if (title == null && trailing.isNotEmpty) const Spacer(),
           for (final (i, w) in trailing.indexed) ...[if (i > 0) const SizedBox(width: itemGap), w],
         ],
       ),
@@ -74,8 +79,9 @@ class MacToolbar extends StatelessWidget {
   }
 }
 
-/// A toolbar item: an icon (or a short word, [MacToolbarButton.text]) with no frame at rest, the `hover`
-/// fill under the pointer, the accent focus ring from the keyboard. Its [label] is its tooltip and
+/// A toolbar item: an icon in a `toolbar-item-height` circle, or a short word ([MacToolbarButton.text]) in a
+/// capsule, on `toolbar-item` with a `separator` outline: a flat stand-in for macOS 26's Liquid Glass, which
+/// Flutter cannot draw. The `hover` tint under the pointer, the accent focus ring from the keyboard. Its [label] is its tooltip and
 /// accessible name; a disabled item keeps its tooltip and gives [disabledReason] as the second line.
 class MacToolbarButton extends StatefulWidget {
   const MacToolbarButton({
@@ -118,7 +124,7 @@ class _MacToolbarButtonState extends State<MacToolbarButton> {
   Widget build(BuildContext context) {
     final mac = context.mac;
     final enabled = widget.onPressed != null;
-    final ink = enabled ? mac.secondaryLabel : mac.tertiaryLabel;
+    final ink = enabled ? mac.label : mac.tertiaryLabel;
     final tip = [
       widget.shortcut == null ? widget.label : '${widget.label}  ${widget.shortcut}',
       if (!enabled && widget.disabledReason != null) widget.disabledReason!,
@@ -128,14 +134,16 @@ class _MacToolbarButtonState extends State<MacToolbarButton> {
         : Text(widget.text!, style: MyDataMacType.body.copyWith(color: enabled ? mac.label : mac.tertiaryLabel));
     Widget button = AnimatedContainer(
       duration: const Duration(milliseconds: 80),
-      height: MyDataMacSize.controlHeight,
-      constraints: const BoxConstraints(minWidth: MyDataMacSize.controlHeight),
-      padding: EdgeInsets.symmetric(horizontal: widget.icon != null ? MyDataSpace.s1 : MyDataSpace.s2),
+      height: MyDataMacSize.toolbarItemHeight,
+      constraints: const BoxConstraints(minWidth: MyDataMacSize.toolbarItemHeight),
+      padding: EdgeInsets.symmetric(horizontal: widget.icon != null ? 0 : MyDataSpace.s2),
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: enabled && (_hovered || _pressed) ? (_pressed ? mac.quaternaryLabel : mac.hover) : null,
-        borderRadius: const BorderRadius.all(Radius.circular(MyDataMacRadius.control)),
-        border: _focused ? Border.all(color: mac.accent, width: 2) : null,
+        color: enabled && (_hovered || _pressed)
+            ? Color.alphaBlend(_pressed ? mac.quaternaryLabel : mac.hover, mac.toolbarItem)
+            : mac.toolbarItem,
+        borderRadius: const BorderRadius.all(Radius.circular(MyDataMacRadius.field)),
+        border: Border.all(color: _focused ? mac.accent : mac.separator, width: _focused ? 2 : 0.5),
       ),
       child: face,
     );
@@ -175,7 +183,8 @@ class _MacToolbarButtonState extends State<MacToolbarButton> {
   }
 }
 
-/// The toolbar's search field: a `control-height` capsule on `quaternary-label`, a magnifier, the
+/// The toolbar's search field: a `toolbar-item-height` capsule on `toolbar-item` (the glass stand-in, as the
+/// toolbar items), a magnifier, the
 /// [placeholder] in `tertiary-label` (also its accessible name), and a clear button once there is text.
 /// Escape clears it; Down calls [onDown] (the list takes the keyboard).
 class MacSearchField extends StatefulWidget {
@@ -248,17 +257,19 @@ class _MacSearchFieldState extends State<MacSearchField> {
     final hasText = widget.controller.text.isNotEmpty;
     final field = Container(
       width: widget.width,
-      height: MyDataMacSize.controlHeight,
-      padding: const EdgeInsets.symmetric(horizontal: MyDataSpace.s2),
+      height: MyDataMacSize.toolbarItemHeight,
+      padding: const EdgeInsets.symmetric(horizontal: MyDataSpace.s3),
       decoration: BoxDecoration(
-        color: mac.quaternaryLabel,
+        color: mac.toolbarItem,
         borderRadius: const BorderRadius.all(Radius.circular(MyDataMacRadius.field)),
-        border: _focused ? Border.all(color: mac.accent.withValues(alpha: 0.6), width: 2) : null,
+        border: _focused
+            ? Border.all(color: mac.accent.withValues(alpha: 0.6), width: 2)
+            : Border.all(color: mac.separator, width: 0.5),
       ),
       child: Row(
         children: [
-          Icon(MacIcons.search, size: MyDataMacSize.icon - 2, color: mac.secondaryLabel),
-          const SizedBox(width: MyDataSpace.s1),
+          Icon(MacIcons.search, size: MyDataMacSize.icon, color: mac.secondaryLabel),
+          const SizedBox(width: MyDataSpace.s2),
           Expanded(
             child: Focus(
               onKeyEvent: _onKey,
@@ -273,7 +284,7 @@ class _MacSearchFieldState extends State<MacSearchField> {
                 cursorHeight: MyDataMacType.body.fontSize! + 2,
                 decoration: InputDecoration.collapsed(
                   hintText: widget.placeholder,
-                  hintStyle: MyDataMacType.body.copyWith(color: mac.tertiaryLabel),
+                  hintStyle: MyDataMacType.body.copyWith(color: mac.secondaryLabel),
                 ),
               ),
             ),

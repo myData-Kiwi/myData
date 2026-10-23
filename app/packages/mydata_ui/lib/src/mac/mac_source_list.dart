@@ -10,13 +10,17 @@ import 'mac_chrome.dart';
 import 'mac_theme.dart';
 
 /// The Mac frame's sidebar: the app's sections as a source list, under the window's close, minimise and zoom
-/// buttons, with the host's state at the bottom (the plan's "status only when something is wrong": one quiet
-/// line while connected).
+/// buttons, with the host's state at the bottom only when something is wrong (the plan's "status only when
+/// something is wrong": nothing while connected).
 ///
-/// - **Ground.** Translucent through [MacChrome.sidebar] (the window's sidebar material); `sidebar-background`
-///   where it cannot be (reduced transparency, tests).
-/// - **Rows** are `sidebar-row-height` tall, inset `row-inset` from the sides: a 16pt icon in the accent, the
-///   label in `body`, a count after it in `caption` and `secondary-label` (Review's). The current section has
+/// - **Shape.** macOS 26's floating sidebar: a panel `sidebar-margin` in from the window's left, top and
+///   bottom edges, with `sidebar` corners and a `separator` outline, in a `sidebar-width` column; around it
+///   the content's ground (`content-background`), as the window's content runs under the panel.
+/// - **Ground.** Translucent through [MacChrome.sidebar] (the window's sidebar material, showing through the
+///   panel's rounded shape); `sidebar-background` where it cannot be (reduced transparency, tests). Flutter
+///   cannot draw Liquid Glass: the panel is the material or a flat colour, never glass.
+/// - **Rows** are `sidebar-row-height` tall, inset `row-inset` from the sides: a 16pt icon in `label`, the
+///   label in `body`, a count after it in `caption` and `secondary-label` when given. The current section has
 ///   the `sidebar-selection` fill; while the list has keyboard focus the fill is the accent and the row's
 ///   icon and text are `on-accent`, as in Finder. In an inactive window the icons are `secondary-label`.
 /// - **Keys.** One Tab stop; Up and Down change the section at once.
@@ -70,8 +74,9 @@ class _MacSourceListState extends State<MacSourceList> {
     Widget list = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // The window's close, minimise and zoom buttons sit here, in the toolbar's band.
-        const SizedBox(height: MyDataMacSize.toolbarHeight),
+        // The window's close, minimise and zoom buttons sit here, in the toolbar's band (the panel starts
+        // `sidebar-margin` below the window's top).
+        const SizedBox(height: MyDataMacSize.toolbarHeight - MyDataMacSize.sidebarMargin),
         Focus(
           focusNode: _focus,
           onKeyEvent: _onKey,
@@ -97,10 +102,48 @@ class _MacSourceListState extends State<MacSourceList> {
         _ConnectionLine(connection: widget.connection),
       ],
     );
-    list = SizedBox(width: MyDataMacSize.sidebarWidth, child: list);
-    if (solid) return ColoredBox(color: mac.sidebarBackground, child: list);
-    return chrome.sidebar!(list);
+    const margin = MyDataMacSize.sidebarMargin;
+    const radius = BorderRadius.all(Radius.circular(MyDataMacRadius.sidebar));
+    final panel = Padding(
+      padding: const EdgeInsets.fromLTRB(margin, margin, 0, margin),
+      child: DecoratedBox(
+        position: DecorationPosition.foreground,
+        decoration: BoxDecoration(borderRadius: radius, border: Border.all(color: mac.separator, width: 0.5)),
+        child: solid ? DecoratedBox(decoration: BoxDecoration(color: mac.sidebarBackground, borderRadius: radius), child: list) : list,
+      ),
+    );
+    // Around the panel, the content's ground; inside it, the material (or the flat colour).
+    final column = SizedBox(
+      width: MyDataMacSize.sidebarWidth,
+      child: CustomPaint(painter: _AroundPanel(color: mac.contentBackground), child: panel),
+    );
+    return solid ? column : chrome.sidebar!(column);
   }
+}
+
+/// Paints [color] over the sidebar column except the rounded panel, so the window's material shows only
+/// through the panel.
+class _AroundPanel extends CustomPainter {
+  const _AroundPanel({required this.color});
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const m = MyDataMacSize.sidebarMargin;
+    final panel = RRect.fromRectAndRadius(
+      Rect.fromLTRB(m, m, size.width, size.height - m),
+      const Radius.circular(MyDataMacRadius.sidebar),
+    );
+    final path = Path()
+      ..fillType = PathFillType.evenOdd
+      ..addRect(Offset.zero & size)
+      ..addRRect(panel);
+    canvas.drawPath(path, Paint()..color = color);
+  }
+
+  @override
+  bool shouldRepaint(_AroundPanel old) => old.color != color;
 }
 
 class _Row extends StatelessWidget {
@@ -122,7 +165,8 @@ class _Row extends StatelessWidget {
   Widget build(BuildContext context) {
     final mac = context.mac;
     final ink = emphasised ? mac.onAccent : mac.label;
-    final icon = emphasised ? mac.onAccent : (windowActive ? mac.accent : mac.secondaryLabel);
+    // In the label colour, as macOS 26's sidebars draw an SF Symbol label (the SwiftUI prototype's live window).
+    final icon = emphasised ? mac.onAccent : (windowActive ? mac.label : mac.secondaryLabel);
     final count = section.count;
     return Semantics(
       button: true,
@@ -173,6 +217,8 @@ class _ConnectionLine extends StatelessWidget {
   Widget build(BuildContext context) {
     final mac = context.mac;
     final c = connection;
+    // Connected: nothing (Contacts.app has no such line; status shows only when something is wrong).
+    if (c.state == AppConnectionState.connected && c.lastUpdated == null) return const SizedBox.shrink();
     final (text, action, onAction) = switch (c.state) {
       AppConnectionState.connected => (AppConnection.connectedShortText, AppConnection.openMyDataText, c.onOpenMyData),
       AppConnectionState.starting => (AppConnection.startingText, null, null),
