@@ -209,6 +209,7 @@ Built and tested against fakes and synthetic hosts, **never used live by the own
 - Where Today, ⌘K and person pages live (proposed: Today in myData, ⌘K and Ask in myAssistant, person pages in myContacts).
 - Where to keep conversation history (in memory now).
 - Which new built-in themes to build (the owner's pick from the 13 prototypes).
+- Themes: whether "System, tinted" exists at all (never on macOS), and whether phase 3 moves a choice of Kiwi in an old colour to that colour's new theme (`docs/decisions/2026-10-23-themes.md`, "Open for the owner").
 - Releasing on macOS needs the paid program: Developer ID, hardened runtime, notarisation, and the entitlements in `Reader.entitlements`. Development signing goes through the myData app's git-ignored `Runner/Configs/Signing.local.xcconfig`, which the other three apps include and `build_host_app.sh` reads.
 - Chained requests (26% in round 2) need a planner; start from `host/results/2026-10-11-b-REPORT.md`.
 
