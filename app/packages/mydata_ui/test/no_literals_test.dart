@@ -34,7 +34,14 @@ const themeDirs = ['../mydata_ui/lib/src/theme/', '../mydata_ui/lib/src/generate
 final staticTokenRead = RegExp(r'\bMyData(?:Space|Type|Radius|Blur|Shadows|Colors)\.\w'
     r'|\bMyDataSize\.(?:controlHeight|controlHeightCompact|rowHeight|iconTile|icon)\b'
     r'|\bMyDataMotion\.(?:fast|base|slow|standard|springDuration|spring|pressScale|pressOpacity|entranceRise'
-    r'|entranceStagger|entranceMaxStaggered|sheetDrop)\b');
+    r'|entranceStagger|entranceMaxStaggered|sheetDrop)\b'
+    // Kiwi's look and its groups, reached statically: the same themeable values.
+    r'|\bMyData(?:TypeScale|Shape|Density|MotionSpec)\.kiwi\b|\bMyDataLook\.fallback\(');
+
+/// Where Kiwi's look may be read statically besides lib/src/theme/: the test helpers, whose `kiwiLook` is
+/// the look tests draw against.
+const kiwiLookAllowed = ['../mydata_testing/lib/'];
+final kiwiLookRead = RegExp(r'\bMyDataLook\.fallback\(');
 
 final rules = <String, RegExp>{
   'literal colour': RegExp(r'\bColor\(\s*0x|\bColor\.from(?:ARGB|RGBO)\(|\bColors\.(?!transparent\b)\w+|\bCupertinoColors\.'),
@@ -78,18 +85,22 @@ String stripComments(String line) {
   return quotes.isEven ? before : line;
 }
 
-List<String> violations(File f) {
+List<String> violations(File f) => violationsIn(f.path, f.readAsLinesSync());
+
+/// The violations in [lines], judged as the file at [path].
+List<String> violationsIn(String path, List<String> lines) {
   final out = <String>[];
-  final lines = f.readAsLinesSync();
-  final inTheme = themeDirs.any(f.path.startsWith);
+  final inTheme = themeDirs.any(path.startsWith);
   for (var n = 0; n < lines.length; n++) {
     final code = stripComments(lines[n]);
     for (final r in rules.entries) {
-      if (r.key == 'literal font name' && f.path == catalogue) continue;
-      if (r.value.hasMatch(code)) out.add('${f.path}:${n + 1}: ${r.key}: ${lines[n].trim()}');
+      if (r.key == 'literal font name' && path == catalogue) continue;
+      if (r.value.hasMatch(code)) out.add('$path:${n + 1}: ${r.key}: ${lines[n].trim()}');
     }
-    if (!inTheme && staticTokenRead.hasMatch(code)) {
-      out.add('${f.path}:${n + 1}: static token read: ${lines[n].trim()}');
+    final allowedKiwiLook = kiwiLookAllowed.any(path.startsWith) && kiwiLookRead.hasMatch(code) &&
+        !staticTokenRead.hasMatch(code.replaceAll(kiwiLookRead, ''));
+    if (!inTheme && !allowedKiwiLook && staticTokenRead.hasMatch(code)) {
+      out.add('$path:${n + 1}: static token read: ${lines[n].trim()}');
     }
   }
   return out;
@@ -147,5 +158,23 @@ void main() {
     expect(flags('duration: MyDataMotion.toastDuration,'), isFalse);
     expect(flags('height: MyDataMacSize.rowHeight,'), isFalse);
     expect(flags('/// Rises [MyDataMotion.entranceRise] into place.'), isFalse);
+    expect(flags('style: MyDataTypeScale.kiwi.body,'), isTrue);
+    expect(flags('radius: MyDataShape.kiwi.lg,'), isTrue);
+    expect(flags('height: MyDataDensity.kiwi.rowHeight,'), isTrue);
+    expect(flags('duration: MyDataMotionSpec.kiwi.fast,'), isTrue);
+    expect(flags('final look = MyDataLook.fallback(Brightness.light);'), isTrue);
+    expect(flags('final s = MyDataTypeScale.of(spec);'), isFalse);
+    expect(flags('final look = MyDataLook.of(context);'), isFalse);
+  });
+
+  test('only the test helpers may read Kiwi\'s look statically, and only that', () {
+    const line = 'final kiwiLook = MyDataLook.fallback(Brightness.light);';
+    expect(violationsIn('../mydata_testing/lib/mydata_testing.dart', [line]), isEmpty);
+    expect(violationsIn('../../apps/mycontacts/lib/main.dart', [line]), hasLength(1));
+    expect(
+        violationsIn('../mydata_testing/lib/mydata_testing.dart',
+            ['final s = MyDataLook.fallback(b).typeScale ?? MyDataType.body;']),
+        hasLength(1));
   });
 }
+
