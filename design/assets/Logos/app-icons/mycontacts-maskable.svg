@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-label="myContacts app icon">
+<defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5B7BD6"/><stop offset="1" stop-color="#3D5AA9"/></linearGradient></defs>
+<path d="M0 0 H1024 V1024 H0 Z" fill="url(#bg)"/>
+<g transform="translate(102.4 102.4) scale(0.8)">
+<circle cx="512" cy="392.0" r="128.0" fill="#FFFFFF"/>
+<path d="M296.0 776.0 C296.0 636.0 396.0 566.0 512 566.0 C628.0 566.0 728.0 636.0 728.0 776.0 Q728.0 800.0 704.0 800.0 L320.0 800.0 Q296.0 800.0 296.0 776.0 Z" fill="#FFFFFF"/>
+</g>
+</svg>

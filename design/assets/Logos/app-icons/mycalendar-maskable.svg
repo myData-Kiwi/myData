@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-label="myCalendar app icon">
+<defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F2706B"/><stop offset="1" stop-color="#D23B3F"/></linearGradient></defs>
+<path d="M0 0 H1024 V1024 H0 Z" fill="url(#bg)"/>
+<g transform="translate(102.4 102.4) scale(0.8)">
+<rect x="272.0" y="292.0" width="480.0" height="460.0" rx="64.0" fill="#FFFFFF"/>
+<path d="M272.0 410.0 L272.0 356.0 Q272.0 292.0 336.0 292.0 L688.0 292.0 Q752.0 292.0 752.0 356.0 L752.0 410.0 Z" fill="#B02A2E"/>
+<circle cx="382.4" cy="522.9" r="24.0" fill="#B02A2E"/>
+<circle cx="512.0" cy="522.9" r="24.0" fill="#B02A2E"/>
+<circle cx="641.6" cy="522.9" r="24.0" fill="#B02A2E"/>
+<circle cx="382.4" cy="649.4" r="24.0" fill="#B02A2E"/>
+<circle cx="512.0" cy="649.4" r="24.0" fill="#B02A2E"/>
+<circle cx="641.6" cy="649.4" r="46.0" fill="#A9CC4E"/>
+</g>
+</svg>
