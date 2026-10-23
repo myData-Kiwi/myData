@@ -10,7 +10,9 @@ import 'home.dart';
 /// lifetime belongs to the myData app.
 ///
 /// It draws with the theme stored on the host and this device's mode, as every myData app does, and
-/// follows the system's reduced motion and reduced transparency.
+/// follows the system's reduced motion and reduced transparency. On a Mac it draws the Mac frame
+/// ([MacShell]): the system's window, font, colours and accent; this device's mode still chooses light or
+/// dark.
 class MyCalendarApp extends StatefulWidget {
   const MyCalendarApp({
     super.key,
@@ -69,15 +71,16 @@ class _MyCalendarAppState extends State<MyCalendarApp> {
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: _appearance,
-    builder: (context, _) {
-      final theme = _appearance.theme;
-      return MaterialApp(
+    builder: (context, _) => MacShell(
+      theme: _appearance.theme,
+      appIcon: MyDataAppIcons.mycalendar,
+      builder: (context, light, dark, mode) => MaterialApp(
         title: 'myCalendar',
-        theme: theme.light,
-        darkTheme: theme.dark,
-        themeMode: theme.themeMode,
+        theme: light,
+        darkTheme: dark,
+        themeMode: mode,
         debugShowCheckedModeBanner: false,
-        builder: (context, child) => MyDataAccessibilityScope(child: child ?? const SizedBox.shrink()),
+        builder: MacShell.content,
         home: CalendarHome(
           host: widget.host,
           visibility: _visibility,
@@ -87,7 +90,7 @@ class _MyCalendarAppState extends State<MyCalendarApp> {
           actions: widget.actions,
           now: widget.now,
         ),
-      );
-    },
+      ),
+    ),
   );
 }

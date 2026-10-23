@@ -276,7 +276,7 @@ void main() {
 
   testWidgets('a host that stopped offers Retry in the frame and the panel', (tester) async {
     await start(tester, harness: Harness(phase: HostPhase.lost));
-    expect(find.text('The myData host stopped'), findsOneWidget);
+    expect(find.text(AppConnection.lostText), findsOneWidget);
     expect(find.text(AppConnection.unreachableText), findsOneWidget);
   });
 
@@ -294,7 +294,7 @@ void main() {
     final calls = h.backend.eventCalls.length;
     h.host.lose();
     await settle(tester);
-    expect(find.text('The myData host stopped'), findsNothing);
+    expect(find.text(AppConnection.lostText), findsNothing);
     expect(find.text('October 2026'), findsOneWidget);
     expect(inDayList('Dentist'), findsOneWidget);
     expect(find.text(AppConnection.unreachableText), findsOneWidget);

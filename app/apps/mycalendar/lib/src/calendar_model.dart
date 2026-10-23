@@ -58,6 +58,7 @@ EventItem eventItemOf(EventOut e, CalendarOut? calendar, {EventZoneTimes? zone})
     calendarName: calendar?.name ?? MonthPageText.unknownCalendar,
     calendarColour: parseDataColour(calendar?.color),
     calendarId: e.calendarId,
+    sourceName: calendar?.sourceLabel,
   );
 }
 

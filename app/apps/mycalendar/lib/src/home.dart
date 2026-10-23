@@ -7,6 +7,9 @@ import 'package:mydata_ui/mydata_ui.dart';
 import 'backend.dart';
 import 'calendar_model.dart';
 import 'calendars_page.dart';
+import 'mac_calendar_list.dart';
+import 'mac_month_view.dart';
+import 'month_content.dart';
 import 'month_page.dart';
 
 /// Where the app's buttons lead outside it. Tests pass fakes that record the calls.
@@ -204,21 +207,45 @@ class _CalendarHomeState extends State<CalendarHome> {
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: _host,
-    builder: (context, _) => Scaffold(
-      backgroundColor: context.colors.bg,
-      body: switch (_connection()) {
-        null => _body(context),
-        final connection => AppFrame(
-          appName: CalendarHome.appName,
-          sections: CalendarHome.sections,
-          current: _section,
-          onSelect: (i) => setState(() => _section = i),
-          connection: connection,
-          child: _body(context),
-        ),
-      },
-    ),
+    builder: (context, _) {
+      if (MacLook.of(context)) return _macFrame(context);
+      return Scaffold(
+        backgroundColor: context.colors.bg,
+        body: switch (_connection()) {
+          null => _body(context),
+          final connection => AppFrame(
+            appName: CalendarHome.appName,
+            sections: CalendarHome.sections,
+            current: _section,
+            onSelect: (i) => setState(() => _section = i),
+            connection: connection,
+            child: _body(context),
+          ),
+        },
+      );
+    },
   );
+
+  /// The Mac frame ([MacLook]), as Calendar.app's window: the calendar list in the translucent sidebar (with
+  /// the host's state at its bottom when something is wrong), and the month under its own toolbar
+  /// ([MacMonthView]). Every other state (starting, an error, no source on) fills the window under an empty
+  /// toolbar band, with no sidebar: there is nothing to list, and the state says what is wrong once.
+  /// The Calendars section is the sidebar here, so the frame has no sections.
+  Widget _macFrame(BuildContext context) {
+    final body = _body(context);
+    final calendars = _data.calendars;
+    final listed = calendars != null && _data.anySourceOn != false;
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: MacSidebarFrame(
+        connection: _connection(),
+        sidebar: listed ? MacCalendarList(calendars: calendars, visibility: widget.visibility) : null,
+        child: body is MacMonthView
+            ? body
+            : MacPane(toolbar: MacToolbar(windowControls: !listed), child: body),
+      ),
+    );
+  }
 
   AppConnection? _connection() => switch (_host.phase) {
     HostPhase.checking || HostPhase.starting || HostPhase.restarting => const AppConnection.starting(),
@@ -249,8 +276,7 @@ class _CalendarHomeState extends State<CalendarHome> {
   String? _lastUpdated() {
     final at = _data.updatedAt;
     if (at == null) return null;
-    String two(int n) => n.toString().padLeft(2, '0');
-    return 'Last updated at ${two(at.hour)}:${two(at.minute)}.';
+    return 'Last updated at ${MyDataDates.time(at)}.';
   }
 
   Widget _body(BuildContext context) {
@@ -274,10 +300,10 @@ class _CalendarHomeState extends State<CalendarHome> {
       ),
       HostPhase.notConfigured => _failure('The myData host is not set up'),
       HostPhase.failedToStart => _failure('The myData host did not start'),
-      HostPhase.unreachable => _failure('The myData host is not answering'),
+      HostPhase.unreachable => _failure(AppConnection.unreachableText),
       HostPhase.refused => _failure('The myData host refused this app'),
       HostPhase.incompatible => _failure('The myData host is from another build'),
-      HostPhase.lost => _failure('The myData host stopped'),
+      HostPhase.lost => _failure(AppConnection.lostText),
       HostPhase.unsupported => StatusPanel(
         kind: StatusPanelKind.info,
         title: 'myCalendar needs the desktop app',
@@ -321,7 +347,8 @@ class _CalendarHomeState extends State<CalendarHome> {
         ),
       );
     }
-    if (_section == 1) {
+    final mac = MacLook.of(context);
+    if (_section == 1 && !mac) {
       return CalendarsPage(calendars: _data.calendars!, visibility: widget.visibility);
     }
 
@@ -336,6 +363,26 @@ class _CalendarHomeState extends State<CalendarHome> {
         final d = MonthPage.visibleDays(m, firstDay);
         _data.ensure(d.first, d.last);
       }
+    }
+    if (mac) {
+      return MacMonthView(
+        content: MonthContent.of(
+          data: _data,
+          hidden: widget.visibility.hidden,
+          month: month,
+          firstDayOfWeek: firstDay,
+          online: online,
+          onNoticeAction: _noticeAction,
+        ),
+        today: _today,
+        month: month,
+        selected: _selected!,
+        firstDayOfWeek: firstDay,
+        onSelected: (d) => setState(() => _selected = d),
+        onMonthChanged: (m) => setState(() => _month = monthOf(m)),
+        gridFocusNode: _gridFocus,
+        onRetry: online ? _data.refresh : null,
+      );
     }
     return MonthPage(
       data: _data,

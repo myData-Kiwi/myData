@@ -15,3 +15,13 @@ How a colour from the user's data, such as a calendar's colour, may appear: as a
 - **Calendars myData owns** (phase 6) do not bring a colour from a source. The user chooses one from a fixed palette in the ColourPicker, or an imported calendar keeps the colour it came with, exactly. Palette colours are data colours too: one value in both modes, drawn as given, with the edge rule, and never the only signal. They are the `data-*` tokens (ColourPicker, Tokens).
 - **Swatch:** a third shape, used only in the ColourPicker. It is a disc at `icon` size (20px), centred in a `control-height` round target, with nothing written on it. Selection and focus are drawn around it with the theme's tokens, never with the colour.
 - You provide the colour as the host gives it and the name it belongs to. For the calendar list, also each calendar's source and, under This Mac, its account.
+
+## The Mac frame (decided 2026-10-23)
+
+In a macOS build myCalendar draws the Mac frame, which follows Calendar.app rather than the branded rules above. Three exceptions, nowhere else:
+
+- **The calendar list's checkboxes** are filled with the calendar's colour, as Calendar.app's sidebar has them (MacColourCheckbox in myCalendar). The calendar's name is beside each box, so the colour is still never the only signal. The tick is white or black, whichever has more contrast with the colour; a colour under 3:1 with the sidebar gets a hairline edge in `tertiary-label`.
+- **All-day events in a month cell** are chips tinted with the calendar's colour (22% in light mode, 36% in dark), with the title in `label` over the tint. The tint is mixed with the cell's ground, so the title keeps its contrast; the day list beside the grid names the calendar.
+- **Timed events in a cell** use a 6 pt dot. A colour under 3:1 with the cell gets a hairline edge in `tertiary-label`, so a black dot in dark mode reads as a filled dot, not a ring.
+
+Selection and focus still never use the colour: the selected day has a thin outline in the accent, today's number a capsule in the system red.

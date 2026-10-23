@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:mydata_core/mydata_core.dart';
 import 'package:mydata_ui/mydata_ui.dart';
 
 import 'calendar_model.dart';
+import 'month_content.dart';
 
 /// The Month section: the [MonthGrid] with its header, the Notices above the grid for every source that
 /// does not read all the days on screen, and the selected day's [DayList] beside the grid (wide) or under
@@ -62,61 +62,17 @@ class MonthPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final days = visibleDays(month, firstDayOfWeek);
-    final first = days.first, last = days.last;
-    final fetched = data.eventsFor(first, last);
-    final failure = fetched == null && onRetry != null ? data.failureFor(first, last) : null;
-    final calendars = data.calendars ?? const <CalendarOut>[];
-    bool visible(String id) => !hidden.contains(id);
-
-    // The sources with a shown calendar, and what each reads of the days on screen.
-    final emails = {for (final s in data.sources ?? const <SourceOut>[]) s.id: s.email};
-    final macStatus = data.sources?.where((s) => s.kind == SourceOutKindEnum.mac).firstOrNull?.calendarsStatus;
-    final headings = {for (final c in calendars) c.accountId: c.sourceLabel};
-    final sources = [
-      for (final c in fetched?.coverage ?? const <CoverageOut>[])
-        if (sourceCounts(c.accountId, calendars, visible))
-          SourceCoverage(
-            coverage: c,
-            name: sourceInSentence(c.source_, email: emails[c.accountId], heading: headings[c.accountId]),
-            calendarsStatus: c.source_ == CoverageOutSource_Enum.mac ? macStatus : null,
-          ),
-    ];
-    final ranges = [for (final s in sources) s.range];
-    final notices = [
-      for (final s in sources)
-        if (s.notice(first, last) case final n?)
-          Notice(
-            message: n.message,
-            tone: n.tone,
-            actionLabel: switch (n.action) {
-              NoticeAction.none => null,
-              NoticeAction.openMyData => MonthPageText.openMyData,
-              NoticeAction.openSystemSettings => MonthPageText.openSystemSettings,
-            },
-            onAction: n.action == NoticeAction.none ? null : () => onNoticeAction(n.action),
-          ),
-    ];
-
-    final shown = [
-      for (final e in fetched?.events ?? const <EventItem>[])
-        if (e.calendarId == null || visible(e.calendarId!)) e,
-    ];
-    final cells = <DateTime, List<MonthGridEvent>>{};
-    for (final e in shown) {
-      for (final d in eventDays(e)) {
-        if (d.isBefore(first) || d.isAfter(last)) continue;
-        final dayStart = DateTime(d.year, d.month, d.day);
-        final when = eventWhen(e, d, use24HourFormat: true);
-        (cells[dayStart] ??= []).add(MonthGridEvent(
-          title: e.title.trim(),
-          calendarName: e.calendarName,
-          colour: e.calendarColour,
-          allDay: when?.time == EventRow.allDayLabel,
-          start: e.start.isBefore(dayStart) ? dayStart : e.start,
-        ));
-      }
-    }
+    final content = MonthContent.of(
+      data: data,
+      hidden: hidden,
+      month: month,
+      firstDayOfWeek: firstDayOfWeek,
+      online: onRetry != null,
+      onNoticeAction: onNoticeAction,
+    );
+    final fetched = content.fetched;
+    final failure = content.failure;
+    final notices = content.notices;
 
     final grid = MonthGrid(
       month: month,
@@ -125,12 +81,8 @@ class MonthPage extends StatelessWidget {
       firstDayOfWeek: firstDayOfWeek,
       onSelected: onSelected,
       onMonthChanged: onMonthChanged,
-      events: cells,
-      isNotRead: failure != null
-          ? (_) => true
-          : ranges.isEmpty
-          ? null
-          : (d) => ranges.every((r) => !r.reads(d)),
+      events: content.cells,
+      isNotRead: content.isNotRead,
       notice: notices.isEmpty
           ? null
           : Column(
@@ -160,7 +112,7 @@ class MonthPage extends StatelessWidget {
             days: [selected],
             today: today,
             events: fetched.events,
-            sources: ranges,
+            sources: content.ranges,
             hiddenCalendarIds: hidden,
           );
 

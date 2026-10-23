@@ -2,55 +2,20 @@ import Cocoa
 import FlutterMacOS
 
 class MainFlutterWindow: NSWindow {
-  private var accessibility: AccessibilityChannel?
+  private var shell: MacShellChannels?
   private var zones: ZonesChannel?
 
   override func awakeFromNib() {
-    let flutterViewController = FlutterViewController()
-    let windowFrame = self.frame
-    self.contentViewController = flutterViewController
-    self.setFrame(windowFrame, display: true)
-
+    // The Mac shell's window (MacShell.swift, copied from mydata_ui/macos_snippets): the window's materials
+    // behind a transparent Flutter view, so the sidebar can be translucent. 1280 by 900, as MainMenu.xib
+    // has it: six weeks at a readable cell height beside the day list.
+    let flutterViewController = MacShell.install(in: self, size: NSSize(width: 1280, height: 900))
     RegisterGeneratedPlugins(registry: flutterViewController)
-    accessibility = AccessibilityChannel(messenger: flutterViewController.engine.binaryMessenger)
+    shell = MacShellChannels(messenger: flutterViewController.engine.binaryMessenger)
     zones = ZonesChannel(messenger: flutterViewController.engine.binaryMessenger)
     LinksChannel.shared.attach(messenger: flutterViewController.engine.binaryMessenger, window: self)
 
     super.awakeFromNib()
-  }
-}
-
-/// Tells Dart the system's reduced-motion and reduced-transparency settings, now and when they change.
-/// Flutter has no reduced-transparency flag; mydata_ui's MyDataAccessibilityScope reads this channel.
-final class AccessibilityChannel {
-  private let channel: FlutterMethodChannel
-  private var observer: NSObjectProtocol?
-
-  init(messenger: FlutterBinaryMessenger) {
-    channel = FlutterMethodChannel(name: "mydata/accessibility", binaryMessenger: messenger)
-    channel.setMethodCallHandler { call, result in
-      if call.method == "get" {
-        result(AccessibilityChannel.current())
-      } else {
-        result(FlutterMethodNotImplemented)
-      }
-    }
-    observer = NSWorkspace.shared.notificationCenter.addObserver(
-      forName: NSWorkspace.accessibilityDisplayOptionsDidChangeNotification, object: nil, queue: .main
-    ) { [weak self] _ in
-      self?.channel.invokeMethod("changed", arguments: AccessibilityChannel.current())
-    }
-  }
-
-  deinit {
-    if let observer { NSWorkspace.shared.notificationCenter.removeObserver(observer) }
-  }
-
-  private static func current() -> [String: Bool] {
-    [
-      "reduceMotion": NSWorkspace.shared.accessibilityDisplayShouldReduceMotion,
-      "reduceTransparency": NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency,
-    ]
   }
 }
 
