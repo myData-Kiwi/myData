@@ -6,6 +6,7 @@ import 'package:mydata_ui/mydata_ui.dart';
 import 'contact_actions.dart';
 import 'contact_page.dart';
 import 'contacts_controller.dart';
+import 'mac_contact_page.dart';
 import 'merge_pane.dart';
 
 /// The contacts screen (design/components/ContactList):
@@ -23,6 +24,11 @@ import 'merge_pane.dart';
 /// - **Several selected** (from 600px): the contact pane shows the count, up to three names, and "Delete 3
 ///   contacts" (design/components/MultiSelect); followed contacts are counted out, with the reason.
 /// - "New contact" sits beside the search field from 600px; on a phone it is in the large title.
+/// - **The Mac frame** ([MacLook]): the list column (`list-width`) with the search field in the toolbar band
+///   above it and the plain list ([ContactListStyle.plain]) under it, holding the keyboard at first; a
+///   hairline; then the contact column with Edit and New contact in the toolbar band and [MacContactPage]
+///   under it. The inspector, several selected and Merge take the contact column's place under the band, as
+///   above.
 class ContactsView extends StatefulWidget {
   const ContactsView({super.key, required this.controller, required this.onOpenLink, required this.actions});
 
@@ -55,6 +61,9 @@ class ContactsView extends StatefulWidget {
   /// The back button of a pushed contact page.
   static const backLabel = 'Contacts';
 
+  /// The toolbar's search field (the Mac frame); the same words as the list's own field.
+  static const searchPlaceholder = ContactList.searchPlaceholder;
+
   @override
   State<ContactsView> createState() => _ContactsViewState();
 }
@@ -63,6 +72,8 @@ class _ContactsViewState extends State<ContactsView> {
   StreamSubscription<String>? _links;
   final _paneScroll = ScrollController();
   final _listFocus = FocusNode(debugLabel: 'Contacts list');
+  final _search = TextEditingController();
+  final _searchFocus = FocusNode(debugLabel: 'Contacts search');
   bool _wasEditing = false;
 
   ContactsController get _controller => widget.controller;
@@ -74,6 +85,14 @@ class _ContactsViewState extends State<ContactsView> {
     _links = _controller.linkOpened.listen(_linkOpened);
     _controller.addListener(_followEditing);
     _wasEditing = _controller.editing != null;
+    // The Mac frame starts with the list holding the keyboard, as Contacts.app does: the selection shows in
+    // the accent and the arrow keys move it at once.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !MacLook.of(context)) return;
+      // Only when nothing has the keyboard yet (a scope, not a control, holds the primary focus).
+      final focus = FocusManager.instance.primaryFocus;
+      if (focus == null || focus is FocusScopeNode) _listFocus.requestFocus();
+    });
   }
 
   @override
@@ -82,6 +101,8 @@ class _ContactsViewState extends State<ContactsView> {
     _links?.cancel();
     _paneScroll.dispose();
     _listFocus.dispose();
+    _search.dispose();
+    _searchFocus.dispose();
     super.dispose();
   }
 
@@ -143,6 +164,134 @@ class _ContactsViewState extends State<ContactsView> {
     );
   }
 
+  /// The Mac frame: the list column, a hairline, the contact column; each with its part of the toolbar band.
+  Widget _macLayout({required bool missing}) {
+    final mac = context.mac;
+    final selection = _controller.selection;
+    final several = selection.count > 1;
+    final selected = several ? null : _controller.selectedId;
+    final edit = _controller.editing;
+    final editable = selected != null && edit == null && _controller.isEditable(selected);
+    final platform = Theme.of(context).platform;
+
+    final list = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        MacToolbar(
+          leading: [
+            Expanded(
+              child: MacSearchField(
+                controller: _search,
+                focusNode: _searchFocus,
+                placeholder: ContactsView.searchPlaceholder,
+                width: double.infinity,
+                onDown: _listFocus.requestFocus,
+              ),
+            ),
+          ],
+        ),
+        Expanded(
+          child: ContactList(
+            style: ContactListStyle.plain,
+            showSearch: false,
+            searchController: _search,
+            searchFocusNode: _searchFocus,
+            contacts: _controller.entries,
+            selectedId: selected,
+            selection: selection,
+            focusNode: _listFocus,
+            onOpen: (id) => unawaited(_open(id)),
+            menuFor: _actions.menuFor,
+            onReturn: (id) => unawaited(_actions.edit(id)),
+            onDelete: () => unawaited(_actions.deleteSelected()),
+            padding: const EdgeInsets.symmetric(vertical: MyDataSpace.s2),
+          ),
+        ),
+      ],
+    );
+
+    final Widget pane;
+    if (edit != null) {
+      pane = _actions.editor(edit);
+    } else {
+      final Widget content = _controller.merging != null
+          ? MergePane(
+              key: ValueKey(_controller.merging),
+              session: _controller.merging!,
+              title: MergePane.mergeTitle(_controller.merging!.ids.length),
+              plainLabel: 'Cancel',
+              onPlain: _controller.endMerge,
+              onMerge: () => unawaited(_actions.confirmMerge()),
+            )
+          : missing
+          ? const _PlainLine(ContactsView.missingLinkText)
+          : several
+          ? _Selection(controller: _controller, actions: _actions)
+          : selected == null
+          ? const SizedBox.shrink()
+          : MacContactPage(
+              key: ValueKey(selected),
+              controller: _controller,
+              id: selected,
+              onOpenLink: widget.onOpenLink,
+              actions: _actions,
+            );
+      pane = Semantics(
+        container: true,
+        explicitChildNodes: true,
+        child: SingleChildScrollView(
+          controller: _paneScroll,
+          padding: const EdgeInsets.fromLTRB(MyDataSpace.s8, MyDataSpace.s6, MyDataSpace.s8, MyDataSpace.s8),
+          child: Align(
+            alignment: AlignmentDirectional.topStart,
+            child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: MacContactPage.maxWidth), child: content),
+          ),
+        ),
+      );
+    }
+
+    final contact = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        MacToolbar(
+          trailing: edit != null
+              ? const []
+              : [
+                  MacToolbarButton.text(
+                    text: ContactActions.editButton,
+                    label: ContactActions.editLabel,
+                    shortcut: AppMenuBar.editShortcut.label(platform),
+                    disabledReason: selected == null || several ? null : _actions.reasonFor(selected),
+                    onPressed: editable ? () => unawaited(_actions.edit(selected)) : null,
+                  ),
+                  MacToolbarButton(
+                    icon: MacIcons.add,
+                    label: ContactsView.newContactLabel,
+                    shortcut: AppMenuBar.newShortcut.label(platform),
+                    onPressed: () => unawaited(_actions.newContact()),
+                  ),
+                ],
+        ),
+        Expanded(child: pane),
+      ],
+    );
+
+    final row = Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(width: MyDataMacSize.listWidth, child: list),
+        VerticalDivider(width: 1, thickness: 1, color: mac.separator),
+        Expanded(child: contact),
+      ],
+    );
+    if (edit == null) return row;
+    // A toast centres on the list, beside the inspector, never over it.
+    return Stack(children: [
+      Positioned.fill(child: row),
+      const PositionedDirectional(start: 0, top: 0, bottom: 0, width: MyDataMacSize.listWidth, child: ToastArea()),
+    ]);
+  }
+
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: _controller,
@@ -151,6 +300,8 @@ class _ContactsViewState extends State<ContactsView> {
       final pad = PageScaffold.paddingFor(layout);
       final insets = MediaQuery.paddingOf(context);
       final missing = _controller.missingLinkId != null;
+
+      if (MacLook.of(context)) return _macLayout(missing: missing);
 
       if (layout == AppLayout.phone) {
         return Column(
@@ -322,7 +473,7 @@ class _PlainLine extends StatelessWidget {
   final String text;
 
   @override
-  Widget build(BuildContext context) => Text(text, style: MyDataType.body.copyWith(color: context.colors.inkMuted));
+  Widget build(BuildContext context) => Text(text, style: context.type(MyDataType.body).copyWith(color: context.colors.inkMuted));
 }
 
 /// A contact's page pushed over the list under 600px, with a back button to the list. If the window

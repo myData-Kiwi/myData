@@ -72,6 +72,16 @@ class ContactsHome extends StatefulWidget {
         AppSection(icon: sections[2].icon, label: sections[2].label, count: review, countMore: more),
       ];
 
+  /// The sections as the Mac frame's sidebar shows them, with its icons (Lucide, in place of SF Symbols).
+  static List<AppSection> macSectionsWith(int review, {bool more = false}) => [
+        AppSection(icon: MacIcons.people, label: sections[0].label),
+        AppSection(icon: MacIcons.trash, label: sections[1].label),
+        AppSection(icon: MacIcons.review, label: sections[2].label, count: review, countMore: more),
+      ];
+
+  /// The Mac frame's toolbar title for the sections other than Contacts (whose band holds the search field).
+  static const macTitles = ['Contacts', 'Recently deleted', 'Review'];
+
   /// File, Import… (design/platforms.md; ImportFlow, "Where it lives"): opens myData at its Import section.
   static const importMenuItem = 'Import…';
   static const importLabel = 'Import contacts…';
@@ -266,11 +276,63 @@ class _ContactsHomeState extends State<ContactsHome> {
     );
   }
 
+  /// The Mac frame ([MacLook]): the translucent sidebar with the sections and the host's state, then the
+  /// section on `content-background` under its toolbar band. Contacts draws its own band (search, Edit, New).
+  Widget _macFrame(AppConnection? connection) {
+    final mac = context.mac;
+    final body = _body();
+    final Widget content;
+    if (body is ContactsView) {
+      content = body;
+    } else {
+      content = Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          MacToolbar(
+            title: ContactsHome.macTitles[_section],
+            trailing: [
+              if (_isRunning && _section == 0)
+                MacToolbarButton(
+                  icon: MacIcons.add,
+                  label: ContactActions.newLabel,
+                  shortcut: AppMenuBar.newShortcut.label(Theme.of(context).platform),
+                  onPressed: () => unawaited(_newContact()),
+                ),
+            ],
+          ),
+          Expanded(child: body),
+        ],
+      );
+    }
+    if (connection == null) return ColoredBox(color: mac.contentBackground, child: content);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        MacSourceList(
+          sections: ContactsHome.macSectionsWith(_review.count, more: _review.capped),
+          current: _section,
+          onSelect: (i) => unawaited(_select(i)),
+          connection: connection,
+        ),
+        VerticalDivider(width: 1, thickness: 1, color: mac.separator),
+        Expanded(
+          child: ColoredBox(
+            color: mac.contentBackground,
+            child: ToastHost(controller: _toasts, child: content),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: Listenable.merge([_host, _contacts, _contacts.selection, _review]),
     builder: (context, _) => _menuBar(
-      Scaffold(
+      MacLook.of(context)
+          // Transparent: the window's sidebar material shows through the sidebar.
+          ? Scaffold(backgroundColor: Colors.transparent, body: _macFrame(_connection()))
+          : Scaffold(
         backgroundColor: context.colors.bg,
         body: switch (_connection()) {
           // No host to connect to (the web build): the panel alone, without a frame whose connection line

@@ -118,10 +118,10 @@ class MergePane extends StatelessWidget {
               child: FormBusy(
                 busy: s.working,
                 child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
-                  Semantics(header: true, child: Text(title, style: MyDataType.displayLg.copyWith(color: c.ink))),
+                  Semantics(header: true, child: Text(title, style: context.type(MyDataType.displayLg).copyWith(color: c.ink))),
                   if (reason != null) ...[
                     const SizedBox(height: MyDataSpace.s2),
-                    Text(reason!, style: MyDataType.body.copyWith(color: c.inkMuted)),
+                    Text(reason!, style: context.type(MyDataType.body).copyWith(color: c.inkMuted)),
                   ],
                   const SizedBox(height: MyDataSpace.s4),
                   if (names)

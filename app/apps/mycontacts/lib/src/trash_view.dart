@@ -285,14 +285,70 @@ class _TrashViewState extends State<TrashView> {
     }
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       if (error != null) ...[
-        Semantics(liveRegion: true, child: Text(error, style: MyDataType.body.copyWith(color: c.danger))),
+        Semantics(liveRegion: true, child: Text(error, style: context.type(MyDataType.body).copyWith(color: c.danger))),
         const SizedBox(height: MyDataSpace.s4),
       ],
       body,
     ]);
   }
 
+  /// The Mac frame: the list column (`list-width`) of plain two-line rows (the name, and when it was deleted
+  /// in `caption`), a hairline, then the pane for the selection on `content-background`.
+  Widget _macLayout() {
+    final mac = context.mac;
+    return Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      SizedBox(
+        width: MyDataMacSize.listWidth,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(vertical: MyDataSpace.s2),
+          child: MultiSelectList<String>(
+            controller: _selection,
+            label: TrashView.title,
+            countLabel: (n) => '$n contacts selected',
+            semanticLabelOf: (id) {
+              final t = _item(id);
+              return t == null ? '' : '${t.title}, deleted ${TrashView.day(t.deletedAt)}';
+            },
+            itemBuilder: (context, id) => _macRow(context, id),
+          ),
+        ),
+      ),
+      VerticalDivider(width: 1, thickness: 1, color: mac.separator),
+      Expanded(
+        child: SingleChildScrollView(
+          controller: _paneScroll,
+          padding: const EdgeInsets.fromLTRB(MyDataSpace.s8, MyDataSpace.s6, MyDataSpace.s8, MyDataSpace.s8),
+          child: Align(
+            alignment: AlignmentDirectional.topStart,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: MyDataSize.contentMax),
+              child: KeyedSubtree(key: ValueKey(_selection.selected.join(',')), child: _pane()),
+            ),
+          ),
+        ),
+      ),
+    ]);
+  }
+
+  Widget _macRow(BuildContext context, String id) {
+    final mac = context.mac;
+    final t = _item(id);
+    if (t == null) return const SizedBox.shrink();
+    final on = MacRowEmphasis.of(context);
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+      Text(t.title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: MyDataMacType.body.copyWith(color: on ? mac.onAccent : mac.label)),
+      Text('Deleted ${TrashView.day(t.deletedAt)}',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: MyDataMacType.caption.copyWith(color: on ? mac.onAccent : mac.secondaryLabel)),
+    ]);
+  }
+
   Widget _layout(BuildContext context) {
+    if (MacLook.of(context)) return _macLayout();
     final layout = AppLayout.of(context);
     final pad = PageScaffold.paddingFor(layout);
     final insets = MediaQuery.paddingOf(context);
@@ -373,12 +429,12 @@ class _One extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-      Semantics(header: true, child: Text(item.title, style: MyDataType.displayLg.copyWith(color: c.ink))),
+      Semantics(header: true, child: Text(item.title, style: context.type(MyDataType.displayLg).copyWith(color: c.ink))),
       const SizedBox(height: MyDataSpace.s2),
       Text(
         'Deleted on ${TrashView.day(item.deletedAt)}. It is deleted for good on ${TrashView.day(item.purgeAfter)}, '
         'unless you restore it.',
-        style: MyDataType.body.copyWith(color: c.inkMuted),
+        style: context.type(MyDataType.body).copyWith(color: c.inkMuted),
       ),
       const SizedBox(height: MultiSelectSummary.actionsGap),
       ButtonRow(children: [

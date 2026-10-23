@@ -169,6 +169,30 @@ class _ReviewViewState extends State<ReviewView> {
           if (layout == AppLayout.phone) {
             return _list(EdgeInsets.fromLTRB(pad + insets.left, insets.top, pad + insets.right, pad + insets.bottom));
           }
+          // The Mac frame: the list column (`list-width`, plain lists, the count in the toolbar's title), a
+          // hairline, then the pane.
+          if (MacLook.of(context)) {
+            return Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              SizedBox(
+                width: MyDataMacSize.listWidth,
+                child: _list(const EdgeInsets.symmetric(vertical: MyDataSpace.s2)),
+              ),
+              VerticalDivider(width: 1, thickness: 1, color: context.mac.separator),
+              Expanded(
+                child: SingleChildScrollView(
+                  controller: _paneScroll,
+                  padding: const EdgeInsets.fromLTRB(MyDataSpace.s8, MyDataSpace.s6, MyDataSpace.s8, MyDataSpace.s8),
+                  child: Align(
+                    alignment: AlignmentDirectional.topStart,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: MyDataSize.contentMax),
+                      child: KeyedSubtree(key: ValueKey(_m.selected), child: _pane()),
+                    ),
+                  ),
+                ),
+              ),
+            ]);
+          }
           return LayoutBuilder(builder: (context, constraints) {
             const gap = MyDataSpace.s8;
             final listWidth = (constraints.maxWidth * 0.4 - pad - gap / 2).clamp(240.0, 340.0);
@@ -202,7 +226,7 @@ class _ReviewViewState extends State<ReviewView> {
     return SingleChildScrollView(
       padding: padding,
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        if (!_phone) ...[
+        if (!_phone && !MacLook.of(context)) ...[
           Semantics(
             header: true,
             child: Text('${ReviewView.title}, ${_m.countText}', style: MyDataType.title.copyWith(color: c.ink)),
@@ -223,7 +247,8 @@ class _ReviewViewState extends State<ReviewView> {
                 ),
             ],
           ),
-        if (pairs.isNotEmpty && changed.isNotEmpty) const SizedBox(height: PageScaffold.gap),
+        if (pairs.isNotEmpty && changed.isNotEmpty)
+          SizedBox(height: MacLook.of(context) ? MyDataSpace.s2 : PageScaffold.gap),
         if (changed.isNotEmpty)
           GroupedList(
             heading: ReviewView.changedHeading(changed.length),
@@ -286,7 +311,7 @@ class _ReviewViewState extends State<ReviewView> {
       // The pair is no longer a duplicate: the line alone, with no actions.
       return Semantics(
         liveRegion: true,
-        child: Text(line, style: MyDataType.body.copyWith(color: context.colors.inkMuted)),
+        child: Text(line, style: context.type(MyDataType.body).copyWith(color: context.colors.inkMuted)),
       );
     }
     final pair = _m.pair;
@@ -326,7 +351,7 @@ class _ChangesPane extends StatelessWidget {
           final change = s.change;
           final data = s.data;
           if (!s.loading && (s.nothing || data == null || change == null)) {
-            return Text(s.message ?? ReviewView.nothingLine, style: MyDataType.body.copyWith(color: c.inkMuted));
+            return Text(s.message ?? ReviewView.nothingLine, style: context.type(MyDataType.body).copyWith(color: c.inkMuted));
           }
           final label = change?.sourceLabel ?? '';
           final apple = Theme.of(context).platform == TargetPlatform.macOS;
@@ -351,12 +376,12 @@ class _ChangesPane extends StatelessWidget {
               child: FormBusy(
                 busy: s.working,
                 child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
-                  Semantics(header: true, child: Text(title, style: MyDataType.displayLg.copyWith(color: c.ink))),
+                  Semantics(header: true, child: Text(title, style: context.type(MyDataType.displayLg).copyWith(color: c.ink))),
                   const SizedBox(height: MyDataSpace.s2),
                   if (change != null)
                     Text(
                       'This contact changed in ${change.sourceLabel} after you imported it.',
-                      style: MyDataType.body.copyWith(color: c.inkMuted),
+                      style: context.type(MyDataType.body).copyWith(color: c.inkMuted),
                     ),
                   const SizedBox(height: MyDataSpace.s4),
                   DuplicatePair(
@@ -423,10 +448,10 @@ class _Empty extends StatelessWidget {
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             Semantics(
               header: true,
-              child: Text(ReviewView.emptyTitle, textAlign: TextAlign.center, style: MyDataType.title.copyWith(color: c.ink)),
+              child: Text(ReviewView.emptyTitle, textAlign: TextAlign.center, style: context.type(MyDataType.title).copyWith(color: c.ink)),
             ),
             const SizedBox(height: MyDataSpace.s2),
-            Text(ReviewView.emptySentence, textAlign: TextAlign.center, style: MyDataType.body.copyWith(color: c.inkMuted)),
+            Text(ReviewView.emptySentence, textAlign: TextAlign.center, style: context.type(MyDataType.body).copyWith(color: c.inkMuted)),
           ]),
         ),
       ),
