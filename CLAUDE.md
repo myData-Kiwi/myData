@@ -69,6 +69,15 @@ Technical names: repo `mydata-kiwi/mydata`, command `mydata`, background service
 7. The mail spike app is deleted; the owner switches off its two stale grants.
 8. **Flutter is the stack on every platform, the Mac included** (the owner, after the M1a side-by-side of the People screen: Flutter's app has more to it, the SwiftUI one felt basic, and SwiftUI is Mac only). The family of separate apps stays. **Native frame, quiet brand:** on macOS the system's window, unified toolbar and translucent sidebar, the system font at 13 pt, the system accent and focus ring, Mac density; ours are the kiwi, the app icons, avatars, person pages, empty states and wording. Other platforms keep building and keep today's look until their own pass (Material 3 on Android). The SwiftUI prototype stays on the local branch `stack-gate-swiftui`, never pushed (`docs/decisions/2026-10-23-stack-gate.md`).
 
+### 2026-10-23 (themes; `docs/decisions/2026-10-23-themes.md`)
+
+- **A theme changes the whole look** (colours, type, shape, density, borders, depth, icons, motion, each component's variant), never wording, layout, keys, the menu bar, the window's controls, status meanings or the approval card's structure. Design: `design/themes/ARCHITECTURE.md`; rules: `design/theming.md`.
+- **Each app has its own theme, plus "Use everywhere"** (clears each app's choice, with Undo). **Per device, never synced** (`<home>/device/settings.json`); the host's `/appearance` is retired in phase 2. **Mode stays per device.** Phones: one theme per app, no Use everywhere, until native phone apps.
+- **System is the default** (the Mac shell on macOS; Kiwi in the platform's font elsewhere until each platform's pass).
+- **Built-ins:** System and today's six (Kiwi, Graphite, Dusk, Plum, Rose, Amber) as full looks. **No other built-in until the owner picks** from the prototype gallery (13 more, kept outside the repo).
+- The design's 11 choices, as recommended: theme files CC0-1.0; fonts bundled as Latin subsets per app, capped; no background images until phase 6; new built-ins in batches, cut what does not earn its place; a new disabled style for filled buttons; Kiwi's contrast changes in phase 3; Approve and primary in `ink` when the accent is near red; upper case only on label and caption roles that never hold a name; layout stays out of themes; mode per device, phones one theme per app; View > Theme… on ⌥⌘T unless Apple's apps use it.
+- **Order:** the themes foundation (phases 0 to 3) before the phones (M1b). Custom themes (create, import, share) are phase 5, not now.
+
 ## Architecture
 
 One host per household, clients on every device. Phones cannot host.
@@ -157,8 +166,9 @@ The model has one job: choose a tool and extract plain arguments. Everything els
 ### Client stack
 
 - **Flutter on every platform** (decided 2026-10-23, item 8), macOS first; the iPhone gets plain HTML from the host until native iPhone apps. The Dart client is generated from `host/openapi.json`, never hand-written. Native pieces (widgets, App Intents, the share sheet) are budgeted per feature.
-- **Look today:** everything from `design/` through `mydata_ui`; tokens generated (`generated_tokens_test.dart` fails when stale); **no literal colour, radius or font name** in any app or widget (`no_literals_test.dart`). The theme is stored on the host; light or dark per device.
-- **Native frame, quiet brand (M1a's look pass):** the platform owns the frame (window, toolbar, sidebar, controls, font, icons, accent, focus ring); myData owns the content. On macOS every app draws the Mac shell in `mydata_ui` (`MacShell`; the adoption steps and API are in its README; all four apps have adopted it); other platforms keep the branded look until their pass. Mac density, lists not cards, themes become accents. No spec before a component's first use.
+- **Look today:** everything from `design/` through `mydata_ui`; tokens generated (`generated_tokens_test.dart` fails when stale); **no literal colour, radius or font name** in any app or widget (`no_literals_test.dart`). Until themes phase 2 the theme is the host's (`/appearance`, accent only, ignored by the Mac shell); light or dark per device.
+- **Native frame, quiet brand (M1a's look pass):** the platform owns the frame (window, toolbar, sidebar, controls, font, icons, accent, focus ring); myData owns the content. On macOS every app draws the Mac shell in `mydata_ui` (`MacShell`; the adoption steps and API are in its README; all four apps have adopted it); other platforms keep the branded look until their pass. This is the **System** theme; drawn themes keep the Mac window and skeleton and draw inside it. No spec before a component's first use.
+- **Themes** (phases in `design/themes/ARCHITECTURE.md` section 5): 1, the run-time look (`MyDataLook`, the codemod from static token classes to context reads, the `MacLook` split) with every golden byte-identical, built from today's `tokens.json` and `themes.json`; 2, per app and per device (`ThemeController`, the gallery, the host route retired: regenerate `openapi.json` and the client, and rebuild the installed host); 3, the design rules and the six as full looks from `design/themes/<slug>/theme.json`; 5, custom themes; 6, materials.
 - **Mac frame tests** run as macOS (`macTestWidgets`, `macScreenMatrix` in mydata_testing), so keys are ⌘ and menus say ⌘E. Dates and times come from `MyDataDates` in every app ("14 Oct 2026", the device's 12- or 24-hour clock).
 - Disabled controls always give a reason. On macOS the menu bar (`AppMenuBar`) owns ⌘Z and ⌘S; phones have every action on screen. Forms go read-only while working (`FormBusy`) and commit pending typing first (`FormCommit`). Dates in British English ("Wed 14 Oct 2026"). The focus ring, key order, phone breakpoint and form rules are in `design/README.md`, `design/platforms.md` and `mydata_ui`'s README.
 
@@ -171,7 +181,7 @@ app/         Dart workspace
   packages/  mydata_client (generated), mydata_core (host lifecycle, tokens, links), mydata_ui,
              mydata_testing, mydata_assistant
   apps/      mydata, myassistant, mycontacts, mycalendar (each later app is a new app/apps/<name>)
-design/      design system specs, tokens, previews
+design/      design system specs, tokens, previews; themes/ (format, built-in themes and their rules)
 docs/        2026-10-23-plan.md and decisions/ (history)
 ```
 
@@ -179,12 +189,13 @@ The links between the apps are in `mydata_core` (`AppLinks`, `IncomingLinks`, `I
 
 ## Status (2026-10-23)
 
-Built and tested against fakes and synthetic hosts, **never used live by the owner**: the host with the gate, scopes, safety net, writers and export; followed contacts and calendars (This Mac, iCloud); the four apps on the design system; contacts editing, import, merge and review. Nothing reaches the phones (loopback only). M1a in progress: the stack gate is done (Flutter on every platform); the host builds as a signed `myData Host.app` with a LaunchAgent (tried with a test label and a temporary folder; not yet installed for the owner), and the four apps and the host app sign with the Apple Development certificate. The old phase build order is replaced by the milestones below.
+Built and tested against fakes and synthetic hosts, **never used live by the owner**: the host with the gate, scopes, safety net, writers and export; followed contacts and calendars (This Mac, iCloud); the four apps on the design system; contacts editing, import, merge and review. Nothing reaches the phones (loopback only). M1a in progress: the stack gate is done (Flutter on every platform); the host builds as a signed `myData Host.app` with a LaunchAgent (tried with a test label and a temporary folder; not yet installed for the owner), and the four apps and the host app sign with the Apple Development certificate. Themes: designed and decided (phase 0, docs only); phases 1 to 3 come before M1b. The old phase build order is replaced by the milestones below.
 
 ## Milestones (plan section 6, adjusted for 2026-10-23)
 
 - **M0, housekeeping. Next.** Owner: the Apple Development certificate; switching off the spike app's grants. Mine: `Signing.local.xcconfig`; `mydata db check-migration` on copies of the owner's files (schemas 5 to 7). Done: push, licence, this file cut, CI. Accept: two rebuilds without a second Contacts prompt.
 - **M1a, the Mac (2 to 3 weeks).** The host as a signed `.app` with a LaunchAgent (built 2026-10-23; the owner installs it with `install.sh`); the stack gate (**done 2026-10-23: Flutter chosen**); the look pass in **each** of the four apps (Mac density, system font and accent, icons, a real app icon); first launch in myData (Allow, or Try with sample data); History, Restore and Cleanup in myContacts; Proof of privacy v0 in myData.
+- **Themes foundation (phases 1 to 3), after M1a's look pass and before M1b.** Phase 0 (the decision record and docs) is done.
 - **M1b, contacts on both phones (3 weeks).** The backup gate first; the remote listener and Tailscale Serve; day 1 records stock Radicale against iPhone, Mac Contacts and DAVx5, then our CardDAV against the recordings; Settings, Devices; This Mac excludes the myData account; the switch-over tool; `mydata check security`.
 - **M1c, calendar and tasks on both phones (2 weeks).** CalDAV for an owned calendar and plain VTODO; `.ics` import; provider calendars stay followed.
 - **M2:** the host's web page (Today, Search/Ask, Settings) with Web Push; Android APKs; ⌘K and Ask in myAssistant; notifications.
@@ -196,6 +207,7 @@ Built and tested against fakes and synthetic hosts, **never used live by the own
 
 - Where Today, ⌘K and person pages live (proposed: Today in myData, ⌘K and Ask in myAssistant, person pages in myContacts).
 - Where to keep conversation history (in memory now).
+- Which new built-in themes to build (the owner's pick from the 13 prototypes).
 - Releasing on macOS needs the paid program: Developer ID, hardened runtime, notarisation, and the entitlements in `Reader.entitlements`. Development signing goes through the myData app's git-ignored `Runner/Configs/Signing.local.xcconfig`, which the other three apps include and `build_host_app.sh` reads.
 - Chained requests (26% in round 2) need a planner; start from `host/results/2026-10-11-b-REPORT.md`.
 
@@ -222,4 +234,5 @@ Moved verbatim from this file on 2026-10-23:
 - `docs/decisions/2026-10-14-contacts-editing-and-import.md`: contacts editing, import and the import UI.
 - `docs/decisions/2026-10-14-status-and-build-order.md`: phase status, the 2026-10-13 direction in full, assets, the old build order, open questions and rough edges.
 - `docs/decisions/2026-10-23-stack-gate.md`: the M1a side-by-side of Flutter and SwiftUI, and where each side's pieces are.
+- `docs/decisions/2026-10-23-themes.md`: the owner's request for whole-look themes, the decisions, what a theme can change and the build phases.
 - `docs/2026-10-13-own-data-plan.md` (superseded) and `docs/2026-10-23-plan.md` (current).
