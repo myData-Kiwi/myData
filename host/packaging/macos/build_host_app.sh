@@ -83,7 +83,8 @@ SIGN_HASH="$(resolve_identity "$IDENTITY")"
 
 # --- The Python ---------------------------------------------------------------------------------------------
 uv python install --quiet "$PY_REQUEST"
-PY_SRC_EXE="$(uv python find --managed-python --no-project "$PY_REQUEST")"
+# --system: never a virtual environment (run from host/, uv would find the development .venv).
+PY_SRC_EXE="$(uv python find --managed-python --no-project --system "$PY_REQUEST")"
 PY_SRC="$(cd "$(dirname "$PY_SRC_EXE")/.." && pwd -P)"
 PYVER="$("$PY_SRC_EXE" -c 'import sys; print("%d.%d" % sys.version_info[:2])')"
 PYFULL="$("$PY_SRC_EXE" -c 'import platform; print(platform.python_version())')"
