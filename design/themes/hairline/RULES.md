@@ -48,7 +48,7 @@ Colour is chosen inside the theme (decided 2026-10-23; `ARCHITECTURE.md` 1.6). "
 | Slate | `slate` | `#364E6D` / `#BACCE5` | `#EFF4FB` / `#111419` | Cool blue-grey grounds with a slate accent. | light 6.4 / 7.7 / 8.5; dark 7.3 / 11.3 / 10.7 |
 | Cobalt | `cobalt` | `#1D4BC0` / `#8AB4FF` | `#F4F4F2` / `#141414` | The neutral greys with one saturated blue. | light 6.4 / 6.8 / 7.4; dark 7.3 / 8.8 / 8.4 |
 
-Every palette gives all 43 roles in both modes and passes the contrast pairs of `ARCHITECTURE.md` 2.2 in both modes, with its own increase-contrast set, checked at 7:1 (prototype validator, 2026-10-23). Alternative palettes were made from the default by moving the accent and the tinted roles' hue at the same lightness, then fixing each failing pair by lightness only.
+Every palette gives, in both modes, every role the style does not fix through `colour-use.same-as`: 40 of the 43 (`selection`, `edge` and `avatar-fill` follow their source; all 43 once resolved). It passes the contrast pairs of `ARCHITECTURE.md` 2.2 in both modes, with its own increase-contrast set, checked at 7:1 (prototype validator, 2026-10-23). Alternative palettes were made from the default by moving the accent and the tinted roles' hue at the same lightness, then fixing each failing pair by lightness only.
 
 ## Depth and materials
 

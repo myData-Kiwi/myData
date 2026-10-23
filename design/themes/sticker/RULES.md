@@ -47,7 +47,7 @@ Colour is chosen inside the theme (decided 2026-10-23; `ARCHITECTURE.md` 1.6). "
 | Mint | `mint` | `#057558` / `#7FD9B8` | `#F0FAF6` / `#0D1814` | Mint ground, pale green fills, deep mint accent. | light 6.8 / 5.3 / 5.7; dark 9.1 / 10.8 / 9.2 |
 | Mustard | `mustard` | `#866700` / `#EFCA55` | `#FAF7EE` / `#19150C` | Butter ground, pale yellow fills; the accent is a dark gold in light mode (a bright yellow fails 3:1 on white and white text on it) and true mustard in dark. | light 6.9 / 5.2 / 5.3; dark 9.0 / 11.5 / 10.1 |
 
-Every palette gives all 43 roles in both modes and passes the contrast pairs of `ARCHITECTURE.md` 2.2 in both modes, with its own increase-contrast set, checked at 7:1 (prototype validator, 2026-10-23). Alternative palettes were made from the default by moving the accent and the tinted roles' hue at the same lightness, then fixing each failing pair by lightness only.
+Every palette gives all 43 roles in both modes (this style fixes none through `colour-use.same-as`) and passes the contrast pairs of `ARCHITECTURE.md` 2.2 in both modes, with its own increase-contrast set, checked at 7:1 (prototype validator, 2026-10-23). Alternative palettes were made from the default by moving the accent and the tinted roles' hue at the same lightness, then fixing each failing pair by lightness only.
 
 ## Depth and materials
 

@@ -35,7 +35,7 @@ Each folder holds the theme file and its `RULES.md` (its design language, its pa
 
 ## Palettes
 
-- **A palette is colour only:** the six seeds (`bg`, `surface`, `ink`, `ink-muted`, `accent`, `on-accent`) in light and dark, any other of the 43 roles, an increase-contrast set and, for a gradient window, the gradient's stops. Built-in palettes give every role; what a custom palette leaves out is derived.
+- **A palette is colour only:** the six seeds (`bg`, `surface`, `ink`, `ink-muted`, `accent`, `on-accent`) in light and dark, any other of the 43 roles, an increase-contrast set and, for a gradient window, the gradient's stops. Built-in palettes give every role their style does not fix through `colour-use.same-as` (all 43 once resolved); what a custom palette leaves out is derived.
 - **The style stays:** fonts, shapes, density, borders, depth, materials, icons, motion and variants never change with the palette. A theme can also fix a role for every palette (`colour-use.same-as`: Hairline's selection bar is always `ink`).
 - **Every palette must pass the contrast rules on its own**, in both modes and at increased contrast. Today the built-ins are checked at normal contrast only; at increased contrast only Hairline's and Sticker's palettes, which carry their own sets, are checked. The others rely on the 7:1 derivation, which phase 1 builds and its built-in test checks.
 - **Across a theme's palettes** the accent and the tint of the grounds move; status, `danger` and calendar colours keep their meaning.
