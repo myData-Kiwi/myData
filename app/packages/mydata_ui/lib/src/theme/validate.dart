@@ -7,6 +7,8 @@
 /// come with import (phase 5) and images (phase 6); until then a file naming an image is refused.
 library;
 
+import 'dart:developer' as developer;
+
 import 'catalogue.dart';
 import 'checks.dart';
 import 'colour.dart';
@@ -67,16 +69,18 @@ class ThemeCheck {
   List<String> get usablePalettes => [for (final p in palettes) if (p.passes) p.paletteId];
 }
 
-/// Strips Unicode control (Cc) and format (Cf) characters, bidi overrides included (2.1, step 5). Not yet
-/// done: NFC normalisation (the Dart SDK has none), so a decomposed name is kept as written.
+/// Strips Unicode control (Cc) and format (Cf) characters, bidi overrides and tag characters included (2.1,
+/// step 5). Not yet done: NFC normalisation (the Dart SDK has none), so a decomposed name is kept as written.
 String cleanThemeText(String s) => _strip(s);
 
-/// Cc and the Cf ranges that matter for a name: soft hyphen, Arabic marks, zero-width and bidi controls,
-/// word joiners, the byte-order mark and interlinear annotations.
+/// Cc and every Cf range of Unicode 15.1: soft hyphen, Arabic and Syriac marks, zero-width and bidi controls,
+/// word joiners, the byte-order mark, interlinear annotations, Kaithi, Egyptian, shorthand and musical format
+/// controls, and the tag characters (invisible, and used to hide text in a name).
 const _strippedRanges = [
   (0x0000, 0x001F), (0x007F, 0x009F), (0x00AD, 0x00AD), (0x0600, 0x0605), (0x061C, 0x061C), (0x06DD, 0x06DD),
-  (0x070F, 0x070F), (0x180E, 0x180E), (0x200B, 0x200F), (0x202A, 0x202E), (0x2060, 0x2064), (0x2066, 0x206F),
-  (0xFEFF, 0xFEFF), (0xFFF9, 0xFFFB),
+  (0x070F, 0x070F), (0x0890, 0x0891), (0x08E2, 0x08E2), (0x180E, 0x180E), (0x200B, 0x200F), (0x202A, 0x202E),
+  (0x2060, 0x2064), (0x2066, 0x206F), (0xFEFF, 0xFEFF), (0xFFF9, 0xFFFB), (0x110BD, 0x110BD), (0x110CD, 0x110CD),
+  (0x13430, 0x1343F), (0x1BCA0, 0x1BCA3), (0x1D173, 0x1D17A), (0xE0001, 0xE0001), (0xE0020, 0xE007F),
 ];
 
 String _strip(String s) => String.fromCharCodes(
@@ -118,8 +122,11 @@ ThemeCheck validateThemeJson(Map<String, Object?> json, ThemeFormat format,
   if (json['preview'] case final Map<String, Object?> p) {
     if (p['blurb'] case final String s) p['blurb'] = cleanThemeText(s);
   }
-  for (final p in (json['palettes'] as List? ?? const []).whereType<Map<String, Object?>>()) {
-    if (p['name'] case final String s) p['name'] = cleanThemeText(s);
+  // Before the schema, so `palettes` may be anything: matched, never cast.
+  if (json['palettes'] case final List ps) {
+    for (final p in ps.whereType<Map<String, Object?>>()) {
+      if (p['name'] case final String s) p['name'] = cleanThemeText(s);
+    }
   }
 
   // 4. The schema. Its root allows any key, so a newer minor version still loads; the ones it does not name are
@@ -155,6 +162,9 @@ ThemeCheck validateThemeJson(Map<String, Object?> json, ThemeFormat format,
   final basedOn = json['based-on'] as String?;
   if (basedOn != null && !format.builtInStyles.containsKey(basedOn)) {
     errors.add('It is based on "$basedOn", which is not a theme that comes with myData.');
+  } else if (basedOn != null && format.builtInStyles[basedOn]!['frame'] == ThemeFrame.system.key) {
+    // System has no style of its own to start from: the platform draws it.
+    errors.add('A drawn theme can only be based on a drawn theme that comes with myData.');
   }
   if (!spdxLicences.contains(json['licence'])) {
     errors.add('Its licence, "${json['licence']}", is not one myData knows.');
@@ -166,8 +176,13 @@ ThemeCheck validateThemeJson(Map<String, Object?> json, ThemeFormat format,
   final ThemeFile theme;
   try {
     theme = ThemeFile.fromJson(json, base: base);
-  } on Object catch (e) {
-    return ThemeCheck(errors: ['The theme could not be read ($e).'], notices: notices);
+  } on Object catch (e, stack) {
+    // A file the schema let through but the reader could not build: a gap in the checks above. The person
+    // gets a sentence; the exception goes to the log.
+    developer.log('theme file passed the checks but could not be read',
+        name: 'mydata.theme', error: e, stackTrace: stack);
+    return ThemeCheck(errors: ['The theme could not be read. It may have been made for another version of myData.'],
+        notices: notices);
   }
 
   for (final finding in checkStyle(theme)) {
@@ -244,7 +259,7 @@ void _colourUseRules(Map<String, Object?> json, List<String> errors) {
           'follow one that the palettes give.');
     }
   }
-  for (final p in (json['palettes'] as List? ?? const []).cast<Map<String, Object?>>()) {
+  for (final p in (json['palettes'] as List? ?? const []).whereType<Map<String, Object?>>()) {
     for (final where in const ['overrides', 'contrast']) {
       final group = p[where] as Map<String, Object?>?;
       for (final mode in const ['light', 'dark']) {
@@ -259,3 +274,4 @@ void _colourUseRules(Map<String, Object?> json, List<String> errors) {
     }
   }
 }
+

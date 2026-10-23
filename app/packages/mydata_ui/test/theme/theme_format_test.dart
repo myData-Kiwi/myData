@@ -368,4 +368,39 @@ void main() {
       expect(r.theme!.style.shape.lg, ThemeLibrary.kiwi.style.shape.lg);
     });
   });
+
+  group('files that once crashed or slipped through', () {
+    test('"palettes" of any other type is refused with a reason, never a crash', () {
+      for (final v in ['{}', '"x"', '0.4', 'true', 'null', '[1, "a", []]']) {
+        final r = validateThemeText('{"format": 1, "palettes": $v}', format);
+        expect(r.ok, isFalse, reason: v);
+        expect(r.errors, isNotEmpty, reason: v);
+      }
+      final full = drawn()..['palettes'] = {'main': palette()};
+      expect(check(full).errors, contains(contains('palettes')));
+    });
+
+    test('a drawn theme based on System is refused with a sentence', () {
+      final r = check({...drawn(), 'based-on': 'mydata.system'});
+      expect(r.ok, isFalse);
+      expect(r.errors, ['A drawn theme can only be based on a drawn theme that comes with myData.']);
+    });
+
+    test('tag characters and the other format controls are stripped from names', () {
+      final hidden = String.fromCharCodes([0xE0001, 0xE0041, 0xE0042, 0xE007F, 0x1D173, 0x110BD, 0x0890]);
+      final r = check(drawn(name: 'Fog$hidden'));
+      expect(r.theme!.name, 'Fog');
+      expect(r.theme!.name.runes, hasLength(3));
+    });
+
+    test('a file that starts with a byte-order mark is read; one elsewhere is refused', () {
+      final text = jsonEncode(drawn());
+      expect(validateThemeText('﻿$text', format).ok, isTrue);
+      expect(readStrictJson('﻿ {"a": 1}'), {'a': 1});
+      expect(() => readStrictJson('{"a": 1}﻿'), throwsA(isA<StrictJsonError>()));
+      expect(() => readStrictJson('﻿﻿{}'), throwsA(isA<StrictJsonError>()));
+    });
+
+  });
+
 }

@@ -18,13 +18,16 @@ class StrictJsonError implements Exception {
 const maxThemeJsonBytes = 128 * 1024;
 const maxThemeJsonDepth = 8;
 
-/// Reads [text] as one JSON value: maps keep their keys in file order.
+/// Reads [text] as one JSON value: maps keep their keys in file order. A leading byte-order mark is skipped.
 Object? readStrictJson(String text, {int maxBytes = maxThemeJsonBytes, int maxDepth = maxThemeJsonDepth}) {
   // UTF-16 code units are at most the UTF-8 byte count, so this is a cheap first bound; the exact one follows.
   if (text.length > maxBytes || _utf8Length(text) > maxBytes) {
     throw StrictJsonError('The theme file is larger than ${maxBytes ~/ 1024} KB.');
   }
   final p = _Parser(text, maxDepth);
+  // A byte-order mark at the start (as Windows Notepad saves UTF-8) is not part of the JSON; anywhere else it
+  // is refused like any other stray character.
+  if (text.startsWith('\uFEFF')) p.i = 1;
   p.skipSpace();
   final v = p.value(0);
   p.skipSpace();
