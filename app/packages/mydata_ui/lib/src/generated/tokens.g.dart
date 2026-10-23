@@ -681,6 +681,7 @@ class MyDataMacColors extends ThemeExtension<MyDataMacColors> {
     required this.selectionInactive,
     required this.sidebarSelection,
     required this.hover,
+    required this.focusRing,
     required this.toolbarItem,
   });
 
@@ -723,7 +724,10 @@ class MyDataMacColors extends ThemeExtension<MyDataMacColors> {
   /// Under the pointer on a toolbar item or a borderless button.
   final Color hover;
 
-  /// The flat stand-in for a toolbar item's Liquid Glass (Flutter cannot draw glass): the same stand-in as the SwiftUI prototype's off-screen renderer, with a 0.5 pt `separator` outline.
+  /// The keyboard focus ring (keyboardFocusIndicatorColor, which follows the system's accent) on every control in the Mac frame, a field in error included: the branded red `focus` ring and its `ink` rule are not used on a Mac.
+  final Color focusRing;
+
+  /// The flat stand-in for a toolbar item's Liquid Glass (Flutter cannot draw glass): with a 0.5 pt `separator` outline.
   final Color toolbarItem;
 
   /// The system defaults, light appearance.
@@ -741,6 +745,7 @@ class MyDataMacColors extends ThemeExtension<MyDataMacColors> {
     selectionInactive: Color(0xFFDCDCDC),
     sidebarSelection: Color(0x1A000000),
     hover: Color(0x0D000000),
+    focusRing: Color(0x80007AFF),
     toolbarItem: Color(0xFFFCFCFC),
   );
 
@@ -759,11 +764,12 @@ class MyDataMacColors extends ThemeExtension<MyDataMacColors> {
     selectionInactive: Color(0xFF464646),
     sidebarSelection: Color(0x1FFFFFFF),
     hover: Color(0x12FFFFFF),
+    focusRing: Color(0x800A84FF),
     toolbarItem: Color(0xFF3D3D3D),
   );
 
   /// The token names, as the system channel reports them.
-  static const tokenNames = ['accent', 'on-accent', 'label', 'secondary-label', 'tertiary-label', 'quaternary-label', 'separator', 'content-background', 'window-background', 'sidebar-background', 'selection-inactive', 'sidebar-selection', 'hover', 'toolbar-item'];
+  static const tokenNames = ['accent', 'on-accent', 'label', 'secondary-label', 'tertiary-label', 'quaternary-label', 'separator', 'content-background', 'window-background', 'sidebar-background', 'selection-inactive', 'sidebar-selection', 'hover', 'focus-ring', 'toolbar-item'];
 
   /// These colours with the ones in [system] (by token name) in their place.
   MyDataMacColors withSystem(Map<String, Color> system) => MyDataMacColors(
@@ -780,12 +786,13 @@ class MyDataMacColors extends ThemeExtension<MyDataMacColors> {
         selectionInactive: system['selection-inactive'] ?? selectionInactive,
         sidebarSelection: system['sidebar-selection'] ?? sidebarSelection,
         hover: system['hover'] ?? hover,
+        focusRing: system['focus-ring'] ?? focusRing,
         toolbarItem: system['toolbar-item'] ?? toolbarItem,
       );
 
   @override
-  MyDataMacColors copyWith({Color? accent, Color? onAccent, Color? label, Color? secondaryLabel, Color? tertiaryLabel, Color? quaternaryLabel, Color? separator, Color? contentBackground, Color? windowBackground, Color? sidebarBackground, Color? selectionInactive, Color? sidebarSelection, Color? hover, Color? toolbarItem}) =>
-      MyDataMacColors(accent: accent ?? this.accent, onAccent: onAccent ?? this.onAccent, label: label ?? this.label, secondaryLabel: secondaryLabel ?? this.secondaryLabel, tertiaryLabel: tertiaryLabel ?? this.tertiaryLabel, quaternaryLabel: quaternaryLabel ?? this.quaternaryLabel, separator: separator ?? this.separator, contentBackground: contentBackground ?? this.contentBackground, windowBackground: windowBackground ?? this.windowBackground, sidebarBackground: sidebarBackground ?? this.sidebarBackground, selectionInactive: selectionInactive ?? this.selectionInactive, sidebarSelection: sidebarSelection ?? this.sidebarSelection, hover: hover ?? this.hover, toolbarItem: toolbarItem ?? this.toolbarItem);
+  MyDataMacColors copyWith({Color? accent, Color? onAccent, Color? label, Color? secondaryLabel, Color? tertiaryLabel, Color? quaternaryLabel, Color? separator, Color? contentBackground, Color? windowBackground, Color? sidebarBackground, Color? selectionInactive, Color? sidebarSelection, Color? hover, Color? focusRing, Color? toolbarItem}) =>
+      MyDataMacColors(accent: accent ?? this.accent, onAccent: onAccent ?? this.onAccent, label: label ?? this.label, secondaryLabel: secondaryLabel ?? this.secondaryLabel, tertiaryLabel: tertiaryLabel ?? this.tertiaryLabel, quaternaryLabel: quaternaryLabel ?? this.quaternaryLabel, separator: separator ?? this.separator, contentBackground: contentBackground ?? this.contentBackground, windowBackground: windowBackground ?? this.windowBackground, sidebarBackground: sidebarBackground ?? this.sidebarBackground, selectionInactive: selectionInactive ?? this.selectionInactive, sidebarSelection: sidebarSelection ?? this.sidebarSelection, hover: hover ?? this.hover, focusRing: focusRing ?? this.focusRing, toolbarItem: toolbarItem ?? this.toolbarItem);
 
   @override
   MyDataMacColors lerp(MyDataMacColors? other, double t) {
@@ -804,6 +811,7 @@ class MyDataMacColors extends ThemeExtension<MyDataMacColors> {
       selectionInactive: Color.lerp(selectionInactive, other.selectionInactive, t)!,
       sidebarSelection: Color.lerp(sidebarSelection, other.sidebarSelection, t)!,
       hover: Color.lerp(hover, other.hover, t)!,
+      focusRing: Color.lerp(focusRing, other.focusRing, t)!,
       toolbarItem: Color.lerp(toolbarItem, other.toolbarItem, t)!,
     );
   }
@@ -932,6 +940,10 @@ abstract final class MyDataMacSize {
   static const double toolbarInset = 8;
   /// The floating sidebar panel's gap to the window's left, top and bottom edges (macOS 26).
   static const double sidebarMargin = 8;
+  /// The keyboard focus ring's width in the Mac frame (the system's is about 3 pt; check it against a live window).
+  static const double focusRingWidth = 3;
+  /// The gap between a control and its focus ring in the Mac frame: none, the ring hugs the control as the system's does.
+  static const double focusRingOffset = 0;
 }
 
 /// The Mac frame's corner radii (tokens.json "macos.radius").
