@@ -93,14 +93,14 @@ SourceOut macSource({
 );
 
 /// A followed iCloud account as GET /sources shows it.
-SourceOut icloudSource(String email, {String? lastError, SyncCounts? counts}) => SourceOut(
+SourceOut icloudSource(String email, {String? lastError, SyncCounts? counts, String? lastUpdate}) => SourceOut(
   id: 'acct-${email.split('@').first}',
   kind: SourceOutKindEnum.icloud,
   enabled: true,
   email: email,
   notesIncluded: true,
   state: lastError == null ? SourceOutStateEnum.idle : SourceOutStateEnum.error,
-  lastUpdate: '2026-10-13T08:40:00',
+  lastUpdate: lastUpdate ?? '2026-10-13T08:40:00',
   lastError: lastError,
   counts: counts ?? SyncCounts(addressBooks: 1, contacts: 180, calendars: 4, events: 960),
 );

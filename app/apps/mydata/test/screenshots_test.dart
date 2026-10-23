@@ -61,7 +61,8 @@ FakeHost _importHost({ImportPreviewOut? preview, ImportCommittedOut? result}) {
       ..demoDate = false,
     agents: agents,
     mac: macSource(),
-    accounts: [icloudSource('ava@example.org', counts: SyncCounts(contacts: 128, calendars: 3))],
+    // Today at 09:12, so the caption always reads "as of today at 09:12" whatever day the test runs.
+    accounts: [icloudSource('ava@example.org', counts: SyncCounts(contacts: 128, calendars: 3), lastUpdate: _todayAt(9, 12))],
   );
   host.imports
     ..nextPreview = preview
@@ -389,4 +390,9 @@ void main() {
     },
     before: (tester) => _import(tester, press: [ImportText.importCopy, ImportText.importN(128)]),
   );
+}
+
+String _todayAt(int hour, int minute) {
+  final now = DateTime.now();
+  return DateTime(now.year, now.month, now.day, hour, minute).toIso8601String();
 }
