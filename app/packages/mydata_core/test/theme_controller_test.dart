@@ -275,6 +275,42 @@ void main() {
       c.dispose();
     });
 
+    test("a write keeps what this build does not know under themes: later builds' keys and fields", () async {
+      final store = MemoryDeviceStore({
+        'themes': {
+          'everywhere': {'theme': 'mydata.kiwi', 'palette': 'plum', 'contrast': 'more'},
+          'apps': {
+            'mycalendar': {'theme': 'mydata.kiwi', 'palette': 'dusk', 'density': 'compact'},
+            'mynotes': {'custom': 'later-format'},
+          },
+          'library': ['someone.neon'],
+        },
+      });
+      final c = _controller(store, mac: true);
+      await c.start();
+      // a palette change keeps a choice's other fields; a new theme starts afresh
+      await c.use(const ThemeChoice(ThemeLibrary.kiwiId, 'rose'), app: 'mycalendar');
+      await c.use(ThemeChoice.system);
+      expect(await _themes(store), {
+        'everywhere': {'theme': 'mydata.kiwi', 'palette': 'plum', 'contrast': 'more'},
+        'apps': {
+          'mycalendar': {'theme': 'mydata.kiwi', 'palette': 'rose', 'density': 'compact'},
+          'mynotes': {'custom': 'later-format'},
+          'mycontacts': {'theme': 'mydata.system'},
+        },
+        'library': ['someone.neon'],
+      });
+      await c.use(ThemeChoice.system, app: 'mycalendar');
+      expect((await _themes(store))!['apps'], containsPair('mycalendar', {'theme': 'mydata.system'}));
+      // Use everywhere clears every app's own, the ones this build cannot read too
+      await c.useEverywhere(kiwiDusk);
+      expect(await _themes(store), {
+        'everywhere': {'theme': 'mydata.kiwi', 'palette': 'dusk', 'contrast': 'more'},
+        'library': ['someone.neon'],
+      });
+      c.dispose();
+    });
+
     test('Reset makes an app follow everywhere again', () async {
       final store = MemoryDeviceStore();
       final c = _controller(store, mac: true);

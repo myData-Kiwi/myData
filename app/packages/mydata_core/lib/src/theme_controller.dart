@@ -50,18 +50,58 @@ class ThemeSettings {
     );
   }
 
-  /// As written. A palette on a theme without palettes (System) is never written ([_written]).
+  /// As written. A palette on a theme without palettes (System) is never written ([stored]).
   Map<String, Object?> toJson() => {
-    'everywhere': ?_written(everywhere)?.toJson(),
-    if (apps.isNotEmpty) 'apps': {for (final e in apps.entries) e.key: _written(e.value)!.toJson()},
+    'everywhere': ?stored(everywhere)?.toJson(),
+    if (apps.isNotEmpty) 'apps': {for (final e in apps.entries) e.key: stored(e.value)!.toJson()},
   };
 
-  /// [c] without a palette when its theme has none (a hand-edited file, an older writer). A theme this
-  /// build does not know (a custom theme from a later version) is written as it was.
-  static ThemeChoice? _written(ThemeChoice? c) {
+  /// [c] as it is written: without a palette when its theme has none (a hand-edited file, an older writer).
+  /// A theme this build does not know (a custom theme from a later version) is written as it was.
+  static ThemeChoice? stored(ThemeChoice? c) {
     if (c == null) return null;
     final theme = ThemeLibrary.byId(c.theme);
     return theme != null && theme.palettes.isEmpty ? ThemeChoice(c.theme) : c;
+  }
+
+  /// The `themes` value to write for these settings over [raw] (the value the file holds now), keeping
+  /// what this build does not know, since the apps are built and installed one by one and share the file:
+  ///
+  /// - keys under `themes` other than `everywhere` and `apps`;
+  /// - a choice's other fields, while its theme stays the same (a choice of another theme starts afresh,
+  ///   as its palette does);
+  /// - entries under `apps` this build cannot read as a choice, unless [clearApps] (Use everywhere clears
+  ///   every app's own).
+  Map<String, Object?> writtenOver(Object? raw, {bool clearApps = false}) {
+    final old = raw is Map ? raw : const <Object?, Object?>{};
+    final out = <String, Object?>{
+      for (final e in old.entries)
+        if (e.key is String && e.key != 'everywhere' && e.key != 'apps') e.key as String: e.value,
+    };
+    if (_choiceOver(old['everywhere'], everywhere) case final e?) out['everywhere'] = e;
+    final oldApps = old['apps'] is Map ? old['apps'] as Map : const <Object?, Object?>{};
+    final apps = <String, Object?>{
+      if (!clearApps)
+        for (final e in oldApps.entries)
+          if (e.key is String && ThemeChoice.fromJson(e.value) == null) e.key as String: e.value,
+      for (final e in this.apps.entries) e.key: _choiceOver(oldApps[e.key], e.value),
+    };
+    if (apps.isNotEmpty) out['apps'] = apps;
+    return out;
+  }
+
+  /// [choice] as written over [raw], the choice the file holds in that place now: [raw]'s other fields are
+  /// kept while the theme is the same.
+  static Map<String, Object?>? _choiceOver(Object? raw, ThemeChoice? choice) {
+    final c = stored(choice);
+    if (c == null) return null;
+    final was = ThemeChoice.fromJson(raw);
+    if (raw is! Map || was == null || was.theme != c.theme) return c.toJson();
+    return {
+      for (final e in raw.entries)
+        if (e.key is String && e.key != 'theme' && e.key != 'palette') e.key as String: e.value,
+      ...c.toJson(),
+    };
   }
 
   ThemeSettings copyWith({ThemeChoice? everywhere, Map<String, ThemeChoice>? apps}) =>
@@ -239,14 +279,16 @@ class ThemeController extends ChangeNotifier {
     if (changed && _started && !_disposed) notifyListeners();
   }
 
-  /// Writes [change] of the stored settings, keeping what other apps wrote meanwhile, and draws the result.
+  /// Writes [change] of the stored settings over what the file holds now, keeping what other apps wrote
+  /// meanwhile and what this build does not know ([ThemeSettings.writtenOver]), and draws the result.
   /// Returns the settings [change] was given (what the file held just before), for an undo.
-  Future<ThemeSettings> _change(ThemeSettings Function(ThemeSettings now) change) async {
+  Future<ThemeSettings> _change(ThemeSettings Function(ThemeSettings now) change, {bool clearApps = false}) async {
     var before = const ThemeSettings();
     ++_generation;
     final v = await store.update((now) {
-      before = ThemeSettings.fromJson(now[ThemeSettings.key]) ?? const ThemeSettings();
-      return {...now, ThemeSettings.key: change(before).toJson()};
+      final r = now[ThemeSettings.key];
+      before = ThemeSettings.fromJson(r) ?? const ThemeSettings();
+      return {...now, ThemeSettings.key: change(before).writtenOver(r, clearApps: clearApps)};
     });
     _preview = null;
     if (_disposed) return before;
@@ -269,7 +311,8 @@ class ThemeController extends ChangeNotifier {
 
   /// Use everywhere: stores [choice], palette included, for every app, including ones installed later, and
   /// clears each app's own. Returns the settings before, for [restore] (the Undo in the gallery's toast).
-  Future<ThemeSettings> useEverywhere(ThemeChoice choice) => _change((_) => ThemeSettings(everywhere: choice));
+  Future<ThemeSettings> useEverywhere(ThemeChoice choice) =>
+      _change((_) => ThemeSettings(everywhere: choice), clearApps: true);
 
   /// Puts [settings] back (Undo of [useEverywhere]).
   Future<void> restore(ThemeSettings settings) => _change((_) => settings);
