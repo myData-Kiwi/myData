@@ -2,7 +2,7 @@ The control for choosing a theme, with a live sample of each theme in light and 
 
 **Replaced in phase 2** by the gallery sheet behind View > Theme… and myData's Appearance rows (`design/theming.md`, `design/themes/ARCHITECTURE.md` 4.3 and 4.4), with System first and a theme per app. This spec is today's picker of the host-wide accent.
 
-- One swatch per theme, in this order: Kiwi, Graphite, Dusk, Plum, Rose, Amber. Each swatch is a pill on `surface` with `shadow-1`, showing a disc of that theme's `accent` and the theme's name.
+- One swatch per theme, in this order: Kiwi, Graphite, Dusk, Plum, Rose, Amber. These are today's accent-only colours, which are Kiwi's palettes in phases 1 and 2 and move to the themes named after them in phase 3 (Hairline, Frosted, Journal, Sticker, Paperback; `design/theming.md`), not themes. Each swatch is a pill on `surface` with `shadow-1`, showing a disc of that theme's `accent` and the theme's name.
 - The selected swatch has a 2px `ink` ring and a check mark in the disc. Selection is never shown by colour alone.
 - It is a radio group: arrow keys move between swatches, and choosing one applies it at once. There is no Save button.
 - In Settings, a sample below the swatches shows the chosen theme in the current mode. This preview shows light and dark side by side so both can be judged.
