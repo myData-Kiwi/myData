@@ -15,6 +15,7 @@ import '../theme/theme.dart';
 import '../theme/theme_file.dart';
 import 'button.dart';
 import 'group_frame.dart';
+import 'notice.dart';
 import 'pressable.dart';
 import 'segmented_control.dart';
 import 'theme_picker.dart';
@@ -144,6 +145,8 @@ class _GalleryRoute extends PopupRoute<void> {
 ///   the buttons. Return uses the selection in the app; Escape or Cancel puts the window back as it was.
 /// - **Use everywhere** stores the theme and palette for every app and clears each app's own, so its toast
 ///   offers Undo; the gallery stays open, and Cancel becomes Done.
+/// - **While a choice is being stored** the selection, the app switcher, Escape and the buttons wait for it,
+///   so what is stored is what was shown; when it cannot be stored, a Notice above the buttons says so.
 /// - **Screen readers:** the cards are radios named "Kiwi, theme" with their blurb; each palette swatch is a
 ///   radio named after its colour. The previews are pictures and are not read.
 class ThemeGallery extends StatefulWidget {
@@ -176,6 +179,9 @@ class ThemeGallery extends StatefulWidget {
 
   /// Cancel's label once Use everywhere has stored something: closing then keeps it.
   static const doneLabel = 'Done';
+
+  /// When a choice could not be stored.
+  static const failed = 'The theme could not be stored on this device. Try again.';
   static const everywhereLabel = 'Use everywhere';
   static String useLabel(String app) => 'Use in $app';
   static const paletteLabel = 'Palette';
@@ -218,6 +224,9 @@ class _ThemeGalleryState extends State<ThemeGallery> {
 
   /// Use everywhere stored something: Cancel is Done.
   bool _stored = false;
+
+  /// Why the last choice could not be stored, or null.
+  String? _error;
 
   List<ThemeFile> get _themes => ThemeLibrary.offered;
 
@@ -267,15 +276,19 @@ class _ThemeGalleryState extends State<ThemeGallery> {
   /// A theme's card was chosen: its default palette, or the palette in use when it is the current theme
   /// (palette ids belong to one theme).
   void _selectTheme(int index) {
+    if (_working) return;
     final theme = _themes[index];
     if (theme.id == _choice.theme) return;
     final current = ThemeLibrary.normalise(_app.current);
     _show(current.theme == theme.id ? current : ThemeLibrary.defaultChoice(theme));
   }
 
-  void _selectPalette(String id) => _show(ThemeChoice(_choice.theme, id));
+  void _selectPalette(String id) {
+    if (!_working) _show(ThemeChoice(_choice.theme, id));
+  }
 
   void _switchApp(String id) {
+    if (_working) return;
     final app = widget.apps.firstWhere((a) => a.id == id);
     if (_previewsWindow) widget.onPreview(null);
     setState(() {
@@ -287,11 +300,16 @@ class _ThemeGalleryState extends State<ThemeGallery> {
 
   Future<void> _use() async {
     if (_working) return;
-    setState(() => _working = true);
+    setState(() {
+      _working = true;
+      _error = null;
+    });
     try {
       await widget.onUse(_app.id, _choice);
       _used = true;
       if (mounted) Navigator.of(context).pop();
+    } on Object {
+      if (mounted) setState(() => _error = ThemeGallery.failed);
     } finally {
       if (mounted) setState(() => _working = false);
     }
@@ -300,7 +318,10 @@ class _ThemeGalleryState extends State<ThemeGallery> {
   Future<void> _useEverywhere() async {
     final everywhere = widget.onUseEverywhere;
     if (everywhere == null || _working) return;
-    setState(() => _working = true);
+    setState(() {
+      _working = true;
+      _error = null;
+    });
     final choice = _choice;
     try {
       final undo = await everywhere(choice);
@@ -313,15 +334,22 @@ class _ThemeGalleryState extends State<ThemeGallery> {
           return UndoResult(undone ? ThemeGallery.everywhereUndone : ThemeGallery.everywhereNotUndone);
         },
       );
+    } on Object {
+      if (mounted) setState(() => _error = ThemeGallery.failed);
     } finally {
       if (mounted) setState(() => _working = false);
     }
   }
 
-  void _cancel() => Navigator.of(context).pop();
+  /// Cancel, Done or Escape; not while a choice is being stored, so the window is never put back under a
+  /// choice that is still landing.
+  void _cancel() {
+    if (!_working) Navigator.of(context).pop();
+  }
 
   KeyEventResult _onCardKey(int index, KeyEvent event) {
     if (event is KeyUpEvent) return KeyEventResult.ignored;
+    if (_working) return KeyEventResult.handled;
     final n = _themes.length;
     final rtl = Directionality.of(context) == TextDirection.rtl;
     final key = event.logicalKey;
@@ -383,6 +411,7 @@ class _ThemeGalleryState extends State<ThemeGallery> {
                 focusNode: _cardNodes[i],
                 scene: _app.scene,
                 onSelect: () {
+                  if (_working) return;
                   _cardNodes[i].requestFocus();
                   _selectTheme(i);
                 },
@@ -491,13 +520,24 @@ class _ThemeGalleryState extends State<ThemeGallery> {
           ),
           Padding(
             padding: EdgeInsets.fromLTRB(context.space(6), context.space(2), context.space(6), context.space(6)),
-            child: buttons,
+            child: _error == null
+                ? buttons
+                : Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Notice(message: _error!, tone: NoticeTone.warning),
+                      SizedBox(height: context.space(3)),
+                      buttons,
+                    ],
+                  ),
           ),
         ],
       ),
     );
 
     return PopScope(
+      canPop: !_working,
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) _endPreview();
       },

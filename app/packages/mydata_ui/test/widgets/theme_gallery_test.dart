@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/painting.dart' as painting;
 import 'package:flutter/rendering.dart';
@@ -30,8 +32,19 @@ class _WindowState extends State<_Window> {
   final everywhere = <ThemeChoice>[];
   int undone = 0;
 
+  /// Holds each store until completed, as a slow disk does.
+  Completer<void>? gate;
+
+  /// Each store fails while set.
+  bool failing = false;
+
   /// What the Undo answers: whether it put the choices back.
   bool undoes = true;
+
+  Future<void> _store() async {
+    if (gate != null) await gate!.future;
+    if (failing) throw StateError('disk full');
+  }
 
   ThemeChoice get drawn => preview ?? stored;
 
@@ -50,11 +63,13 @@ class _WindowState extends State<_Window> {
       });
     },
     onUse: (app, c) async {
+      await _store();
       uses.add((app, c));
       if (app == 'mycontacts') setState(() => stored = c);
     },
     onUseEverywhere: widget.everywhere
         ? (c) async {
+            await _store();
             everywhere.add(c);
             final before = stored;
             setState(() => stored = c);
@@ -210,6 +225,45 @@ void main() {
     await tester.tap(find.text('Undo'));
     await tester.pumpAndSettle();
     expect(find.text(ThemeGallery.everywhereNotUndone), findsOneWidget);
+  });
+
+  testWidgets('while a choice is being stored, Escape and the cards wait for it', (tester) async {
+    final w = await _open(tester, const _Window(stored: _plum));
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pumpAndSettle();
+    final shown = w.preview;
+    w.gate = Completer<void>();
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pump();
+    expect(find.text(ThemeGallery.title), findsOneWidget, reason: 'Escape waits for the store');
+    expect(w.preview, shown, reason: 'the selection waits too');
+    expect(w.previews, isNot(contains(null)), reason: 'the window is not put back under a choice still landing');
+    w.gate!.complete();
+    w.gate = null;
+    await tester.pumpAndSettle();
+    expect(w.uses, [('mycontacts', shown!)]);
+    expect(w.stored, shown);
+    expect(find.text(ThemeGallery.title), findsNothing);
+  });
+
+  testWidgets('a choice that cannot be stored says so, and the gallery stays open', (tester) async {
+    final w = await _open(tester, const _Window(stored: _plum));
+    w.failing = true;
+    await tester.tap(find.text(ThemeGallery.useLabel('myContacts')));
+    await tester.pumpAndSettle();
+    expect(find.text(ThemeGallery.failed), findsOneWidget);
+    expect(find.text(ThemeGallery.title), findsOneWidget);
+    await tester.tap(find.text(ThemeGallery.everywhereLabel));
+    await tester.pumpAndSettle();
+    expect(find.text(ThemeGallery.failed), findsOneWidget);
+    expect(find.text(ThemeGallery.doneLabel), findsNothing);
+    w.failing = false;
+    await tester.tap(find.text(ThemeGallery.useLabel('myContacts')));
+    await tester.pumpAndSettle();
+    expect(find.text(ThemeGallery.title), findsNothing);
   });
 
   testWidgets('one gallery at a time: opening another while one is open does nothing', (tester) async {
