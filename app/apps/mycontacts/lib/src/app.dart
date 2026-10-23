@@ -15,9 +15,9 @@ import 'mac_window.dart';
 /// myData shows here within one poll) and this device's mode, and follows the system's reduced motion and
 /// reduced transparency.
 ///
-/// On a Mac (unless built with `--dart-define=MYDATA_MAC_LOOK=false`) it draws the Mac frame ([MacLook]):
-/// the system font and the system's colours and accent ([MacSystemColorsScope], [MacTheme]), in the window
-/// [MacWindow] sets up; this device's mode still chooses light or dark.
+/// On a Mac it draws the Mac frame ([MacLook]): the system font and the system's colours and accent
+/// ([MacSystemColorsScope], [MacTheme]), in the window [MacWindow] sets up; this device's mode still chooses
+/// light or dark.
 class MyContactsApp extends StatefulWidget {
   const MyContactsApp({
     super.key,
@@ -114,23 +114,23 @@ class _MyContactsAppState extends State<MyContactsApp> with WidgetsBindingObserv
   );
 
   Widget _app(ThemeData light, ThemeData dark, ThemeMode mode) => MaterialApp(
-        title: 'myContacts',
-        theme: light,
-        darkTheme: dark,
-        themeMode: mode,
-        debugShowCheckedModeBanner: false,
-        builder: (context, child) {
-          final content = MyDataAccessibilityScope(child: child ?? const SizedBox.shrink());
-          return _mac ? MacWindow.chrome(windowActive: _active, child: content) : content;
-        },
-        home: ContactsHome(
-          host: widget.host,
-          backend: widget.backend,
-          store: widget.store,
-          links: widget.links,
-          onOpenLink: widget.onOpenLink,
-          menuPlatform: widget.menuPlatform,
-          openLink: widget.openLink,
-        ),
-      );
+    title: 'myContacts',
+    theme: light,
+    darkTheme: dark,
+    themeMode: mode,
+    debugShowCheckedModeBanner: false,
+    builder: (context, child) {
+      final content = MyDataAccessibilityScope(child: child ?? const SizedBox.shrink());
+      return _mac ? MacWindow.chrome(windowActive: _active, child: content) : content;
+    },
+    home: ContactsHome(
+      host: widget.host,
+      backend: widget.backend,
+      store: widget.store,
+      links: widget.links,
+      onOpenLink: widget.onOpenLink,
+      menuPlatform: widget.menuPlatform,
+      openLink: widget.openLink,
+    ),
+  );
 }

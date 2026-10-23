@@ -5,29 +5,23 @@ import '../generated/tokens.g.dart';
 import '../theme.dart';
 import '../widgets/app_frame.dart' show AppLayout;
 
-/// The Mac frame (docs/2026-10-23-plan.md section 5, "native frame, quiet brand"): the platform owns the
-/// window, toolbar, sidebar, font, accent and focus ring; myData owns the content (avatars, wording, empty
-/// states). Built for the M1a stack gate, where the owner compares this Flutter People screen with a thin
-/// SwiftUI one beside Contacts.app.
+/// The Mac frame (docs/2026-10-23-plan.md section 5, "native frame, quiet brand"; Flutter on every platform,
+/// decided 2026-10-23): the platform owns the window, toolbar, sidebar, font, accent and focus ring; myData
+/// owns the content (avatars, wording, empty states).
 ///
-/// - **The switch.** On macOS the Mac frame is on unless the app is built with
-///   `--dart-define=MYDATA_MAC_LOOK=false`, which brings back the branded frame. Only the screens built for
-///   it use it (myContacts' People screen and its sidebar); everything else keeps the branded look, in the
-///   system font and colours.
+/// - **When.** Every macOS build draws the Mac frame; there is no switch back to the branded frame on a Mac.
+///   Other platforms keep the branded frame until their own pass (Material 3 on Android). Screens an app has
+///   not moved to the Mac frame yet still draw their branded layout, in the system font and colours.
 /// - **The theme.** [MacTheme.data] keeps every token the other widgets read ([MyDataColors]) but maps them
 ///   to the system's colours, and adds [MyDataMacColors] for the Mac widgets. Its presence is what
 ///   [MacLook.of] reads.
 abstract final class MacLook {
-  /// The build switch: `--dart-define=MYDATA_MAC_LOOK=false` turns the Mac frame off.
-  static const switchedOn = bool.fromEnvironment('MYDATA_MAC_LOOK', defaultValue: true);
-
   /// Tests set this to draw the Mac frame on the test platform (or to keep it off); null follows the
   /// platform.
   static bool? debugOverride;
 
-  /// The app should build the Mac theme: on macOS with the switch on (or [debugOverride]).
-  static bool get forThisPlatform =>
-      debugOverride ?? (switchedOn && !kIsWeb && defaultTargetPlatform == TargetPlatform.macOS);
+  /// The app should build the Mac theme: on macOS (or as [debugOverride] says).
+  static bool get forThisPlatform => debugOverride ?? (!kIsWeb && defaultTargetPlatform == TargetPlatform.macOS);
 
   /// The Mac frame is drawn here: the theme is [MacTheme]'s and the window is wider than a phone's.
   static bool of(BuildContext context) =>
