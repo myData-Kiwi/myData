@@ -1,7 +1,11 @@
 // No widget or app contains a literal colour, radius or font name, a token nudged by a number or a numeric
-// border width: they come from the generated tokens
-// (lib/src/generated/tokens.g.dart), which is the only file allowed to hold them. This test scans the source
-// of every app and package and fails `flutter test` when one appears anywhere else.
+// border width: they come from the generated tokens (lib/src/generated/tokens.g.dart), which is the only file
+// allowed to hold them, besides the font catalogue (lib/src/theme/catalogue.dart), the one place a font is
+// named. And no widget or app reads a themeable token statically (`MyDataSpace.s4`, `MyDataType.body`): it
+// reads the look through its context (`context.space(4)`, `context.typeScale.body`), so a theme can change it
+// (design/themes/ARCHITECTURE.md 3.1). Only lib/src/theme/ and lib/src/generated/ may name the static
+// classes. This test scans the source of every app and package and fails `flutter test` when one appears
+// anywhere else.
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -18,13 +22,29 @@ const roots = [
 /// The one file allowed to contain literals.
 const generated = '../mydata_ui/lib/src/generated/tokens.g.dart';
 
+/// The font catalogue: the one place a font is named.
+const catalogue = '../mydata_ui/lib/src/theme/catalogue.dart';
+
+/// Where the static token classes are defined and turned into looks.
+const themeDirs = ['../mydata_ui/lib/src/theme/', '../mydata_ui/lib/src/generated/'];
+
+/// Static reads of a value a theme can change. Not refused: the layout widths a theme never changes
+/// (`MyDataSize.contentMax`, `dialogWidth`), `MyDataMotion.toastDuration` and `MyDataMotion.reduced`, and the
+/// Mac frame's own tokens (`MyDataMac*`), which are the System look's.
+final staticTokenRead = RegExp(r'\bMyData(?:Space|Type|Radius|Blur|Shadows|Colors)\.\w'
+    r'|\bMyDataSize\.(?:controlHeight|controlHeightCompact|rowHeight|iconTile|icon)\b'
+    r'|\bMyDataMotion\.(?:fast|base|slow|standard|springDuration|spring|pressScale|pressOpacity|entranceRise'
+    r'|entranceStagger|entranceMaxStaggered|sheetDrop)\b');
+
 final rules = <String, RegExp>{
   'literal colour': RegExp(r'\bColor\(\s*0x|\bColor\.from(?:ARGB|RGBO)\(|\bColors\.(?!transparent\b)\w+|\bCupertinoColors\.'),
   'literal radius': RegExp(r'\b(?:Radius\.(?:circular|elliptical)|BorderRadius\.circular)\(\s*[\d.]'),
   // A token nudged by a pixel or two (`MyDataSpace.s1 + 2`, `MyDataMacRadius.selection - 2`, `fontSize! + 2`):
   // the in-between value wants a token of its own (`tight`, `hairline`).
   'token arithmetic': RegExp(
-      r'\b(?:MyDataSpace|MyDataSize|MyDataRadius|MyDataMacSize|MyDataMacRadius)\.\w+\s*[-+]\s*\d+(?:\.\d+)?(?!\s*[*\d.])|\bfontSize!?\s*[-+]\s*\d'),
+      r'(?:\b(?:MyDataSpace|MyDataSize|MyDataRadius|MyDataMacSize|MyDataMacRadius)\.\w+'
+      r'|\b(?:context|look)\.(?:space\(\d+\)|density\.\w+|radius\.\w+))'
+      r'\s*[-+]\s*\d+(?:\.\d+)?(?!\s*[*\d.])|\bfontSize!?\s*[-+]\s*\d'),
   // A border's width as a number: hairlines and focus rings are tokens (`hairline`, `focus-ring-width`).
   'literal border width': RegExp(r'\bBorder(?:Side)?(?:\.all)?\([^)]*\bwidth:\s*(?:[^,)]*[?:]\s*)?\d'),
   // A one-number nudge in the Mac frame's insets (`vertical: 2`, `top: 2`) or a half-point line: `tight`,
@@ -61,10 +81,15 @@ String stripComments(String line) {
 List<String> violations(File f) {
   final out = <String>[];
   final lines = f.readAsLinesSync();
+  final inTheme = themeDirs.any(f.path.startsWith);
   for (var n = 0; n < lines.length; n++) {
     final code = stripComments(lines[n]);
     for (final r in rules.entries) {
+      if (r.key == 'literal font name' && f.path == catalogue) continue;
       if (r.value.hasMatch(code)) out.add('${f.path}:${n + 1}: ${r.key}: ${lines[n].trim()}');
+    }
+    if (!inTheme && staticTokenRead.hasMatch(code)) {
+      out.add('${f.path}:${n + 1}: static token read: ${lines[n].trim()}');
     }
   }
   return out;
@@ -80,7 +105,9 @@ void main() {
       found.addAll(violations(f));
     }
     expect(scanned, greaterThan(20), reason: 'the scan found too few files; are the roots right?');
-    expect(found, isEmpty, reason: 'Use the tokens (context.colors, MyDataRadius, MyDataType) instead:\n${found.join('\n')}');
+    expect(found, isEmpty,
+        reason: 'Use the look (context.colors, context.space(4), context.typeScale.body, context.radius.lg) '
+            'instead:\n${found.join('\n')}');
   });
 
   test('the rules catch what they should', () {
@@ -102,5 +129,23 @@ void main() {
     expect(check('border: Border.all(color: c.line, width: focused ? 2 : 0.5),'), 'literal border width');
     expect(check('padding: const EdgeInsets.only(top: 2),'), 'literal small inset');
     expect(check('padding: const EdgeInsets.only(top: MyDataMacSize.tight),'), '');
+    expect(check('padding: EdgeInsets.all(context.space(1) + 2),'), 'token arithmetic');
+    expect(check('height: context.density.controlHeight - 4,'), 'token arithmetic');
+    expect(check('width: context.space(1) + MyDataMacSize.tight,'), '');
+  });
+
+  test('the static token rule catches themeable reads and lets the rest through', () {
+    bool flags(String line) => staticTokenRead.hasMatch(stripComments(line));
+    expect(flags('padding: EdgeInsets.all(MyDataSpace.s4),'), isTrue);
+    expect(flags('style: MyDataType.body,'), isTrue);
+    expect(flags('Radius.circular(MyDataRadius.lg)'), isTrue);
+    expect(flags('height: MyDataSize.controlHeight,'), isTrue);
+    expect(flags('duration: MyDataMotion.fast,'), isTrue);
+    expect(flags('final c = MyDataColors.light;'), isTrue);
+    expect(flags('maxWidth: MyDataSize.contentMax,'), isFalse);
+    expect(flags('if (MyDataMotion.reduced(context)) return;'), isFalse);
+    expect(flags('duration: MyDataMotion.toastDuration,'), isFalse);
+    expect(flags('height: MyDataMacSize.rowHeight,'), isFalse);
+    expect(flags('/// Rises [MyDataMotion.entranceRise] into place.'), isFalse);
   });
 }
