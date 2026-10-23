@@ -277,51 +277,32 @@ class _ContactsHomeState extends State<ContactsHome> {
   }
 
   /// The Mac frame ([MacLook]): the translucent sidebar with the sections and the host's state, then the
-  /// section on `content-background` under its toolbar band. Contacts draws its own band (search, Edit, New).
+  /// section on `content-background` under its toolbar band. Contacts draws its own bands (search, Edit, New).
   Widget _macFrame(AppConnection? connection) {
-    final mac = context.mac;
     final body = _body();
-    final Widget content;
-    if (body is ContactsView) {
-      content = body;
-    } else {
-      content = Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          MacToolbar(
-            title: ContactsHome.macTitles[_section],
-            trailing: [
-              if (_isRunning && _section == 0)
-                MacToolbarButton(
-                  icon: MacIcons.add,
-                  label: ContactActions.newLabel,
-                  shortcut: AppMenuBar.newShortcut.label(Theme.of(context).platform),
-                  onPressed: () => unawaited(_newContact()),
-                ),
-            ],
-          ),
-          Expanded(child: body),
-        ],
-      );
-    }
-    if (connection == null) return ColoredBox(color: mac.contentBackground, child: content);
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // The floating panel has no divider beside it (macOS 26).
-        MacSourceList(
-          sections: ContactsHome.macSections,
-          current: _section,
-          onSelect: (i) => unawaited(_select(i)),
-          connection: connection,
-        ),
-        Expanded(
-          child: ColoredBox(
-            color: mac.contentBackground,
-            child: ToastHost(controller: _toasts, child: content),
-          ),
-        ),
-      ],
+    final Widget content = body is ContactsView
+        ? body
+        : MacPane(
+            toolbar: MacToolbar(
+              title: ContactsHome.macTitles[_section],
+              trailing: [
+                if (_isRunning && _section == 0)
+                  MacToolbarButton(
+                    icon: MacIcons.add,
+                    label: ContactActions.newLabel,
+                    shortcut: AppMenuBar.newShortcut.label(Theme.of(context).platform),
+                    onPressed: () => unawaited(_newContact()),
+                  ),
+              ],
+            ),
+            child: body,
+          );
+    return MacAppFrame(
+      sections: ContactsHome.macSections,
+      current: _section,
+      onSelect: (i) => unawaited(_select(i)),
+      connection: connection,
+      child: connection == null ? content : ToastHost(controller: _toasts, child: content),
     );
   }
 

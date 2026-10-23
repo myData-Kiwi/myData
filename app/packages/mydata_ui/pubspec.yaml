@@ -12,6 +12,8 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_svg: ^2.3.0
+  # The Mac shell's window (lib/src/mac/mac_window.dart); exact, as its Runner side is copied into each app.
+  macos_window_utils: 1.9.1
 
 dev_dependencies:
   flutter_test:

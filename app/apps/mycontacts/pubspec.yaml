@@ -15,7 +15,6 @@ dependencies:
   mydata_core: ^0.0.1
   mydata_ui: ^0.0.1
   mydata_client: ^0.1.0
-  macos_window_utils: 1.9.1
 
 dev_dependencies:
   flutter_test:
