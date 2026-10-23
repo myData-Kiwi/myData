@@ -72,15 +72,15 @@ class ContactsHome extends StatefulWidget {
         AppSection(icon: sections[2].icon, label: sections[2].label, count: review, countMore: more),
       ];
 
-  /// The sections as the Mac frame's sidebar shows them, with its icons (Lucide, in place of SF Symbols).
-  static List<AppSection> macSectionsWith(int review, {bool more = false}) => [
-        AppSection(icon: MacIcons.people, label: sections[0].label),
-        AppSection(icon: MacIcons.trash, label: sections[1].label),
-        AppSection(icon: MacIcons.review, label: sections[2].label, count: review, countMore: more),
+  /// The sections as the Mac frame's sidebar shows them, with its icons (Lucide, in place of SF Symbols), in
+  /// the Mac's title case and without counts, as Contacts.app's sidebar (and the SwiftUI prototype's).
+  static List<AppSection> get macSections => [
+        for (final (i, icon) in [MacIcons.people, MacIcons.trash, MacIcons.review].indexed)
+          AppSection(icon: icon, label: macTitles[i]),
       ];
 
-  /// The Mac frame's toolbar title for the sections other than Contacts (whose band holds the search field).
-  static const macTitles = ['Contacts', 'Recently deleted', 'Review'];
+  /// The Mac frame's sidebar labels and toolbar titles.
+  static const macTitles = ['Contacts', 'Recently Deleted', 'Review'];
 
   /// File, Import… (design/platforms.md; ImportFlow, "Where it lives"): opens myData at its Import section.
   static const importMenuItem = 'Import…';
@@ -308,13 +308,13 @@ class _ContactsHomeState extends State<ContactsHome> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // The floating panel has no divider beside it (macOS 26).
         MacSourceList(
-          sections: ContactsHome.macSectionsWith(_review.count, more: _review.capped),
+          sections: ContactsHome.macSections,
           current: _section,
           onSelect: (i) => unawaited(_select(i)),
           connection: connection,
         ),
-        VerticalDivider(width: 1, thickness: 1, color: mac.separator),
         Expanded(
           child: ColoredBox(
             color: mac.contentBackground,

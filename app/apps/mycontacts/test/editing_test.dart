@@ -409,7 +409,7 @@ void main() {
       }
       expect(find.text('3 contacts selected'), findsOneWidget);
       expect(find.text('Omar Sample, Quinn Owned and Pip Owned'), findsOneWidget);
-      expect(find.text('1 of them is from this Mac and is changed in Contacts.'), findsOneWidget);
+      expect(find.text('1 is from this Mac; change it in Contacts.'), findsOneWidget);
       await tester.tap(find.widgetWithText(Button, 'Delete 2 contacts'));
       await tester.pumpAndSettle();
       expect(find.text('Delete 2 contacts?'), findsOneWidget);

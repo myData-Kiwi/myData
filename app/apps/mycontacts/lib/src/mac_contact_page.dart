@@ -9,8 +9,9 @@ import 'contacts_controller.dart';
 /// One contact's page in the Mac frame, laid out as Contacts.app's card (plan section 5, "Person page"):
 ///
 /// - [MacRecordHeader]: the 64pt avatar (ours: photo or initials on the kiwi wash), the name, the job title
-///   and company, and the round actions Message, Call, Mail and Map (`sms:`, `tel:`, `mailto:`, a Maps link),
-///   each disabled with its reason when the contact has no number, address or email;
+///   and company, and the round actions message, call, mail and map (`sms:`, `tel:`, `mailto:`, a Maps link),
+///   only those the contact has a number, email or address for (as Contacts.app: an action that cannot work
+///   is not shown);
 /// - the values in two columns ([MacFieldTable]): the label right-aligned (built-in labels in lower case, as
 ///   Contacts writes them), the value beside it; clicking a value copies it, a web address opens;
 /// - at the bottom, where the contact comes from in `caption` ("On myData only, not on your phone yet.").
@@ -37,9 +38,6 @@ class MacContactPage extends StatelessWidget {
   static const callLabel = 'call';
   static const mailLabel = 'mail';
   static const mapLabel = 'map';
-  static const noPhone = 'This contact has no phone number.';
-  static const noEmail = 'This contact has no email address.';
-  static const noAddress = 'This contact has no address.';
 
   /// The widest the page's content grows (Contacts' card keeps a reading width).
   static const maxWidth = 640.0;
@@ -116,7 +114,7 @@ class MacContactPage extends StatelessWidget {
     );
   }
 
-  /// Message, Call, Mail and Map for [d]: the first phone number, email address and address.
+  /// message, call, mail and map for [d]: the first phone number, email address and address; none without.
   List<Widget> quickActions(ContactDetailOut d) {
     final phone = d.phones.where((p) => p.value.trim().isNotEmpty).firstOrNull?.value.trim();
     final email = d.emails.where((e) => e.value.trim().isNotEmpty).firstOrNull?.value.trim();
@@ -129,36 +127,34 @@ class MacContactPage extends StatelessWidget {
     final who = d.displayName;
     final dial = phone?.replaceAll(RegExp(r'[^0-9+*#,;]'), '');
     return [
-      MacQuickAction(
-        icon: MacIcons.message,
-        label: messageLabel,
-        tooltip: 'Message $who',
-        disabledReason: noPhone,
-        onPressed: dial == null || dial.isEmpty ? null : () => onOpenLink(Uri(scheme: 'sms', path: dial)),
-      ),
-      MacQuickAction(
-        icon: MacIcons.call,
-        label: callLabel,
-        tooltip: 'Call $who',
-        disabledReason: noPhone,
-        onPressed: dial == null || dial.isEmpty ? null : () => onOpenLink(Uri(scheme: 'tel', path: dial)),
-      ),
-      MacQuickAction(
-        icon: MacIcons.mail,
-        label: mailLabel,
-        tooltip: 'Mail $who',
-        disabledReason: noEmail,
-        onPressed: email == null ? null : () => onOpenLink(Uri(scheme: 'mailto', path: email)),
-      ),
-      MacQuickAction(
-        icon: MacIcons.map,
-        label: mapLabel,
-        tooltip: 'Show $who\'s address in Maps',
-        disabledReason: noAddress,
-        onPressed: address == null
-            ? null
-            : () => onOpenLink(Uri.https('maps.apple.com', '/', {'q': address.replaceAll('\n', ', ')})),
-      ),
+      if (dial != null && dial.isNotEmpty) ...[
+        MacQuickAction(
+          icon: MacIcons.message,
+          label: messageLabel,
+          tooltip: 'Message $who',
+          onPressed: () => onOpenLink(Uri(scheme: 'sms', path: dial)),
+        ),
+        MacQuickAction(
+          icon: MacIcons.call,
+          label: callLabel,
+          tooltip: 'Call $who',
+          onPressed: () => onOpenLink(Uri(scheme: 'tel', path: dial)),
+        ),
+      ],
+      if (email != null)
+        MacQuickAction(
+          icon: MacIcons.mail,
+          label: mailLabel,
+          tooltip: 'Mail $who',
+          onPressed: () => onOpenLink(Uri(scheme: 'mailto', path: email)),
+        ),
+      if (address != null)
+        MacQuickAction(
+          icon: MacIcons.map,
+          label: mapLabel,
+          tooltip: 'Show $who\'s address in Maps',
+          onPressed: () => onOpenLink(Uri.https('maps.apple.com', '/', {'q': address.replaceAll('\n', ', ')})),
+        ),
     ];
   }
 }

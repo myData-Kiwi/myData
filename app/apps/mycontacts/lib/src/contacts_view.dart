@@ -24,11 +24,12 @@ import 'merge_pane.dart';
 /// - **Several selected** (from 600px): the contact pane shows the count, up to three names, and "Delete 3
 ///   contacts" (design/components/MultiSelect); followed contacts are counted out, with the reason.
 /// - "New contact" sits beside the search field from 600px; on a phone it is in the large title.
-/// - **The Mac frame** ([MacLook]): the list column (`list-width`) with the search field in the toolbar band
-///   above it and the plain list ([ContactListStyle.plain]) under it, holding the keyboard at first; a
-///   hairline; then the contact column with Edit and New contact in the toolbar band and [MacContactPage]
-///   under it. The inspector, several selected and Merge take the contact column's place under the band, as
-///   above.
+/// - **The Mac frame** ([MacLook]): the list column (`list-width`) with the title and New contact in the
+///   toolbar band above it and the plain list ([ContactListStyle.plain]) under it, holding the keyboard at
+///   first; a hairline; then the contact column with Edit at the start of its band and the search field at
+///   the end, and [MacContactPage] under it. Where SwiftUI's NavigationSplitView puts them on macOS 26 (the
+///   stack gate compares the two with the same items in the same places). The inspector, several selected and
+///   Merge take the contact column's place under the band, as above.
 class ContactsView extends StatefulWidget {
   const ContactsView({super.key, required this.controller, required this.onOpenLink, required this.actions});
 
@@ -61,8 +62,11 @@ class ContactsView extends StatefulWidget {
   /// The back button of a pushed contact page.
   static const backLabel = 'Contacts';
 
-  /// The toolbar's search field (the Mac frame); the same words as the list's own field.
-  static const searchPlaceholder = ContactList.searchPlaceholder;
+  /// The toolbar's search field (the Mac frame), in the system's word.
+  static const searchPlaceholder = 'Search';
+
+  /// The list column's toolbar title (the Mac frame).
+  static const macTitle = 'Contacts';
 
   @override
   State<ContactsView> createState() => _ContactsViewState();
@@ -178,16 +182,15 @@ class _ContactsViewState extends State<ContactsView> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         MacToolbar(
-          leading: [
-            Expanded(
-              child: MacSearchField(
-                controller: _search,
-                focusNode: _searchFocus,
-                placeholder: ContactsView.searchPlaceholder,
-                width: double.infinity,
-                onDown: _listFocus.requestFocus,
+          title: ContactsView.macTitle,
+          trailing: [
+            if (edit == null)
+              MacToolbarButton(
+                icon: MacIcons.add,
+                label: ContactsView.newContactLabel,
+                shortcut: AppMenuBar.newShortcut.label(platform),
+                onPressed: () => unawaited(_actions.newContact()),
               ),
-            ),
           ],
         ),
         Expanded(
@@ -254,7 +257,7 @@ class _ContactsViewState extends State<ContactsView> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         MacToolbar(
-          trailing: edit != null
+          leading: edit != null
               ? const []
               : [
                   MacToolbarButton.text(
@@ -264,13 +267,15 @@ class _ContactsViewState extends State<ContactsView> {
                     disabledReason: selected == null || several ? null : _actions.reasonFor(selected),
                     onPressed: editable ? () => unawaited(_actions.edit(selected)) : null,
                   ),
-                  MacToolbarButton(
-                    icon: MacIcons.add,
-                    label: ContactsView.newContactLabel,
-                    shortcut: AppMenuBar.newShortcut.label(platform),
-                    onPressed: () => unawaited(_actions.newContact()),
-                  ),
                 ],
+          trailing: [
+            MacSearchField(
+              controller: _search,
+              focusNode: _searchFocus,
+              placeholder: ContactsView.searchPlaceholder,
+              onDown: _listFocus.requestFocus,
+            ),
+          ],
         ),
         Expanded(child: pane),
       ],
@@ -442,7 +447,8 @@ class _Selection extends StatelessWidget {
       actions: [
         Button(
           label: n <= 1 ? 'Delete contact' : 'Delete $n contacts',
-          variant: ButtonVariant.plainDanger,
+          // The Mac frame: a push button (the Delete key and the menu bar do the same).
+          variant: MacLook.of(context) ? ButtonVariant.tonal : ButtonVariant.plainDanger,
           onPressed: n == 0 ? null : () => unawaited(actions.delete(ids)),
         ),
       ],
@@ -451,20 +457,17 @@ class _Selection extends StatelessWidget {
 }
 
 /// Why some of [ids] are left out of the selection's actions (followed contacts), or null when none is:
-/// "1 of them is from this Mac and is changed in Contacts."
+/// "1 is from this Mac; change it in Contacts."
 String? leftOutReason(ContactsController controller, List<String> ids, int actionable) {
   final out = [for (final id in ids) if (!controller.isEditable(id)) id];
   if (out.isEmpty) return null;
   final n = out.length;
   final mac = out.where(controller.isFromThisMac).length;
   final one = n == 1;
-  final where = mac == n
-      ? 'from this Mac and ${one ? 'is' : 'are'} changed in Contacts'
-      : mac == 0
-          ? 'from ${one ? 'an iCloud account' : 'iCloud accounts'} and ${one ? 'is' : 'are'} changed there'
-          : 'from sources and are changed there';
-  if (actionable == 0) return 'None of them can be deleted here. ${one ? 'It is' : 'They are'} $where.';
-  return '$n of them ${one ? 'is' : 'are'} $where.';
+  final place = mac == n ? 'this Mac' : (mac == 0 ? 'iCloud' : 'your sources');
+  final change = mac == n ? 'change ${one ? 'it' : 'them'} in Contacts' : 'change ${one ? 'it' : 'them'} there';
+  if (actionable == 0) return 'None can be deleted here: ${one ? 'it is' : 'they are'} from $place; $change.';
+  return '$n ${one ? 'is' : 'are'} from $place; $change.';
 }
 
 /// One sentence in `body` and `ink-muted`.

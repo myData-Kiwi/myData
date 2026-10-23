@@ -171,7 +171,7 @@ void main() {
       addTearDown(tester.view.reset);
       await tester.pumpWidget(app(macMatrix.first, lastOpened: 'c-ava'));
       await settle(tester);
-      await tester.tap(find.descendant(of: find.byType(MacSourceList), matching: find.text('Deleted')));
+      await tester.tap(find.descendant(of: find.byType(MacSourceList), matching: find.text('Recently Deleted')));
       await settle(tester);
       Finder title(int i) => find.descendant(of: find.byType(MacToolbar), matching: find.text(ContactsHome.macTitles[i]));
       expect(title(1), findsOneWidget);
@@ -228,7 +228,7 @@ void main() {
         await tester.sendKeyEvent(LogicalKeyboardKey.delete);
         await settle(tester);
       }
-      await tester.tap(find.descendant(of: find.byType(MacSourceList), matching: find.text('Deleted')));
+      await tester.tap(find.descendant(of: find.byType(MacSourceList), matching: find.text('Recently Deleted')));
       await settle(tester);
       await tester.pump(const Duration(seconds: 9));
       await settle(tester);
