@@ -139,14 +139,14 @@ The owner, on the twenty prototypes, said the names made them look like colour c
 
   | Field | What |
   |---|---|
-  | `palettes` | 1 to 8 per theme; built-ins have 2 to 4. Their order is the picker's |
+  | `palettes` | 1 to 8 per theme; a built-in drawn theme has 2 to 4 (the schema fails it otherwise). Their order is the picker's |
   | `palettes[].id` | Lower kebab case, unique within the theme (`ink-blue`). Device settings store it, so a shipped id never changes or disappears. One planned exception: Kiwi's `graphite`, `dusk`, `plum`, `rose` and `amber` (today's colours, Kiwi's palettes in phases 1 and 2) leave Kiwi's picker in phase 3 but stay in the library as **hidden aliases**, never shown or written, read only by the 4.2 migration |
   | `palettes[].name` | A colour name in sentence case, at most 24 characters ("Ink blue") |
   | `palettes[].light`, `.dark` | The six seeds |
   | `palettes[].overrides` | Any other role per mode; what is left out is derived (1.3) |
   | `palettes[].contrast` | Optional values per mode for increased contrast, checked at 7:1; else derived (2.2) |
-  | `palettes[].gradient` | The window gradient's 2–3 stops per mode, when the style's window is a gradient (the style keeps the angle). Left out: `bg` mixed 8% towards `accent`, `bg`, and `bg` mixed 5% towards `ink` |
-  | `default-palette` | The palette used when none is chosen, or when the chosen one is gone |
+  | `palettes[].gradient` | The window gradient's 2–3 stops per mode, when the style's window is a gradient (the style keeps the angle). Left out: `bg` mixed 8% towards `accent`, `bg`, and `bg` mixed 5% towards `ink`. Given on a style whose window is not a gradient: ignored, with a notice |
+  | `default-palette` | The palette used when none is chosen, or when the chosen one is gone. Only with `palettes` (the schema refuses it alone, System included) |
   | `colour-use.same-as` | Roles the style always draws in another role's colour: Hairline's `selection`, `edge` → `ink` and `avatar-fill` → `surface`; Journal's and Paperback's `toolbar` → `bg` and `edge` → `ink`; Kiwi's `sidebar` and `toolbar` → `bg`. A palette may not give these roles, in its overrides or in its `contrast` set; a value may not itself be a key. Applied as 1.3 says: after the palette's values, again after derivation, and again at increased contrast |
 
 - **A palette changes colour roles only** (the 43 roles, the contrast set, the gradient's stops). Fonts, shapes, density, borders, the elevation style, icons, motion and variants are the style's: a palette that needs another shape is another theme.

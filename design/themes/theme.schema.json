@@ -97,7 +97,7 @@
     "default-palette": {
       "type": "string",
       "pattern": "^[a-z][a-z0-9-]{1,31}$",
-      "description": "The id of the palette used when none is chosen, or when the chosen one no longer exists. Must name one of palettes (checked by the validator)."
+      "description": "The id of the palette used when none is chosen, or when the chosen one no longer exists. Must name one of palettes (checked by the validator). Only with palettes."
     },
     "colour-use": {
       "$ref": "#/$defs/colourUse"
@@ -242,8 +242,38 @@
           ]
         }
       }
+    },
+    {
+      "$comment": "Built-in drawn themes have 2 to 4 palettes (ARCHITECTURE.md 1.6).",
+      "if": {
+        "required": [
+          "id",
+          "frame"
+        ],
+        "properties": {
+          "id": {
+            "pattern": "^mydata\\."
+          },
+          "frame": {
+            "const": "drawn"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "palettes": {
+            "minItems": 2,
+            "maxItems": 4
+          }
+        }
+      }
     }
   ],
+  "dependentRequired": {
+    "default-palette": [
+      "palettes"
+    ]
+  },
   "$defs": {
     "shortText": {
       "type": "string",
@@ -319,7 +349,7 @@
             "light",
             "dark"
           ],
-          "description": "The window gradient's stops, used when the theme's materials.window.kind is gradient. Left out, they are derived: bg mixed 8% towards accent, bg, and bg mixed 5% towards ink.",
+          "description": "The window gradient's stops, used when the theme's materials.window.kind is gradient. Left out, they are derived: bg mixed 8% towards accent, bg, and bg mixed 5% towards ink. Given on a theme whose window is not a gradient, they are ignored with a notice (checked by the validator).",
           "properties": {
             "light": {
               "type": "array",
