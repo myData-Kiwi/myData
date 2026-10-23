@@ -1,0 +1,57 @@
+# Tests on every push and pull request to main.
+# - host: the host's whole test suite on Linux. The macOS-only tests (codesign, swiftc, the real Keychain)
+#   skip themselves there, and every test uses fakes and temporary folders. Run the full suite on a Mac
+#   before pushing, since only there do those tests run.
+# - app: `flutter analyze` over the Dart workspace. `flutter test` is not run here: the goldens and
+#   screenshots are rendered on macOS and would not match pixels rendered on Linux.
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  host:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: host
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.11"
+          enable-cache: true
+          cache-dependency-glob: host/uv.lock
+      - name: Install
+        run: uv sync --locked
+      - name: Test
+        run: uv run pytest -q -p no:cacheprovider -rs
+
+  app:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: "3.47.7"
+          cache: true
+      - name: Install
+        run: flutter pub get
+      - name: Analyze
+        run: flutter analyze

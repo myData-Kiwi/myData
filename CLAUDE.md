@@ -27,6 +27,7 @@ Follow [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.
 - **Never add a `Co-Authored-By` trailer or any other mention of Claude.**
 - Commits use the personal identity, set for this folder by `~/.gitconfig-mydata-kiwi`.
 - **Push to GitHub at the end of every session.**
+- **CI** (`.github/workflows/host-tests.yml`) runs on every push and pull request to main: the host suite on Linux (the macOS-only tests skip themselves) and `flutter analyze`. It does not run `flutter test` (goldens are rendered on macOS) or the macOS-only host tests, so run both on a Mac before pushing.
 - The workspace copy `../CLAUDE.md` must stay identical to this file (`cp` after editing).
 
 ## Names
@@ -170,7 +171,7 @@ Built and tested against fakes and synthetic hosts, **never used live by the own
 
 ## Milestones (plan section 6, adjusted for 2026-10-23)
 
-- **M0, housekeeping. Next.** Owner: the Apple Development certificate; switching off the spike app's grants. Mine: `Signing.local.xcconfig`; `mydata db check-migration` on copies of the owner's files (schemas 5 to 7). Done: push, licence, this file cut. Accept: two rebuilds without a second Contacts prompt.
+- **M0, housekeeping. Next.** Owner: the Apple Development certificate; switching off the spike app's grants. Mine: `Signing.local.xcconfig`; `mydata db check-migration` on copies of the owner's files (schemas 5 to 7). Done: push, licence, this file cut, CI. Accept: two rebuilds without a second Contacts prompt.
 - **M1a, the Mac (2 to 3 weeks).** The host as a signed `.app` with a LaunchAgent; the stack side-by-side; the look pass in **each** of the four apps (Mac density, system font and accent, icons, a real app icon); first launch in myData (Allow, or Try with sample data); History, Restore and Cleanup in myContacts; Proof of privacy v0 in myData.
 - **M1b, contacts on both phones (3 weeks).** The backup gate first; the remote listener and Tailscale Serve; day 1 records stock Radicale against iPhone, Mac Contacts and DAVx5, then our CardDAV against the recordings; Settings, Devices; This Mac excludes the myData account; the switch-over tool; `mydata check security`.
 - **M1c, calendar and tasks on both phones (2 weeks).** CalDAV for an owned calendar and plain VTODO; `.ics` import; provider calendars stay followed.
