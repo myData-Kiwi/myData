@@ -1,26 +1,18 @@
 import 'dart:convert';
 
 import 'package:mydata_core/mydata_core.dart';
+import 'package:mydata_ui/mydata_ui.dart';
 
-const _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-String _two(int n) => n.toString().padLeft(2, '0');
-
-/// A host timestamp (ISO 8601, UTC) in local time: "12 Oct 2026, 14:03".
-String formatWhen(String iso) {
-  final t = DateTime.tryParse(iso)?.toLocal();
-  if (t == null) return iso;
-  return '${formatDay(t)}, ${_two(t.hour)}:${_two(t.minute)}';
-}
+/// A host timestamp (ISO 8601, UTC) in local time: "12 Oct 2026, 2:03 pm", or "12 Oct 2026, 14:03" on a
+/// 24-hour clock (the Mac's setting unless [use24HourFormat] says; MyDataDates).
+String formatWhen(String iso, {bool? use24HourFormat}) =>
+    MyDataDates.hostDayAndTime(iso, use24HourFormat: use24HourFormat);
 
 /// "12 Oct 2026".
-String formatDay(DateTime d) => '${d.day} ${_months[d.month - 1]} ${d.year}';
+String formatDay(DateTime d) => MyDataDates.day(d);
 
 /// A host date ("2026-03-18") as "18 Mar 2026".
-String formatDate(String isoDate) {
-  final d = DateTime.tryParse(isoDate);
-  return d == null ? isoDate : formatDay(d);
-}
+String formatDate(String isoDate) => MyDataDates.hostDay(isoDate);
 
 /// "3 d 4 h", "2 h 14 min", "5 min", "40 s".
 String formatUptime(num seconds) {

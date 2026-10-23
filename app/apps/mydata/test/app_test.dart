@@ -353,7 +353,7 @@ void main() {
     await controller.refresh();
     await tester.pump();
     expect(controller.phase, HostPhase.lost);
-    expect(find.text('The host stopped'), findsOneWidget);
+    expect(find.text(AppConnection.lostText), findsOneWidget);
     expect(find.text(AppConnection.unreachableText), findsOneWidget);
     // One next step: the frame's Retry. The panel only explains.
     final retry = find.text(AppConnection.retryText);
@@ -363,7 +363,7 @@ void main() {
     await tester.tap(retry);
     await settle(tester);
     expect(controller.phase, HostPhase.running, reason: "the frame's Retry calls controller.retry");
-    expect(find.text('The host stopped'), findsNothing);
+    expect(find.text(AppConnection.lostText), findsNothing);
     // Reconnecting started the 2 s status poll; losing the host again stops it, so no timer outlives the test.
     host.down = true;
     await controller.refresh();

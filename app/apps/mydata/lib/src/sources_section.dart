@@ -31,7 +31,10 @@ class SourcesSections extends StatelessWidget {
     builder: (context, _) {
       final list = sources.sources;
       if (list == null && sources.error != null) {
-        return _problem(sources.error!);
+        return MacLook.of(context) ? _macProblem(sources.error!) : _problem(sources.error!);
+      }
+      if (list == null && MacLook.of(context)) {
+        return const MacFormSection(heading: heading, rows: [MacFormRow(title: 'Loading the sources')]);
       }
       if (list == null) {
         return GroupedList(
@@ -40,6 +43,28 @@ class SourcesSections extends StatelessWidget {
         );
       }
       final mac = sources.mac;
+      if (MacLook.of(context)) {
+        final icloud = IcloudSection(
+          controller: controller,
+          sources: sources,
+          heading: mac == null ? heading : advancedHeading,
+          onMacHost: mac != null,
+        );
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (mac != null) ...[
+              ThisMacSection(controller: controller, sources: sources, mac: mac, system: system ?? macSystem),
+              const SizedBox(height: MacForm.gap),
+              if (mac.enabled) ...[
+                IncludedSection(controller: controller, sources: sources, mac: mac),
+                const SizedBox(height: MacForm.gap),
+              ],
+            ],
+            icloud,
+          ],
+        );
+      }
       final icloud = IcloudSection(
         controller: controller,
         sources: sources,
@@ -60,6 +85,18 @@ class SourcesSections extends StatelessWidget {
         ],
       );
     },
+  );
+
+  Widget _macProblem(String error) => MacFormSection(
+    heading: heading,
+    rows: [
+      MacFormRow(
+        icon: MacIcons.warning,
+        title: 'The sources could not be read',
+        subtitle: error,
+        trailing: [Button(label: 'Retry', variant: ButtonVariant.tonal, onPressed: sources.load)],
+      ),
+    ],
   );
 
   Widget _problem(String error) => GroupedSection(
@@ -237,8 +274,53 @@ class _ThisMacSectionState extends State<ThisMacSection> {
     }
   }
 
+  /// The Mac frame: This Mac's switch, then a row per kind with its access and what to do about it.
+  Widget _macBuild(BuildContext context) {
+    final mac = _mac;
+    // No heading: the Settings tab already says Sources.
+    return MacFormSection(
+      rows: [
+        MacFormRow(
+          icon: MacIcons.thisMac,
+          title: ThisMacText.title,
+          subtitle: mac.enabled ? ThisMacText.caption(mac) : ThisMacText.off,
+          trailing: [MacSwitch(value: mac.enabled, onChanged: _saving ? null : _turn, semanticLabel: ThisMacText.title)],
+        ),
+        if (mac.enabled) ...[
+          _macAccessRow('contacts', MacIcons.people, mac.contactsStatus),
+          _macAccessRow('calendars', MacIcons.calendar, mac.calendarsStatus),
+        ],
+      ],
+    );
+  }
+
+  Widget _macAccessRow(String kind, IconData icon, String? status) {
+    final s = ThisMacText.access(kind, status, running: _mac.readerRunning ?? false);
+    final asking = _asking.contains(kind);
+    return KeyedSubtree(
+      key: ValueKey('access-$kind'),
+      child: MacFormRow(
+        icon: icon,
+        title: kind == 'contacts' ? 'Contacts' : 'Calendars',
+        subtitle: s.sentence,
+        trailing: [
+          if (s.action == AccessAction.allow)
+            Button(
+              label: asking ? ThisMacText.asking : ThisMacText.allow,
+              variant: ButtonVariant.tonal,
+              onPressed: asking ? null : () => _allow(kind),
+            ),
+          if (s.action == AccessAction.openSettings)
+            Button(label: ThisMacText.openSettings, variant: ButtonVariant.tonal, onPressed: () => _openSettings(kind)),
+          MacFormValue(s.label, dot: context.toneStrong(s.tone)),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (MacLook.of(context)) return _macBuild(context);
     final mac = _mac;
     return GroupedSection(
       heading: SourcesSections.heading,
@@ -343,6 +425,58 @@ class _IncludedSectionState extends State<IncludedSection> {
     final c = context.colors;
     final contactsReadable = ThisMacText.readable('contacts', mac.contactsStatus);
     final calendarsReadable = ThisMacText.readable('calendars', mac.calendarsStatus);
+    if (MacLook.of(context)) {
+      return MacFormSection(
+        heading: SourcesSections.includedHeading,
+        footer: IncludedSection.note(mac),
+        rows: [
+          if (!contactsReadable || mac.contactContainers.isEmpty)
+            MacFormRow(
+              key: const ValueKey('included-contacts-none'),
+              icon: MacIcons.people,
+              title: 'Contacts',
+              subtitle: IncludedSection.waiting('contacts', readable: contactsReadable),
+            )
+          else
+            for (final k in mac.contactContainers)
+              MacFormRow(
+                key: ValueKey('container-${k.id}'),
+                icon: MacIcons.people,
+                title: k.name.isEmpty ? 'Contacts' : k.name,
+                subtitle: 'Contacts · ${IncludedSection.containerKind(k.kind)}',
+                trailing: [
+                  MacSwitch(
+                    value: k.included,
+                    semanticLabel: k.name.isEmpty ? 'Contacts' : k.name,
+                    onChanged: _saving ? null : (on) => _set(container: k.id, include: on),
+                  ),
+                ],
+              ),
+          if (!calendarsReadable || mac.calendars.isEmpty)
+            MacFormRow(
+              key: const ValueKey('included-calendars-none'),
+              icon: MacIcons.calendar,
+              title: 'Calendars',
+              subtitle: IncludedSection.waiting('calendars', readable: calendarsReadable),
+            )
+          else
+            for (final k in mac.calendars)
+              MacFormRow(
+                key: ValueKey('calendar-${k.id}'),
+                icon: MacIcons.calendar,
+                title: k.name.isEmpty ? 'Calendar' : k.name,
+                subtitle: k.sourceName.isEmpty ? 'Calendar' : 'Calendar · ${k.sourceName}',
+                trailing: [
+                  MacSwitch(
+                    value: k.included,
+                    semanticLabel: k.name.isEmpty ? 'Calendar' : k.name,
+                    onChanged: _saving ? null : (on) => _set(calendar: k.id, include: on),
+                  ),
+                ],
+              ),
+        ],
+      );
+    }
     return GroupedSection(
       heading: SourcesSections.includedHeading,
       parts: [
@@ -521,8 +655,145 @@ class _IcloudSectionState extends State<IcloudSection> {
     await widget.controller.refresh();
   }
 
+  /// The Mac frame's form is folded on a Mac host (This Mac is the way there), open elsewhere.
+  bool _formOpen = false;
+
+  Widget _macBuild(BuildContext context) {
+    final accounts = widget.sources.icloud;
+    final twice = widget.onMacHost && (widget.sources.mac?.enabled ?? false);
+    final form = _macForm(context);
+    return MacFormSection(
+      heading: widget.heading,
+      rows: [
+        if (widget.onMacHost)
+          MacDisclosure(
+            title: IcloudSection.title,
+            open: _formOpen,
+            onToggle: () => setState(() => _formOpen = !_formOpen),
+            child: form,
+          )
+        else ...[
+          MacFormRow(icon: MacIcons.cloud, title: IcloudSection.title),
+          form,
+        ],
+        for (final a in accounts) _macRow(a, twice: twice),
+      ],
+    );
+  }
+
+  Widget _macForm(BuildContext context) {
+    final mac = context.mac;
+    Widget field(String label, Widget input) => Padding(
+      padding: const EdgeInsets.only(bottom: MyDataSpace.s2),
+      child: Row(
+        children: [
+          SizedBox(
+            width: IcloudForm.macLabelWidth,
+            child: Text(label, style: MyDataMacType.body.copyWith(color: mac.label)),
+          ),
+          Expanded(child: input),
+        ],
+      ),
+    );
+    return MacFormPart(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            '${widget.onMacHost ? IcloudSection.forOtherHosts : ''}${IcloudSection.why}',
+            style: MyDataMacType.caption.copyWith(color: mac.secondaryLabel),
+          ),
+          const SizedBox(height: MyDataSpace.s3),
+          field(
+            'Apple Account email',
+            MacEditField(
+              controller: _email,
+              label: 'Apple Account email',
+              placeholder: 'name@example.com',
+              keyboardType: TextInputType.emailAddress,
+              textInputAction: TextInputAction.next,
+              enabled: !_adding,
+              onChanged: (_) => setState(() {}),
+            ),
+          ),
+          field(
+            'App-specific password',
+            MacEditField(
+              controller: _password,
+              label: 'App-specific password',
+              placeholder: 'xxxx-xxxx-xxxx-xxxx',
+              obscure: true,
+              textInputAction: TextInputAction.done,
+              enabled: !_adding,
+              onChanged: (_) => setState(() {}),
+              onSubmitted: (_) => _follow(),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsetsDirectional.only(start: IcloudForm.macLabelWidth),
+            child: Text(
+              'Make one at account.apple.com, in Sign-In and Security.',
+              style: MyDataMacType.caption.copyWith(color: mac.secondaryLabel),
+            ),
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: MyDataSpace.s2),
+            Semantics(
+              liveRegion: true,
+              child: Text(_error!, style: MyDataMacType.caption.copyWith(color: context.colors.danger)),
+            ),
+          ],
+          const SizedBox(height: MyDataSpace.s3),
+          Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child: Button(
+              label: _adding ? 'Checking with Apple' : IcloudSection.followLabel,
+              variant: widget.onMacHost ? ButtonVariant.tonal : ButtonVariant.filled,
+              onPressed: _ready ? _follow : null,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _macRow(SourceOut a, {required bool twice}) {
+    final busy = _busy.contains(a.id);
+    final String state;
+    if (a.lastError != null && a.lastError!.isNotEmpty) {
+      state = a.lastError!;
+    } else if (a.lastUpdate != null) {
+      state = 'Last synced ${formatWhen(a.lastUpdate!)}';
+    } else {
+      state = 'Not synced yet';
+    }
+    final status = switch (a.state) {
+      SourceOutStateEnum.syncing => MacFormValue('Syncing', dot: context.toneStrong(MyDataTone.info)),
+      SourceOutStateEnum.error => MacFormValue('Sync failed', dot: context.toneStrong(MyDataTone.danger)),
+      _ => null,
+    };
+    return KeyedSubtree(
+      key: ValueKey('account-${a.id}'),
+      child: MacFormRow(
+        icon: MacIcons.cloud,
+        title: a.email ?? 'iCloud account',
+        subtitle: twice ? '$state\n${IcloudSection.notNeededOnMac}' : state,
+        trailing: [
+          ?status,
+          Button(label: 'Sync now', variant: ButtonVariant.tonal, onPressed: busy ? null : () => _sync(a)),
+          Button(
+            label: RemoveAccountText.ask,
+            variant: ButtonVariant.plainDanger,
+            onPressed: busy ? null : () => _remove(a),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (MacLook.of(context)) return _macBuild(context);
     final accounts = widget.sources.icloud;
     // This Mac is on, so a followed account is usually read twice: say so on a line of its own under it.
     final twice = widget.onMacHost && (widget.sources.mac?.enabled ?? false);
@@ -630,6 +901,9 @@ class _IcloudSectionState extends State<IcloudSection> {
 abstract final class IcloudForm {
   /// The fields' width: room for a long email, not the whole settings column.
   static const fieldMaxWidth = 420.0;
+
+  /// The Mac frame's label column beside the fields.
+  static const macLabelWidth = 168.0;
 }
 
 /// The words of removing a followed account.
@@ -643,15 +917,9 @@ abstract final class RemoveAccountText {
       'myData stops following $email and deletes the contacts and events it copied from it. Nothing in the '
       'iCloud account changes.${backupsKeptUntil == null ? '' : ' ${backupsKept(backupsKeptUntil)}'}';
 
-  /// "Copies in your host's backups are kept until 1 October 2027."
+  /// "Copies in your host's backups are kept until 1 Oct 2027."
   static String backupsKept(String isoDay) {
-    final d = DateTime.tryParse(isoDay);
-    const months = [
-      'January', 'February', 'March', 'April', 'May', 'June', //
-      'July', 'August', 'September', 'October', 'November', 'December',
-    ];
-    final day = d == null ? isoDay : '${d.day} ${months[d.month - 1]} ${d.year}';
-    return 'Copies in your host’s backups are kept until $day.';
+    return 'Copies in your host’s backups are kept until ${MyDataDates.hostDay(isoDay)}.';
   }
 
   static String failed(String email) =>

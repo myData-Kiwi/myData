@@ -17,6 +17,14 @@ class AgentTokensSection extends StatefulWidget {
 
   static const heading = 'Agents';
   static const createLabel = 'Create an agent token';
+  static const intro =
+      'An agent (an MCP client such as a desktop AI app) reaches myData\'s tools with a token of its own.';
+  static const newHeading = 'New token';
+
+  /// In the Mac frame, under the Agents tab.
+  static const macHeading = 'Tokens';
+  static const namePlaceholder = 'For example, Claude on my laptop';
+  static const nameHelp = 'Name it after the agent and the computer it runs on.';
 
   @override
   State<AgentTokensSection> createState() => _AgentTokensSectionState();
@@ -104,9 +112,63 @@ class _AgentTokensSectionState extends State<AgentTokensSection> {
       if (_agents.error != null) {
         return AgentListProblem(heading: AgentTokensSection.heading, error: _agents.error!, onRetry: _agents.load);
       }
+      if (MacLook.of(context)) return _mac(context);
       return GroupedSection(heading: AgentTokensSection.heading, parts: [_form(context), ..._rows()]);
     },
   );
+
+  /// The Mac frame: the tokens, then a one-line form for a new one.
+  Widget _mac(BuildContext context) {
+    final list = _agents.agents;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        MacFormSection(
+          heading: AgentTokensSection.macHeading,
+          footer: AgentTokensSection.intro,
+          rows: [
+            if (list == null)
+              const MacFormRow(title: 'Loading the tokens')
+            else if (list.isEmpty)
+              const MacFormRow(title: 'No agent tokens yet', subtitle: 'Tokens you create are listed here.')
+            else
+              for (final a in list) AgentTokenRow(key: ValueKey(a.id), agent: a, onRevoke: () => _revoke(a)),
+          ],
+        ),
+        const SizedBox(height: MacForm.gap),
+        MacFormSection(
+          heading: AgentTokensSection.newHeading,
+          footer: AgentTokensSection.nameHelp,
+          rows: [
+            MacFormPart(
+              child: Row(
+                children: [
+                  Expanded(
+                    child: MacEditField(
+                      controller: _name,
+                      label: 'Name',
+                      placeholder: AgentTokensSection.namePlaceholder,
+                      textInputAction: TextInputAction.done,
+                      onSubmitted: (_) => _create(),
+                    ),
+                  ),
+                  const SizedBox(width: MyDataSpace.s3),
+                  ListenableBuilder(
+                    listenable: _name,
+                    builder: (context, _) => Button(
+                      label: AgentTokensSection.createLabel,
+                      variant: ButtonVariant.filled,
+                      onPressed: _name.text.trim().isEmpty || _creating ? null : _create,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
 
   Widget _form(BuildContext context) {
     final c = context.colors;
@@ -193,6 +255,17 @@ class AgentTokenRow extends StatelessWidget {
     final a = agent;
     final lastSeen = a.lastSeenAt == null ? 'never used' : 'last seen ${formatWhen(a.lastSeenAt!)}';
     final (label, tone) = state(a);
+    if (MacLook.of(context)) {
+      return MacFormRow(
+        icon: MacIcons.key,
+        title: a.name,
+        subtitle: 'Created ${formatWhen(a.createdAt)} · $lastSeen',
+        trailing: [
+          MacFormValue(label, dot: context.toneStrong(tone)),
+          if (!a.revoked) Button(label: RevokeLabels.ask, variant: ButtonVariant.plainDanger, onPressed: onRevoke),
+        ],
+      );
+    }
     return ActionRow(
       icon: Icons.key_outlined,
       title: a.name,
@@ -214,7 +287,19 @@ class AgentListProblem extends StatelessWidget {
   final VoidCallback onRetry;
 
   @override
-  Widget build(BuildContext context) => GroupedSection(
+  Widget build(BuildContext context) => MacLook.of(context)
+      ? MacFormSection(
+          heading: heading,
+          rows: [
+            MacFormRow(
+              icon: MacIcons.warning,
+              title: 'The agent list could not be read',
+              subtitle: error,
+              trailing: [Button(label: 'Retry', variant: ButtonVariant.tonal, onPressed: onRetry)],
+            ),
+          ],
+        )
+      : GroupedSection(
     heading: heading,
     parts: [
       ActionRow(

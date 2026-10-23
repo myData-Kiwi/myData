@@ -87,25 +87,30 @@ class _MyDataAppState extends State<MyDataApp> {
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: _appearance,
     builder: (context, _) {
-      final theme = _appearance.theme;
-      return MaterialApp(
-        title: 'myData',
-        theme: theme.light,
-        darkTheme: theme.dark,
-        themeMode: theme.themeMode,
-        debugShowCheckedModeBanner: false,
-        builder: (context, child) => MyDataAccessibilityScope(child: child ?? const SizedBox.shrink()),
-        home: _Home(
-          controller: widget.controller,
-          appearance: _appearance,
-          openSetup: widget.openSetup,
-          mac: widget.macSystem ?? macSystem,
-          links: widget.links,
-          installedApps: widget.installedApps,
-          openApp: widget.openApp,
-          openLink: widget.openLink,
-          chooser: widget.chooser,
-          acceptDrops: widget.acceptDrops,
+      // On a Mac the Mac shell's theme (the system's font, colours and accent; this device's mode); elsewhere
+      // the host's theme (MacShell).
+      return MacShell(
+        theme: _appearance.theme,
+        appIcon: MyDataAppIcons.mydata,
+        builder: (context, light, dark, mode) => MaterialApp(
+          title: 'myData',
+          theme: light,
+          darkTheme: dark,
+          themeMode: mode,
+          debugShowCheckedModeBanner: false,
+          builder: MacShell.content,
+          home: _Home(
+            controller: widget.controller,
+            appearance: _appearance,
+            openSetup: widget.openSetup,
+            mac: widget.macSystem ?? macSystem,
+            links: widget.links,
+            installedApps: widget.installedApps,
+            openApp: widget.openApp,
+            openLink: widget.openLink,
+            chooser: widget.chooser,
+            acceptDrops: widget.acceptDrops,
+          ),
         ),
       );
     },
@@ -289,7 +294,8 @@ class _HomeState extends State<_Home> {
     if (_macDecided == null) return;
     final a = assistantAvailability(s);
     _inSetup =
-        _themeChosen == false ||
+        // On a Mac the accent is the system's: no theme step there (SetupScreen).
+        (_themeChosen == false && !MacLook.forThisPlatform) ||
         _macDecided == false ||
         (a != AssistantAvailability.ready && a != AssistantAvailability.off);
   }
@@ -311,7 +317,7 @@ class _HomeState extends State<_Home> {
     await c.sources.requestMacAccess(AccessIn(what: AccessInWhatEnum.contacts));
     final out = await c.sources.requestMacAccess(AccessIn(what: AccessInWhatEnum.calendars));
     final short = ThisMacStep.shortfall(out?.contactsStatus, out?.calendarsStatus);
-    if (short == null && mounted) setState(() => _macDecided = true);
+    if (short == null && mounted) setState(_macDone);
     return short;
   }
 
@@ -323,7 +329,17 @@ class _HomeState extends State<_Home> {
       // Setup moves on regardless; the question comes back at the next start.
       debugPrint('myData: could not record skipping This Mac: ${errorText(e)}');
     }
-    if (mounted) setState(() => _macDecided = true);
+    if (mounted) setState(_macDone);
+  }
+
+  /// This Mac's question is answered. On a Mac that is the whole first launch: unless the assistant still
+  /// needs something (its model on its way, Ollama missing, an error), myData opens at Status.
+  void _macDone() {
+    _macDecided = true;
+    final s = _c.status;
+    if (!MacLook.forThisPlatform || s == null) return;
+    final a = assistantAvailability(s);
+    if (a == AssistantAvailability.ready || a == AssistantAvailability.off) _inSetup = false;
   }
 
   Future<void> _skip() async {
@@ -379,7 +395,7 @@ class _HomeState extends State<_Home> {
       macStep: _macDecided == false,
       onAllowMac: _allowMac,
       onSkipMac: _skipMac,
-      onMacDone: () => setState(() => _macDecided = true),
+      onMacDone: () => setState(_macDone),
       onOpenMacSettings: (pane) => widget.mac.open(pane),
     );
   }

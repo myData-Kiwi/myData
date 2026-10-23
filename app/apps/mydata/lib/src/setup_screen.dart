@@ -85,7 +85,9 @@ class SetupScreen extends StatelessWidget {
     final s = status;
     final running = phase == HostPhase.running && s != null;
     final Widget body;
-    if (running && !themeChosen && onChooseTheme != null) {
+    // On a Mac the accent is the system's, so there is no theme to choose at first run (Settings, Appearance
+    // still sets the theme for other platforms).
+    if (running && !themeChosen && onChooseTheme != null && !MacLook.of(context)) {
       body = ThemeStep(onChoose: onChooseTheme!);
     } else if (running && macStep && onAllowMac != null && onSkipMac != null) {
       body = ThisMacStep(
@@ -316,6 +318,11 @@ class ThisMacStep extends StatefulWidget {
   static const continueLabel = 'Continue';
   static const openSettingsLabel = 'Open System Settings';
 
+  /// The Mac frame's first launch: the same choice, as a welcome.
+  static const macTitle = 'Use your Mac’s contacts and calendars';
+  static const sampleLabel = 'Try with sample data';
+  static const macNote = 'You can change this later in Settings, Sources.';
+
   /// What is missing after Allow, from the statuses the host reports; null when both may be read.
   static MacAccessShortfall? shortfall(String? contacts, String? calendars) {
     final contactsOk = contacts == 'authorized';
@@ -420,6 +427,7 @@ class _ThisMacStepState extends State<ThisMacStep> {
         ],
       );
     }
+    if (MacLook.of(context)) return _macWelcome(context);
     return StatusPanel(
       kind: StatusPanelKind.info,
       title: ThisMacStep.title,
@@ -428,6 +436,64 @@ class _ThisMacStepState extends State<ThisMacStep> {
         Button(label: ThisMacStep.allowLabel, onPressed: _skipping ? null : _allow, variant: ButtonVariant.filled),
         Button(label: ThisMacStep.skipLabel, onPressed: _skipping ? null : _skip, variant: ButtonVariant.plain),
       ],
+    );
+  }
+
+  /// The Mac frame's welcome: the kiwi, the question, and the two answers, Allow the default.
+  Widget _macWelcome(BuildContext context) {
+    final mac = context.mac;
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(MyDataSpace.s8, MyDataMacSize.toolbarHeight, MyDataSpace.s8, MyDataSpace.s8),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: MyDataSize.dialogWidth),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const MacKiwi(height: MyDataMacSize.avatar),
+              const SizedBox(height: MyDataSpace.s6),
+              Semantics(
+                header: true,
+                child: Text(
+                  ThisMacStep.macTitle,
+                  textAlign: TextAlign.center,
+                  style: MyDataMacType.name.copyWith(color: mac.label),
+                ),
+              ),
+              const SizedBox(height: MyDataSpace.s2),
+              Text(
+                ThisMacStep.sentence,
+                textAlign: TextAlign.center,
+                style: MyDataMacType.body.copyWith(color: mac.secondaryLabel),
+              ),
+              const SizedBox(height: MyDataSpace.s6),
+              ButtonRow(
+                alignment: WrapAlignment.center,
+                children: [
+                  Button(
+                    label: ThisMacStep.sampleLabel,
+                    variant: ButtonVariant.tonal,
+                    onPressed: _skipping ? null : _skip,
+                  ),
+                  // The default button: focus starts here, so Return presses it, as a Mac welcome's does.
+                  Button(
+                    label: ThisMacStep.allowLabel,
+                    variant: ButtonVariant.filled,
+                    autofocus: true,
+                    onPressed: _skipping ? null : _allow,
+                  ),
+                ],
+              ),
+              const SizedBox(height: MyDataSpace.s5),
+              Text(
+                ThisMacStep.macNote,
+                textAlign: TextAlign.center,
+                style: MyDataMacType.caption.copyWith(color: mac.secondaryLabel),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

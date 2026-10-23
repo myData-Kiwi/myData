@@ -225,7 +225,7 @@ class _ImportPageState extends State<ImportPage> {
     if (accounts != null) children.add(accounts);
     final history = _history();
     if (history != null) children.add(history);
-    return StepPage(title: ImportText.chooseTitle, titleFocus: _titleFocus, children: children);
+    return StepPage(title: ImportText.chooseTitle, titleFocus: _titleFocus, macTitleShown: false, children: children);
   }
 
   Widget _where() => GroupedSection(
@@ -326,7 +326,7 @@ class _ImportPageState extends State<ImportPage> {
         ),
       if (!c.reachable && at != null)
         GroupedContentPart(
-          child: Text(ImportText.historyAsOf(at), style: MyDataType.caption.copyWith(color: context.colors.inkMuted)),
+          child: Text(ImportText.historyAsOf(at), style: context.type(MyDataType.caption).copyWith(color: context.colors.inkMuted)),
         ),
     ];
     return GroupedSection(heading: ImportText.historyHeading, parts: parts);
@@ -341,7 +341,7 @@ class _ImportPageState extends State<ImportPage> {
           content: Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
             for (final (n, line) in [if (i.source_ == 'icloud') ImportText.undoAccount, ImportText.undoCannot].indexed) ...[
               if (n > 0) const SizedBox(height: MyDataSpace.s4),
-              Text(line, style: MyDataType.body.copyWith(color: context.colors.ink)),
+              Text(line, style: context.type(MyDataType.body).copyWith(color: context.colors.ink)),
             ],
           ]),
           confirmLabel: ImportText.undoImport,
@@ -371,9 +371,9 @@ class _ImportPageState extends State<ImportPage> {
             const SizedBox(width: MyDataSpace.s4),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(ImportText.savingLabel, style: MyDataType.bodyStrong.copyWith(color: c.ink)),
+                Text(ImportText.savingLabel, style: context.type(MyDataType.bodyStrong).copyWith(color: c.ink)),
                 const SizedBox(height: MyDataSpace.s1),
-                Text(ImportText.savingCaption, style: MyDataType.caption.copyWith(color: c.inkMuted)),
+                Text(ImportText.savingCaption, style: context.type(MyDataType.caption).copyWith(color: c.inkMuted)),
               ]),
             ),
           ]),
@@ -445,7 +445,7 @@ class _ImportPageState extends State<ImportPage> {
         onToggle: () => setState(() => _showWhich = !_showWhich),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           for (final row in _c.doneSkippedRows.take(_skippedShown))
-            Text(ImportText.skippedCard(row.item), style: MyDataType.body.copyWith(color: context.colors.ink)),
+            Text(ImportText.skippedCard(row.item), style: context.type(MyDataType.body).copyWith(color: context.colors.ink)),
           if (_c.doneSkippedRows.length > _skippedShown)
             Button(
               label: ImportText.showMore(math.min(200, _c.doneSkippedRows.length - _skippedShown)),
@@ -453,7 +453,7 @@ class _ImportPageState extends State<ImportPage> {
               onPressed: () => setState(() => _skippedShown += 200),
             ),
           for (final l in _c.doneLosses)
-            if (ImportText.loss(l) case final text?) Text(text, style: MyDataType.body.copyWith(color: context.colors.ink)),
+            if (ImportText.loss(l) case final text?) Text(text, style: context.type(MyDataType.body).copyWith(color: context.colors.ink)),
         ]),
       );
 
@@ -492,7 +492,7 @@ class _ImportPageState extends State<ImportPage> {
       const SizedBox(height: MyDataSpace.s4),
       Semantics(
         header: true,
-        child: Text(ImportText.keepFollowingTitle(email), style: MyDataType.heading.copyWith(color: c.ink)),
+        child: Text(ImportText.keepFollowingTitle(email), style: context.type(MyDataType.heading).copyWith(color: c.ink)),
       ),
       const SizedBox(height: MyDataSpace.s3),
       GroupedSection(parts: [
@@ -500,7 +500,7 @@ class _ImportPageState extends State<ImportPage> {
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           for (var i = 0; i < lines.length; i++) ...[
             if (i > 0) const SizedBox(height: MyDataSpace.s2),
-            Text(lines[i], style: MyDataType.body.copyWith(color: c.ink)),
+            Text(lines[i], style: context.type(MyDataType.body).copyWith(color: c.ink)),
           ],
           const SizedBox(height: MyDataSpace.s4),
           ButtonRow(children: [

@@ -48,7 +48,7 @@ class HostPhasePanel extends StatelessWidget {
       ),
       HostPhase.unreachable => (
         StatusPanelKind.error,
-        'The host is not answering',
+        AppConnection.unreachableText,
         error ?? 'The myData host is not answering.',
       ),
       HostPhase.refused => (
@@ -61,7 +61,7 @@ class HostPhasePanel extends StatelessWidget {
         'The host is from another build',
         error ?? 'This app and the myData host are from different builds.',
       ),
-      HostPhase.lost => (StatusPanelKind.error, 'The host stopped', error ?? 'The myData host stopped answering.'),
+      HostPhase.lost => (StatusPanelKind.error, AppConnection.lostText, error ?? 'The myData host stopped answering.'),
       HostPhase.unsupported => (
         StatusPanelKind.info,
         'Use the desktop app',

@@ -10,6 +10,8 @@ import 'src/desktop_lifetime.dart';
 Future<void> main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
   registerMyDataLicenses();
+  // The Mac shell's window (full-size content, unified toolbar, translucent sidebar); a no-op off macOS.
+  await MacShell.setUp();
   final controller = HostController(app: 'mydata');
   if (DesktopLifetime.supported) {
     try {

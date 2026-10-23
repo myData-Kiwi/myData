@@ -10,6 +10,7 @@ import 'host_phase_panel.dart';
 import 'import/import_controller.dart';
 import 'import/import_files.dart';
 import 'import/import_page.dart';
+import 'mac_status.dart';
 import 'settings_screen.dart';
 import 'source_list.dart';
 import 'status_screen.dart';
@@ -75,6 +76,13 @@ class HomeShell extends StatefulWidget {
     AppSection(icon: Icons.settings_outlined, label: 'Settings'),
   ];
 
+  /// The sections as the Mac frame's sidebar shows them, with its icons (Lucide, in place of SF Symbols).
+  static const macSections = [
+    AppSection(icon: MacIcons.status, label: 'Status'),
+    AppSection(icon: MacIcons.importFile, label: 'Import'),
+    AppSection(icon: MacIcons.settings, label: 'Settings'),
+  ];
+
   /// The sections' names in the menu bar's View menu, in its title case.
   static const menuTitles = ['Status', 'Import', 'Settings'];
 
@@ -106,6 +114,9 @@ class _HomeShellState extends State<HomeShell> {
   late final _import = ImportController(host: widget.controller, sources: _sources, chooser: widget.chooser);
   final _sourcesKey = GlobalKey();
   int _index = 0;
+
+  /// The Mac frame's Settings tab.
+  SettingsTab _settingsTab = SettingsTab.sources;
   int _sourcesShown = 0;
   int _importShown = 0;
 
@@ -161,7 +172,10 @@ class _HomeShellState extends State<HomeShell> {
   /// been read: before that the page is too short to bring them to the top.
   Future<void> _showSources() async {
     _sourcesShown = widget.sourcesAsked;
-    setState(() => _index = _settings);
+    setState(() {
+      _index = _settings;
+      _settingsTab = SettingsTab.sources;
+    });
     await _sources.load();
     if (!mounted) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -199,7 +213,21 @@ class _HomeShellState extends State<HomeShell> {
           ),
       ],
       onSettings: () => _select(_settings),
-      child: Scaffold(
+      child: MacLook.of(context)
+          // Transparent: the window's sidebar material shows through the sidebar.
+          ? Scaffold(
+              backgroundColor: Colors.transparent,
+              body: MacAppFrame(
+                sections: HomeShell.macSections,
+                current: _index,
+                onSelect: _select,
+                connection: HomeShell.connectionFor(widget.controller.phase, widget.controller.retry),
+                // The page says what is wrong, with the one Retry, so the sidebar does not say it again.
+                showConnection: !_macPageShowsHost,
+                child: _macPage(),
+              ),
+            )
+          : Scaffold(
         backgroundColor: context.colors.bg,
         body: AppFrame(
           appName: 'myData',
@@ -212,6 +240,106 @@ class _HomeShellState extends State<HomeShell> {
       ),
     ),
   );
+
+  /// Settings, Sources, from Status (demo mode's "Use your Mac's data").
+  void _openSources() => setState(() {
+    _index = _settings;
+    _settingsTab = SettingsTab.sources;
+    _sources.load();
+  });
+
+  /// The Mac page is the host's state panel (the host is not running and nothing else can be shown).
+  bool get _macPageShowsHost {
+    final c = widget.controller;
+    final keepsImport = _index == _importSection && (c.status != null || c.phase == HostPhase.running);
+    return !keepsImport && (c.phase != HostPhase.running || c.status == null);
+  }
+
+  /// The Mac frame: each section in its pane under its toolbar band. Settings has its tabs in the band, as an
+  /// app's Settings window has; Status is a calm overview with the details folded away.
+  Widget _macPage() {
+    final c = widget.controller;
+    final status = c.status;
+    final title = HomeShell.macSections[_index].label;
+    if (_index == _importSection && (status != null || c.phase == HostPhase.running)) {
+      return MacPane(toolbar: MacToolbar(title: title), child: Builder(builder: (context) => _macGroups(context, _page())));
+    }
+    if (c.phase != HostPhase.running || status == null) {
+      return MacPane(
+        toolbar: MacToolbar(title: title),
+        child: HostPhasePanel(phase: c.phase, error: c.error, detail: c.detail, onRetry: c.retry),
+      );
+    }
+    if (_index == _status) {
+      return MacPane(
+        toolbar: MacToolbar(title: title),
+        child: MacStatusView(
+          status: status,
+          agents: _agents,
+          apps: _apps,
+          sources: _sources,
+          onOpenApp: _openApp,
+          onOpenSources: _openSources,
+        ),
+      );
+    }
+    return MacPane(
+      toolbar: MacToolbar(
+        leading: [
+          Expanded(
+            child: Center(
+              child: MacSegmented<SettingsTab>(
+                toolbar: true,
+                semanticLabel: 'Settings',
+                segments: [for (final t in SettingsTab.values) (t, t.label)],
+                selected: _settingsTab,
+                onChanged: (t) {
+                  setState(() => _settingsTab = t);
+                  if (t == SettingsTab.sources) _sources.load();
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+      child: MacSettingsView(
+        key: ValueKey(_settingsTab),
+        tab: _settingsTab,
+        controller: c,
+        appearance: widget.appearance,
+        agents: _agents,
+        sources: _sources,
+        macSystem: widget.macSystem,
+      ),
+    );
+  }
+
+  /// Import's groups drawn as the Mac's grouped forms: the form's faint fill and no shadow
+  /// ([MacFormSection.fill]), lines in the system's separator, sunken wells and tiles on `quaternary-label`.
+  static Widget _macGroups(BuildContext context, Widget child) {
+    final theme = Theme.of(context);
+    final mac = context.mac;
+    final colors = context.colors.copyWith(
+      surface: MacFormSection.fill(context),
+      surfaceSunken: Color.alphaBlend(mac.quaternaryLabel, mac.contentBackground),
+      line: mac.separator,
+    );
+    final shadows = context.shadows.copyWith(shadow1: const []);
+    return Theme(
+      data: theme.copyWith(
+        extensions: [
+          for (final e in theme.extensions.values)
+            if (e is MyDataColors)
+              colors
+            else if (e is MyDataShadows)
+              shadows
+            else
+              e,
+        ],
+      ),
+      child: child,
+    );
+  }
 
   Widget _page() {
     final c = widget.controller;

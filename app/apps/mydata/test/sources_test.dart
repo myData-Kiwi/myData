@@ -276,7 +276,7 @@ void main() {
     testWidgets('on, with everything included, and what is never included', (tester) async {
       await pumpApp(tester, FakeHost(mac: macSource()));
       await openSettings(tester);
-      expect(find.text('Last updated 13 Oct 2026, 09:12'), findsOneWidget);
+      expect(find.text('Last updated 13 Oct 2026, 9:12 am'), findsOneWidget);
       expect(find.text('Allowed'), findsNWidgets(2));
       expect(find.text(SourcesSections.includedHeading), findsOneWidget);
       for (final name in ['iCloud', 'On My Mac', 'Home', 'Work', 'Example Book Club']) {
@@ -455,7 +455,7 @@ void main() {
         'POST /accounts {"email":"sam@example.com","password":"abcd-efgh-ijkl-mnop","provider":"icloud"}',
       );
       expect(find.text('sam@example.com'), findsOneWidget); // the account row, not the field
-      expect(find.text('Last synced 13 Oct 2026, 08:40'), findsOneWidget);
+      expect(find.text('Last synced 13 Oct 2026, 8:40 am'), findsOneWidget);
     });
 
     testWidgets('Sync now, and Remove after saying that the mirrored data is deleted', (tester) async {
@@ -481,7 +481,7 @@ void main() {
     await openSettings(tester);
     await tapVisible(tester, find.text(RemoveAccountText.ask));
     expect(find.text(RemoveAccountText.body('sam@example.com', backupsKeptUntil: '2027-10-01')), findsOneWidget);
-    expect(find.textContaining('kept until 1 October 2027.'), findsOneWidget);
+    expect(find.textContaining('kept until 1 Oct 2027.'), findsOneWidget);
   });
 
   testWidgets('turning This Mac off says until when the backups keep its copies (H8)', (tester) async {

@@ -83,7 +83,7 @@ class _ReviewStepState extends State<ReviewStep> {
 
   Widget _expired(ImportPreviewOut p) => Text(
         p.source_ == 'icloud' ? ImportText.expiredAccount : ImportText.expired,
-        style: MyDataType.body.copyWith(color: context.colors.ink),
+        style: context.type(MyDataType.body).copyWith(color: context.colors.ink),
       );
 
   Widget _footer(ImportPreviewOut p) {
@@ -154,7 +154,7 @@ class _ReviewStepState extends State<ReviewStep> {
         parts: [for (final ch in p.changes) TextRowPart(ImportText.change(ch))],
       ));
     }
-    out.add(Text(ImportText.whereTheyGo, style: MyDataType.body.copyWith(color: context.colors.ink)));
+    out.add(Text(ImportText.whereTheyGo, style: context.type(MyDataType.body).copyWith(color: context.colors.ink)));
     final notices = _notices(p);
     if (notices.isNotEmpty) out.add(NoticeStack(notices: notices));
     final entries = c.entries;
@@ -240,7 +240,7 @@ class _ReviewStepState extends State<ReviewStep> {
 
   Widget _note(String text) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: MyDataSpace.s2),
-        child: Text(text, style: MyDataType.caption.copyWith(color: context.colors.inkMuted)),
+        child: Text(text, style: context.type(MyDataType.caption).copyWith(color: context.colors.inkMuted)),
       );
 
   /// The summary: one row per kind with a count, rows with nothing left out; at most three tile colours.
@@ -306,7 +306,7 @@ class _ReviewStepState extends State<ReviewStep> {
     final c = _c;
     final skipped = c.rowsIn(RowGroup.skipped);
     final rest = skipped.skip(5).take(_shownOf('skipped')).toList();
-    final style = MyDataType.body.copyWith(color: context.colors.ink);
+    final style = context.type(MyDataType.body).copyWith(color: context.colors.ink);
     final parts = <Widget>[
       for (final r in skipped.take(5)) TextRowPart(ImportText.skippedCard(r.item)),
       if (skipped.length > 5)
@@ -465,7 +465,7 @@ class _ReviewStepState extends State<ReviewStep> {
       );
     }
     if (state.failed || state.card == null) {
-      return Text(ImportText.compareFailed, style: MyDataType.body.copyWith(color: context.colors.danger));
+      return Text(ImportText.compareFailed, style: context.type(MyDataType.body).copyWith(color: context.colors.danger));
     }
     final contact = state.contact;
     return DuplicatePair(
@@ -512,7 +512,7 @@ class _ReviewStepState extends State<ReviewStep> {
     return GroupedSection(
       heading: ImportText.missingHeading(missing.length),
       parts: [
-        GroupedContentPart(child: Text(ImportText.missingCaption, style: MyDataType.body.copyWith(color: c.inkMuted))),
+        GroupedContentPart(child: Text(ImportText.missingCaption, style: context.type(MyDataType.body).copyWith(color: c.inkMuted))),
         DisclosurePart(
           title: _showAllMissing ? ImportText.hideAll : ImportText.showAll(missing.length),
           open: _showAllMissing,
@@ -522,7 +522,7 @@ class _ReviewStepState extends State<ReviewStep> {
           }),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             for (final m in missing.take(_shownOf('missing')))
-              Text(m.displayName, style: MyDataType.body.copyWith(color: c.ink)),
+              Text(m.displayName, style: context.type(MyDataType.body).copyWith(color: c.ink)),
             if (missing.length > _shownOf('missing')) ...[
               const SizedBox(height: MyDataSpace.s2),
               _more('missing', missing.length),

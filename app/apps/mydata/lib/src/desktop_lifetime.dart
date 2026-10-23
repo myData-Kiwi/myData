@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:mydata_core/mydata_core.dart';
+import 'package:mydata_ui/mydata_ui.dart' show menuTitleCase;
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -12,11 +13,13 @@ class DesktopLifetime with WindowListener, TrayListener {
 
   final HostController _controller;
   ({String key, String label, bool enabled})? _hostItem;
+  String? _stateLine;
 
   static const _open = 'open';
   static const _stopHost = 'stop-host';
   static const _startHost = 'start-host';
   static const _quit = 'quit';
+  static const _state = 'state';
 
   static bool get supported =>
       !kIsWeb &&
@@ -46,6 +49,24 @@ class DesktopLifetime with WindowListener, TrayListener {
     _ => (key: _startHost, label: 'Start host', enabled: true),
   };
 
+  /// The menu's first line, disabled: the host's state in a few words, as a menu-bar extra shows its own
+  /// (plan section 5, "A menu-bar extra shows the host's state").
+  static String hostStateFor(HostPhase phase) => switch (phase) {
+    HostPhase.running => 'Host running',
+    HostPhase.checking => 'Looking for the host…',
+    HostPhase.starting => 'Starting the host…',
+    HostPhase.restarting => 'Restarting the host…',
+    HostPhase.lost => 'Host stopped',
+    HostPhase.unreachable => 'Host not answering',
+    HostPhase.failedToStart => 'Host did not start',
+    HostPhase.refused => 'Host refused myData',
+    HostPhase.incompatible => 'Host from another build',
+    HostPhase.notConfigured || HostPhase.unsupported => 'No host set up',
+  };
+
+  /// The menu's labels: in a Mac menu's title case on macOS, as the menu bar's own items.
+  static String _label(String sentence) => _isMacOS ? menuTitleCase(sentence) : sentence;
+
   Future<bool> _createTrayIcon() async {
     try {
       // macOS draws an 18 pt menu-bar icon, so the @2x file keeps it sharp. A template image follows the
@@ -55,7 +76,7 @@ class DesktopLifetime with WindowListener, TrayListener {
         isTemplate: _isMacOS,
       );
       if (defaultTargetPlatform != TargetPlatform.linux) await trayManager.setToolTip('myData');
-      await _setMenu(hostItemFor(_controller.phase));
+      await _setMenu(_controller.phase);
       trayManager.addListener(this);
       return true;
     } on Object {
@@ -63,14 +84,20 @@ class DesktopLifetime with WindowListener, TrayListener {
     }
   }
 
-  Future<void> _setMenu(({String key, String label, bool enabled}) host) async {
+  /// Open myData; the host's state and Stop host or Start host (only when it can be pressed: a busy or
+  /// missing host is said by the state line); Quit myData, which leaves the host running.
+  Future<void> _setMenu(HostPhase phase) async {
+    final host = hostItemFor(phase);
+    final state = hostStateFor(phase);
     _hostItem = host;
+    _stateLine = state;
     await trayManager.setContextMenu(
       Menu(
         items: [
           MenuItem(key: _open, label: 'Open myData'),
           MenuItem.separator(),
-          MenuItem(key: host.key, label: host.label, disabled: !host.enabled),
+          MenuItem(key: _state, label: _label(state), disabled: true),
+          if (host.enabled) MenuItem(key: host.key, label: _label(host.label)),
           MenuItem.separator(),
           MenuItem(key: _quit, label: 'Quit myData'),
         ],
@@ -78,10 +105,10 @@ class DesktopLifetime with WindowListener, TrayListener {
     );
   }
 
-  /// The menu follows the host: rebuilt only when its host item changes, not on every status poll.
+  /// The menu follows the host: rebuilt only when its state or host item changes, not on every status poll.
   void _updateMenu() {
-    final host = hostItemFor(_controller.phase);
-    if (host != _hostItem) _setMenu(host).ignore();
+    final phase = _controller.phase;
+    if (hostItemFor(phase) != _hostItem || hostStateFor(phase) != _stateLine) _setMenu(phase).ignore();
   }
 
   // Menu-bar icons open their menu on a click; Windows trays on a right click, and a click opens the app.

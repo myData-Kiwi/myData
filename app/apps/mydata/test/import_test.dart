@@ -573,7 +573,7 @@ void main() {
         find.text(ImportText.stopFollowingBody(imported: 2, calendars: 3, keptUntil: '2027-10-01')),
         findsOneWidget,
       );
-      expect(find.textContaining('kept until 1 October 2027.'), findsOneWidget);
+      expect(find.textContaining('kept until 1 Oct 2027.'), findsOneWidget);
       await tester.tap(find.widgetWithText(Button, ImportText.stopFollowing).last);
       await settle(tester);
       expect(host.requests, contains('DELETE /accounts/acct-ava'));

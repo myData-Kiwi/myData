@@ -25,4 +25,13 @@ void main() {
       expect(item.label, isNot('Start host'), reason: '$phase: a disabled item says why');
     }
   });
+
+  test('the menu says the host\'s state on its first line, for every phase', () {
+    expect(DesktopLifetime.hostStateFor(HostPhase.running), 'Host running');
+    expect(DesktopLifetime.hostStateFor(HostPhase.lost), 'Host stopped');
+    expect(DesktopLifetime.hostStateFor(HostPhase.starting), 'Starting the host…');
+    for (final phase in HostPhase.values) {
+      expect(DesktopLifetime.hostStateFor(phase), isNotEmpty, reason: '$phase');
+    }
+  });
 }
