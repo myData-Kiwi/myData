@@ -489,7 +489,8 @@ const styleGroups = [
 
 /// [file]'s style over [base]'s: a group the file leaves out is [base]'s; a field a group leaves out is
 /// [base]'s field (one level down, and per role in `type.roles`). A density `preset` replaces the base's
-/// numbers for the classes the file does not spell out.
+/// numbers for the classes the file does not spell out. A `type` that gives `base` or `ratio` and no roles is
+/// sized from them alone: the base's role sizes are dropped (its weights, line heights and stacks kept).
 Map<String, Object?> mergeStyle(Map<String, Object?> base, Map<String, Object?> file) {
   final out = <String, Object?>{};
   for (final g in styleGroups) {
@@ -500,6 +501,15 @@ Map<String, Object?> mergeStyle(Map<String, Object?> base, Map<String, Object?> 
         m
           ..remove('desktop')
           ..remove('phone');
+      }
+      if (g == 'type' &&
+          (f.containsKey('base') || f.containsKey('ratio')) &&
+          (f['roles'] is! Map || (f['roles'] as Map).isEmpty) &&
+          m['roles'] is Map<String, Object?>) {
+        m['roles'] = {
+          for (final r in (m['roles'] as Map<String, Object?>).entries)
+            r.key: r.value is Map<String, Object?> ? ({...r.value as Map<String, Object?>}..remove('size')) : r.value,
+        };
       }
       for (final e in f.entries) {
         final bv = m[e.key];

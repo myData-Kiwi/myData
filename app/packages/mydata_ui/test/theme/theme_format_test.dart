@@ -401,6 +401,36 @@ void main() {
       expect(() => readStrictJson('﻿﻿{}'), throwsA(isA<StrictJsonError>()));
     });
 
+    test('type.base and ratio with no roles size every role from them alone', () {
+      final r = check(drawn(extra: {
+        'type': {'base': 18, 'ratio': 1.3},
+      }));
+      expect(r.ok, isTrue, reason: r.errors.join('\n'));
+      final type = r.theme!.style.type;
+      expect(type.roles[TypeRole.body]!.size, 18);
+      expect(type.roles[TypeRole.heading]!.size, (18 * 1.3).roundToDouble());
+      expect(type.roles[TypeRole.label]!.size, (18 / 1.3).roundToDouble());
+      // Kiwi's weights and line heights stay.
+      final kiwi = ThemeLibrary.kiwi.style.type.roles;
+      expect(type.roles[TypeRole.title]!.weight, kiwi[TypeRole.title]!.weight);
+      expect(type.roles[TypeRole.body]!.lineHeight, kiwi[TypeRole.body]!.lineHeight);
+      expect(r.notices.where((n) => n.contains('base and ratio')), isEmpty);
+    });
+
+    test('type.base with some roles keeps the based-on sizes of the others, and says so', () {
+      final r = check(drawn(extra: {
+        'type': {
+          'base': 18,
+          'roles': {
+            'body': {'size': 18},
+          },
+        },
+      }));
+      expect(r.ok, isTrue, reason: r.errors.join('\n'));
+      expect(r.theme!.style.type.roles[TypeRole.body]!.size, 18);
+      expect(r.theme!.style.type.roles[TypeRole.label]!.size, ThemeLibrary.kiwi.style.type.roles[TypeRole.label]!.size);
+      expect(r.notices, contains(allOf(contains('base and ratio do not size'), contains('label'))));
+    });
   });
 
   group('"System, tinted" (1.6)', () {

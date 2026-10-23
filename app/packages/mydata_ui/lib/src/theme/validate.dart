@@ -184,6 +184,7 @@ ThemeCheck validateThemeJson(Map<String, Object?> json, ThemeFormat format,
     return ThemeCheck(errors: ['The theme could not be read. It may have been made for another version of myData.'],
         notices: notices);
   }
+  if (!builtIn) _typeScaleNotice(json, base, notices);
 
   for (final finding in checkStyle(theme)) {
     (finding.notice ? notices : errors).add(finding.message);
@@ -279,3 +280,22 @@ void _colourUseRules(Map<String, Object?> json, List<String> errors) {
   }
 }
 
+/// `type.base` and `type.ratio` size only the roles that neither the file nor the theme it is based on gives
+/// (a file that gives them and no roles is sized from them alone: [mergeStyle]). Says so when they change
+/// nothing a role would otherwise have.
+void _typeScaleNotice(Map<String, Object?> json, Map<String, Object?> base, List<String> notices) {
+  final type = json['type'];
+  if (type is! Map<String, Object?> || (!type.containsKey('base') && !type.containsKey('ratio'))) return;
+  final roles = type['roles'];
+  if (roles is! Map<String, Object?> || roles.isEmpty) return;
+  final baseRoles = ((base['type'] as Map<String, Object?>?)?['roles'] as Map<String, Object?>?) ?? const {};
+  final kept = [
+    for (final r in TypeRole.values)
+      if ((roles[r.key] as Map<String, Object?>?)?['size'] == null &&
+          (baseRoles[r.key] as Map<String, Object?>?)?['size'] != null)
+        r.key,
+  ];
+  if (kept.isEmpty) return;
+  notices.add('type: base and ratio do not size ${kept.join(', ')}, which keep the sizes of the theme it is '
+      'based on; give their sizes, or leave out every role to size them all from base and ratio.');
+}
