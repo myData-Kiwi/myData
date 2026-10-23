@@ -315,9 +315,13 @@ class ContactActions {
     final reason = several
         ? (canDelete ? null : 'None of them can be deleted here. They come from sources and are changed there.')
         : reasonFor(id);
+    // The Mac frame's menus are in the Mac's title case, as its menu bar ("Edit Contact"); reasons stay
+    // sentences.
+    final mac = MacLook.of(context());
+    String t(String label) => mac ? menuTitleCase(label) : label;
     return [
       MenuItem(
-        label: editLabel,
+        label: t(editLabel),
         shortcut: AppMenuBar.editShortcut.activator(Theme.of(context()).platform),
         enabled: canEdit,
         disabledReason: canEdit ? null : (several ? 'Edit one contact at a time.' : reason),
@@ -325,7 +329,7 @@ class ContactActions {
       ),
       if (several) ...[
         MenuItem(
-          label: mergeLabel,
+          label: t(mergeLabel),
           enabled: controller.mergeDisabledReason(ids) == null,
           disabledReason: controller.mergeDisabledReason(ids),
           onSelected: () => unawaited(merge(ids)),
@@ -333,7 +337,7 @@ class ContactActions {
       ],
       const MenuSeparator(),
       MenuItem(
-        label: deleteLabelFor(ids),
+        label: t(deleteLabelFor(ids)),
         shortcut: AppMenuBar.listDeleteActivator(Theme.of(context()).platform),
         destructive: true,
         enabled: canDelete,

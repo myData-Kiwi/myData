@@ -278,30 +278,22 @@ class _ContactsHomeState extends State<ContactsHome> {
 
   /// The Mac frame ([MacLook]): the translucent sidebar with the sections and the host's state, then the
   /// section on `content-background` under its toolbar band. Contacts draws its own bands (search, Edit, New).
+  /// Its other states (no contacts yet, waiting, an error) have no New button in the band: + sits only at the
+  /// list's top, and the empty state's one button is New Contact (⌘N works throughout).
   Widget _macFrame(AppConnection? connection) {
     final body = _body();
     final Widget content = body is ContactsView
         ? body
-        : MacPane(
-            toolbar: MacToolbar(
-              title: ContactsHome.macTitles[_section],
-              trailing: [
-                if (_isRunning && _section == 0)
-                  MacToolbarButton(
-                    icon: MacIcons.add,
-                    label: ContactActions.newLabel,
-                    shortcut: AppMenuBar.newShortcut.label(Theme.of(context).platform),
-                    onPressed: () => unawaited(_newContact()),
-                  ),
-              ],
-            ),
-            child: body,
-          );
+        : MacPane(toolbar: MacToolbar(title: ContactsHome.macTitles[_section]), child: body);
+    final phase = _host.phase;
+    // A host failure's panel says it, with its Retry: the sidebar's line would say it again.
+    final panelShowsHost = phase != HostPhase.running && phase != HostPhase.unsupported && !_showingContacts;
     return MacAppFrame(
       sections: ContactsHome.macSections,
       current: _section,
       onSelect: (i) => unawaited(_select(i)),
       connection: connection,
+      showConnection: !panelShowsHost,
       child: connection == null ? content : ToastHost(controller: _toasts, child: content),
     );
   }
@@ -392,10 +384,10 @@ class _ContactsHomeState extends State<ContactsHome> {
       ),
       HostPhase.notConfigured => _failure('The myData host is not set up'),
       HostPhase.failedToStart => _failure('The myData host did not start'),
-      HostPhase.unreachable => _failure('The myData host is not answering'),
+      HostPhase.unreachable => _failure(AppConnection.unreachableText),
       HostPhase.refused => _failure('The myData host refused this app'),
       HostPhase.incompatible => _failure('The myData host is from another build'),
-      HostPhase.lost => _failure('The myData host stopped'),
+      HostPhase.lost => _failure(AppConnection.lostText),
       HostPhase.unsupported => StatusPanel(
         kind: StatusPanelKind.info,
         title: 'myContacts needs the desktop app',

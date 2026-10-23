@@ -52,12 +52,7 @@ class MergePane extends StatelessWidget {
   /// "Added 2 Oct 2026".
   static String added(ContactDetailOut c) {
     final d = DateTime.tryParse(c.createdAt);
-    return d == null ? '' : 'Added ${_day(d.toLocal())}';
-  }
-
-  static String _day(DateTime d) {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return '${d.day} ${months[d.month - 1]} ${d.year}';
+    return d == null ? '' : 'Added ${MyDataDates.day(d.toLocal())}';
   }
 
   /// "A new contact. These two go to Recently deleted."
@@ -77,33 +72,56 @@ class MergePane extends StatelessWidget {
             for (final x in contacts) ContactPair.ofContact(x, caption: added(x)),
           ];
           final preview = s.preview;
-          final pair = DuplicatePair(
-            mode: PairMode.merge,
-            loading: s.loading || versions.isEmpty,
-            versions: versions.isEmpty
-                ? [for (final id in s.ids) PairVersion(name: id, caption: '', fields: const {})]
-                : versions,
-            after: preview == null
-                ? (s.loading ? null : PairAfter(title: PairAfter.mergingTitle, caption: afterCaption(s.ids.length), fields: const {}))
-                : ContactPair.afterOfMerge(
-                    preview,
-                    caption: afterCaption(s.ids.length),
-                    notes: contacts.where((x) => x.note.trim().isNotEmpty).length,
-                  ),
-            afterLoading: s.previewing,
-            note: leftOutNote,
-            message: s.message,
-            messageIsError: s.messageIsError,
-            actions: [
-              Button(label: plainLabel, variant: ButtonVariant.plain, onPressed: s.working ? _inert : onPlain),
-              SteadyWidthButton(
-                label: mergeLabel,
-                shown: s.working ? mergingLabel : mergeLabel,
-                variant: ButtonVariant.filled,
-                onPressed: !canMerge ? null : (s.working ? _inert : onMerge),
-              ),
-            ],
-          );
+          final mac = MacLook.of(context);
+          final after = preview == null
+              ? (s.loading ? null : PairAfter(title: PairAfter.mergingTitle, caption: afterCaption(s.ids.length), fields: const {}))
+              : ContactPair.afterOfMerge(
+                  preview,
+                  caption: afterCaption(s.ids.length),
+                  notes: contacts.where((x) => x.note.trim().isNotEmpty).length,
+                );
+          final shown = versions.isEmpty
+              ? [for (final id in s.ids) PairVersion(name: id, caption: '', fields: const {})]
+              : versions;
+          final actions = [
+            // The Mac frame: push buttons, the plain one grey.
+            Button(
+              label: plainLabel,
+              variant: mac ? ButtonVariant.tonal : ButtonVariant.plain,
+              onPressed: s.working ? _inert : onPlain,
+            ),
+            SteadyWidthButton(
+              label: mergeLabel,
+              shown: s.working ? mergingLabel : mergeLabel,
+              variant: ButtonVariant.filled,
+              onPressed: !canMerge ? null : (s.working ? _inert : onMerge),
+            ),
+          ];
+          // The Mac frame: the same pair as a Mac table on the pane's ground (MacPairTable).
+          final Widget pair = mac
+              ? MacPairTable(
+                  mode: PairMode.merge,
+                  loading: s.loading || versions.isEmpty,
+                  versions: shown,
+                  after: after,
+                  afterLoading: s.previewing,
+                  note: leftOutNote,
+                  message: s.message,
+                  messageIsError: s.messageIsError,
+                  // The Mac frame: the buttons sit at the top, beside the choice, always in view.
+                  actions: const [],
+                )
+              : DuplicatePair(
+                  mode: PairMode.merge,
+                  loading: s.loading || versions.isEmpty,
+                  versions: shown,
+                  after: after,
+                  afterLoading: s.previewing,
+                  note: leftOutNote,
+                  message: s.message,
+                  messageIsError: s.messageIsError,
+                  actions: actions,
+                );
           final names = contacts.length == s.ids.length && contacts.isNotEmpty;
           return CallbackShortcuts(
             bindings: {
@@ -124,7 +142,31 @@ class MergePane extends StatelessWidget {
                     Text(reason!, style: context.type(MyDataType.body).copyWith(color: c.inkMuted)),
                   ],
                   const SizedBox(height: MyDataSpace.s4),
-                  if (names)
+                  if (names && mac)
+                    // The Mac frame: a pop-up button after its label, as a Mac form writes it.
+                    Row(children: [
+                      Text('$keepLabel:', style: MyDataMacType.body.copyWith(color: context.mac.label)),
+                      const SizedBox(width: MyDataSpace.s2),
+                      Flexible(
+                        child: MacPopUpButton<String>(
+                          label: keepLabel,
+                          items: [for (final x in contacts) MacPopUpItem(value: x.id, title: x.displayName)],
+                          value: s.namesFrom,
+                          onChanged: s.working ? null : (id) => unawaited(s.keepDetailsOf(id)),
+                          disabledReason: s.working ? 'The contacts are being merged.' : null,
+                          autofocus: true,
+                        ),
+                      ),
+                      const SizedBox(width: MyDataSpace.s4),
+                      const Spacer(),
+                      ButtonRow(alignment: WrapAlignment.end, children: actions),
+                    ])
+                  else if (mac)
+                    Align(
+                      alignment: AlignmentDirectional.centerEnd,
+                      child: ButtonRow(alignment: WrapAlignment.end, children: actions),
+                    )
+                  else if (names)
                     Align(
                       alignment: AlignmentDirectional.centerStart,
                       child: ConstrainedBox(
@@ -141,7 +183,7 @@ class MergePane extends StatelessWidget {
                         ),
                       ),
                     ),
-                  const SizedBox(height: MyDataSpace.s4),
+                  SizedBox(height: mac ? MyDataSpace.s5 : MyDataSpace.s4),
                   pair,
                 ]),
               ),

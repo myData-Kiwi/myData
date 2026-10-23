@@ -40,7 +40,7 @@ class MacContactPage extends StatelessWidget {
   static const mapLabel = 'map';
 
   /// The widest the page's content grows (Contacts' card keeps a reading width).
-  static const maxWidth = 640.0;
+  static const maxWidth = MyDataMacSize.contentWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -93,6 +93,7 @@ class MacContactPage extends StatelessWidget {
             name: name,
             subtitle: subtitle,
             actions: d == null ? const [] : quickActions(d),
+            badge: d == null ? null : MacSourceBadge(icon: sourceIcon(d), sentence: ContactPage.sourceLineOf(d)),
           ),
         if (d?.changedInSource != null) ...[
           const SizedBox(height: MyDataSpace.s5),
@@ -106,13 +107,16 @@ class MacContactPage extends StatelessWidget {
           const SizedBox(height: MyDataSpace.s6),
           below,
         ],
-        if (d != null) ...[
-          const SizedBox(height: MyDataSpace.s6),
-          Text(ContactPage.sourceLineOf(d), style: MyDataMacType.caption.copyWith(color: mac.secondaryLabel)),
-        ],
       ],
     );
   }
+
+  /// The source badge's glyph: the host's own contact, this Mac's, or an iCloud account's.
+  static IconData sourceIcon(ContactDetailOut d) => switch (d.source_) {
+        ContactDetailOutSource_Enum.mydata => MacIcons.host,
+        ContactDetailOutSource_Enum.mac => MacIcons.thisMac,
+        _ => MacIcons.cloud,
+      };
 
   /// message, call, mail and map for [d]: the first phone number, email address and address; none without.
   List<Widget> quickActions(ContactDetailOut d) {

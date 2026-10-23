@@ -185,7 +185,7 @@ class _ReviewViewState extends State<ReviewView> {
                   child: Align(
                     alignment: AlignmentDirectional.topStart,
                     child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: MyDataSize.contentMax),
+                      constraints: const BoxConstraints(maxWidth: MyDataMacSize.contentWidth),
                       child: KeyedSubtree(key: ValueKey(_m.selected), child: _pane()),
                     ),
                   ),
@@ -366,6 +366,29 @@ class _ChangesPane extends StatelessWidget {
                       name: ReviewView.followedColumn(label), caption: _changedCaption(change)),
                 ];
           final title = change == null ? 'Changed since import' : ReviewView.changesTitle(label);
+          final mac = MacLook.of(context);
+          final after = PairAfter(
+            title: PairAfter.changesTitle,
+            caption: ReviewView.afterSaving,
+            fields: data == null ? const {} : ContactPair.ofContact(data.contact, caption: '').fields,
+            choices: s.choices,
+            onChoose: s.working ? null : s.choose,
+          );
+          final actions = [
+            SteadyWidthButton(
+              label: ReviewView.keepMine,
+              shown: s.working && !s.saving ? ReviewView.keepingLabel : ReviewView.keepMine,
+              // The Mac frame: push buttons, the plain one grey.
+              variant: mac ? ButtonVariant.tonal : ButtonVariant.plain,
+              onPressed: s.loading ? null : (s.working ? _inert : onKeep),
+            ),
+            SteadyWidthButton(
+              label: ReviewView.saveChanges,
+              shown: s.working && s.saving ? ReviewView.savingLabel : ReviewView.saveChanges,
+              variant: ButtonVariant.filled,
+              onPressed: s.loading ? null : (s.working ? _inert : onSave),
+            ),
+          ];
           return CallbackShortcuts(
             bindings: {
               SingleActivator(LogicalKeyboardKey.enter, meta: apple, control: !apple): () {
@@ -384,35 +407,29 @@ class _ChangesPane extends StatelessWidget {
                       style: context.type(MyDataType.body).copyWith(color: c.inkMuted),
                     ),
                   const SizedBox(height: MyDataSpace.s4),
-                  DuplicatePair(
-                    mode: PairMode.changes,
-                    loading: s.loading,
-                    versions: versions,
-                    differences: s.differences,
-                    after: PairAfter(
-                      title: PairAfter.changesTitle,
-                      caption: ReviewView.afterSaving,
-                      fields: data == null ? const {} : ContactPair.ofContact(data.contact, caption: '').fields,
-                      choices: s.choices,
-                      onChoose: s.working ? null : s.choose,
+                  if (mac)
+                    // The Mac frame: the same pair as a Mac table on the pane's ground (MacPairTable).
+                    MacPairTable(
+                      mode: PairMode.changes,
+                      loading: s.loading,
+                      versions: versions,
+                      differences: s.differences,
+                      after: after,
+                      message: s.message,
+                      messageIsError: s.messageIsError,
+                      actions: actions,
+                    )
+                  else
+                    DuplicatePair(
+                      mode: PairMode.changes,
+                      loading: s.loading,
+                      versions: versions,
+                      differences: s.differences,
+                      after: after,
+                      message: s.message,
+                      messageIsError: s.messageIsError,
+                      actions: actions,
                     ),
-                    message: s.message,
-                    messageIsError: s.messageIsError,
-                    actions: [
-                      SteadyWidthButton(
-                        label: ReviewView.keepMine,
-                        shown: s.working && !s.saving ? ReviewView.keepingLabel : ReviewView.keepMine,
-                        variant: ButtonVariant.plain,
-                        onPressed: s.loading ? null : (s.working ? _inert : onKeep),
-                      ),
-                      SteadyWidthButton(
-                        label: ReviewView.saveChanges,
-                        shown: s.working && s.saving ? ReviewView.savingLabel : ReviewView.saveChanges,
-                        variant: ButtonVariant.filled,
-                        onPressed: s.loading ? null : (s.working ? _inert : onSave),
-                      ),
-                    ],
-                  ),
                 ]),
               ),
             ),
@@ -422,11 +439,9 @@ class _ChangesPane extends StatelessWidget {
 
   static String _changedCaption(FollowedChangeOut change) {
     final d = DateTime.tryParse(change.followed.modifiedAt);
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     final where = change.sourceLabel.startsWith('this Mac') ? 'on this Mac' : 'in iCloud';
     if (d == null) return 'Changed $where';
-    final l = d.toLocal();
-    return 'Changed $where ${l.day} ${months[l.month - 1]} ${l.year}';
+    return 'Changed $where ${MyDataDates.day(d.toLocal())}';
   }
 
   static void _inert() {}
@@ -440,6 +455,8 @@ class _Empty extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    // The Mac frame: the one empty state, with the kiwi (MacEmptyState).
+    if (MacLook.of(context)) return const MacEmptyState(title: ReviewView.emptyTitle, line: ReviewView.emptySentence);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(MyDataSpace.s8),

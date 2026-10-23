@@ -1,12 +1,16 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:mydata_core/mydata_core.dart';
 import 'package:mydata_ui/mydata_ui.dart';
 
 import 'backend.dart';
 import 'contact_form.dart';
 import 'contacts_controller.dart';
+import 'mac_contact_page.dart';
+
+part 'contact_editor_mac.dart';
 
 /// The contact editor: an [Inspector] ("New contact", "Edit contact") holding the contact's form
 /// (design/components/Inspector and FormRow). From 600px it takes the contact pane's place; under 600px it
@@ -58,6 +62,15 @@ class ContactEditor extends StatefulWidget {
   static const removeBirthdayLabel = 'Remove birthday';
   static const notesPlaceholder = 'Add notes';
 
+  /// The Mac form's labels in the label column, in lower case as Contacts and the contact's page write them.
+  static const macBirthdayLabel = 'birthday';
+  static const macNoteLabel = 'note';
+
+  /// "Custom label…" in the Mac form: a Dialog with one field.
+  static const customLabelTitle = 'Custom label';
+  static const customLabelField = 'Label';
+  static const customLabelConfirm = 'Use label';
+
   /// The failure lines (design/components/Inspector, "Save failed"), for the contact called [name].
   static String noAnswer(String name) =>
       '$name could not be saved. The host did not answer. Your changes are still here; check that the host is '
@@ -86,6 +99,9 @@ class _ContactEditorState extends State<ContactEditor> {
   final _checks = FormChecks();
   final _addBirthdayFocus = FocusNode(debugLabel: 'Add birthday');
 
+  /// The Mac form's Add buttons, where focus goes when the last row of a kind is removed.
+  final _macAddFocus = {for (final k in ValueKind.values) k: FocusNode(debugLabel: k.addLabel)};
+
   /// The host's field errors, by the form's field id, until that field changes.
   final _hostErrors = <String, String>{};
 
@@ -106,6 +122,9 @@ class _ContactEditorState extends State<ContactEditor> {
     _checks.dispose();
     _draft.dispose();
     _addBirthdayFocus.dispose();
+    for (final n in _macAddFocus.values) {
+      n.dispose();
+    }
     super.dispose();
   }
 
@@ -422,7 +441,7 @@ class _ContactEditorState extends State<ContactEditor> {
   @override
   Widget build(BuildContext context) {
     final d = _draft;
-    final form = MyDataForm(
+    final form = MacLook.of(context) ? _macForm() : MyDataForm(
       error: _checks.formError,
       errorFocusNode: _checks.formErrorFocus,
       groups: [

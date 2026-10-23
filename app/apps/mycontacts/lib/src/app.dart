@@ -75,6 +75,7 @@ class _MyContactsAppState extends State<MyContactsApp> {
     listenable: _appearance,
     builder: (context, _) => MacShell(
       theme: _appearance.theme,
+      appIcon: MyDataAppIcons.mycontacts,
       builder: (context, light, dark, mode) => MaterialApp(
         title: 'myContacts',
         theme: light,

@@ -1,6 +1,7 @@
 // Invented contacts only: example.com addresses, phone numbers from ranges kept for drama and testing
 // (UK 07700 900xxx, US 555-01xx), made-up names.
 import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -385,6 +386,10 @@ class FakeBackend implements ContactsBackend {
       jobTitle: kept.jobTitle.isNotEmpty ? kept.jobTitle : cs.map((c) => c.jobTitle).firstWhere((t) => t.isNotEmpty, orElse: () => ''),
       phones: join((c) => c.phones),
       emails: join((c) => c.emails),
+      addresses: [
+        for (final c in [kept, ...cs.where((c) => c != kept)])
+          for (final a in c.addresses) PostalAddressIn.fromJson(jsonDecode(jsonEncode(a)) as Map<String, dynamic>)!,
+      ],
       urls: join((c) => c.urls),
       birthday: kept.birthday ?? cs.map((c) => c.birthday).whereType<String>().firstOrNull ?? '',
       note: [for (final c in cs) if (c.note.isNotEmpty) c.note].join('\n\n'),
@@ -408,7 +413,8 @@ class FakeBackend implements ContactsBackend {
     final kept = _kept(cs, namesFrom);
     final values = ownedCard('preview', _mergedForm(cs, kept));
     return MergePreviewOut(
-      contact: CardValuesOut.fromJson({...values.toJson(), 'kind': 'individual'})!,
+      // Through JSON text, so the nested values (phones, emails) become maps as the host sends them.
+      contact: CardValuesOut.fromJson({...jsonDecode(jsonEncode(values)) as Map<String, dynamic>, 'kind': 'individual'})!,
       namesFrom: kept.id,
       newest: _kept(cs, null).id,
       leftOut: _leftOut(cs, kept),

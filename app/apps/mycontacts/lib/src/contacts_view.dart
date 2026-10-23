@@ -215,7 +215,18 @@ class _ContactsViewState extends State<ContactsView> {
 
     final Widget pane;
     if (edit != null) {
-      pane = _actions.editor(edit);
+      // The inspector where the contact's page was, its form starting where the page's content starts and as
+      // wide (Contacts edits the card in place).
+      pane = Padding(
+        padding: const EdgeInsetsDirectional.only(start: MyDataSpace.s8 - Inspector.padding),
+        child: Align(
+          alignment: AlignmentDirectional.topStart,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: MacContactPage.maxWidth + 2 * Inspector.padding),
+            child: _actions.editor(edit),
+          ),
+        ),
+      );
     } else {
       final Widget content = _controller.merging != null
           ? MergePane(

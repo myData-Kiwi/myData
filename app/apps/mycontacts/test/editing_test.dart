@@ -512,7 +512,7 @@ void main() {
       await tester.tap(find.text('Deleted'));
       await tester.pumpAndSettle();
       expect(find.text(TrashView.title), findsOneWidget);
-      expect(find.text('Deleted on 14 October 2026. It is deleted for good on 13 November 2026, unless you '
+      expect(find.text('Deleted on 14 Oct 2026. It is deleted for good on 13 Nov 2026, unless you '
           'restore it.'), findsOneWidget);
       await tester.tap(find.widgetWithText(Button, TrashView.restoreLabel));
       await tester.pumpAndSettle();
@@ -526,8 +526,8 @@ void main() {
       await tester.tap(find.widgetWithText(Button, TrashView.purgeLabel));
       await tester.pumpAndSettle();
       expect(find.text('Delete Pip Owned permanently?'), findsOneWidget);
-      expect(find.text('It is deleted for good. This cannot be undone. Copies in your host\'s backups are kept until '
-          '1 October 2027.'), findsOneWidget);
+      expect(find.text('This cannot be undone. Copies in your host\'s backups are kept until 1 Oct 2027.'),
+          findsOneWidget);
       await tester.tap(find.descendant(of: find.byType(MyDataDialog), matching: find.text('Delete permanently')));
       await tester.pumpAndSettle();
       expect(backend.writes.last, 'purge c-pip');

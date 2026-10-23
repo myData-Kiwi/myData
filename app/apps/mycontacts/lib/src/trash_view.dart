@@ -38,13 +38,8 @@ class TrashView extends StatefulWidget {
   static const failedTitle = 'myContacts could not read Recently deleted';
   static const failedMessage = 'The host did not answer. Try again in a moment.';
 
-  /// "14 October 2026", the local day of the host's UTC time [iso].
-  static String day(String iso) {
-    final t = DateTime.tryParse(iso);
-    if (t == null) return iso;
-    final d = iso.length == 10 ? t : t.toLocal();
-    return '${d.day} ${_months[d.month - 1]} ${d.year}';
-  }
+  /// "14 Oct 2026", the local day of the host's UTC time [iso] (MyDataDates).
+  static String day(String iso) => MyDataDates.hostDay(iso);
 
   /// What the purge dialog says of the host's backups.
   static String backupsLine(String keptUntil) =>
@@ -53,11 +48,6 @@ class TrashView extends StatefulWidget {
   @override
   State<TrashView> createState() => _TrashViewState();
 }
-
-const _months = [
-  'January', 'February', 'March', 'April', 'May', 'June', //
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
 
 class _TrashViewState extends State<TrashView> {
   final _selection = MultiSelectController<String>();
@@ -149,10 +139,10 @@ class _TrashViewState extends State<TrashView> {
       context: context,
       builder: (_) => MyDataDialog(
         title: one ? 'Delete ${items.single.title} permanently?' : 'Delete ${items.length} contacts permanently?',
+        // One sentence and the backups' date: the title already says "permanently".
         message: one
-            ? 'It is deleted for good. This cannot be undone. $kept'
-            : '${summariseNames([for (final i in items) i.title])} are deleted for good. This cannot be undone. '
-                '$kept',
+            ? 'This cannot be undone. $kept'
+            : 'This deletes ${summariseNames([for (final i in items) i.title])} and cannot be undone. $kept',
         confirmLabel: one ? 'Delete permanently' : 'Delete ${items.length} contacts',
         destructive: true,
         workingLabel: 'Deleting…',
@@ -321,7 +311,7 @@ class _TrashViewState extends State<TrashView> {
           child: Align(
             alignment: AlignmentDirectional.topStart,
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: MyDataSize.contentMax),
+              constraints: const BoxConstraints(maxWidth: MyDataMacSize.contentWidth),
               child: KeyedSubtree(key: ValueKey(_selection.selected.join(',')), child: _pane()),
             ),
           ),
@@ -428,6 +418,7 @@ class _One extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    if (MacLook.of(context)) return _mac(context);
     return Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
       Semantics(header: true, child: Text(item.title, style: context.type(MyDataType.displayLg).copyWith(color: c.ink))),
       const SizedBox(height: MyDataSpace.s2),
@@ -440,6 +431,36 @@ class _One extends StatelessWidget {
       ButtonRow(children: [
         Button(label: TrashView.restoreLabel, onPressed: onRestore),
         Button(label: TrashView.purgeLabel, variant: ButtonVariant.plainDanger, onPressed: onPurge),
+      ]),
+    ]);
+  }
+
+  /// The Mac frame: the contact's card header as on its page (the avatar, the name, when it was deleted),
+  /// when it goes for good in `callout`, then Restore (the default button) and "Delete permanently…" (a push
+  /// button; the alert it opens has the red one).
+  Widget _mac(BuildContext context) {
+    final mac = context.mac;
+    final contact = item.contact;
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
+      MacRecordHeader(
+        avatar: Avatar(
+          name: item.title,
+          givenName: contact?.givenName ?? '',
+          familyName: contact?.familyName ?? '',
+          size: AvatarSize.mac,
+        ),
+        name: item.title,
+        subtitle: 'Deleted ${TrashView.day(item.deletedAt)}',
+      ),
+      const SizedBox(height: MyDataSpace.s5),
+      Text(
+        'It is deleted for good on ${TrashView.day(item.purgeAfter)}, unless you restore it.',
+        style: MyDataMacType.callout.copyWith(color: mac.secondaryLabel),
+      ),
+      const SizedBox(height: MyDataSpace.s4),
+      ButtonRow(children: [
+        Button(label: TrashView.restoreLabel, variant: ButtonVariant.filled, onPressed: onRestore),
+        Button(label: TrashView.purgeLabel, variant: ButtonVariant.tonal, onPressed: onPurge),
       ]),
     ]);
   }
