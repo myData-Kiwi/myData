@@ -1,4 +1,4 @@
-// GENERATED from design/tokens.json (version 5) and design/themes.json
+// GENERATED from design/tokens.json (version 6) and design/themes.json
 // by tool/generate_tokens.dart. Do not edit: change the JSON and run
 //   (cd app/packages/mydata_ui && dart run tool/generate_tokens.dart)
 // This is the only file in the apps that may contain literal colours, radii and font names.
@@ -655,3 +655,280 @@ abstract final class MyDataType {
     fontWeight: FontWeight.w400,
   );
 }
+
+/// The Mac frame's fonts (tokens.json "macos.families"). [text] and [display] are the system's own
+/// (Flutter's macOS engine resolves them through CoreText); [icons] is bundled in this package.
+abstract final class MyDataMacFont {
+  static const text = '.AppleSystemUIFont';
+  static const display = '.AppleSystemUIFont';
+  static const icons = 'Lucide';
+}
+
+/// The Mac frame's colours for one appearance (tokens.json "macos.color"). The constants are the
+/// fallbacks; [withSystem] takes the values the system reports, by token name.
+class MyDataMacColors extends ThemeExtension<MyDataMacColors> {
+  const MyDataMacColors({
+    required this.accent,
+    required this.onAccent,
+    required this.label,
+    required this.secondaryLabel,
+    required this.tertiaryLabel,
+    required this.quaternaryLabel,
+    required this.separator,
+    required this.contentBackground,
+    required this.windowBackground,
+    required this.sidebarBackground,
+    required this.selectionInactive,
+    required this.sidebarSelection,
+    required this.hover,
+  });
+
+  /// The system's accent colour (controlAccentColor) when it cannot be read: macOS's default blue. Selection in a focused list, the default button, links, sidebar icons.
+  final Color accent;
+
+  /// Text and icons on accent: a selected row in a focused list.
+  final Color onAccent;
+
+  /// Primary text (labelColor).
+  final Color label;
+
+  /// Secondary text: a field's label, a count, a source line (secondaryLabelColor).
+  final Color secondaryLabel;
+
+  /// Placeholders and disabled text (tertiaryLabelColor).
+  final Color tertiaryLabel;
+
+  /// The faintest fill: a search field's ground (quaternaryLabelColor).
+  final Color quaternaryLabel;
+
+  /// Hairlines between columns and under the toolbar (separatorColor).
+  final Color separator;
+
+  /// Behind lists and the record they open (controlBackgroundColor).
+  final Color contentBackground;
+
+  /// Behind everything else in a window (windowBackgroundColor).
+  final Color windowBackground;
+
+  /// The sidebar where it cannot be translucent: reduced transparency, tests and screenshots.
+  final Color sidebarBackground;
+
+  /// A selected row while its list does not have focus (unemphasizedSelectedContentBackgroundColor).
+  final Color selectionInactive;
+
+  /// The selected row of a sidebar: a neutral fill under its accent icon.
+  final Color sidebarSelection;
+
+  /// Under the pointer on a toolbar item or a borderless button.
+  final Color hover;
+
+  /// The system defaults, light appearance.
+  static const light = MyDataMacColors(
+    accent: Color(0xFF007AFF),
+    onAccent: Color(0xFFFFFFFF),
+    label: Color(0xD9000000),
+    secondaryLabel: Color(0x80000000),
+    tertiaryLabel: Color(0x42000000),
+    quaternaryLabel: Color(0x1A000000),
+    separator: Color(0x1A000000),
+    contentBackground: Color(0xFFFFFFFF),
+    windowBackground: Color(0xFFECECEC),
+    sidebarBackground: Color(0xFFE8E8E8),
+    selectionInactive: Color(0xFFDCDCDC),
+    sidebarSelection: Color(0x1A000000),
+    hover: Color(0x0D000000),
+  );
+
+  /// The system defaults, dark appearance.
+  static const dark = MyDataMacColors(
+    accent: Color(0xFF0A84FF),
+    onAccent: Color(0xFFFFFFFF),
+    label: Color(0xD9FFFFFF),
+    secondaryLabel: Color(0x8CFFFFFF),
+    tertiaryLabel: Color(0x40FFFFFF),
+    quaternaryLabel: Color(0x1AFFFFFF),
+    separator: Color(0x1AFFFFFF),
+    contentBackground: Color(0xFF1E1E1E),
+    windowBackground: Color(0xFF323232),
+    sidebarBackground: Color(0xFF2C2C2C),
+    selectionInactive: Color(0xFF464646),
+    sidebarSelection: Color(0x1FFFFFFF),
+    hover: Color(0x12FFFFFF),
+  );
+
+  /// The token names, as the system channel reports them.
+  static const tokenNames = ['accent', 'on-accent', 'label', 'secondary-label', 'tertiary-label', 'quaternary-label', 'separator', 'content-background', 'window-background', 'sidebar-background', 'selection-inactive', 'sidebar-selection', 'hover'];
+
+  /// These colours with the ones in [system] (by token name) in their place.
+  MyDataMacColors withSystem(Map<String, Color> system) => MyDataMacColors(
+        accent: system['accent'] ?? accent,
+        onAccent: system['on-accent'] ?? onAccent,
+        label: system['label'] ?? label,
+        secondaryLabel: system['secondary-label'] ?? secondaryLabel,
+        tertiaryLabel: system['tertiary-label'] ?? tertiaryLabel,
+        quaternaryLabel: system['quaternary-label'] ?? quaternaryLabel,
+        separator: system['separator'] ?? separator,
+        contentBackground: system['content-background'] ?? contentBackground,
+        windowBackground: system['window-background'] ?? windowBackground,
+        sidebarBackground: system['sidebar-background'] ?? sidebarBackground,
+        selectionInactive: system['selection-inactive'] ?? selectionInactive,
+        sidebarSelection: system['sidebar-selection'] ?? sidebarSelection,
+        hover: system['hover'] ?? hover,
+      );
+
+  @override
+  MyDataMacColors copyWith({Color? accent, Color? onAccent, Color? label, Color? secondaryLabel, Color? tertiaryLabel, Color? quaternaryLabel, Color? separator, Color? contentBackground, Color? windowBackground, Color? sidebarBackground, Color? selectionInactive, Color? sidebarSelection, Color? hover}) =>
+      MyDataMacColors(accent: accent ?? this.accent, onAccent: onAccent ?? this.onAccent, label: label ?? this.label, secondaryLabel: secondaryLabel ?? this.secondaryLabel, tertiaryLabel: tertiaryLabel ?? this.tertiaryLabel, quaternaryLabel: quaternaryLabel ?? this.quaternaryLabel, separator: separator ?? this.separator, contentBackground: contentBackground ?? this.contentBackground, windowBackground: windowBackground ?? this.windowBackground, sidebarBackground: sidebarBackground ?? this.sidebarBackground, selectionInactive: selectionInactive ?? this.selectionInactive, sidebarSelection: sidebarSelection ?? this.sidebarSelection, hover: hover ?? this.hover);
+
+  @override
+  MyDataMacColors lerp(MyDataMacColors? other, double t) {
+    if (other == null) return this;
+    return MyDataMacColors(
+      accent: Color.lerp(accent, other.accent, t)!,
+      onAccent: Color.lerp(onAccent, other.onAccent, t)!,
+      label: Color.lerp(label, other.label, t)!,
+      secondaryLabel: Color.lerp(secondaryLabel, other.secondaryLabel, t)!,
+      tertiaryLabel: Color.lerp(tertiaryLabel, other.tertiaryLabel, t)!,
+      quaternaryLabel: Color.lerp(quaternaryLabel, other.quaternaryLabel, t)!,
+      separator: Color.lerp(separator, other.separator, t)!,
+      contentBackground: Color.lerp(contentBackground, other.contentBackground, t)!,
+      windowBackground: Color.lerp(windowBackground, other.windowBackground, t)!,
+      sidebarBackground: Color.lerp(sidebarBackground, other.sidebarBackground, t)!,
+      selectionInactive: Color.lerp(selectionInactive, other.selectionInactive, t)!,
+      sidebarSelection: Color.lerp(sidebarSelection, other.sidebarSelection, t)!,
+      hover: Color.lerp(hover, other.hover, t)!,
+    );
+  }
+}
+
+/// The Mac frame's type styles (tokens.json "macos.type"), without colour. Letter spacing follows
+/// Apple's tracking for SF Pro at each size.
+abstract final class MyDataMacType {
+  /// Default text: list rows, values on a record (macOS body).
+  static const body = TextStyle(
+    fontFamily: MyDataMacFont.text,
+    fontSize: 13,
+    height: 1.2308,
+    leadingDistribution: TextLeadingDistribution.even,
+    fontWeight: FontWeight.w400,
+    letterSpacing: -0.078,
+  );
+  /// The sorting name in a list row, a toolbar title on its own (macOS body, emphasized).
+  static const bodyEmphasized = TextStyle(
+    fontFamily: MyDataMacFont.text,
+    fontSize: 13,
+    height: 1.2308,
+    leadingDistribution: TextLeadingDistribution.even,
+    fontWeight: FontWeight.w700,
+    letterSpacing: -0.078,
+  );
+  /// A field's label on a record, a button's smaller text.
+  static const callout = TextStyle(
+    fontFamily: MyDataMacFont.text,
+    fontSize: 12,
+    height: 1.2500,
+    leadingDistribution: TextLeadingDistribution.even,
+    fontWeight: FontWeight.w400,
+  );
+  /// Counts, a source line, the sidebar's connection line.
+  static const caption = TextStyle(
+    fontFamily: MyDataMacFont.text,
+    fontSize: 11,
+    height: 1.2727,
+    leadingDistribution: TextLeadingDistribution.even,
+    fontWeight: FontWeight.w400,
+    letterSpacing: 0.055,
+  );
+  /// A list's section letters and a sidebar's headings.
+  static const captionEmphasized = TextStyle(
+    fontFamily: MyDataMacFont.text,
+    fontSize: 11,
+    height: 1.2727,
+    leadingDistribution: TextLeadingDistribution.even,
+    fontWeight: FontWeight.w700,
+    letterSpacing: 0.055,
+  );
+  /// The caption under a round quick action (message, call, mail).
+  static const action = TextStyle(
+    fontFamily: MyDataMacFont.text,
+    fontSize: 10,
+    height: 1.3000,
+    leadingDistribution: TextLeadingDistribution.even,
+    fontWeight: FontWeight.w400,
+    letterSpacing: 0.12,
+  );
+  /// A toolbar title: the section shown.
+  static const title = TextStyle(
+    fontFamily: MyDataMacFont.text,
+    fontSize: 15,
+    height: 1.3333,
+    leadingDistribution: TextLeadingDistribution.even,
+    fontWeight: FontWeight.w700,
+    letterSpacing: -0.225,
+  );
+  /// A record's name at the top of its page.
+  static const name = TextStyle(
+    fontFamily: MyDataMacFont.display,
+    fontSize: 22,
+    height: 1.2727,
+    leadingDistribution: TextLeadingDistribution.even,
+    fontWeight: FontWeight.w700,
+  );
+  /// Initials in a record's large avatar.
+  static const avatar = TextStyle(
+    fontFamily: MyDataMacFont.display,
+    fontSize: 24,
+    height: 1.1667,
+    leadingDistribution: TextLeadingDistribution.even,
+    fontWeight: FontWeight.w600,
+  );
+}
+
+/// The Mac frame's sizes (tokens.json "macos.size").
+abstract final class MyDataMacSize {
+  /// The unified toolbar: the title bar and the toolbar in one band.
+  static const double toolbarHeight = 52;
+  /// The translucent sidebar with the app's sections.
+  static const double sidebarWidth = 220;
+  /// The list column beside the record it opens.
+  static const double listWidth = 280;
+  /// A row in a plain list: about 30 in an 800pt window.
+  static const double rowHeight = 24;
+  /// A list's section heading (its letter).
+  static const double sectionHeight = 22;
+  /// A sidebar row.
+  static const double sidebarRowHeight = 28;
+  /// Toolbar items and the search field.
+  static const double controlHeight = 28;
+  /// A push button (Restore, Retry, a dialog's buttons) in the Mac frame: a capsule with the label in `body`.
+  static const double pushButtonHeight = 24;
+  /// The smallest target: a push button in a dense row.
+  static const double controlMin = 20;
+  /// The toolbar's search field.
+  static const double searchWidth = 220;
+  /// Icons in the sidebar, the toolbar and buttons.
+  static const double icon = 16;
+  /// The avatar at the top of a record's page.
+  static const double avatar = 64;
+  /// A round quick action under a record's name.
+  static const double actionButton = 32;
+  /// The labels' column on a record's page, right-aligned.
+  static const double labelColumn = 104;
+  /// Between a list's side and its selection fill.
+  static const double rowInset = 10;
+  /// Between the selection fill's side and the row's text.
+  static const double rowPadding = 8;
+}
+
+/// The Mac frame's corner radii (tokens.json "macos.radius").
+abstract final class MyDataMacRadius {
+  /// A selected list row, and a run of them.
+  static const double selection = 6;
+  /// A selected sidebar row.
+  static const double sidebarSelection = 8;
+  /// Toolbar items and borderless buttons under the pointer.
+  static const double control = 7;
+  /// The toolbar's search field: a capsule.
+  static const double field = 999;
+}
+

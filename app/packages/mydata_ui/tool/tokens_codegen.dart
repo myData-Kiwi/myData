@@ -37,7 +37,112 @@ String generateTokens(String tokensJson, String themesJson) {
   _scale(out, 'MyDataBlur', 'Blur radii in logical pixels (tokens.json "blur").',
       tokens['blur'] as Map<String, dynamic>, (n) => _camel(n.substring('blur-'.length)));
   _type(out, tokens['type'] as Map<String, dynamic>);
+  if (tokens['macos'] case final Map<String, dynamic> macos) _macos(out, macos);
   return out.toString();
+}
+
+// ---------------------------------------------------------------- macos
+
+/// The Mac frame (tokens.json "macos"): MyDataMacFont, MyDataMacColors, MyDataMacType, MyDataMacSize and
+/// MyDataMacRadius. The system font is the platform's, so its styles have no package.
+void _macos(StringBuffer out, Map<String, dynamic> macos) {
+  final families = (macos['families'] as Map<String, dynamic>).cast<String, String>();
+  out
+    ..writeln()
+    ..writeln('/// The Mac frame\'s fonts (tokens.json "macos.families"). [text] and [display] are the system\'s own')
+    ..writeln('/// (Flutter\'s macOS engine resolves them through CoreText); [icons] is bundled in this package.')
+    ..writeln('abstract final class MyDataMacFont {');
+  for (final e in families.entries) {
+    out.writeln("  static const ${e.key} = '${e.value}';");
+  }
+  out
+    ..writeln('}')
+    ..writeln();
+
+  final colors = (macos['color'] as List).cast<Map<String, dynamic>>();
+  final names = [for (final t in colors) _camel(t['name'] as String)];
+  out
+    ..writeln('/// The Mac frame\'s colours for one appearance (tokens.json "macos.color"). The constants are the')
+    ..writeln('/// fallbacks; [withSystem] takes the values the system reports, by token name.')
+    ..writeln('class MyDataMacColors extends ThemeExtension<MyDataMacColors> {')
+    ..writeln('  const MyDataMacColors({');
+  for (final n in names) {
+    out.writeln('    required this.$n,');
+  }
+  out.writeln('  });');
+  for (final t in colors) {
+    out
+      ..writeln()
+      ..writeln('  /// ${_doc(t['usage'] as String)}')
+      ..writeln('  final Color ${_camel(t['name'] as String)};');
+  }
+  for (final mode in ['light', 'dark']) {
+    out
+      ..writeln()
+      ..writeln('  /// The system defaults, $mode appearance.')
+      ..writeln('  static const $mode = MyDataMacColors(');
+    for (final t in colors) {
+      out.writeln('    ${_camel(t['name'] as String)}: ${_color((t['value'] as Map)[mode] as String)},');
+    }
+    out.writeln('  );');
+  }
+  out
+    ..writeln()
+    ..writeln('  /// The token names, as the system channel reports them.')
+    ..writeln('  static const tokenNames = [${colors.map((t) => "'${t['name']}'").join(', ')}];')
+    ..writeln()
+    ..writeln('  /// These colours with the ones in [system] (by token name) in their place.')
+    ..writeln('  MyDataMacColors withSystem(Map<String, Color> system) => MyDataMacColors(');
+  for (final t in colors) {
+    final n = _camel(t['name'] as String);
+    out.writeln("        $n: system['${t['name']}'] ?? $n,");
+  }
+  out
+    ..writeln('      );')
+    ..writeln()
+    ..writeln('  @override')
+    ..writeln('  MyDataMacColors copyWith({${names.map((n) => 'Color? $n').join(', ')}}) =>')
+    ..writeln('      MyDataMacColors(${names.map((n) => '$n: $n ?? this.$n').join(', ')});')
+    ..writeln()
+    ..writeln('  @override')
+    ..writeln('  MyDataMacColors lerp(MyDataMacColors? other, double t) {')
+    ..writeln('    if (other == null) return this;')
+    ..writeln('    return MyDataMacColors(')
+    ..writeln(names.map((n) => '      $n: Color.lerp($n, other.$n, t)!,').join('\n'))
+    ..writeln('    );')
+    ..writeln('  }')
+    ..writeln('}')
+    ..writeln();
+
+  out
+    ..writeln('/// The Mac frame\'s type styles (tokens.json "macos.type"), without colour. Letter spacing follows')
+    ..writeln('/// Apple\'s tracking for SF Pro at each size.')
+    ..writeln('abstract final class MyDataMacType {');
+  for (final s in (macos['type'] as List).cast<Map<String, dynamic>>()) {
+    final family = s['family'] as String;
+    if (!families.containsKey(family)) throw FormatException('unknown macos family $family');
+    final size = _px(s['fontSize'] as String);
+    final line = _px(s['lineHeight'] as String);
+    final ls = s['letterSpacing'] as String?;
+    final spacing = ls == null ? null : double.parse(ls.replaceAll('em', '')) * size;
+    out
+      ..writeln('  /// ${_doc(s['usage'] as String)}')
+      ..writeln('  static const ${_camel(s['name'] as String)} = TextStyle(')
+      ..writeln('    fontFamily: MyDataMacFont.$family,')
+      ..writeln('    fontSize: ${_num(size)},')
+      ..writeln('    height: ${(line / size).toStringAsFixed(4)},')
+      ..writeln('    leadingDistribution: TextLeadingDistribution.even,')
+      ..writeln('    fontWeight: FontWeight.w${s['fontWeight']},');
+    if (spacing != null) out.writeln('    letterSpacing: ${_num(double.parse(spacing.toStringAsFixed(3)))},');
+    out.writeln('  );');
+  }
+  out
+    ..writeln('}')
+    ..writeln();
+  _scale(out, 'MyDataMacSize', 'The Mac frame\'s sizes (tokens.json "macos.size").',
+      {'tokens': macos['size']}, _camel);
+  _scale(out, 'MyDataMacRadius', 'The Mac frame\'s corner radii (tokens.json "macos.radius").',
+      {'tokens': macos['radius']}, _camel);
 }
 
 // ---------------------------------------------------------------- colours
