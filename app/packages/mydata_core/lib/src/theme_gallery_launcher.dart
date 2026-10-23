@@ -15,6 +15,7 @@ import 'theme_controller.dart';
 ///   apps;
 /// - [choosingFor] (myData's gallery) adds an app switcher with every app, starting on [initialApp], so a
 ///   theme can be judged on another app's scene before it is used there.
+/// - Only one gallery is open at a time: while one is, this does nothing ([ThemeGallery.showing]).
 Future<void> showThemeGalleryFor(
   BuildContext context,
   ThemeController themes, {
@@ -71,7 +72,7 @@ class ThemeScope extends InheritedWidget {
 }
 
 /// Opens the gallery for the app above [context] ([ThemeScope]), as [showThemeGalleryFor] does. Nothing
-/// happens without a scope (a screen tested on its own).
+/// happens without a scope (a screen tested on its own), or while a gallery is open already.
 Future<void> showAppThemeGallery(BuildContext context, {List<MyDataAppId>? choosingFor, MyDataAppId? initialApp}) {
   final scope = ThemeScope.maybeOf(context);
   if (scope == null) return Future.value();

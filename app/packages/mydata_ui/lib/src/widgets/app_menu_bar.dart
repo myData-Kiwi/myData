@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'theme_gallery.dart' show ThemeGallery;
+
 /// A key for a menu action, written once for every desktop: Command with [key] on macOS, Control with it on
 /// Windows and Linux (design/platforms.md "The menu bar on macOS": "Ctrl+N, Ctrl+Z, … Ctrl+S, Ctrl+1").
 @immutable
@@ -222,7 +224,8 @@ class AppMenuBar extends StatefulWidget {
   /// Close Window ⌘W. Null disables it (Flutter has no call to close the window by itself).
   final VoidCallback? onCloseWindow;
 
-  /// View > Theme…: opens the theme gallery (design/themes/ARCHITECTURE.md 4.3). Null leaves the item out.
+  /// View > Theme…: opens the theme gallery (design/themes/ARCHITECTURE.md 4.3). Null leaves the item out;
+  /// it is disabled while a gallery is open ([ThemeGallery.showing]).
   final VoidCallback? onTheme;
 
   /// For tests; null is [defaultTargetPlatform].
@@ -314,15 +317,20 @@ class _AppMenuBarState extends State<AppMenuBar> {
     super.initState();
     FocusManager.instance.addListener(_focusChanged);
     _commands.addListener(_claimsChanged);
+    ThemeGallery.showing.addListener(_claimsChanged);
     _typing = AppMenuBar.textHasFocus();
   }
 
   @override
   void dispose() {
     FocusManager.instance.removeListener(_focusChanged);
+    ThemeGallery.showing.removeListener(_claimsChanged);
     _commands.dispose();
     super.dispose();
   }
+
+  /// Theme…, disabled while the gallery is open: on a Mac the menu bar is not behind its barrier.
+  VoidCallback? get _theme => ThemeGallery.showing.value ? null : widget.onTheme;
 
   void _claimsChanged() {
     // A claim comes and goes from a child's build or dispose: rebuild the menus after it.
@@ -414,7 +422,7 @@ class _AppMenuBarState extends State<AppMenuBar> {
       PlatformMenu(label: AppMenuBar.viewMenu, menus: [
         if (widget.view.isNotEmpty) PlatformMenuItemGroup(members: [for (final i in widget.view) _item(i)]),
         if (widget.onTheme != null)
-          PlatformMenuItemGroup(members: [_plain(AppMenuBar.themeTitle, AppMenuBar.themeShortcut, widget.onTheme)]),
+          PlatformMenuItemGroup(members: [_plain(AppMenuBar.themeTitle, AppMenuBar.themeShortcut, _theme)]),
         const PlatformMenuItemGroup(
             members: [PlatformProvidedMenuItem(type: PlatformProvidedMenuItemType.toggleFullScreen)]),
       ]),
@@ -459,8 +467,8 @@ class _AppMenuBarState extends State<AppMenuBar> {
       }
     }
     final theme = AppMenuBar.themeShortcut;
-    if (theme != null && widget.onTheme != null && matches(theme.activator(p))) {
-      widget.onTheme!();
+    if (theme != null && _theme != null && matches(theme.activator(p))) {
+      _theme!();
       return KeyEventResult.handled;
     }
     if (widget.onCloseWindow != null && matches(AppMenuBar.closeWindowShortcut.activator(p))) {

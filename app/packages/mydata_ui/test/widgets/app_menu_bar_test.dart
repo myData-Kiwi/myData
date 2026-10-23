@@ -138,6 +138,46 @@ void main() {
       expect(opened, 1);
     }, variant: TargetPlatformVariant.only(TargetPlatform.macOS));
 
+    testWidgets('Theme… is disabled while the gallery is open (the menu bar is not behind its barrier)', (
+      tester,
+    ) async {
+      _captureMenus(tester);
+      await tester.pumpWidget(themedFrame(
+          themeMatrix.first,
+          AppMenuBar(
+            appName: 'myContacts',
+            platform: TargetPlatform.macOS,
+            onTheme: () {},
+            child: Builder(
+              builder: (context) => Button(
+                label: 'Open',
+                onPressed: () => showThemeGallery(
+                  context: context,
+                  apps: [
+                    ThemeGalleryApp(
+                      id: 'mycontacts',
+                      name: 'myContacts',
+                      scene: ThemePreviewScenes.contacts,
+                      current: ThemeChoice.system,
+                    ),
+                  ],
+                  windowApp: 'mycontacts',
+                  onPreview: (_) {},
+                  onUse: (_, _) async {},
+                ),
+              ),
+            ),
+          )));
+      bool themeEnabled() => _items('View').firstWhere((i) => i.label == AppMenuBar.themeTitle).enabled;
+      expect(themeEnabled(), isTrue);
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+      expect(themeEnabled(), isFalse);
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+      expect(themeEnabled(), isTrue);
+    }, variant: TargetPlatformVariant.only(TargetPlatform.macOS));
+
     testWidgets('Undo names the action and runs it; items call back when chosen', (tester) async {
       _captureMenus(tester);
       var undone = 0, created = 0, deleted = 0;

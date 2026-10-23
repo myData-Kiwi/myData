@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' show SemanticsRole;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -35,6 +36,9 @@ class ThemeGalleryApp {
 /// changed since and nothing was put back.
 typedef ThemeUndo = Future<bool> Function();
 
+/// Whether a gallery is open in this app ([ThemeGallery.showing]).
+final _showing = ValueNotifier<bool>(false);
+
 /// Opens the theme gallery over [context]'s window (design/themes/ARCHITECTURE.md 4.4): View > Theme…
 /// in every app, and Change… in myData's Appearance. Completes when it closes.
 ///
@@ -45,6 +49,8 @@ typedef ThemeUndo = Future<bool> Function();
 /// - [onUse]: "Use in myContacts", or Return: stores the choice for that app, then the gallery closes.
 /// - [onUseEverywhere]: stores the choice for every app and returns its undo, offered in a toast inside the
 ///   gallery, which stays open. Null (phones: one theme per app) leaves the button out.
+/// - One at a time: while a gallery is open ([ThemeGallery.showing]), this does nothing. On a Mac the menu
+///   bar is not behind the gallery's barrier, so View > Theme… could otherwise open a second one.
 Future<void> showThemeGallery({
   required BuildContext context,
   required List<ThemeGalleryApp> apps,
@@ -54,21 +60,25 @@ Future<void> showThemeGallery({
   required Future<void> Function(String app, ThemeChoice choice) onUse,
   Future<ThemeUndo> Function(ThemeChoice choice)? onUseEverywhere,
 }) {
+  if (_showing.value) return Future.value();
+  _showing.value = true;
   final reduced = MyDataMotion.reduced(context);
-  return Navigator.of(context).push<void>(
-    _GalleryRoute(
-      reduced: reduced,
-      motion: context.lookNow.motion,
-      builder: (_) => ThemeGallery(
-        apps: apps,
-        initialApp: initialApp,
-        windowApp: windowApp,
-        onPreview: onPreview,
-        onUse: onUse,
-        onUseEverywhere: onUseEverywhere,
-      ),
-    ),
-  );
+  return Navigator.of(context)
+      .push<void>(
+        _GalleryRoute(
+          reduced: reduced,
+          motion: context.lookNow.motion,
+          builder: (_) => ThemeGallery(
+            apps: apps,
+            initialApp: initialApp,
+            windowApp: windowApp,
+            onPreview: onPreview,
+            onUse: onUse,
+            onUseEverywhere: onUseEverywhere,
+          ),
+        ),
+      )
+      .whenComplete(() => _showing.value = false);
 }
 
 class _GalleryRoute extends PopupRoute<void> {
@@ -90,6 +100,13 @@ class _GalleryRoute extends PopupRoute<void> {
 
   @override
   Duration get transitionDuration => reduced ? motion.fast : motion.slow;
+
+  /// Removed without completing (the app's navigator torn down): the next [showThemeGallery] may open.
+  @override
+  void dispose() {
+    _showing.value = false;
+    super.dispose();
+  }
 
   @override
   Duration get reverseTransitionDuration => motion.fast;
@@ -148,6 +165,10 @@ class ThemeGallery extends StatefulWidget {
   final Future<ThemeUndo> Function(ThemeChoice choice)? onUseEverywhere;
 
   static const title = 'Theme';
+
+  /// Whether a gallery is open in this app: View > Theme… ([AppMenuBar]) is disabled meanwhile, and
+  /// [showThemeGallery] does nothing.
+  static ValueListenable<bool> get showing => _showing;
 
   /// "Choose how myContacts looks on this Mac."
   static String sentence(String app) => 'Choose how $app looks on this device.';

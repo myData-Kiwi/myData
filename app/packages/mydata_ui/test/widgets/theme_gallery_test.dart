@@ -212,6 +212,30 @@ void main() {
     expect(find.text(ThemeGallery.everywhereNotUndone), findsOneWidget);
   });
 
+  testWidgets('one gallery at a time: opening another while one is open does nothing', (tester) async {
+    final w = await _open(tester, const _Window(stored: _plum));
+    expect(ThemeGallery.showing.value, isTrue);
+    w.open(tester.element(find.text('Open')));
+    await tester.pumpAndSettle();
+    expect(find.text(ThemeGallery.title), findsOneWidget);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    expect(ThemeGallery.showing.value, isFalse);
+    expect(find.text(ThemeGallery.title), findsNothing);
+    // and it opens again once closed
+    await tester.tap(find.text('Open'));
+    await tester.pumpAndSettle();
+    expect(find.text(ThemeGallery.title), findsOneWidget);
+  });
+
+  testWidgets('a gallery torn down with its window lets the next one open', (tester) async {
+    await _open(tester, const _Window(stored: _plum));
+    expect(ThemeGallery.showing.value, isTrue);
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpAndSettle();
+    expect(ThemeGallery.showing.value, isFalse);
+  });
+
   testWidgets('phones have one theme per app: no Use everywhere', (tester) async {
     await _open(tester, const _Window(stored: _kiwi, everywhere: false));
     expect(find.text(ThemeGallery.everywhereLabel), findsNothing);
