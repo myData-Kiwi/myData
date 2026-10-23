@@ -447,7 +447,7 @@
       "properties": {
         "same-as": {
           "type": "object",
-          "description": "Roles this style always draws in another role's colour, in every palette: Hairline's selection bar is ink, Journal's toolbar is the paper (bg). Applied after a palette's values and before derivation. A key may not be a seed or a role a palette gives, and a value may not itself be a key (no chains); both are checked by the validator.",
+          "description": "Roles this style always draws in another role's colour, in every palette: Hairline's selection bar is ink, Journal's toolbar is the paper (bg). Applied after a palette's values, again after derivation, and again after the increased-contrast set or derivation (ARCHITECTURE.md 1.3). A key may not be a seed or a role a palette gives (in overrides or in a contrast set), and a value may not itself be a key (no chains); both are checked by the validator.",
           "propertyNames": {
             "enum": [
               "surface-raised",

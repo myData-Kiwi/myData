@@ -75,7 +75,14 @@ Every style group is optional in a `drawn` file with `based-on`; `palettes` are 
 
 ### 1.3 Colour roles, and how missing ones are derived
 
-The resolver works on one palette at a time: its seeds, then its overrides, then the style's `colour-use.same-as`, then the derivations below. It derives in OKLCH. Each derived value is then moved in lightness only, until its pair in 2.2 passes. Hue and chroma are kept.
+The resolver works on one palette at a time, in this order:
+
+1. the palette's seeds and overrides;
+2. the style's `colour-use.same-as`, for every key whose source has a value;
+3. the derivations below, for the roles still missing (a `same-as` key is never derived);
+4. `same-as` again, so a key whose source was derived in step 3 takes its value.
+
+At increased contrast the palette's `contrast` set is merged over that result, or the resolver derives the 7:1 values (2.2), and then `same-as` is applied once more, so a role the style fixes follows its source (Journal's `toolbar` follows a darker `bg`). The checks run on the result of the last step. It derives in OKLCH. Each derived value is then moved in lightness only, until its pair in 2.2 passes. Hue and chroma are kept.
 
 | Role | Derived from (when absent) |
 |---|---|
@@ -140,7 +147,7 @@ The owner, on the twenty prototypes, said the names made them look like colour c
   | `palettes[].contrast` | Optional values per mode for increased contrast, checked at 7:1; else derived (2.2) |
   | `palettes[].gradient` | The window gradient's 2–3 stops per mode, when the style's window is a gradient (the style keeps the angle). Left out: `bg` mixed 8% towards `accent`, `bg`, and `bg` mixed 5% towards `ink` |
   | `default-palette` | The palette used when none is chosen, or when the chosen one is gone |
-  | `colour-use.same-as` | Roles the style always draws in another role's colour: Hairline's `selection`, `edge` → `ink` and `avatar-fill` → `surface`; Journal's and Paperback's `toolbar` → `bg` and `edge` → `ink`; Kiwi's `sidebar` and `toolbar` → `bg`. A palette may not give these roles; a value may not itself be a key |
+  | `colour-use.same-as` | Roles the style always draws in another role's colour: Hairline's `selection`, `edge` → `ink` and `avatar-fill` → `surface`; Journal's and Paperback's `toolbar` → `bg` and `edge` → `ink`; Kiwi's `sidebar` and `toolbar` → `bg`. A palette may not give these roles, in its overrides or in its `contrast` set; a value may not itself be a key. Applied as 1.3 says: after the palette's values, again after derivation, and again at increased contrast |
 
 - **A palette changes colour roles only** (the 43 roles, the contrast set, the gradient's stops). Fonts, shapes, density, borders, the elevation style, icons, motion and variants are the style's: a palette that needs another shape is another theme.
 - **Every palette is checked on its own** (section 2): both modes, normal and increased contrast. A built-in palette that fails breaks the build. In an imported theme, a failing default palette fails the theme (2.4); a failing other palette is left out of the picker, with its reasons as a notice, and the editor offers Fix.
@@ -183,7 +190,7 @@ One validator in Dart (`mydata_ui/lib/src/theme/validate.dart`) is used by impor
    - at most 4 MB each, at most 4096 px on a side, at most 16.7 Mpx;
    - decoded once, then re-encoded to PNG at most 2560 px on the long side, which strips EXIF data such as GPS position;
    - the `blur` is applied at this point, once.
-8. **Resolve and check, per palette:** the resolver derives each palette's missing roles in both modes, at normal contrast and at increased contrast, then the checks in 2.2 to 2.5 run on each palette. Palette ids must be unique, `default-palette` must name one, and `colour-use.same-as` keys may be neither seeds nor given by a palette.
+8. **Resolve and check, per palette:** the resolver derives each palette's missing roles in both modes, at normal contrast and at increased contrast, then the checks in 2.2 to 2.5 run on each palette. Palette ids must be unique, `default-palette` must name one, and `colour-use.same-as` keys may be neither seeds nor given by a palette (in `overrides` or in a `contrast` set). `same-as` is applied in the order 1.3 gives, at both contrast levels, before any pair is checked.
 
 ### 2.2 Contrast pairs (WCAG 2.x relative luminance; alpha composited over its ground first)
 
@@ -483,7 +490,7 @@ Phases 0 to 3 are the themes foundation and come before the phones (M1b). Phase 
 | Phase | Builds | Usable result | Tests |
 |---|---|---|---|
 | 0. Decide (done 2026-10-23) | The decision record; this folder; `theming.md`, the `README.md` rules (they became Kiwi's), `platforms.md` and CLAUDE.md rewritten | — | — |
-| 1. Run-time spec, no visible change | Format (style and palettes), schema and validator in Dart; built-ins from today's values (Kiwi from `tokens.json` with `themes.json`'s six colours as its palettes; 3.1); the resolver, `MyDataLook` and its extensions; generator changes; the codemod across packages and apps; the `MacLook` split | The apps look exactly as before | Every existing golden **byte-identical**; validator unit tests (examples, `bad-*`); schema test; contrast of the six; `no_literals` extended to the static classes |
+| 1. Run-time spec, no visible change | Format (style and palettes), schema and validator in Dart; built-ins from today's values (Kiwi from `tokens.json` with `themes.json`'s six colours as its palettes; 3.1); the resolver, `MyDataLook` and its extensions; generator changes; the codemod across packages and apps; the `MacLook` split | The apps look exactly as before | Every existing golden **byte-identical**; validator unit tests (examples, `bad-*`; a `same-as` key in a `contrast` set refused; a `same-as` role following its source after derivation and at increased contrast); schema test; contrast of the six; `no_literals` extended to the static classes |
 | 2. Per app, per device | `ThemeController`, the `themes` keys, migration, deprecating the host route, the gallery sheet with live preview, View > Theme…, myData's Appearance (apps, Use everywhere, library list), System as default | Each app picks System or Kiwi in one of six palettes (what exists until phase 3); Use everywhere carries the palette | Store and migration tests (macOS → System; elsewhere → host theme); a System choice with a stray `palette` resolves with no Notice and loses it on the next write; Use everywhere and Use in this app never write `palette` for System; changing theme resets the palette to the new default; two apps following one file; a fake-host test that the 410 route is never called; gallery keys (arrows preview, Escape reverts) |
 | 3. Design rules | Shape and corner styles with the shape-following focus ring; density presets and floors; borders; elevation; the type catalogue with on-demand fonts; icon sets with semantic ids; motion personalities; the component variants (button, list, selection, inputs, avatar, tabs, sidebar, toolbar, chat, month, today); drawn themes inside the Mac window; the new disabled style. The six rebuilt as full looks from the files in this folder, each with its palettes; the old colours moved to their themes (4.2); `themes.json` retired; the component specs' "Kiwi and Graphite" (today's accent-only Graphite) rewritten as "Kiwi and Hairline" | Kiwi, Hairline, Frosted, Journal, Sticker and Paperback each look distinct, each in 3 palettes | Variant goldens, **one per variant value** in both modes (about 120 images); pairwise golden sets for risky pairs (cut with focus, table with inverse, brutal with collapse press); each palette once on one app scene in both modes (36 images); font budget test; icon-mapping completeness; theme fuzz (2.5) starts here |
 | 3½. One harness | One validator (the Dart one) and one preview harness; every prototype the owner picked re-rendered from them in the real app | Like-for-like previews | Each passes in both modes and at increased contrast |
