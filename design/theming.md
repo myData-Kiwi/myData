@@ -2,7 +2,7 @@
 
 A theme changes how the whole app looks: type, shape, density, borders, depth, icons, motion, how each component is drawn, and colour. A theme is named after its design language (Journal, not Plum) and is a **style plus palettes**: colour is a separate choice inside the theme, from 2 to 4 palettes named by colour (Journal in Plum, Ink blue or Forest). Each app has its own theme and palette, chosen on each device. System is the default. Decided 2026-10-23 (`docs/decisions/2026-10-23-themes.md`); the full design is `themes/ARCHITECTURE.md`, the format `themes/theme.schema.json`.
 
-**Not built yet.** Until phase 2 the apps still read one theme from the host (`/appearance`), which changes only `accent`, `on-accent` and `accent-soft` (`themes.json`), and on macOS the Mac shell ignores it. Phase 1 changes nothing on screen: it builds Kiwi with today's six colours as its palettes. Component specs in `components/` that say "Graphite" mean today's accent-only Graphite, which becomes Hairline's Graphite palette.
+**Phase 1 is built (2026-10-23), phases 2 to 7 are not.** Widgets read the look through their context (`MyDataLook`), and the format, validator and resolver exist in `mydata_ui`, but nothing on screen changed: the apps draw Kiwi with today's six colours as its palettes. Until phase 2 they still read one theme from the host (`/appearance`), which picks the colour only, and on macOS the Mac shell ignores it. Component specs in `components/` that say "Graphite" mean today's accent-only Graphite, which becomes Hairline's Graphite palette.
 
 ## Choosing a theme
 
@@ -37,7 +37,7 @@ Each folder holds the theme file and its `RULES.md` (its design language, its pa
 
 - **A palette is colour only:** the six seeds (`bg`, `surface`, `ink`, `ink-muted`, `accent`, `on-accent`) in light and dark, any other of the 43 roles, an increase-contrast set and, for a gradient window, the gradient's stops. Built-in palettes give every role their style does not fix through `colour-use.same-as` (all 43 once resolved); what a custom palette leaves out is derived.
 - **The style stays:** fonts, shapes, density, borders, depth, materials, icons, motion and variants never change with the palette. A theme can also fix a role for every palette (`colour-use.same-as`: Hairline's selection bar is always `ink`).
-- **Every palette must pass the contrast rules on its own**, in both modes and at increased contrast. Today the built-ins are checked at normal contrast only; at increased contrast only Hairline's and Sticker's palettes, which carry their own sets, are checked. The others rely on the 7:1 derivation, which phase 1 builds and its built-in test checks.
+- **Every palette must pass the contrast rules on its own**, in both modes and at increased contrast. All 18 built-in palettes pass at both levels (phase 1's validator): Hairline's and Sticker's with their own sets, the others with the derived 7:1 values.
 - **Across a theme's palettes** the accent and the tint of the grounds move; status, `danger` and calendar colours keep their meaning.
 - **System has no palettes:** its colour is the system accent (no alternatives on macOS).
 - **Custom themes** (phase 5) may add palettes, up to 8.

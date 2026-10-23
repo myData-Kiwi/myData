@@ -1,6 +1,6 @@
 # The theme system
 
-The design for the owner's request of 2026-10-23: a theme changes how the whole app looks, each app has its own theme, System is the default, and people can make, import and share themes, as in Warp. A theme is named after its design language and is a **style plus palettes**: colour is a separate choice inside a theme (1.6). The decisions are in `docs/decisions/2026-10-23-themes.md`; where this file and CLAUDE.md differ, CLAUDE.md wins. Nothing here is built yet.
+The design for the owner's request of 2026-10-23: a theme changes how the whole app looks, each app has its own theme, System is the default, and people can make, import and share themes, as in Warp. A theme is named after its design language and is a **style plus palettes**: colour is a separate choice inside a theme (1.6). The decisions are in `docs/decisions/2026-10-23-themes.md`; where this file and CLAUDE.md differ, CLAUDE.md wins. **Phase 1 is built** (2026-10-23, section 3.1, "As built"): the format, schema check, validator, resolver and `MyDataLook` in `mydata_ui/lib/src/theme/`, with nothing changed on screen. The rest is design.
 
 In this folder:
 - `theme.schema.json`: the format (JSON Schema 2020-12).
@@ -96,10 +96,11 @@ At increased contrast the palette's `contrast` set is merged over that result, o
 | `accent-soft` | `surface` mixed 12% (light) or 22% (dark) towards `accent` |
 | `link` (new) | `accent`, adjusted to 4.5:1 against `bg` and `surface` (Geometric's yellow accent sets it explicitly) |
 | `selection`, `on-selection`, `selection-inactive` (new) | `accent`, `on-accent`, `surface-sunken` |
-| `focus`, `focus-on-danger` (new as a role) | Today's red `focus` adjusted to 3:1; `ink` |
+| `focus`, `focus-on-danger` (new as a role) | Today's red `focus` adjusted to 3:1 on every ground a ring touches; where it would be lost on the selection (2.2, "Kept apart"), today's blue `info` instead (Sticker's and Paperback's ring); `ink` when neither works. `focus-on-danger`: `ink` |
 | status and their `-soft` fills, `on-danger` | Today's values, lightness moved to pass on this theme's `surface` |
 | `data-*` | Today's values; each must stay within ±30° of its reference hue (a red calendar stays reddish) and at least ΔE<sub>OK</sub> 0.08 from the others. Below 3:1 against `surface`, the 1px `line-strong` edge is drawn, as today |
-| `scrim`, `glass-fill`, `glass-stroke`, `shadow`, `avatar-fill` | Today's values, or `ink` and `bg` at today's alphas |
+| `scrim`, `glass-stroke`, `shadow`, `avatar-fill` | Today's values |
+| `glass-fill` | The palette's `surface` at today's opacity (72%), made more opaque until `ink` and `ink-muted` read at 4.5:1 over everything that scrolls beneath (2.2) |
 
 The resolver fills new roles added in later formats from the seeds, so old files keep working. This avoids VS Code's stale-theme problem (Research A).
 
@@ -150,7 +151,7 @@ The owner, on the twenty prototypes, said the names made them look like colour c
   | `colour-use.same-as` | Roles the style always draws in another role's colour: Hairline's `selection`, `edge` → `ink` and `avatar-fill` → `surface`; Journal's and Paperback's `toolbar` → `bg` and `edge` → `ink`; Kiwi's `sidebar` and `toolbar` → `bg`. A palette may not give these roles, in its overrides or in its `contrast` set; a value may not itself be a key. Applied as 1.3 says: after the palette's values, again after derivation, and again at increased contrast |
 
 - **A palette changes colour roles only** (the 43 roles, the contrast set, the gradient's stops). Fonts, shapes, density, borders, the elevation style, icons, motion and variants are the style's: a palette that needs another shape is another theme.
-- **Every palette is checked on its own** (section 2): both modes, normal and increased contrast. A built-in palette that fails breaks the build. Status: the prototype checked all 18 at normal contrast; at increased contrast only the six with their own `contrast` set (Hairline, Sticker). The other 12 (Kiwi, Frosted, Journal, Paperback) depend on the 7:1 derivation, which does not exist yet, so whether a lightness-only derivation reaches 7:1 for every pair (glass bars, `on-accent` on `accent`, status words on their fills) is unverified until phase 1. In an imported theme, a failing default palette fails the theme (2.4); a failing other palette is left out of the picker, with its reasons as a notice, and the editor offers Fix.
+- **Every palette is checked on its own** (section 2): both modes, normal and increased contrast. A built-in palette that fails breaks the build. Status (phase 1, 2026-10-23): the Dart validator checks all 18 in both modes at both levels, and all pass: the six with their own `contrast` set (Hairline, Sticker) and the other 12 (Kiwi, Frosted, Journal, Paperback) with the derived 7:1 values (`mydata_ui/test/theme/builtin_themes_test.dart`). Increased contrast turns glass solid (2.3), so the glass pairs are checked at normal contrast only. In an imported theme, a failing default palette fails the theme (2.4); a failing other palette is left out of the picker, with its reasons as a notice, and the editor offers Fix.
 - **Built-in palettes give every role the style does not fix through `colour-use.same-as`** in both modes (34 to 37 overrides beside the seeds; all 43 roles once resolved), so the built-ins never depend on the resolver's derivation, which phase 1 rebuilds in Dart and may round differently. Custom palettes may give only the seeds.
 - **Across a theme's palettes** (a rule for built-ins, seen in the previews): status colours, `danger` and the `data-*` colours stay close to the default palette's, so they mean the same in every palette; a palette moves the accent and the tint of the grounds. Accents of one theme's palettes are at least ΔE<sub>OK</sub> 0.08 apart (a notice).
 - **Today's colour themes became palettes:** Graphite is Hairline's default, Dusk Frosted's, Plum Journal's, Rose Sticker's and Amber Paperback's; Kiwi keeps its green. Each built-in's palettes are listed in `theming.md` and described in its `RULES.md`.
@@ -290,6 +291,15 @@ Today `tool/generate_tokens.dart` writes `tokens.g.dart`: static `MyDataColors.l
   - `no_literals_test.dart` then also refuses the static classes outside `mydata_ui/lib/src/theme/`.
 - **The no-literals rule stays:** literal colours, radii, font names and sizes exist only in theme JSON and the generated fallback.
 
+**As built (phase 1, 2026-10-23).** Every golden and app screenshot came out byte-identical. Where the code differs from the design above:
+- **`context.typeScale.body`**, not `context.type(MyDataTypeRole.body)`, for a role's style: `context.type(role)` already means "the role's style, or its Mac counterpart in the System look" and keeps that meaning. The look's field is `typeScale` too, since a `ThemeExtension` is keyed by its `type`.
+- **A widget's own measures that depend on the look** (`Card.gap`, `GroupedRow.padding`, `MyDataDialog.widthFor`) became static methods taking it: `Card.gap(context.look)`, and `kiwiLook` in tests. Render objects, painters, layout delegates and routes are given the look (or the value) when they are built.
+- **`context.lookNow`** reads the look without depending on it, for `initState` and fields first read there (animation controllers). Such a controller keeps its durations until it is built again; a theme change while it lives does not reach it (phase 2 looks at this when themes change at run time).
+- **The density class** is the platform's (iOS and Android take the phone set), decided when the look is resolved, so reading it makes no dependency on the window's size. The floors of 1.4 are phase 3's.
+- **Unknown keys** are left out with a notice at every depth (2.1), also where the schema says `additionalProperties: false`.
+- **Not changed:** `MyDataSize`'s layout widths (`content-max`, `dialog-width`, `inspector-width`, `sidebar-width`), `MyDataMotion.toastDuration` and `reduced`, and the Mac frame's own tokens (`MyDataMac*`, the System look's), which no theme changes. `no_literals_test.dart` refuses the themeable static reads outside `mydata_ui/lib/src/theme/`.
+- **Kiwi as drawn today** has six palettes, which the schema refuses for a built-in (2 to 4); the validator allows it for that file alone until phase 3. It reports today's look's known gaps, which phase 3 fixes (decision 6): glass at 72% is too thin for `ink-muted` over dark or coloured content, and the red ring is lost on a Rose or Amber selection.
+
 ### 3.2 How a widget gets its variant
 
 - Each component reads its variant from `context.variants` and switches on it inside its own file. No widget accepts style overrides from an app.
@@ -331,11 +341,11 @@ Today `tool/generate_tokens.dart` writes `tokens.g.dart`: static `MyDataColors.l
   - it loads the file from the built-ins or the library and resolves the chosen palette in both modes;
   - it loads the theme's fonts (3.6) before switching;
   - it follows the device file on the existing 2 s poll.
-- **`MacLook.of(context)`** is split in two:
-  - `MacWindow.of(context)`: macOS, wider than a phone. This is the skeleton, and it is true for every theme;
-  - `context.look.frame == LookFrame.system`: the System look.
+- **`MacLook.of(context)`** is split in two (done in phase 1):
+  - `MacWindow.of(context)`: the Mac shell's window, wider than a phone. This is the skeleton, and it is true for every theme;
+  - `context.isSystemLook`: the System look in that window (`MacWindow.of` and `context.look.frame == LookFrame.system`).
 
-  The 35 app sites and 25 package sites are audited one by one. Layout branches (three columns, toolbar band) take the first. Visual branches (for example `contacts_view.dart:462` choosing tonal or plainDanger) become variants.
+  The 60 sites were audited one by one. Layout branches (three columns, toolbar band, the app's Mac pages and the Mac widgets, which phase 3 makes take a drawn theme's colours) take the first. Visual branches in shared widgets (the push button, plain lists, the alert sheet and its scrim, the Mac menu, toast, picker, inspector footer, empty and status panels, the hairline edge of a data colour, the assistant's Mac cards and chat, and `contacts_view.dart` choosing tonal or plainDanger) take the second, and become variants in phase 3. The two agree until a drawn theme is drawn in the Mac window.
 - **Mac widgets** (`MacSourceList`, `MacToolbar`, `MacRecordHeader`, `MacForm`) become the System implementations of `sidebar: source-list`, `toolbar: native` and so on:
   - they read `context.colors` roles instead of `context.mac`;
   - `MacTheme.data` already maps the branded roles onto NSColor, so System looks the same;
@@ -505,10 +515,10 @@ Goldens in total come to about 300 to 400 images, not the 1,600 of every widget 
 
 ## 6a. Found in the critique (2026-10-23), still open
 
-- **One validator, one preview harness.** Three batches built three validators and three preview generators, and they disagreed on six rules (heading's font stack, patterns under surfaces, the highlighter's marker, avatar initials, status colours at increased contrast, the ring on a filled row). Before phase 4, keep one validator (the Dart one, with `critique/contrast.py`'s pairs) and one preview harness, and re-render all twenty from it; today's previews are not like for like, which flatters some themes.
+- **One validator, one preview harness.** The validator exists (phase 1: `mydata_ui/lib/src/theme/validate.dart`, the batch-3 and critique pairs together); the preview harness does not. Three batches built three validators and three preview generators, and they disagreed on six rules (heading's font stack, patterns under surfaces, the highlighter's marker, avatar initials, status colours at increased contrast, the ring on a filled row). Before phase 4, keep one validator (the Dart one, with `critique/contrast.py`'s pairs) and one preview harness, and re-render all twenty from it; today's previews are not like for like, which flatters some themes.
 - **Disabled controls at 45% opacity** put a filled button's label at 1.4–1.6:1 in every theme. **Decided 2026-10-23:** a disabled filled button uses `surface-sunken` with an `ink-muted` label (about 4.5:1) in every theme, Kiwi included, from phase 3; other controls keep 45%.
 - **Name spoofing.** "A name equal to a built-in's gets (imported)" misses look-alikes ("Кiwi" with a Cyrillic К). Compare the UTS #39 confusable skeleton, not the case-folded string.
-- **Numbers in JSON.** Refuse `NaN`, `Infinity` and numbers whose exponent overflows a double; Python's `json` accepts `NaN` by default, so the prototype validators would pass a file the Dart parser refuses.
+- **Numbers in JSON.** Refuse `NaN`, `Infinity` and numbers whose exponent overflows a double; Python's `json` accepts `NaN` by default, so the prototype validators would pass a file the Dart parser refuses. Done in phase 1 (`strict_json.dart`).
 - **Image decode.** Decode imported images in an isolate with a time limit, and check the header's width and height against the caps before decoding (a 4 MB PNG can declare 30,000 × 30,000).
 - **Use everywhere clears every per-app choice.** It has an Undo toast in the gallery and myData's Appearance, since it cannot be told apart from a slip (phase 2).
 - **Windows contrast themes and forced colours** are not seen by Flutter (`MediaQueryData.highContrast` is iOS and Android only), so System on Windows cannot follow them yet. Unverified whether a platform channel can read `SPI_GETHIGHCONTRAST`.
