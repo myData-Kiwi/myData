@@ -164,7 +164,64 @@ abstract final class MacTheme {
   /// those widgets keep the Mac's type and sizes; the shared widgets draw the theme's variants.
   static ThemeData drawn(MyDataLook look) {
     final base = MyDataTheme.fromLook(look);
-    return base.copyWith(extensions: [...base.extensions.values, colorsFor(look.colors, look.brightness)]);
+    return base.copyWith(
+      // The default text the Mac widgets merge their system-font styles into: without mydata_ui's package,
+      // which TextStyle.merge would otherwise put before `.AppleSystemUIFont` (a font that does not exist).
+      textTheme: _unpackaged(base.textTheme),
+      primaryTextTheme: _unpackaged(base.primaryTextTheme),
+      extensions: [...base.extensions.values, colorsFor(look.colors, look.brightness)],
+    );
+  }
+
+  /// [t] with each style's family kept as its full name (`packages/mydata_ui/Figtree`) but no package left
+  /// to prefix the family of a style merged into it.
+  static TextTheme _unpackaged(TextTheme t) {
+    TextStyle? u(TextStyle? s) => s == null
+        ? null
+        : TextStyle(
+            inherit: s.inherit,
+            color: s.color,
+            backgroundColor: s.backgroundColor,
+            fontSize: s.fontSize,
+            fontWeight: s.fontWeight,
+            fontStyle: s.fontStyle,
+            letterSpacing: s.letterSpacing,
+            wordSpacing: s.wordSpacing,
+            textBaseline: s.textBaseline,
+            height: s.height,
+            leadingDistribution: s.leadingDistribution,
+            locale: s.locale,
+            foreground: s.foreground,
+            background: s.background,
+            shadows: s.shadows,
+            fontFeatures: s.fontFeatures,
+            fontVariations: s.fontVariations,
+            decoration: s.decoration,
+            decorationColor: s.decorationColor,
+            decorationStyle: s.decorationStyle,
+            decorationThickness: s.decorationThickness,
+            debugLabel: s.debugLabel,
+            fontFamily: s.fontFamily,
+            fontFamilyFallback: s.fontFamilyFallback,
+            overflow: s.overflow,
+          );
+    return TextTheme(
+      displayLarge: u(t.displayLarge),
+      displayMedium: u(t.displayMedium),
+      displaySmall: u(t.displaySmall),
+      headlineLarge: u(t.headlineLarge),
+      headlineMedium: u(t.headlineMedium),
+      headlineSmall: u(t.headlineSmall),
+      titleLarge: u(t.titleLarge),
+      titleMedium: u(t.titleMedium),
+      titleSmall: u(t.titleSmall),
+      bodyLarge: u(t.bodyLarge),
+      bodyMedium: u(t.bodyMedium),
+      bodySmall: u(t.bodySmall),
+      labelLarge: u(t.labelLarge),
+      labelMedium: u(t.labelMedium),
+      labelSmall: u(t.labelSmall),
+    );
   }
 
   /// The Mac widgets' colours from a drawn theme's palette: the window is `bg`, the content `surface`, the

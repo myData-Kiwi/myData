@@ -83,6 +83,9 @@ void main() {
       expect(mac.label, drawn.ink);
       expect(mac.contentBackground, drawn.surface);
       expect(mac.focusRing, drawn.focus);
+      // The Mac widgets' system font, merged into the theme's default text, stays a font that exists.
+      expect(data.textTheme.bodyMedium!.merge(MyDataMacType.body).fontFamily, MyDataMacFont.text);
+      expect(data.textTheme.bodyMedium!.fontFamily, MyDataTheme.data('plum', b).textTheme.bodyMedium!.fontFamily);
     }
     expect(find.byType(MacChrome), findsOneWidget);
     expect(MacWindow.of(tester.element(find.byType(SizedBox).last)), isTrue);
