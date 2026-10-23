@@ -421,7 +421,7 @@ New keys:
 - **Use everywhere** sets `everywhere` to the theme **and palette** shown and clears `apps`, so every app, including ones installed later, follows both.
 - **Mode stays per device** (owner decision 2): one for all apps. The library key leaves room for a per-app mode later; it is not offered now.
 - **Library:** `<home>/device/themes/<id>/theme.json` plus its re-encoded images, and `<home>/device/themes/.drafts/` for the editor's unsaved drafts. A development host with `MYDATA_HOME` has its own library.
-- **Writes are rare and user-made.** A read-modify-write race between two apps is possible, as for `mode` today. Add a compare-mtime-and-retry to `FileDeviceStore` in phase 2.
+- **Writes are rare and user-made.** A read-modify-write race between two apps is possible, as for `mode` today. **As built (phase 2):** `FileDeviceStore.update` compares the file's text (not its modification time, which two writes in one millisecond share) just before the rename and reads again and retries when another app wrote; updates in one process run one at a time. Between processes a write landing between the check and the rename can still be lost.
 - **A theme deleted while in use** makes those apps fall back to its `based-on`, else System, with a one-time Notice in myData's Appearance.
 
 ### 4.2 Migrating from the host's theme
@@ -440,7 +440,7 @@ New keys:
 
 | Place | What |
 |---|---|
-| Every app, macOS | View > Theme… (⌥⌘T, to check against Apple's apps) opens the gallery sheet. It is not a submenu of themes, because `PlatformMenuItem` has no checked state (`mydata_ui` README) |
+| Every app, macOS | View > Theme… (no key: ⌥⌘T is Show or Hide Toolbar in Apple's apps; checked in phase 2) opens the gallery sheet. It is not a submenu of themes, because `PlatformMenuItem` has no checked state (`mydata_ui` README) |
 | Every app, phone | More actions > Theme… |
 | myData, Settings > Appearance | **Mode** (Light, Dark, Match system); **Everywhere** (the theme and palette, "Journal, Ink blue", Change…); **Apps**: one row per installed app, showing "Same as everywhere" or its own theme and palette, with Change… and Reset; **Library**: built-ins and custom themes, each with Duplicate, Edit (custom only), Export…, Delete (custom only, a Dialog saying which apps use it); Import… and Paste theme |
 | myData, File | Import Theme…, Export Theme… |
@@ -509,6 +509,17 @@ Phases 0 to 3 are the themes foundation and come before the phones (M1b). Phase 
 | 6. Materials | Gradients, patterns, glass with `BackdropGroup`, background images in the zip with re-encoding and percentile contrast | Frosted's glass, Notebook's rules, image grounds | Raster-time budget in a profile run with blur on; image caps (size, pixels, magic bytes, EXIF gone); reduced transparency turns everything solid |
 | 7. Other platforms' System | Android: Material 3 and dynamic colour. Windows and Linux: each with its platform pass | System means native there | Per-platform screen goldens |
 
+**Phase 2 as built (2026-10-23).**
+
+- **Store:** `ThemeController` (mydata_core) per app reads `themes` and `mode` from `<home>/device/settings.json`, follows other apps' writes through `FileDeviceStore.changes` (the folder's file system events) and a 2 s read, and writes through `DeviceStore.update`. A choice for a theme without palettes is written without `palette`; one found with a stray `palette` resolves as System and loses it at the next write.
+- **Migration:** as 4.2, with one detail: elsewhere the device's `lastTheme` is read first (the old controller wrote the host's theme there at every poll, so it is the host's theme without waiting for the host); without it the host's deprecated `/status` `theme` is read once the host answers. A host theme this build does not know migrates to System.
+- **Host:** `PUT /appearance` answers 410 with no body; `GET /appearance` and `/status`'s `theme` are marked deprecated (API version `3ce02a66c0de`). **The installed host must be rebuilt and installed again** (`build_host_app.sh`, then `install.sh`), or every app built from this checkout settles on "incompatible".
+- **Gallery:** System, then Built-in (Kiwi in six palettes); live cards drawn by `MacShell.themeDataFor`, so a card looks as the app would draw it on this platform. The window's preview ends when the gallery is popped (Escape, Cancel), never from `dispose`, which cannot rebuild the app. Return on the cards uses the selection; on a palette swatch Return chooses that swatch (it is already the selection) and does not close the gallery. Phones get no Use everywhere.
+- **On a Mac, a drawn theme** keeps the Mac window and skeleton (`MacWindow.of` stays true) and draws its palette in the Mac widgets (`MacTheme.colorsFor`); the Mac widgets keep the Mac's type and sizes until phase 3. The Mac text theme is marked `inherit` so the app's theme animation can lerp between System and a drawn theme.
+- **First launch** no longer has a theme step, on any platform (4.3).
+- **View > Theme…** has no key (6, item 11). Windows and Linux, which have no menu bar, reach the gallery from myData's Settings > Appearance.
+- **myData's Appearance** lists all four apps (a choice can be made before an app is installed), and a stored choice this build cannot draw shows a Notice saying what it draws instead, for as long as it is stored (not once).
+
 Goldens in total come to about 300 to 400 images, not the 1,600 of every widget in every look. Widget goldens stay at System and Kiwi; variants are covered once each; themes are covered on app screens.
 
 ---
@@ -540,7 +551,7 @@ The owner accepted every recommendation (`docs/decisions/2026-10-23-themes.md`):
 8. **Upper case** only on label and caption roles that never hold a name (2.3).
 9. **Layout stays out of themes.** Folding details or opening the calendar on the day list is a later device accessibility setting.
 10. **Mode per device,** not per app; **phones one theme per app,** no Use everywhere, until native phone apps.
-11. **View > Theme… on ⌥⌘T,** unless Apple's own apps use it (still to check on a Mac).
+11. **View > Theme… on ⌥⌘T,** unless Apple's own apps use it. They do (Show or Hide Toolbar), so Theme… has no key until the owner picks one (phase 2).
 12. **Themes are named after their design language,** not a colour (later the same day): Kiwi stays (the house style); Graphite → Hairline, Dusk → Frosted, Plum → Journal, Rose → Sticker, Amber → Paperback; for the prototypes, Contrast → High Contrast, Still → E-ink, Roomy → Large, Prompt → Terminal, Notebook stays, Concrete → Brutalist, Beige → Retro Desktop, Grid → Swiss, Cyanotype → Blueprint, Neon → Arcade, Primary → Geometric, Ma → Zen, Tabular → Ledger.
 13. **Colour is a separate choice inside a theme** (1.6): a theme is a style plus 2 to 4 palettes named by colour; the user picks theme and palette per app and per device; System's colour is the system accent, with no alternatives on macOS.
 
@@ -569,4 +580,4 @@ The owner accepted every recommendation (`docs/decisions/2026-10-23-themes.md`):
 - The "billion laughs" YAML/XML expansion attack: https://en.wikipedia.org/wiki/Billion_laughs_attack
 - `dynamic_color`: https://pub.dev/packages/dynamic_color (its maintenance status is unverified, per Research A)
 
-**Not verified:** the system font family names on Windows and Linux; ⌥⌘T against Apple's apps; the font bundle size; whether `FontLoader` can reload a family; App Groups on a free Apple account.
+**Not verified:** the system font family names on Windows and Linux; the font bundle size; whether `FontLoader` can reload a family; App Groups on a free Apple account.
