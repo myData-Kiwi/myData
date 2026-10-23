@@ -35,3 +35,6 @@ Signing.local.xcconfig
 
 # Builds of the host app (host/packaging/macos/build_host_app.sh).
 host/build/
+
+# Agent worktrees and local Claude settings
+.claude/
