@@ -158,7 +158,8 @@ The model has one job: choose a tool and extract plain arguments. Everything els
 
 - **Flutter on every platform** (decided 2026-10-23, item 8), macOS first; the iPhone gets plain HTML from the host until native iPhone apps. The Dart client is generated from `host/openapi.json`, never hand-written. Native pieces (widgets, App Intents, the share sheet) are budgeted per feature.
 - **Look today:** everything from `design/` through `mydata_ui`; tokens generated (`generated_tokens_test.dart` fails when stale); **no literal colour, radius or font name** in any app or widget (`no_literals_test.dart`). The theme is stored on the host; light or dark per device.
-- **Native frame, quiet brand (M1a's look pass):** the platform owns the frame (window, toolbar, sidebar, controls, font, icons, accent, focus ring); myData owns the content. On macOS every app draws the Mac shell in `mydata_ui` (`MacShell`; the adoption steps and API are in its README; myContacts has adopted it); other platforms keep the branded look until their pass. Mac density, lists not cards, themes become accents. No spec before a component's first use.
+- **Native frame, quiet brand (M1a's look pass):** the platform owns the frame (window, toolbar, sidebar, controls, font, icons, accent, focus ring); myData owns the content. On macOS every app draws the Mac shell in `mydata_ui` (`MacShell`; the adoption steps and API are in its README; all four apps have adopted it); other platforms keep the branded look until their pass. Mac density, lists not cards, themes become accents. No spec before a component's first use.
+- **Mac frame tests** run as macOS (`macTestWidgets`, `macScreenMatrix` in mydata_testing), so keys are ⌘ and menus say ⌘E. Dates and times come from `MyDataDates` in every app ("14 Oct 2026", the device's 12- or 24-hour clock).
 - Disabled controls always give a reason. On macOS the menu bar (`AppMenuBar`) owns ⌘Z and ⌘S; phones have every action on screen. Forms go read-only while working (`FormBusy`) and commit pending typing first (`FormCommit`). Dates in British English ("Wed 14 Oct 2026"). The focus ring, key order, phone breakpoint and form rules are in `design/README.md`, `design/platforms.md` and `mydata_ui`'s README.
 
 ### Repo layout
@@ -204,7 +205,7 @@ Built and tested against fakes and synthetic hosts, **never used live by the own
 - **Never run live:** the apps against a live host or each other, the links between apps, the phone layouts, Windows and Linux builds.
 - **The calendar reader** takes one zone per custom TZID and gives the occurrence in the skipped hour no length.
 - `test_a_reader_that_fails_the_same_way_every_time_backs_off` is timing-sensitive: run the host suite on a quiet machine.
-- Default Flutter app icons; `KiwiLoader` is a placeholder.
+- **App icons** (`design/assets/Logos/app-icons`: an Icon Composer `.icon` per app for macOS 26, the classic icon for older systems) have only been seen in `ictool`'s renderings, never in a real Dock, Finder or Spotlight. `KiwiLoader` is a placeholder.
 - A host-only code change shows as `stale`; the next app to connect restarts the host, ending conversations.
 - This Mac is unverified across a reboot, over hours, with Google or Exchange accounts and with signed builds.
 - Real-mode tool descriptions were measured on the demo set; new ones need a new frozen set.
