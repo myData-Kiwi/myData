@@ -6,6 +6,8 @@ library;
 
 import 'dart:convert';
 
+import 'themes_codegen.dart';
+
 /// Where the design system lives, relative to this package.
 const designDir = '../../../design';
 const generatedPath = 'lib/src/generated/tokens.g.dart';
@@ -13,11 +15,13 @@ const generatedPath = 'lib/src/generated/tokens.g.dart';
 /// Logo files copied from design/assets/Logos into this package's assets, unchanged.
 const logoFiles = ['mydata-kiwi-mark.svg', 'mydata-kiwi-mark-mono.svg', 'mydata-kiwi-app-icon.svg'];
 
-String generateTokens(String tokensJson, String themesJson) {
+String generateTokens(String tokensJson, String themesJson, String designKiwiJson) {
   final tokens = jsonDecode(tokensJson) as Map<String, dynamic>;
   final themes = jsonDecode(themesJson) as Map<String, dynamic>;
+  final extras = extraColourValues(kiwiTodayTheme(tokensJson, themesJson, designKiwiJson));
   final out = StringBuffer()
-    ..writeln('// GENERATED from design/tokens.json (version ${tokens['version']}) and design/themes.json')
+    ..writeln('// GENERATED from design/tokens.json (version ${tokens['version']}), design/themes.json and')
+    ..writeln('// design/themes/kiwi/theme.json (the colour roles tokens.json has no token for)')
     ..writeln('// by tool/generate_tokens.dart. Do not edit: change the JSON and run')
     ..writeln('//   (cd app/packages/mydata_ui && dart run tool/generate_tokens.dart)')
     ..writeln('// This is the only file in the apps that may contain literal colours, radii and font names.')
@@ -26,7 +30,7 @@ String generateTokens(String tokensJson, String themesJson) {
     ..writeln("import 'package:flutter/painting.dart';")
     ..writeln("import 'package:flutter/material.dart' show Brightness, ThemeExtension;")
     ..writeln();
-  _colors(out, tokens['color'] as Map<String, dynamic>);
+  _colors(out, tokens['color'] as Map<String, dynamic>, extras);
   _themes(out, themes);
   _shadows(out, tokens['shadow'] as Map<String, dynamic>);
   _scale(out, 'MyDataSpace', 'Spacing (tokens.json "spacing").', tokens['spacing'] as Map<String, dynamic>,
@@ -147,8 +151,17 @@ void _macos(StringBuffer out, Map<String, dynamic> macos) {
 
 // ---------------------------------------------------------------- colours
 
-void _colors(StringBuffer out, Map<String, dynamic> color) {
-  final list = (color['tokens'] as List).cast<Map<String, dynamic>>();
+void _colors(StringBuffer out, Map<String, dynamic> color, Map<String, Map<String, String>> extras) {
+  final list = [
+    ...(color['tokens'] as List).cast<Map<String, dynamic>>(),
+    // Palette roles tokens.json has no token for (design/themes/ARCHITECTURE.md 1.3), from Kiwi's palette.
+    for (final e in {...extraColourRoles, 'on-avatar': 'Initials on avatar-fill: ink or surface, whichever reads better.'}.entries)
+      {
+        'name': e.key,
+        'usage': e.value,
+        'value': {for (final mode in ['light', 'dark']) mode: extras[mode]![e.key]!},
+      },
+  ];
   final names = [for (final t in list) _camel(t['name'] as String)];
   out
     ..writeln('/// Every colour token for one theme and mode. `accent` in tokens.json is `MyDataColors.accent` here.')
@@ -404,6 +417,8 @@ String _firstFamily(String stack) {
 String _color(String css) {
   final hex = RegExp(r'^#([0-9A-Fa-f]{6})$').firstMatch(css.trim());
   if (hex != null) return 'Color(0xFF${hex[1]!.toUpperCase()})';
+  final hexA = RegExp(r'^#([0-9A-Fa-f]{6})([0-9A-Fa-f]{2})$').firstMatch(css.trim());
+  if (hexA != null) return 'Color(0x${hexA[2]!.toUpperCase()}${hexA[1]!.toUpperCase()})';
   final rgba = RegExp(r'^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+)\s*)?\)$').firstMatch(css.trim());
   if (rgba == null) throw FormatException('cannot read colour "$css"');
   final a = ((double.tryParse(rgba[4] ?? '1') ?? 1) * 255).round();

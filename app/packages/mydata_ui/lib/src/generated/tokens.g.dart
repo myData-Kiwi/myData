@@ -1,4 +1,5 @@
-// GENERATED from design/tokens.json (version 6) and design/themes.json
+// GENERATED from design/tokens.json (version 6), design/themes.json and
+// design/themes/kiwi/theme.json (the colour roles tokens.json has no token for)
 // by tool/generate_tokens.dart. Do not edit: change the JSON and run
 //   (cd app/packages/mydata_ui && dart run tool/generate_tokens.dart)
 // This is the only file in the apps that may contain literal colours, radii and font names.
@@ -49,6 +50,17 @@ class MyDataColors extends ThemeExtension<MyDataColors> {
     required this.dataPurple,
     required this.dataBrown,
     required this.dataGrey,
+    required this.sidebar,
+    required this.toolbar,
+    required this.edge,
+    required this.link,
+    required this.selection,
+    required this.onSelection,
+    required this.selectionInactive,
+    required this.focusOnDanger,
+    required this.avatarFill,
+    required this.shadow,
+    required this.onAvatar,
   });
 
   /// Window background: a soft neutral grey with no tint, so every theme sits on it. Cards sit on it. Text uses ink or ink-muted.
@@ -127,6 +139,28 @@ class MyDataColors extends ThemeExtension<MyDataColors> {
   final Color dataBrown;
   /// Grey in the palette for calendars myData owns (ColourPicker). A data colour: one value in both modes, drawn as given with DataColour's edge rule, never a control colour or a fill behind text. Not replaced by a theme.
   final Color dataGrey;
+  /// Sidebar ground when solid (and the fallback for a translucent one).
+  final Color sidebar;
+  /// Toolbar ground when solid.
+  final Color toolbar;
+  /// The theme's outline colour when its borders use it.
+  final Color edge;
+  /// Accent used as text: links and text buttons, 4.5:1 on bg and surface.
+  final Color link;
+  /// The selected row's fill or marker.
+  final Color selection;
+  /// Text on selection.
+  final Color onSelection;
+  /// A selection in a list that does not have focus.
+  final Color selectionInactive;
+  /// The focus ring on anything already red.
+  final Color focusOnDanger;
+  /// An avatar's ground behind initials (was kiwi-wash).
+  final Color avatarFill;
+  /// The colour shadows are drawn in, at the elevation's strength.
+  final Color shadow;
+  /// Initials on avatar-fill: ink or surface, whichever reads better.
+  final Color onAvatar;
 
   /// The Kiwi theme, light mode.
   static const light = MyDataColors(
@@ -168,6 +202,17 @@ class MyDataColors extends ThemeExtension<MyDataColors> {
     dataPurple: Color(0xFF8B51E1),
     dataBrown: Color(0xFF8A6859),
     dataGrey: Color(0xFF939393),
+    sidebar: Color(0xFFF6F6F5),
+    toolbar: Color(0xFFF6F6F5),
+    edge: Color(0xFF1A1A19),
+    link: Color(0xFF4B7713),
+    selection: Color(0xFF4C7814),
+    onSelection: Color(0xFFFFFFFF),
+    selectionInactive: Color(0xFFEDEDEB),
+    focusOnDanger: Color(0xFF1A1A19),
+    avatarFill: Color(0xFFE0E0DD),
+    shadow: Color(0xFF141414),
+    onAvatar: Color(0xFF1A1A19),
   );
 
   /// The Kiwi theme, dark mode.
@@ -210,6 +255,17 @@ class MyDataColors extends ThemeExtension<MyDataColors> {
     dataPurple: Color(0xFF8B51E1),
     dataBrown: Color(0xFF8A6859),
     dataGrey: Color(0xFF939393),
+    sidebar: Color(0xFF111111),
+    toolbar: Color(0xFF111111),
+    edge: Color(0xFFEDEDEB),
+    link: Color(0xFFA9CC4E),
+    selection: Color(0xFFA9CC4E),
+    onSelection: Color(0xFF1A2408),
+    selectionInactive: Color(0xFF0B0B0B),
+    focusOnDanger: Color(0xFFEDEDEB),
+    avatarFill: Color(0xFF333333),
+    shadow: Color(0xFF000000),
+    onAvatar: Color(0xFFEDEDEB),
   );
 
   /// These colours with [theme]'s accent, on-accent and accent-soft for [brightness].
@@ -262,6 +318,17 @@ class MyDataColors extends ThemeExtension<MyDataColors> {
     Color? dataPurple,
     Color? dataBrown,
     Color? dataGrey,
+    Color? sidebar,
+    Color? toolbar,
+    Color? edge,
+    Color? link,
+    Color? selection,
+    Color? onSelection,
+    Color? selectionInactive,
+    Color? focusOnDanger,
+    Color? avatarFill,
+    Color? shadow,
+    Color? onAvatar,
   }) =>
       MyDataColors(
         bg: bg ?? this.bg,
@@ -302,6 +369,17 @@ class MyDataColors extends ThemeExtension<MyDataColors> {
         dataPurple: dataPurple ?? this.dataPurple,
         dataBrown: dataBrown ?? this.dataBrown,
         dataGrey: dataGrey ?? this.dataGrey,
+        sidebar: sidebar ?? this.sidebar,
+        toolbar: toolbar ?? this.toolbar,
+        edge: edge ?? this.edge,
+        link: link ?? this.link,
+        selection: selection ?? this.selection,
+        onSelection: onSelection ?? this.onSelection,
+        selectionInactive: selectionInactive ?? this.selectionInactive,
+        focusOnDanger: focusOnDanger ?? this.focusOnDanger,
+        avatarFill: avatarFill ?? this.avatarFill,
+        shadow: shadow ?? this.shadow,
+        onAvatar: onAvatar ?? this.onAvatar,
       );
 
   @override
@@ -346,6 +424,17 @@ class MyDataColors extends ThemeExtension<MyDataColors> {
       dataPurple: Color.lerp(dataPurple, other.dataPurple, t)!,
       dataBrown: Color.lerp(dataBrown, other.dataBrown, t)!,
       dataGrey: Color.lerp(dataGrey, other.dataGrey, t)!,
+      sidebar: Color.lerp(sidebar, other.sidebar, t)!,
+      toolbar: Color.lerp(toolbar, other.toolbar, t)!,
+      edge: Color.lerp(edge, other.edge, t)!,
+      link: Color.lerp(link, other.link, t)!,
+      selection: Color.lerp(selection, other.selection, t)!,
+      onSelection: Color.lerp(onSelection, other.onSelection, t)!,
+      selectionInactive: Color.lerp(selectionInactive, other.selectionInactive, t)!,
+      focusOnDanger: Color.lerp(focusOnDanger, other.focusOnDanger, t)!,
+      avatarFill: Color.lerp(avatarFill, other.avatarFill, t)!,
+      shadow: Color.lerp(shadow, other.shadow, t)!,
+      onAvatar: Color.lerp(onAvatar, other.onAvatar, t)!,
     );
   }
 }
