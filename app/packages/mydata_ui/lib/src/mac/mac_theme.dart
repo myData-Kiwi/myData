@@ -76,7 +76,8 @@ abstract final class MacTheme {
   ///
   /// The tokens map to the system's meanings: `bg` is the window's background, `surface` the content's,
   /// `surface-sunken` a `quaternary-label` shade over it, `ink` and `ink-muted` the label colours, `line` the
-  /// separator, `accent` the system's accent and `focus` its focus ring colour.
+  /// separator, `accent`, `link` and `selection` the system's accent, `focus` and `focus-on-danger` its focus
+  /// ring colour, `selection-inactive` and `sidebar` its own, `toolbar` the window's and `edge` the label's.
   /// The host's theme is not used for the accent here: on the Mac the accent is the system's (the plan's
   /// "System" accent option, the default on the Mac).
   static ThemeData data(String? themeId, Brightness brightness, MyDataMacColors system) {
@@ -100,6 +101,16 @@ abstract final class MacTheme {
       onAccent: mac.onAccent,
       accentSoft: soft,
       focus: mac.focusRing,
+      // The roles the theme format added, on the system's colours too, so no link, selection or ring is
+      // drawn in the host's colour: the ring is the system's on a field in error as well.
+      link: mac.accent,
+      selection: mac.accent,
+      onSelection: mac.onAccent,
+      selectionInactive: mac.selectionInactive,
+      focusOnDanger: mac.focusRing,
+      sidebar: mac.sidebarBackground,
+      toolbar: mac.windowBackground,
+      edge: mac.label,
     );
     // Built afresh, not by applying the system font to the branded styles: those carry mydata_ui's package,
     // which would turn the family into `packages/mydata_ui/.AppleSystemUIFont`, a font that does not exist.
@@ -109,8 +120,9 @@ abstract final class MacTheme {
         colors,
         base.extension<MyDataShadows>()!,
         mac,
-        // System, drawn by the Mac shell; its sizes and type are still Kiwi's for the branded widgets inside it.
-        look.copyWith(themeId: 'mydata.system', frame: LookFrame.system, colors: colors),
+        // System, drawn by the Mac shell, with no palette; its sizes and type are still Kiwi's for the
+        // branded widgets inside it.
+        look.asSystem(colors: colors),
       ],
       scaffoldBackgroundColor: mac.windowBackground,
       canvasColor: mac.windowBackground,

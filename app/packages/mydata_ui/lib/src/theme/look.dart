@@ -534,6 +534,10 @@ class MyDataLook extends ThemeExtension<MyDataLook> {
 
   /// [theme] in [paletteId] (its default palette when null or unknown) for [brightness]. The density class
   /// is the platform's: phones (iOS, Android) take the theme's phone set, everything else the desktop set.
+  ///
+  /// System (`frame: system`) is drawn here with its style (Kiwi's until each platform's pass) in Kiwi's
+  /// default palette, or in a "System, tinted" palette off macOS ([systemPalette]); its [paletteId] is null
+  /// unless a tint is drawn. On macOS the Mac shell puts the system's own colours over it (`MacTheme.data`).
   factory MyDataLook.resolve(
     ThemeFile theme, {
     String? paletteId,
@@ -542,20 +546,23 @@ class MyDataLook extends ThemeExtension<MyDataLook> {
     bool increasedContrast = false,
     TargetPlatform? platform,
   }) {
-    final palette = theme.palette(paletteId)!;
+    final target = platform ?? defaultTargetPlatform;
+    final system = theme.frame == ThemeFrame.system;
+    final tint = system && target != TargetPlatform.macOS ? theme.palette(paletteId) : null;
+    final palette = system ? systemPalette(defaults, tint) : theme.palette(paletteId)!;
     final mode = brightness == Brightness.dark ? LookMode.dark : LookMode.light;
     final p = resolvePalette(theme, palette, mode, defaults: defaults, increasedContrast: increasedContrast);
     final fixed = brightness == Brightness.dark ? MyDataColors.dark : MyDataColors.light;
     final colors = colorsOf(p, fixed: fixed);
     final s = theme.style;
-    final phone = switch (platform ?? defaultTargetPlatform) {
+    final phone = switch (target) {
       TargetPlatform.iOS || TargetPlatform.android => true,
       _ => false,
     };
     return MyDataLook(
       themeId: theme.id,
-      paletteId: palette.id,
-      frame: theme.frame == ThemeFrame.system ? LookFrame.system : LookFrame.drawn,
+      paletteId: system ? tint?.id : palette.id,
+      frame: system ? LookFrame.system : LookFrame.drawn,
       brightness: brightness,
       increasedContrast: increasedContrast,
       colors: colors,
@@ -642,6 +649,29 @@ class MyDataLook extends ThemeExtension<MyDataLook> {
         motion: motion ?? this.motion,
         variants: variants ?? this.variants,
       );
+
+  /// This look as System draws it in the Mac shell: [colors] are the system's, and System has no palette
+  /// ([copyWith] cannot clear [paletteId]).
+  MyDataLook asSystem({required MyDataColors colors}) => MyDataLook(
+        themeId: systemThemeId,
+        paletteId: null,
+        frame: LookFrame.system,
+        brightness: brightness,
+        increasedContrast: increasedContrast,
+        colors: colors,
+        typeScale: typeScale,
+        shape: shape,
+        density: density,
+        edges: edges,
+        elevation: elevation,
+        materials: materials,
+        icons: icons,
+        motion: motion,
+        variants: variants,
+      );
+
+  /// System's theme id.
+  static const systemThemeId = 'mydata.system';
 
   /// Colours, sizes and shadows are interpolated; everything else switches at the half way point.
   @override

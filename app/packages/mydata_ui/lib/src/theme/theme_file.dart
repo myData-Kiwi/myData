@@ -451,8 +451,12 @@ class ThemeFile {
       palettes.isEmpty ? null : palettes.firstWhere((p) => p.id == defaultPaletteId, orElse: () => palettes.first);
 
   /// The palette [id], else the default one (null for a theme without palettes, as System).
-  ThemePalette? palette(String? id) =>
-      palettes.firstWhere((p) => p.id == id, orElse: () => defaultPalette ?? (throw StateError('no palettes')));
+  ThemePalette? palette(String? id) {
+    for (final p in palettes) {
+      if (p.id == id) return p;
+    }
+    return defaultPalette;
+  }
 
   /// Builds a theme from [json] that passed the schema. Style groups the file leaves out, and fields a group
   /// leaves out, come from [base] (the built-in it is `based-on`, else Kiwi).

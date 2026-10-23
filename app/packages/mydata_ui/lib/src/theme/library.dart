@@ -22,7 +22,7 @@ import 'validate.dart';
 /// the device settings already hold. Phase 3 switches Kiwi to design/themes/kiwi and moves the other five to
 /// the themes they now belong to (ARCHITECTURE.md 4.2).
 abstract final class ThemeLibrary {
-  static const systemId = 'mydata.system';
+  static const systemId = MyDataLook.systemThemeId;
   static const kiwiId = 'mydata.kiwi';
 
   static Map<String, Object?> _read(String text) => readStrictJson(text) as Map<String, Object?>;

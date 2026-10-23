@@ -25,13 +25,51 @@ void main() {
         isTrue);
   });
 
-  test('the Mac shell\'s theme is the System look, with the system\'s colours', () {
-    final data = MacTheme.data('kiwi', Brightness.light, MyDataMacColors.light);
-    final look = data.extension<MyDataLook>()!;
-    expect(look.frame, LookFrame.system);
-    expect(look.themeId, ThemeLibrary.systemId);
-    expect(identical(look.colors, data.extension<MyDataColors>()), isTrue);
-    expect(look.colors.accent, data.extension<MyDataMacColors>()!.accent);
+  test('the Mac shell\'s theme is the System look, with the system\'s colours and no palette', () {
+    for (final b in Brightness.values) {
+      final system = b == Brightness.dark ? MyDataMacColors.dark : MyDataMacColors.light;
+      // Plum: none of the host's colour may show through in the System look.
+      final data = MacTheme.data('plum', b, system);
+      final look = data.extension<MyDataLook>()!;
+      final mac = data.extension<MyDataMacColors>()!;
+      expect(look.frame, LookFrame.system);
+      expect(look.themeId, ThemeLibrary.systemId);
+      expect(look.paletteId, isNull);
+      expect(identical(look.colors, data.extension<MyDataColors>()), isTrue);
+      final c = look.colors;
+      expect(c.accent, mac.accent);
+      expect(c.link, mac.accent);
+      expect(c.selection, mac.accent);
+      expect(c.onSelection, mac.onAccent);
+      expect(c.selectionInactive, mac.selectionInactive);
+      expect(c.focus, mac.focusRing);
+      expect(c.focusOnDanger, mac.focusRing);
+      expect(c.sidebar, mac.sidebarBackground);
+      expect(c.toolbar, mac.windowBackground);
+      expect(c.edge, mac.label);
+    }
+  });
+
+  test('every built-in resolves in both brightnesses, System with no palette', () {
+    for (final theme in ThemeLibrary.builtIns) {
+      for (final b in Brightness.values) {
+        for (final platform in [TargetPlatform.macOS, TargetPlatform.linux, TargetPlatform.android]) {
+          final look = ThemeLibrary.look(theme, brightness: b, platform: platform);
+          expect(look.themeId, theme.id);
+          expect(look.brightness, b);
+          if (theme.frame == ThemeFrame.system) {
+            expect(look.frame, LookFrame.system);
+            expect(look.paletteId, isNull);
+            // Off the Mac, System is Kiwi in its own colour until each platform's pass.
+            expect(look.colors.accent, ThemeLibrary.kiwiLook(null, b).colors.accent);
+          } else {
+            expect(look.paletteId, theme.defaultPaletteId);
+          }
+        }
+      }
+    }
+    expect(ThemeLibrary.system.palette(null), isNull);
+    expect(ThemeLibrary.system.palette('kiwi'), isNull);
   });
 
   test('a theme change cross-fades colours and sizes and switches the rest half way', () {
