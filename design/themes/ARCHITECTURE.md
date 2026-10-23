@@ -4,9 +4,9 @@ The design for the owner's request of 2026-10-23: a theme changes how the whole 
 
 In this folder:
 - `theme.schema.json`: the format (JSON Schema 2020-12).
-- `<slug>/theme.json` and `<slug>/RULES.md` for the built-ins: System and today's six (Kiwi, Graphite, Dusk, Plum, Rose, Amber), rebuilt as full looks. These are the phase 3 targets (section 3.1 says what phase 1 reads).
+- `<slug>/theme.json` and `<slug>/RULES.md` for the built-ins: System and today's six, rebuilt as full looks and named after their design language (2026-10-23): Kiwi, Hairline (was Graphite), Frosted (was Dusk), Journal (was Plum), Sticker (was Rose) and Paperback (was Amber). These are the phase 3 targets (section 3.1 says what phase 1 reads).
 
-Not in the repo: the 13 other prototype themes, the HTML previews and gallery, the example and must-fail files, the prototype validators (`check_theme.py`, the critique's scripts) and Research A and B. They stay with the design session until the owner picks which new themes to build; then a picked theme moves here with its rules.
+Not in the repo: the 13 other prototype themes (under their new names: High Contrast, E-ink, Large, Terminal, Notebook, Brutalist, Retro Desktop, Swiss, Blueprint, Arcade, Geometric, Zen and Ledger; their prototype folders keep the old names, mapped in `docs/decisions/2026-10-23-themes.md`), the HTML previews and gallery, the example and must-fail files, the prototype validators (`check_theme.py`, the critique's scripts) and Research A and B. They stay with the design session until the owner picks which new themes to build; then a picked theme moves here with its rules.
 
 ## 0. What is wrong or missing first
 
@@ -85,7 +85,7 @@ The resolver derives in OKLCH. Each derived value is then moved in lightness onl
 | `line-strong` | Mixed towards `ink` until 3:1 against `bg` and `surface` |
 | `edge` (new) | `ink` |
 | `accent-soft` | `surface` mixed 12% (light) or 22% (dark) towards `accent` |
-| `link` (new) | `accent`, adjusted to 4.5:1 against `bg` and `surface` (Primary's yellow accent sets it explicitly) |
+| `link` (new) | `accent`, adjusted to 4.5:1 against `bg` and `surface` (Geometric's yellow accent sets it explicitly) |
 | `selection`, `on-selection`, `selection-inactive` (new) | `accent`, `on-accent`, `surface-sunken` |
 | `focus`, `focus-on-danger` (new as a role) | Today's red `focus` adjusted to 3:1; `ink` |
 | status and their `-soft` fills, `on-danger` | Today's values, lightness moved to pass on this theme's `surface` |
@@ -161,16 +161,16 @@ One validator in Dart (`mydata_ui/lib/src/theme/validate.dart`) is used by impor
 |---|---|
 | 4.5:1 text (SC 1.4.3) | `ink` on bg, surface, surface-raised, surface-sunken, surface-hover, accent-soft, selection-inactive, sidebar, toolbar and each status `-soft`; `ink-muted` on bg, surface, surface-raised, surface-sunken and sidebar; `link` on bg, surface and surface-raised; `on-accent` on accent; `on-selection` on selection; `on-danger` on danger; each status colour on surface and on its `-soft` |
 | 3:1 non-text (SC 1.4.11) | `line-strong` (and `edge` when borders use it) on bg and surface; `accent` on bg and surface wherever it alone marks a state (a switch that is on, a selection bar); the selection marker (fill, bar or outline) on surface; `focus` on bg, surface, surface-raised and accent-soft, and `focus-on-danger` on danger-soft; each `data-*` on surface, or the edge rule |
-| 7:1 | At increased contrast, every text pair of the list above (status words, links, accent drawn as text and labels on fills included). The resolver **derives** these values (lightness only, as for missing roles; a status `-soft` that leaves no room becomes `surface-sunken`); a theme's `contrast` set is an override and must itself pass. Always, in themes marked accessibility-first (Contrast, Still) |
-| Grounds that are not flat | **Gradient:** text pairs against every stop. **Pattern:** against the ground with the pattern colour composited at its opacity. A pattern is the window ground: it shows on `bg` and a sidebar that is not a panel, never under `surface` or `surface-raised`, which are opaque. **Image:** against the 1st and 99th luminance percentiles of the image, after tint and opacity, sampled at 64×64. **Glass and translucent bars:** `ink` and `ink-muted` composited over `bg`, `surface`, `ink`, `accent` and `selection` beneath (blur averages text into its ground, but a filled row or button scrolled under a bar is a large block of its colour). At 72% `glass-fill`, Kiwi and Dusk fell to 3.1–3.8:1; they now use 80–84% |
-| Kept apart | `accent` and `danger` closer than 25° in hue gives a notice (danger always carries a word); then the approval card's Approve and every filled primary button are drawn in `ink`, not `accent`, so Approve never looks like Delete (Grid). `danger` stays within 25° of today's red hue: a theme moves its accent, never danger's meaning. `focus` must differ from `selection` by 3:1 or by hue |
-| Avatar initials | A new role, `on-avatar` (derived: whichever of `ink` and `surface` is higher on `avatar-fill`), 4.5:1 on `avatar-fill`. The three prototype validators disagreed (one assumed ink initials and failed Concrete and Grid, whose avatars are ink-filled) |
+| 7:1 | At increased contrast, every text pair of the list above (status words, links, accent drawn as text and labels on fills included). The resolver **derives** these values (lightness only, as for missing roles; a status `-soft` that leaves no room becomes `surface-sunken`); a theme's `contrast` set is an override and must itself pass. Always, in themes marked accessibility-first (High Contrast, E-ink) |
+| Grounds that are not flat | **Gradient:** text pairs against every stop. **Pattern:** against the ground with the pattern colour composited at its opacity. A pattern is the window ground: it shows on `bg` and a sidebar that is not a panel, never under `surface` or `surface-raised`, which are opaque. **Image:** against the 1st and 99th luminance percentiles of the image, after tint and opacity, sampled at 64×64. **Glass and translucent bars:** `ink` and `ink-muted` composited over `bg`, `surface`, `ink`, `accent` and `selection` beneath (blur averages text into its ground, but a filled row or button scrolled under a bar is a large block of its colour). At 72% `glass-fill`, Kiwi and Frosted fell to 3.1–3.8:1; they now use 80–84% |
+| Kept apart | `accent` and `danger` closer than 25° in hue gives a notice (danger always carries a word); then the approval card's Approve and every filled primary button are drawn in `ink`, not `accent`, so Approve never looks like Delete (Swiss). `danger` stays within 25° of today's red hue: a theme moves its accent, never danger's meaning. `focus` must differ from `selection` by 3:1 or by hue |
+| Avatar initials | A new role, `on-avatar` (derived: whichever of `ink` and `surface` is higher on `avatar-fill`), 4.5:1 on `avatar-fill`. The three prototype validators disagreed (one assumed ink initials and failed Brutalist and Swiss, whose avatars are ink-filled) |
 | Highlighter selection | The marker is the 3 px `accent` bar (3:1 on surface); the yellow highlight is a text ground (`on-selection` on `selection` 4.5:1) and needs no 3:1 |
 
 ### 2.3 Rules beyond colour
 
-- **Focus visible (SC 2.4.7), not obscured (SC 2.4.11), 3:1 against what it touches (SC 1.4.11):** a ring 2–4 px wide (3 px double in Contrast), offset 0–3. It follows the shape (`OutlinedBorder`, never a clip) and is never covered by a sticky bar. The colour rule stays in `FocusRing`, and System uses the system's ring.
-- **Two-tone ring where it touches a fill.** When the ring sits on or inside a filled shape (a solid or inverse selected row, a MonthGrid cell, which today draws the ring inside the selection ring), `FocusRing` adds a 1 px inner keyline in `surface`, so the ring is 3:1 against both sides whatever the fill (WCAG technique C40). The validator then checks `focus` against the grounds only, and checks the fill only where no keyline is drawn. Beige (both modes) and Primary (dark) cannot pass with one colour: no lightness of their focus colour is 3:1 against both the dark grounds and the yellow or blue fill.
+- **Focus visible (SC 2.4.7), not obscured (SC 2.4.11), 3:1 against what it touches (SC 1.4.11):** a ring 2–4 px wide (3 px double in High Contrast), offset 0–3. It follows the shape (`OutlinedBorder`, never a clip) and is never covered by a sticky bar. The colour rule stays in `FocusRing`, and System uses the system's ring.
+- **Two-tone ring where it touches a fill.** When the ring sits on or inside a filled shape (a solid or inverse selected row, a MonthGrid cell, which today draws the ring inside the selection ring), `FocusRing` adds a 1 px inner keyline in `surface`, so the ring is 3:1 against both sides whatever the fill (WCAG technique C40). The validator then checks `focus` against the grounds only, and checks the fill only where no keyline is drawn. Retro Desktop (both modes) and Geometric (dark) cannot pass with one colour: no lightness of their focus colour is 3:1 against both the dark grounds and the yellow or blue fill.
 - **Sizes:** the floors in 1.4, also enforced at run time.
 - **Text:** body line height at least 1.25, display at least 1.1. Display-only fonts only at 16 px or more. `upper` only on `label` and `caption`, and never on text that holds a name (a person, an app, a calendar, a file): widgets mark such text and it keeps its own case (decided 2026-10-23; a trial turned "myAssistant" into "MYASSISTANT").
 - **Not colour alone (SC 1.4.1):**
@@ -218,7 +218,7 @@ Today `tool/generate_tokens.dart` writes `tokens.g.dart`: static `MyDataColors.l
 - **Source of truth:**
   - `design/themes/<slug>/theme.json`, one file per built-in, in the format above, with its `RULES.md`;
   - `design/tokens.json` keeps the non-themed tokens (the `macos` set, `toast-duration`, widths such as `dialog-width`) and the role list with usages;
-  - `themes.json` goes in phase 3. **Phase 1 still reads today's values:** the files here are the full looks, and Dusk's, Rose's and Amber's `accent-soft` and Kiwi's link and glass were moved by the contrast audit, so building phase 1 from them would change goldens. Phase 1 generates its built-ins from `tokens.json` and `themes.json` (every theme with Kiwi's shape and density, as today); phase 3 switches the generator to these files.
+  - `themes.json` goes in phase 3. **Phase 1 still reads today's values:** the files here are the full looks, and Frosted's, Sticker's and Paperback's `accent-soft` and Kiwi's link and glass were moved by the contrast audit, so building phase 1 from them would change goldens. Phase 1 generates its built-ins from `tokens.json` and `themes.json` (every theme with Kiwi's shape and density, as today); phase 3 switches the generator to these files.
 - **Generator:**
   - copies the built-ins into `mydata_ui/assets/themes/`;
   - generates `builtin_kiwi.g.dart`, the resolved Kiwi light and dark as constants. It is used for the first frame, for tests and when everything else fails, so the app never draws unthemed;
@@ -268,7 +268,7 @@ Today `tool/generate_tokens.dart` writes `tokens.g.dart`: static `MyDataColors.l
   - `StadiumBorder` for pill;
   - square for square.
 
-  `FocusRing.painter` draws the same border, inflated. That is what keeps cut corners from clipping the ring (Research B, Neon).
+  `FocusRing.painter` draws the same border, inflated. That is what keeps cut corners from clipping the ring (Research B, Arcade).
 - **Variants and where they are used:**
 
   | Variant | Used by |
@@ -357,7 +357,7 @@ New keys:
 ```json
 {
   "mode": "system",
-  "themes": { "everywhere": "mydata.system", "apps": { "mycontacts": "mydata.concrete" } },
+  "themes": { "everywhere": "mydata.system", "apps": { "mycontacts": "mydata.brutalist" } },
   "lastTheme": "kiwi"
 }
 ```
@@ -445,11 +445,11 @@ Phases 0 to 3 are the themes foundation and come before the phones (M1b). Phase 
 | 0. Decide (done 2026-10-23) | The decision record; this folder; `theming.md`, the `README.md` rules (they became Kiwi's), `platforms.md` and CLAUDE.md rewritten | — | — |
 | 1. Run-time spec, no visible change | Format, schema and validator in Dart; built-ins from today's values (`tokens.json` and `themes.json`: the same colours, Kiwi's shape and density for all; 3.1); the resolver, `MyDataLook` and its extensions; generator changes; the codemod across packages and apps; the `MacLook` split | The apps look exactly as before | Every existing golden **byte-identical**; validator unit tests (examples, `bad-*`); schema test; contrast of the six; `no_literals` extended to the static classes |
 | 2. Per app, per device | `ThemeController`, the `themes` keys, migration, deprecating the host route, the gallery sheet with live preview, View > Theme…, myData's Appearance (apps, Use everywhere, library list), System as default | Each app picks its own theme of the seven; Use everywhere | Store and migration tests (macOS → System; elsewhere → host theme); two apps following one file; a fake-host test that the 410 route is never called; gallery keys (arrows preview, Escape reverts) |
-| 3. Design rules | Shape and corner styles with the shape-following focus ring; density presets and floors; borders; elevation; the type catalogue with on-demand fonts; icon sets with semantic ids; motion personalities; the component variants (button, list, selection, inputs, avatar, tabs, sidebar, toolbar, chat, month, today); drawn themes inside the Mac window; the new disabled style. The six rebuilt as full looks from the files in this folder, and `themes.json` retired | Kiwi, Graphite, Dusk, Plum, Rose and Amber each look distinct | Variant goldens, **one per variant value** in both modes (about 120 images); pairwise golden sets for risky pairs (cut with focus, table with inverse, brutal with collapse press); font budget test; icon-mapping completeness; theme fuzz (2.5) starts here |
+| 3. Design rules | Shape and corner styles with the shape-following focus ring; density presets and floors; borders; elevation; the type catalogue with on-demand fonts; icon sets with semantic ids; motion personalities; the component variants (button, list, selection, inputs, avatar, tabs, sidebar, toolbar, chat, month, today); drawn themes inside the Mac window; the new disabled style. The six rebuilt as full looks from the files in this folder, and `themes.json` retired | Kiwi, Hairline, Frosted, Journal, Sticker and Paperback each look distinct | Variant goldens, **one per variant value** in both modes (about 120 images); pairwise golden sets for risky pairs (cut with focus, table with inverse, brutal with collapse press); font budget test; icon-mapping completeness; theme fuzz (2.5) starts here |
 | 3½. One harness | One validator (the Dart one) and one preview harness; every prototype the owner picked re-rendered from them in the real app | Like-for-like previews | Each passes in both modes and at increased contrast |
-| 4. New built-ins | **Only the ones the owner picks from the gallery** (not picked yet). In batches; proposed order: Contrast, Still, Roomy, then Prompt, Notebook, Concrete, Beige, Grid, Cyanotype, Neon, Primary, Ma, Tabular. Status and `data-*` colours tuned per theme. A theme that does not earn its place in the real app is cut | Up to 20 themes | Every theme: contrast at both levels; 4 app scenes × 2 modes screen goldens (160 images for 20 themes); a review by eye on a Mac before each batch is merged |
+| 4. New built-ins | **Only the ones the owner picks from the gallery** (not picked yet). In batches; proposed order: High Contrast, E-ink, Large, then Terminal, Notebook, Brutalist, Retro Desktop, Swiss, Blueprint, Arcade, Geometric, Zen, Ledger. Status and `data-*` colours tuned per theme. A theme that does not earn its place in the real app is cut | Up to 20 themes | Every theme: contrast at both levels; 4 app scenes × 2 modes screen goldens (160 images for 20 themes); a review by eye on a Mac before each batch is merged |
 | 5. Editor and sharing | Duplicate and edit, with checks and Fix; `.mydatatheme` export and import without images; copy and paste; the UTI and double-click | Make and share themes | Import refusal tests mirroring the host's zip tests; round trip (export → import → the same resolved look); editor: Save disabled with a reason, Fix reaches a pass, drafts survive |
-| 6. Materials | Gradients, patterns, glass with `BackdropGroup`, background images in the zip with re-encoding and percentile contrast | Dusk's glass, Notebook's rules, image grounds | Raster-time budget in a profile run with blur on; image caps (size, pixels, magic bytes, EXIF gone); reduced transparency turns everything solid |
+| 6. Materials | Gradients, patterns, glass with `BackdropGroup`, background images in the zip with re-encoding and percentile contrast | Frosted's glass, Notebook's rules, image grounds | Raster-time budget in a profile run with blur on; image caps (size, pixels, magic bytes, EXIF gone); reduced transparency turns everything solid |
 | 7. Other platforms' System | Android: Material 3 and dynamic colour. Windows and Linux: each with its platform pass | System means native there | Per-platform screen goldens |
 
 Goldens in total come to about 300 to 400 images, not the 1,600 of every widget in every look. Widget goldens stay at System and Kiwi; variants are covered once each; themes are covered on app screens.
@@ -465,7 +465,7 @@ Goldens in total come to about 300 to 400 images, not the 1,600 of every widget 
 - **Image decode.** Decode imported images in an isolate with a time limit, and check the header's width and height against the caps before decoding (a 4 MB PNG can declare 30,000 × 30,000).
 - **Use everywhere clears every per-app choice.** It has an Undo toast in the gallery and myData's Appearance, since it cannot be told apart from a slip (phase 2).
 - **Windows contrast themes and forced colours** are not seen by Flutter (`MediaQueryData.highContrast` is iOS and Android only), so System on Windows cannot follow them yet. Unverified whether a platform channel can read `SPI_GETHIGHCONTRAST`.
-- **CJK and other scripts.** Fonts ship as Latin subsets, so Ma's Japanese fonts draw only Latin; Japanese, Devanagari and other names fall back to the OS fonts (and, on the web, to `fonts.gstatic.com` until `fontFallbackBaseUrl` points at the host). Shippori Mincho with Japanese is about 8.6 MB per weight.
+- **CJK and other scripts.** Fonts ship as Latin subsets, so Zen's Japanese fonts draw only Latin; Japanese, Devanagari and other names fall back to the OS fonts (and, on the web, to `fonts.gstatic.com` until `fontFallbackBaseUrl` points at the host). Shippori Mincho with Japanese is about 8.6 MB per weight.
 - **Editor scope for format 1.** 43 roles × 2 modes plus 12 variant groups is too much for a first editor. Ship seeds, the variant pickers and type, shape and density presets; derive everything else; keep "More colours" behind a disclosure; leave materials and images for phase 6.
 - **Previews use synthetic data only:** Ofcom's drama range (+44 7700 900xxx) or NANP 555-0100 to 0199, `example.org`/`.com`/`.net`. The batch-3 preview had "+64 21 555 0100", a normal New Zealand mobile number; it is fixed.
 
@@ -475,7 +475,7 @@ The owner accepted every recommendation (`docs/decisions/2026-10-23-themes.md`):
 
 1. Built-in theme files are **CC0-1.0**, so a shared duplicate carries no AGPL obligation.
 2. Fonts are **bundled as Latin subsets in every app**, with a test that fails above the cap (6 MB per app).
-3. **No images in theme files until phase 6**; decide then, after using Dusk and Notebook.
+3. **No images in theme files until phase 6**; decide then, after using Frosted and Notebook.
 4. **Build new themes in batches** and cut any that does not earn its place in the real app. Which new themes: the owner's pick, still open.
 5. **The new disabled style** for filled buttons (6a), in every theme.
 6. **Kiwi's visible changes** from the contrast audit (link colour, glass at 80–84%) land in phase 3.

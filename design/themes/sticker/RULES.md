@@ -1,6 +1,6 @@
-# Rose: design rules
+# Sticker: design rules
 
-`mydata.rose` 1.0.0, CC0-1.0. One of the six current themes, rebuilt as a full design language. The accent is today's Rose (#A63A5B; #EFA3B8 dark).
+`mydata.sticker` 1.0.0, CC0-1.0. One of the six current themes, rebuilt as a full design language. Was Rose (renamed 2026-10-23: a theme is named after its design language, not its colour). The accent is today's Rose (#A63A5B; #EFA3B8 dark).
 
 ## Personality
 

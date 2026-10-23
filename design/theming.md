@@ -24,12 +24,12 @@ A theme changes how the whole app looks: colours, type, shape, density, borders,
 | Theme | Character | Rules |
 |---|---|---|
 | System | Looks like the rest of your computer: the Mac shell on macOS. On Windows, Linux and the web, Kiwi in the platform's font until that platform's own pass; Android waits for its Material 3 pass. The picker says so | `themes/system/` |
-| Kiwi | Soft grey grounds, white cards, continuous corners, pills, tinted tiles, one kiwi green | `themes/kiwi/` |
-| Graphite | Precise, grey and quiet: hairlines, small corners, a black bar on the selected row | `themes/graphite/` |
-| Dusk | An evening sky behind frosted glass, slow motion | `themes/dusk/` |
-| Plum | Set like a literary journal: serif titles, ink rules instead of boxes | `themes/plum/` |
-| Rose | Chunky, round and cheerful: 2 px outlines, sticker shadows | `themes/rose/` |
-| Amber | Warm paper under a reading lamp: a book serif, italic secondary text | `themes/amber/` |
+| Kiwi | The house style: soft grey grounds, white cards, continuous corners, pills, tinted tiles, one accent | `themes/kiwi/` |
+| Hairline (was Graphite) | Precise and quiet: hairlines, small corners, a black bar on the selected row | `themes/hairline/` |
+| Frosted (was Dusk) | A sky behind frosted glass, slow motion | `themes/frosted/` |
+| Journal (was Plum) | Set like a literary journal: serif titles, ink rules instead of boxes | `themes/journal/` |
+| Sticker (was Rose) | Chunky, round and cheerful: 2 px outlines, sticker shadows | `themes/sticker/` |
+| Paperback (was Amber) | Paper under a reading lamp: a book serif, italic secondary text | `themes/paperback/` |
 
 Each folder holds the theme file and its `RULES.md` (its design language, do and don't, accessibility, font and icon licences). The six drawn themes are the phase 3 targets; until then they differ only in their accent. New built-ins are the owner's pick from the prototype gallery; none is added until then. "System, tinted" (System with another accent) is a custom theme, phase 5.
 

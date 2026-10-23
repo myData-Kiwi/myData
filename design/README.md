@@ -16,7 +16,7 @@ A light grey room with white furniture in it.
 
 - **The ground is soft grey**, never pure white. Content sits on white cards that lift off it with a faint shadow. There are almost no borders.
 - **Everything is rounded.** Cards have large corners; buttons, chips and switches are pills.
-- **One theme colour.** Kiwi green by default; the user can pick another theme, including Graphite, which has no colour at all. The colour marks the primary action, the current place and anything switched on. Its pale tint does most of the work: tonal buttons, selected rows, icon tiles.
+- **One theme colour.** Kiwi green by default; the user can pick another theme or palette, including Hairline's Graphite, which has no colour at all. The colour marks the primary action, the current place and anything switched on. Its pale tint does most of the work: tonal buttons, selected rows, icon tiles.
 - **Small tinted tiles carry the personality.** Each row and stat has an icon on a softly coloured rounded tile. They give a screen rhythm and colour without filling it with colour.
 - **Big, confident titles.** A screen opens with a large bold title in Plus Jakarta Sans.
 
@@ -26,7 +26,7 @@ The kiwi stays in the logo, the app icon, empty screens and the loading slice. I
 
 1. **Calm, not empty.** Quiet does not mean plain: each theme gives it character in its own way (Kiwi with depth, rounded shapes, tinted tiles and strong titles).
 2. **The user's content is the loudest thing on screen.**
-3. **One way to separate things per theme.** Kiwi uses air over lines: space and a soft lift, a divider only inside a grouped list. Other themes say theirs in their RULES.md (Plum: ink rules; Graphite: hairlines).
+3. **One way to separate things per theme.** Kiwi uses air over lines: space and a soft lift, a divider only inside a grouped list. Other themes say theirs in their RULES.md (Journal: ink rules; Hairline: hairlines).
 4. **Say what will happen.** A button states its result; anything irreversible shows exactly what it will do first.
 5. **Works without AI.** Every screen is complete with the assistant off.
 6. **One family.** The same controls, places and words in every app.
@@ -60,7 +60,7 @@ Each theme gives these roles their values (`themes/<slug>/theme.json`; 43 roles,
 Rules in every theme:
 
 - Status is a tonal chip: the `-soft` fill with text in the matching status colour, always with a word.
-- Links are underlined, so a theme whose accent is close to the text (Graphite) still shows them.
+- Links are underlined, so a palette whose accent is close to the text (Hairline's Graphite) still shows them.
 - `data-*` colours are data, never control colours.
 
 Kiwi's rules:
@@ -72,7 +72,7 @@ Kiwi's rules:
 
 ## Focus and danger
 
-Every drawn theme: its own `focus` colour (Rose's is blue), with the `ink` rule below and a two-tone ring where it sits on a fill (`themes/ARCHITECTURE.md` 2.3). Under System on macOS the focus ring is the system's (`focus-ring` in `tokens.json` "macos", read from the system) on every control, red ones included; the values below are Kiwi's.
+Every drawn theme: its own `focus` colour (Sticker's is blue), with the `ink` rule below and a two-tone ring where it sits on a fill (`themes/ARCHITECTURE.md` 2.3). Under System on macOS the focus ring is the system's (`focus-ring` in `tokens.json` "macos", read from the system) on every control, red ones included; the values below are Kiwi's.
 
 `focus` and `danger` have the same values (#B3261E light, #F2867E dark). The red ring shows beside every theme's accent and on every ground (5.2 to 6.5:1 in light mode, 5.4 to 8.0:1 in dark, on `bg`, the surfaces and the soft fills), but next to anything red it cannot be told apart from the red. So:
 

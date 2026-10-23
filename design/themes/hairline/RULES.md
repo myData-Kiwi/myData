@@ -1,6 +1,6 @@
-# Graphite: design rules
+# Hairline: design rules
 
-`mydata.graphite` 1.0.0, CC0-1.0. One of the six current themes, rebuilt as a full design language. The colours are today's Graphite accent (`design/themes.json`) on a new, quieter frame.
+`mydata.hairline` 1.0.0, CC0-1.0. One of the six current themes, rebuilt as a full design language. Was Graphite (renamed 2026-10-23: a theme is named after its design language, not its colour). The colours are today's Graphite accent (`design/themes.json`) on a new, quieter frame.
 
 ## Personality
 
@@ -96,11 +96,11 @@ Crisp: about 90 ms (110 ms × 0.8), no overshoot. A press dims (opacity), never 
 
 ## Feasibility in Flutter
 
-Cheap. No blur, no painter, no extra shape. Inter adds one variable family (Latin subset). The one new widget work is the leading-bar selection, which Grid and Ma reuse.
+Cheap. No blur, no painter, no extra shape. Inter adds one variable family (Latin subset). The one new widget work is the leading-bar selection, which Swiss and Zen reuse.
 
 ## Name
 
-"Graphite" is also a macOS accent colour name (not on Apple's trademark list, per Research B). On a Mac, Settings should say "the Graphite theme" so it is not confused with the system accent.
+Was Graphite. "Graphite" is also a macOS accent colour name (not on Apple's trademark list, per Research B); naming the theme after its language, Hairline, keeps it apart from the system accent.
 
 ## Changed by the critique (2026-10-23)
 

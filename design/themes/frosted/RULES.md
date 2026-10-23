@@ -1,6 +1,6 @@
-# Dusk
+# Frosted
 
-`mydata.dusk`, one of the six current themes, rebuilt as a full look. File: `theme.json`.
+`mydata.frosted`, one of the six current themes, rebuilt as a full look. Was Dusk (renamed 2026-10-23: a theme is named after its design language, not its colour). File: `theme.json`.
 
 ## Personality
 

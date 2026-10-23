@@ -1,14 +1,14 @@
 {
   "format": 1,
-  "id": "mydata.graphite",
-  "name": "Graphite",
+  "id": "mydata.hairline",
+  "name": "Hairline",
   "version": "1.0.0",
   "author": "myData",
   "licence": "CC0-1.0",
-  "description": "A quiet monochrome tool: Inter, hairlines, small corners, no tiles, a black bar on the selected row and crisp motion.",
+  "description": "A quiet, precise tool: Inter, hairlines, small corners, no tiles, a black bar on the selected row and crisp motion.",
   "frame": "drawn",
   "preview": {
-    "blurb": "Precise, grey and quiet.",
+    "blurb": "Precise and quiet: hairlines, small corners.",
     "scene": "contacts"
   },
   "colours": {

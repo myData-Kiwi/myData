@@ -1,6 +1,6 @@
-# Plum: design rules
+# Journal: design rules
 
-`mydata.plum` 1.0.0, CC0-1.0. Today's purple theme, reinterpreted as an editorial language.
+`mydata.journal` 1.0.0, CC0-1.0. Was Plum (renamed 2026-10-23: a theme is named after its design language, not its colour). Today's purple theme, reinterpreted as an editorial language.
 
 ## Personality
 
