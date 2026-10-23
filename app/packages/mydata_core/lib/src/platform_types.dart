@@ -17,7 +17,8 @@ class HostEnvironment {
   final List<String>? stopCommand;
 }
 
-/// The start and stop commands in a decoded `<home>/app_config.json`, written by `uv run mydata dev-setup`.
+/// The start and stop commands in a decoded `<home>/app_config.json`, written by `mydata service install` (an
+/// installed host) or `uv run mydata dev-setup` (a development checkout).
 /// A file written before it had `stop_command` gets the start command with its final "start" made "stop".
 ({List<String>? start, List<String>? stop}) hostCommandsFrom(Object? appConfig) {
   List<String>? command(Object? v) =>
@@ -71,7 +72,7 @@ abstract class HostPlatform {
 
   /// Run [HostEnvironment.stopCommand] with [replaceHostArguments] (`mydata stop --unless-current --expect ...`),
   /// which returns once the host has stopped, or at once with [HostExit.wouldNotMatch]. Used only to replace a
-  /// host from another build, which is then started again; not the myData app's Quit.
+  /// host from another build, which is then started again; not the myData app's Stop host.
   Future<LaunchResult> stopHost(HostEnvironment env);
 
   /// Bring up the myData app (on its Setup screen). Returns false where this is not possible.

@@ -88,7 +88,7 @@ The host has read everything and written nothing. The app shows what the preview
 
 - One request (`POST /import/previews/{id}/commit`): the host makes a backup copy of the contacts first, then saves every card in one transaction. It takes a few seconds (about 6 s for 44,000 cards); the host reports no progress and cannot be cancelled once sent, and does not need to be: it is all or nothing, and Undo import follows.
 - The title is "Importing 128 contacts". Under it an indeterminate ProgressBar labelled "Making a backup copy, then saving", and one `caption`: "Nothing is in myData until this ends. Undo import is offered then." No buttons. The step shows only when the request takes longer than 1 second, so a small file goes straight from Review to Done without a flash.
-- Changing section, closing the window or switching apps does not stop it; coming back shows Done. Quitting myData stops the host: an import cut short writes nothing (one transaction) and leaves no history row.
+- Changing section, closing the window or switching apps does not stop it; coming back shows Done. Stopping the host (myData's Stop host, `mydata stop`) cuts it short: an import cut short writes nothing (one transaction) and leaves no history row.
 - **Failed:** the page returns to Review, as it was, with a line in `danger` above the footer, read at once:
   - the host did not answer: "The contacts were not imported. The host stopped answering. Nothing is in myData; check that it is running, then press Import again.";
   - the backup copy failed (503): "The contacts were not imported: the host could not make its backup copy first. Nothing changed. Check that the host's disk has free space, then press Import again.";

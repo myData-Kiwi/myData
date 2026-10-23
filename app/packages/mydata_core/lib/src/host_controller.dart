@@ -94,12 +94,12 @@ enum _Mismatch {
 }
 
 /// Finds the host, starts it if needed (as a separate process that outlives this app), waits for it,
-/// and keeps watching it. Every app uses one; only the myData app ever calls [stopHost].
+/// and keeps watching it. Every app uses one; only the myData app ever calls [stopHost] (its Stop host).
 ///
 /// A host this app cannot use as it is (its version or API version differs from [expectedHostVersion] and
 /// [expectedHostApiVersion], its code changed on disk since it started, or it refuses this app's token) is
 /// replaced on connect: `mydata stop --unless-current --expect <this app's versions>`, then a start. Any app
-/// may do this; it is not the myData app's Quit, since a host is started again at once. The stop does
+/// may do this; it is not the myData app's Stop host, since a host is started again at once. The stop does
 /// nothing when it cannot help: when the host the start command starts is another build than this app's as
 /// well (a stale app, or a checkout that moved on), and when the running host is already current (another app
 /// just replaced it). So an app never stops a host it could not use after, and Retry does not stop it again.
@@ -165,7 +165,9 @@ class HostController extends ChangeNotifier {
         _go(
           HostPhase.notConfigured,
           error: 'There is no command to start the myData host with.',
-          detail: 'Development: run `uv run mydata dev-setup` in host/ once, then retry.\nHost folder: ${env.home}',
+          detail:
+              'Install the host (host/packaging/macos/install.sh), or for development run `uv run mydata dev-setup` '
+              'in host/ once, then retry.\nHost folder: ${env.home}',
         );
         return;
       }
@@ -378,14 +380,28 @@ class HostController extends ChangeNotifier {
     if (!_disposed) notifyListeners();
   }
 
-  /// Stop the host (its Quit). Only the myData app owns the host's lifetime; the host refuses this from others.
+  /// What the apps show once the myData app's Stop host has stopped the host.
+  static const stoppedMessage = 'The myData host is stopped.';
+
+  /// Stop the host: the myData app's Stop host (POST /shutdown, which the host refuses from other apps). Quitting an
+  /// app never stops it. The host exits cleanly, so launchd (an installed host) leaves it stopped until [connect]
+  /// starts it again (Start host, Retry, or any app connecting) or the next login.
   /// Replacing a host from another build on connect is different: [HostPlatform.stopHost], then a start.
   Future<bool> stopHost() async {
     final conn = connection;
-    if (conn == null) return false;
+    if (conn == null || _busy) return false;
     try {
-      await conn.host.shutdownHost();
+      // The raw response: the generated client cannot decode the body ({"stopping": true}) into its map type.
+      final r = await conn.host.shutdownHostWithHttpInfo();
+      if (r.statusCode >= 400) return false;
       _poll?.cancel();
+      connection = null;
+      status = null;
+      _go(
+        HostPhase.unreachable,
+        error: stoppedMessage,
+        detail: 'Start it again from the menu-bar icon, or with Retry.',
+      );
       return true;
     } on Object {
       return false;

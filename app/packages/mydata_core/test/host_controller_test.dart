@@ -33,6 +33,13 @@ class FakeHost {
     server!.listen((req) {
       if (code != null) {
         req.response.statusCode = code!;
+      } else if (answering && req.method == 'POST' && req.uri.path == '/shutdown') {
+        // The myData app's Stop host: the host answers, then exits.
+        req.response
+          ..statusCode = 202
+          ..headers.contentType = ContentType.json
+          ..write(jsonEncode({'stopping': true}));
+        stop();
       } else if (!answering || req.headers.value('authorization') != 'Bearer tok') {
         req.response.statusCode = answering ? 401 : 503;
       } else {
@@ -158,6 +165,24 @@ void main() {
     expect(c.phase, HostPhase.running);
     expect(c.status!.version, '0.1.0');
     expect(p.starts, 0);
+    c.dispose();
+  });
+
+  test("Stop host stops the host and says so; connecting starts it again", () async {
+    final host = FakeHost();
+    final p = FakePlatform(await host.start(), onStart: host.startCurrent);
+    final c = HostController(app: 'mydata', platform: p);
+    await c.connect();
+    expect(c.phase, HostPhase.running);
+    expect(await c.stopHost(), isTrue);
+    expect(host.stopped, 1);
+    expect(c.phase, HostPhase.unreachable);
+    expect(c.error, HostController.stoppedMessage);
+    expect(c.connection, isNull);
+    expect(await c.stopHost(), isFalse); // nothing to stop
+    await c.connect(); // Start host
+    expect(p.calls, ['start']);
+    expect(c.phase, HostPhase.running);
     c.dispose();
   });
 

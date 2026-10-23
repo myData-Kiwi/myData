@@ -82,7 +82,7 @@ On a Mac, each app has a real menu bar. macOS draws it, so it follows macOS and 
 
 | Menu | Items, with shortcuts | Notes |
 |---|---|---|
-| The app's menu ("myContacts") | About myContacts; Hide myContacts ⌘H; Hide Others ⌥⌘H; Show All; Quit myContacts ⌘Q | macOS's own items. Quit closes the app; the host keeps running. myData alone adds Settings… ⌘, here, and its Quit stops the host as it does today |
+| The app's menu ("myContacts") | About myContacts; Hide myContacts ⌘H; Hide Others ⌥⌘H; Show All; Quit myContacts ⌘Q | macOS's own items. Quit closes the app; the host keeps running (a login service). myData alone adds Settings… ⌘, here; its menu-bar icon has Stop host and Start host |
 | File | New Contact ⌘N (myContacts) or New Event ⌘N and New Calendar… ⌥⌘N (myCalendar); Import… ; Save ⌘S; Close Window ⌘W | Import… opens myData at its Import section with the link `mydata://import/contacts` (phase 4; ImportFlow, "Where it lives"). In myData itself, File has Import… too, which goes to that section. Save is enabled while an Inspector is open (its ⌘S). New while an Inspector has changes asks "Discard changes?" first, as the Inspector does |
 | Edit | Undo *action* ⌘Z; Redo *action* ⇧⌘Z; Cut ⌘X; Copy ⌘C; Paste ⌘V; Select All ⌘A; Edit Contact or Edit Event ⌘E; Delete Contact or Delete Event ⌘⌫; myCalendar also Edit Calendar… and Delete Calendar…, for the calendar selected in Calendars | See below. Edit Contact and Edit Event open the Inspector for the selected record; Return on a selected row in the list does the same |
 | View | One item per sidebar section, in sidebar order, ⌘1, ⌘2…, the current one checked (myCalendar: Month ⌘1, Calendars ⌘2); myCalendar also Go to Today ⌘T; Enter Full Screen ⌃⌘F | Enter Full Screen is macOS's own |

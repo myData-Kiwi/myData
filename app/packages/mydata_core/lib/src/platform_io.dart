@@ -59,13 +59,9 @@ class _IoPlatform implements HostPlatform {
     );
   }
 
-  /// ┌────────────────────────────────────────────────────────────────────────────────────────┐
-  /// │ HOW THE HOST IS STARTED                                                                │
-  /// │ Development: the commands in `<home>/app_config.json`, written by `uv run mydata       │
-  /// │ dev-setup` in host/ (this checkout's Python running `mydata start` and `mydata stop`). │
-  /// │ BUNDLED HOST (later): when the apps ship with a packaged host binary, return its path  │
-  /// │ here (e.g. inside the app bundle) and keep app_config.json as a development override.  │
-  /// └────────────────────────────────────────────────────────────────────────────────────────┘
+  /// How the host is started and stopped: the commands in `<home>/app_config.json`. An installed host (a login
+  /// service, host/packaging/macos/install.sh) writes its own `mydata start` and `mydata stop` there; a development
+  /// checkout writes its Python's with `uv run mydata dev-setup`.
   Future<({List<String>? start, List<String>? stop})> _hostCommands(String home) async {
     final file = File('$home/app_config.json');
     if (await file.exists()) {
@@ -75,7 +71,6 @@ class _IoPlatform implements HostPlatform {
         return (start: null, stop: null);
       }
     }
-    // TODO(bundled host): return the bundled host binary's path and arguments here.
     return (start: null, stop: null);
   }
 

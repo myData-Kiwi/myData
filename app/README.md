@@ -2,7 +2,7 @@
 
 A family of separate apps built from shared code. There is no combined app.
 
-- `apps/mydata`: the **myData** app: Setup, Status and Settings. It owns the host's lifetime and has a menu-bar icon with Open and Quit. Closing its window keeps the host running; Quit, from the icon or with Cmd+Q, stops it. Status lists myContacts, myCalendar and myAssistant (installed or not, the counts of contacts and calendars and their sources, Open). It opens `mydata://settings/sources` links at Settings, Sources (after setup, if a link arrives during it).
+- `apps/mydata`: the **myData** app: Setup, Status and Settings. It has a menu-bar icon with Open, Stop host (Start host once it is stopped) and Quit. Closing its window keeps the app running; Quit, from the icon or with Cmd+Q, quits the app only: the host is a login service that outlives every app. Only myData's Stop host (and the `mydata` command) stops it. Status lists myContacts, myCalendar and myAssistant (installed or not, the counts of contacts and calendars and their sources, Open). It opens `mydata://settings/sources` links at Settings, Sources (after setup, if a link arrives during it).
 - `apps/myassistant`: the **myAssistant** chat app. It can start the host but never stops it. In real mode a contact or event in a result opens in myContacts or myCalendar when that app is installed; otherwise the row is not interactive.
 - `apps/mycontacts`: the **myContacts** app: the contacts the host mirrors from its sources, read-only. It can start the host but never stops it, opens `mycontacts://contact/<id>` links, and remembers the contact last opened on this device.
 - `apps/mycalendar`: the **myCalendar** app: a month of the calendars the host mirrors, the selected day's events, and which calendars this device shows, read-only. It can start the host but never stops it, opens `mycalendar://day/<YYYY-MM-DD>` links, and shows This Mac's window limit (and why a source reads nothing) above the grid. Times in an event's own zone come from macOS's time zone database over the `mycalendar/zones` channel in its runner.
@@ -27,6 +27,6 @@ tool/integration_test.sh                             # both apps on macOS, each 
 tool/generate_client.sh                              # after changing the host API (regenerate host/openapi.json first)
 ```
 
-**Starting the host.** The apps start it with the command in `app_config.json` in the host's folder; `mydata dev-setup` writes it. The place where a packaged app will start a bundled host binary instead is marked in `packages/mydata_core/lib/src/platform_io.dart`.
+**Starting the host.** The apps start it with the command in `app_config.json` in the host's folder. An installed host (`host/packaging/macos/install.sh`) writes its own `mydata start` and `mydata stop` there (start asks launchd); `mydata dev-setup` writes a development checkout's instead, and refuses a folder an installed host serves.
 
 **Platforms.** macOS is the target. The web build compiles and, when opened in a browser, explains that it needs the desktop app: a browser can neither start the host nor read its token files. Windows and Linux code paths compile, but Flutter only builds those apps on those systems, so they have not been built here. macOS builds are not sandboxed: the apps read the host's folder and start the host process.

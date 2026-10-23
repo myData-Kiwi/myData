@@ -215,7 +215,7 @@ class AppMenuBar extends StatefulWidget {
   /// myData only: Settings… ⌘, in the app's menu.
   final VoidCallback? onSettings;
 
-  /// myData only: its Quit also stops the host. Other apps leave it null and get macOS's own Quit.
+  /// An app's own Quit, when it needs one; null gives macOS's own. Quitting never stops the host (a login service).
   final VoidCallback? onQuit;
 
   /// Close Window ⌘W. Null disables it (Flutter has no call to close the window by itself).

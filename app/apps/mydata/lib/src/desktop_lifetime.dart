@@ -1,22 +1,21 @@
-import 'dart:ui' show AppExitResponse;
-
 import 'package:flutter/foundation.dart';
-import 'package:flutter/widgets.dart' show AppLifecycleListener;
 import 'package:mydata_core/mydata_core.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
 
-/// The myData app owns the host's lifetime. Closing the window only hides it: the app and the host keep
-/// running. The menu-bar (tray) icon opens the window again. Quitting, from the icon's menu or with the
-/// system's Quit (Cmd+Q, the app menu, logging out), stops the host, then the app.
+/// Closing the window only hides it: the app keeps running, and the menu-bar (tray) icon opens the window again.
+/// Quitting (the icon's menu, Cmd+Q, the app menu, logging out) quits the app only: the host is a login service
+/// that outlives every app. The icon's menu has Stop host (POST /shutdown, which the host accepts only from myData
+/// and the `mydata` command) and, once it is stopped, Start host.
 class DesktopLifetime with WindowListener, TrayListener {
   DesktopLifetime._(this._controller);
 
   final HostController _controller;
-  AppLifecycleListener? _exitListener;
-  bool _quitting = false;
+  ({String key, String label, bool enabled})? _hostItem;
 
   static const _open = 'open';
+  static const _stopHost = 'stop-host';
+  static const _startHost = 'start-host';
   static const _quit = 'quit';
 
   static bool get supported =>
@@ -29,34 +28,60 @@ class DesktopLifetime with WindowListener, TrayListener {
     await windowManager.ensureInitialized();
     await windowManager.setTitle('myData');
     final lifetime = DesktopLifetime._(controller);
-    // The system's Quit asks the app first: stop the host, then let it exit.
-    lifetime._exitListener = AppLifecycleListener(onExitRequested: () async {
-      await lifetime._stopHostOnce();
-      return AppExitResponse.exit;
-    });
     // Without a tray icon a hidden window could not be opened again, so closing it then quits as usual.
     if (!await lifetime._createTrayIcon()) return;
+    controller.addListener(lifetime._updateMenu);
     await windowManager.setPreventClose(true);
     windowManager.addListener(lifetime);
   }
+
+  /// Stop host while the host is running, Start host once it is not. While the app is still finding, starting or
+  /// replacing it, or has nothing to start it with, the item says so instead and is disabled.
+  static ({String key, String label, bool enabled}) hostItemFor(HostPhase phase) => switch (phase) {
+    HostPhase.running => (key: _stopHost, label: 'Stop host', enabled: true),
+    HostPhase.checking => (key: _startHost, label: 'Looking for the host…', enabled: false),
+    HostPhase.starting => (key: _startHost, label: 'Starting the host…', enabled: false),
+    HostPhase.restarting => (key: _startHost, label: 'Restarting the host…', enabled: false),
+    HostPhase.notConfigured || HostPhase.unsupported => (key: _startHost, label: 'No host to start', enabled: false),
+    _ => (key: _startHost, label: 'Start host', enabled: true),
+  };
 
   Future<bool> _createTrayIcon() async {
     try {
       // macOS draws an 18 pt menu-bar icon, so the @2x file keeps it sharp. A template image follows the
       // menu bar's light or dark appearance.
-      await trayManager.setIcon(_isMacOS ? 'assets/tray/tray_icon@2x.png' : 'assets/tray/tray_icon.png',
-          isTemplate: _isMacOS);
+      await trayManager.setIcon(
+        _isMacOS ? 'assets/tray/tray_icon@2x.png' : 'assets/tray/tray_icon.png',
+        isTemplate: _isMacOS,
+      );
       if (defaultTargetPlatform != TargetPlatform.linux) await trayManager.setToolTip('myData');
-      await trayManager.setContextMenu(Menu(items: [
-        MenuItem(key: _open, label: 'Open myData'),
-        MenuItem.separator(),
-        MenuItem(key: _quit, label: 'Quit myData'),
-      ]));
+      await _setMenu(hostItemFor(_controller.phase));
       trayManager.addListener(this);
       return true;
     } on Object {
       return false;
     }
+  }
+
+  Future<void> _setMenu(({String key, String label, bool enabled}) host) async {
+    _hostItem = host;
+    await trayManager.setContextMenu(
+      Menu(
+        items: [
+          MenuItem(key: _open, label: 'Open myData'),
+          MenuItem.separator(),
+          MenuItem(key: host.key, label: host.label, disabled: !host.enabled),
+          MenuItem.separator(),
+          MenuItem(key: _quit, label: 'Quit myData'),
+        ],
+      ),
+    );
+  }
+
+  /// The menu follows the host: rebuilt only when its host item changes, not on every status poll.
+  void _updateMenu() {
+    final host = hostItemFor(_controller.phase);
+    if (host != _hostItem) _setMenu(host).ignore();
   }
 
   // Menu-bar icons open their menu on a click; Windows trays on a right click, and a click opens the app.
@@ -71,6 +96,10 @@ class DesktopLifetime with WindowListener, TrayListener {
     switch (menuItem.key) {
       case _open:
         _show();
+      case _stopHost:
+        _controller.stopHost().ignore();
+      case _startHost:
+        _controller.connect().ignore();
       case _quit:
         _quitApp();
     }
@@ -84,16 +113,9 @@ class DesktopLifetime with WindowListener, TrayListener {
     await windowManager.focus();
   }
 
-  /// If the host is already gone there is nothing to stop; quit anyway.
-  Future<void> _stopHostOnce() async {
-    if (_quitting) return;
-    _quitting = true;
-    await _controller.stopHost();
-  }
-
+  /// Quits the app only; the host keeps running.
   Future<void> _quitApp() async {
-    await _stopHostOnce();
-    _exitListener?.dispose();
+    _controller.removeListener(_updateMenu);
     trayManager.removeListener(this);
     await trayManager.destroy();
     windowManager.removeListener(this);
