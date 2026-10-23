@@ -72,6 +72,16 @@ void main() {
     expect(ThemeLibrary.system.palette('kiwi'), isNull);
   });
 
+  test('any theme\'s look is resolved once per file and kept; a file read again is resolved again', () {
+    ThemeFile read() => ThemeFile.fromJson(
+        {...ThemeLibrary.kiwi.json, 'id': '0b6e2f3a-1c4d-4e5f-8a9b-0c1d2e3f4a5b'}, base: ThemeLibrary.kiwi.json);
+    final theme = read();
+    final a = ThemeLibrary.look(theme, paletteId: 'rose', brightness: Brightness.dark);
+    expect(identical(a, ThemeLibrary.look(theme, paletteId: 'rose', brightness: Brightness.dark)), isTrue);
+    expect(identical(a, ThemeLibrary.look(theme, paletteId: 'rose', brightness: Brightness.light)), isFalse);
+    expect(identical(a, ThemeLibrary.look(read(), paletteId: 'rose', brightness: Brightness.dark)), isFalse);
+  });
+
   test('a theme change cross-fades colours and sizes and switches the rest half way', () {
     final a = ThemeLibrary.kiwiLook('kiwi', Brightness.light);
     final b = MyDataLook.fallback(Brightness.dark).copyWith(frame: LookFrame.system, themeId: 'mydata.system');

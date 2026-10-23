@@ -61,9 +61,12 @@ abstract final class ThemeLibrary {
   /// file may be).
   static final Map<String, Object?> _schema = jsonDecode(themeSchemaJson) as Map<String, Object?>;
 
-  static final _looks = <(String, String?, Brightness, bool, TargetPlatform), MyDataLook>{};
+  /// Resolved looks, per theme file (the object: a file read again, or edited, is resolved again) and
+  /// (palette, brightness, contrast, platform). Kept as long as the file is.
+  static final _looks = Expando<Map<(String?, Brightness, bool, TargetPlatform), MyDataLook>>('looks');
 
-  /// [theme] in [paletteId] for [brightness], resolved once and kept.
+  /// [theme] in [paletteId] for [brightness], resolved once per theme file and kept, so a rebuild gets the
+  /// same look (and ThemeData does not animate between two equal ones).
   static MyDataLook look(
     ThemeFile theme, {
     String? paletteId,
@@ -72,17 +75,13 @@ abstract final class ThemeLibrary {
     TargetPlatform? platform,
   }) {
     final p = platform ?? defaultTargetPlatform;
-    final key = (theme.id, theme.palette(paletteId)?.id, brightness, increasedContrast, p);
-    if (identical(theme, kiwi) || identical(theme, system)) {
-      return _looks[key] ??= MyDataLook.resolve(theme,
-          paletteId: paletteId,
-          brightness: brightness,
-          defaults: defaults,
-          increasedContrast: increasedContrast,
-          platform: p);
-    }
-    return MyDataLook.resolve(theme,
-        paletteId: paletteId, brightness: brightness, defaults: defaults, increasedContrast: increasedContrast, platform: p);
+    final key = (theme.palette(paletteId)?.id, brightness, increasedContrast, p);
+    return (_looks[theme] ??= {})[key] ??= MyDataLook.resolve(theme,
+        paletteId: paletteId,
+        brightness: brightness,
+        defaults: defaults,
+        increasedContrast: increasedContrast,
+        platform: p);
   }
 
   /// Kiwi in one of today's colours, by the id the host and the device settings use (`plum`); an unknown or
