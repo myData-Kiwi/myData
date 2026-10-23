@@ -520,3 +520,17 @@ def test_install_leaves_app_config_alone_when_launchd_will_not_load_the_agent(fa
                      "--agents-dir", str(tmp_path / "a")]) == 1
     assert (home / "app_config.json").read_text() == before
     assert "Login Items" in capsys.readouterr().err
+
+
+def test_a_stop_that_boots_out_fits_in_the_apps_wait(fake, home, app, tmp_path, answering, monkeypatch):
+    """The apps give `mydata stop` 75 s: 10 s for a starting host, 15 s after SIGTERM, then the bootout."""
+    assert cli.main(["service", "install", "--app", str(app), "--agents-dir", str(tmp_path / "a")]) == 0
+    waits = []
+    monkeypatch.setattr(launchd, "bootout", lambda label, wait=None: waits.append(wait))
+    monkeypatch.setattr(cli, "daemon_pid", lambda settings: 4242)
+    monkeypatch.setattr(cli.os, "kill", lambda pid, sig: None)
+    clock = [1000.0]
+    monkeypatch.setattr(cli.time, "time", lambda: clock[0])
+    monkeypatch.setattr(cli.time, "sleep", lambda s: clock.__setitem__(0, clock[0] + s))
+    assert cli.main(["stop"]) == 1
+    assert waits and 10 + 15 + waits[0] + 10 < 75

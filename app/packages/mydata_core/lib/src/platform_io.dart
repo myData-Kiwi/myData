@@ -84,16 +84,18 @@ class _IoPlatform implements HostPlatform {
 
   @override
   Future<LaunchResult> startHost(HostEnvironment env) =>
-      // `mydata start` runs the host detached and returns once it answers (or fails, or gives up waiting).
+      // `mydata start` runs the host detached, or asks launchd to, and returns once it answers (or fails, or gives
+      // up waiting: up to 30 s for a host that is still stopping, then 20 s for the new one to answer).
       _run(env.hostCommand!, env, const Duration(seconds: 90));
 
   @override
   Future<LaunchResult> stopHost(HostEnvironment env) async {
     final cmd = env.stopCommand;
     if (cmd == null) return const LaunchResult(false, 'There is no command to stop the myData host with.');
-    // `mydata stop` gives a host that is starting up to 10 s to answer, then returns once it has stopped; it
-    // kills one that takes more than 15 s.
-    return _run([...cmd, ...replaceHostArguments()], env, const Duration(seconds: 45));
+    // `mydata stop` gives a host that is starting up to 10 s to answer, then up to 15 s to stop after SIGTERM;
+    // one that takes longer is booted out of launchd (an installed host: up to about 25 s more) or killed. The
+    // timeout leaves the command time to finish: Process.run does not kill it when the timeout fires.
+    return _run([...cmd, ...replaceHostArguments()], env, const Duration(seconds: 75));
   }
 
   Future<LaunchResult> _run(List<String> cmd, HostEnvironment env, Duration timeout) async {

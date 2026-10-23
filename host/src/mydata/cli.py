@@ -311,7 +311,8 @@ def cmd_stop(settings: Settings, unless_current: bool = False, expect: list[str]
         from .service import launchd
         try:
             if launchd.job(agent.label) is not None:
-                launchd.bootout(agent.label)
+                # launchd sends SIGKILL ExitTimeOut seconds after its SIGTERM; a little more is enough.
+                launchd.bootout(agent.label, wait=launchd.EXIT_TIMEOUT_SECONDS + 3)
                 print(f"mydatad did not stop in 15 seconds: its LaunchAgent was unloaded, which stops it; "
                       f"mydata start (or the next login) loads it again", file=sys.stderr)
         except launchd.LaunchdError as e:
