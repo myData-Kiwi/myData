@@ -274,9 +274,17 @@ class AppMenuBar extends StatefulWidget {
   static AppMenuCommands? commandsOf(BuildContext context) =>
       context.getInheritedWidgetOfExactType<_AppMenuScope>()?.commands;
 
-  /// Whether a text field has keyboard focus.
-  static bool textHasFocus() =>
-      FocusManager.instance.primaryFocus?.context?.findAncestorStateOfType<EditableTextState>() != null;
+  /// Whether a text field has keyboard focus. False while the focused element is being replaced in this
+  /// frame (an autofocused control that rebuilds under a new key): looking up its ancestors would throw.
+  static bool textHasFocus() {
+    final context = FocusManager.instance.primaryFocus?.context;
+    if (context == null || !context.mounted) return false;
+    try {
+      return context.findAncestorStateOfType<EditableTextState>() != null;
+    } on FlutterError {
+      return false;
+    }
+  }
 
   @override
   State<AppMenuBar> createState() => _AppMenuBarState();
