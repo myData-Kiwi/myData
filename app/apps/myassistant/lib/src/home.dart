@@ -13,6 +13,13 @@ import 'package:mydata_ui/mydata_ui.dart';
 /// connected (with a link that opens myData), or unreachable (with Retry). The web build, which cannot reach
 /// a host, shows only its panel, without the frame.
 ///
+/// **On a Mac** ([MacLook]) it draws the Mac frame with no sidebar: the host keeps one conversation per app
+/// session and no history, so a sidebar would hold one row repeating the title. The toolbar band names the
+/// conversation by its first message ([conversationTitle]) at its leading edge, after the window's buttons,
+/// and says "Demo data" under it while the host serves sample data; then the chat, or the state's panel
+/// (which says what is wrong once). A sidebar with a New Conversation button comes with conversation
+/// history. The web build has no frame.
+///
 /// In real mode, a contact or event in a result opens in myContacts or myCalendar when that app is installed
 /// on this Mac; whether it is, is looked up once and again whenever myAssistant comes back to the front.
 class AssistantHome extends StatefulWidget {
@@ -38,6 +45,23 @@ class AssistantHome extends StatefulWidget {
   static const sections = [AppSection(icon: Icons.chat_bubble_outline_rounded, label: 'Chat')];
   static const chatTitle = 'Chat';
   static const demoLabel = 'Demo data';
+
+  /// The Mac frame's name for a conversation with no message yet.
+  static const newConversation = 'New conversation';
+
+  /// The Mac frame's name for the conversation: the first message the user sent in it, on one line, or
+  /// [newConversation]. A switch between demo and real mode starts a new conversation
+  /// ([ConversationNotice]), so only the messages after the last notice count.
+  static String conversationTitle(List<ChatItem> items) {
+    final start = items.lastIndexWhere((i) => i is ConversationNotice) + 1;
+    for (final item in items.skip(start)) {
+      if (item is UserMessage) {
+        final line = item.text.replaceAll(RegExp(r'\s+'), ' ').trim();
+        if (line.isNotEmpty) return line;
+      }
+    }
+    return newConversation;
+  }
 
   @override
   State<AssistantHome> createState() => _AssistantHomeState();
@@ -109,10 +133,36 @@ class _AssistantHomeState extends State<AssistantHome> {
     );
   }
 
+  /// The Mac frame: the toolbar band over the chat or the state's panel, the whole window wide (no
+  /// sidebar). The band names the conversation only while the chat is shown.
+  Widget _macFrame() {
+    final status = _host.status;
+    final chatShown = _host.phase == HostPhase.running &&
+        status != null &&
+        assistantAvailability(status) == AssistantAvailability.ready;
+    return ListenableBuilder(
+      listenable: _chat,
+      builder: (context, _) => ColoredBox(
+        color: context.mac.contentBackground,
+        child: MacPane(
+          toolbar: MacToolbar(
+            windowControls: true,
+            title: chatShown ? AssistantHome.conversationTitle(_chat.items) : null,
+            subtitle: chatShown && status.demoDate ? AssistantHome.demoLabel : null,
+          ),
+          child: _body(status),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: _host,
-    builder: (context, _) => Scaffold(
+    builder: (context, _) => MacLook.of(context)
+        // Transparent: the window's sidebar material shows through the sidebar.
+        ? Scaffold(backgroundColor: Colors.transparent, body: _macFrame())
+        : Scaffold(
       backgroundColor: context.colors.bg,
       body: switch (_connection()) {
         // No host to connect to (the web build): the panel alone, without a frame whose connection line
@@ -161,11 +211,11 @@ class _AssistantHomeState extends State<AssistantHome> {
     ),
     HostPhase.notConfigured => _failure('The myData host is not set up'),
     HostPhase.failedToStart => _failure('The myData host did not start'),
-    HostPhase.unreachable => _failure('The myData host is not answering'),
+    HostPhase.unreachable => _failure(AppConnection.unreachableText),
     HostPhase.refused => _failure('The myData host refused this app'),
     HostPhase.incompatible => _failure('The myData host is from another build'),
     HostPhase.lost => _failure(
-      'The myData host stopped',
+      AppConnection.lostText,
       extra: _chat.items.isEmpty ? null : 'Your conversation is kept; it continues once the host is back.',
     ),
     HostPhase.unsupported => StatusPanel(
@@ -180,7 +230,9 @@ class _AssistantHomeState extends State<AssistantHome> {
     ),
     HostPhase.running =>
       assistantAvailability(status!) == AssistantAvailability.ready
-          ? _ChatPage(chat: _chat, demoDate: status.demoDate, apps: _apps, onOpen: _openItem)
+          ? (MacLook.of(context)
+                ? _MacChatPage(chat: _chat, apps: _apps, onOpen: _openItem, realMode: !status.demoDate)
+                : _ChatPage(chat: _chat, demoDate: status.demoDate, apps: _apps, onOpen: _openItem))
           : AssistantUnavailable(
               status: status,
               notice: _openFailed ? AssistantUnavailable.openFailedNotice(status) : null,
@@ -263,4 +315,23 @@ class _ChatPage extends StatelessWidget {
       ],
     );
   }
+}
+
+/// The chat in the Mac frame, under the toolbar band (which names the conversation and says "Demo data").
+class _MacChatPage extends StatelessWidget {
+  const _MacChatPage({required this.chat, required this.apps, required this.onOpen, required this.realMode});
+  final ChatController chat;
+  final InstalledApps apps;
+  final ValueChanged<MyDataLink> onOpen;
+  final bool realMode;
+
+  @override
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: apps,
+    builder: (context, _) => ChatView(
+      controller: chat,
+      links: ResultLinks(installed: apps.installed, onOpen: onOpen),
+      realMode: realMode,
+    ),
+  );
 }

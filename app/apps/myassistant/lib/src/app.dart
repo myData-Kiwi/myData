@@ -11,6 +11,9 @@ import 'home.dart';
 /// It draws with the theme stored on the host (it arrives with every /status poll, so a theme chosen in
 /// myData shows here within one poll) and this device's mode (re-read from the device store on the same
 /// interval), and follows the system's reduced motion and reduced transparency.
+///
+/// On a Mac it draws the Mac frame ([MacShell], [MacLook]): the system's window, translucent sidebar, font,
+/// colours and accent; this device's mode still chooses light or dark. Elsewhere the branded frame.
 class MyAssistantApp extends StatefulWidget {
   const MyAssistantApp({super.key, required this.host, this.store, this.backend, this.apps, this.openLink});
 
@@ -52,15 +55,18 @@ class _MyAssistantAppState extends State<MyAssistantApp> {
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: _appearance,
     builder: (context, _) {
-      final theme = _appearance.theme;
-      return MaterialApp(
-        title: 'myAssistant',
-        theme: theme.light,
-        darkTheme: theme.dark,
-        themeMode: theme.themeMode,
-        debugShowCheckedModeBanner: false,
-        builder: (context, child) => MyDataAccessibilityScope(child: child ?? const SizedBox.shrink()),
-        home: AssistantHome(host: widget.host, backend: widget.backend, apps: widget.apps, openLink: widget.openLink),
+      return MacShell(
+        theme: _appearance.theme,
+        appIcon: MyDataAppIcons.myassistant,
+        builder: (context, light, dark, mode) => MaterialApp(
+          title: 'myAssistant',
+          theme: light,
+          darkTheme: dark,
+          themeMode: mode,
+          debugShowCheckedModeBanner: false,
+          builder: MacShell.content,
+          home: AssistantHome(host: widget.host, backend: widget.backend, apps: widget.apps, openLink: widget.openLink),
+        ),
       );
     },
   );
