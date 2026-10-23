@@ -5,7 +5,6 @@ import 'package:mydata/src/agent_list.dart';
 import 'package:mydata/src/agent_tokens.dart';
 import 'package:mydata/src/app.dart';
 import 'package:mydata/src/settings_screen.dart';
-import 'package:mydata/src/setup_screen.dart';
 import 'package:mydata/src/status_screen.dart';
 import 'package:mydata_core/mydata_core.dart';
 import 'package:mydata_testing/mydata_testing.dart';
@@ -46,16 +45,28 @@ Future<void> openSettings(WidgetTester tester) async {
   await settle(tester);
 }
 
-/// Appearance stacks its parts (design/components/GroupedSection): the mode under the theme picker, the
-/// sample under the mode, and nothing beside the mode control, so no empty patch opens up under it.
+/// Appearance stacks its parts (design/components/GroupedSection): the mode, then everywhere's theme under
+/// it, then each app's, all starting at one edge, so no empty patch opens up beside a control.
 void expectStacked(WidgetTester tester) {
-  final picker = tester.getRect(find.byType(ThemePicker));
   final mode = tester.getRect(find.byType(SegmentedControl<MyDataMode>));
-  final sample = tester.getRect(find.byType(ThemeSample));
-  expect(mode.top, greaterThan(picker.bottom), reason: 'the mode is under the theme picker');
-  expect(sample.top, greaterThan(mode.bottom), reason: 'the sample is under the mode, not beside it');
-  expect(sample.left, mode.left, reason: 'the sample starts where the controls start');
+  final everywhere = tester.getRect(find.text(AppearanceSection.everywhereLabel));
+  final apps = tester.getRect(find.text(AppearanceSection.appsHeading));
+  expect(everywhere.top, greaterThan(mode.bottom), reason: 'everywhere is under the mode');
+  expect(apps.top, greaterThan(everywhere.bottom), reason: 'the apps are under everywhere');
+  expect(everywhere.left, mode.left, reason: 'the controls start at one edge');
 }
+
+/// myData's Change… button for [who] ("myCalendar", or "Everywhere").
+Finder changeButton(String who) => find.byWidgetPredicate((w) => w is Button && w.semanticLabel == 'Change $who');
+
+/// myData's Reset button for [app].
+Finder resetButton(String app) => find.byWidgetPredicate((w) => w is Button && w.semanticLabel == 'Reset $app');
+
+Future<Map<String, Object?>?> storedThemes(DeviceStore store) async =>
+    (await store.read())[ThemeSettings.key] as Map<String, Object?>?;
+
+Color windowAccent(WidgetTester tester) =>
+    tester.widget<MaterialApp>(find.byType(MaterialApp)).theme!.extension<MyDataColors>()!.accent;
 
 void main() {
   testWidgets('an unsupported platform shows why, with Retry', (tester) async {
@@ -126,73 +137,144 @@ void main() {
   });
 
   group('first run', () {
-    testWidgets('asks for the theme when none was chosen, and stores the one picked', (tester) async {
+    testWidgets('never asks for a theme, and never calls the retired host route', (tester) async {
       final host = FakeHost(chosen: false);
       await pumpApp(tester, host);
-      expect(find.text(ThemeStep.title), findsOneWidget);
-      await tester.tap(find.text('Graphite'));
-      await tester.pump();
-      await tester.ensureVisible(find.text(ThemeStep.useLabel));
-      await tester.tap(find.text(ThemeStep.useLabel));
-      await settle(tester);
-      expect(host.requests, contains('PUT /appearance {"theme":"graphite"}'));
-      // Then the assistant step, and the whole app in the stored theme.
-      expect(find.text(ThemeStep.title), findsNothing);
-      expect(find.text('myData is ready'), findsOneWidget);
-      final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
-      expect(app.theme!.extension<MyDataColors>()!.accent, MyDataThemes.graphite.accentLight);
-    });
-
-    testWidgets('stores Kiwi too, so the question is not asked again', (tester) async {
-      final host = FakeHost(chosen: false);
-      await pumpApp(tester, host);
-      await tester.ensureVisible(find.text(ThemeStep.useLabel));
-      await tester.tap(find.text(ThemeStep.useLabel));
-      await settle(tester);
-      expect(host.requests, contains('PUT /appearance {"theme":"kiwi"}'));
-      expect(host.chosen, isTrue);
-    });
-
-    testWidgets('a theme chosen before skips the step', (tester) async {
-      final host = FakeHost();
-      await pumpApp(tester, host);
-      expect(host.requests, contains('GET /appearance'));
-      expect(find.text(ThemeStep.title), findsNothing);
       expect(find.text('Status'), findsWidgets);
       expect(find.text('0.1.0'), findsOneWidget);
+      expect(host.requests.where((r) => r.contains('/appearance')), isEmpty);
     });
 
-    testWidgets('a host that cannot say whether a theme was chosen does not block setup', (tester) async {
-      final host = FakeHost(chosen: false)..failAppearance = true;
-      await pumpApp(tester, host);
-      expect(find.text(ThemeStep.title), findsNothing);
-      expect(find.text('0.1.0'), findsOneWidget);
+    testWidgets("this device's first start keeps the host's old theme, as Kiwi in it, for every app", (tester) async {
+      final host = FakeHost()..theme = 'plum';
+      final store = MemoryDeviceStore();
+      await pumpApp(tester, host, store: store);
+      expect(await storedThemes(store), {
+        'everywhere': {'theme': 'mydata.kiwi', 'palette': 'plum'},
+      });
+      expect(windowAccent(tester), MyDataThemes.plum.accentLight);
+      expect(host.requests.where((r) => r.contains('/appearance')), isEmpty);
     });
   });
 
   group('Settings', () {
-    testWidgets('picking a theme sets it on the host at once, with no Save button', (tester) async {
-      final host = FakeHost();
-      await pumpApp(tester, host);
+    testWidgets("Appearance lists every app with its theme on this device; Reset follows everywhere", (tester) async {
+      final store = MemoryDeviceStore({
+        'themes': {
+          'everywhere': {'theme': 'mydata.system'},
+          'apps': {
+            'mycalendar': {'theme': 'mydata.kiwi', 'palette': 'dusk'},
+          },
+        },
+      });
+      await pumpApp(tester, FakeHost(), store: store);
       await openSettings(tester);
       expect(find.text(AppearanceSection.heading), findsOneWidget);
       expect(find.text('Save'), findsNothing);
-      await tester.tap(find.text('Dusk'));
+      for (final a in MyDataAppId.values) {
+        expect(find.text(a.displayName), findsWidgets, reason: a.displayName);
+      }
+      expect(find.text('Kiwi, Dusk'), findsOneWidget);
+      expect(find.text(AppearanceSection.sameAsEverywhere), findsNWidgets(3));
+      expect(tester.widget<Button>(resetButton('myContacts')).onPressed, isNull);
+      expect(tester.widget<Button>(resetButton('myContacts')).disabledReason, AppearanceSection.resetReason);
+      await tester.ensureVisible(resetButton('myCalendar'));
+      await tester.tap(resetButton('myCalendar'));
       await settle(tester);
-      expect(host.requests, contains('PUT /appearance {"theme":"dusk"}'));
-      expect(tester.widget<ThemePicker>(find.byType(ThemePicker)).selected, 'dusk');
-      expect(tester.widget<ThemeSample>(find.byType(ThemeSample)).themeId, 'dusk');
+      expect(await storedThemes(store), {
+        'everywhere': {'theme': 'mydata.system'},
+      });
+      expect(find.text(AppearanceSection.sameAsEverywhere), findsNWidgets(4));
     });
 
-    testWidgets('a theme the host could not take is reported, and the theme stays', (tester) async {
+    testWidgets("Change… opens the gallery on that app; Use stores it on this device, never on the host", (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(1280, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
       final host = FakeHost();
-      await pumpApp(tester, host);
+      final store = MemoryDeviceStore({
+        'themes': {
+          'everywhere': {'theme': 'mydata.system'},
+        },
+      });
+      await pumpApp(tester, host, store: store);
       await openSettings(tester);
-      host.failAppearance = true;
-      await tester.tap(find.text('Rose'));
+      final before = windowAccent(tester);
+      await tester.ensureVisible(changeButton('myCalendar'));
+      await tester.tap(changeButton('myCalendar'));
       await settle(tester);
-      expect(find.text(AppearanceSection.failed), findsOneWidget);
-      expect(tester.widget<ThemePicker>(find.byType(ThemePicker)).selected, 'kiwi');
+      expect(find.text(ThemeGallery.useLabel('myCalendar')), findsOneWidget);
+      // the app switcher: a theme can be judged on another app's scene
+      expect(find.byType(SegmentedControl<String>), findsOneWidget);
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+      await settle(tester);
+      expect(windowAccent(tester), before, reason: "myCalendar's choice is not previewed on myData's window");
+      await tester.tap(find.text(ThemeGallery.useLabel('myCalendar')));
+      await settle(tester);
+      expect(await storedThemes(store), {
+        'everywhere': {'theme': 'mydata.system'},
+        'apps': {
+          'mycalendar': {'theme': 'mydata.kiwi', 'palette': 'kiwi'},
+        },
+      });
+      expect(find.text('Kiwi, Kiwi'), findsOneWidget);
+      expect(host.requests.where((r) => r.contains('/appearance')), isEmpty);
+    });
+
+    testWidgets('Use everywhere carries the palette to every app, and Undo puts each back', (tester) async {
+      tester.view.physicalSize = const Size(1280, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final mine = {
+        'everywhere': {'theme': 'mydata.system'},
+        'apps': {
+          'mycontacts': {'theme': 'mydata.kiwi', 'palette': 'rose'},
+        },
+      };
+      final store = MemoryDeviceStore({'themes': mine});
+      await pumpApp(tester, FakeHost(), store: store);
+      await openSettings(tester);
+      await tester.ensureVisible(changeButton(AppearanceSection.everywhereLabel));
+      await tester.tap(changeButton(AppearanceSection.everywhereLabel));
+      await settle(tester);
+      // myData's own window previews as the selection moves
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+      await settle(tester);
+      expect(windowAccent(tester), MyDataThemes.kiwi.accentLight);
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await settle(tester);
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+      await settle(tester);
+      expect(windowAccent(tester), MyDataThemes.graphite.accentLight);
+      await tester.tap(find.text(ThemeGallery.everywhereLabel));
+      await settle(tester);
+      expect(await storedThemes(store), {
+        'everywhere': {'theme': 'mydata.kiwi', 'palette': 'graphite'},
+      });
+      expect(find.text(ThemeGallery.everywhereDone('Kiwi, Graphite')), findsOneWidget);
+      await tester.tap(find.text('Undo'));
+      await settle(tester);
+      expect(await storedThemes(store), mine);
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await settle(tester);
+      expect(find.text(ThemeGallery.title), findsNothing);
+      // phones have one theme per app until native phone apps: a desktop runs this test
+    }, variant: TargetPlatformVariant.only(TargetPlatform.windows));
+
+    testWidgets('a stored theme this build does not have says what it draws instead', (tester) async {
+      final store = MemoryDeviceStore({
+        'themes': {
+          'everywhere': {'theme': 'someone.neon'},
+        },
+      });
+      await pumpApp(tester, FakeHost(), store: store);
+      await openSettings(tester);
+      expect(
+        find.text(AppearanceSection.missing(AppearanceSection.everywhereLabel, ThemeChoice.system)),
+        findsOneWidget,
+      );
     });
 
     testWidgets('the mode is written to this device, where myAssistant reads it', (tester) async {
@@ -208,14 +290,16 @@ void main() {
       expect((await store.read())['mode'], 'system');
     });
 
-    testWidgets('a theme set in another app arrives with the next status poll', (tester) async {
-      final host = FakeHost();
-      final controller = await pumpApp(tester, host);
-      host.theme = 'plum'; // myAssistant changed it
-      await controller.refresh();
+    testWidgets('a theme chosen in another app on this device arrives without a restart', (tester) async {
+      final store = MemoryDeviceStore();
+      await pumpApp(tester, FakeHost(), store: store);
+      // myContacts' gallery, Use everywhere
+      final other = ThemeController(appId: 'mycontacts', store: store, macOS: false);
+      await other.start();
+      await other.useEverywhere(const ThemeChoice('mydata.kiwi', 'plum'));
+      other.dispose();
       await settle(tester);
-      final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
-      expect(app.theme!.extension<MyDataColors>()!.accent, MyDataThemes.plum.accentLight);
+      expect(windowAccent(tester), MyDataThemes.plum.accentLight);
     });
 
     testWidgets('the assistant switch turns the assistant off and on', (tester) async {
@@ -289,7 +373,9 @@ void main() {
       await settle(tester);
       expect(find.text('Revoke Claude on my laptop?'), findsOneWidget);
       expect(
-        find.text('Claude on my laptop will no longer reach your data. Any agent using this token stops working at once.'),
+        find.text(
+          'Claude on my laptop will no longer reach your data. Any agent using this token stops working at once.',
+        ),
         findsOneWidget,
         reason: 'the confirmation names what will stop working',
       );
@@ -321,11 +407,10 @@ void main() {
   test('a token is connected (success), not connected or revoked (both the inactive chip)', () {
     expect(AgentTokenRow.state(agentWith('a', connected: true)), ('Connected', MyDataTone.success));
     expect(AgentTokenRow.state(agentWith('b')), ('Not connected', MyDataTone.neutral));
-    expect(
-      AgentTokenRow.state(agentWith('c', revoked: true)),
-      ('Revoked', MyDataTone.neutral),
-      reason: 'red is for errors, and a revoked token is not one',
-    );
+    expect(AgentTokenRow.state(agentWith('c', revoked: true)), (
+      'Revoked',
+      MyDataTone.neutral,
+    ), reason: 'red is for errors, and a revoked token is not one');
   });
 
   testWidgets('an agent list that could not be read is a row with a tonal Retry', (tester) async {
@@ -333,7 +418,11 @@ void main() {
     await tester.pumpWidget(
       themedFrame(
         themeMatrix.first,
-        AgentListProblem(heading: AgentTokensSection.heading, error: 'the host did not answer', onRetry: () => retried++),
+        AgentListProblem(
+          heading: AgentTokensSection.heading,
+          error: 'the host did not answer',
+          onRetry: () => retried++,
+        ),
       ),
     );
     expect(find.byType(ActionRow), findsOneWidget);
@@ -371,34 +460,13 @@ void main() {
     expect(controller.phase, HostPhase.lost);
   });
 
-  group('the six theme swatches sit on one row in a 1280 by 800 window', () {
-    void expectOneRow(WidgetTester tester) {
-      final top = tester.getTopLeft(find.text(MyDataThemes.all.first.name)).dy;
-      for (final t in MyDataThemes.all) {
-        expect(tester.getTopLeft(find.text(t.name)).dy, top, reason: '${t.name} is on the first row');
-      }
-    }
-
-    void bigWindow(WidgetTester tester) {
-      tester.view.physicalSize = const Size(1280, 800);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.reset);
-    }
-
-    testWidgets('on the theme step', (tester) async {
-      bigWindow(tester);
-      await pumpApp(tester, FakeHost(chosen: false));
-      expect(find.text(ThemeStep.title), findsOneWidget);
-      expectOneRow(tester);
-    });
-
-    testWidgets('in Settings, with the mode and the sample stacked under them', (tester) async {
-      bigWindow(tester);
-      await pumpApp(tester, FakeHost());
-      await openSettings(tester);
-      expectOneRow(tester);
-      expectStacked(tester);
-    });
+  testWidgets('the Appearance parts stay stacked in a 1280 by 800 window', (tester) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await pumpApp(tester, FakeHost());
+    await openSettings(tester);
+    expectStacked(tester);
   });
 
   testWidgets('the Appearance parts stay stacked in a phone-width window', (tester) async {
@@ -410,7 +478,7 @@ void main() {
     expectStacked(tester);
   });
 
-  testWidgets('Status, Settings and the theme step fit a phone-width window', (tester) async {
+  testWidgets('Status and Settings fit a phone-width window', (tester) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -420,15 +488,8 @@ void main() {
         lastError: ErrorOut(at: '2026-10-12T08:00:00Z', logger: 'mydata', message: 'a long error message ' * 4),
       ),
       agents: [agentWith('Claude on my laptop', connected: true), agentWith('Old script', revoked: true)],
-      chosen: false,
     );
     await pumpApp(tester, host);
-    expect(find.text(ThemeStep.title), findsOneWidget);
-    await tester.ensureVisible(find.text(ThemeStep.useLabel));
-    await tester.tap(find.text(ThemeStep.useLabel));
-    await settle(tester);
-    await tester.tap(find.text('Continue'));
-    await settle(tester);
     expect(find.text('0.1.0'), findsOneWidget);
     await tester.tap(find.byIcon(Icons.settings_outlined));
     await settle(tester);
@@ -437,4 +498,3 @@ void main() {
     expect(find.text('Revoked'), findsOneWidget);
   });
 }
-

@@ -37,35 +37,50 @@ class MyAssistantApp extends StatefulWidget {
 }
 
 class _MyAssistantAppState extends State<MyAssistantApp> {
-  late final _appearance = AppearanceController.forHost(widget.host, store: widget.store);
+  late final _themes = ThemeController.forHost(MyDataAppId.myassistant, widget.host, store: widget.store);
 
   @override
   void initState() {
     super.initState();
-    _appearance.start();
+    _themes.start();
   }
 
   @override
   void dispose() {
-    _appearance.dispose();
+    _themes.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
-    listenable: _appearance,
+    listenable: _themes,
     builder: (context, _) {
-      return MacShell(
-        theme: _appearance.theme,
-        appIcon: MyDataAppIcons.myassistant,
-        builder: (context, light, dark, mode) => MaterialApp(
-          title: 'myAssistant',
-          theme: light,
-          darkTheme: dark,
-          themeMode: mode,
-          debugShowCheckedModeBanner: false,
-          builder: MacShell.content,
-          home: AssistantHome(host: widget.host, backend: widget.backend, apps: widget.apps, openLink: widget.openLink),
+      return ThemeScope(
+        themes: _themes,
+        app: MyDataAppId.myassistant,
+        child: MacShell(
+          theme: _themes.theme,
+          appIcon: MyDataAppIcons.myassistant,
+          builder: (context, light, dark, mode) => MaterialApp(
+            title: 'myAssistant',
+            theme: light,
+            darkTheme: dark,
+            themeMode: mode,
+            debugShowCheckedModeBanner: false,
+            builder: MacShell.content,
+            home: Builder(
+              builder: (context) => AppMenuBar(
+                appName: 'myAssistant',
+                onTheme: () => showAppThemeGallery(context),
+                child: AssistantHome(
+                  host: widget.host,
+                  backend: widget.backend,
+                  apps: widget.apps,
+                  openLink: widget.openLink,
+                ),
+              ),
+            ),
+          ),
         ),
       );
     },

@@ -56,41 +56,45 @@ class MyContactsApp extends StatefulWidget {
 }
 
 class _MyContactsAppState extends State<MyContactsApp> {
-  late final _appearance = AppearanceController.forHost(widget.host, store: widget.store);
+  late final _themes = ThemeController.forHost(MyDataAppId.mycontacts, widget.host, store: widget.store);
 
   @override
   void initState() {
     super.initState();
-    _appearance.start();
+    _themes.start();
   }
 
   @override
   void dispose() {
-    _appearance.dispose();
+    _themes.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
-    listenable: _appearance,
-    builder: (context, _) => MacShell(
-      theme: _appearance.theme,
-      appIcon: MyDataAppIcons.mycontacts,
-      builder: (context, light, dark, mode) => MaterialApp(
-        title: 'myContacts',
-        theme: light,
-        darkTheme: dark,
-        themeMode: mode,
-        debugShowCheckedModeBanner: false,
-        builder: MacShell.content,
-        home: ContactsHome(
-          host: widget.host,
-          backend: widget.backend,
-          store: widget.store,
-          links: widget.links,
-          onOpenLink: widget.onOpenLink,
-          menuPlatform: widget.menuPlatform,
-          openLink: widget.openLink,
+    listenable: _themes,
+    builder: (context, _) => ThemeScope(
+      themes: _themes,
+      app: MyDataAppId.mycontacts,
+      child: MacShell(
+        theme: _themes.theme,
+        appIcon: MyDataAppIcons.mycontacts,
+        builder: (context, light, dark, mode) => MaterialApp(
+          title: 'myContacts',
+          theme: light,
+          darkTheme: dark,
+          themeMode: mode,
+          debugShowCheckedModeBanner: false,
+          builder: MacShell.content,
+          home: ContactsHome(
+            host: widget.host,
+            backend: widget.backend,
+            store: widget.store,
+            links: widget.links,
+            onOpenLink: widget.onOpenLink,
+            menuPlatform: widget.menuPlatform,
+            openLink: widget.openLink,
+          ),
         ),
       ),
     ),

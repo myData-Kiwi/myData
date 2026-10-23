@@ -126,17 +126,6 @@ StatusOut get running => statusWith(
 
 void main() {
   screenMatrix(
-    'setup_choose_theme',
-    (t) => app(FakeHost(chosen: false), t),
-    before: (tester) async {
-      await settle(tester);
-      // Graphite cases show the step after picking Graphite: the screen previews the pick at once.
-      if (current.themeId == 'graphite') await tester.tap(find.text('Graphite'));
-      await settle(tester);
-    },
-  );
-
-  screenMatrix(
     'setup_preparing',
     (t) => app(
       FakeHost(

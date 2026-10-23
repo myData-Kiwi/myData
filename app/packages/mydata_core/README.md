@@ -4,12 +4,13 @@ myData shared app logic: finding, starting and watching the host, app tokens, er
 
 ## Device settings
 
-`device/settings.json` in the myData folder (`DeviceStore`), shared by every myData app on this device and re-read on the status poll interval, so a change in one app reaches the others without a restart. Writers merge into the file and keep the other keys. Each write goes to its own temporary file, renamed over the real one, so apps writing at once never break the file; two read-merge-writes from different apps that overlap in time can still lose one of the two changes (there is no lock across apps yet).
+`device/settings.json` in the myData folder (`DeviceStore`), shared by every myData app on this device. A change in one app reaches the others without a restart: through the folder's file system events (`FileDeviceStore.changes`) and, where those are not promised, a read every 2 s. Writers merge into the file and keep the other keys (`DeviceStore.update`). Each write goes to its own temporary file, renamed over the real one, so apps writing at once never break the file. `update` checks just before the rename that the file still holds the text it read, and reads again and retries when another app wrote meanwhile; updates in one process run one at a time. Between apps the check and the rename are not one step, so a write landing between them can still be lost (rare for settings people change by hand).
 
 | Key | Owner | What |
 |---|---|---|
-| `mode` | `AppearanceController` | light, dark or system |
-| `lastTheme` | `AppearanceController` | the last theme the host reported |
+| `mode` | `ThemeController` | light, dark or system, for every app on this device |
+| `themes` | `ThemeController` | `{"everywhere": {"theme", "palette"}, "apps": {"<app>": {"theme", "palette"}}}`: each app's theme and palette on this device, else everywhere's, else System (design/themes/ARCHITECTURE.md 4.1). Written by the galleries and myData's Appearance; never synced |
+| `lastTheme` | (read once) | the host's theme as the old `AppearanceController` last saw it; read only by the first-start migration (macOS: every app on System; elsewhere: Kiwi in that colour everywhere), never written now |
 | `lastContact` | myContacts | the contact last opened |
 | `hiddenCalendars` | `CalendarVisibility` | ids of calendars hidden on this device (sorted list). myCalendar follows it; myAssistant's answers come from the host and do not |
 

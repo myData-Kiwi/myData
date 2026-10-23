@@ -85,6 +85,9 @@ class ContactsHome extends StatefulWidget {
   /// File, Import… (design/platforms.md; ImportFlow, "Where it lives"): opens myData at its Import section.
   static const importMenuItem = 'Import…';
   static const importLabel = 'Import contacts…';
+
+  /// A phone's More actions: opens the theme gallery (View > Theme… on a Mac).
+  static const themeLabel = 'Theme…';
   static const importFailed = 'myContacts could not open myData. Open it, then choose Import.';
 
   static const noSourceTitle = 'No contacts yet';
@@ -243,6 +246,7 @@ class _ContactsHomeState extends State<ContactsHome> {
       ],
       // While the inspector is open, ⌘Z and Edit, Undo are the form's typing only: taking back a change on the
       // host would leave the open form stale.
+      onTheme: () => unawaited(showAppThemeGallery(context)),
       undoAction: _isRunning && !editing ? _actions.undoTitle : null,
       onUndo: editing ? null : () => unawaited(_actions.undoLast()),
       child: child,
@@ -263,6 +267,7 @@ class _ContactsHomeState extends State<ContactsHome> {
               _actions.undoMenuItem(),
               const MenuSeparator(),
               MenuItem(label: ContactsHome.importLabel, onSelected: () => unawaited(_import())),
+              MenuItem(label: ContactsHome.themeLabel, onSelected: () => unawaited(showAppThemeGallery(context))),
             ],
           ),
         ];

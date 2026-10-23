@@ -23,12 +23,12 @@ import 'status_screen.dart';
 /// `mydata://import/contacts` link ([importAsked]) opens Import.
 ///
 /// The menu bar (macOS; the same keys with Control elsewhere): File, Import…; View, Status ⌘1, Import ⌘2,
-/// Settings ⌘3; Settings… ⌘, in the app menu (design/platforms.md).
+/// Settings ⌘3, Theme… (the gallery with every app); Settings… ⌘, in the app menu (design/platforms.md).
 class HomeShell extends StatefulWidget {
   const HomeShell({
     super.key,
     required this.controller,
-    required this.appearance,
+    required this.themes,
     this.macSystem,
     this.installedApps,
     this.openApp,
@@ -40,7 +40,7 @@ class HomeShell extends StatefulWidget {
   });
 
   final HostController controller;
-  final AppearanceController appearance;
+  final ThemeController themes;
 
   /// Opens System Settings from Settings, Sources; null is the real one.
   final MacSystem? macSystem;
@@ -213,6 +213,7 @@ class _HomeShellState extends State<HomeShell> {
           ),
       ],
       onSettings: () => _select(_settings),
+      onTheme: () => showAppThemeGallery(context, choosingFor: MyDataAppId.values),
       child: MacWindow.of(context)
           // Transparent: the window's sidebar material shows through the sidebar.
           ? Scaffold(
@@ -306,7 +307,7 @@ class _HomeShellState extends State<HomeShell> {
         key: ValueKey(_settingsTab),
         tab: _settingsTab,
         controller: c,
-        appearance: widget.appearance,
+        themes: widget.themes,
         agents: _agents,
         sources: _sources,
         macSystem: widget.macSystem,
@@ -365,7 +366,7 @@ class _HomeShellState extends State<HomeShell> {
         ? StatusScreen(status: status, agents: _agents, apps: _apps, sources: _sources, onOpenApp: _openApp)
         : SettingsScreen(
             controller: c,
-            appearance: widget.appearance,
+            themes: widget.themes,
             agents: _agents,
             sources: _sources,
             macSystem: widget.macSystem,

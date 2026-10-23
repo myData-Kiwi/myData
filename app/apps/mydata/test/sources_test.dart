@@ -130,11 +130,9 @@ void main() {
       expect(find.text('myData is ready'), findsOneWidget);
     });
 
-    testWidgets('comes after the theme step', (tester) async {
+    testWidgets('is the first question, with no theme step before it', (tester) async {
       final host = FakeHost(chosen: false, mac: macSource(enabled: false, decided: false));
       await pumpApp(tester, host);
-      expect(find.text(ThemeStep.title), findsOneWidget);
-      await tapVisible(tester, find.text(ThemeStep.useLabel));
       expect(find.text(ThisMacStep.title), findsOneWidget);
     });
 

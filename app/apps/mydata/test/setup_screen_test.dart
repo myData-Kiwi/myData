@@ -19,8 +19,6 @@ Future<Calls> pumpSetup(
   StatusOut? status,
   String? error,
   String? detail,
-  bool themeChosen = true,
-  Future<void> Function(String id)? onChooseTheme,
 }) async {
   final calls = Calls();
   await tester.pumpWidget(
@@ -36,12 +34,6 @@ Future<Calls> pumpSetup(
         onSkip: calls.call('skip'),
         onContinue: calls.call('continue'),
         onSwitchOn: calls.call('switchOn'),
-        themeChosen: themeChosen,
-        onChooseTheme:
-            onChooseTheme ??
-            (id) async {
-              calls.names.add('theme $id');
-            },
       ),
     ),
   );
@@ -189,60 +181,9 @@ void main() {
     expect(calls.names, ['switchOn', 'continue']);
   });
 
-  group('the theme step', () {
-    testWidgets('shows first, with Kiwi selected, only when no theme was chosen', (tester) async {
-      await pumpSetup(tester, status: statusWith(ModelOutStateEnum.ready), themeChosen: false);
-      expect(find.text(ThemeStep.title), findsOneWidget);
-      expect(find.text(ThemeStep.sentence), findsOneWidget);
-      expect(tester.widget<ThemePicker>(find.byType(ThemePicker)).selected, 'kiwi');
-      expect(find.byType(ThemeSample), findsOneWidget);
-      expect(find.text('myData is ready'), findsNothing);
-
-      await pumpSetup(tester, status: statusWith(ModelOutStateEnum.ready));
-      expect(find.text(ThemeStep.title), findsNothing);
-      expect(find.text('myData is ready'), findsOneWidget);
-    });
-
-    testWidgets('waits for the host: not shown while it starts', (tester) async {
-      await pumpSetup(tester, phase: HostPhase.starting, themeChosen: false);
-      expect(find.text(ThemeStep.title), findsNothing);
-      expect(find.text('Starting the myData host'), findsOneWidget);
-    });
-
-    testWidgets('stores Kiwi when the person keeps it', (tester) async {
-      final calls = await pumpSetup(tester, status: statusWith(ModelOutStateEnum.ready), themeChosen: false);
-      await tester.ensureVisible(find.text(ThemeStep.useLabel));
-      await tester.tap(find.text(ThemeStep.useLabel));
-      await tester.pump();
-      expect(calls.names, ['theme kiwi']);
-    });
-
-    testWidgets('previews a picked theme at once and stores it with Use this theme', (tester) async {
-      final calls = await pumpSetup(tester, status: statusWith(ModelOutStateEnum.ready), themeChosen: false);
-      await tester.tap(find.text('Graphite'));
-      await tester.pump();
-      expect(calls.names, isEmpty, reason: 'nothing is stored until the person confirms');
-      expect(tester.widget<ThemeSample>(find.byType(ThemeSample)).themeId, 'graphite');
-      final button = find.ancestor(of: find.text(ThemeStep.useLabel), matching: find.byType(Button));
-      expect(Theme.of(tester.element(button)).extension<MyDataColors>()!.accent, MyDataThemes.graphite.accentLight);
-      await tester.ensureVisible(find.text(ThemeStep.useLabel));
-      await tester.tap(find.text(ThemeStep.useLabel));
-      await tester.pump();
-      expect(calls.names, ['theme graphite']);
-    });
-
-    testWidgets('says so when the theme could not be stored, and stays', (tester) async {
-      await pumpSetup(
-        tester,
-        status: statusWith(ModelOutStateEnum.ready),
-        themeChosen: false,
-        onChooseTheme: (_) async => throw StateError('The host is not connected.'),
-      );
-      await tester.ensureVisible(find.text(ThemeStep.useLabel));
-      await tester.tap(find.text(ThemeStep.useLabel));
-      await tester.pump();
-      expect(find.text(ThemeStep.failed), findsOneWidget);
-      expect(find.text(ThemeStep.title), findsOneWidget);
-    });
+  testWidgets('never asks for a theme: System is the default (ARCHITECTURE.md 4.3)', (tester) async {
+    await pumpSetup(tester, status: statusWith(ModelOutStateEnum.ready));
+    expect(find.text('myData is ready'), findsOneWidget);
+    expect(find.byType(ThemePicker), findsNothing);
   });
 }

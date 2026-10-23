@@ -5,8 +5,9 @@ import 'package:mydata_ui/mydata_ui.dart';
 import 'format.dart';
 import 'host_phase_panel.dart';
 
-/// Shown until the host is ready: the host starting, on first run the theme and (on a Mac host) whether to
-/// use the contacts and calendars on this Mac, then the assistant's model being prepared. The assistant can
+/// Shown until the host is ready: the host starting, on first run (on a Mac host) whether to use the contacts
+/// and calendars on this Mac, then the assistant's model being prepared. Themes are not asked: System is the
+/// default, and the gallery is in every app's View menu (design/themes/ARCHITECTURE.md 4.3). The assistant can
 /// be skipped at any point; myData works without it.
 ///
 /// It takes plain inputs (no controller) so it can be tested without a host.
@@ -22,8 +23,6 @@ class SetupScreen extends StatelessWidget {
     required this.onSkip,
     required this.onContinue,
     required this.onSwitchOn,
-    this.themeChosen = true,
-    this.onChooseTheme,
     this.macStep = false,
     this.onAllowMac,
     this.onSkipMac,
@@ -53,15 +52,7 @@ class SetupScreen extends StatelessWidget {
   /// Switch the assistant on (it was off).
   final VoidCallback onSwitchOn;
 
-  /// Whether a theme has been chosen on this host (GET /appearance `chosen`). False shows the theme step
-  /// before the assistant, once the host runs (design/theming.md "Choosing a theme").
-  final bool themeChosen;
-
-  /// Stores the theme picked on the theme step (PUT /appearance), even the default. Throws when it could
-  /// not be stored; the step then says so and stays.
-  final Future<void> Function(String themeId)? onChooseTheme;
-
-  /// Show the This Mac step (after the theme): a Mac host whose This Mac source was never turned on or
+  /// Show the This Mac step: a Mac host whose This Mac source was never turned on or
   /// off.
   final bool macStep;
 
@@ -85,11 +76,7 @@ class SetupScreen extends StatelessWidget {
     final s = status;
     final running = phase == HostPhase.running && s != null;
     final Widget body;
-    // On a Mac the accent is the system's, so there is no theme to choose at first run (Settings, Appearance
-    // still sets the theme for other platforms).
-    if (running && !themeChosen && onChooseTheme != null && !MacWindow.of(context)) {
-      body = ThemeStep(onChoose: onChooseTheme!);
-    } else if (running && macStep && onAllowMac != null && onSkipMac != null) {
+    if (running && macStep && onAllowMac != null && onSkipMac != null) {
       body = ThisMacStep(
         onAllow: onAllowMac!,
         onSkip: onSkipMac!,
@@ -101,7 +88,10 @@ class SetupScreen extends StatelessWidget {
     } else {
       body = HostPhasePanel(phase: phase, error: error, detail: detail, onRetry: onRetryHost);
     }
-    return Scaffold(backgroundColor: context.colors.bg, body: SafeArea(child: body));
+    return Scaffold(
+      backgroundColor: context.colors.bg,
+      body: SafeArea(child: body),
+    );
   }
 
   Widget _assistantPanel(StatusOut s) {
@@ -164,105 +154,6 @@ class SetupScreen extends StatelessWidget {
       progress: downloading ? (p.percent / 100).clamp(0, 1).toDouble() : null,
       progressLabel: downloading ? 'Downloading ${m.name}' : null,
       actions: [Button(label: skip, onPressed: onSkip)],
-    );
-  }
-}
-
-/// First run: one screen to choose the theme every myData app uses, with Kiwi selected. Picking a theme
-/// previews it here at once; "Use this theme" stores it on the host (even Kiwi, so the question is not asked
-/// again) and setup moves on.
-class ThemeStep extends StatefulWidget {
-  const ThemeStep({super.key, required this.onChoose});
-
-  /// Stores the theme; throws when it could not.
-  final Future<void> Function(String themeId) onChoose;
-
-  static const title = 'Choose a theme';
-  static const sentence = 'Every myData app uses it. You can change it later in Settings, Appearance.';
-  static const useLabel = 'Use this theme';
-  static const failed = 'Could not change the theme. Check that your host is running, then try again.';
-
-  /// The step's column: wide enough for the six theme swatches on one row (about 630 px in the bundled
-  /// fonts) and the theme sample at its natural size. A test checks that the swatches stay on one row.
-  static double maxWidth(MyDataLook look) => ThemeSample.naturalWidth + 3 * look.space(12);
-
-  @override
-  State<ThemeStep> createState() => _ThemeStepState();
-}
-
-class _ThemeStepState extends State<ThemeStep> {
-  String _selected = MyDataThemes.fallback.id;
-  bool _saving = false;
-  String? _error;
-
-  Future<void> _use() async {
-    setState(() {
-      _saving = true;
-      _error = null;
-    });
-    try {
-      await widget.onChoose(_selected);
-    } on Object {
-      if (mounted) setState(() => _error = ThemeStep.failed);
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // The pick is previewed on this screen only; the host (and every app) gets it with "Use this theme".
-    final brightness = Theme.of(context).brightness;
-    return Theme(
-      data: MyDataTheme.data(_selected, brightness),
-      child: Builder(
-        builder: (context) {
-          final c = context.colors;
-          return Material(
-            color: c.bg,
-            child: Center(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.all(context.space(8)),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: ThemeStep.maxWidth(context.look)),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Semantics(
-                        header: true,
-                        child: Text(ThemeStep.title, style: context.typeScale.displayLg.copyWith(color: c.ink)),
-                      ),
-                      SizedBox(height: context.space(2)),
-                      Text(ThemeStep.sentence, style: context.typeScale.body.copyWith(color: c.inkMuted)),
-                      SizedBox(height: context.space(6)),
-                      ThemePicker(
-                        selected: _selected,
-                        onChanged: _saving ? null : (id) => setState(() => _selected = id),
-                      ),
-                      SizedBox(height: context.space(6)),
-                      ThemeSample(themeId: _selected),
-                      SizedBox(height: context.space(6)),
-                      Button(
-                        label: ThemeStep.useLabel,
-                        variant: ButtonVariant.filled,
-                        onPressed: _saving ? null : _use,
-                      ),
-                      if (_error != null) ...[
-                        SizedBox(height: context.space(3)),
-                        Semantics(
-                          liveRegion: true,
-                          child: Text(_error!, style: context.typeScale.caption.copyWith(color: c.danger)),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          );
-        },
-      ),
     );
   }
 }

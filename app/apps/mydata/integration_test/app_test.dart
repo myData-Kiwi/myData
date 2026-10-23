@@ -11,7 +11,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:mydata/src/agent_tokens.dart';
 import 'package:mydata/src/app.dart';
-import 'package:mydata/src/setup_screen.dart';
 import 'package:mydata_core/mydata_core.dart';
 import 'package:mydata_ui/mydata_ui.dart';
 
@@ -61,14 +60,8 @@ void main() {
     await pumpUntil(tester, () => settled.contains(controller.phase), 'the host');
     expect(controller.phase, HostPhase.running, reason: '${controller.error}\n${controller.detail}');
 
-    // Setup, if shown: keep the theme (first run), then skip the assistant (or continue, if its model is
-    // already ready).
+    // Setup, if shown: skip the assistant (or continue, if its model is already ready).
     await pumpUntil(tester, () => !shows(find.text('Looking for the myData host')), 'the host to answer');
-    if (shows(find.text(ThemeStep.title))) {
-      await tester.ensureVisible(find.text(ThemeStep.useLabel));
-      await tester.tap(find.text(ThemeStep.useLabel));
-      await pumpUntil(tester, () => !shows(find.text(ThemeStep.title)), 'the theme to be stored');
-    }
     await tester.pump();
     if (shows(find.text('Skip for now'))) {
       await tester.tap(find.text('Skip for now'));

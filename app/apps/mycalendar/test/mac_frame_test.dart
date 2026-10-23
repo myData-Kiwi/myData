@@ -108,6 +108,40 @@ void main() {
   });
 
   group('the Mac frame', () {
+    macTestWidgets('View > Theme… opens the gallery on myCalendar; Use keeps the choice on this Mac', (tester) async {
+      var menus = <Map<Object?, Object?>>[];
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.menu, (call) async {
+        if (call.method == 'Menu.setMenus') {
+          menus = [for (final m in ((call.arguments as Map)['0'] as List)) m as Map<Object?, Object?>];
+        }
+        return null;
+      });
+      addTearDown(() => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.menu, null));
+      final h = Harness();
+      await start(tester, harness: h);
+      final view = menus.firstWhere((m) => m['label'] == AppMenuBar.viewMenu);
+      final theme = (view['children'] as List).cast<Map<Object?, Object?>>().firstWhere(
+          (c) => c['label'] == AppMenuBar.themeTitle);
+      await tester.binding.defaultBinaryMessenger.handlePlatformMessage(
+          SystemChannels.menu.name,
+          SystemChannels.menu.codec.encodeMethodCall(MethodCall('Menu.selectedCallback', theme['id'])),
+          (_) {});
+      await tester.pumpAndSettle();
+      expect(find.text(ThemeGallery.useLabel('myCalendar')), findsOneWidget);
+      // a Mac starts on System; one arrow previews Kiwi on the whole window, Return keeps it
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+      await tester.pumpAndSettle();
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pumpAndSettle();
+      expect(find.text(ThemeGallery.title), findsNothing);
+      expect((await h.store.read())['themes'], {
+        'everywhere': {'theme': 'mydata.system'},
+        'apps': {
+          'mycalendar': {'theme': 'mydata.kiwi', 'palette': 'kiwi'},
+        },
+      });
+    });
+
     macTestWidgets('draws the calendar list in the sidebar, the toolbar, the month and the day', (tester) async {
       await start(tester);
       expect(find.byType(MacSidebar), findsOneWidget);

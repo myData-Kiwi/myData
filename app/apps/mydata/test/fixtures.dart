@@ -162,7 +162,8 @@ class FakeHost {
 
   StatusOut status;
 
-  /// The stored theme and whether it was ever chosen (GET /appearance).
+  /// The host's old theme and whether it was ever chosen (GET /appearance and /status's `theme`, deprecated):
+  /// a device's first start reads it to keep its look.
   String theme;
   bool chosen;
   List<AgentOut> agents;
@@ -186,7 +187,7 @@ class FakeHost {
   /// the system's prompt.
   Completer<void>? accessGate;
 
-  /// GET and PUT /appearance answer with a server error.
+  /// GET /appearance answers with a server error.
   bool failAppearance = false;
 
   /// The host has stopped: /status does not answer.
@@ -233,10 +234,8 @@ class FakeHost {
       case ('GET', '/appearance'):
         return failAppearance ? _json({'detail': 'appearance is broken'}, 500) : _json(_appearance.toJson());
       case ('PUT', '/appearance'):
-        if (failAppearance) return _json({'detail': 'appearance is broken'}, 500);
-        theme = body!['theme']! as String;
-        chosen = true;
-        return _json(_appearance.toJson());
+        // Retired, as on the host: themes are chosen on each device.
+        return _json({'detail': 'Themes are chosen on each device now.'}, 410);
       case ('PUT', '/assistant/settings'):
         status.assistantEnabled = body!['enabled']! as bool;
         return _json(status.toJson());

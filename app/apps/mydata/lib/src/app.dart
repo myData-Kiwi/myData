@@ -11,14 +11,14 @@ import 'setup_screen.dart';
 import 'source_list.dart';
 import 'shell.dart';
 
-/// The myData app: draws in the theme stored on the host and the mode stored on this device, and follows
-/// both as they change (a theme picked in myAssistant arrives with the next status poll).
+/// The myData app: draws in its own theme on this device (else the one chosen for every app, else System)
+/// and this device's mode, and follows both as they change, here or in another app.
 class MyDataApp extends StatefulWidget {
   const MyDataApp({
     super.key,
     required this.controller,
     this.openSetup = false,
-    this.appearance,
+    this.themes,
     this.store,
     this.macSystem,
     this.links,
@@ -43,11 +43,11 @@ class MyDataApp extends StatefulWidget {
   /// Start on the Setup screen even if the host is ready (launched with --setup, e.g. by myAssistant).
   final bool openSetup;
 
-  /// The theme and mode. Null builds one for [controller] (AppearanceController.forHost), owned by the app.
-  final AppearanceController? appearance;
+  /// The themes and mode. Null builds one for [controller] (ThemeController.forHost), owned by the app.
+  final ThemeController? themes;
 
-  /// Where this device's mode is kept, for the [AppearanceController] the app builds. Null is the shared
-  /// device file every myData app reads ([deviceStore]); tests pass a MemoryDeviceStore.
+  /// Where this device's themes and mode are kept, for the [ThemeController] the app builds. Null is the
+  /// shared device file every myData app reads ([deviceStore]); tests pass a MemoryDeviceStore.
   final DeviceStore? store;
 
   /// The reader helper's path and System Settings. Null is the real one ([macSystem]); tests pass a fake.
@@ -68,48 +68,53 @@ class MyDataApp extends StatefulWidget {
 }
 
 class _MyDataAppState extends State<MyDataApp> {
-  late final AppearanceController _appearance =
-      widget.appearance ?? AppearanceController.forHost(widget.controller, store: widget.store ?? deviceStore);
+  late final ThemeController _themes =
+      widget.themes ??
+      ThemeController.forHost(MyDataAppId.mydata, widget.controller, store: widget.store ?? deviceStore);
 
   @override
   void initState() {
     super.initState();
-    unawaited(_appearance.start());
+    unawaited(_themes.start());
   }
 
   @override
   void dispose() {
-    if (widget.appearance == null) _appearance.dispose();
+    if (widget.themes == null) _themes.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
-    listenable: _appearance,
+    listenable: _themes,
     builder: (context, _) {
-      // On a Mac the Mac shell's theme (the system's font, colours and accent; this device's mode); elsewhere
-      // the host's theme (MacShell).
-      return MacShell(
-        theme: _appearance.theme,
-        appIcon: MyDataAppIcons.mydata,
-        builder: (context, light, dark, mode) => MaterialApp(
-          title: 'myData',
-          theme: light,
-          darkTheme: dark,
-          themeMode: mode,
-          debugShowCheckedModeBanner: false,
-          builder: MacShell.content,
-          home: _Home(
-            controller: widget.controller,
-            appearance: _appearance,
-            openSetup: widget.openSetup,
-            mac: widget.macSystem ?? macSystem,
-            links: widget.links,
-            installedApps: widget.installedApps,
-            openApp: widget.openApp,
-            openLink: widget.openLink,
-            chooser: widget.chooser,
-            acceptDrops: widget.acceptDrops,
+      // System is the Mac shell on a Mac (the system's font, colours and accent); a drawn theme draws inside
+      // the Mac window there (MacShell).
+      return ThemeScope(
+        themes: _themes,
+        app: MyDataAppId.mydata,
+        child: MacShell(
+          theme: _themes.theme,
+          appIcon: MyDataAppIcons.mydata,
+          builder: (context, light, dark, mode) => MaterialApp(
+            title: 'myData',
+            theme: light,
+            darkTheme: dark,
+            themeMode: mode,
+            debugShowCheckedModeBanner: false,
+            builder: MacShell.content,
+            home: _Home(
+              controller: widget.controller,
+              themes: _themes,
+              openSetup: widget.openSetup,
+              mac: widget.macSystem ?? macSystem,
+              links: widget.links,
+              installedApps: widget.installedApps,
+              openApp: widget.openApp,
+              openLink: widget.openLink,
+              chooser: widget.chooser,
+              acceptDrops: widget.acceptDrops,
+            ),
           ),
         ),
       );
@@ -122,7 +127,7 @@ class _MyDataAppState extends State<MyDataApp> {
 class _Home extends StatefulWidget {
   const _Home({
     required this.controller,
-    required this.appearance,
+    required this.themes,
     required this.openSetup,
     required this.mac,
     this.links,
@@ -134,7 +139,7 @@ class _Home extends StatefulWidget {
   });
 
   final HostController controller;
-  final AppearanceController appearance;
+  final ThemeController themes;
   final Future<bool> Function(MyDataLink link)? openLink;
   final FileChooser? chooser;
   final bool acceptDrops;
@@ -149,13 +154,8 @@ class _Home extends StatefulWidget {
 }
 
 class _HomeState extends State<_Home> {
-  /// Null until the host first answers (and its appearance is known), unless setup was asked for.
+  /// Null until the host first answers, unless setup was asked for.
   late bool? _inSetup = widget.openSetup ? true : null;
-
-  /// Whether the host has a chosen theme (GET /appearance). Null until it has answered once; a failed
-  /// read counts as chosen, so the theme step never blocks setup.
-  bool? _themeChosen;
-  bool _askedAppearance = false;
 
   /// Whether This Mac was ever turned on or off (GET /sources `decided`), so its first-run step is not
   /// needed. Null until known; true on a host that is not a Mac, and when the host could not say, so the
@@ -182,7 +182,6 @@ class _HomeState extends State<_Home> {
     super.initState();
     _links = widget.links?.listen(_onLink);
     _c.addListener(_onHost);
-    _askAppearance();
     _askMac();
     _reportReader();
     _decide();
@@ -201,7 +200,6 @@ class _HomeState extends State<_Home> {
   }
 
   void _onHost() {
-    _askAppearance();
     _askMac();
     _reportReader();
     setState(_decide);
@@ -265,47 +263,18 @@ class _HomeState extends State<_Home> {
     }());
   }
 
-  /// Once the host runs, ask it once whether a theme was ever chosen.
-  void _askAppearance() {
-    final connection = _c.connection;
-    if (_askedAppearance || _c.phase != HostPhase.running || connection == null) return;
-    _askedAppearance = true;
-    unawaited(() async {
-      bool chosen;
-      try {
-        final out = await connection.appearance.appearance().timeout(const Duration(seconds: 5));
-        chosen = out?.chosen ?? true;
-      } on Object {
-        chosen = true;
-      }
-      if (!mounted) return;
-      setState(() {
-        _themeChosen = chosen;
-        _decide();
-      });
-    }());
-  }
-
-  /// Setup is skipped at launch when there is nothing to ask or wait for: the theme was chosen before and
-  /// the assistant is ready, or switched off.
+  /// Setup is skipped at launch when there is nothing to ask or wait for: This Mac's question was answered
+  /// and the assistant is ready, or switched off. Themes are not part of first run: System is the default
+  /// (design/themes/ARCHITECTURE.md 4.3).
   void _decide() {
     final s = _c.status;
-    if (_inSetup != null || _c.phase != HostPhase.running || s == null || _themeChosen == null) return;
+    if (_inSetup != null || _c.phase != HostPhase.running || s == null) return;
     if (_macDecided == null) return;
     final a = assistantAvailability(s);
-    _inSetup =
-        // On a Mac the accent is the system's: no theme step there (SetupScreen).
-        (_themeChosen == false && !MacLook.forThisPlatform) ||
-        _macDecided == false ||
-        (a != AssistantAvailability.ready && a != AssistantAvailability.off);
+    _inSetup = _macDecided == false || (a != AssistantAvailability.ready && a != AssistantAvailability.off);
   }
 
   void _leaveSetup() => setState(() => _inSetup = false);
-
-  Future<void> _chooseTheme(String id) async {
-    await widget.appearance.setTheme(id);
-    if (mounted) setState(() => _themeChosen = true);
-  }
 
   /// This Mac's first-run Allow: turn it on with everything included, then ask for contacts, then
   /// calendars. Each request-access waits while the person answers the system's prompt. Moves on when both
@@ -366,7 +335,7 @@ class _HomeState extends State<_Home> {
     if (_inSetup == false) {
       return HomeShell(
         controller: _c,
-        appearance: widget.appearance,
+        themes: widget.themes,
         macSystem: widget.mac,
         installedApps: widget.installedApps,
         openApp: widget.openApp,
@@ -377,9 +346,9 @@ class _HomeState extends State<_Home> {
         acceptDrops: widget.acceptDrops,
       );
     }
-    // While the host's answers about the theme and This Mac are on their way, keep showing the host being
-    // looked for, so the assistant panel does not flash up before those steps.
-    final waiting = _c.phase == HostPhase.running && (_themeChosen == null || _macDecided == null);
+    // While the host's answer about This Mac is on its way, keep showing the host being looked for, so the
+    // assistant panel does not flash up before that step.
+    final waiting = _c.phase == HostPhase.running && _macDecided == null;
     return SetupScreen(
       phase: waiting ? HostPhase.checking : _c.phase,
       status: _c.status,
@@ -390,8 +359,6 @@ class _HomeState extends State<_Home> {
       onSkip: _skip,
       onContinue: _leaveSetup,
       onSwitchOn: _switchOn,
-      themeChosen: _themeChosen ?? true,
-      onChooseTheme: _chooseTheme,
       macStep: _macDecided == false,
       onAllowMac: _allowMac,
       onSkipMac: _skipMac,

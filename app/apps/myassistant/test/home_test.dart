@@ -132,17 +132,29 @@ void main() {
     expect(find.textContaining('go to Setup'), findsNothing);
   });
 
-  testWidgets('the theme follows the host and the mode follows the device, without a restart', (tester) async {
+  testWidgets("the theme and the mode follow this device's settings, without a restart", (tester) async {
     desktop(tester);
     final store = MemoryDeviceStore({'mode': 'light'});
     final host = FakeHost(phaseOnConnect: HostPhase.running, statusOnConnect: hostStatus());
     await tester.pumpWidget(MyAssistantApp(host: host, store: store, backend: ScriptedBackend([])));
     await tester.pumpAndSettle();
+    // This device's first start: the host's old theme (Kiwi) is kept, as Kiwi in that palette.
     final kiwi = MyDataColors.light.withTheme(MyDataThemes.kiwi, Brightness.light);
     expect(colorsOf(tester).accent, kiwi.accent);
+    expect((await store.read())['themes'], {
+      'everywhere': {'theme': 'mydata.kiwi', 'palette': 'kiwi'},
+    });
 
-    // A theme chosen in myData arrives with the next status poll.
+    // The host's theme no longer changes anything: themes are chosen on each device.
     host.push(hostStatus(theme: 'graphite'));
+    await tester.pumpAndSettle();
+    expect(colorsOf(tester).accent, kiwi.accent);
+
+    // A theme chosen for myAssistant in myData's Appearance arrives through the device's settings.
+    final mydata = ThemeController(appId: 'mydata', store: store, macOS: false);
+    await mydata.start();
+    await mydata.use(const ThemeChoice('mydata.kiwi', 'graphite'), app: 'myassistant');
+    mydata.dispose();
     await tester.pumpAndSettle();
     final graphite = MyDataColors.light.withTheme(MyDataThemes.graphite, Brightness.light);
     expect(colorsOf(tester).accent, graphite.accent);

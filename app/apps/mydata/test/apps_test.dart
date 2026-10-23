@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mydata/src/app.dart';
 import 'package:mydata/src/apps_section.dart';
-import 'package:mydata/src/setup_screen.dart';
 import 'package:mydata/src/shell.dart';
 import 'package:mydata/src/sources_section.dart';
 import 'package:mydata_core/mydata_core.dart';
@@ -268,15 +267,11 @@ void main() {
     });
 
     testWidgets('a link during setup waits until setup is done', (tester) async {
-      final host = FakeHost(chosen: false);
+      final host = FakeHost(status: statusWith(ModelOutStateEnum.loading));
       await pumpApp(tester, host, links: Stream.value(const OpenMyDataSources()));
-      expect(find.text(ThemeStep.title), findsOneWidget); // still in setup
-      await tester.ensureVisible(find.text(ThemeStep.useLabel));
-      await tester.tap(find.text(ThemeStep.useLabel));
-      await settle(tester);
-      expect(find.text('myData is ready'), findsOneWidget);
+      expect(find.text('Preparing the assistant'), findsOneWidget); // still in setup
       expect(find.byType(AppFrame), findsNothing);
-      await tester.tap(find.widgetWithText(Button, 'Continue'));
+      await tester.tap(find.widgetWithText(Button, 'Skip for now'));
       await settle(tester);
       expect(settingsShown(tester), isTrue);
     });

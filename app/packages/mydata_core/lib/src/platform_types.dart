@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'host_version.g.dart';
 
 /// Where the host keeps its files, how to reach it, and how to start and stop it.
@@ -80,25 +82,46 @@ abstract class HostPlatform {
 }
 
 /// Settings that belong to this device, not to the host, shared by every myData app on it (light or dark
-/// mode). Swapped for [MemoryDeviceStore] in tests.
+/// mode, each app's theme). Swapped for [MemoryDeviceStore] in tests.
 abstract class DeviceStore {
   /// The stored JSON object, or an empty map if there is none or it cannot be read.
   Future<Map<String, Object?>> read();
 
   /// Replaces the stored object.
   Future<void> write(Map<String, Object?> values);
+
+  /// Reads, applies [change] and writes, keeping what another app wrote there meanwhile as far as the
+  /// store can tell ([FileDeviceStore] reads again and retries when the file changed under it). Returns
+  /// what was written.
+  Future<Map<String, Object?>> update(Map<String, Object?> Function(Map<String, Object?> values) change) async {
+    final next = change(await read());
+    await write(next);
+    return next;
+  }
+
+  /// Fires when the stored object may have changed, from this app or another; nothing where the store cannot
+  /// tell (readers poll as well).
+  Stream<void> get changes => const Stream.empty();
 }
 
-/// A [DeviceStore] in memory: the web build (no files) and tests.
-class MemoryDeviceStore implements DeviceStore {
+/// A [DeviceStore] in memory: the web build (no files) and tests. Two controllers given the same one see
+/// each other's writes at once ([changes]), as two apps sharing the device's file do.
+class MemoryDeviceStore extends DeviceStore {
   MemoryDeviceStore([Map<String, Object?>? initial]) : _values = {...?initial};
   Map<String, Object?> _values;
+  final _changes = StreamController<void>.broadcast(sync: false);
 
   @override
   Future<Map<String, Object?>> read() async => {..._values};
 
   @override
-  Future<void> write(Map<String, Object?> values) async => _values = {...values};
+  Future<void> write(Map<String, Object?> values) async {
+    _values = {...values};
+    _changes.add(null);
+  }
+
+  @override
+  Stream<void> get changes => _changes.stream;
 }
 
 /// What the myData app needs from macOS for the This Mac source. Elsewhere it has nothing to report or

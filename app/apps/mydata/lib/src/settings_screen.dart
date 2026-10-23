@@ -10,13 +10,13 @@ import 'mac_status.dart';
 import 'source_list.dart';
 import 'sources_section.dart';
 
-/// Appearance (theme and mode), the assistant switch, the sources of contacts and calendars, and the agent
-/// tokens.
+/// Appearance (the mode, and each app's theme on this device), the assistant switch, the sources of contacts
+/// and calendars, and the agent tokens.
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({
     super.key,
     required this.controller,
-    required this.appearance,
+    required this.themes,
     required this.agents,
     required this.sources,
     this.macSystem,
@@ -24,7 +24,7 @@ class SettingsScreen extends StatelessWidget {
   });
 
   final HostController controller;
-  final AppearanceController appearance;
+  final ThemeController themes;
   final AgentList agents;
   final SourceList sources;
 
@@ -38,7 +38,7 @@ class SettingsScreen extends StatelessWidget {
   Widget build(BuildContext context) => PageScaffold(
     title: 'Settings',
     children: [
-      AppearanceSection(appearance: appearance),
+      AppearanceSection(themes: themes),
       AssistantSection(controller: controller),
       KeyedSubtree(
         key: sourcesKey,
@@ -49,82 +49,217 @@ class SettingsScreen extends StatelessWidget {
   );
 }
 
-/// The theme (stored on the host, for every app) and the mode (this device), each applied at once with no
-/// Save button, and a sample of the chosen theme in the current mode (design/theming.md).
+/// Appearance (design/themes/ARCHITECTURE.md 4.3): this device's mode, then each app's theme and palette,
+/// chosen on this device and never synced.
+///
+/// - **Mode:** Light, Dark or Match system, for every app on this device, applied at once.
+/// - **Everywhere:** the theme and palette every app follows unless it has its own ("Kiwi, Plum"; System by
+///   default). Change… opens the gallery, where Use everywhere sets it.
+/// - **Apps:** one row per app, "Same as everywhere" or its own theme and palette, with Change… (the gallery
+///   on that app's scene, with the app switcher) and Reset (back to everywhere).
+/// - **Themes:** the themes on this device and their palettes. Duplicate, Edit, Export and Import come with
+///   custom themes (phase 5).
+/// - A stored choice this build does not have (a theme removed, a palette renamed) says what it draws instead.
 class AppearanceSection extends StatelessWidget {
-  const AppearanceSection({super.key, required this.appearance});
+  const AppearanceSection({super.key, required this.themes});
 
-  final AppearanceController appearance;
+  final ThemeController themes;
 
   static const heading = 'Appearance';
-  static const failed = 'Could not change the theme. Check that your host is running, then try again.';
+  static const modeLabel = 'Mode';
   static const modes = [(MyDataMode.light, 'Light'), (MyDataMode.dark, 'Dark'), (MyDataMode.system, 'Match system')];
+  static const everywhereLabel = 'Everywhere';
+  static const everywhereNote = 'Every app uses this unless it has its own.';
+  static const appsHeading = 'Apps';
+  static const sameAsEverywhere = 'Same as everywhere';
+  static const changeLabel = 'Change…';
+  static const resetLabel = 'Reset';
+  static const resetReason = 'Already the same as everywhere.';
+  static const libraryHeading = 'Themes';
+  static const libraryFooter = 'Themes and palettes are chosen on this device and never leave it.';
+  static const failed = 'Could not change the theme on this device. Try again.';
 
-  /// The Mac frame's theme row: the accent here is the system's, so the host's theme is named for what it
-  /// changes, the other devices (an accent choice for the Mac comes with the plan's Settings window).
-  static const macThemeTitle = 'Theme on other devices';
-  static const macThemeSubtitle = 'This Mac uses the accent colour in System Settings.';
+  /// "myCalendar's theme is not on this device: it draws System." (ARCHITECTURE.md 4.1)
+  static String missing(String who, ThemeChoice drawn) =>
+      "$who's theme is not on this device: it draws ${ThemeLibrary.describe(drawn)}.";
 
-  Future<void> _setTheme(BuildContext context, String id) async {
-    final messenger = ScaffoldMessenger.of(context);
+  /// The apps in Settings' order: myData first, then the others.
+  static const apps = MyDataAppId.values;
+
+  static String describe(ThemeController themes, MyDataAppId app) => themes.settings.followsEverywhere(app.name)
+      ? sameAsEverywhere
+      : ThemeLibrary.describe(themes.settings.choiceFor(app.name));
+
+  static String describeEverywhere(ThemeController themes) =>
+      ThemeLibrary.describe(themes.settings.everywhere ?? ThemeChoice.system);
+
+  /// "Palettes: Kiwi, Graphite, Dusk, Plum, Rose and Amber."; a theme without palettes says where its colour
+  /// comes from on a Mac.
+  static String palettesOf(ThemeFile theme) {
+    if (theme.palettes.isEmpty) return MacLook.forThisPlatform ? 'Its colour is the accent in System Settings.' : '';
+    final names = [for (final p in theme.palettes) p.name];
+    final list = names.length < 2 ? names.join() : '${names.sublist(0, names.length - 1).join(', ')} and ${names.last}';
+    return 'Palettes: $list.';
+  }
+
+  /// A library row's line: the theme's blurb, then its palettes.
+  static String aboutTheme(ThemeFile theme) =>
+      [theme.blurb ?? '', palettesOf(theme)].where((x) => x.isNotEmpty).join(' ');
+
+  Future<void> _change(BuildContext context, {MyDataAppId? app}) => showThemeGalleryFor(
+    context,
+    themes,
+    app: MyDataAppId.mydata,
+    choosingFor: apps,
+    initialApp: app ?? MyDataAppId.mydata,
+  );
+
+  Future<void> _reset(BuildContext context, MyDataAppId app) async {
+    final messenger = ScaffoldMessenger.maybeOf(context);
     try {
-      await appearance.setTheme(id);
+      await themes.reset(app.name);
     } on Object {
-      messenger.showSnackBar(const SnackBar(content: Text(failed)));
+      messenger?.showSnackBar(const SnackBar(content: Text(failed)));
     }
+  }
+
+  /// The stored choices this build cannot draw as written, as sentences.
+  List<String> _missing() {
+    final s = themes.settings;
+    return [
+      if (s.everywhere != null && !ThemeLibrary.knows(s.everywhere!))
+        missing(everywhereLabel, ThemeLibrary.normalise(s.everywhere)),
+      for (final a in apps)
+        if (s.apps[a.name] case final c? when !ThemeLibrary.knows(c)) missing(a.displayName, ThemeLibrary.normalise(c)),
+    ];
   }
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
-    listenable: appearance,
+    listenable: themes,
     builder: (context, _) {
-      final themeId = appearance.themeId ?? MyDataThemes.fallback.id;
+      final missingNow = _missing();
+      Widget change(MyDataAppId? app, String who) => Button(
+        label: changeLabel,
+        variant: ButtonVariant.tonal,
+        semanticLabel: 'Change $who',
+        onPressed: () => _change(context, app: app),
+      );
+      Widget reset(MyDataAppId app) => Button(
+        label: resetLabel,
+        variant: ButtonVariant.plain,
+        semanticLabel: 'Reset ${app.displayName}',
+        disabledReason: resetReason,
+        onPressed: themes.settings.followsEverywhere(app.name) ? null : () => _reset(context, app),
+      );
       if (MacWindow.of(context)) {
-        return MacFormSection(
-          rows: [
-            MacFormRow(
-              title: heading,
-              trailing: [
-                MacSegmented<MyDataMode>(
-                  segments: modes,
-                  selected: appearance.mode,
-                  onChanged: appearance.setMode,
-                  semanticLabel: heading,
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (final m in missingNow) ...[
+              Notice(message: m, tone: NoticeTone.warning),
+              SizedBox(height: context.space(3)),
+            ],
+            MacFormSection(
+              rows: [
+                MacFormRow(
+                  title: heading,
+                  trailing: [
+                    MacSegmented<MyDataMode>(
+                      segments: modes,
+                      selected: themes.mode,
+                      onChanged: themes.setMode,
+                      semanticLabel: heading,
+                    ),
+                  ],
+                ),
+                MacFormRow(
+                  title: everywhereLabel,
+                  subtitle: describeEverywhere(themes),
+                  trailing: [change(null, everywhereLabel)],
                 ),
               ],
+              footer: everywhereNote,
             ),
-            MacFormRow(
-              title: macThemeTitle,
-              subtitle: macThemeSubtitle,
-              trailing: [MacThemeDots(selected: themeId, onChanged: (id) => _setTheme(context, id))],
+            SizedBox(height: MacForm.gap(context.look)),
+            MacFormSection(
+              heading: appsHeading,
+              rows: [
+                for (final a in apps)
+                  MacFormRow(
+                    title: a.displayName,
+                    subtitle: describe(themes, a),
+                    trailing: [reset(a), change(a, a.displayName)],
+                  ),
+              ],
+            ),
+            SizedBox(height: MacForm.gap(context.look)),
+            MacFormSection(
+              heading: libraryHeading,
+              footer: libraryFooter,
+              rows: [for (final t in ThemeLibrary.offered) MacFormRow(title: t.name, subtitle: aboutTheme(t))],
             ),
           ],
         );
       }
-      // Stacked, as design/components/GroupedSection says: the theme, the mode under it, and the sample of
-      // what they change under both, at its own width. The swatches get the full width: six on one row.
-      return GroupedSection(
-        heading: heading,
-        parts: [
-          GroupedContentPart(
-            child: GroupedStack(
-              children: [
-                GroupedControl(
-                  label: 'Theme',
-                  child: ThemePicker(selected: themeId, onChanged: (id) => _setTheme(context, id)),
+      Widget line(String text, List<Widget> buttons) => Wrap(
+        spacing: context.space(3),
+        runSpacing: context.space(2),
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          Text(text, style: context.typeScale.body.copyWith(color: context.colors.ink)),
+          ...buttons,
+        ],
+      );
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          GroupedSection(
+            heading: heading,
+            parts: [
+              GroupedContentPart(
+                child: GroupedStack(
+                  children: [
+                    for (final m in missingNow) Notice(message: m, tone: NoticeTone.warning),
+                    GroupedControl(
+                      label: modeLabel,
+                      child: SegmentedControl<MyDataMode>(
+                        segments: modes,
+                        selected: themes.mode,
+                        onChanged: themes.setMode,
+                        semanticLabel: modeLabel,
+                      ),
+                    ),
+                    GroupedControl(
+                      label: everywhereLabel,
+                      child: line(describeEverywhere(themes), [change(null, everywhereLabel)]),
+                    ),
+                  ],
                 ),
-                GroupedControl(
-                  label: 'Mode',
-                  child: SegmentedControl<MyDataMode>(
-                    segments: modes,
-                    selected: appearance.mode,
-                    onChanged: appearance.setMode,
-                    semanticLabel: 'Mode',
-                  ),
+              ),
+            ],
+          ),
+          SizedBox(height: context.space(6)),
+          GroupedSection(
+            heading: appsHeading,
+            parts: [
+              GroupedContentPart(
+                child: GroupedStack(
+                  children: [
+                    for (final a in apps)
+                      GroupedControl(
+                        label: a.displayName,
+                        child: line(describe(themes, a), [change(a, a.displayName), reset(a)]),
+                      ),
+                  ],
                 ),
-                ThemeSample(themeId: themeId),
-              ],
-            ),
+              ),
+            ],
+          ),
+          SizedBox(height: context.space(6)),
+          GroupedList(
+            heading: libraryHeading,
+            rows: [for (final t in ThemeLibrary.offered) GroupedRow(title: t.name, subtitle: aboutTheme(t))],
           ),
         ],
       );
@@ -226,7 +361,7 @@ class MacSettingsView extends StatelessWidget {
     super.key,
     required this.tab,
     required this.controller,
-    required this.appearance,
+    required this.themes,
     required this.agents,
     required this.sources,
     this.macSystem,
@@ -234,7 +369,7 @@ class MacSettingsView extends StatelessWidget {
 
   final SettingsTab tab;
   final HostController controller;
-  final AppearanceController appearance;
+  final ThemeController themes;
   final AgentList agents;
   final SourceList sources;
   final MacSystem? macSystem;
@@ -243,63 +378,12 @@ class MacSettingsView extends StatelessWidget {
   Widget build(BuildContext context) => MacForm(
     children: switch (tab) {
       SettingsTab.sources => [SourcesSections(controller: controller, sources: sources, system: macSystem)],
-      SettingsTab.appearance => [AppearanceSection(appearance: appearance)],
+      SettingsTab.appearance => [AppearanceSection(themes: themes)],
       SettingsTab.assistant => [AssistantSection(controller: controller)],
       SettingsTab.agents => [AgentTokensSection(controller: controller, agents: agents)],
       SettingsTab.about => [AboutSection(status: controller.status)],
     },
   );
-}
-
-/// The six themes as small round swatches in their accent, as System Settings' accent colour row: the
-/// chosen one ringed. Each is a button named after its theme.
-class MacThemeDots extends StatelessWidget {
-  const MacThemeDots({super.key, required this.selected, required this.onChanged});
-
-  final String selected;
-  final ValueChanged<String>? onChanged;
-
-  static const size = MyDataMacSize.icon;
-
-  @override
-  Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final mac = context.mac;
-    return Wrap(
-      spacing: context.space(2),
-      children: [
-        for (final t in MyDataThemes.all)
-          Tooltip(
-            message: t.name,
-            waitDuration: MacMenuLook.helpTagDelay,
-            child: Pressable(
-              onPressed: onChanged == null ? null : () => onChanged!(t.id),
-              borderRadius: BorderRadius.all(Radius.circular(context.radius.pill)),
-              scaleOnPress: false,
-              semanticLabel: t.name,
-              selected: t.id == selected,
-              child: Container(
-                width: size + 3 * MyDataMacSize.tight,
-                height: size + 3 * MyDataMacSize.tight,
-                padding: const EdgeInsets.all(MyDataMacSize.tight),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                      color: t.id == selected ? mac.secondaryLabel : Colors.transparent, width: MyDataMacSize.tight),
-                ),
-                child: Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: dark ? t.accentDark : t.accentLight,
-                    border: Border.all(color: mac.separator, width: MyDataMacSize.hairline),
-                  ),
-                ),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
 }
 
 /// About, in the Mac frame: the kiwi, the name, the host's version, and where the data lives.
@@ -325,11 +409,18 @@ class AboutSection extends StatelessWidget {
         const Center(child: KiwiTile(size: MyDataMacSize.avatar * 1.25)),
         SizedBox(height: context.space(3)),
         Center(
-          child: Semantics(header: true, child: Text('myData', style: MyDataMacType.name.copyWith(color: mac.label))),
+          child: Semantics(
+            header: true,
+            child: Text('myData', style: MyDataMacType.name.copyWith(color: mac.label)),
+          ),
         ),
         SizedBox(height: context.space(1)),
         Center(
-          child: Text(tagline, textAlign: TextAlign.center, style: MyDataMacType.body.copyWith(color: mac.secondaryLabel)),
+          child: Text(
+            tagline,
+            textAlign: TextAlign.center,
+            style: MyDataMacType.body.copyWith(color: mac.secondaryLabel),
+          ),
         ),
         SizedBox(height: context.space(6)),
         MacFormSection(

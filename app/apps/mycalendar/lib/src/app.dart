@@ -51,44 +51,54 @@ class MyCalendarApp extends StatefulWidget {
 }
 
 class _MyCalendarAppState extends State<MyCalendarApp> {
-  late final _appearance = AppearanceController.forHost(widget.host, store: widget.store);
+  late final _themes = ThemeController.forHost(MyDataAppId.mycalendar, widget.host, store: widget.store);
   late final _visibility = CalendarVisibility(store: widget.store);
 
   @override
   void initState() {
     super.initState();
-    _appearance.start();
+    _themes.start();
     _visibility.start();
   }
 
   @override
   void dispose() {
-    _appearance.dispose();
+    _themes.dispose();
     _visibility.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
-    listenable: _appearance,
-    builder: (context, _) => MacShell(
-      theme: _appearance.theme,
-      appIcon: MyDataAppIcons.mycalendar,
-      builder: (context, light, dark, mode) => MaterialApp(
-        title: 'myCalendar',
-        theme: light,
-        darkTheme: dark,
-        themeMode: mode,
-        debugShowCheckedModeBanner: false,
-        builder: MacShell.content,
-        home: CalendarHome(
-          host: widget.host,
-          visibility: _visibility,
-          backend: widget.backend,
-          zones: widget.zones,
-          links: widget.links,
-          actions: widget.actions,
-          now: widget.now,
+    listenable: _themes,
+    builder: (context, _) => ThemeScope(
+      themes: _themes,
+      app: MyDataAppId.mycalendar,
+      child: MacShell(
+        theme: _themes.theme,
+        appIcon: MyDataAppIcons.mycalendar,
+        builder: (context, light, dark, mode) => MaterialApp(
+          title: 'myCalendar',
+          theme: light,
+          darkTheme: dark,
+          themeMode: mode,
+          debugShowCheckedModeBanner: false,
+          builder: MacShell.content,
+          home: Builder(
+            builder: (context) => AppMenuBar(
+              appName: 'myCalendar',
+              onTheme: () => showAppThemeGallery(context),
+              child: CalendarHome(
+                host: widget.host,
+                visibility: _visibility,
+                backend: widget.backend,
+                zones: widget.zones,
+                links: widget.links,
+                actions: widget.actions,
+                now: widget.now,
+              ),
+            ),
+          ),
         ),
       ),
     ),

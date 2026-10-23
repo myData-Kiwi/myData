@@ -114,16 +114,15 @@ void main() {
   }
 
   group('first launch', () {
-    macTestWidgets('asks one question, with no theme step: the accent is the system\'s', (tester) async {
+    macTestWidgets('asks one question, with no theme step: System is the default', (tester) async {
       await window(tester);
       final host = FakeHost(chosen: false, mac: macSource(enabled: false, decided: false));
       await tester.pumpWidget(app(host, macAccents.first));
       await settle(tester);
-      expect(find.text(ThemeStep.title), findsNothing);
       expect(find.text(ThisMacStep.macTitle), findsOneWidget);
       expect(find.text(ThisMacStep.sampleLabel), findsOneWidget);
       expect(find.text(ThisMacStep.allowLabel), findsOneWidget);
-      expect(host.requests.where((r) => r.startsWith('PUT /appearance')), isEmpty);
+      expect(host.requests.where((r) => r.contains('/appearance')), isEmpty);
     });
 
     macTestWidgets('Allow turns This Mac on and asks for contacts, then calendars, and opens Status', (tester) async {
@@ -222,14 +221,23 @@ void main() {
       expect(host.requests, contains('PUT /assistant/settings {"enabled":false}'));
     });
 
-    macTestWidgets('a theme swatch sets the theme on the host, for the other platforms', (tester) async {
+    macTestWidgets("Appearance lists each app's theme on this Mac; Change… opens the gallery", (tester) async {
       await window(tester);
       final host = realHost();
       await tester.pumpWidget(app(host, macAccents.first));
       await openSettings(tester, SettingsTab.appearance);
-      await tester.tap(find.bySemanticsLabel('Plum'));
+      // a Mac starts every app on System
+      expect(find.text(AppearanceSection.everywhereLabel), findsOneWidget);
+      expect(find.text(AppearanceSection.sameAsEverywhere), findsNWidgets(4));
+      final change = find.byWidgetPredicate((w) => w is Button && w.semanticLabel == 'Change myContacts');
+      await tester.ensureVisible(change);
+      await tester.tap(change);
       await settle(tester);
-      expect(host.theme, 'plum');
+      expect(find.text(ThemeGallery.useLabel('myContacts')), findsOneWidget);
+      expect(find.text(ThemeGallery.systemNote(mac: true)), findsOneWidget);
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await settle(tester);
+      expect(host.requests.where((r) => r.contains('/appearance')), isEmpty);
     });
 
     macTestWidgets('on a Mac host, following iCloud is folded under Advanced', (tester) async {
