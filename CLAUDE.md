@@ -67,7 +67,7 @@ Technical names: repo `mydata-kiwi/mydata`, command `mydata`, background service
 5. **Push** at the end of every session.
 6. **Backups:** Time Machine to an external disk or NAS, live `*.sqlite*` files excluded; the M1b off-machine backup gate stands.
 7. The mail spike app is deleted; the owner switches off its two stale grants.
-8. **The Mac stack (Flutter or SwiftUI) is chosen by the owner** from a side-by-side of the People screen in M1a, before any restyle.
+8. **Flutter is the stack on every platform, the Mac included** (the owner, after the M1a side-by-side of the People screen: Flutter's app has more to it, the SwiftUI one felt basic, and SwiftUI is Mac only). The family of separate apps stays. **Native frame, quiet brand:** on macOS the system's window, unified toolbar and translucent sidebar, the system font at 13 pt, the system accent and focus ring, Mac density; ours are the kiwi, the app icons, avatars, person pages, empty states and wording. Other platforms keep building and keep today's look until their own pass (Material 3 on Android). The SwiftUI prototype stays on the local branch `stack-gate-swiftui`, never pushed.
 
 ## Architecture
 
@@ -156,9 +156,9 @@ The model has one job: choose a tool and extract plain arguments. Everything els
 
 ### Client stack
 
-- **Flutter**, macOS first, until the M1a side-by-side decides the Mac; Android stays Flutter; the iPhone gets plain HTML from the host. The Dart client is generated from `host/openapi.json`, never hand-written.
+- **Flutter on every platform** (decided 2026-10-23, item 8), macOS first; the iPhone gets plain HTML from the host until native iPhone apps. The Dart client is generated from `host/openapi.json`, never hand-written. Native pieces (widgets, App Intents, the share sheet) are budgeted per feature.
 - **Look today:** everything from `design/` through `mydata_ui`; tokens generated (`generated_tokens_test.dart` fails when stale); **no literal colour, radius or font name** in any app or widget (`no_literals_test.dart`). The theme is stored on the host; light or dark per device.
-- **Direction (M1a's look pass):** the platform owns the frame (window, toolbar, sidebar, controls, font, icons, accent, focus ring); myData owns the content. Mac density, lists not cards, themes become accents. No spec before a component's first use.
+- **Native frame, quiet brand (M1a's look pass):** the platform owns the frame (window, toolbar, sidebar, controls, font, icons, accent, focus ring); myData owns the content. On macOS the Mac shell in `mydata_ui` is the default; other platforms keep the branded look until their pass. Mac density, lists not cards, themes become accents. No spec before a component's first use.
 - Disabled controls always give a reason. On macOS the menu bar (`AppMenuBar`) owns ⌘Z and ⌘S; phones have every action on screen. Forms go read-only while working (`FormBusy`) and commit pending typing first (`FormCommit`). Dates in British English ("Wed 14 Oct 2026"). The focus ring, key order, phone breakpoint and form rules are in `design/README.md`, `design/platforms.md` and `mydata_ui`'s README.
 
 ### Repo layout
@@ -178,12 +178,12 @@ The links between the apps are in `mydata_core` (`AppLinks`, `IncomingLinks`, `I
 
 ## Status (2026-10-23)
 
-Built and tested against fakes and synthetic hosts, **never used live by the owner**: the host with the gate, scopes, safety net, writers and export; followed contacts and calendars (This Mac, iCloud); the four apps on the design system; contacts editing, import, merge and review. Nothing reaches the phones (loopback only). M1a in progress: the host builds as a signed `myData Host.app` with a LaunchAgent (tried with a test label and a temporary folder; not yet installed for the owner), and the four apps and the host app sign with the Apple Development certificate. The old phase build order is replaced by the milestones below.
+Built and tested against fakes and synthetic hosts, **never used live by the owner**: the host with the gate, scopes, safety net, writers and export; followed contacts and calendars (This Mac, iCloud); the four apps on the design system; contacts editing, import, merge and review. Nothing reaches the phones (loopback only). M1a in progress: the stack gate is done (Flutter on every platform); the host builds as a signed `myData Host.app` with a LaunchAgent (tried with a test label and a temporary folder; not yet installed for the owner), and the four apps and the host app sign with the Apple Development certificate. The old phase build order is replaced by the milestones below.
 
 ## Milestones (plan section 6, adjusted for 2026-10-23)
 
 - **M0, housekeeping. Next.** Owner: the Apple Development certificate; switching off the spike app's grants. Mine: `Signing.local.xcconfig`; `mydata db check-migration` on copies of the owner's files (schemas 5 to 7). Done: push, licence, this file cut, CI. Accept: two rebuilds without a second Contacts prompt.
-- **M1a, the Mac (2 to 3 weeks).** The host as a signed `.app` with a LaunchAgent (built 2026-10-23; the owner installs it with `install.sh`); the stack side-by-side; the look pass in **each** of the four apps (Mac density, system font and accent, icons, a real app icon); first launch in myData (Allow, or Try with sample data); History, Restore and Cleanup in myContacts; Proof of privacy v0 in myData.
+- **M1a, the Mac (2 to 3 weeks).** The host as a signed `.app` with a LaunchAgent (built 2026-10-23; the owner installs it with `install.sh`); the stack gate (**done 2026-10-23: Flutter chosen**); the look pass in **each** of the four apps (Mac density, system font and accent, icons, a real app icon); first launch in myData (Allow, or Try with sample data); History, Restore and Cleanup in myContacts; Proof of privacy v0 in myData.
 - **M1b, contacts on both phones (3 weeks).** The backup gate first; the remote listener and Tailscale Serve; day 1 records stock Radicale against iPhone, Mac Contacts and DAVx5, then our CardDAV against the recordings; Settings, Devices; This Mac excludes the myData account; the switch-over tool; `mydata check security`.
 - **M1c, calendar and tasks on both phones (2 weeks).** CalDAV for an owned calendar and plain VTODO; `.ics` import; provider calendars stay followed.
 - **M2:** the host's web page (Today, Search/Ask, Settings) with Web Push; Android APKs; ⌘K and Ask in myAssistant; notifications.
