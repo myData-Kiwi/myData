@@ -90,5 +90,5 @@ Cheap: no blur, no painters. Fraunces' variable file is about 360 KB with every 
 
 Values changed after an independent contrast audit and a distinctness check (prototype scripts, kept outside the repo with the previews). Lightness only; hue and chroma kept.
 
-- `colours.dark.line-strong`: #666069 → #6D6770. 3:1 on bg, surface, surface-raised and sidebar (SC 1.4.11); it was under on one of them
-- `colours.light.line-strong`: #928C91 → #8E888D. 3:1 on bg, surface, surface-raised and sidebar (SC 1.4.11); it was under on one of them
+- `palettes[plum].overrides.dark.line-strong`: #666069 → #6D6770. 3:1 on bg, surface, surface-raised and sidebar (SC 1.4.11); it was under on one of them
+- `palettes[plum].overrides.light.line-strong`: #928C91 → #8E888D. 3:1 on bg, surface, surface-raised and sidebar (SC 1.4.11); it was under on one of them

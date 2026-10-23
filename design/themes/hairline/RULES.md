@@ -83,7 +83,7 @@ Crisp: about 90 ms (110 ms × 0.8), no overshoot. A press dims (opacity), never 
 
 - Text: ink on bg 16.4:1 (light) and 15.0:1 (dark); secondary text 6.4:1 and 6.7:1 or more on every ground.
 - Controls: `line-strong` 3.1:1 on bg (light), 4.3:1 (dark). The selection bar is ink, so well above 3:1.
-- Increase contrast: secondary text and links go to 7:1, lines become `line-strong` (the `contrast` set in the file).
+- Increase contrast: secondary text and links go to 7:1, lines become `line-strong` (the Graphite palette's `contrast` set).
 - Reduced motion: the fade becomes a cut. Reduced transparency: no change (nothing is translucent).
 - Every pair in ARCHITECTURE.md 2.2 passes in both modes (the prototype validator).
 
@@ -106,13 +106,13 @@ Was Graphite. "Graphite" is also a macOS accent colour name (not on Apple's trad
 
 Values changed after an independent contrast audit and a distinctness check (prototype scripts, kept outside the repo with the previews). Lightness only; hue and chroma kept.
 
-- `colours.light.line-strong`: #8A8A86 → #878783. 3:1 on bg, surface, surface-raised and sidebar (SC 1.4.11); it was under on one of them
-- `contrast.dark.danger`: None → #FF958C. increase contrast: 7:1 on every ground, hover, tint and unfocused selection included
-- `contrast.dark.info`: None → #92C0F2. increase contrast: 7:1 on every ground, hover, tint and unfocused selection included
-- `contrast.dark.ink-muted`: #B0B0AD → #C8C8C5. increase contrast: 7:1 on every ground, hover, tint and unfocused selection included
-- `contrast.dark.success`: None → #88D48B. increase contrast: 7:1 on every ground, hover, tint and unfocused selection included
-- `contrast.light.danger`: #AC1D17 → #9A0001. increase contrast: 7:1 on every ground, hover, tint and unfocused selection included
-- `contrast.light.info`: None → #024A92. increase contrast: 7:1 on every ground, hover, tint and unfocused selection included
-- `contrast.light.ink-muted`: #4D4D4B → #41413F. increase contrast: 7:1 on every ground, hover, tint and unfocused selection included
-- `contrast.light.success`: None → #105A18. increase contrast: 7:1 on every ground, hover, tint and unfocused selection included
-- `contrast.light.warning`: None → #784000. increase contrast: 7:1 on every ground, hover, tint and unfocused selection included
+- `palettes[graphite].overrides.light.line-strong`: #8A8A86 → #878783. 3:1 on bg, surface, surface-raised and sidebar (SC 1.4.11); it was under on one of them
+- `palettes[graphite].contrast.dark.danger`: None → #FF958C. increase contrast: 7:1 on every ground, hover, tint and unfocused selection included
+- `palettes[graphite].contrast.dark.info`: None → #92C0F2. increase contrast: 7:1 on every ground, hover, tint and unfocused selection included
+- `palettes[graphite].contrast.dark.ink-muted`: #B0B0AD → #C8C8C5. increase contrast: 7:1 on every ground, hover, tint and unfocused selection included
+- `palettes[graphite].contrast.dark.success`: None → #88D48B. increase contrast: 7:1 on every ground, hover, tint and unfocused selection included
+- `palettes[graphite].contrast.light.danger`: #AC1D17 → #9A0001. increase contrast: 7:1 on every ground, hover, tint and unfocused selection included
+- `palettes[graphite].contrast.light.info`: None → #024A92. increase contrast: 7:1 on every ground, hover, tint and unfocused selection included
+- `palettes[graphite].contrast.light.ink-muted`: #4D4D4B → #41413F. increase contrast: 7:1 on every ground, hover, tint and unfocused selection included
+- `palettes[graphite].contrast.light.success`: None → #105A18. increase contrast: 7:1 on every ground, hover, tint and unfocused selection included
+- `palettes[graphite].contrast.light.warning`: None → #784000. increase contrast: 7:1 on every ground, hover, tint and unfocused selection included

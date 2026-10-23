@@ -85,6 +85,6 @@ Cheap. The grain tile is drawn once. The only cost is Literata's size.
 
 Values changed after an independent contrast audit and a distinctness check (prototype scripts, kept outside the repo with the previews). Lightness only; hue and chroma kept.
 
-- `colours.dark.line-strong`: #71695E → #776E63. 3:1 on bg, surface, surface-raised and sidebar (SC 1.4.11); it was under on one of them
-- `colours.light.line-strong`: #8B857E → #87817B. 3:1 on bg, surface, surface-raised and sidebar (SC 1.4.11); it was under on one of them
+- `palettes[amber].overrides.dark.line-strong`: #71695E → #776E63. 3:1 on bg, surface, surface-raised and sidebar (SC 1.4.11); it was under on one of them
+- `palettes[amber].overrides.light.line-strong`: #8B857E → #87817B. 3:1 on bg, surface, surface-raised and sidebar (SC 1.4.11); it was under on one of them
 - `type.roles.heading.stack`: None → display. the heading is set in the display font, as the Typography table says; the schema now has role.stack, and heading defaults to body as in design/tokens.json

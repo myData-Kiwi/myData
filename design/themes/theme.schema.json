@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:mydata:theme:1",
   "title": "myData theme, format 1",
-  "description": "theme.json inside a .mydatatheme file, and every built-in theme in design/themes/<slug>/theme.json. Data only: no URLs, paths (except the two image slots), CSS, expressions or code. Every number has bounds. The schema is the first gate; contrast and the other rules in ARCHITECTURE.md section 2 are the second, run by the same validator in the apps, the editor and the tests. Keys use kebab-case like design/tokens.json.",
+  "description": "theme.json inside a .mydatatheme file, and every built-in theme in design/themes/<slug>/theme.json. Data only: no URLs, paths (except the two image slots), CSS, expressions or code. Every number has bounds. A theme is a style (type, shape, density, borders, elevation, materials, icons, motion, components) plus one or more palettes; colours live only in palettes. The schema is the first gate; contrast and the other rules in ARCHITECTURE.md section 2 are the second, run by the same validator in the apps, the editor and the tests. Keys use kebab-case like design/tokens.json.",
   "type": "object",
   "additionalProperties": true,
   "$comment": "Unknown keys are allowed by the schema so a newer minor version still loads; the validator drops them and reports a notice. A newer major 'format' is refused before this schema runs.",
@@ -60,14 +60,14 @@
     "based-on": {
       "type": "string",
       "pattern": "^mydata\\.[a-z][a-z0-9-]{1,31}$",
-      "description": "A built-in id only. Fills every group this file leaves out. Never a fetch, never another custom theme."
+      "description": "A built-in id only. Fills every style group this file leaves out; never palettes, which a drawn file always gives. Never a fetch, never another custom theme."
     },
     "frame": {
       "enum": [
         "system",
         "drawn"
       ],
-      "description": "system: the platform's own look (the Mac shell on macOS); only the built-in System and 'System, tinted' copies may use it, and they may set colours.light/dark.accent only. drawn: myData draws everything inside the window with this file's rules."
+      "description": "system: the platform's own look (the Mac shell on macOS); only the built-in System and 'System, tinted' copies may use it, and their palettes may set an accent only (the built-in System has none: its colour is the platform's accent). drawn: myData draws everything inside the window with this file's rules."
     },
     "preview": {
       "type": "object",
@@ -88,21 +88,19 @@
         }
       }
     },
-    "colours": {
-      "$ref": "#/$defs/colours"
+    "palettes": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 8,
+      "description": "The colour choices of this theme, named by colour (Journal: Plum, Ink blue, Forest). The user picks a theme and one of its palettes, per app and per device. Each palette is resolved and checked on its own, in both modes and at increased contrast (ARCHITECTURE.md 1.6 and 2). Ids are unique within the theme (checked by the validator)."
     },
-    "contrast": {
-      "description": "Optional overrides used when the system asks for more contrast (macOS Increase contrast, Windows contrast themes). Without them the resolver applies the rule in ARCHITECTURE.md 2.6. Checked at 7:1 for text.",
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "light": {
-          "$ref": "#/$defs/colourSetPartial"
-        },
-        "dark": {
-          "$ref": "#/$defs/colourSetPartial"
-        }
-      }
+    "default-palette": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{1,31}$",
+      "description": "The id of the palette used when none is chosen, or when the chosen one no longer exists. Must name one of palettes (checked by the validator)."
+    },
+    "colour-use": {
+      "$ref": "#/$defs/colourUse"
     },
     "type": {
       "$ref": "#/$defs/type"
@@ -156,21 +154,13 @@
       },
       "then": {
         "required": [
-          "colours"
+          "palettes",
+          "default-palette"
         ],
         "properties": {
-          "colours": {
-            "required": [
-              "light",
-              "dark"
-            ],
-            "properties": {
-              "light": {
-                "$ref": "#/$defs/colourSet"
-              },
-              "dark": {
-                "$ref": "#/$defs/colourSet"
-              }
+          "palettes": {
+            "items": {
+              "$ref": "#/$defs/palette"
             }
           }
         }
@@ -186,26 +176,9 @@
       },
       "then": {
         "properties": {
-          "colours": {
-            "properties": {
-              "light": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "accent": {
-                    "$ref": "#/$defs/opaque"
-                  }
-                }
-              },
-              "dark": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "accent": {
-                    "$ref": "#/$defs/opaque"
-                  }
-                }
-              }
+          "palettes": {
+            "items": {
+              "$ref": "#/$defs/systemPalette"
             }
           }
         },
@@ -258,9 +231,14 @@
             },
             {
               "required": [
-                "contrast"
+                "colour-use"
               ]
             }
+          ]
+        },
+        "dependentRequired": {
+          "palettes": [
+            "default-palette"
           ]
         }
       }
@@ -280,35 +258,278 @@
       "type": "string",
       "pattern": "^#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$"
     },
-    "colours": {
+    "paletteId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{1,31}$"
+    },
+    "palette": {
       "type": "object",
       "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "light",
+        "dark"
+      ],
+      "description": "One palette of a drawn theme: the six seeds per mode, and optionally any other role, an increased-contrast set and the window gradient's stops. Roles left out are derived from the seeds (ARCHITECTURE.md 1.3); roles the theme fixes in colour-use.same-as may not be given (checked by the validator). Built-in palettes give every role, so they never depend on the resolver's derivation.",
       "properties": {
+        "id": {
+          "$ref": "#/$defs/paletteId"
+        },
+        "name": {
+          "$ref": "#/$defs/shortText",
+          "maxLength": 24,
+          "description": "A colour name, in sentence case: \"Ink blue\", not \"Journal ink blue\"."
+        },
         "light": {
-          "$ref": "#/$defs/colourSetPartial"
+          "$ref": "#/$defs/colourSeeds"
         },
         "dark": {
-          "$ref": "#/$defs/colourSetPartial"
+          "$ref": "#/$defs/colourSeeds"
+        },
+        "overrides": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "light": {
+              "$ref": "#/$defs/colourOverrides"
+            },
+            "dark": {
+              "$ref": "#/$defs/colourOverrides"
+            }
+          }
+        },
+        "contrast": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Optional values used when the system asks for more contrast (macOS Increase contrast). Without them the resolver derives them (ARCHITECTURE.md 2.2, 7:1 row). Checked at 7:1 for text.",
+          "properties": {
+            "light": {
+              "$ref": "#/$defs/colourSetPartial"
+            },
+            "dark": {
+              "$ref": "#/$defs/colourSetPartial"
+            }
+          }
+        },
+        "gradient": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "light",
+            "dark"
+          ],
+          "description": "The window gradient's stops, used when the theme's materials.window.kind is gradient. Left out, they are derived: bg mixed 8% towards accent, bg, and bg mixed 5% towards ink.",
+          "properties": {
+            "light": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 3,
+              "items": {
+                "$ref": "#/$defs/opaque"
+              }
+            },
+            "dark": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 3,
+              "items": {
+                "$ref": "#/$defs/opaque"
+              }
+            }
+          }
         }
       }
     },
-    "colourSet": {
-      "description": "Six seed roles are required; every other role is derived from them (ARCHITECTURE.md 1.3) unless given. brand, skin, cream and paper are fixed artwork colours and not part of a theme.",
+    "systemPalette": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name"
+      ],
+      "description": "A palette of a system-frame theme (\"System, tinted\", phase 5): an accent only. The built-in System has no palettes: its colour is the platform's accent.",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/paletteId"
+        },
+        "name": {
+          "$ref": "#/$defs/shortText",
+          "maxLength": 24
+        },
+        "light": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "accent": {
+              "$ref": "#/$defs/opaque"
+            }
+          }
+        },
+        "dark": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "accent": {
+              "$ref": "#/$defs/opaque"
+            }
+          }
+        }
+      }
+    },
+    "colourSeeds": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bg",
+        "surface",
+        "ink",
+        "ink-muted",
+        "accent",
+        "on-accent"
+      ],
+      "description": "The six seed roles of one mode. Every other role is given in overrides or derived from these.",
+      "properties": {
+        "bg": {
+          "$ref": "#/$defs/opaque"
+        },
+        "surface": {
+          "$ref": "#/$defs/opaque"
+        },
+        "ink": {
+          "$ref": "#/$defs/opaque"
+        },
+        "ink-muted": {
+          "$ref": "#/$defs/opaque"
+        },
+        "accent": {
+          "$ref": "#/$defs/opaque"
+        },
+        "on-accent": {
+          "$ref": "#/$defs/opaque"
+        }
+      }
+    },
+    "colourOverrides": {
+      "description": "Any role except the six seeds. brand, skin, cream and paper are fixed artwork colours and not part of a palette.",
       "allOf": [
         {
           "$ref": "#/$defs/colourSetPartial"
         },
         {
-          "required": [
-            "bg",
-            "surface",
-            "ink",
-            "ink-muted",
-            "accent",
-            "on-accent"
-          ]
+          "propertyNames": {
+            "not": {
+              "enum": [
+                "bg",
+                "surface",
+                "ink",
+                "ink-muted",
+                "accent",
+                "on-accent"
+              ]
+            }
+          }
         }
       ]
+    },
+    "colourUse": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "How the style uses colour, whatever the palette.",
+      "properties": {
+        "same-as": {
+          "type": "object",
+          "description": "Roles this style always draws in another role's colour, in every palette: Hairline's selection bar is ink, Journal's toolbar is the paper (bg). Applied after a palette's values and before derivation. A key may not be a seed or a role a palette gives, and a value may not itself be a key (no chains); both are checked by the validator.",
+          "propertyNames": {
+            "enum": [
+              "surface-raised",
+              "surface-sunken",
+              "surface-hover",
+              "sidebar",
+              "toolbar",
+              "line",
+              "line-strong",
+              "edge",
+              "accent-soft",
+              "link",
+              "selection",
+              "on-selection",
+              "selection-inactive",
+              "focus",
+              "focus-on-danger",
+              "success",
+              "success-soft",
+              "warning",
+              "warning-soft",
+              "danger",
+              "danger-soft",
+              "on-danger",
+              "info",
+              "info-soft",
+              "avatar-fill",
+              "data-red",
+              "data-orange",
+              "data-yellow",
+              "data-green",
+              "data-blue",
+              "data-purple",
+              "data-brown",
+              "data-grey",
+              "scrim",
+              "glass-fill",
+              "glass-stroke",
+              "shadow"
+            ]
+          },
+          "additionalProperties": {
+            "enum": [
+              "bg",
+              "surface",
+              "surface-raised",
+              "surface-sunken",
+              "surface-hover",
+              "sidebar",
+              "toolbar",
+              "line",
+              "line-strong",
+              "edge",
+              "ink",
+              "ink-muted",
+              "accent",
+              "on-accent",
+              "accent-soft",
+              "link",
+              "selection",
+              "on-selection",
+              "selection-inactive",
+              "focus",
+              "focus-on-danger",
+              "success",
+              "success-soft",
+              "warning",
+              "warning-soft",
+              "danger",
+              "danger-soft",
+              "on-danger",
+              "info",
+              "info-soft",
+              "avatar-fill",
+              "data-red",
+              "data-orange",
+              "data-yellow",
+              "data-green",
+              "data-blue",
+              "data-purple",
+              "data-brown",
+              "data-grey",
+              "scrim",
+              "glass-fill",
+              "glass-stroke",
+              "shadow"
+            ]
+          }
+        }
+      }
     },
     "colourSetPartial": {
       "type": "object",
@@ -348,7 +569,7 @@
         },
         "edge": {
           "$ref": "#/$defs/opaque",
-          "description": "The theme's outline colour when borders.colour is 'edge' (ink outlines in Rose, Concrete)."
+          "description": "The theme's outline colour when borders.colour is 'edge' (ink outlines in Sticker, Brutalist)."
         },
         "ink": {
           "$ref": "#/$defs/opaque"
@@ -453,7 +674,8 @@
           "$ref": "#/$defs/opaque",
           "description": "Shadow colour; strength comes from elevation."
         }
-      }
+      },
+      "description": "Any subset of the 43 colour roles of one mode (ARCHITECTURE.md 1.3)."
     },
     "fontStack": {
       "type": "array",
@@ -774,31 +996,12 @@
     "gradient": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "light",
-        "dark"
-      ],
+      "description": "The style's gradient: its angle. The stops are colours and come from each palette (palettes[].gradient), or are derived from its seeds.",
       "properties": {
         "angle": {
           "type": "number",
           "minimum": 0,
           "maximum": 360
-        },
-        "light": {
-          "type": "array",
-          "minItems": 2,
-          "maxItems": 3,
-          "items": {
-            "$ref": "#/$defs/opaque"
-          }
-        },
-        "dark": {
-          "type": "array",
-          "minItems": 2,
-          "maxItems": 3,
-          "items": {
-            "$ref": "#/$defs/opaque"
-          }
         }
       }
     },
@@ -1173,7 +1376,7 @@
             "colour",
             "pattern"
           ],
-          "description": "pattern: calendar colours become greys with a pattern and the name always shows (Still)."
+          "description": "pattern: calendar colours become greys with a pattern and the name always shows (E-ink)."
         }
       }
     }

@@ -95,6 +95,6 @@ Cheap. The only costly effect is the glass toolbar, bounded to the bars. Continu
 
 Values changed after an independent contrast audit and a distinctness check (prototype scripts, kept outside the repo with the previews). Lightness only; hue and chroma kept. **They apply from phase 3** (decided 2026-10-23): phase 1 must leave every golden byte-identical, so until then Kiwi draws today's values.
 
-- `colours.dark.glass-fill`: #1A1A1AB8 → #1A1A1AD5. secondary text on a glass bar stays 4.5:1 over any content scrolled beneath (it fell to 3.1:1 over ink)
-- `colours.light.glass-fill`: #FFFFFFB8 → #FFFFFFD0. secondary text on a glass bar stays 4.5:1 over any content scrolled beneath (it fell to 3.1:1 over ink)
-- `colours.light.link`: #4C7814 → #4B7611. link text 4.5:1 on every ground it is drawn on
+- `palettes[kiwi].overrides.dark.glass-fill`: #1A1A1AB8 → #1A1A1AD5. secondary text on a glass bar stays 4.5:1 over any content scrolled beneath (it fell to 3.1:1 over ink)
+- `palettes[kiwi].overrides.light.glass-fill`: #FFFFFFB8 → #FFFFFFD0. secondary text on a glass bar stays 4.5:1 over any content scrolled beneath (it fell to 3.1:1 over ink)
+- `palettes[kiwi].overrides.light.link`: #4C7814 → #4B7611. link text 4.5:1 on every ground it is drawn on

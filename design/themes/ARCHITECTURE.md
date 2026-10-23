@@ -1,6 +1,6 @@
 # The theme system
 
-The design for the owner's request of 2026-10-23: a theme changes how the whole app looks, each app has its own theme, System is the default, and people can make, import and share themes, as in Warp. The decisions are in `docs/decisions/2026-10-23-themes.md`; where this file and CLAUDE.md differ, CLAUDE.md wins. Nothing here is built yet.
+The design for the owner's request of 2026-10-23: a theme changes how the whole app looks, each app has its own theme, System is the default, and people can make, import and share themes, as in Warp. A theme is named after its design language and is a **style plus palettes**: colour is a separate choice inside a theme (1.6). The decisions are in `docs/decisions/2026-10-23-themes.md`; where this file and CLAUDE.md differ, CLAUDE.md wins. Nothing here is built yet.
 
 In this folder:
 - `theme.schema.json`: the format (JSON Schema 2020-12).
@@ -18,6 +18,7 @@ Not in the repo: the 13 other prototype themes (under their new names: High Cont
   - Around 1,300 static token reads have to become context reads: `MyDataSpace.` 698, `MyDataType.` 317, `MyDataSize.` 174, `MyDataMotion.` 213, radii 126.
   - Every component variant has to be built and given goldens.
   - The 60 `MacLook.of` branches have to be split into "is this a Mac window" and "which variant".
+- **Palettes multiply the checks.** Six drawn themes with three palettes each are 18 colour sets, each checked in two modes at two contrast levels. Goldens stay bounded: variants are covered once per style, and each palette once on one app scene (5).
 - **Nothing proves a theme works in Flutter yet.** The prototype previews are HTML; three batches built three validators that disagreed on six rules (6a). One Dart validator and one preview harness come before any new built-in (phase 3½).
 - **Choices are per device and per app, and nothing syncs.** A second Mac starts on System; export and import of a theme file (phase 5) is the way across.
 - **Phones get no "Use everywhere".** On iOS and Android, separate apps cannot share a folder without App Groups (paid Apple program) or a content provider. Phones get one theme per app until native phone apps exist (decided).
@@ -36,27 +37,28 @@ Not in the repo: the 13 other prototype themes (under their new names: High Cont
 | `theme.json` | UTF-8 JSON, at most 128 KB, nesting depth at most 8, no duplicate keys |
 | Envelope (required) | `format` (integer, 1), `id`, `name`, `version`, `licence`, `frame` |
 | Envelope (optional) | `author`, `description`, `based-on`, `preview` |
+| Colour (1.6) | `palettes` and `default-palette`, required in a `drawn` file; `colour-use`, optional |
 | Ids | Built-ins are `mydata.<slug>`. Everything else is a lower-case UUID. An imported file may never use `mydata.` |
-| `based-on` | A built-in id only. Every group the file leaves out is filled from it; it is never a fetch |
-| `frame` | `system` or `drawn` (section 3.4). A `system` file may set `colours.<mode>.accent` and nothing else: that is "System, tinted" |
+| `based-on` | A built-in id only. Every style group the file leaves out is filled from it; never its palettes, which a drawn file always gives. It is never a fetch |
+| `frame` | `system` or `drawn` (section 3.4). A `system` file may give palettes with an accent and nothing else: that is "System, tinted" |
 | `preview` | `blurb` (80 characters) and the first `scene` to show. Pictures are always rendered live; a file never carries a screenshot |
 | `licence` | One SPDX id, checked against the SPDX list compiled into the app, or `NOASSERTION` for a theme that is not shared. Export asks for one |
 | YAML | The keys map one to one to YAML, so an author can write YAML and convert it. **myData reads only JSON.** YAML aliases allow exponential expansion (the "billion laughs" attack), and JSON parsing is already in the Dart SDK |
 
 ### 1.2 Groups
 
-Every group is optional in a `drawn` file with `based-on`, except `colours`, which needs `light` and `dark`. The schema gives the exact enumerations and bounds; this table is the summary.
+Every style group is optional in a `drawn` file with `based-on`; `palettes` are always required. The schema gives the exact enumerations and bounds; this table is the summary.
 
 | Group | Fields (bounds) | Maps to today |
 |---|---|---|
-| `colours.light`, `colours.dark` | 43 roles (1.3). Six seeds are required: `bg`, `surface`, `ink`, `ink-muted`, `accent`, `on-accent`. Opaque `#RRGGBB`, except `scrim`, `glass-fill` and `glass-stroke`, which may add alpha | The `color.tokens` in `tokens.json` (`kiwi-wash` becomes `avatar-fill`) plus 9 new roles |
-| `contrast` | Optional partial colour sets used when the system asks for more contrast, checked at 7:1 | New |
+| `palettes[]` (1.6) | Per palette, per mode: the six seeds (`bg`, `surface`, `ink`, `ink-muted`, `accent`, `on-accent`), `overrides` for any of the other 37 roles (1.3), an optional `contrast` set used when the system asks for more contrast (checked at 7:1) and the window gradient's `gradient` stops. Opaque `#RRGGBB`, except `scrim`, `glass-fill` and `glass-stroke`, which may add alpha | The `color.tokens` in `tokens.json` (`kiwi-wash` becomes `avatar-fill`) plus 9 new roles; `themes.json`'s six accents |
+| `colour-use` | `same-as`: roles the style always draws in another role's colour, in every palette (Hairline's selection bar is `ink`) | New |
 | `type` | `display`, `body` and `mono` font stacks (1.5); `base` 12–19 px; `ratio` 1.067–1.333; `numerals` proportional or tabular; `secondary-italic`; per-role `size` 10–48, `line-height` 1.0–1.8, `weight` 300–900, `tracking` −0.03 to 0.12 em, `case` (`upper` only on `label` and `caption`, with tracking at least 0.04), `stack` (display, body or mono; default display for display-xl, display-lg and title, body for heading, body, body-strong, label and caption, as `tokens.json` today) | `type.groups` (display-xl … mono) |
 | `shape` | `corners`: round, continuous, cut or square; `radius` xs 0–8, sm 0–14, md 0–20, lg 0–28, xl 0–36; `controls`: pill or match; `cut-size` 2–12 | `radius` tokens |
 | `density` | `preset` (compact, regular, roomy), or per class (`desktop`, `phone`): `control` 24–64, `row` 24–72, `icon` 14–28, `space` ×0.75–1.5 | `size`, `spacing` |
 | `borders` | `width`: hairline, 1, 2 or 3; `style`: solid, dashed or double (cards and separators only); `colour`: line, line-strong, edge or accent; `cards`; `controls`; `separators`: none, inset or full; `title-rule`: none, single or double | Implicit today ("no borders") |
 | `elevation` | `style`: none, soft, hard, offset, bevel or glow; `strength` 0–1; `offset` 0–8 px; `press`: none or collapse | `shadow` tokens |
-| `materials` | `window`: solid, gradient (2–3 stops per mode, an angle), pattern (dots, grid, ruled, margin-rule, grain or scanlines; spacing 8–64; opacity 0.02–0.12) or image (`images/x.png` or `.jpg`, cover or tile, opacity 0.05–0.6, tint-opacity 0–0.9, blur 0–24 applied at import); `sidebar`: solid, translucent or native; `bars`: solid, translucent or blur; `blur` σ 8–30 | `blur`, `glass-*` |
+| `materials` | `window`: solid, gradient (an angle; its 2–3 stops per mode come from each palette), pattern (dots, grid, ruled, margin-rule, grain or scanlines; spacing 8–64; opacity 0.02–0.12) or image (`images/x.png` or `.jpg`, cover or tile, opacity 0.05–0.6, tint-opacity 0–0.9, blur 0–24 applied at import); `sidebar`: solid, translucent or native; `bars`: solid, translucent or blur; `blur` σ 8–30 | `blur`, `glass-*` |
 | `icons` | `set`: lucide, phosphor, tabler, material-outlined, material-rounded, material-sharp, pixelarticons or iconoir; `weight`: thin, light, regular, bold or fill (mapped to the nearest the set has); `selected`: same or fill; `tiles`: tinted, outlined or none | Lucide only (`MacIcons`) |
 | `motion` | `personality`: none, calm, standard, crisp or lively; `scale` 0.5–1.5 (slow capped at 500 ms); `press`: none, dim, dim-scale, sink or invert; `enter`: none, fade or fade-rise | `motion.md` |
 | `components` | `button` {`primary`: filled, outline, brutal, bevel or push (**never text**); `secondary`: tonal, outline or text; `shape`: pill, rounded, square or cut}; `list`: plain, inset, cards, bordered, ruled or table; `sidebar`: source-list, column, rail or tabs; `toolbar`: native, flat or floating; `inputs`: filled, outlined or underlined; `selection`: tint, solid, inverse, bar, outline or highlighter; `avatar`: circle, rounded, square, shape or none; `tabs`: pill, underline or boxed; `chat`: bubbles, blocks or transcript; `month`: boxed, open or table; `today`: disc, ring or inverse; `data-colours`: colour or pattern | `ButtonVariant` roles stay the app's; the theme picks how each role is drawn |
@@ -73,7 +75,7 @@ Every group is optional in a `drawn` file with `based-on`, except `colours`, whi
 
 ### 1.3 Colour roles, and how missing ones are derived
 
-The resolver derives in OKLCH. Each derived value is then moved in lightness only, until its pair in 2.2 passes. Hue and chroma are kept.
+The resolver works on one palette at a time: its seeds, then its overrides, then the style's `colour-use.same-as`, then the derivations below. It derives in OKLCH. Each derived value is then moved in lightness only, until its pair in 2.2 passes. Hue and chroma are kept.
 
 | Role | Derived from (when absent) |
 |---|---|
@@ -121,6 +123,33 @@ The resolver fills new roles added in later formats from the seeds, so old files
 - Licences: Lucide ISC; Phosphor, Tabler, Pixelarticons and Iconoir MIT; Material Symbols Apache 2.0. Remix Icon is excluded because of its own licence (January 2026).
 - Material Symbols' weight and fill are variable axes, which Flutter's `Icon` sets with `weight` and `fill`. Phosphor ships one font per weight.
 
+### 1.6 Palettes: colour is a separate choice (decided 2026-10-23)
+
+The owner, on the twenty prototypes: "theme names look like you're only changing the colours". So a theme is named after its design language (Journal, not Plum), and colour is chosen inside it.
+
+- **A theme is a style plus palettes.** The style is every group of 1.2 except colour: type, shape, density, borders, elevation, materials, icons, motion, components and `colour-use`. A palette is the colours, named by colour. The user picks a theme and one of its palettes, per app and per device ("Journal, Ink blue").
+- **Fields:**
+
+  | Field | What |
+  |---|---|
+  | `palettes` | 1 to 8 per theme; built-ins have 2 to 4. Their order is the picker's |
+  | `palettes[].id` | Lower kebab case, unique within the theme (`ink-blue`). Device settings store it, so a shipped id never changes |
+  | `palettes[].name` | A colour name in sentence case, at most 24 characters ("Ink blue") |
+  | `palettes[].light`, `.dark` | The six seeds |
+  | `palettes[].overrides` | Any other role per mode; what is left out is derived (1.3) |
+  | `palettes[].contrast` | Optional values per mode for increased contrast, checked at 7:1; else derived (2.2) |
+  | `palettes[].gradient` | The window gradient's 2–3 stops per mode, when the style's window is a gradient (the style keeps the angle). Left out: `bg` mixed 8% towards `accent`, `bg`, and `bg` mixed 5% towards `ink` |
+  | `default-palette` | The palette used when none is chosen, or when the chosen one is gone |
+  | `colour-use.same-as` | Roles the style always draws in another role's colour: Hairline's `selection`, `edge` → `ink` and `avatar-fill` → `surface`; Journal's and Paperback's `toolbar` → `bg` and `edge` → `ink`; Kiwi's `sidebar` and `toolbar` → `bg`. A palette may not give these roles; a value may not itself be a key |
+
+- **A palette changes colour roles only** (the 43 roles, the contrast set, the gradient's stops). Fonts, shapes, density, borders, the elevation style, icons, motion and variants are the style's: a palette that needs another shape is another theme.
+- **Every palette is checked on its own** (section 2): both modes, normal and increased contrast. A built-in palette that fails breaks the build. In an imported theme, a failing default palette fails the theme (2.4); a failing other palette is left out of the picker, with its reasons as a notice, and the editor offers Fix.
+- **Built-in palettes give every role** in both modes (37 overrides beside the seeds), so the built-ins never depend on the resolver's derivation, which phase 1 rebuilds in Dart and may round differently. Custom palettes may give only the seeds.
+- **Across a theme's palettes** (a rule for built-ins, seen in the previews): status colours, `danger` and the `data-*` colours stay close to the default palette's, so they mean the same in every palette; a palette moves the accent and the tint of the grounds. Accents of one theme's palettes are at least ΔE<sub>OK</sub> 0.08 apart (a notice).
+- **Today's colour themes became palettes:** Graphite is Hairline's default, Dusk Frosted's, Plum Journal's, Rose Sticker's and Amber Paperback's; Kiwi keeps its green. Each built-in's palettes are listed in `theming.md` and described in its `RULES.md`.
+- **System has no palettes.** Its colour is the platform's: the macOS accent; Android's wallpaper colours from phase 7; elsewhere, until each platform's pass, Kiwi's default palette. The picker shows no palette row for System. "System, tinted" (phase 5) is a `system`-frame theme whose palettes give an accent only.
+- **Custom themes may add palettes** (phase 5). A duplicate copies every palette of its source; the editor adds, renames, removes and reorders palettes and picks the default, up to 8. A palette cannot be added to a built-in in place: duplicate the theme.
+
 ---
 
 ## 2. Validation: every theme, built-in or imported
@@ -153,15 +182,15 @@ One validator in Dart (`mydata_ui/lib/src/theme/validate.dart`) is used by impor
    - at most 4 MB each, at most 4096 px on a side, at most 16.7 Mpx;
    - decoded once, then re-encoded to PNG at most 2560 px on the long side, which strips EXIF data such as GPS position;
    - the `blur` is applied at this point, once.
-8. **Resolve and check:** the resolver derives the missing roles in both modes, at normal contrast and at increased contrast, then the checks in 2.2 to 2.5 run.
+8. **Resolve and check, per palette:** the resolver derives each palette's missing roles in both modes, at normal contrast and at increased contrast, then the checks in 2.2 to 2.5 run on each palette. Palette ids must be unique, `default-palette` must name one, and `colour-use.same-as` keys may be neither seeds nor given by a palette.
 
 ### 2.2 Contrast pairs (WCAG 2.x relative luminance; alpha composited over its ground first)
 
-| Need | Pairs, in each mode |
+| Need | Pairs, in each palette and each mode |
 |---|---|
 | 4.5:1 text (SC 1.4.3) | `ink` on bg, surface, surface-raised, surface-sunken, surface-hover, accent-soft, selection-inactive, sidebar, toolbar and each status `-soft`; `ink-muted` on bg, surface, surface-raised, surface-sunken and sidebar; `link` on bg, surface and surface-raised; `on-accent` on accent; `on-selection` on selection; `on-danger` on danger; each status colour on surface and on its `-soft` |
 | 3:1 non-text (SC 1.4.11) | `line-strong` (and `edge` when borders use it) on bg and surface; `accent` on bg and surface wherever it alone marks a state (a switch that is on, a selection bar); the selection marker (fill, bar or outline) on surface; `focus` on bg, surface, surface-raised and accent-soft, and `focus-on-danger` on danger-soft; each `data-*` on surface, or the edge rule |
-| 7:1 | At increased contrast, every text pair of the list above (status words, links, accent drawn as text and labels on fills included). The resolver **derives** these values (lightness only, as for missing roles; a status `-soft` that leaves no room becomes `surface-sunken`); a theme's `contrast` set is an override and must itself pass. Always, in themes marked accessibility-first (High Contrast, E-ink) |
+| 7:1 | At increased contrast, every text pair of the list above (status words, links, accent drawn as text and labels on fills included). The resolver **derives** these values (lightness only, as for missing roles; a status `-soft` that leaves no room becomes `surface-sunken`); a palette's `contrast` set is an override and must itself pass. Always, in themes marked accessibility-first (High Contrast, E-ink) |
 | Grounds that are not flat | **Gradient:** text pairs against every stop. **Pattern:** against the ground with the pattern colour composited at its opacity. A pattern is the window ground: it shows on `bg` and a sidebar that is not a panel, never under `surface` or `surface-raised`, which are opaque. **Image:** against the 1st and 99th luminance percentiles of the image, after tint and opacity, sampled at 64×64. **Glass and translucent bars:** `ink` and `ink-muted` composited over `bg`, `surface`, `ink`, `accent` and `selection` beneath (blur averages text into its ground, but a filled row or button scrolled under a bar is a large block of its colour). At 72% `glass-fill`, Kiwi and Frosted fell to 3.1–3.8:1; they now use 80–84% |
 | Kept apart | `accent` and `danger` closer than 25° in hue gives a notice (danger always carries a word); then the approval card's Approve and every filled primary button are drawn in `ink`, not `accent`, so Approve never looks like Delete (Swiss). `danger` stays within 25° of today's red hue: a theme moves its accent, never danger's meaning. `focus` must differ from `selection` by 3:1 or by hue |
 | Avatar initials | A new role, `on-avatar` (derived: whichever of `ink` and `surface` is higher on `avatar-fill`), 4.5:1 on `avatar-fill`. The three prototype validators disagreed (one assumed ink initials and failed Brutalist and Swiss, whose avatars are ink-filled) |
@@ -180,7 +209,7 @@ One validator in Dart (`mydata_ui/lib/src/theme/validate.dart`) is used by impor
 - **System settings win:**
   - reduce motion turns every personality into a `fast` fade (or nothing for `none`);
   - reduce transparency turns glass, translucent bars, patterns and images solid;
-  - increase contrast applies `contrast`, or the rule `ink-muted`→`ink`, `line`→`line-strong`, borders on every control, materials solid;
+  - increase contrast applies the palette's `contrast` set, or the rule `ink-muted`→`ink`, `line`→`line-strong`, borders on every control, materials solid;
   - text size scales every theme.
 
   These come from `MyDataAccessibilityScope`, which gets an increase-contrast flag:
@@ -193,14 +222,14 @@ One validator in Dart (`mydata_ui/lib/src/theme/validate.dart`) is used by impor
 | Where | What happens |
 |---|---|
 | Built-in theme | The test fails. It never ships |
-| Import | Steps 1–7 failing: refused, with every reason as a sentence ("The dark background and secondary text are 3.8:1; they need 4.5:1."). Contrast failing: the preview shows the reasons and offers **Open a fixed copy in the editor**, which proposes the nearest passing values, never applied unseen. Notices (dropped keys, substituted fonts) are listed but do not block |
+| Import | A failing palette other than the default: left out of the picker, its reasons listed as a notice. Steps 1–7 failing: refused, with every reason as a sentence ("The dark background and secondary text are 3.8:1; they need 4.5:1."). Contrast failing: the preview shows the reasons and offers **Open a fixed copy in the editor**, which proposes the nearest passing values, never applied unseen. Notices (dropped keys, substituted fonts) are listed but do not block |
 | Editor | Each failing pair is a badge on its field, with **Fix**, which moves the edited colour's lightness to the nearest pass. **Fix all** is offered too. Save is disabled while anything fails, with the reason ("2 checks fail. Fix them to save."), as the disabled-control rule says |
 | Load at start (library file damaged or edited by hand) | The app uses `based-on`, else System. myData's Appearance shows a Notice naming the theme and the reasons |
 
 ### 2.5 Tests that prove "a theme can never break usability"
 
-- Every built-in, in both modes and at increased contrast, passes 2.2 and 2.3.
-- **Theme fuzz:** 500 seeded random files that pass the schema go through the validator. Each one it accepts is pumped on four preview scenes at 1280, 800 and 390 px wide, and must show:
+- Every built-in, every palette, in both modes and at increased contrast, passes 2.2 and 2.3.
+- **Theme fuzz:** 500 seeded random files (one to three palettes each) that pass the schema go through the validator. Each one it accepts is pumped on four preview scenes at 1280, 800 and 390 px wide, and must show:
   - no overflow errors;
   - `textContrastGuideline`;
   - `MinimumTapTargetGuideline(size: 24×24)` on desktop, 44 or 48 on phones;
@@ -218,17 +247,18 @@ Today `tool/generate_tokens.dart` writes `tokens.g.dart`: static `MyDataColors.l
 - **Source of truth:**
   - `design/themes/<slug>/theme.json`, one file per built-in, in the format above, with its `RULES.md`;
   - `design/tokens.json` keeps the non-themed tokens (the `macos` set, `toast-duration`, widths such as `dialog-width`) and the role list with usages;
-  - `themes.json` goes in phase 3. **Phase 1 still reads today's values:** the files here are the full looks, and Frosted's, Sticker's and Paperback's `accent-soft` and Kiwi's link and glass were moved by the contrast audit, so building phase 1 from them would change goldens. Phase 1 generates its built-ins from `tokens.json` and `themes.json` (every theme with Kiwi's shape and density, as today); phase 3 switches the generator to these files.
+  - `themes.json` goes in phase 3. **Phase 1 still reads today's values:** the files here are the full looks, and Frosted's, Sticker's and Paperback's `accent-soft` and Kiwi's link and glass were moved by the contrast audit, so building phase 1 from them would change goldens. Phase 1 generates one built-in style, Kiwi, from `tokens.json`, with today's six colour themes from `themes.json` as its palettes (`kiwi`, `graphite`, `dusk`, `plum`, `rose`, `amber`): that is exactly what the apps draw today. Phase 3 switches the generator to these files: Kiwi keeps its own palettes and the other five move to the themes they now belong to (4.2).
 - **Generator:**
   - copies the built-ins into `mydata_ui/assets/themes/`;
-  - generates `builtin_kiwi.g.dart`, the resolved Kiwi light and dark as constants. It is used for the first frame, for tests and when everything else fails, so the app never draws unthemed;
+  - generates `builtin_kiwi.g.dart`, Kiwi's default palette resolved in light and dark as constants. It is used for the first frame, for tests and when everything else fails, so the app never draws unthemed;
   - `generated_tokens_test.dart` still fails when that file is stale.
-- **Model:** `ThemeFile` (the parsed, validated file) goes through `resolve(file, brightness, platform, a11y)` and gives a `MyDataLook`, made of one `ThemeExtension` per group:
+- **Model:** `ThemeFile` (the parsed, validated file) goes through `resolve(file, paletteId, brightness, platform, a11y)` and gives a `MyDataLook`, made of one `ThemeExtension` per group:
 
   ```dart
   class MyDataLook {               // one per brightness, immutable, resolved
-    final String themeId; final LookFrame frame;   // system | drawn
-    final MyDataColors colors;     // existing extension, now built at run time (43 roles)
+    final String themeId; final String? paletteId; // null for System
+    final LookFrame frame;          // system | drawn
+    final MyDataColors colors;     // existing extension, now built at run time from one palette (43 roles)
     final MyDataTypeScale type;    // TextStyles per role, families resolved, numerals
     final MyDataShape shape;       // radii + corner style → border(ShapeRole) → OutlinedBorder
     final MyDataDensity density;   // control, row, icon, space(n) after platform floors
@@ -289,8 +319,8 @@ Today `tool/generate_tokens.dart` writes `tokens.g.dart`: static `MyDataColors.l
   - `MyDataTheme(themeId:, mode:)` becomes `MyDataTheme(look: (light, dark), mode:)`;
   - `MyDataThemes.byId` becomes `ThemeLibrary.resolve(id)`.
 - **`AppearanceController`** (mydata_core) becomes `ThemeController(appId:)`:
-  - it reads its theme id from device settings (section 4) instead of the host;
-  - it loads the file from the built-ins or the library and resolves both modes;
+  - it reads its theme and palette from device settings (section 4) instead of the host;
+  - it loads the file from the built-ins or the library and resolves the chosen palette in both modes;
   - it loads the theme's fonts (3.6) before switching;
   - it follows the device file on the existing 2 s poll.
 - **`MacLook.of(context)`** is split in two:
@@ -315,7 +345,7 @@ Today `tool/generate_tokens.dart` writes `tokens.g.dart`: static `MyDataColors.l
 | macOS | Today's Mac shell, unchanged: NSColor read live, the system accent, `.AppleSystemUIFont`, Mac density, the system focus ring, the native sidebar material, Lucide | The **same native window**: `macos_window_utils`, traffic lights, unified title bar, the Mac menu bar, the Mac skeleton (sidebar, list and record columns, toolbar band). Inside it, everything comes from the theme. `sidebar: source-list` with `materials.sidebar: native` keeps the window's sidebar material under a tint, and `solid` turns it off (a new call in `MacShell.swift`). `toolbar`: native is a transparent band, flat a solid band with a rule, floating a detached capsule. NSAppearance follows the theme's brightness, so traffic lights and menus match |
 | Android | Material 3, with wallpaper colours through `dynamic_color` (Apache-2.0; check that it is maintained before depending on it). Until the Android pass: Kiwi in Roboto | The branded skeleton (AppFrame) with the theme |
 | Windows, Linux, web | Until each platform's own pass: Kiwi in the platform font (Windows `Segoe UI Variable`; Linux and the web unverified, the web falls back to bundled Figtree). Labelled as such in the picker | The branded skeleton with the theme |
-| "System, tinted" | System with the accent overridden; on macOS, `MacTheme.onAccentWhite` keeps white text at 3:1 or better | — |
+| "System, tinted" | System with the accent overridden by its palettes; on macOS, `MacTheme.onAccentWhite` keeps white text at 3:1 or better | — |
 
 - Duplicating System gives a drawn theme seeded from the Mac shell's current colours and sizes. Its variants are `button.primary: push`, `list: plain`, `sidebar: source-list`, `toolbar: native`. It is a frozen copy and does not follow the system. The editor says so.
 
@@ -357,14 +387,18 @@ New keys:
 ```json
 {
   "mode": "system",
-  "themes": { "everywhere": "mydata.system", "apps": { "mycontacts": "mydata.brutalist" } },
+  "themes": {
+    "everywhere": { "theme": "mydata.system" },
+    "apps": { "mycontacts": { "theme": "mydata.journal", "palette": "ink-blue" } }
+  },
   "lastTheme": "kiwi"
 }
 ```
 
-- **Resolution:** an app's theme is `apps[appId]`, else `everywhere`, else `mydata.system`.
-- **Use in this app** sets `apps[appId]`.
-- **Use everywhere** sets `everywhere` and clears `apps`, so every app, including ones installed later, follows it.
+- **A choice is a theme and a palette:** `{ "theme": <id>, "palette": <palette id> }`. Without `palette`, the theme's `default-palette`. A palette the theme no longer has (a custom theme edited or replaced) falls back to its default, with a one-time Notice in myData's Appearance.
+- **Resolution:** an app's choice is `apps[appId]`, else `everywhere`, else `{ "theme": "mydata.system" }`.
+- **Use in this app** sets `apps[appId]` to the theme and palette shown; changing only the palette is the same write.
+- **Use everywhere** sets `everywhere` to the theme **and palette** shown and clears `apps`, so every app, including ones installed later, follows both.
 - **Mode stays per device** (owner decision 2): one for all apps. The library key leaves room for a per-app mode later; it is not offered now.
 - **Library:** `<home>/device/themes/<id>/theme.json` plus its re-encoded images, and `<home>/device/themes/.drafts/` for the editor's unsaved drafts. A development host with `MYDATA_HOME` has its own library.
 - **Writes are rare and user-made.** A read-modify-write race between two apps is possible, as for `mode` today. Add a compare-mtime-and-retry to `FileDeviceStore` in phase 2.
@@ -374,8 +408,9 @@ New keys:
 
 - **First start of the new version** (no `themes` key in the file):
   - **on macOS**, every app is set to `mydata.system`, because the Mac shell already ignores the host's theme. Nothing on screen changes;
-  - **elsewhere**, `everywhere` is seeded with the host's `/appearance` theme (else `lastTheme`), mapped kiwi → `mydata.kiwi` and so on;
+  - **elsewhere**, `everywhere` is seeded with the host's `/appearance` theme (else `lastTheme`) as Kiwi in that palette (`plum` → `{ "theme": "mydata.kiwi", "palette": "plum" }`), which is what phase 1 draws;
   - in both cases, nothing on screen changes.
+- **Phase 3** moves a choice of Kiwi in one of the five old colours to the theme that colour now belongs to (`graphite` → Hairline, `dusk` → Frosted, `plum` → Journal, `rose` → Sticker, `amber` → Paperback, in that palette). That changes the look, which is the point of phase 3, so myData's Appearance says so once ("Plum is now a palette of Journal.").
 - **The host:**
   - `GET /appearance` and `/status`'s `theme` are kept for one release, marked deprecated;
   - `PUT /appearance` returns 410 with "Themes are chosen on each device now.";
@@ -387,7 +422,7 @@ New keys:
 |---|---|
 | Every app, macOS | View > Theme… (⌥⌘T, to check against Apple's apps) opens the gallery sheet. It is not a submenu of themes, because `PlatformMenuItem` has no checked state (`mydata_ui` README) |
 | Every app, phone | More actions > Theme… |
-| myData, Settings > Appearance | **Mode** (Light, Dark, Match system); **Everywhere** (the theme, Change…); **Apps**: one row per installed app, showing "Same as everywhere" or its own theme, with Change… and Reset; **Library**: built-ins and custom themes, each with Duplicate, Edit (custom only), Export…, Delete (custom only, a Dialog saying which apps use it); Import… and Paste theme |
+| myData, Settings > Appearance | **Mode** (Light, Dark, Match system); **Everywhere** (the theme and palette, "Journal, Ink blue", Change…); **Apps**: one row per installed app, showing "Same as everywhere" or its own theme and palette, with Change… and Reset; **Library**: built-ins and custom themes, each with Duplicate, Edit (custom only), Export…, Delete (custom only, a Dialog saying which apps use it); Import… and Paste theme |
 | myData, File | Import Theme…, Export Theme… |
 | Finder | A double-click on a `.mydatatheme` opens myData's import preview |
 | First launch | Not offered. System is the default, and the owner's first-run screen stays short |
@@ -397,12 +432,14 @@ New keys:
 - **Layout:** a sheet with a grid of live cards. Each card renders **that app's own preview scene**:
   - `ThemePreviewScene` is supplied by each app: its main screen at small scale, on synthetic data (Ava Fictional, `ava@example.org`, events on a fixed demo week);
   - light and dark sit side by side on each card;
-  - the card shows the name, author and licence, and a "Contrast checked" or "Fails 2 checks" chip with a word.
+  - the card shows the name, author and licence, its palettes as a row of swatches, and a "Contrast checked" or "Fails 2 checks" chip with a word;
+  - a card draws the theme in its default palette, or in the palette in use for the current theme.
 - **Live preview:**
   - arrow keys move the selection, and **the whole window previews** the theme as you move (as in Warp and Zed);
-  - Return or **Use in myContacts** keeps it;
-  - **Use everywhere** applies it to every app;
-  - Escape or Cancel puts the previous theme back;
+  - **Palette:** below the grid, the selected theme's palettes as a radio group of swatches, each with its name as text (never colour alone). Tab reaches it after the grid; its arrow keys move between palettes and preview each on the whole window. A theme with one palette, and System, show no row;
+  - Return or **Use in myContacts** keeps the theme and palette;
+  - **Use everywhere** applies both to every app;
+  - Escape or Cancel puts the previous theme and palette back;
   - with reduced motion the preview switches without a fade.
 - **myData's version** adds an app switcher above the grid, so a theme can be judged on myCalendar's month or myAssistant's chat before it is applied there.
 - **Groups:** System, Built-in, Yours, Imported. Each card has Duplicate and Export in its Menu.
@@ -410,12 +447,12 @@ New keys:
 ### 4.5 The editor (myData only, desktop)
 
 - **Entry:** Duplicate (from any theme) or Edit (custom themes). Built-ins are never edited in place.
-- **Left pane:** groups as Inspector sections, in this order: About (name, author, licence, description), Colours (seeds first; "More colours" opens the 43 roles; light and dark columns; "Make dark from light" derives the dark set), Type, Shape, Density, Surfaces (borders, elevation, materials), Icons, Motion, Components, Checks.
+- **Left pane:** groups as Inspector sections, in this order: About (name, author, licence, description), Palettes (a list: add, duplicate, rename, remove, reorder, make default; each palette shows its seeds first, "More colours" opens the 43 roles, light and dark columns, "Make dark from light" derives the dark set), Type, Shape, Density, Surfaces (borders, elevation, materials), Icons, Motion, Components, Checks.
 - **Right pane: the live preview.**
   - It shows real preview scenes with an app switcher.
   - Toggles: light or dark, phone width, reduced motion, reduced transparency, increase contrast, larger text.
   - Every change shows at once.
-- **Checks:** a badge on each field and the full list in Checks, each with Fix (2.4). Save is disabled with its reason while anything fails.
+- **Checks:** a badge on each field and the full list in Checks, per palette, each with Fix (2.4). Save is disabled with its reason while anything fails.
 - **Keys and drafts:** ⌘Z undoes field by field (the menu bar owns ⌘Z, as for the Inspector), and ⌘S saves. Cancel with changes asks "Discard changes?". Drafts survive a quit (`.drafts/`).
 - **Saving** bumps `version` (patch). Apps that use the theme pick it up on their next poll.
 
@@ -443,11 +480,11 @@ Phases 0 to 3 are the themes foundation and come before the phones (M1b). Phase 
 | Phase | Builds | Usable result | Tests |
 |---|---|---|---|
 | 0. Decide (done 2026-10-23) | The decision record; this folder; `theming.md`, the `README.md` rules (they became Kiwi's), `platforms.md` and CLAUDE.md rewritten | — | — |
-| 1. Run-time spec, no visible change | Format, schema and validator in Dart; built-ins from today's values (`tokens.json` and `themes.json`: the same colours, Kiwi's shape and density for all; 3.1); the resolver, `MyDataLook` and its extensions; generator changes; the codemod across packages and apps; the `MacLook` split | The apps look exactly as before | Every existing golden **byte-identical**; validator unit tests (examples, `bad-*`); schema test; contrast of the six; `no_literals` extended to the static classes |
-| 2. Per app, per device | `ThemeController`, the `themes` keys, migration, deprecating the host route, the gallery sheet with live preview, View > Theme…, myData's Appearance (apps, Use everywhere, library list), System as default | Each app picks its own theme of the seven; Use everywhere | Store and migration tests (macOS → System; elsewhere → host theme); two apps following one file; a fake-host test that the 410 route is never called; gallery keys (arrows preview, Escape reverts) |
-| 3. Design rules | Shape and corner styles with the shape-following focus ring; density presets and floors; borders; elevation; the type catalogue with on-demand fonts; icon sets with semantic ids; motion personalities; the component variants (button, list, selection, inputs, avatar, tabs, sidebar, toolbar, chat, month, today); drawn themes inside the Mac window; the new disabled style. The six rebuilt as full looks from the files in this folder, and `themes.json` retired | Kiwi, Hairline, Frosted, Journal, Sticker and Paperback each look distinct | Variant goldens, **one per variant value** in both modes (about 120 images); pairwise golden sets for risky pairs (cut with focus, table with inverse, brutal with collapse press); font budget test; icon-mapping completeness; theme fuzz (2.5) starts here |
+| 1. Run-time spec, no visible change | Format (style and palettes), schema and validator in Dart; built-ins from today's values (Kiwi from `tokens.json` with `themes.json`'s six colours as its palettes; 3.1); the resolver, `MyDataLook` and its extensions; generator changes; the codemod across packages and apps; the `MacLook` split | The apps look exactly as before | Every existing golden **byte-identical**; validator unit tests (examples, `bad-*`); schema test; contrast of the six; `no_literals` extended to the static classes |
+| 2. Per app, per device | `ThemeController`, the `themes` keys, migration, deprecating the host route, the gallery sheet with live preview, View > Theme…, myData's Appearance (apps, Use everywhere, library list), System as default | Each app picks System or Kiwi in one of six palettes (what exists until phase 3); Use everywhere carries the palette | Store and migration tests (macOS → System; elsewhere → host theme); two apps following one file; a fake-host test that the 410 route is never called; gallery keys (arrows preview, Escape reverts) |
+| 3. Design rules | Shape and corner styles with the shape-following focus ring; density presets and floors; borders; elevation; the type catalogue with on-demand fonts; icon sets with semantic ids; motion personalities; the component variants (button, list, selection, inputs, avatar, tabs, sidebar, toolbar, chat, month, today); drawn themes inside the Mac window; the new disabled style. The six rebuilt as full looks from the files in this folder, each with its palettes; the old colours moved to their themes (4.2); `themes.json` retired | Kiwi, Hairline, Frosted, Journal, Sticker and Paperback each look distinct, each in 3 palettes | Variant goldens, **one per variant value** in both modes (about 120 images); pairwise golden sets for risky pairs (cut with focus, table with inverse, brutal with collapse press); each palette once on one app scene in both modes (36 images); font budget test; icon-mapping completeness; theme fuzz (2.5) starts here |
 | 3½. One harness | One validator (the Dart one) and one preview harness; every prototype the owner picked re-rendered from them in the real app | Like-for-like previews | Each passes in both modes and at increased contrast |
-| 4. New built-ins | **Only the ones the owner picks from the gallery** (not picked yet). In batches; proposed order: High Contrast, E-ink, Large, then Terminal, Notebook, Brutalist, Retro Desktop, Swiss, Blueprint, Arcade, Geometric, Zen, Ledger. Status and `data-*` colours tuned per theme. A theme that does not earn its place in the real app is cut | Up to 20 themes | Every theme: contrast at both levels; 4 app scenes × 2 modes screen goldens (160 images for 20 themes); a review by eye on a Mac before each batch is merged |
+| 4. New built-ins | **Only the ones the owner picks from the gallery** (not picked yet). In batches; proposed order: High Contrast, E-ink, Large, then Terminal, Notebook, Brutalist, Retro Desktop, Swiss, Blueprint, Arcade, Geometric, Zen, Ledger. Each with 2 to 4 palettes; status and `data-*` colours tuned per palette. A theme that does not earn its place in the real app is cut | Up to 20 themes | Every theme: contrast at both levels; 4 app scenes × 2 modes screen goldens (160 images for 20 themes); a review by eye on a Mac before each batch is merged |
 | 5. Editor and sharing | Duplicate and edit, with checks and Fix; `.mydatatheme` export and import without images; copy and paste; the UTI and double-click | Make and share themes | Import refusal tests mirroring the host's zip tests; round trip (export → import → the same resolved look); editor: Save disabled with a reason, Fix reaches a pass, drafts survive |
 | 6. Materials | Gradients, patterns, glass with `BackdropGroup`, background images in the zip with re-encoding and percentile contrast | Frosted's glass, Notebook's rules, image grounds | Raster-time budget in a profile run with blur on; image caps (size, pixels, magic bytes, EXIF gone); reduced transparency turns everything solid |
 | 7. Other platforms' System | Android: Material 3 and dynamic colour. Windows and Linux: each with its platform pass | System means native there | Per-platform screen goldens |
@@ -484,6 +521,8 @@ The owner accepted every recommendation (`docs/decisions/2026-10-23-themes.md`):
 9. **Layout stays out of themes.** Folding details or opening the calendar on the day list is a later device accessibility setting.
 10. **Mode per device,** not per app; **phones one theme per app,** no Use everywhere, until native phone apps.
 11. **View > Theme… on ⌥⌘T,** unless Apple's own apps use it (still to check on a Mac).
+12. **Themes are named after their design language,** not a colour (later the same day): Kiwi stays (the house style); Graphite → Hairline, Dusk → Frosted, Plum → Journal, Rose → Sticker, Amber → Paperback; for the prototypes, Contrast → High Contrast, Still → E-ink, Roomy → Large, Prompt → Terminal, Notebook stays, Concrete → Brutalist, Beige → Retro Desktop, Grid → Swiss, Cyanotype → Blueprint, Neon → Arcade, Primary → Geometric, Ma → Zen, Tabular → Ledger.
+13. **Colour is a separate choice inside a theme** (1.6): a theme is a style plus 2 to 4 palettes named by colour; the user picks theme and palette per app and per device; System's colour is the system accent, with no alternatives on macOS.
 
 ## Sources
 

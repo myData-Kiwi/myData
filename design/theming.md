@@ -1,21 +1,21 @@
 # Theming
 
-A theme changes how the whole app looks: colours, type, shape, density, borders, depth, icons, motion and how each component is drawn. Each app has its own theme, chosen on each device. System is the default. Decided 2026-10-23 (`docs/decisions/2026-10-23-themes.md`); the full design is `themes/ARCHITECTURE.md`, the format `themes/theme.schema.json`.
+A theme changes how the whole app looks: type, shape, density, borders, depth, icons, motion, how each component is drawn, and colour. A theme is named after its design language (Journal, not Plum) and is a **style plus palettes**: colour is a separate choice inside the theme, from 2 to 4 palettes named by colour (Journal in Plum, Ink blue or Forest). Each app has its own theme and palette, chosen on each device. System is the default. Decided 2026-10-23 (`docs/decisions/2026-10-23-themes.md`); the full design is `themes/ARCHITECTURE.md`, the format `themes/theme.schema.json`.
 
-**Not built yet.** Until phase 2 the apps still read one theme from the host (`/appearance`), which changes only `accent`, `on-accent` and `accent-soft` (`themes.json`), and on macOS the Mac shell ignores it. Phase 1 changes nothing on screen.
+**Not built yet.** Until phase 2 the apps still read one theme from the host (`/appearance`), which changes only `accent`, `on-accent` and `accent-soft` (`themes.json`), and on macOS the Mac shell ignores it. Phase 1 changes nothing on screen: it builds Kiwi with today's six colours as its palettes. Component specs in `components/` that say "Graphite" mean today's accent-only Graphite, which becomes Hairline's Graphite palette.
 
 ## Choosing a theme
 
 | Setting | Options | Default | Where it applies |
 |---|---|---|---|
-| Theme, per app | Any built-in (later, any custom theme) | System | That app, on this device |
-| Use everywhere | Sets one theme for every app, including apps installed later, and clears each app's own choice (with Undo) | System | Every app on this device |
+| Theme and palette, per app | Any built-in and one of its palettes (later, any custom theme) | System (whose colour is the system accent) | That app, on this device |
+| Use everywhere | Sets one theme and palette for every app, including apps installed later, and clears each app's own choice (with Undo) | System | Every app on this device |
 | Mode | Light, Dark, Match system | Match system | Every app on this device |
 | Transparency, motion, text size, increase contrast | Follow the system | The system's | Every app on this device |
 
-- An app uses its own choice, else the "everywhere" theme, else System. Choices live in `<home>/device/settings.json` and are **never synced**: a second Mac starts on System.
-- **In every app:** View > Theme… (⌥⌘T, unless Apple's own apps use it) opens the gallery: live cards of that app's main screen in light and dark; arrow keys preview the theme on the whole window, Return or "Use in myContacts" keeps it, "Use everywhere" applies it to every app, Escape puts the previous one back. On a phone: More actions > Theme….
-- **In myData:** Settings > Appearance has Mode, Everywhere, one row per installed app ("Same as everywhere" or its own theme, Change… and Reset) and, later, the library.
+- An app uses its own choice, else the "everywhere" choice, else System. A choice is a theme and a palette; without a palette, or when the theme no longer has it, the theme's default palette. Choices live in `<home>/device/settings.json` and are **never synced**: a second Mac starts on System.
+- **In every app:** View > Theme… (⌥⌘T, unless Apple's own apps use it) opens the gallery: live cards of that app's main screen in light and dark; arrow keys preview the theme on the whole window, the selected theme's palettes sit below the grid as named swatches (Tab, then arrows, preview each), Return or "Use in myContacts" keeps the theme and palette, "Use everywhere" applies both to every app, Escape puts the previous ones back. On a phone: More actions > Theme….
+- **In myData:** Settings > Appearance has Mode, Everywhere, one row per installed app ("Same as everywhere" or its own theme and palette, such as "Journal, Ink blue", Change… and Reset) and, later, the library.
 - **Phones** get one theme per app and no Use everywhere until native phone apps exist (separate apps cannot share a folder without App Groups).
 - First launch does not ask: System is the default.
 
@@ -31,11 +31,20 @@ A theme changes how the whole app looks: colours, type, shape, density, borders,
 | Sticker (was Rose) | Chunky, round and cheerful: 2 px outlines, sticker shadows | `themes/sticker/` |
 | Paperback (was Amber) | Paper under a reading lamp: a book serif, italic secondary text | `themes/paperback/` |
 
-Each folder holds the theme file and its `RULES.md` (its design language, do and don't, accessibility, font and icon licences). The six drawn themes are the phase 3 targets; until then they differ only in their accent. New built-ins are the owner's pick from the prototype gallery; none is added until then. "System, tinted" (System with another accent) is a custom theme, phase 5.
+Each folder holds the theme file and its `RULES.md` (its design language, do and don't, accessibility, font and icon licences). The six drawn themes are the phase 3 targets; until then the apps draw Kiwi, and the old colours are Kiwi's palettes. New built-ins are the owner's pick from the prototype gallery; none is added until then. "System, tinted" (System with another accent) is a custom theme, phase 5.
+
+## Palettes
+
+- **A palette is colour only:** the six seeds (`bg`, `surface`, `ink`, `ink-muted`, `accent`, `on-accent`) in light and dark, any other of the 43 roles, an increase-contrast set and, for a gradient window, the gradient's stops. Built-in palettes give every role; what a custom palette leaves out is derived.
+- **The style stays:** fonts, shapes, density, borders, depth, materials, icons, motion and variants never change with the palette. A theme can also fix a role for every palette (`colour-use.same-as`: Hairline's selection bar is always `ink`).
+- **Every palette passes the contrast rules on its own**, in both modes and at increased contrast.
+- **Across a theme's palettes** the accent and the tint of the grounds move; status, `danger` and calendar colours keep their meaning.
+- **System has no palettes:** its colour is the system accent (no alternatives on macOS).
+- **Custom themes** (phase 5) may add palettes, up to 8.
 
 ## What a theme can change
 
-Colours (43 roles in light and dark, six required, the rest derived), increase-contrast overrides, type (fonts from a catalogue of OFL fonts, sizes, weights, case on labels and captions, figures, italic secondary text), shape (round, continuous, cut or square corners; radii; pill or matching controls), density (above the platform floors), borders, elevation, materials (window ground, sidebar, bars; images not before phase 6), icon set and weight, motion, and the variant of each component (buttons, lists, selection, sidebar, toolbar, inputs, avatar, tabs, chat, month, today). Bounds are in the schema; `themes/ARCHITECTURE.md` section 1 has the table.
+Colours, through its palettes (43 roles in light and dark, six required, the rest derived; increase-contrast overrides), type (fonts from a catalogue of OFL fonts, sizes, weights, case on labels and captions, figures, italic secondary text), shape (round, continuous, cut or square corners; radii; pill or matching controls), density (above the platform floors), borders, elevation, materials (window ground, sidebar, bars; images not before phase 6), icon set and weight, motion, and the variant of each component (buttons, lists, selection, sidebar, toolbar, inputs, avatar, tabs, chat, month, today). Bounds are in the schema; `themes/ARCHITECTURE.md` section 1 has the table.
 
 ## What a theme never changes
 

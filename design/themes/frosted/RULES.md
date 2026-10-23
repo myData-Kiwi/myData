@@ -84,8 +84,8 @@ Glass is the cost. Bounded as the architecture says: blur only on the sidebar (o
 
 Values changed after an independent contrast audit and a distinctness check (prototype scripts, kept outside the repo with the previews). Lightness only; hue and chroma kept.
 
-- `colours.dark.glass-fill`: #1B2140B8 → #1B2140D3. secondary text on a glass bar stays 4.5:1 over any content scrolled beneath (it fell to 3.1:1 over ink)
-- `colours.dark.line-strong`: #696E86 → #70758D. 3:1 on bg, surface, surface-raised and sidebar (SC 1.4.11); it was under on one of them
-- `colours.light.glass-fill`: #F3F5FBB8 → #F3F5FBCB. secondary text on a glass bar stays 4.5:1 over any content scrolled beneath (it fell to 3.1:1 over ink)
-- `colours.light.line-strong`: #84868F → #81838C. 3:1 on bg, surface, surface-raised and sidebar (SC 1.4.11); it was under on one of them
+- `palettes[dusk].overrides.dark.glass-fill`: #1B2140B8 → #1B2140D3. secondary text on a glass bar stays 4.5:1 over any content scrolled beneath (it fell to 3.1:1 over ink)
+- `palettes[dusk].overrides.dark.line-strong`: #696E86 → #70758D. 3:1 on bg, surface, surface-raised and sidebar (SC 1.4.11); it was under on one of them
+- `palettes[dusk].overrides.light.glass-fill`: #F3F5FBB8 → #F3F5FBCB. secondary text on a glass bar stays 4.5:1 over any content scrolled beneath (it fell to 3.1:1 over ink)
+- `palettes[dusk].overrides.light.line-strong`: #84868F → #81838C. 3:1 on bg, surface, surface-raised and sidebar (SC 1.4.11); it was under on one of them
 - `type.roles.heading.stack`: None → display. the heading is set in the display font, as the Typography table says; the schema now has role.stack, and heading defaults to body as in design/tokens.json

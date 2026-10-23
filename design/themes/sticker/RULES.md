@@ -104,15 +104,15 @@ Cheap at run time: hard shadows are `BoxShadow` with blur 0, outlines are `Borde
 
 Values changed after an independent contrast audit and a distinctness check (prototype scripts, kept outside the repo with the previews). Lightness only; hue and chroma kept.
 
-- `contrast.dark.danger`: None → #FF9E8D. increase contrast: 7:1 on every ground, hover, tint and unfocused selection included
-- `contrast.dark.info`: None → #8EBDEF. increase contrast: 7:1 on every ground, hover, tint and unfocused selection included
-- `contrast.dark.ink-muted`: None → #E2C6D1. increase contrast: 7:1 on every ground, hover, tint and unfocused selection included
-- `contrast.dark.success`: None → #83CF86. increase contrast: 7:1 on every ground, hover, tint and unfocused selection included
-- `contrast.light.accent`: #9C3153 → #962C4E. increase contrast: 7:1 on every ground, hover, tint and unfocused selection included
-- `contrast.light.danger`: #A62A00 → #961700. increase contrast: 7:1 on every ground, hover, tint and unfocused selection included
-- `contrast.light.info`: None → #024A92. increase contrast: 7:1 on every ground, hover, tint and unfocused selection included
-- `contrast.light.ink-muted`: #644351 → #593846. increase contrast: 7:1 on every ground, hover, tint and unfocused selection included
-- `contrast.light.link`: #962B4D → #8B2044. increase contrast: 7:1 on every ground, hover, tint and unfocused selection included
-- `contrast.light.success`: None → #105A18. increase contrast: 7:1 on every ground, hover, tint and unfocused selection included
-- `contrast.light.warning`: None → #784000. increase contrast: 7:1 on every ground, hover, tint and unfocused selection included
+- `palettes[rose].contrast.dark.danger`: None → #FF9E8D. increase contrast: 7:1 on every ground, hover, tint and unfocused selection included
+- `palettes[rose].contrast.dark.info`: None → #8EBDEF. increase contrast: 7:1 on every ground, hover, tint and unfocused selection included
+- `palettes[rose].contrast.dark.ink-muted`: None → #E2C6D1. increase contrast: 7:1 on every ground, hover, tint and unfocused selection included
+- `palettes[rose].contrast.dark.success`: None → #83CF86. increase contrast: 7:1 on every ground, hover, tint and unfocused selection included
+- `palettes[rose].contrast.light.accent`: #9C3153 → #962C4E. increase contrast: 7:1 on every ground, hover, tint and unfocused selection included
+- `palettes[rose].contrast.light.danger`: #A62A00 → #961700. increase contrast: 7:1 on every ground, hover, tint and unfocused selection included
+- `palettes[rose].contrast.light.info`: None → #024A92. increase contrast: 7:1 on every ground, hover, tint and unfocused selection included
+- `palettes[rose].contrast.light.ink-muted`: #644351 → #593846. increase contrast: 7:1 on every ground, hover, tint and unfocused selection included
+- `palettes[rose].contrast.light.link`: #962B4D → #8B2044. increase contrast: 7:1 on every ground, hover, tint and unfocused selection included
+- `palettes[rose].contrast.light.success`: None → #105A18. increase contrast: 7:1 on every ground, hover, tint and unfocused selection included
+- `palettes[rose].contrast.light.warning`: None → #784000. increase contrast: 7:1 on every ground, hover, tint and unfocused selection included
 - `type.roles.heading.stack`: None → display. the heading is set in the display font, as the Typography table says; the schema now has role.stack, and heading defaults to body as in design/tokens.json
