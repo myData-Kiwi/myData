@@ -42,21 +42,36 @@ Future<void> loadMyDataFonts() async {
 /// Where macOS keeps the system font (SF Pro, a variable font). Read, never copied into the repo.
 const macSystemFontFile = '/System/Library/Fonts/SFNS.ttf';
 
-/// Loads the Mac frame's fonts: Lucide (bundled in mydata_ui) and, on a Mac, the system font from
-/// [macSystemFontFile] under the names Flutter's macOS engine gives it ([MyDataMacFont.text] and
-/// [MyDataMacFont.display]), so screenshots of the Mac frame show SF Pro as the app does. Elsewhere the system
-/// font is missing and its text draws in the test font. Returns whether the system font was loaded.
-Future<bool> loadMacFonts() async {
+/// Loads the Mac frame's fonts: Lucide (bundled in mydata_ui) and a font under the names Flutter's macOS
+/// engine gives the system font ([MyDataMacFont.text] and [MyDataMacFont.display]).
+///
+/// - By default that font is the bundled Figtree (SIL OFL), so committed screenshots of the Mac frame hold no
+///   rasterised SF Pro (Apple's font licence; the repo is public) and look the same on any machine.
+/// - With [systemFont], on a Mac, it is the system font itself, read from [macSystemFontFile] and never copied
+///   into the repo: for the stack gate's screenshots, which are written outside the checkout
+///   (`MYDATA_GATE_OUT`). Elsewhere the system font is missing and Figtree is used.
+///
+/// Returns whether the system font was loaded.
+Future<bool> loadMacFonts({bool systemFont = false}) async {
   final icons = FontLoader('packages/${MyDataFontFamily.package}/${MyDataMacFont.icons}')
     ..addFont(rootBundle.load('packages/${MyDataFontFamily.package}/assets/fonts/Lucide-subset.ttf'));
   await icons.load();
   final file = File(macSystemFontFile);
-  if (!file.existsSync()) return false;
-  final bytes = file.readAsBytesSync();
-  for (final family in const [MyDataMacFont.text, MyDataMacFont.display]) {
-    await (FontLoader(family)..addFont(Future.value(ByteData.sublistView(bytes)))).load();
+  if (systemFont && file.existsSync()) {
+    final bytes = file.readAsBytesSync();
+    for (final family in const [MyDataMacFont.text, MyDataMacFont.display]) {
+      await (FontLoader(family)..addFont(Future.value(ByteData.sublistView(bytes)))).load();
+    }
+    return true;
   }
-  return true;
+  for (final family in const [MyDataMacFont.text, MyDataMacFont.display]) {
+    final loader = FontLoader(family);
+    for (final f in const ['Figtree-400.ttf', 'Figtree-600.ttf']) {
+      loader.addFont(rootBundle.load('packages/${MyDataFontFamily.package}/assets/fonts/$f'));
+    }
+    await loader.load();
+  }
+  return false;
 }
 
 /// For test/flutter_test_config.dart:
