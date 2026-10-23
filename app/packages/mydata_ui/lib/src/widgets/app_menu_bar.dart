@@ -160,7 +160,7 @@ class _AppMenuScope extends InheritedWidget {
 ///
 /// Menus, in order: the app's menu (About, Settings… for myData only, Hide, Hide Others, Show All, Quit),
 /// File ([file], then Close Window ⌘W), Edit (Undo and Redo, Cut, Copy, Paste, Select All, then [edit]), View
-/// ([view], then Enter Full Screen) and Window (Minimize, Zoom, Bring All to Front). There is no Help menu.
+/// ([view], then Theme… when [onTheme] is given, then Enter Full Screen) and Window (Minimize, Zoom, Bring All to Front). There is no Help menu.
 /// macOS's own items are macOS's ([PlatformProvidedMenuItem]); macOS adds its own to Edit.
 ///
 /// - **Undo and Redo name the action** ([undoAction], [redoAction]): "Undo Delete Contact"; with nothing to
@@ -189,6 +189,7 @@ class AppMenuBar extends StatefulWidget {
     this.onSettings,
     this.onQuit,
     this.onCloseWindow,
+    this.onTheme,
     this.platform,
   });
 
@@ -221,8 +222,19 @@ class AppMenuBar extends StatefulWidget {
   /// Close Window ⌘W. Null disables it (Flutter has no call to close the window by itself).
   final VoidCallback? onCloseWindow;
 
+  /// View > Theme…: opens the theme gallery (design/themes/ARCHITECTURE.md 4.3). Null leaves the item out.
+  final VoidCallback? onTheme;
+
   /// For tests; null is [defaultTargetPlatform].
   final TargetPlatform? platform;
+
+  /// View > Theme….
+  static const themeTitle = 'Theme…';
+
+  /// Theme…'s key: none. The decision was ⌥⌘T unless Apple's apps use it, and they do: ⌥⌘T is Show or Hide
+  /// Toolbar in Finder, Mail and the other apps with a toolbar. Until the owner picks another, Theme… has
+  /// no key, and Windows and Linux (no menu bar) reach the gallery from myData's Settings, Appearance.
+  static const AppShortcut? themeShortcut = null;
 
   static const undoShortcut = AppShortcut(LogicalKeyboardKey.keyZ);
   static const redoShortcut = AppShortcut(LogicalKeyboardKey.keyZ, shift: true);
@@ -401,6 +413,8 @@ class _AppMenuBarState extends State<AppMenuBar> {
       ]),
       PlatformMenu(label: AppMenuBar.viewMenu, menus: [
         if (widget.view.isNotEmpty) PlatformMenuItemGroup(members: [for (final i in widget.view) _item(i)]),
+        if (widget.onTheme != null)
+          PlatformMenuItemGroup(members: [_plain(AppMenuBar.themeTitle, AppMenuBar.themeShortcut, widget.onTheme)]),
         const PlatformMenuItemGroup(
             members: [PlatformProvidedMenuItem(type: PlatformProvidedMenuItemType.toggleFullScreen)]),
       ]),
@@ -443,6 +457,11 @@ class _AppMenuBarState extends State<AppMenuBar> {
         item.onSelected!();
         return KeyEventResult.handled;
       }
+    }
+    final theme = AppMenuBar.themeShortcut;
+    if (theme != null && widget.onTheme != null && matches(theme.activator(p))) {
+      widget.onTheme!();
+      return KeyEventResult.handled;
     }
     if (widget.onCloseWindow != null && matches(AppMenuBar.closeWindowShortcut.activator(p))) {
       widget.onCloseWindow!();

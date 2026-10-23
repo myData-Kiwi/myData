@@ -112,6 +112,32 @@ void main() {
       expect(_items('myContacts').map((i) => i.label), contains('Settings…'));
     }, variant: TargetPlatformVariant.only(TargetPlatform.macOS));
 
+    testWidgets('View > Theme… sits before Enter Full Screen, with no key (⌥⌘T is Hide Toolbar)', (tester) async {
+      _captureMenus(tester);
+      var opened = 0;
+      await tester.pumpWidget(themedFrame(themeMatrix.first, app()));
+      expect(_items('View').map((i) => i.label), isNot(contains(AppMenuBar.themeTitle)));
+      await tester.pumpWidget(themedFrame(
+          themeMatrix.first,
+          AppMenuBar(
+            appName: 'myContacts',
+            platform: TargetPlatform.macOS,
+            view: [AppMenuItem(title: 'Contacts', shortcut: AppMenuBar.sectionShortcut(1), onSelected: () {})],
+            onTheme: () => opened++,
+            child: const SizedBox(),
+          )));
+      final view = _items('View');
+      expect(view.map((i) => i.label).toList(), ['Contacts', 'Theme…', startsWith('provided:')]);
+      final top = _sent.firstWhere((m) => m['label'] == 'View');
+      final theme = (top['children'] as List).cast<Map<Object?, Object?>>().expand((c) =>
+          c['label'] == 'Theme…' ? [c] : const <Map<Object?, Object?>>[]);
+      expect(theme, hasLength(1));
+      expect(theme.single['shortcutTrigger'], isNull);
+      expect(AppMenuBar.themeShortcut, isNull);
+      await _select(tester, view[1].id);
+      expect(opened, 1);
+    }, variant: TargetPlatformVariant.only(TargetPlatform.macOS));
+
     testWidgets('Undo names the action and runs it; items call back when chosen', (tester) async {
       _captureMenus(tester);
       var undone = 0, created = 0, deleted = 0;
