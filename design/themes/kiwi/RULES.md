@@ -40,7 +40,7 @@ Colour is chosen inside the theme (decided 2026-10-23; `ARCHITECTURE.md` 1.6). "
 | Sky | `sky` | `#1666AA` / `#78BFF9` | `#F6F6F5` / `#111111` | A clear blue on the same greys. | light 6.2 / 5.5 / 6.0; dark 7.9 / 9.5 / 8.4 |
 | Violet | `violet` | `#6849AB` / `#BCA9F7` | `#F6F6F5` / `#111111` | A soft violet on the same greys. | light 6.2 / 6.2 / 6.7; dark 7.9 / 9.1 / 8.3 |
 
-Every palette gives all 43 roles in both modes and passes the contrast pairs of `ARCHITECTURE.md` 2.2 in both modes, with increase contrast derived by the resolver (no set of its own) (prototype validator, 2026-10-23). Alternative palettes were made from the default by moving the accent and the tinted roles' hue at the same lightness, then fixing each failing pair by lightness only.
+Every palette gives all 43 roles in both modes and passes the contrast pairs of `ARCHITECTURE.md` 2.2 in both modes at normal contrast (prototype validator, 2026-10-23). **Increased contrast is unverified:** these palettes have no `contrast` set of their own and rely on the resolver's 7:1 derivation, which does not exist yet; the prototype only counted the pairs it would have to move (29 to 30 per palette, both modes together). Phase 1's built-in test fails on any palette whose derived set does not pass; that palette then gets its own `contrast` set. Alternative palettes were made from the default by moving the accent and the tinted roles' hue at the same lightness, then fixing each failing pair by lightness only.
 
 ## Depth and materials
 
