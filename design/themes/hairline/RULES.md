@@ -112,7 +112,7 @@ Cheap. No blur, no painter, no extra shape. Inter adds one variable family (Lati
 
 ## Name
 
-Was Graphite. "Graphite" is also a macOS accent colour name (not on Apple's trademark list, per Research B); naming the theme after its language, Hairline, keeps it apart from the system accent. The colour lives on as Hairline's default palette, so Settings writes "Hairline, Graphite", never "Graphite" alone.
+Was Graphite. Renamed because a theme is named after its design language, not its colour (the owner, 2026-10-23). The colour lives on as the default palette, Graphite (`graphite`), so someone who chose Graphite finds it again; Settings writes "Hairline, Graphite", never "Graphite" alone. The palette keeps the name on purpose, although macOS also has a Graphite accent: System's card never names its accent, so the two names do not meet in the picker. On a Mac set to the Graphite accent, System and Hairline in Graphite are both grey; the live cards tell them apart by their style (hairlines, small corners, the ink selection bar).
 
 ## Changed by the critique (2026-10-23)
 
