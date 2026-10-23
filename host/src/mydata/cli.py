@@ -169,6 +169,12 @@ def _start_agent(settings: Settings, agent) -> int:
             return 1
     except launchd.LaunchdError as e:
         print(f"mydata: {e}", file=sys.stderr)
+        if launchd.disabled(agent.label):
+            # Switched off by the owner (System Settings) or after macOS's "Background Items Added" notice: the
+            # apps still need a host, so start one as before, which launchd does not watch over.
+            print(f"mydata: {launchd.SWITCHED_OFF}; starting the host without it until then", file=sys.stderr)
+            return _start_detached(settings)
+        print(f"mydata: {launchd.MAYBE_SWITCHED_OFF}", file=sys.stderr)
         return 1
     return _wait_until_answering(settings, _launchd_failed(settings, agent.label))
 
@@ -219,7 +225,7 @@ def cmd_start(settings: Settings) -> int:
 
 
 def _start_detached(settings: Settings) -> int:
-    """Start the host as a detached process (no login service)."""
+    """Start the host as a detached process (no login service, or the login service is switched off)."""
     from .service.config import private_dir, private_file
     private_dir(settings.home)
     private_dir(settings.log_dir)
@@ -677,6 +683,8 @@ def cmd_service(settings: Settings, ns: argparse.Namespace) -> int:
                  f"{info['state']}" + (f", pid {info['pid']}" if info["pid"] else "")
                  + (f", last exit {info['last_exit']}" if info["last_exit"] else ""))
         print(f"{recorded.app}\n  LaunchAgent {recorded.label}: {state}\n  plist {recorded.plist}")
+        if launchd.supported() and launchd.disabled(recorded.label):
+            print(f"  {launchd.SWITCHED_OFF}")
         why = _start_error(settings)
         if why and not _get_status(settings, timeout=1):
             print(f"  Its last start failed: {why}")
@@ -720,9 +728,9 @@ def cmd_service(settings: Settings, ns: argparse.Namespace) -> int:
                 return 1
         say(f"create {settings.log_dir}")
         say(f"write {agent.plist}")
+        say(f"bootstrap it into {launchd.domain()}, which starts the host now and at every login")
         say(f"write {launchd.app_config_path(home)}: the apps start the host with "
             f"{' '.join(config['host_command'])!r} and stop it with {' '.join(config['stop_command'])!r}")
-        say(f"bootstrap it into {launchd.domain()}, which starts the host now and at every login")
         if dry:
             print(f"\n{agent.plist}:\n" + launchd.plist_bytes(agent, home, home_from_env=home_from_env).decode())
             return 0
@@ -733,12 +741,15 @@ def cmd_service(settings: Settings, ns: argparse.Namespace) -> int:
         tmp.write_bytes(launchd.plist_bytes(agent, home, home_from_env=home_from_env))
         os.chmod(tmp, 0o644)
         os.replace(tmp, agent.plist)
-        launchd.write_app_config(home, config)
         try:
             launchd.bootstrap(agent.plist)
         except launchd.LaunchdError as e:
+            # app_config.json is left as it was: the apps never point at an agent that cannot load.
             print(f"mydata: {e}", file=sys.stderr)
+            print(f"mydata: {launchd.SWITCHED_OFF if launchd.disabled(label) else launchd.MAYBE_SWITCHED_OFF}; "
+                  f"then run the install again", file=sys.stderr)
             return 1
+        launchd.write_app_config(home, config)
         return _wait_until_answering(settings, _launchd_failed(settings, label))
 
     # uninstall

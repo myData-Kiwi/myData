@@ -223,6 +223,28 @@ def bootout(label: str, wait: float = EXIT_TIMEOUT_SECONDS + 10) -> None:
         time.sleep(0.2)
 
 
+# What `mydata start` and `mydata service install` say when launchd will not load the agent. On macOS 13 and
+# later the agent is listed under Login Items, where it can be switched off (also right after the "Background
+# Items Added" notice); launchctl bootstrap then fails with "5: Input/output error" (tried on macOS 26.7 with
+# `launchctl disable`). Whether the Settings switch always shows in `launchctl print-disabled` is unverified.
+SWITCHED_OFF = ("myData Host is switched off: switch it on in System Settings > General > Login Items & Extensions "
+                "(Allow in the Background)")
+MAYBE_SWITCHED_OFF = ("launchd did not load myData Host; if it is switched off in System Settings > General > "
+                      "Login Items & Extensions (Allow in the Background), switch it on")
+
+
+def disabled(label: str) -> bool:
+    """launchd has the label switched off for this user (`launchctl print-disabled`)."""
+    r = _launchctl("print-disabled", domain())
+    if r.returncode != 0:
+        return False
+    for line in r.stdout.splitlines():
+        key, sep, value = line.strip().partition(" => ")
+        if sep and key.strip('"') == label:
+            return value.strip() in ("disabled", "true")
+    return False
+
+
 def kickstart(label: str) -> None:
     """Start the job if it is not running (never restarts a running one: no -k)."""
     _check(_launchctl("kickstart", target(label)), f"launchctl kickstart {target(label)}")

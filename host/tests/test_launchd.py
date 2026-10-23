@@ -474,3 +474,49 @@ def test_start_does_not_start_a_second_host_beside_one_that_is_starting(home, mo
     monkeypatch.setattr(cli.time, "sleep", lambda s: None)
     monkeypatch.setattr(cli, "_start_detached", lambda settings: pytest.fail("started a second host"))
     assert cli.cmd_start(Settings(home=home)) == 0
+
+
+class _Disabled(FakeLaunchctl):
+    """A label switched off (System Settings, Login Items, or `launchctl disable`): bootstrap fails with EIO."""
+
+    def __init__(self, label):
+        super().__init__()
+        self.label = label
+
+    def __call__(self, *args):
+        if args[0] == "print-disabled":
+            self.calls.append(args)
+            return subprocess.CompletedProcess(args, 0, f'\tdisabled services = {{\n\t\t"{self.label}" => disabled\n'
+                                                        '\t\t"com.example.other" => enabled\n\t}\n', "")
+        if args[0] == "bootstrap":
+            self.calls.append(args)
+            return subprocess.CompletedProcess(args, 5, "", "Bootstrap failed: 5: Input/output error")
+        return super().__call__(*args)
+
+
+def test_a_switched_off_agent_is_named_and_the_host_still_starts(fake, home, app, tmp_path, answering, monkeypatch,
+                                                                 capsys):
+    assert cli.main(["service", "install", "--app", str(app), "--agents-dir", str(tmp_path / "a")]) == 0
+    off = _Disabled("kiwi.mydata.host")
+    monkeypatch.setattr(launchd, "_launchctl", off)  # not loaded at login: switched off
+    assert launchd.disabled("kiwi.mydata.host") and not launchd.disabled("com.example.other")
+    started = []
+    monkeypatch.setattr(cli, "_start_detached", lambda settings: started.append(1) or 0)
+    assert cli.main(["start"]) == 0
+    assert started == [1]
+    assert "Login Items" in capsys.readouterr().err
+    # Not switched off but bootstrap fails all the same: the hint, and no host started around launchd.
+    off.label = "something.else"
+    assert cli.main(["start"]) == 1
+    assert started == [1] and "if it is switched off" in capsys.readouterr().err
+
+
+def test_install_leaves_app_config_alone_when_launchd_will_not_load_the_agent(fake, home, app, tmp_path,
+                                                                             monkeypatch, capsys):
+    before = '{"host_command": ["/py", "-m", "mydata.cli", "start"]}\n'
+    (home / "app_config.json").write_text(before)
+    monkeypatch.setattr(launchd, "_launchctl", _Disabled("kiwi.mydata.host-test"))
+    assert cli.main(["service", "install", "--app", str(app), "--label", "kiwi.mydata.host-test",
+                     "--agents-dir", str(tmp_path / "a")]) == 1
+    assert (home / "app_config.json").read_text() == before
+    assert "Login Items" in capsys.readouterr().err
