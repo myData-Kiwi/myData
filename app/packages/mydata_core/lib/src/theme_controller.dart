@@ -144,12 +144,14 @@ class EverywhereUndo {
 ///   that fails is ignored, and a change fails with that error, writing nothing.
 /// - **Migration**, once per device, when the file has no `themes` key (ARCHITECTURE.md 4.2): on macOS every
 ///   app starts on System (the Mac shell already ignored the host's theme, so nothing on screen changes);
-///   elsewhere "everywhere" is seeded with the theme the host gave the apps as Kiwi in that palette
-///   ([ThemeLibrary.fromColour]: `plum` is Kiwi, Plum), which is exactly what was drawn. The device's
-///   `lastTheme` is read first: the old controller wrote the host's theme there at every poll, so it is the
-///   host's theme without waiting for the host (an app opened while the host starts draws it at once, as
-///   before). Without it, the host's deprecated status `theme` is read once it answers; until then System
-///   is drawn (Kiwi in its own colour off a Mac), as the old controller drew Kiwi before the host answered.
+///   elsewhere "everywhere" is seeded with the colour someone chose on the host, as Kiwi in that palette
+///   ([ThemeLibrary.fromColour]: `plum` is Kiwi, Plum), which is exactly what was drawn. The host's default
+///   colour (`kiwi`, what a host where nobody chose reports) seeds System, the default, which draws Kiwi in
+///   Kiwi until each platform's own pass, so nothing on screen changes and the device follows that pass.
+///   The device's `lastTheme` is read first: the old controller wrote the host's theme there at every poll,
+///   so it is the host's theme without waiting for the host (an app opened while the host starts draws it
+///   at once, as before). Without it, the host's deprecated status `theme` is read once it answers; until
+///   then System is drawn.
 class ThemeController extends ChangeNotifier {
   ThemeController({
     required this.appId,
@@ -268,11 +270,21 @@ class ThemeController extends ChangeNotifier {
   ThemeChoice? _seed(Map<String, Object?> v) {
     if (_macOS) return ThemeChoice.system;
     final last = v['lastTheme'];
-    final fromDevice = ThemeLibrary.fromColour(last is String ? last : null);
+    final fromDevice = _chosenOnHost(last is String ? last : null);
     if (fromDevice != null) return fromDevice;
     if (!_hostAnswered()) return null;
-    return ThemeLibrary.fromColour(_hostTheme()) ?? ThemeChoice.system;
+    return _chosenOnHost(_hostTheme()) ?? ThemeChoice.system;
   }
+
+  /// Kiwi in [colour], one of the host's old colours; System for the host's default, which a host where
+  /// nobody chose reports too; null for none or one this build does not know.
+  static ThemeChoice? _chosenOnHost(String? colour) {
+    if (colour == defaultHostColour) return ThemeChoice.system;
+    return ThemeLibrary.fromColour(colour);
+  }
+
+  /// The host's default colour (`DEFAULT_THEME` in the host's appearance.py).
+  static const defaultHostColour = 'kiwi';
 
   void _apply(Map<String, Object?> v) {
     var changed = false;

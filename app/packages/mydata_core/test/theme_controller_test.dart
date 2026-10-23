@@ -143,7 +143,7 @@ void main() {
       c.dispose();
     });
 
-    for (final colour in ['kiwi', 'graphite', 'dusk', 'plum', 'rose', 'amber']) {
+    for (final colour in ['graphite', 'dusk', 'plum', 'rose', 'amber']) {
       test('elsewhere $colour becomes Kiwi in $colour everywhere, which draws exactly what $colour drew', () async {
         final store = MemoryDeviceStore({'lastTheme': colour});
         final c = _controller(store);
@@ -167,6 +167,28 @@ void main() {
               before.glassFill,
             ],
           );
+        }
+        c.dispose();
+      });
+    }
+
+    for (final (where, store, host) in [
+      ('lastTheme', () => MemoryDeviceStore({'lastTheme': 'kiwi'}), null),
+      ('the host', MemoryDeviceStore.new, _Host()..answer('kiwi')),
+    ]) {
+      test("elsewhere the host's default colour, which a host where nobody chose reports, seeds System (from $where)", () async {
+        final s = store();
+        final c = _controller(s, host: host);
+        await c.start();
+        expect(c.choice, ThemeChoice.system);
+        expect(await _themes(s), {
+          'everywhere': {'theme': 'mydata.system'},
+        });
+        // which draws exactly what Kiwi in Kiwi drew, until this platform's own pass
+        for (final b in Brightness.values) {
+          final before = MyDataTheme.data('kiwi', b).extension<MyDataColors>()!;
+          final now = (b == Brightness.dark ? c.theme.dark : c.theme.light).extension<MyDataColors>()!;
+          expect([now.accent, now.bg, now.ink, now.focus], [before.accent, before.bg, before.ink, before.focus]);
         }
         c.dispose();
       });
@@ -228,14 +250,14 @@ void main() {
 
   group('choosing', () {
     test('Use in this app stores the theme and palette for this app only; the mode is kept', () async {
-      final store = MemoryDeviceStore({'mode': 'dark', 'lastTheme': 'kiwi'});
+      final store = MemoryDeviceStore({'mode': 'dark', 'lastTheme': 'dusk'});
       final c = _controller(store);
       await c.start();
       await c.use(kiwiPlum);
       expect(c.choice, kiwiPlum);
       final themes = await _themes(store);
       expect(themes!['apps'], {'mycontacts': kiwiPlum.toJson()});
-      expect(themes['everywhere'], const ThemeChoice(ThemeLibrary.kiwiId, 'kiwi').toJson());
+      expect(themes['everywhere'], kiwiDusk.toJson());
       expect((await store.read())['mode'], 'dark');
       c.dispose();
     });

@@ -138,11 +138,12 @@ void main() {
     final host = FakeHost(phaseOnConnect: HostPhase.running, statusOnConnect: hostStatus());
     await tester.pumpWidget(MyAssistantApp(host: host, store: store, backend: ScriptedBackend([])));
     await tester.pumpAndSettle();
-    // This device's first start: the host's old theme (Kiwi) is kept, as Kiwi in that palette.
+    // This device's first start: the host's default colour (nobody chose one) seeds System, which draws
+    // Kiwi in Kiwi until this platform's own pass, so nothing changes on screen.
     final kiwi = MyDataColors.light.withTheme(MyDataThemes.kiwi, Brightness.light);
     expect(colorsOf(tester).accent, kiwi.accent);
     expect((await store.read())['themes'], {
-      'everywhere': {'theme': 'mydata.kiwi', 'palette': 'kiwi'},
+      'everywhere': {'theme': 'mydata.system'},
     });
 
     // The host's theme no longer changes anything: themes are chosen on each device.
