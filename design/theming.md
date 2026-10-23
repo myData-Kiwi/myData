@@ -2,6 +2,8 @@
 
 The default theme is Kiwi, in whichever mode the device uses. People can change it. Settings live in the myData app under Settings, Appearance, are stored on the host, and apply to every app.
 
+**On macOS the accent is the system's** (the Mac shell; `platforms.md`), and the host's theme does not change it. The six themes become accent options (Settings, Appearance, Accent: System, Kiwi, Graphite, Dusk, Plum, Rose, Amber; System the default on the Mac) in M1a's look pass; until then they colour the branded frame on the other platforms. Density on the Mac is the platform's, not a setting.
+
 ## What the user can set
 
 | Setting | Options | Default | Where it applies |

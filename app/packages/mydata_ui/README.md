@@ -73,15 +73,40 @@ The specs, previews and top-level docs were checked against each other; the owne
 - **AppSection.count** shows a number after a sidebar label in `caption` and `ink-muted` (myContacts' Review), never a badge; screen readers hear "Review, 4".
 - **Tile colours:** the untinted `surface-sunken` tile no longer counts toward a screen's three: ImportFlow's summary uses accent, info and warning, "every other row is neutral" (decided 2026-10-14), which the earlier count of four tones refused.
 
-## The Mac frame (M1a stack gate, 2026-10-23)
+## The Mac shell (2026-10-23)
 
-Built for the side-by-side of myContacts' People screen with Contacts.app (docs/2026-10-23-plan.md, sections 3(b), 3(d) and 5). Only myContacts uses it so far; the other apps keep the branded frame.
+Flutter is the stack on every platform; on macOS every app draws the Mac frame ("native frame, quiet brand", `docs/2026-10-23-plan.md` section 5; `design/platforms.md`, "The Mac shell"). It was built for myContacts' People screen in the M1a stack gate (`docs/decisions/2026-10-23-stack-gate.md`) and is shared from here. Other platforms keep the branded frame until their own pass.
 
-- **When:** `MacLook.forThisPlatform` is true in every macOS build (no switch back; tests use `MacLook.debugOverride`); `MacLook.of(context)` is true under a `MacTheme` wider than a phone. `MacTheme.data` maps the branded tokens onto the system's colours (`MyDataMacColors`, read from NSColor over `mydata/system_colors` by `MacSystemColorsScope`, accent included) and builds the text theme afresh in the system font: applying a family to the branded styles would keep mydata_ui's package and name a font that does not exist.
-- **Tokens:** `design/tokens.json` "macos" (fonts, colours, type, sizes, radii), generated into `MyDataMac*`. The colours are fallbacks; on a Mac the system's own are used.
-- **Widgets:** `MacSourceList` (sidebar), `MacToolbar`, `MacToolbarButton`, `MacSearchField`, `MacRecordHeader`, `MacQuickAction`, `MacFieldTable`; `ContactListStyle.plain`. Shared widgets have a Mac branch: Button becomes a push button, MultiSelectList and GroupedList plain lists, and EmptyState, StatusPanel, Notice, MultiSelectSummary and DuplicatePair take their text through `context.type`. The Inspector and its fields, Select and the dialogs are still branded.
-- **Window:** the app's (`macos_window_utils`, `MacChrome`): this package has no platform plugins.
-- **Icons:** Lucide (ISC), cut down by `tool/subset_lucide.sh` to `MacIcons`, in place of SF Symbols.
-- **macOS 26 shapes, for the gate:** the sidebar is a floating panel (`sidebar-margin`, `sidebar` radius) with no divider beside it; toolbar items are `toolbar-item-height` circles and capsules on `toolbar-item`, a flat stand-in for Liquid Glass (Flutter cannot draw glass, flutter#170310), with no hairline under the band. The sizes are those SwiftUI's NavigationSplitView draws on macOS 26 (the SwiftUI prototype's renderer measured them).
+### Adopting it in an app
+
+1. **Runner:** copy `macos_snippets/MacShell.swift` unchanged into `macos/Runner`, add it to the Runner target (`project.pbxproj`: a file reference, a build file, the Runner group and the Sources phase, as myContacts has it), delete the app's own `AccessibilityChannel`, and in `MainFlutterWindow.awakeFromNib`: `let flutterViewController = MacShell.install(in: self)` (myData: `install(in: self, project: project)` to keep its launch arguments), `RegisterGeneratedPlugins(...)`, `shell = MacShellChannels(messenger: ...)`. `test/mac_shell_test.dart` checks every copy against the snippet.
+2. **main:** `await MacShell.setUp();` after `WidgetsFlutterBinding.ensureInitialized()`, before `runApp` (a no-op off macOS).
+3. **App:** `MacShell(theme: appearance.theme, builder: (context, light, dark, mode) => MaterialApp(theme: light, darkTheme: dark, themeMode: mode, builder: MacShell.content, ...))`. `MacShell.content` replaces the app's `MyDataAccessibilityScope` builder.
+4. **Screens:** `if (MacLook.of(context))` draw `Scaffold(backgroundColor: Colors.transparent, body: MacAppFrame(sections:, current:, onSelect:, connection:, child: MacPane(toolbar: MacToolbar(title:, trailing: [...]), child: ...)))`; else the branded `AppFrame` as before. Sidebar sections use `MacIcons`. myContacts' `home.dart` and `contacts_view.dart` are the worked example (a list column and a record column, each with its own `MacToolbar`).
+5. **Tests:** `MacLook.debugOverride = false` in `flutter_test_config.dart` (the branded frame by default, also in the macOS variants) and `await loadMacFonts()`; a Mac-frame test sets it to true and renders with `screenMatrix(..., themes: macMatrix)`.
+
+### API
+
+| Piece | What it is |
+|---|---|
+| `MacShell`, `MacShell.setUp()`, `MacShell.content` | The theme (system colours read live by `MacSystemColorsScope`, `MacTheme.data`), the window (`MacWindow`: full-size content, unified toolbar, translucent sidebar, appearance following the mode) and the chrome (`MacChrome`: toolbar items that take clicks, the sidebar's material, whether the window is active) |
+| `MacLook.forThisPlatform`, `MacLook.of(context)`, `MacLook.debugOverride` | On macOS; in the Mac frame here (the Mac theme and wider than a phone); tests' switch |
+| `MacAppFrame`, `MacPane` | The window's layout: the sidebar (`MacSourceList`) beside the content on `content-background`; a column's toolbar band over its body |
+| `MacToolbar`, `MacToolbarButton` (`.text`), `MacSearchField` | The band (title, leading and trailing items) and its items |
+| `MacRecordHeader`, `MacQuickAction`, `MacFieldTable`, `MacField` | A record's page: 64 pt avatar, name, round actions, label and value columns (click to copy) |
+| `ContactListStyle.plain`, `MultiSelectList`, `GroupedList`, `Button` | Shared widgets with a Mac branch: a plain list with the accent selection, a push button |
+| `MacIcons` | Lucide, one set for every app (sections, sources, actions, states, navigation) |
+| `context.mac` (`MyDataMacColors`), `context.type(style)`, `MacRowEmphasis` | The system's colours; a branded type style's Mac counterpart; text on an accent row |
+| `MyDataMacType`, `MyDataMacSize`, `MyDataMacRadius`, `MyDataMacFont` | The `macos` tokens: 13 pt body, 24 pt rows, 28 pt controls, 52 pt toolbar, 208 pt sidebar, focus ring |
+| `FocusRing.colourFor(context)`, `FocusRing.painter(...)` | Every focus ring: the system's `focus-ring` in the Mac frame (red controls too), the branded rule elsewhere |
+
+### Notes
+
+- **Tokens:** `design/tokens.json` "macos" (fonts, colours, type, sizes, radii), generated into `MyDataMac*`. The colours are fallbacks; on a Mac the system's own are used (`MacShell.swift` lists which NSColor each token reads).
+- **The theme:** `MacTheme.data` maps the branded tokens onto the system's colours, so branded widgets drawn in the Mac frame (the Inspector and its fields, Select, the dialogs, still branded in shape) take the system's colours and font, and builds the text theme afresh in the system font: applying a family to the branded styles would keep mydata_ui's package and name a font that does not exist.
+- **Shared widgets' Mac branch:** Button becomes a push button, MultiSelectList and GroupedList plain lists, and EmptyState, StatusPanel, Notice, MultiSelectSummary and DuplicatePair take their text through `context.type`.
+- **Icons:** Lucide (ISC), cut down by `tool/subset_lucide.sh` to `MacIcons`, in place of SF Symbols (only Apple's frameworks may draw them). Add an icon there and in the script.
+- **macOS 26 shapes:** the sidebar is a floating panel (`sidebar-margin`, `sidebar` radius) with no divider beside it; toolbar items are `toolbar-item-height` circles and capsules on `toolbar-item`, a flat stand-in for Liquid Glass (Flutter cannot draw glass, flutter#170310), with no hairline under the band. The sizes are those SwiftUI's NavigationSplitView draws on macOS 26 (measured in the stack gate).
+- **Window:** `macos_window_utils` 1.9.1, pinned, a dependency of this package (its plugin registers in every app; it does nothing until `MacShell.setUp`). Not macos_ui, which is a whole widget set of its own.
 - **Tests:** committed Mac-frame screenshots (`macMatrix`, light and dark) use the bundled Figtree under the system font's names (`loadMacFonts()`), so no rasterised SF Pro is in the repo. `loadMacFonts(systemFont: true)` reads the Mac's own SF Pro from `/System/Library/Fonts/SFNS.ttf` (never copied) for a local check, written outside the checkout and never committed.
-- **Unverified until the app runs:** whether `.AppleSystemUIFont` resolves to SF Pro in the built app (a wrong family falls back silently to another font); check it in the live window.
+- **Unverified until the apps run:** whether `.AppleSystemUIFont` resolves to SF Pro in a built app (a wrong family falls back silently); the focus ring's width and colour against the system's; the window's look with myData's `window_manager` beside `macos_window_utils`.

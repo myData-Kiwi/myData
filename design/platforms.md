@@ -1,8 +1,40 @@
 # Layout and platforms
 
-The apps are separate programs that share one look. Each one has its own window, its own navigation and its own icon. The host runs in the background and is shown only as a menu-bar or tray icon owned by the myData app.
+The apps are separate programs built in Flutter on every platform (decided 2026-10-23). Each has its own window, its own navigation and its own icon. The host runs in the background and is shown only as a menu-bar or tray icon owned by the myData app.
 
-## Window layouts
+## The platform owns the frame
+
+**Native frame, quiet brand** (`docs/2026-10-23-plan.md`, section 5). The old rule that colour, type, shape and cards are ours everywhere is gone.
+
+| The platform's | Ours |
+|---|---|
+| The window, title bar and toolbar; the sidebar and its material; controls' shapes; the font and its sizes; the accent; the focus ring; density; menus, scrolling, text selection; the system's dialogs for files, sharing and permissions | The kiwi (first launch, empty states), the app icons, avatars and initials, person pages, the approval card, the `data-*` colours of calendars myData owns, and the wording |
+
+## Each platform
+
+| Platform | Frame | Body | Controls | Rows |
+|---|---|---|---|---|
+| macOS (now) | The Mac shell in `mydata_ui` (below) | System font, 13 pt | 28 pt (`control-height`), 20 pt at least; push buttons 24 pt | Lists 24 pt, sidebar 32 pt |
+| Android (its own pass, later) | Material 3, Material Symbols | 16 sp | 48 dp targets | |
+| iPhone | The host's web page and the system's own apps through DAV, until native apps | 17 pt | 44 pt targets | |
+| Windows, Linux, the web build | The branded frame below, until their own pass | | | |
+
+Every platform keeps building and passing `flutter analyze`. A platform keeps the branded frame (`AppFrame`, `PageScaffold`, the branded tokens) until its own pass replaces it; nothing is restyled for one platform at another's cost.
+
+## The Mac shell
+
+On macOS every app draws the Mac frame; there is no switch back. It is built once in `mydata_ui` (`MacShell`; its README lists the API) and each app adopts it:
+
+- **Window:** a full-size content view under a transparent title bar with a unified toolbar (`macos_window_utils`). The app draws its toolbar band (`toolbar-height`) where the title bar is; the empty parts of the band drag the window and zoom it on a double-click. The window's appearance follows the app's mode.
+- **Sidebar:** macOS 26's floating panel (`sidebar-width`, `sidebar-margin`, the `sidebar` radius) on the window's own translucent sidebar material; `sidebar-background` with reduced transparency. The app's own sections only, as a source list. No app name in the sidebar. The host's state shows at its bottom only when something is wrong.
+- **Toolbar:** the section's title and the items for it (New, Edit, the search field), on the stand-in for glass (`toolbar-item`; Flutter cannot draw Liquid Glass).
+- **Colours, font and accent are the system's:** read from NSColor in both appearances and followed when the user changes them (the `macos` colour tokens are fallbacks only). The accent is the system's, not the host's theme (the plan's "System" accent, the Mac default; the other accents come with Settings, Appearance). Light or dark is still this device's mode.
+- **Focus ring:** the system's (`focus-ring`, `focus-ring-width`, `focus-ring-offset`) on every control, red ones included. The red `focus` ring and its `ink` rule (README, "Focus and danger") are the branded frame's only.
+- **Lists are lists:** one plain source list with section letters, the accent selection while the list has focus (grey otherwise), no cards. Inset groups only in forms and settings.
+- **Icons:** Lucide (`MacIcons`, one set for every app) in place of SF Symbols, which may only be drawn by Apple's own frameworks.
+- Screens an app has not moved to the Mac frame yet keep their branded layout, drawn in the system's font and colours.
+
+## The branded frame (every platform but macOS, for now)
 
 | Width | Layout |
 |---|---|
@@ -11,8 +43,6 @@ The apps are separate programs that share one look. Each one has its own window,
 | Over 1024px (desktop) | A `sidebar-width` sidebar on `surface`, then content. A third pane for detail where the app needs it, as in myMail |
 
 Reading and settings columns stop at `content-max`. Photo grids and calendars use the full width.
-
-## Each app's frame
 
 - The app name sits at the top of the sidebar in the `title` style. On a phone it is the large title at the top of the screen.
 - The sidebar holds that app's own sections only. No app lists the other apps.
@@ -35,6 +65,7 @@ Reading and settings columns stop at `content-max`. Photo grids and calendars us
 
 | Behaviour | Rule |
 |---|---|
+| Frame | The window, toolbar, sidebar, font, accent, focus ring and density, per platform (above) |
 | Back | System back gesture and button on phones; no custom back gestures |
 | Scrolling | Platform scroll physics and scroll bars |
 | Menus | A real menu bar on macOS; context menus on right-click and long-press |
@@ -42,10 +73,6 @@ Reading and settings columns stop at `content-max`. Photo grids and calendars us
 | Text | Native selection, copy, paste and spell check |
 | Windows | Standard title bar controls in the platform's position |
 | Dialogs for files, sharing and permissions | The system's own |
-
-## What is ours everywhere
-
-Colour, type, shape, icon tiles, cards, the approval card, status chips and wording. A screen from myPhotos on Windows and on an iPhone should be recognisable as the same app at a glance.
 
 ## Offline and errors
 

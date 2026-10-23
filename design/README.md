@@ -2,6 +2,8 @@
 
 The design system for the myData family of apps: myData, myAssistant, myPhotos, myMail, myCalendar, myContacts and the apps that follow. Soft, airy and modern, with quiet grey grounds and one theme colour, kiwi green by default.
 
+**The platform owns the frame** (decided 2026-10-23; `platforms.md`). On macOS the apps draw the Mac shell: the system's window, toolbar, translucent sidebar, font, colours, accent, focus ring and density (the `macos` tokens in `tokens.json`). What follows describes the branded frame, which the other platforms keep until their own pass, and the content that is ours everywhere: the kiwi, app icons, avatars, person pages, empty states, the approval card, `data-*` colours and wording.
+
 Tagline: Your data, kept at home.
 
 ## The idea: soft grounds, one colour
@@ -60,6 +62,8 @@ Rules:
 
 ## Focus and danger
 
+On macOS the focus ring is the system's (`focus-ring` in `tokens.json` "macos", read from the system) on every control, red ones included; this section is the branded frame's.
+
 `focus` and `danger` have the same values (#B3261E light, #F2867E dark). The red ring shows beside every theme's accent and on every ground (5.2 to 6.5:1 in light mode, 5.4 to 8.0:1 in dark, on `bg`, the surfaces and the soft fills), but next to anything red it cannot be told apart from the red. So:
 
 - **The focus ring is `focus` (red) everywhere, except on something already red, where it is `ink`.** It keeps its shape: 2px, 2px outside the element (or inside it, where the component draws it inside), with the ground showing in the gap. Only its colour changes.
@@ -80,6 +84,8 @@ Rules:
 - **JetBrains Mono** (`mono`) for paths, addresses and copied values.
 
 Styles: `display-xl`, `display-lg`, `title`, `heading`, `body`, `body-strong`, `caption`, `label`, `mono`. Body is 15px on desktop and 16px on phones.
+
+On macOS the apps use the system font at the Mac's sizes instead (`macos` type tokens: `body` 13 pt, `callout`, `caption`, `title`, a record's `name` at 22 pt); Plus Jakarta Sans and Figtree are the branded frame's.
 
 ## Shape, depth and space
 
@@ -104,13 +110,13 @@ A phone tab bar, a toolbar over a photo grid and the assistant's input bar float
 - An icon alone always has an accessible name.
 - Illustration is the kiwi, in first-run, empty screens and loading only.
 
-The icon set has not been drawn. The previews use simple placeholder outlines.
+On macOS the icons are Lucide (`MacIcons` in `mydata_ui`, one set for every app) at 16px; the branded frame still uses Material outline icons. Android moves to Material Symbols in its own pass.
 
 ## Accessibility
 
 - Text contrast at least 4.5:1 in both themes; control borders, icons and focus rings at least 3:1.
 - Every interactive element has a visible focus ring.
-- Every target is at least 44px.
+- Every target is at least 44px on phones and in the branded frame; on macOS the system's sizes (28 pt controls, 20 pt at least).
 - Status is never colour alone: a chip always carries a word.
 - Reduced motion replaces movement with a short fade. Reduced transparency removes glass.
 

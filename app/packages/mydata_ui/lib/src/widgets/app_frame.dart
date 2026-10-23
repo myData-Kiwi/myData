@@ -56,7 +56,7 @@ abstract final class PhoneType {
 class AppSection {
   const AppSection({required this.icon, required this.label, this.count, this.countMore = false});
 
-  /// Drawn at `icon` size. The icon set is not drawn yet; pass a Material outlined or rounded icon.
+  /// Drawn at `icon` size: a `MacIcons` icon in the Mac frame, a Material outlined or rounded one elsewhere.
   final IconData icon;
 
   /// One short word in sentence case, so it also fits the rail and the phone tab bar.
