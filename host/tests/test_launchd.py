@@ -60,10 +60,12 @@ class FakeLaunchctl:
 
 
 @pytest.fixture
-def fake(monkeypatch):
+def fake(monkeypatch, tmp_path):
     f = FakeLaunchctl()
     monkeypatch.setattr(launchd, "_launchctl", f)
     monkeypatch.setattr(launchd, "supported", lambda: True)
+    # Never read the real ~/Library/LaunchAgents: an installed host's plist there changes the answers.
+    monkeypatch.setattr(launchd, "default_agents_dir", lambda: tmp_path / "default-agents")
     return f
 
 
