@@ -10,6 +10,8 @@
 //      security find-certificate -c "Apple Development" -p | openssl x509 -noout -subject
 //    It is the OU= value.
 // 3. Copy this file to Signing.local.xcconfig in the same folder (git ignores it) and fill in the ID.
+//    myAssistant, myContacts and myCalendar include this same file, and the host app
+//    (host/packaging/macos/build_host_app.sh) signs with the identity it names.
 // 4. Rebuild: flutter build macos --debug (or flutter run -d macos). The first codesign may ask for your
 //    login keychain password; choose Always Allow.
 // 5. Open myData once and allow Contacts and Calendars again. From then on rebuilds keep the permission.

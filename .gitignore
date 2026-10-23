@@ -32,3 +32,6 @@ Signing.local.xcconfig
 
 # Hypothesis keeps its example database here (tests in host/tests).
 .hypothesis/
+
+# Builds of the host app (host/packaging/macos/build_host_app.sh).
+host/build/
