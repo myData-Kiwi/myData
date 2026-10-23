@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import '../generated/tokens.g.dart';
+import '../mac/mac_theme.dart';
 import '../theme.dart';
 import 'app_frame.dart' show AppLayout;
 import 'avatar.dart';
@@ -290,9 +291,9 @@ class _DuplicatePairState extends State<DuplicatePair> {
           children.add(const SizedBox(height: MyDataSpace.s4));
           children.add(Semantics(
             header: true,
-            child: Text(widget.after!.title, style: MyDataType.label.copyWith(color: c.inkMuted)),
+            child: Text(widget.after!.title, style: context.type(MyDataType.label).copyWith(color: c.inkMuted)),
           ));
-          children.add(Text(widget.after!.caption, style: MyDataType.caption.copyWith(color: c.inkMuted)));
+          children.add(Text(widget.after!.caption, style: context.type(MyDataType.caption).copyWith(color: c.inkMuted)));
           children.add(const SizedBox(height: MyDataSpace.s2));
           final afterOnly = [_Column.after(widget.after!)];
           for (final f in rows) {
@@ -313,14 +314,14 @@ class _DuplicatePairState extends State<DuplicatePair> {
       }
       if (widget.note != null) {
         children.add(const SizedBox(height: MyDataSpace.s3));
-        children.add(Text(widget.note!, style: MyDataType.caption.copyWith(color: c.inkMuted)));
+        children.add(Text(widget.note!, style: context.type(MyDataType.caption).copyWith(color: c.inkMuted)));
       }
       if (widget.message != null) {
         children.add(const SizedBox(height: MyDataSpace.s4));
         children.add(Semantics(
           liveRegion: true,
           child: Text(widget.message!,
-              style: MyDataType.body.copyWith(color: widget.messageIsError ? c.danger : c.ink)),
+              style: context.type(MyDataType.body).copyWith(color: widget.messageIsError ? c.danger : c.ink)),
         ));
       }
       if (widget.actions.isNotEmpty) {
@@ -347,7 +348,7 @@ class _DuplicatePairState extends State<DuplicatePair> {
 
   Widget _plain(BuildContext context, String text) => Padding(
         padding: const EdgeInsets.symmetric(vertical: MyDataSpace.s2),
-        child: Text(text, style: MyDataType.body.copyWith(color: context.colors.inkMuted)),
+        child: Text(text, style: context.type(MyDataType.body).copyWith(color: context.colors.inkMuted)),
       );
 
   Widget _header(BuildContext context, List<_Column> columns, double inner) {
@@ -375,8 +376,8 @@ class _DuplicatePairState extends State<DuplicatePair> {
                 ],
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(col.title, style: MyDataType.bodyStrong.copyWith(color: c.ink)),
-                    Text(col.caption, style: MyDataType.caption.copyWith(color: c.inkMuted)),
+                    Text(col.title, style: context.type(MyDataType.bodyStrong).copyWith(color: c.ink)),
+                    Text(col.caption, style: context.type(MyDataType.caption).copyWith(color: c.inkMuted)),
                   ]),
                 ),
               ]),
@@ -414,8 +415,8 @@ class _DuplicatePairState extends State<DuplicatePair> {
           SizedBox(
             width: DuplicatePair.labelWidth - MyDataSpace.s2,
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(f.label, style: MyDataType.label.copyWith(color: c.inkMuted)),
-              if (differs) Text(DuplicatePair.differsLabel, style: MyDataType.caption.copyWith(color: c.ink)),
+              Text(f.label, style: context.type(MyDataType.label).copyWith(color: c.inkMuted)),
+              if (differs) Text(DuplicatePair.differsLabel, style: context.type(MyDataType.caption).copyWith(color: c.ink)),
             ]),
           ),
           ...cells,
@@ -454,19 +455,19 @@ class _DuplicatePairState extends State<DuplicatePair> {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       ..._values(context, values),
       for (final l in leftOut)
-        Text('${DuplicatePair.leftOutPrefix}$l', style: MyDataType.caption.copyWith(color: c.inkMuted)),
+        Text('${DuplicatePair.leftOutPrefix}$l', style: context.type(MyDataType.caption).copyWith(color: c.inkMuted)),
     ]);
   }
 
   List<Widget> _values(BuildContext context, List<PairValue> values) {
     final c = context.colors;
-    if (values.isEmpty) return [Text(DuplicatePair.noneLabel, style: MyDataType.body.copyWith(color: c.inkMuted))];
+    if (values.isEmpty) return [Text(DuplicatePair.noneLabel, style: context.type(MyDataType.body).copyWith(color: c.inkMuted))];
     return [
       for (final v in values)
         Text.rich(TextSpan(children: [
           if (v.label.isNotEmpty)
-            TextSpan(text: '${v.label} ', style: MyDataType.caption.copyWith(color: c.inkMuted)),
-          TextSpan(text: v.value, style: MyDataType.body.copyWith(color: c.ink)),
+            TextSpan(text: '${v.label} ', style: context.type(MyDataType.caption).copyWith(color: c.inkMuted)),
+          TextSpan(text: v.value, style: context.type(MyDataType.body).copyWith(color: c.ink)),
         ])),
     ];
   }
@@ -488,7 +489,7 @@ class _DuplicatePairState extends State<DuplicatePair> {
           semanticLabel: 'Version',
         ),
       const SizedBox(height: MyDataSpace.s3),
-      Text(col.caption, style: MyDataType.caption.copyWith(color: context.colors.inkMuted)),
+      Text(col.caption, style: context.type(MyDataType.caption).copyWith(color: context.colors.inkMuted)),
       const SizedBox(height: MyDataSpace.s2),
       for (final f in widget.loading ? PairField.values.take(4).toList() : rows) _row(context, f, [col]),
     ];

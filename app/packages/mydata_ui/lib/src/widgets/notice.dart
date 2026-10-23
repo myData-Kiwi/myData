@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../generated/tokens.g.dart';
+import '../mac/mac_theme.dart';
 import '../theme.dart';
 import 'button.dart';
 import 'pressable.dart' show MyDataRadii;
@@ -88,7 +89,7 @@ class Notice extends StatelessWidget {
     final c = context.colors;
     final label = actionLabel;
     final icon = ExcludeSemantics(child: Icon(tone.icon, size: MyDataSize.icon, color: tone.iconColor(c)));
-    final words = ExcludeSemantics(child: Text(message, style: MyDataType.body.copyWith(color: c.ink)));
+    final words = ExcludeSemantics(child: Text(message, style: context.type(MyDataType.body).copyWith(color: c.ink)));
     Widget content;
     if (label == null) {
       content = Padding(

@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import '../generated/tokens.g.dart';
+import '../mac/mac_theme.dart';
 import '../theme.dart';
 import 'button.dart';
 import 'kiwi.dart';
@@ -88,15 +89,15 @@ class EmptyState extends StatelessWidget {
             const SizedBox(height: wideGap),
             Semantics(
               header: true,
-              child: Text(title, textAlign: TextAlign.center, style: MyDataType.title.copyWith(color: c.ink)),
+              child: Text(title, textAlign: TextAlign.center, style: context.type(MyDataType.title).copyWith(color: c.ink)),
             ),
             const SizedBox(height: gap),
-            Text(sentence, textAlign: TextAlign.center, style: MyDataType.body.copyWith(color: c.inkMuted)),
+            Text(sentence, textAlign: TextAlign.center, style: context.type(MyDataType.body).copyWith(color: c.inkMuted)),
             const SizedBox(height: wideGap),
             Button(label: actionLabel, variant: ButtonVariant.filled, onPressed: onAction),
             if (reason != null) ...[
               const SizedBox(height: reasonGap),
-              Text(reason, textAlign: TextAlign.center, style: MyDataType.caption.copyWith(color: c.inkMuted)),
+              Text(reason, textAlign: TextAlign.center, style: context.type(MyDataType.caption).copyWith(color: c.inkMuted)),
             ],
           ],
         ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../generated/tokens.g.dart';
+import '../mac/mac_theme.dart';
 import '../theme.dart';
 import 'button.dart';
 import 'icon_tile.dart';
@@ -107,14 +108,14 @@ class StatusPanel extends StatelessWidget {
           if (lead != null) ...[Center(child: lead), const SizedBox(height: leadGap)],
           Semantics(
             header: true,
-            child: Text(title, textAlign: TextAlign.center, style: MyDataType.title.copyWith(color: c.ink)),
+            child: Text(title, textAlign: TextAlign.center, style: context.type(MyDataType.title).copyWith(color: c.ink)),
           ),
           if (showBar) ...[
             const SizedBox(height: sectionGap),
             MyDataProgressBar(label: progressLabel!, value: progress!, caption: message),
           ] else ...[
             const SizedBox(height: titleGap),
-            Text(message, textAlign: TextAlign.center, style: MyDataType.body.copyWith(color: c.inkMuted)),
+            Text(message, textAlign: TextAlign.center, style: context.type(MyDataType.body).copyWith(color: c.inkMuted)),
           ],
           if (hasDetail) ...[
             const SizedBox(height: sectionGap),

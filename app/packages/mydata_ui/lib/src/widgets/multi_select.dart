@@ -8,6 +8,8 @@ import 'package:flutter/services.dart';
 import '../accessibility.dart';
 import '../generated/tokens.g.dart';
 import '../motion.dart';
+import '../mac/mac_chrome.dart';
+import '../mac/mac_theme.dart';
 import '../theme.dart';
 import 'button.dart';
 import 'checkbox.dart';
@@ -422,8 +424,96 @@ class _MultiSelectListState<K> extends State<MultiSelectList<K>> {
     }
   }
 
+  /// The list's focus node with the keys, around [rows] (the list's accessible container).
+  Widget _focusable(Widget rows) => Semantics(
+        container: true,
+        explicitChildNodes: true,
+        label: widget.label,
+        child: Focus(
+          focusNode: _focus,
+          onKeyEvent: _onKey,
+          onFocusChange: (v) => setState(() {
+            if (v && FocusManager.instance.highlightMode == FocusHighlightMode.traditional && !_keyboard) {
+              _keyboard = true;
+            }
+            if (!v) _keyboard = false;
+          }),
+          child: rows,
+        ),
+      );
+
+  /// One row's semantics and pointer handling around its drawing.
+  Widget _rowShell(K key, bool selected, Widget drawn, {MouseCursor cursor = SystemMouseCursors.click}) =>
+      Semantics(
+        selected: widget.selectMode ? null : selected,
+        checked: widget.selectMode ? selected : null,
+        // The list is one focus node with a cursor: the row the keys are on is the focused one.
+        focusable: true,
+        focused: _focus.hasFocus && widget.controller.focused == key,
+        label: widget.semanticLabelOf(key),
+        onTap: () => _press(key),
+        child: ExcludeSemantics(
+          child: MouseRegion(
+            cursor: cursor,
+            onEnter: (_) => setState(() => _hovered = key),
+            onExit: (_) => setState(() => _hovered = _hovered == key ? null : _hovered),
+            child: GestureDetector(behavior: HitTestBehavior.opaque, onTap: () => _press(key), child: drawn),
+          ),
+        ),
+      );
+
+  /// The Mac frame's list ([MacLook]): no card and no dividers; rows `row-inset` from the sides, at least
+  /// `row-height` tall; the selection a `selection` rounded fill (a run of rows joins into one block), the
+  /// accent while the list has focus in the active window, with its rows' content told so through
+  /// [MacRowEmphasis], and `selection-inactive` otherwise; the keyboard's row, when not selected, gets a
+  /// 2pt accent ring. Phones never get here, so there is no select mode.
+  Widget _mac(BuildContext context) {
+    final mac = context.mac;
+    final ctrl = widget.controller;
+    final active = _focus.hasFocus && MacChrome.of(context).windowActive;
+    final showFocus = _keyboard && _focus.hasFocus;
+    const corner = Radius.circular(MyDataMacRadius.selection);
+    return _focusable(Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final key in ctrl.rows)
+          () {
+            final selected = ctrl.isSelected(key);
+            final joins = selected ? ctrl.joins(key) : (up: false, down: false);
+            final emphasised = selected && active;
+            return _rowShell(
+              key,
+              selected,
+              cursor: SystemMouseCursors.basic,
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: MyDataMacSize.rowInset),
+                child: Container(
+                  constraints: const BoxConstraints(minHeight: MyDataMacSize.rowHeight),
+                  padding: const EdgeInsets.symmetric(horizontal: MyDataMacSize.rowPadding, vertical: MyDataSpace.s1),
+                  alignment: AlignmentDirectional.centerStart,
+                  decoration: BoxDecoration(
+                    color: selected ? (active ? mac.accent : mac.selectionInactive) : null,
+                    borderRadius: BorderRadius.vertical(
+                      top: joins.up ? Radius.zero : corner,
+                      bottom: joins.down ? Radius.zero : corner,
+                    ),
+                    border: showFocus && ctrl.focused == key && !selected
+                        ? Border.all(color: mac.accent, width: MultiSelectRowFrame.ringWidth)
+                        : null,
+                  ),
+                  child: MacRowEmphasis(emphasised: emphasised, child: widget.itemBuilder(context, key)),
+                ),
+              ),
+            );
+          }(),
+      ],
+    ));
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (MacLook.of(context)) return _mac(context);
     final c = context.colors;
     final ctrl = widget.controller;
     final rows = ctrl.rows;
@@ -479,64 +569,31 @@ class _MultiSelectListState<K> extends State<MultiSelectList<K>> {
           ),
         ),
       );
-      children.add(Semantics(
-        selected: widget.selectMode ? null : selected,
-        checked: widget.selectMode ? selected : null,
-        // The list is one focus node with a cursor: the row the keys are on is the focused one.
-        focusable: true,
-        focused: _focus.hasFocus && ctrl.focused == key,
-        label: widget.semanticLabelOf(key),
-        onTap: () => _press(key),
-        child: ExcludeSemantics(
-          child: MouseRegion(
-            cursor: SystemMouseCursors.click,
-            onEnter: (_) => setState(() => _hovered = key),
-            onExit: (_) => setState(() => _hovered = _hovered == key ? null : _hovered),
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => _press(key),
-              child: MultiSelectRowFrame(
-                selected: marked,
-                joinsUp: joins.up,
-                joinsDown: joins.down,
-                focused: showFocus && ctrl.focused == key,
-                hovered: _hovered == key,
-                borderRadius: shapeOf(i),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(minHeight: MyDataSize.rowHeight),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: MyDataSpace.s4, vertical: MyDataSpace.s2),
-                    child: Row(children: [slot, Expanded(child: widget.itemBuilder(context, key))]),
-                  ),
-                ),
-              ),
+      children.add(_rowShell(
+        key,
+        selected,
+        MultiSelectRowFrame(
+          selected: marked,
+          joinsUp: joins.up,
+          joinsDown: joins.down,
+          focused: showFocus && ctrl.focused == key,
+          hovered: _hovered == key,
+          borderRadius: shapeOf(i),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: MyDataSize.rowHeight),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: MyDataSpace.s4, vertical: MyDataSpace.s2),
+              child: Row(children: [slot, Expanded(child: widget.itemBuilder(context, key))]),
             ),
           ),
         ),
       ));
     }
 
-    return Semantics(
-      container: true,
-      explicitChildNodes: true,
-      label: widget.label,
-      child: Focus(
-        focusNode: _focus,
-        onKeyEvent: _onKey,
-        onFocusChange: (v) => setState(() {
-          if (v && FocusManager.instance.highlightMode == FocusHighlightMode.traditional && !_keyboard) {
-            _keyboard = true;
-          }
-          if (!v) _keyboard = false;
-        }),
-        child: DecoratedBox(
-          decoration:
-              BoxDecoration(color: c.surface, borderRadius: MyDataRadii.lg, boxShadow: context.shadows.shadow1),
-          child: Column(
-              mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: children),
-        ),
-      ),
-    );
+    return _focusable(DecoratedBox(
+      decoration: BoxDecoration(color: c.surface, borderRadius: MyDataRadii.lg, boxShadow: context.shadows.shadow1),
+      child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: children),
+    ));
   }
 }
 
@@ -570,12 +627,12 @@ class MultiSelectSummary extends StatelessWidget {
         Semantics(
             header: true,
             liveRegion: true,
-            child: Text(title, style: MyDataType.displayLg.copyWith(color: c.ink))),
+            child: Text(title, style: context.type(MyDataType.displayLg).copyWith(color: c.ink))),
         const SizedBox(height: MyDataSpace.s2),
-        Text(names, style: MyDataType.body.copyWith(color: c.inkMuted)),
+        Text(names, style: context.type(MyDataType.body).copyWith(color: c.inkMuted)),
         if (leftOut != null) ...[
           const SizedBox(height: MyDataSpace.s2),
-          Text(leftOut!, style: MyDataType.caption.copyWith(color: c.inkMuted)),
+          Text(leftOut!, style: context.type(MyDataType.caption).copyWith(color: c.inkMuted)),
         ],
         if (actions.isNotEmpty) ...[
           const SizedBox(height: actionsGap),

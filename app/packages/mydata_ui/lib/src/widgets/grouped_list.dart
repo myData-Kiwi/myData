@@ -5,6 +5,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
 import '../generated/tokens.g.dart';
+import '../mac/mac_theme.dart';
 import '../theme.dart';
 import 'badge.dart';
 import 'group_frame.dart';
@@ -52,7 +53,7 @@ class GroupedList extends StatelessWidget {
   static const headingPadding = GroupFrame.headingPadding;
 
   @override
-  Widget build(BuildContext context) => GroupFrame(heading: heading, parts: rows);
+  Widget build(BuildContext context) => GroupFrame(heading: heading, parts: rows, plain: MacLook.of(context));
 }
 
 /// What sits at the right end of a [GroupedRow]: a status chip, a value, a chevron, or a value and a
@@ -227,11 +228,15 @@ class GroupedRow extends StatelessWidget {
         ? (onSwitchChanged == null ? null : () => onSwitchChanged!(!switchValue!))
         : (enabled ? onPressed : null);
 
-    final end = isSwitch ? SwitchTrack(value: switchValue!) : (trailing == null ? null : _trailing(c, trailing!));
+    final end = isSwitch ? SwitchTrack(value: switchValue!) : (trailing == null ? null : _trailing(context, trailing!));
+    // The Mac frame: a plain list's row, `row-height` at least, its text in the system's styles.
+    final mac = MacLook.of(context);
     Widget content = ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: MyDataSize.rowHeight),
+      constraints: BoxConstraints(minHeight: mac ? MyDataMacSize.rowHeight : MyDataSize.rowHeight),
       child: Padding(
-        padding: padding,
+        padding: mac
+            ? const EdgeInsets.symmetric(horizontal: MyDataMacSize.rowPadding, vertical: MyDataSpace.s1)
+            : padding,
         child: _RowLine(
           children: [
             Row(
@@ -242,8 +247,9 @@ class GroupedRow extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(title, style: MyDataType.bodyStrong.copyWith(color: c.ink)),
-                      if (subtitle != null) Text(subtitle!, style: MyDataType.caption.copyWith(color: c.inkMuted)),
+                      Text(title, style: context.type(mac ? MyDataType.body : MyDataType.bodyStrong).copyWith(color: c.ink)),
+                      if (subtitle != null)
+                        Text(subtitle!, style: context.type(MyDataType.caption).copyWith(color: c.inkMuted)),
                     ],
                   ),
                 ),
@@ -259,7 +265,8 @@ class GroupedRow extends StatelessWidget {
       content = Pressable(
         onPressed: activate,
         borderRadius: shape,
-        hoverFill: selected ? c.ink.withValues(alpha: selectedHoverInk) : c.surfaceHover,
+        // Mac lists do not light up under the pointer.
+        hoverFill: mac ? null : (selected ? c.ink.withValues(alpha: selectedHoverInk) : c.surfaceHover),
         scaleOnPress: false,
         focusNode: focusNode,
         autofocus: autofocus,
@@ -274,18 +281,22 @@ class GroupedRow extends StatelessWidget {
 
     return MergeSemantics(
       child: DecoratedBox(
-        decoration: BoxDecoration(color: selected ? c.accentSoft : null, borderRadius: shape),
+        decoration: BoxDecoration(
+          color: selected ? (mac ? context.mac.selectionInactive : c.accentSoft) : null,
+          borderRadius: shape,
+        ),
         child: content,
       ),
     );
   }
 
-  Widget _trailing(MyDataColors c, GroupedTrailing t) {
+  Widget _trailing(BuildContext context, GroupedTrailing t) {
+    final c = context.colors;
     Widget value(String text) => Text(
       text,
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
-      style: MyDataType.body.copyWith(color: c.inkMuted),
+      style: context.type(MyDataType.body).copyWith(color: c.inkMuted),
     );
     final chevron = Icon(Icons.chevron_right_rounded, size: MyDataSize.icon, color: c.inkMuted);
     return switch (t) {

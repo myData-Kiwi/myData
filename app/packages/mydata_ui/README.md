@@ -72,3 +72,14 @@ The specs, previews and top-level docs were checked against each other; the owne
 - **CheckboxList** rows take a `trailing` control beside the target (the import's Compare, a second target, in the Tab order only on the row the keys are on) and a `below` widget (the comparison); `folded` hides the rows but keeps select all, for "New contacts (125)".
 - **AppSection.count** shows a number after a sidebar label in `caption` and `ink-muted` (myContacts' Review), never a badge; screen readers hear "Review, 4".
 - **Tile colours:** the untinted `surface-sunken` tile no longer counts toward a screen's three: ImportFlow's summary uses accent, info and warning, "every other row is neutral" (decided 2026-10-14), which the earlier count of four tones refused.
+
+## The Mac frame (M1a stack gate, 2026-10-23)
+
+Built for the side-by-side of myContacts' People screen with Contacts.app (docs/2026-10-23-plan.md, sections 3(b), 3(d) and 5). Only myContacts uses it so far; the other apps keep the branded frame.
+
+- **The switch:** `MacLook` is on in a macOS build unless `--dart-define=MYDATA_MAC_LOOK=false`; `MacLook.of(context)` is true under a `MacTheme` wider than a phone. `MacTheme.data` maps the branded tokens onto the system's colours (`MyDataMacColors`, read from NSColor over `mydata/system_colors` by `MacSystemColorsScope`, accent included) and builds the text theme afresh in the system font: applying a family to the branded styles would keep mydata_ui's package and name a font that does not exist.
+- **Tokens:** `design/tokens.json` "macos" (fonts, colours, type, sizes, radii), generated into `MyDataMac*`. The colours are fallbacks; on a Mac the system's own are used.
+- **Widgets:** `MacSourceList` (sidebar), `MacToolbar`, `MacToolbarButton`, `MacSearchField`, `MacRecordHeader`, `MacQuickAction`, `MacFieldTable`; `ContactListStyle.plain`. Shared widgets have a Mac branch: Button becomes a push button, MultiSelectList and GroupedList plain lists, and EmptyState, StatusPanel, Notice, MultiSelectSummary and DuplicatePair take their text through `context.type`. The Inspector and its fields, Select and the dialogs are still branded.
+- **Window:** the app's (`macos_window_utils`, `MacChrome`): this package has no platform plugins.
+- **Icons:** Lucide (ISC), cut down by `tool/subset_lucide.sh` to `MacIcons`, in place of SF Symbols.
+- **Tests:** `loadMacFonts` (mydata_testing) loads the Mac's own SF Pro from `/System/Library/Fonts/SFNS.ttf` for screenshots; it is read, never copied into the repo. Mac-frame screenshots are made with `macMatrix` (light and dark) and only match on a Mac.

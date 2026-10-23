@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import '../generated/tokens.g.dart';
+import '../mac/mac_theme.dart';
 import '../theme.dart';
 import 'pressable.dart';
 
@@ -104,6 +105,7 @@ class Button extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (MacLook.of(context)) return _mac(context);
     final c = context.colors;
     final fg = variant.foreground(c);
     final text = Text(
@@ -136,6 +138,55 @@ class Button extends StatelessWidget {
                 const SizedBox(width: iconGap),
               ],
               Flexible(child: text),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// The Mac frame's push button: a `push-button-height` capsule with the label in `body`. [ButtonVariant.filled]
+  /// is the default button (the accent, `on-accent` text), [ButtonVariant.tonal] a plain push button on
+  /// `quaternary-label`, [ButtonVariant.danger] the same in `danger`; the plain variants are the label alone
+  /// in the accent or `danger`, as borderless buttons are. Pressing, focus and disabling are [Pressable]'s.
+  Widget _mac(BuildContext context) {
+    final c = context.colors;
+    final mac = context.mac;
+    final (Color? fill, Color fg) = switch (variant) {
+      ButtonVariant.filled => (mac.accent, mac.onAccent),
+      ButtonVariant.tonal => (mac.quaternaryLabel, mac.label),
+      ButtonVariant.plain => (null, mac.accent),
+      ButtonVariant.danger => (c.danger, c.onDanger),
+      ButtonVariant.plainDanger => (null, c.danger),
+    };
+    const shape = BorderRadius.all(Radius.circular(MyDataMacRadius.field));
+    return Pressable(
+      onPressed: onPressed,
+      borderRadius: shape,
+      focusNode: focusNode,
+      autofocus: autofocus,
+      semanticLabel: semanticLabel ?? label,
+      danger: variant.isRed,
+      disabledReason: disabledReason,
+      child: ExcludeSemantics(
+        child: Container(
+          height: MyDataMacSize.pushButtonHeight,
+          constraints: const BoxConstraints(minWidth: MyDataMacSize.pushButtonHeight * 3),
+          padding: EdgeInsets.symmetric(horizontal: fill == null ? MyDataSpace.s1 : MyDataSpace.s3),
+          decoration: BoxDecoration(color: fill, borderRadius: shape),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (icon != null) ...[
+                Icon(icon, size: MyDataMacSize.icon, color: fg),
+                const SizedBox(width: MyDataSpace.s1),
+              ],
+              Flexible(
+                child: Text(label,
+                    maxLines: 1, overflow: TextOverflow.ellipsis, softWrap: false,
+                    style: MyDataMacType.body.copyWith(color: fg)),
+              ),
             ],
           ),
         ),

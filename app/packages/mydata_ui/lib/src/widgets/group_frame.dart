@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import '../generated/tokens.g.dart';
+import '../mac/mac_theme.dart';
 import '../theme.dart';
 import 'pressable.dart' show MyDataRadii;
 
@@ -10,11 +11,16 @@ import 'pressable.dart' show MyDataRadii;
 /// Draws a group: the optional heading above it, outside, in `label` and `ink-muted`; then the parts on
 /// `surface` with `radius-lg` and `shadow-1`, no border, each separated from the next by a full-width 1px
 /// `line` divider. Each part gets its corner shape within the group through [GroupPartShape].
+///
+/// [plain] (a GroupedList in the Mac frame, plan section 5 "Lists are lists"): no card, no dividers; the
+/// heading in `caption-emphasized` and `secondary-label`, lined up with the rows' text; each part's shape is
+/// the `selection` radius, inset `row-inset` from the sides.
 class GroupFrame extends StatelessWidget {
-  const GroupFrame({super.key, this.heading, required this.parts});
+  const GroupFrame({super.key, this.heading, required this.parts, this.plain = false});
 
   final String? heading;
   final List<Widget> parts;
+  final bool plain;
 
   /// Preview: `.r{border-top:1px solid var(--line)}`.
   static const dividerWidth = 1.0;
@@ -22,8 +28,36 @@ class GroupFrame extends StatelessWidget {
   /// Preview: `.lbl{margin:0 0 8px 6px}`: `space-2` below; 6px in, snapped to `space-2`.
   static const headingPadding = EdgeInsets.only(left: MyDataSpace.s2, bottom: MyDataSpace.s2);
 
+  Widget _plain(BuildContext context) {
+    final mac = context.mac;
+    const shape = BorderRadius.all(Radius.circular(MyDataMacRadius.selection));
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (heading != null)
+          Container(
+            height: MyDataMacSize.sectionHeight,
+            alignment: AlignmentDirectional.bottomStart,
+            padding: const EdgeInsetsDirectional.only(
+                start: MyDataMacSize.rowInset + MyDataMacSize.rowPadding, bottom: MyDataSpace.s1),
+            child: Semantics(
+              header: true,
+              child: Text(heading!, style: MyDataMacType.captionEmphasized.copyWith(color: mac.secondaryLabel)),
+            ),
+          ),
+        for (final part in parts)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: MyDataMacSize.rowInset),
+            child: GroupPartShape(borderRadius: shape, child: part),
+          ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (plain) return _plain(context);
     final c = context.colors;
     const top = BorderRadius.vertical(top: Radius.circular(MyDataRadius.lg));
     const bottom = BorderRadius.vertical(bottom: Radius.circular(MyDataRadius.lg));
