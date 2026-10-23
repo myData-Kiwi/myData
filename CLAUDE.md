@@ -34,10 +34,10 @@ Follow [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.
 
 | Name | What it is | Runs on |
 |---|---|---|
-| myData | The host (`mydatad`): stores, syncs, indexes, runs models. Also the myData app: setup, status, settings, import | Host on macOS, Windows, Linux. App everywhere |
+| myData | The host (`mydatad`): stores, syncs, indexes, runs models. Also the myData app: setup, status, settings, import; later the dashboard and file browser | Host on macOS, Windows, Linux. App everywhere |
 | myAssistant | Chat (later voice) app | Everywhere |
 | myContacts, myCalendar, myMail, myPhotos | First apps | Everywhere, as clients |
-| myNotes, myReminders, myFiles and others | Later apps | Everywhere, as clients |
+| myNotes, myReminders, myFiles, myDocs, myHealth, myHome and others | Later apps | Everywhere, as clients |
 
 Technical names: repo `mydata-kiwi/mydata`, command `mydata`, background service `mydatad`. In prose, call the host "the host". The website (`mydata-kiwi/mydata-kiwi.github.io`, GitHub Pages, mydata.kiwi with Cloudflare DNS proxy off on purpose) keeps its own styling and its `CNAME`.
 
@@ -49,7 +49,7 @@ Technical names: repo `mydata-kiwi/mydata`, command `mydata`, background service
 - **Nothing is written to iCloud, Google or the Mac.** Followed sources stay read-only. Until DAV serving, new items say "On myData only, not on your phone yet".
 - **Imports come from files first** (`.vcf`, `.ics`, mbox), with a preview, a loss report, suggestions (never automatic merges) and undo. This Mac is followed only, never imported.
 - **Mail: myMail,** received through Mail.app by Apple Events from a helper nested in myData.app; IMAP per provider as standby (OAuth device code for Microsoft). No Full Disk Access route, no mail server on the host. A full archive: nothing is purged; mail gone at the provider is marked deleted.
-- **Pressing Send in myMail counts as approval** only once the app-to-host channel is hardened; a ~10 s undo window and an hourly limit. Sends the assistant proposes always show an approval card.
+- **Pressing Send in myMail counts as approval** only once the app-to-host channel is hardened; a ~10 s undo window (a restart inside it returns the message to drafts) and an hourly limit. Sends the assistant proposes always show an approval card.
 - **Proposed, not confirmed:** events organised by others are read-only until invitations exist; alerts on owned events stay hidden until something rings them.
 
 ### 2026-10-14
@@ -75,7 +75,7 @@ One host per household, clients on every device. Phones cannot host.
 
 - **Host:** a background service that outlives any window; must also install alone on machines with no screen. On macOS a native install (Docker on a Mac gets no GPU). Today a dev checkout; M1a makes it a signed `.app` started by a LaunchAgent.
 - **Listening:** loopback only (`service/config.py` refuses any other `server.host`). Phones come through a **second, remote listener** (M1b), the only thing Tailscale Serve proxies to, accepting only per-device credentials. Never expose the model server's port.
-- **The host owns data and tools; agents are replaceable.** Every agent reaches tools through one registry (`tools/registry.py`) holding the permission gate. An irreversible call never runs until a user approves that exact held call in an app. A held call is bound to the mode, the conversation epoch and the handler; switching either fails pending approvals, and a switch waits for running calls (`tests/test_approval_binding.py`).
+- **The host owns data and tools; agents are replaceable.** Every agent reaches tools through one registry (`tools/registry.py`) holding the permission gate. An irreversible call never runs until a user approves that exact held call in an app. A held call is bound to the mode, the conversation epoch and the handler (all three in its digest); switching mode or moving the epoch on fails pending approvals (approving one then returns it unchanged), approving checks the binding again, and a switch waits for running calls (`tests/test_approval_binding.py`). Approvals and the registry's undo log are in memory; the undo of an app's write is persisted (`undo_log`, `POST /undo/{id}`).
 - **Apps** talk to the host only through the HTTP API, with no business logic. Opening any app starts the host. Only myData stops it (`/shutdown` refuses other apps). On connect, a host the app cannot use (another version, code changed on disk, token refused) is replaced once with `mydata stop --unless-current --expect <versions>`. The assistant is optional; no app depends on the chat.
 - **Develop on a separate host folder.** Never run a branch against the default folder (`~/Library/Application Support/myData`, port 47821): a new migration would migrate the owner's data. Use `MYDATA_HOME=~/mydata-dev uv run mydata dev-setup`, another `[server] port`, and `flutter run --dart-define=MYDATA_HOME=$HOME/mydata-dev`. Tests always use temporary folders.
 
@@ -91,21 +91,22 @@ One host per household, clients on every device. Phones cannot host.
   | myCalendar | status, calendar:read, sources:read |
   | `mydata` command | every scope |
 
+  Only apps with `approve` list, read or decide held calls, and each approval records which app decided. Only `shutdown` stops the host. Only `contacts:import` imports: myContacts' File > Import… opens myData, which keeps the one history.
 - **Agent tokens:** hashed, `/mcp` only, no scopes.
 - **Device credentials** (`dav`, `web`; M1b): bound to a person, accepted only on the remote listener, with rate limits and lockout. App tokens, admin, MCP, approve, import and shutdown never reach that listener.
 - **Known limit:** any process running as the same user can read `app-tokens/*`. Harden the app-to-host channel (peer signature over a Unix socket, a Secure Enclave key per send, or Keychain access lists) **before the host sends mail**.
 
 ### Data
 
-- One SQLite file per service; binary files on disk. Every record has a device-generated ID, timestamps and a soft-delete marker. Search: FTS5 and sqlite-vec. Index the data; never train on it. Standards over invention: IMAP, CardDAV, CalDAV.
+- One SQLite file per service; binary files on disk. Every record has a device-generated ID, timestamps and a soft-delete marker. Search: FTS5 and sqlite-vec. Index the data; never train on it. Standards over invention: IMAP, CardDAV, CalDAV. Litestream is deferred (it conflicts with the host's `wal_checkpoint(TRUNCATE)`).
 - **Owned data is written only through the API** with If-Match (428 without, 412 when stale), each write one transaction with a revision, a change and an undo entry (`sources/contacts_write.py`). Followed cards are refused (409). Deletes are soft (30 days in Recently deleted, purged daily by `service/trash.py`). An undo writes forward, only while the card is at the revision it wrote, once, across restarts.
-- **Logs never hold user data:** ids, kinds and counts only. In real mode the request log keeps argument shapes, never values or tool results (`tests/test_request_log.py`, `tests/test_host_log_real_mode.py`).
+- **Logs:** writes, imports and the host log hold ids, kinds and counts only: never a card, a name, a file name or a value (a failed call's error: its kind and length only). In real mode the request log keeps the mode, the request text and each argument's shape (name, type, length) and the reply's shape, never values or tool results (`tests/test_request_log.py`, `tests/test_host_log_real_mode.py`); in demo mode it keeps everything.
 
 ### Data safety (enforced)
 
 - **Migrations** (`sources/_db.py`): foreign keys off before `BEGIN`; no table may lose rows unless declared `may_shrink`; `foreign_key_check` and `integrity_check` must pass, else rollback. Migrations are additive; dropping a trigger rolls back.
-- **Snapshots** (`service/backup.py`): hourly and before every migration. Stores open through `open_store`, which refuses to migrate a file it cannot snapshot.
-- **Owned rows are kept by the database** (`sources/owned.py`): triggers abort deleting owned rows unless a purge permit names them; only `purge()` writes one, for the trash expiry, a delete for good and the future Forget. The mirror's hard deletes touch only followed collections.
+- **Snapshots** (`service/backup.py`): hourly and before every migration, file by file. Stores open through `open_store`, which refuses to migrate a file it cannot snapshot. Kept: 24 hourly, 30 daily, 12 monthly; 90 days for those before a restore or by hand and for the newest 3 before each migration. A failed migration is rolled back and not retried for 15 minutes.
+- **Owned rows are kept by the database** (`sources/owned.py`): triggers abort deleting owned rows unless a purge permit names them; only `purge()` writes one, in the same transaction, for three callers: the trash expiry, a delete for good (`purge_now`, at the etag the user saw) and the future Forget. The mirror's hard deletes touch only the followed collections of the account concerned; leftovers are purged only for accounts in `accounts-removed.json`.
 - **A new schema version ships with a synthetic dump** (`host/tests/fixtures/schema`, `make_dump.py`); tests migrate every released dump. `mydata db check-migration` runs a migration on copies of real files first.
 - `mydata backup verify` (the restore drill), `mydata backup restore` (host stopped), `mydata export` (read back and compared before writing).
 - **Off-machine backup gate (M1b):** a verified external copy, "last off-machine backup" in `/status` and a tried restore runbook, before iCloud Contacts goes off and before passwords are ever stored.
@@ -127,13 +128,13 @@ Built; the full rules, routes and live runs are in `docs/decisions/2026-10-14-co
 
 - **Never write back.** The iCloud client sends only PROPFIND, REPORT, OPTIONS and GET; the Mac helper has no write method (`tests/test_mac_reader_readonly.py`).
 - **Nothing goes around them:** no HTTP client outside `DavClient.request`, no mail libraries outside `MAIL_ALLOWED` (`tests/test_dav_no_other_http.py`); only allow-listed modules start programs, never through a shell; no native code, `osascript` or AppleScript (`tests/test_no_way_around_the_helper.py`).
-- **This Mac:** `myDataReader.app` inside myData.app, started with `open` only from a validly signed myData with the same identity, over `<home>/run/reader.sock` (0600). Permission is asked only on Allow. Access taken away deletes that copy; "not asked yet" keeps it. Contact notes are never read. **From M1b it must exclude the myData account.**
+- **This Mac:** `myDataReader.app` inside myData.app, started with `open` only from a validly signed myData with the same identity, over `<home>/run/reader.sock` (0600). Permission is asked only on Allow. Access taken away deletes that copy; "not asked yet" keeps it. Contact notes are never read. It is the default on a Mac host because it uses the system prompt, so no password reaches myData; an app-specific password (iCloud, under Advanced, with the Apple Account email) is never the main path. **From M1b it must exclude the myData account.**
 - **The window rule:** `/events` never answers "nothing found" for days a source does not hold.
 - Group cards are never listed, counted or found. Turning a source off deletes its mirror; snapshots keep copies until they expire, and the UI says so.
 
 ### Demo and real mode
 
-Demo while no source is on and no owned data exists; otherwise real (`mode` in `/status`). Code that creates or purges owned data calls `ModeController.refresh()`. **Switching mode moves the conversation epoch on and ends every conversation.** Demo: six fake tools over `orchestrator/fixtures.py`, today pinned to 18 March 2026 (to become "Try with sample data" in M1a). Real: only `find_contact` and `list_events`; MCP agents get no tools.
+Demo while no source is on and no owned data exists; otherwise real (`mode` in `/status`). Code that creates or purges owned data calls `ModeController.refresh()`. **Switching mode moves the conversation epoch on and ends every conversation.** Demo: six fake tools over `orchestrator/fixtures.py`, today pinned to 18 March 2026 (to become "Try with sample data" in M1a). Real: only `find_contact` and `list_events`; MCP agents get no tools (later, a per-agent permission granted in myData, off by default, with a warning that data may leave the machine).
 
 ### Assistant
 
@@ -141,6 +142,7 @@ The model has one job: choose a tool and extract plain arguments. Everything els
 
 - **Dates** are resolved by code from the model's phrase. **Permissions** are code: reads run, reversible writes run with undo, irreversible acts wait for approval. **Ambiguity** makes code ask the user. **Structured output** with a JSON schema; grounding drops invented arguments (`orchestrator/grounding.py`).
 - **Untrusted input:** text from mail, invites or web pages may carry instructions; nothing read from them triggers an irreversible tool without approval. Before extraction ships, add the plan's rules: a session that has read such text loses outbound tools unless each call is approved; extraction jobs have no tools; every extracted fact links to its source.
+- **Web search** (`web_search`, `fetch_page`) is optional, visible and switchable; prefer self-hosted SearXNG; never put private data into a query without asking.
 - Log every request with its tools and outcome. The prompt prefix stays byte-identical (`tests/test_prompt_prefix.py`).
 - **Measure on a new frozen request set,** written before looking at output; never edit one (`feasibility/cases.py`, `cases_2026_10_11_b.py`); a request passes only if all reps pass.
 - Working model: `qwen3:14b`, thinking off (24 GB Air; a 27B model crashed it). No language model looks at photos.
@@ -150,7 +152,7 @@ The model has one job: choose a tool and extract plain arguments. Everything els
 - **Flutter**, macOS first, until the M1a side-by-side decides the Mac; Android stays Flutter; the iPhone gets plain HTML from the host. The Dart client is generated from `host/openapi.json`, never hand-written.
 - **Look today:** everything from `design/` through `mydata_ui`; tokens generated (`generated_tokens_test.dart` fails when stale); **no literal colour, radius or font name** in any app or widget (`no_literals_test.dart`). The theme is stored on the host; light or dark per device.
 - **Direction (M1a's look pass):** the platform owns the frame (window, toolbar, sidebar, controls, font, icons, accent, focus ring); myData owns the content. Mac density, lists not cards, themes become accents. No spec before a component's first use.
-- Disabled controls always give a reason. On macOS the menu bar (`AppMenuBar`) owns ⌘Z and ⌘S; phones have every action on screen. Forms go read-only while working (`FormBusy`) and commit pending typing first (`FormCommit`). Dates in British English ("Wed 14 Oct 2026").
+- Disabled controls always give a reason. On macOS the menu bar (`AppMenuBar`) owns ⌘Z and ⌘S; phones have every action on screen. Forms go read-only while working (`FormBusy`) and commit pending typing first (`FormCommit`). Dates in British English ("Wed 14 Oct 2026"). The focus ring, key order, phone breakpoint and form rules are in `design/README.md`, `design/platforms.md` and `mydata_ui`'s README.
 
 ### Repo layout
 
@@ -160,10 +162,12 @@ host/        Python: mydatad, the mydata command, tools, API, MCP, orchestrator,
 app/         Dart workspace
   packages/  mydata_client (generated), mydata_core (host lifecycle, tokens, links), mydata_ui,
              mydata_testing, mydata_assistant
-  apps/      mydata, myassistant, mycontacts, mycalendar
+  apps/      mydata, myassistant, mycontacts, mycalendar (each later app is a new app/apps/<name>)
 design/      design system specs, tokens, previews
 docs/        2026-10-23-plan.md and decisions/ (history)
 ```
+
+The links between the apps are in `mydata_core` (`AppLinks`, `IncomingLinks`, `InstalledApps`); the runner side is `macos_snippets/LinksAppDelegate.swift`.
 
 ## Status (2026-10-23)
 
@@ -205,7 +209,7 @@ Moved verbatim from this file on 2026-10-23:
 - `docs/decisions/2026-10-11-feasibility.md`: hardware and model findings; the feasibility test and its result.
 - `docs/decisions/2026-10-12-round-2.md`: round 2 (chained requests).
 - `docs/decisions/2026-10-12-answer-latency.md`: Part A and its open items.
-- `docs/decisions/2026-10-14-architecture.md`: architecture, tokens, sources, modes, assistant, photos and client stack in full.
+- `docs/decisions/2026-10-14-architecture.md`: architecture, tokens, sources, modes, assistant, photos, client stack and repo layout in full.
 - `docs/decisions/2026-10-14-data-safety-and-writers.md`: data layer, data safety and the writers in full.
 - `docs/decisions/2026-10-14-contacts-editing-and-import.md`: contacts editing, import and the import UI.
 - `docs/decisions/2026-10-14-status-and-build-order.md`: phase status, the 2026-10-13 direction in full, assets, the old build order, open questions and rough edges.

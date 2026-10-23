@@ -1,4 +1,4 @@
-# Architecture, sources, modes, assistant and client stack as of 14 October
+# Architecture, sources, modes, assistant, client stack and repo layout as of 14 October
 
 Moved verbatim from CLAUDE.md on 2026-10-23, when it was cut to the current rules. This is history: where it differs from CLAUDE.md or `docs/2026-10-23-plan.md`, CLAUDE.md wins.
 
@@ -97,3 +97,24 @@ No language model looks at photos. Search uses CLIP embeddings for descriptions,
 - **Phones:** one breakpoint (600px, `AppLayout.isPhone`) and 16px body text in form fields (`PhoneType`).
 - **Forms:** a Dialog or Inspector makes its fields read-only while it works (`FormBusy`) and commits pending typing before it confirms or saves (`FormCommit`, `PendingInput`); Cancel with changes asks "Discard changes?". Toasts with Undo sit beside an Inspector (`ToastHost` around `InspectorLayout`).
 - Dates are written in British English ("Wed 14 Oct 2026"); only the order for typing follows the region.
+
+### Repo layout
+
+```
+host/                 Python: mydatad, mydata command, tool layer, API, MCP, orchestrator, feasibility harness
+  openapi.json        generated from the app; the Dart client is generated from it
+  results/            feasibility runs and reports
+app/                  Dart workspace
+  packages/mydata_client     generated API client
+  packages/mydata_core       host lifecycle (find, start, wait, watch), app tokens, error states
+  packages/mydata_ui         design system: tokens generated from design/, MyDataTheme, fonts, logo, widgets
+  packages/mydata_testing    test helpers: bundled fonts in tests, golden and screenshot matrices
+  packages/mydata_assistant  chat, streamed replies, progress lines, approval card, results that open in their apps
+  apps/mydata                the myData app
+  apps/myassistant           the myAssistant app
+  apps/mycontacts            the myContacts app (edits the host's own contacts; followed ones read-only)
+  apps/mycalendar            the myCalendar app (read-only)
+CLAUDE.md, README.md
+```
+
+Each later app (myMail, myPhotos, ...) is a new `app/apps/<name>` on the same packages. `mydata_core` also holds the links between the apps (`AppLinks`, `IncomingLinks`, `InstalledApps`; the runner side is `macos_snippets/LinksAppDelegate.swift`).

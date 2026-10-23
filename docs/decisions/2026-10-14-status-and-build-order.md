@@ -114,3 +114,4 @@ The full plan, with the research behind it, is `docs/2026-10-13-own-data-plan.md
   - with Google or Exchange accounts (the test Mac had only iCloud, On My Mac, a subscribed calendar and Birthdays);
   - on macOS versions other than 26.7;
   - with signed and notarized builds;
+  - starting the host at login through Apple's login-item mechanism (a plain login agent was used).
