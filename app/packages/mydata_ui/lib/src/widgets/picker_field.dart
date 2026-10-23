@@ -673,7 +673,7 @@ class _PickerListBoxState extends State<PickerListBox> {
                   onTap: () => widget.onPicked(i),
                   child: CustomPaint(
                     foregroundPainter: highlighted && _fromKeys && _node.hasFocus
-                        ? _RowRingPainter(FocusRing.colourOf(c))
+                        ? _RowRingPainter(FocusRing.colourFor(context))
                         : null,
                     child: Container(
                       key: ValueKey('picker-row-$i'),

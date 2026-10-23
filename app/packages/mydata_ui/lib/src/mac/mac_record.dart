@@ -130,7 +130,7 @@ class _MacQuickActionState extends State<MacQuickAction> {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: _pressed ? mac.tertiaryLabel : mac.quaternaryLabel,
-                    border: _focused ? Border.all(color: mac.accent, width: 2) : null,
+                    border: _focused ? Border.all(color: mac.focusRing, width: 2) : null,
                   ),
                   child: Icon(widget.icon, size: MyDataMacSize.icon, color: tint),
                 ),

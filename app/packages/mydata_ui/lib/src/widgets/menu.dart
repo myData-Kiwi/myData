@@ -517,7 +517,7 @@ class _MenuItemTile extends StatelessWidget {
       foregroundDecoration: ring
           ? BoxDecoration(
               borderRadius: MyDataRadii.sm,
-              border: Border.all(color: FocusRing.colourOf(c, danger: item.destructive), width: ringWidth),
+              border: Border.all(color: FocusRing.colourFor(context, danger: item.destructive), width: ringWidth),
             )
           : null,
       child: row,

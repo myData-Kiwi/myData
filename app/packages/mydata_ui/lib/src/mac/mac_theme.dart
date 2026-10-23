@@ -64,7 +64,8 @@ abstract final class MacTheme {
   /// Material text style, the system's colours behind every token, and [mac] for the Mac widgets.
   ///
   /// The tokens map to the system's meanings: `bg` is the window's background, `surface` the content's,
-  /// `ink` and `ink-muted` the label colours, `line` the separator, `accent` and `focus` the system's accent.
+  /// `ink` and `ink-muted` the label colours, `line` the separator, `accent` the system's accent and `focus`
+  /// its focus ring colour.
   /// The host's theme is not used for the accent here: on the Mac the accent is the system's (the plan's
   /// "System" accent option, the default on the Mac).
   static ThemeData data(String? themeId, Brightness brightness, MyDataMacColors mac) {
@@ -82,7 +83,7 @@ abstract final class MacTheme {
       accent: mac.accent,
       onAccent: mac.onAccent,
       accentSoft: soft,
-      focus: mac.accent,
+      focus: mac.focusRing,
     );
     // Built afresh, not by applying the system font to the branded styles: those carry mydata_ui's package,
     // which would turn the family into `packages/mydata_ui/.AppleSystemUIFont`, a font that does not exist.

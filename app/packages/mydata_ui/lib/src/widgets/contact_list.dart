@@ -1172,9 +1172,11 @@ class _PlainContactRowState extends State<_PlainContactRow> {
       decoration: BoxDecoration(
         color: widget.selected ? (widget.emphasised ? mac.accent : mac.selectionInactive) : null,
         borderRadius: shape,
-        border: widget.focusRing || (_menuOpen && !widget.selected)
-            ? Border.all(color: mac.accent, width: 2)
-            : null,
+        // The keyboard's ring in the system's `focus-ring`; the row a context menu was opened on, outlined in
+        // the accent, as the system's lists do.
+        border: widget.focusRing
+            ? Border.all(color: mac.focusRing, width: 2)
+            : (_menuOpen && !widget.selected ? Border.all(color: mac.accent, width: 2) : null),
       ),
       child: Text.rich(
         plainNameSpan(e, MyDataMacType.body.copyWith(color: ink), MyDataMacType.bodyEmphasized.copyWith(color: ink)),

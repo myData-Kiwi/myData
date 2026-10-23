@@ -81,7 +81,7 @@ class MacToolbar extends StatelessWidget {
 
 /// A toolbar item: an icon in a `toolbar-item-height` circle, or a short word ([MacToolbarButton.text]) in a
 /// capsule, on `toolbar-item` with a `separator` outline: a flat stand-in for macOS 26's Liquid Glass, which
-/// Flutter cannot draw. The `hover` tint under the pointer, the accent focus ring from the keyboard. Its [label] is its tooltip and
+/// Flutter cannot draw. The `hover` tint under the pointer, the system's `focus-ring` from the keyboard. Its [label] is its tooltip and
 /// accessible name; a disabled item keeps its tooltip and gives [disabledReason] as the second line.
 class MacToolbarButton extends StatefulWidget {
   const MacToolbarButton({
@@ -143,7 +143,7 @@ class _MacToolbarButtonState extends State<MacToolbarButton> {
             ? Color.alphaBlend(_pressed ? mac.quaternaryLabel : mac.hover, mac.toolbarItem)
             : mac.toolbarItem,
         borderRadius: const BorderRadius.all(Radius.circular(MyDataMacRadius.field)),
-        border: Border.all(color: _focused ? mac.accent : mac.separator, width: _focused ? 2 : 0.5),
+        border: Border.all(color: _focused ? mac.focusRing : mac.separator, width: _focused ? 2 : 0.5),
       ),
       child: face,
     );
@@ -263,7 +263,7 @@ class _MacSearchFieldState extends State<MacSearchField> {
         color: mac.toolbarItem,
         borderRadius: const BorderRadius.all(Radius.circular(MyDataMacRadius.field)),
         border: _focused
-            ? Border.all(color: mac.accent.withValues(alpha: 0.6), width: 2)
+            ? Border.all(color: mac.focusRing, width: 2)
             : Border.all(color: mac.separator, width: 0.5),
       ),
       child: Row(

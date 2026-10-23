@@ -12,7 +12,8 @@ import '../theme.dart';
 /// - pressing dims to 85% and scales to 97% at once, and returns over `fast` (no scale with reduced motion);
 /// - Enter and Space activate it; it is reachable with Tab;
 /// - keyboard focus draws a 2px `focus` ring 2px outside the shape given by [borderRadius], in `ink` instead
-///   when [danger] says the control is already red (design/README.md "Focus and danger");
+///   when [danger] says the control is already red (design/README.md "Focus and danger"); in the Mac frame
+///   the system's ring ([FocusRing.painter]);
 /// - [hoverFill], when given, fills the shape while hovered or pressed (rows); controls leave it null;
 /// - disabled ([onPressed] null): 45% opacity, no focus, no cursor change (the previews' disabled state);
 /// - disabled with a [disabledReason]: focusable but inert (design/platforms.md "Disabled controls"), for a
@@ -141,7 +142,7 @@ class _PressableState extends State<Pressable> {
     );
     body = CustomPaint(
       foregroundPainter: _focused && (_enabled || _inert)
-          ? _FocusRingPainter(FocusRing.colourOf(c, danger: widget.danger), widget.borderRadius)
+          ? FocusRing.painter(context, widget.borderRadius, danger: widget.danger)
           : null,
       child: body,
     );
@@ -195,24 +196,25 @@ class _PressableState extends State<Pressable> {
   }
 }
 
-/// The keyboard focus ring: 2px of `focus`, 2px outside the control (tokens.json "focus").
+/// The keyboard focus ring: 2px of `focus`, 2px outside the control (tokens.json "focus"); in the Mac frame
+/// `focus-ring-width` of `focus-ring`, `focus-ring-offset` outside it (tokens.json "macos").
 class _FocusRingPainter extends CustomPainter {
-  _FocusRingPainter(this.color, this.radius);
+  _FocusRingPainter(this.color, this.radius, {this.width = 2, this.offset = 2});
   final Color color;
   final BorderRadius radius;
-
-  static const width = 2.0;
-  static const offset = 2.0;
+  final double width;
+  final double offset;
 
   @override
   void paint(Canvas canvas, Size size) {
     final rect = (Offset.zero & size).inflate(offset + width / 2);
     final r = radius.resolve(TextDirection.ltr);
+    final grow = Radius.circular(offset + width / 2);
     final grown = RRect.fromRectAndCorners(rect,
-        topLeft: r.topLeft + const Radius.circular(offset + width / 2),
-        topRight: r.topRight + const Radius.circular(offset + width / 2),
-        bottomLeft: r.bottomLeft + const Radius.circular(offset + width / 2),
-        bottomRight: r.bottomRight + const Radius.circular(offset + width / 2));
+        topLeft: r.topLeft + grow,
+        topRight: r.topRight + grow,
+        bottomLeft: r.bottomLeft + grow,
+        bottomRight: r.bottomRight + grow);
     canvas.drawRRect(grown, Paint()
       ..color = color
       ..style = PaintingStyle.stroke
@@ -220,7 +222,8 @@ class _FocusRingPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_FocusRingPainter old) => old.color != color || old.radius != radius;
+  bool shouldRepaint(_FocusRingPainter old) =>
+      old.color != color || old.radius != radius || old.width != width || old.offset != offset;
 }
 
 /// Draws the focus ring around a non-[Pressable] focusable thing (a text field), when [visible].
@@ -234,16 +237,31 @@ class FocusRing extends StatelessWidget {
   /// The thing is in its red state (a field in error): the ring is `ink` ([colourOf]).
   final bool danger;
 
-  /// The colour of every keyboard focus ring, chosen here only (design/README.md "Focus and danger"): `focus`
-  /// (red) everywhere, `ink` on something already red ([danger]: drawn in `danger` or `danger-soft`), where a
-  /// red ring could not be told apart. No widget picks `focus` or `ink` for a ring by itself.
+  /// The branded rule for a keyboard focus ring's colour (design/README.md "Focus and danger"): `focus` (red)
+  /// everywhere, `ink` on something already red ([danger]: drawn in `danger` or `danger-soft`), where a red
+  /// ring could not be told apart. Widgets call [colourFor], which also knows the Mac frame.
   static Color colourOf(MyDataColors c, {bool danger = false}) => danger ? c.ink : c.focus;
+
+  /// The colour of every keyboard focus ring, chosen here only: in the Mac frame the system's `focus-ring`
+  /// on every control ([danger] does not matter there), elsewhere [colourOf]. No widget picks `focus` or
+  /// `ink` for a ring by itself.
+  static Color colourFor(BuildContext context, {bool danger = false}) {
+    final mac = Theme.of(context).extension<MyDataMacColors>();
+    return mac != null ? mac.focusRing : colourOf(context.colors, danger: danger);
+  }
+
+  /// The ring around a shape with [radius]: 2px of [colourFor] 2px outside it; in the Mac frame
+  /// `focus-ring-width` at `focus-ring-offset` (tokens.json "macos").
+  static CustomPainter painter(BuildContext context, BorderRadius radius, {bool danger = false}) {
+    final color = colourFor(context, danger: danger);
+    if (Theme.of(context).extension<MyDataMacColors>() == null) return _FocusRingPainter(color, radius);
+    return _FocusRingPainter(color, radius,
+        width: MyDataMacSize.focusRingWidth, offset: MyDataMacSize.focusRingOffset);
+  }
 
   @override
   Widget build(BuildContext context) => CustomPaint(
-      foregroundPainter:
-          visible ? _FocusRingPainter(colourOf(context.colors, danger: danger), borderRadius) : null,
-      child: child);
+      foregroundPainter: visible ? painter(context, borderRadius, danger: danger) : null, child: child);
 }
 
 /// Radii as BorderRadius, for the shapes the tokens name.

@@ -662,7 +662,7 @@ class _RowShell extends StatelessWidget {
     final c = context.colors;
     Widget faded(Widget w) => enabled ? w : Opacity(opacity: Pressable.disabledOpacity, child: w);
     return CustomPaint(
-      foregroundPainter: focused ? InsetRingPainter(color: FocusRing.colourOf(c), borderRadius: shape) : null,
+      foregroundPainter: focused ? InsetRingPainter(color: FocusRing.colourFor(context), borderRadius: shape) : null,
       child: AnimatedContainer(
         duration: MyDataMotion.fast,
         curve: MyDataMotion.standard,

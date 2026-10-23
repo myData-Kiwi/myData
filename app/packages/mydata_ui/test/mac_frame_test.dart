@@ -115,6 +115,25 @@ void main() {
     expect(tester.getSize(find.byType(Button)).height, MyDataSize.controlHeight);
   });
 
+  Future<Color> ring(WidgetTester tester, {bool mac = true, bool danger = false}) async {
+    late Color out;
+    await tester.pumpWidget(frame(mac: mac, Builder(builder: (context) {
+      out = FocusRing.colourFor(context, danger: danger);
+      return const SizedBox();
+    })));
+    return out;
+  }
+
+  testWidgets("the Mac frame's focus ring is the system's, on red controls too", (tester) async {
+    expect(await ring(tester), MyDataMacColors.light.focusRing);
+    expect(await ring(tester, danger: true), MyDataMacColors.light.focusRing);
+  });
+
+  testWidgets('outside the Mac frame the focus ring keeps the branded rule', (tester) async {
+    expect(await ring(tester, mac: false), MyDataColors.light.focus);
+    expect(await ring(tester, mac: false, danger: true), MyDataColors.light.ink);
+  });
+
   testWidgets('a phone-sized window never draws the Mac frame', (tester) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;

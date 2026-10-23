@@ -265,7 +265,7 @@ class MultiSelectRowFrame extends StatelessWidget {
     );
     return CustomPaint(
       foregroundPainter: focused
-          ? InsetRingPainter(color: FocusRing.colourOf(c), borderRadius: shape, inset: focusInset)
+          ? InsetRingPainter(color: FocusRing.colourFor(context), borderRadius: shape, inset: focusInset)
           : null,
       child: TweenAnimationBuilder<Color?>(
         tween: ColorTween(end: selected ? c.ink : c.ink.withValues(alpha: 0)),
@@ -499,7 +499,7 @@ class _MultiSelectListState<K> extends State<MultiSelectList<K>> {
                       bottom: joins.down ? Radius.zero : corner,
                     ),
                     border: showFocus && ctrl.focused == key && !selected
-                        ? Border.all(color: mac.accent, width: MultiSelectRowFrame.ringWidth)
+                        ? Border.all(color: mac.focusRing, width: MultiSelectRowFrame.ringWidth)
                         : null,
                   ),
                   child: MacRowEmphasis(emphasised: emphasised, child: widget.itemBuilder(context, key)),
