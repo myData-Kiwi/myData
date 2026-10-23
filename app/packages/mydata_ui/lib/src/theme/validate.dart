@@ -189,64 +189,68 @@ ThemeCheck validateThemeJson(Map<String, Object?> json, ThemeFormat format,
     (finding.notice ? notices : errors).add(finding.message);
   }
 
-  // 8. Palettes.
+  // 8. Palettes. A drawn theme's own; "System, tinted" ones as System draws them off macOS (1.6): Kiwi's
+  // default palette with the tint's accent, the roles drawn from the accent derived again.
   final palettes = <PaletteCheck>[];
-  if (theme.frame == ThemeFrame.drawn) {
+  final system = theme.frame == ThemeFrame.system;
+  if (system && theme.palettes.isNotEmpty) {
+    notices.add('"System, tinted" palettes are not applied on macOS, where the accent is the system\'s.');
+  }
+  if (theme.palettes.isNotEmpty) {
     final ids = [for (final p in theme.palettes) p.id];
     if (ids.toSet().length != ids.length) errors.add('Two palettes have the same id.');
     if (!ids.contains(theme.defaultPaletteId)) {
       errors.add('Its default palette, "${theme.defaultPaletteId}", is not one of its palettes.');
     }
-    for (final p in theme.palettes) {
-      final failures = <String>[], pNotices = <String>[];
-      if (builtIn) {
-        for (final mode in LookMode.values) {
-          final missing = [
-            for (final r in ColourRole.values)
-              if (!p.given(mode).containsKey(r) && !theme.sameAs.containsKey(r)) r.key,
-          ];
-          if (missing.isNotEmpty) {
-            failures.add('${p.name}, ${mode.name} mode: a built-in palette gives every role; it leaves out '
-                '${missing.join(', ')}.');
-          }
-        }
-      }
-      final gradientWindow = theme.style.materials.window == WindowKind.gradient;
-      if (!gradientWindow && (p.gradientLight != null || p.gradientDark != null)) {
-        pNotices.add('${p.name}: its gradient stops are not used, since this style\'s window is not a gradient.');
-      }
+  }
+  for (final given in theme.palettes) {
+    final p = system ? systemPalette(format.defaults, given) : given;
+    final failures = <String>[], pNotices = <String>[];
+    if (builtIn && !system) {
       for (final mode in LookMode.values) {
-        for (final increased in const [false, true]) {
-          final resolved = resolvePalette(theme, p, mode, defaults: format.defaults, increasedContrast: increased);
-          for (final finding in checkColours(theme, resolved, format.defaults, palette: p.name)) {
-            (finding.notice ? pNotices : failures).add(finding.message);
-          }
-        }
-      }
-      palettes.add(PaletteCheck(p.id, failures, pNotices));
-    }
-    for (var i = 0; i < theme.palettes.length; i++) {
-      for (var j = i + 1; j < theme.palettes.length; j++) {
-        final a = theme.palettes[i], b = theme.palettes[j];
-        for (final mode in LookMode.values) {
-          final x = a.given(mode)[ColourRole.accent], y = b.given(mode)[ColourRole.accent];
-          if (x != null && y != null && deltaE(x, y) < 0.08) {
-            notices.add('${a.name} and ${b.name} have accents that are hard to tell apart in ${mode.name} mode.');
-          }
+        final missing = [
+          for (final r in ColourRole.values)
+            if (!p.given(mode).containsKey(r) && !theme.sameAs.containsKey(r)) r.key,
+        ];
+        if (missing.isNotEmpty) {
+          failures.add('${p.name}, ${mode.name} mode: a built-in palette gives every role; it leaves out '
+              '${missing.join(', ')}.');
         }
       }
     }
-    for (final pc in palettes) {
-      notices.addAll(pc.notices);
-      if (pc.passes) continue;
-      if (builtIn || pc.paletteId == theme.defaultPaletteId) {
-        errors.addAll(pc.failures);
-      } else {
-        notices.add('The palette "${pc.paletteId}" is left out, because: ${pc.failures.join(' ')}');
+    final gradientWindow = theme.style.materials.window == WindowKind.gradient;
+    if (!gradientWindow && (p.gradientLight != null || p.gradientDark != null)) {
+      pNotices.add('${p.name}: its gradient stops are not used, since this style\'s window is not a gradient.');
+    }
+    for (final mode in LookMode.values) {
+      for (final increased in const [false, true]) {
+        final resolved = resolvePalette(theme, p, mode, defaults: format.defaults, increasedContrast: increased);
+        for (final finding in checkColours(theme, resolved, format.defaults, palette: p.name)) {
+          (finding.notice ? pNotices : failures).add(finding.message);
+        }
       }
     }
-  } else if (theme.palettes.isNotEmpty) {
-    notices.add('"System, tinted" palettes are not applied on macOS, where the accent is the system\'s.');
+    palettes.add(PaletteCheck(p.id, failures, pNotices));
+  }
+  for (var i = 0; i < theme.palettes.length; i++) {
+    for (var j = i + 1; j < theme.palettes.length; j++) {
+      final a = theme.palettes[i], b = theme.palettes[j];
+      for (final mode in LookMode.values) {
+        final x = a.given(mode)[ColourRole.accent], y = b.given(mode)[ColourRole.accent];
+        if (x != null && y != null && deltaE(x, y) < 0.08) {
+          notices.add('${a.name} and ${b.name} have accents that are hard to tell apart in ${mode.name} mode.');
+        }
+      }
+    }
+  }
+  for (final pc in palettes) {
+    notices.addAll(pc.notices);
+    if (pc.passes) continue;
+    if (builtIn || pc.paletteId == theme.defaultPaletteId) {
+      errors.addAll(pc.failures);
+    } else {
+      notices.add('The palette "${pc.paletteId}" is left out, because: ${pc.failures.join(' ')}');
+    }
   }
   return ThemeCheck(theme: theme, errors: errors, notices: notices, palettes: palettes);
 }

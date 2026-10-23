@@ -53,6 +53,36 @@ class ResolvedPalette {
   }
 }
 
+/// System's palette where myData draws it (off macOS, and in checks): Kiwi's default palette ([defaults]).
+/// With [tint], a "System, tinted" palette (ARCHITECTURE.md 1.6): its accent replaces Kiwi's, and the roles
+/// drawn from the accent (`accent-soft`, `selection`, `link`) are derived again, with those that follow them
+/// (`on-selection`, `focus`) and `glass-fill`, which must read over the accent and the selection. Everything
+/// else a tint gives is ignored.
+ThemePalette systemPalette(RoleDefaults defaults, [ThemePalette? tint]) {
+  Map<ColourRole, Rgb> of(LookMode mode) {
+    final kiwi = defaults.of(mode);
+    final accent = tint?.given(mode)[ColourRole.accent];
+    if (accent == null) return kiwi;
+    return {
+      for (final e in kiwi.entries)
+        if (!_fromAccent.contains(e.key)) e.key: e.value,
+      ColourRole.accent: accent,
+    };
+  }
+
+  return ThemePalette(
+    id: tint?.id ?? 'system',
+    name: tint?.name ?? 'System',
+    light: of(LookMode.light),
+    dark: of(LookMode.dark),
+  );
+}
+
+const _fromAccent = {
+  ColourRole.accentSoft, ColourRole.selection, ColourRole.link, ColourRole.onSelection, ColourRole.focus,
+  ColourRole.glassFill,
+};
+
 /// Resolves [palette] of [theme] in [mode].
 ResolvedPalette resolvePalette(
   ThemeFile theme,

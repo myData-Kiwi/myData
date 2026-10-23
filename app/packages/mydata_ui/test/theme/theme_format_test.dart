@@ -403,4 +403,47 @@ void main() {
 
   });
 
+  group('"System, tinted" (1.6)', () {
+    Map<String, Object?> tinted(String light, String dark) => {
+          'format': 1,
+          'id': '11111111-2222-3333-4444-555555555556',
+          'name': 'System, tinted',
+          'version': '1.0.0',
+          'licence': 'CC0-1.0',
+          'frame': 'system',
+          'default-palette': 'tint',
+          'palettes': [
+            {'id': 'tint', 'name': 'Tint', 'light': {'accent': light}, 'dark': {'accent': dark}},
+          ],
+        };
+
+    test('a tint is checked as System draws it: Kiwi\'s colours with its accent', () {
+      final r = check(tinted('#1F5FA8', '#8AB8EA'));
+      expect(r.ok, isTrue, reason: r.errors.join('\n'));
+      expect(r.usablePalettes, ['tint']);
+      expect(r.notices, contains(contains('not applied on macOS')));
+    });
+
+    test('an unreadable tint fails, with the reason', () {
+      final r = check(tinted('#FFFF66', '#8AB8EA'));
+      expect(r.ok, isFalse);
+      expect(r.usablePalettes, isEmpty);
+      expect(r.errors, contains(contains('light mode')));
+    });
+
+    test('the tinted palette keeps Kiwi\'s colours and derives the accent\'s roles again', () {
+      final theme = check(tinted('#1F5FA8', '#8AB8EA')).theme!;
+      final p = systemPalette(ThemeLibrary.defaults, theme.palettes.single);
+      final kiwi = ThemeLibrary.defaults.light;
+      expect(p.light[ColourRole.accent], Rgb.parse('#1F5FA8'));
+      expect(p.light[ColourRole.bg], kiwi[ColourRole.bg]);
+      expect(p.light[ColourRole.onAccent], kiwi[ColourRole.onAccent]);
+      for (final r in [ColourRole.link, ColourRole.selection, ColourRole.accentSoft]) {
+        expect(p.light.containsKey(r), isFalse, reason: r.key);
+      }
+      final resolved = resolvePalette(theme, p, LookMode.light, defaults: ThemeLibrary.defaults);
+      expect(resolved[ColourRole.selection], Rgb.parse('#1F5FA8'));
+      expect(systemPalette(ThemeLibrary.defaults).light, kiwi);
+    });
+  });
 }
