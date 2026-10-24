@@ -1481,6 +1481,8 @@ class _ContactRowState extends State<_ContactRow> {
         (selection.style == SelectionStyle.tint || selection.style == SelectionStyle.outline);
     final ringColour = selection?.style == SelectionStyle.outline ? c.selection : c.ink;
     final selectedFill = selection?.fill;
+    final outlined = list == ListStyle.bordered || table;
+    final overOutline = ringed && (widget.joinsUp || widget.joinsDown || outlined);
 
     // Built under the selection's mark, so the text takes its colours.
     Widget row(BuildContext context) => Padding(
@@ -1559,8 +1561,9 @@ class _ContactRowState extends State<_ContactRow> {
           position: DecorationPosition.background,
           child: content,
         ),
-        // A row selected on its own: its own ring. A run's ring is drawn over the whole pieces (below).
-        if (ringed && !widget.joinsUp && !widget.joinsDown)
+        // A row selected on its own: its own ring. A run's ring, and the ring of a row in an outlined list,
+        // are drawn over the whole piece (below), where the list's outline cannot cover them.
+        if (ringed && !overOutline)
           Positioned.fill(
             child: IgnorePointer(
               child: DecoratedBox(
@@ -1662,8 +1665,10 @@ class _ContactRowState extends State<_ContactRow> {
           child: piece);
     }
     // A run of selected rows: one ring over the whole piece (its divider too), open where it joins the
-    // next row, so the run's sides have no gap.
-    if (ringed && (widget.joinsUp || widget.joinsDown)) {
+    // next row, so the run's sides have no gap. In a bordered list or a table a row's ring is drawn here
+    // too, over the list's outline: drawn under it, the outline covered the ring's sides and its top or
+    // bottom on a group's first or last row (Large's outline selection was a line along one edge).
+    if (overOutline) {
       piece = CustomPaint(
         foregroundPainter: InsetRingPainter(
           shape: context.radius,

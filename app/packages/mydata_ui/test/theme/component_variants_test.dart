@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mydata_testing/mydata_testing.dart';
 import 'package:mydata_ui/mydata_ui.dart';
+import 'package:mydata_ui/src/widgets/toggle_target.dart' show InsetRingPainter;
 
 import 'designed_themes.dart';
 import 'variant_harness.dart';
@@ -33,6 +34,25 @@ class ButtonSpecimen extends StatelessWidget {
           ]),
         ],
       );
+}
+
+/// Three outlined lists of one letter's group, the selected row first, in the middle and last: the
+/// selection's ring must show on all four sides, never under the list's outline.
+class OutlinedListSelectionSpecimen extends StatelessWidget {
+  const OutlinedListSelectionSpecimen({super.key});
+
+  static final people = [
+    for (final n in ['Ava Fictional', 'Amy Example', 'Ann Sample'])
+      ContactListEntry(id: n, name: n, givenName: n.split(' ').first, familyName: n.split(' ').last),
+  ];
+
+  @override
+  Widget build(BuildContext context) => Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        for (final (i, p) in people.indexed) ...[
+          if (i > 0) SizedBox(width: context.space(4)),
+          Expanded(child: ContactList(contacts: people, selectedId: p.id, onOpen: (_) {}, showSearch: false)),
+        ],
+      ]);
 }
 
 /// A frame with its sidebar (the current section marked), a contact list with one selected row, and a grouped
@@ -431,6 +451,44 @@ void main() {
 
   group('selection', () {
     variantGoldens('selection', (focus) => SelectionSpecimen(focus: focus), size: const Size(1100, 340));
+    // An outline (Large's) and a tint's ring in a bordered list with 2 px outlines: the selected row's ring
+    // shows on all four sides, on the group's first, middle and last row.
+    variantGoldens('selection', (_) => const OutlinedListSelectionSpecimen(),
+        size: const Size(1000, 300),
+        focused: false,
+        values: ['outline', 'tint'],
+        name: 'bordered',
+        also: all([
+          component('list', 'bordered'),
+          styleGroup('borders', {'controls': true, 'cards': true, 'width': 2, 'colour': 'line-strong'}),
+        ]));
+
+    testWidgets("a selected row's ring in a bordered list is drawn over the list's outline", (tester) async {
+      await pumpVariant(
+          tester,
+          kiwiWith(all([
+            component('list', 'bordered'),
+            component('selection', 'outline'),
+            styleGroup('borders', {'width': 2, 'colour': 'line-strong'}),
+          ])),
+          Brightness.light,
+          const OutlinedListSelectionSpecimen(),
+          size: const Size(1000, 300));
+      final c = tester.element(find.byType(ContactList).first).colors;
+      for (final (i, name) in ['Ava Fictional', 'Amy Example', 'Ann Sample'].indexed) {
+        // Innermost first: the list's outline is painted inside the selection's ring.
+        final row = find.descendant(of: find.byType(ContactList).at(i), matching: find.text(name));
+        final painters = [
+          for (final w in tester.widgetList<CustomPaint>(find.ancestor(of: row, matching: find.byType(CustomPaint))))
+            if (w.foregroundPainter case final InsetRingPainter p) p,
+        ];
+        final ring = painters.indexWhere((p) => p.color == c.selection);
+        final outline = painters.indexWhere((p) => p.color == c.lineStrong);
+        expect(ring, isNot(-1), reason: name);
+        expect(outline, isNot(-1), reason: name);
+        expect(ring, greaterThan(outline), reason: name);
+      }
+    });
     // A theme that outlines its controls marks a faint tint with an outline, not a bar.
     variantGoldens('selection', (focus) => SelectionSpecimen(focus: focus),
         size: const Size(1100, 340),
