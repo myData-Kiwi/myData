@@ -926,8 +926,8 @@ class MyDataLook extends ThemeExtension<MyDataLook> {
   /// [theme] in [paletteId] (its default palette when null or unknown) for [brightness]. The density class
   /// is the platform's: phones (iOS, Android) take the theme's phone set, everything else the desktop set.
   ///
-  /// System (`frame: system`) is drawn here with its style (Kiwi's until each platform's pass) in Kiwi's
-  /// default palette, or in a "System, tinted" palette off macOS ([systemPalette]); its [paletteId] is null
+  /// System (`frame: system`) is drawn here with its style (Kiwi's until each platform's pass, but with round
+  /// corners, as it was drawn before phase 3) in Kiwi's default palette, or in a "System, tinted" palette off macOS ([systemPalette]); its [paletteId] is null
   /// unless a tint is drawn. On macOS the Mac shell puts the system's own colours over it (`MacTheme.data`).
   factory MyDataLook.resolve(
     ThemeFile theme, {
@@ -958,7 +958,9 @@ class MyDataLook extends ThemeExtension<MyDataLook> {
       increasedContrast: increasedContrast,
       colors: colors,
       typeScale: MyDataTypeScale.of(s.type, platform: target),
-      shape: MyDataShape.of(s.shape),
+      // System keeps round corners on every platform until that platform's own pass (the Mac shell's
+      // too, [asSystem]), though its style is Kiwi's, whose corners are continuous since phase 3.
+      shape: system ? MyDataShape.of(s.shape).withCorners(CornerStyle.round) : MyDataShape.of(s.shape),
       density: MyDataDensity.of(phone ? s.density.phone : s.density.desktop, floor: MyDataDensity.floorFor(target)),
       edges: MyDataEdges(s.borders,
           colour: MyDataEdges.colourOf(s.borders, colors),

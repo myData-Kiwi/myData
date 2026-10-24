@@ -109,6 +109,31 @@ class _ThemeSceneState extends State<ThemeScene> {
 }
 
 void main() {
+  // System off the Mac (Windows, Linux, the web until each platform's pass): Kiwi's style in Kiwi's colour
+  // with round corners, as it was before Kiwi took continuous ones.
+  for (final b in Brightness.values) {
+    testWidgets('theme scene golden: system off the Mac, ${b.name}', (tester) async {
+      tester.view.physicalSize = const Size(1280, 860);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      debugDisableShadows = false;
+      try {
+        final look = ThemeLibrary.lookFor(ThemeChoice.system, b, platform: TargetPlatform.linux);
+        expect(look.shape.corners, CornerStyle.round);
+        await tester.pumpWidget(MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: MyDataTheme.fromLook(look).copyWith(platform: TargetPlatform.linux),
+          home: const ThemeScene(),
+        ));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/scene.system.${b.name}.png'));
+      } finally {
+        debugDisableShadows = true;
+      }
+    });
+  }
+
   for (final id in drawnBuiltIns) {
     final theme = designedTheme(id);
     for (final palette in theme.palettes) {

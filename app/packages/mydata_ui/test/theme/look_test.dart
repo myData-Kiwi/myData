@@ -69,8 +69,11 @@ void main() {
           if (theme.frame == ThemeFrame.system) {
             expect(look.frame, LookFrame.system);
             expect(look.paletteId, isNull);
-            // Off the Mac, System is Kiwi in its own colour until each platform's pass.
+            // Off the Mac, System is Kiwi in its own colour until each platform's pass, with the round
+            // corners it had before Kiwi took continuous ones: nothing changed in System.
             expect(look.colors.accent, ThemeLibrary.look(ThemeLibrary.kiwi, brightness: b).colors.accent);
+            expect(look.shape.corners, CornerStyle.round);
+            expect(look.shape.md, ThemeLibrary.look(ThemeLibrary.kiwi, brightness: b).shape.md);
           } else {
             expect(look.paletteId, theme.defaultPaletteId);
           }
