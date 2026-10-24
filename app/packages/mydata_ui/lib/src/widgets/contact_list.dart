@@ -228,6 +228,10 @@ class ContactList extends StatefulWidget {
   /// Between letter groups (preview: `.sec{margin-bottom:24px}`).
   static double groupGap(MyDataLook look) => look.space(6);
 
+  /// Above every row but a group's first: the divider's slot, or the gap between rows in a `cards` list.
+  static double rowGap(MyDataLook look) =>
+      look.variants.list == ListStyle.cards ? GroupFrame.cardGap(look) : GroupFrame.dividerWidth;
+
   /// The selected row's `ink` ring, inside the row (preview: `box-shadow:inset 0 0 0 2px var(--ink)`).
   static const selectionRingWidth = 2.0;
 
@@ -678,7 +682,7 @@ class _ContactListState extends State<ContactList> {
       final h = switch (item) {
         _HeadingItem(:final first) => (first ? 0 : ContactList.groupGap(context.look)) + label + GroupFrame.headingPadding(context.look).bottom,
         _RowItem(:final entry, :final first) =>
-          (first ? 0 : GroupFrame.dividerWidth) + (entry.caption == null ? plain : captioned),
+          (first ? 0 : ContactList.rowGap(context.look)) + (entry.caption == null ? plain : captioned),
       };
       tops.add(y);
       extents.add(h);
@@ -1060,6 +1064,7 @@ class _ContactListState extends State<ContactList> {
               selected: _isSelected(entry.id),
               joinsUp: !first && _isSelected(entry.id) && _isSelected(model.rows[row - 1].id),
               joinsDown: !last && _isSelected(entry.id) && _isSelected(model.rows[row + 1].id),
+              stripe: row.isOdd,
               focusRing: ring && row == cursor,
               cursor: row == cursor,
               focused: _focused && row == cursor,
@@ -1278,6 +1283,7 @@ class _ContactRow extends StatefulWidget {
     required this.selected,
     this.joinsUp = false,
     this.joinsDown = false,
+    this.stripe = false,
     required this.focusRing,
     required this.cursor,
     required this.focused,
@@ -1294,6 +1300,9 @@ class _ContactRow extends StatefulWidget {
   /// The row above (or below) is selected too: one ring around the run, no divider between them.
   final bool joinsUp;
   final bool joinsDown;
+
+  /// A second row: on `surface-sunken` in a table (zebra stripes).
+  final bool stripe;
 
   /// The row's Menu entries; null for none.
   final List<MenuEntry> Function()? menu;
@@ -1325,10 +1334,19 @@ class _ContactRowState extends State<_ContactRow> {
   Widget build(BuildContext context) {
     final c = context.colors;
     final e = widget.entry;
-    final corner = Radius.circular(context.radius.lg);
-    final shape = BorderRadius.vertical(
-      top: widget.first ? corner : Radius.zero,
-      bottom: widget.last ? corner : Radius.zero,
+    final look = context.look;
+    // The theme's list style (GroupFrame's): each row its own card, a group (outlined or not), a table, or
+    // rows on the ground.
+    final list = look.variants.list;
+    final cards = list == ListStyle.cards;
+    final card = list != ListStyle.plain && list != ListStyle.ruled;
+    final first = widget.first || cards, last = widget.last || cards;
+    final listRadius = GroupFrame.listRadius(look);
+    final shape = BorderRadius.only(
+      topLeft: first ? listRadius.topLeft : Radius.zero,
+      topRight: first ? listRadius.topRight : Radius.zero,
+      bottomLeft: last ? listRadius.bottomLeft : Radius.zero,
+      bottomRight: last ? listRadius.bottomRight : Radius.zero,
     );
     final caption = e.caption;
     // The theme's selection: tint keeps the `ink` ring over its fill (the ring marks it), outline draws the
@@ -1484,35 +1502,63 @@ class _ContactRowState extends State<_ContactRow> {
       child: ExcludeSemantics(child: content),
     );
 
-    return CustomPaint(
-      painter: _CardPieceShadow(context.shadows.shadow1, radius: context.radius.lg, first: widget.first, last: widget.last),
-      // A run of selected rows: one ring over the whole piece (its divider too), open where it joins the
-      // next row, so the run's sides have no gap.
-      foregroundPainter: ringed && (widget.joinsUp || widget.joinsDown)
-          ? InsetRingPainter(
-              shape: context.radius,
-              color: ringColour,
-              width: ContactList.selectionRingWidth,
-              borderRadius: shape,
-              top: !widget.joinsUp,
-              bottom: !widget.joinsDown,
-            )
-          : null,
-      child: DecoratedBox(
-        decoration: context.radius.decorate(BoxDecoration(color: c.surface, borderRadius: shape)),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // No divider inside a run of selected rows: the run reads as one block.
-            if (!widget.first)
-              EdgeRule(
-                  extent: GroupFrame.dividerWidth,
-                  inset: GroupFrame.textStart(context.look, lead: true),
-                  colour: widget.joinsUp ? (selectedFill ?? c.surface) : null),
-            Expanded(child: content),
-          ],
-        ),
+    // A table's zebra stripes: every second row on `surface-sunken`.
+    final ground = card ? (list == ListStyle.table && widget.stripe ? c.surfaceSunken : c.surface) : null;
+    // A bordered list's or a table's outline, piece by piece, open where the next row joins; a ruled list's
+    // rules above its first row and below its last.
+    final outline = list == ListStyle.bordered || list == ListStyle.table ? GroupFrame.listOutline(look) : null;
+    Widget piece = DecoratedBox(
+      decoration: context.radius.decorate(BoxDecoration(color: ground, borderRadius: shape)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // The divider, but none inside a run of selected rows: the run reads as one block.
+          if (!widget.first && !cards)
+            EdgeRule(
+                extent: GroupFrame.dividerWidth,
+                inset: GroupFrame.textStart(look, lead: true),
+                separators: list == ListStyle.table || list == ListStyle.ruled ? Separators.full : null,
+                colour: widget.joinsUp ? (selectedFill ?? ground ?? c.bg) : null),
+          Expanded(child: content),
+        ],
       ),
+    );
+    if (outline != null) {
+      piece = CustomPaint(
+        foregroundPainter: InsetRingPainter(
+            shape: context.radius, color: outline.color, width: outline.width, borderRadius: shape, top: first, bottom: last),
+        child: piece,
+      );
+    } else if (list == ListStyle.ruled && (widget.first || widget.last)) {
+      piece = CustomPaint(
+          foregroundPainter: _EndRules(colour: look.edges.colour, width: look.edges.width, top: widget.first, bottom: widget.last),
+          child: piece);
+    }
+    // A run of selected rows: one ring over the whole piece (its divider too), open where it joins the
+    // next row, so the run's sides have no gap.
+    if (ringed && (widget.joinsUp || widget.joinsDown)) {
+      piece = CustomPaint(
+        foregroundPainter: InsetRingPainter(
+          shape: context.radius,
+          color: ringColour,
+          width: ContactList.selectionRingWidth,
+          borderRadius: shape,
+          top: !widget.joinsUp || cards,
+          bottom: !widget.joinsDown || cards,
+        ),
+        child: piece,
+      );
+    }
+    if (card) {
+      piece = CustomPaint(
+          painter: _CardPieceShadow(context.shadows.shadow1, radius: listRadius.topLeft.x, first: first, last: last),
+          child: piece);
+    }
+    // A card list's gap, outside the cards.
+    if (!cards || widget.first) return piece;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [SizedBox(height: ContactList.rowGap(look)), Expanded(child: piece)],
     );
   }
 
@@ -1571,4 +1617,23 @@ class _CardPieceShadow extends CustomPainter {
   @override
   bool shouldRepaint(_CardPieceShadow old) =>
       old.shadows != shadows || old.radius != radius || old.first != first || old.last != last;
+}
+
+/// A ruled list's rules above its first row and below its last, in the border colour.
+class _EndRules extends CustomPainter {
+  _EndRules({required this.colour, required this.width, required this.top, required this.bottom});
+  final Color colour;
+  final double width;
+  final bool top, bottom;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = colour;
+    if (top) canvas.drawRect(Rect.fromLTWH(0, 0, size.width, width), paint);
+    if (bottom) canvas.drawRect(Rect.fromLTWH(0, size.height - width, size.width, width), paint);
+  }
+
+  @override
+  bool shouldRepaint(_EndRules old) =>
+      old.colour != colour || old.width != width || old.top != top || old.bottom != bottom;
 }

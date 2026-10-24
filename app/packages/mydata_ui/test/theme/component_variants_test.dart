@@ -77,6 +77,48 @@ class SelectionSpecimen extends StatelessWidget {
       );
 }
 
+/// A contact list, a multi-select list and a grouped list with a heading, in the theme's list style.
+class ListSpecimen extends StatefulWidget {
+  const ListSpecimen({super.key});
+
+  @override
+  State<ListSpecimen> createState() => _ListSpecimenState();
+}
+
+class _ListSpecimenState extends State<ListSpecimen> {
+  final _rows = MultiSelectController<String>(rows: const ['a', 'b', 'c']);
+
+  @override
+  void dispose() {
+    _rows.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Expanded(
+            child: ContactList(contacts: SelectionSpecimen.people, selectedId: null, onOpen: (_) {}, showSearch: false)),
+        SizedBox(width: context.space(4)),
+        Expanded(
+          child: MultiSelectList<String>(
+            controller: _rows,
+            label: 'Devices',
+            itemBuilder: (context, k) => Text('Device $k', style: context.typeScale.body.copyWith(color: context.colors.ink)),
+            semanticLabelOf: (k) => 'Device $k',
+            countLabel: (n) => '$n selected',
+          ),
+        ),
+        SizedBox(width: context.space(4)),
+        Expanded(
+          child: GroupedList(heading: 'Phone', rows: const [
+            GroupedRow(icon: MyDataIcon.call, title: 'Mobile', subtitle: '+44 7700 900123'),
+            GroupedRow(icon: MyDataIcon.cloud, title: 'iCloud', trailing: GroupedBadge('Connected', tone: MyDataTone.success)),
+            GroupedRow(title: 'Open in myContacts', trailing: GroupedChevron(), onPressed: noop),
+          ]),
+        ),
+      ]);
+}
+
 void main() {
   group('buttons', () {
     for (final key in ['button.primary', 'button.secondary', 'button.shape']) {
@@ -170,5 +212,16 @@ void main() {
         }
       }
     });
+  });
+
+  group('lists', () {
+    variantGoldens('list', (_) => const ListSpecimen(), size: const Size(1000, 380), focused: false);
+    // Rules and outlines in a theme whose borders are the edge colour, two wide.
+    variantGoldens('list', (_) => const ListSpecimen(),
+        size: const Size(1000, 380),
+        focused: false,
+        values: ['ruled', 'table'],
+        name: 'edge',
+        also: styleGroup('borders', {'colour': 'edge', 'width': 2}));
   });
 }

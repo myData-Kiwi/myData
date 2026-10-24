@@ -12,6 +12,8 @@ import '../mac/mac_theme.dart';
 import '../theme/theme.dart';
 import 'button.dart';
 import 'checkbox.dart';
+import 'edges.dart' show CardEdge;
+import 'group_frame.dart';
 import 'pressable.dart';
 import 'toggle_target.dart';
 
@@ -520,8 +522,12 @@ class _MultiSelectListState<K> extends State<MultiSelectList<K>> {
     final rows = ctrl.rows;
     final reduced = MyDataAccessibility.of(context).reduceMotion;
     final showFocus = _keyboard && _focus.hasFocus;
-    final outer = BorderRadius.all(Radius.circular(context.radius.lg));
-    BorderRadius shapeOf(int i) => BorderRadius.only(
+    final look = context.look;
+    // The theme's list style (GroupFrame's).
+    final list = look.variants.list;
+    final cards = list == ListStyle.cards;
+    final outer = GroupFrame.listRadius(look);
+    BorderRadius shapeOf(int i) => cards ? outer : BorderRadius.only(
           topLeft: i == 0 ? outer.topLeft : Radius.zero,
           topRight: i == 0 ? outer.topRight : Radius.zero,
           bottomLeft: i == rows.length - 1 ? outer.bottomLeft : Radius.zero,
@@ -546,7 +552,11 @@ class _MultiSelectListState<K> extends State<MultiSelectList<K>> {
                       vertical: BorderSide(color: c.ink, width: MultiSelectRowFrame.ringWidth)),
                 ),
               )
-            : Container(height: 1, color: c.line));
+            : cards
+                ? SizedBox(height: GroupFrame.cardGap(look))
+                : Container(
+                    height: 1,
+                    color: list == ListStyle.ruled || list == ListStyle.table ? look.edges.colour : c.line));
       }
       final slot = AnimatedContainer(
         duration: reduced ? Duration.zero : context.motion.base,
@@ -570,7 +580,19 @@ class _MultiSelectListState<K> extends State<MultiSelectList<K>> {
           ),
         ),
       );
-      children.add(_rowShell(
+      Widget shell(Widget row) => switch (list) {
+            // Each row its own card.
+            ListStyle.cards => DecoratedBox(
+                decoration: context.radius.decorate(
+                    BoxDecoration(color: c.surface, borderRadius: outer, boxShadow: context.shadows.shadow1)),
+                child: CardEdge(radius: outer, child: row)),
+            // A table's zebra stripes.
+            ListStyle.table when i.isOdd => DecoratedBox(
+                decoration: context.radius.decorate(BoxDecoration(color: c.surfaceSunken, borderRadius: shapeOf(i))),
+                child: row),
+            _ => row,
+          };
+      children.add(shell(_rowShell(
         key,
         selected,
         MultiSelectRowFrame(
@@ -588,13 +610,29 @@ class _MultiSelectListState<K> extends State<MultiSelectList<K>> {
             ),
           ),
         ),
-      ));
+      )));
     }
 
-    return _focusable(DecoratedBox(
-      decoration: context.radius.decorate(BoxDecoration(color: c.surface, borderRadius: MyDataRadii.lg(context.look), boxShadow: context.shadows.shadow1)),
-      child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: children),
-    ));
+    final column =
+        Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: children);
+    final edge = look.edges.side;
+    return _focusable(switch (list) {
+      ListStyle.cards || ListStyle.plain => column,
+      ListStyle.ruled => DecoratedBox(
+          decoration: BoxDecoration(border: Border.symmetric(horizontal: BorderSide(color: edge.color, width: edge.width))),
+          child: column),
+      ListStyle.inset || ListStyle.bordered || ListStyle.table => DecoratedBox(
+          decoration: context.radius
+              .decorate(BoxDecoration(color: c.surface, borderRadius: outer, boxShadow: context.shadows.shadow1)),
+          child: list == ListStyle.inset
+              ? column
+              : DecoratedBox(
+                  position: DecorationPosition.foreground,
+                  decoration: context.radius.decorate(
+                      BoxDecoration(borderRadius: outer, border: Border.fromBorderSide(GroupFrame.listOutline(look)))),
+                  child: column),
+        ),
+    });
   }
 }
 

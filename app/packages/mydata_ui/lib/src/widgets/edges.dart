@@ -260,12 +260,27 @@ class BevelPainter extends CustomPainter {
 /// two widths in from the edge; the rule then stops at that inner line instead of crossing it to the outer
 /// one ([innerOutlineInset]).
 class EdgeRule extends StatelessWidget {
-  const EdgeRule({super.key, this.inset = 0, this.colour, this.extent, this.inCard = false});
+  const EdgeRule({
+    super.key,
+    this.inset = 0,
+    this.colour,
+    this.extent,
+    this.inCard = false,
+    this.separators,
+    this.edgeOnly = false,
+  });
 
   final double inset;
   final Color? colour;
   final double? extent;
   final bool inCard;
+
+  /// Stands in for the theme's separators (a ruled list and a table always rule their rows, full width).
+  final Separators? separators;
+
+  /// A list's own edge (a ruled list's top and bottom, under a table's header band): one solid line of the
+  /// border's width, never double or dashed.
+  final bool edgeOnly;
 
   /// How far in from a card's sides its rules start and end: to the inner line of a double outline (which
   /// lies from two to three widths in), else nothing.
@@ -275,16 +290,23 @@ class EdgeRule extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final edges = context.look.edges;
-    final height = extent ?? edges.separatorExtent;
+    final separators = this.separators ?? edges.separators;
+    final double height = extent ??
+        (edgeOnly
+            ? edges.width
+            : switch (separators) {
+                Separators.none => 0,
+                _ => edges.style == BorderStyleKind.doubleLine ? edges.width * 3 : edges.width,
+              });
     if (height <= 0) return const SizedBox.shrink();
-    if (edges.separators == Separators.none) return SizedBox(height: height);
+    if (separators == Separators.none) return SizedBox(height: height);
     final side = inCard ? innerOutlineInset(edges) : 0.0;
     return CustomPaint(
       size: Size.fromHeight(height),
       painter: _RulePainter(
         side: BorderSide(color: colour ?? edges.colour, width: math.min(edges.width, height)),
-        style: edges.style,
-        start: math.max(side, edges.separators == Separators.inset ? inset : 0),
+        style: edgeOnly ? BorderStyleKind.solid : edges.style,
+        start: math.max(side, separators == Separators.inset ? inset : 0),
         end: side,
         textDirection: Directionality.of(context),
       ),
