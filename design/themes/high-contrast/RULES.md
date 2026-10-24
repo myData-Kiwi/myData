@@ -92,6 +92,7 @@ Material Symbols Outlined at weight 600 (`bold`), filled when selected, on outli
 - One exception, on purpose: a disabled control (and, in the Mac window, another month's day) is drawn in a grey at 4.5:1, so it still reads as disabled. WCAG exempts disabled controls.
 - Reduced transparency changes nothing (nothing is translucent). Increased contrast changes nothing (already 7:1).
 - `test/theme/accessibility_themes_test.dart` holds these promises.
+- **The approval card's edge stays 1 px** `line-strong`, though every other card, field and button here is 2 px: the card's structure, its edge included, is the same in every theme (`theming.md`, "What a theme never changes"). Whether it may take a theme's border width is the owner's open question (CLAUDE.md).
 
 ## Fonts and licences
 

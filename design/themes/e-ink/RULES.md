@@ -102,5 +102,5 @@ Phosphor Regular, bare (no tiles), never coloured. The current section's icon sw
 
 - Colours split into three palettes; most roles fixed to ink and paper by the style; the data colours given (the prototype left them out), never drawn.
 - Rows, controls and spacing a size up (44 / 56, ×1.1), so it is not High Contrast in a serif or Journal in black.
-- Chat in bubbles and the month open, for the same reason (the prototype had transcript and table).
+- Chat in bubbles and the month open, for the same reason (the prototype had transcript and table). Open for the owner: a transcript and a table may suit an e-reader better; the harness draws both from a copy of this file.
 - Danger in ink is now allowed by the validator, with a notice.
