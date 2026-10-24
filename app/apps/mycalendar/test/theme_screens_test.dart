@@ -28,7 +28,11 @@ void main() {
 
   // The month's grid is the same in every theme (layout stays out of themes), so its pictures differ less
   // than a list's; before the drawn looks reached it the closest two (Frosted and Paperback) scored 0.06.
-  themesDistinct('month', least: 0.18, size: const Size(1280, 900));
+  themesDistinct('month', least: 0.18, size: const Size(1280, 900), alike: {
+    // 0.15: the Mac month is one grid in every theme, and both rule it in black (2 and 3 px) and mark today
+    // in ink; here they differ in type alone. Brutalist's offset shadows are not drawn in the Mac month.
+    'high-contrast and brutalist': 'the same black grid, other type',
+  });
 
   // Today is the theme's mark in a drawn theme (`components.today`), never System's red, which in Sticker
   // reads as its danger colour; System keeps the red capsule, as Calendar.app does.

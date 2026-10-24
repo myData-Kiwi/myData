@@ -22,7 +22,7 @@ import 'validate.dart';
 /// (Kiwi, Sky, Violet), Hairline (Graphite, Slate, Cobalt), Frosted (Dusk, Aurora, Sand), Journal (Plum, Ink
 /// blue, Forest), Sticker (Rose, Mint, Mustard), Paperback (Amber, Sepia, Linen), High Contrast (Blue,
 /// Yellow, Cyan), E-ink (White, Cream, Grey), Large (Blue, Green, Purple), Terminal (Green, Amber, Cyan)
-/// and Notebook (Blue, Green, Violet).
+/// Notebook (Blue, Green, Violet) and Brutalist (Blue, Yellow, Green).
 ///
 /// **Today's old colours** (`graphite`, `dusk`, `plum`, `rose`, `amber`: the host's old `/appearance` ids,
 /// and Kiwi's palettes in phases 1 and 2) are hidden aliases on Kiwi: a choice of Kiwi in one of them is

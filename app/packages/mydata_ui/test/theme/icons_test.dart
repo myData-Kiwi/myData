@@ -139,6 +139,7 @@ void main() {
       'mydata.large': ('material-rounded', 'regular'),
       'mydata.terminal': ('lucide', 'regular'),
       'mydata.notebook': ('phosphor', 'regular'),
+      'mydata.brutalist': ('phosphor', 'bold'),
     });
   });
 

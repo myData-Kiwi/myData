@@ -35,6 +35,7 @@ A theme changes how the whole app looks: type, shape, density, borders, depth, i
 | Large | Large and simple: 19 px text, 52 px targets, 2 px outlines, the same layout | Blue, Green, Purple | `themes/large/` |
 | Terminal | A terminal for your own data: one monospace face, square boxes, compact rows, inverse-video selection, nothing that moves | Green, Amber, Cyan | `themes/terminal/` |
 | Notebook | Paper and ink: ruled paper, handwritten titles, a reading serif, a highlighter for the selection; a blackboard in dark | Blue, Green, Violet | `themes/notebook/` |
+| Brutalist | Square, heavy and honest: black ink, 3 px outlines, hard offset shadows that a press pushes into | Blue, Yellow, Green | `themes/brutalist/` |
 
 Each folder holds the theme file and its `RULES.md` (its design language, its palettes, do and don't, accessibility, font and icon licences). The six drawn themes are the phase 3 targets; until then the apps draw Kiwi, and the old colours are Kiwi's palettes. All twenty prototypes ship as built-ins (the owner, 2026-10-23): the 13 new ones are added in phase 4, each ported to palettes and the validator; High Contrast, E-ink and Large are in (2026-10-24). "System, tinted" (System with another accent) never exists on macOS; other platforms may allow a tint later (phase 5).
 
