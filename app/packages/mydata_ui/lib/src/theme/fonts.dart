@@ -41,7 +41,7 @@ abstract final class ThemeFonts {
     final waits = <Future<void>>[];
     for (final id in ids) {
       final f = fontCatalogue[id];
-      if (f == null || !f.variable || _loaded.contains(id)) continue;
+      if (f == null || !f.onDemand || _loaded.contains(id)) continue;
       waits.add(_loading[id] ??= _load(f, bundle ?? testBundle ?? rootBundle));
     }
     if (waits.isNotEmpty) await Future.wait(waits);

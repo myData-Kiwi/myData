@@ -143,7 +143,8 @@ class MyDataTypeScale {
   /// - each role is set in the first font of its stack that this build bundles (a display-only font only at
   ///   16 px or more), with the stack's later bundled fonts as fallbacks for glyphs it lacks; a generic
   ///   family is the platform's own font (a generic `mono` the platform's monospace, `genericMonoFamilies`);
-  /// - a variable font is drawn at the role's exact weight (`wght`), a core font at the nearest weight it has;
+  /// - a variable font is drawn at the role's exact weight (`wght`), a core font at the nearest weight it has,
+  ///   a static font loaded on demand (Kalam) at its one weight;
   ///   a font that keeps its optical size axis (Inter, Literata) at the role's size (`opsz`);
   /// - tracking in em becomes letter spacing, `numerals: tabular` tabular figures, `secondary-italic` an
   ///   italic `caption`, and `case: upper` is carried in [upper] for [cased].

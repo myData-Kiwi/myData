@@ -11,7 +11,8 @@
 # - pinned on every axis but weight (`wght` stays, so any weight a theme names is drawn exactly) and, for
 #   Inter and Literata, optical size (`opsz` stays: their display sizes are drawn with display optics, the
 #   style setting `opsz` to the role's size; MyDataTypeScale.of): Fraunces' optical size at 36 (it is a
-#   display face, set at 22 px and up), width at 100, Fraunces' SOFT 0 and WONK 0; the weight axis's default
+#   display face, set at 22 px and up), Newsreader's at 16 (Notebook sets it at 14 to 16 px only, and the axis
+#   would double its size), width at 100, Fraunces' SOFT 0 and WONK 0; the weight axis's default
 #   moved to 400 where it was another;
 # - written as assets/fonts/catalogue/<id>.ttf (and <id>-italic.ttf), with its licence as
 #   assets/fonts/OFL-<id>.txt.
@@ -38,6 +39,9 @@ literata|literata|Literata-Italic[opsz,wght].ttf|d483dfaeba9cbf4ce71d32a52ee65df
 atkinson-hyperlegible-next|atkinsonhyperlegiblenext|AtkinsonHyperlegibleNext[wght].ttf|5a455d1cfa099b601ab70751bb9673e8fe1854dc4500c80e1a220d0d75e31745||
 atkinson-hyperlegible-next|atkinsonhyperlegiblenext|AtkinsonHyperlegibleNext-Italic[wght].ttf|ce9cffed32742ad2d9238c561a93220385e5934cdc02b8eb4097a50efa957dc6||italic
 atkinson-hyperlegible-mono|atkinsonhyperlegiblemono|AtkinsonHyperlegibleMono[wght].ttf|5ce8b1698d1ded7dff2178c1a3ad159470085a58ea239e8b2cb88f4fb4a6f646||
+kalam|kalam|Kalam-Bold.ttf|2f6576601db015d4f6c08678120277fc8510b98c06e932ce7a6a9cbff4cbdded||
+newsreader|newsreader|Newsreader[opsz,wght].ttf|8a08d13f8a6c0d51be379a60af84f945f65369a67e509ee3c3bdcc421254d7c1|opsz=16|
+newsreader|newsreader|Newsreader-Italic[opsz,wght].ttf|796668611f80b64d5adf182fde3b6f29ed83b4e7cbec7b96937e84ac01364792|opsz=16|italic
 EOF
 )
 # The core fonts' extra static weights (declared in the pubspec and registered when the app starts): the

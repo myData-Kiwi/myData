@@ -194,13 +194,13 @@ void main() {
     test('fonts and icons this build does not bundle yet are notices, not failures', () {
       final r = check(drawn(extra: {
         'type': {
-          'display': ['kalam', 'serif'],
+          'display': ['hanken-grotesk', 'serif'],
           'unknown': 1,
         },
-        'icons': {'set': 'pixelarticons'},
+        'icons': {'set': 'iconoir'},
       }));
       expect(r.errors, isEmpty);
-      expect(r.notices, containsAll([contains('Kalam'), contains('pixelarticons'), contains('type/unknown')]));
+      expect(r.notices, containsAll([contains('Hanken Grotesk'), contains('iconoir'), contains('type/unknown')]));
     });
   });
 

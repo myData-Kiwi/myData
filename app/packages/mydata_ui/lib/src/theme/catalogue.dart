@@ -12,6 +12,7 @@ class CatalogueFont {
     this.italic = false,
     this.displayOnly = false,
     this.opticalSizes,
+    this.staticWeight,
   });
 
   /// The id a theme file uses (`plus-jakarta-sans`).
@@ -25,9 +26,10 @@ class CatalogueFont {
   final String? family;
 
   /// One of the three core fonts, declared in the pubspec as static weights: registered when the app starts.
-  /// Every other bundled font is a variable Latin subset in assets/fonts/catalogue/ (`<id>.ttf`, and
+  /// Every other bundled font is a Latin subset in assets/fonts/catalogue/ (`<id>.ttf`, and
   /// `<id>-italic.ttf` when [italic]), loaded when a theme that needs it is chosen or previewed
-  /// (`ThemeFonts.ensure` in fonts.dart) and drawn at any weight through its `wght` axis.
+  /// (`ThemeFonts.ensure` in fonts.dart) and drawn at any weight through its `wght` axis, or at its
+  /// [staticWeight] alone.
   final bool core;
 
   /// It has an italic of its own; otherwise an italic is slanted by the text engine.
@@ -40,13 +42,20 @@ class CatalogueFont {
   /// optical size of its own size, so display sizes get display optics. Null for a font cut at one size.
   final (double, double)? opticalSizes;
 
+  /// The one weight of a font loaded on demand that has no weight axis (Kalam's bold, Archivo Black's
+  /// regular, which is black); null for a variable font.
+  final int? staticWeight;
+
   bool get bundled => family != null;
 
+  /// Loaded from assets/fonts/catalogue when a theme needs it (every bundled font but the core three).
+  bool get onDemand => bundled && !core;
+
   /// A variable font: weights are drawn through its `wght` axis.
-  bool get variable => bundled && !core;
+  bool get variable => onDemand && staticWeight == null;
 
   /// Its files in this package's assets, for a font loaded on demand.
-  List<String> get assets => variable
+  List<String> get assets => onDemand
       ? ['assets/fonts/catalogue/$id.ttf', if (italic) 'assets/fonts/catalogue/$id-italic.ttf']
       : const [];
 
@@ -64,7 +73,7 @@ const fontPackage = 'mydata_ui';
 /// ARCHITECTURE.md 1.5. All are OFL fonts with no Reserved Font Name. Three are core fonts, as before phase 3;
 /// phase 3 bundles the fonts the six built-ins name, as Latin subsets cut by tool/subset_fonts.sh; the fonts
 /// of the thirteen new themes come with them in phase 4 (Atkinson Hyperlegible Next and Mono with High
-/// Contrast and Large).
+/// Contrast and Large, Kalam and Newsreader with Notebook).
 const fontCatalogue = <String, CatalogueFont>{
   'figtree': CatalogueFont('figtree', 'Figtree', family: 'Figtree', core: true),
   'plus-jakarta-sans': CatalogueFont('plus-jakarta-sans', 'Plus Jakarta Sans', family: 'PlusJakartaSans', core: true),
@@ -80,8 +89,8 @@ const fontCatalogue = <String, CatalogueFont>{
   'nunito': CatalogueFont('nunito', 'Nunito', family: 'Nunito'),
   'literata': CatalogueFont('literata', 'Literata', family: 'Literata', italic: true, opticalSizes: (7, 72)),
   'hanken-grotesk': CatalogueFont('hanken-grotesk', 'Hanken Grotesk'),
-  'newsreader': CatalogueFont('newsreader', 'Newsreader'),
-  'kalam': CatalogueFont('kalam', 'Kalam', displayOnly: true),
+  'newsreader': CatalogueFont('newsreader', 'Newsreader', family: 'Newsreader', italic: true),
+  'kalam': CatalogueFont('kalam', 'Kalam', family: 'Kalam', displayOnly: true, staticWeight: 700),
   'archivo-black': CatalogueFont('archivo-black', 'Archivo Black', displayOnly: true),
   'space-grotesk': CatalogueFont('space-grotesk', 'Space Grotesk'),
   'space-mono': CatalogueFont('space-mono', 'Space Mono'),

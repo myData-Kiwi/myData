@@ -70,6 +70,16 @@ Map<String, (double, double, double)> fvarAxes(Uint8List font) {
   return const {};
 }
 
+/// A font's weight class, from its `OS/2` table (`usWeightClass`).
+int weightClass(Uint8List font) {
+  final d = ByteData.sublistView(font);
+  for (var i = 0; i < d.getUint16(4); i++) {
+    final rec = 12 + 16 * i;
+    if (String.fromCharCodes(font.sublist(rec, rec + 4)) == 'OS/2') return d.getUint16(d.getUint32(rec + 8) + 4);
+  }
+  throw StateError('no OS/2 table');
+}
+
 /// Names the fonts must draw (Latin Extended-A and -B, the apostrophes names use) and Vietnamese, which
 /// names hold too (`Nguyễn`). A glyph the role's first font lacks must come from a later font of its stack.
 const nameCorpus = 'ŞşȘșȚțŐőŰűĚěŠšČčŘřŽžŮůİıĞğŁłŃńŹźŻżĄąĘęßẞÆæØøÅåŒœĐđÉéÑñ’‘“”ʼ';
@@ -102,7 +112,7 @@ List<String> fontFiles(CatalogueFont f) => f.core
 void main() {
   final pubspec = File('pubspec.yaml').readAsStringSync();
   final script = File('tool/subset_fonts.sh').readAsStringSync();
-  final onDemand = fontCatalogue.values.where((f) => f.variable).toList();
+  final onDemand = fontCatalogue.values.where((f) => f.onDemand).toList();
 
   test('every font loaded on demand is cut by the script, in the assets, and nothing else is', () {
     final cut = RegExp(r'^([a-z-]+)\|[^|]*\|[^|]*\|[0-9a-f]{64}\|[^|]*\|(italic)?$', multiLine: true)
@@ -121,10 +131,16 @@ void main() {
   });
 
   test('each font loaded on demand keeps its weight axis, with regular (400) as its default, and its optical '
-      'size axis where the catalogue says so', () {
+      'size axis where the catalogue says so; a static one has no axis and its one weight', () {
     for (final f in onDemand) {
       for (final asset in f.assets) {
-        final axes = fvarAxes(File(asset).readAsBytesSync());
+        final bytes = File(asset).readAsBytesSync();
+        final axes = fvarAxes(bytes);
+        if (f.staticWeight case final w?) {
+          expect(axes, isEmpty, reason: asset);
+          expect(weightClass(bytes), w, reason: asset);
+          continue;
+        }
         expect(axes.keys.toSet(), {'wght', if (f.opticalSizes != null) 'opsz'}, reason: asset);
         if (f.opticalSizes case (final lo, final hi)) expect((axes['opsz']!.$1, axes['opsz']!.$3), (lo, hi), reason: asset);
         expect(axes['wght']!.$2, 400, reason: '$asset: a style without its wght variation is drawn regular');
