@@ -119,6 +119,53 @@ class _ListSpecimenState extends State<ListSpecimen> {
       ]);
 }
 
+/// A text field with keyboard focus, one in error, a select and an empty field with a placeholder.
+class InputSpecimen extends StatefulWidget {
+  const InputSpecimen({super.key, required this.focus});
+  final FocusNode focus;
+
+  @override
+  State<InputSpecimen> createState() => _InputSpecimenState();
+}
+
+class _InputSpecimenState extends State<InputSpecimen> {
+  final _name = TextEditingController(text: 'Kitchen Mac');
+  final _mail = TextEditingController(text: 'ava@example');
+  final _empty = TextEditingController();
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _mail.dispose();
+    _empty.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(
+              child: MyDataTextField(
+                  label: 'Device name', controller: _name, focusNode: widget.focus, help: 'Shown to your other devices.')),
+          SizedBox(width: context.space(4)),
+          Expanded(child: MyDataTextField(label: 'Email', controller: _mail, error: 'Add the part after the @.')),
+        ]),
+        SizedBox(height: context.space(4)),
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(
+            child: MyDataSelect<String>(
+              label: 'Calendar',
+              items: const [SelectItem(value: 'home', title: 'Home'), SelectItem(value: 'work', title: 'Work')],
+              value: 'home',
+              onChanged: (_) {},
+            ),
+          ),
+          SizedBox(width: context.space(4)),
+          Expanded(child: MyDataTextField(label: 'Notes', controller: _empty, placeholder: 'Add a note')),
+        ]),
+      ]);
+}
+
 void main() {
   group('buttons', () {
     for (final key in ['button.primary', 'button.secondary', 'button.shape']) {
@@ -223,5 +270,9 @@ void main() {
         values: ['ruled', 'table'],
         name: 'edge',
         also: styleGroup('borders', {'colour': 'edge', 'width': 2}));
+  });
+
+  group('inputs', () {
+    variantGoldens('inputs', (focus) => InputSpecimen(focus: focus), size: const Size(640, 260));
   });
 }

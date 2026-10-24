@@ -13,6 +13,7 @@ import '../theme/theme.dart';
 import 'app_frame.dart' show AppLayout, PhoneType;
 import 'pressable.dart';
 import 'role_label.dart';
+import 'input_box.dart';
 
 // The parts [DatePicker] and [TimePicker] share (design/components/DatePicker and TimePicker): the field
 // that looks like a TextField with an icon at its end, the popover anchored under it, and the list box with
@@ -138,7 +139,7 @@ class PickerField extends StatelessWidget {
     final border = mac ? 1.0 : (hasError ? errorBorderWidth : borderWidth);
     final style = mac ? MyDataMacType.body.copyWith(color: c.ink) : pickerValueStyle(context.look, c, phone: phone);
     final height = mac ? MacControl.height : pickerControlHeight(context.look, compact: compact, phone: phone);
-    final inset = mac ? MacControl.inset(context.look) : context.space(4);
+    final inset = mac ? MacControl.inset(context.look) : InputBox.inset(context.look);
     final radius = mac ? MacControl.radius : MyDataRadii.md(context.look);
     final lineHeight = style.fontSize! * style.height!;
     final vertical = math.max(0.0, (height - lineHeight) / 2 - border);
@@ -146,7 +147,7 @@ class PickerField extends StatelessWidget {
     final Widget text;
     if (phone) {
       text = Padding(
-        padding: EdgeInsetsDirectional.only(start: context.space(4) - border),
+        padding: EdgeInsetsDirectional.only(start: math.max(0, inset - border)),
         child: Align(
           alignment: AlignmentDirectional.centerStart,
           child: ValueListenableBuilder(
@@ -180,7 +181,7 @@ class PickerField extends StatelessWidget {
               isCollapsed: true,
               border: InputBorder.none,
               filled: false,
-              contentPadding: EdgeInsetsDirectional.fromSTEB(inset - border, vertical, 0, vertical),
+              contentPadding: EdgeInsetsDirectional.fromSTEB(math.max(0, inset - border), vertical, 0, vertical),
             ),
           ),
         ),
@@ -193,16 +194,12 @@ class PickerField extends StatelessWidget {
       height: height,
       decoration: mac
           ? MacControl.bezel(context, error: hasError)
-          : context.radius.decorate(BoxDecoration(
-              color: c.surface,
-              borderRadius: MyDataRadii.md(context.look),
-              border: Border.all(color: hasError ? c.danger : c.lineStrong, width: border),
-            )),
+          : InputBox.of(context.look, edge: hasError ? c.danger : c.lineStrong, width: border),
       child: Row(children: [
         Expanded(child: text),
         SizedBox(width: context.space(2)),
         ExcludeSemantics(child: Icon(context.icon(icon), size: mac ? MyDataMacSize.icon : context.density.icon, color: c.inkMuted)),
-        SizedBox(width: inset - border),
+        SizedBox(width: math.max(0, inset - border)),
       ]),
     );
 

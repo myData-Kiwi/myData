@@ -18,6 +18,7 @@ import 'sheet.dart';
 import 'text_field.dart';
 import 'toggle_target.dart';
 import 'role_label.dart';
+import 'input_box.dart';
 
 /// Whether [query] matches the start of any word in [text], ignoring case and accents ([foldForSearch]): "auck"
 /// and "zealand" match "Auckland, New Zealand"; "land" does not. A query of several words matches where
@@ -883,12 +884,9 @@ class _MyDataSelectState<T> extends State<MyDataSelect<T>>
         duration: context.motion.fast,
         curve: context.motion.standard,
         height: context.density.controlHeight,
-        padding: EdgeInsets.symmetric(horizontal: context.space(4) - borderWidth),
-        decoration: context.radius.decorate(BoxDecoration(
-          color: _hovered && _enabled ? c.surfaceHover : c.surface,
-          borderRadius: MyDataRadii.md(context.look),
-          border: Border.all(color: hasError ? c.danger : c.lineStrong, width: borderWidth),
-        )),
+        padding: EdgeInsets.symmetric(horizontal: math.max(0, InputBox.inset(context.look) - borderWidth)),
+        decoration: InputBox.of(context.look,
+            edge: hasError ? c.danger : c.lineStrong, width: borderWidth, hovered: _hovered && _enabled),
         child: ExcludeSemantics(child: value),
       );
       // A custom label longer than the presets is cut short; its tooltip shows it in full.
@@ -1315,11 +1313,7 @@ class _CustomLabelField extends StatelessWidget {
       borderRadius: MyDataRadii.md(context.look),
       child: Container(
         height: context.density.controlHeight,
-        decoration: context.radius.decorate(BoxDecoration(
-          color: c.surface,
-          borderRadius: MyDataRadii.md(context.look),
-          border: Border.all(color: c.lineStrong, width: MyDataTextField.borderWidth),
-        )),
+        decoration: InputBox.of(context.look, edge: c.lineStrong, width: MyDataTextField.borderWidth),
         child: Focus(
           canRequestFocus: false,
           skipTraversal: true,

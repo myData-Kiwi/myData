@@ -13,6 +13,7 @@ import 'month_grid.dart';
 import 'picker_field.dart';
 import 'pressable.dart';
 import 'sheet.dart';
+import 'input_box.dart';
 
 // ---------------------------------------------------------------------------------------------------------------
 // Dates as the field writes and reads them
@@ -1174,8 +1175,7 @@ class _MiniSelectState extends State<_MiniSelect> {
       key: _key,
       height: context.density.controlHeight,
       padding: EdgeInsetsDirectional.only(start: context.space(3), end: context.space(2)),
-      decoration: context.radius.decorate(BoxDecoration(
-          color: c.surface, borderRadius: MyDataRadii.md(context.look), border: Border.all(color: c.lineStrong))),
+      decoration: InputBox.of(context.look, edge: c.lineStrong, width: InputBox.borderWidth),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         Text(widget.items[widget.selected], maxLines: 1, style: context.typeScale.body.copyWith(color: c.ink)),
         SizedBox(width: context.space(1)),

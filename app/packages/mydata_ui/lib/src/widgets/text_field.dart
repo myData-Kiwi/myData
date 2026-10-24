@@ -8,6 +8,7 @@ import 'app_frame.dart' show AppLayout, PhoneType;
 import 'form_scope.dart';
 import 'pressable.dart';
 import 'role_label.dart';
+import 'input_box.dart';
 
 /// A single-line input with a label above and optional help below (design/components/TextField).
 ///
@@ -191,14 +192,11 @@ class _MyDataTextFieldState extends State<MyDataTextField> {
       keyboardType: widget.keyboardType,
       textInputAction: widget.textInputAction,
       // The 2px error border grows inward; the text stays where it was.
-      horizontalInset: context.space(4) - borderWidth,
+      horizontalInset: math.max(0, InputBox.inset(context.look) - borderWidth),
       verticalInset: borderWidth,
       multiline: widget.multiline,
-      decoration: context.radius.decorate(BoxDecoration(
-        color: c.surface,
-        borderRadius: MyDataRadii.md(context.look),
-        border: Border.all(color: hasError ? c.danger : (themed ? edges.colour : c.lineStrong), width: borderWidth),
-      )),
+      decoration: InputBox.of(context.look,
+          edge: hasError ? c.danger : (themed ? edges.colour : c.lineStrong), width: borderWidth),
       borderRadius: MyDataRadii.md(context.look),
       danger: hasError,
     );

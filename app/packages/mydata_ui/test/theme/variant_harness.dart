@@ -90,7 +90,8 @@ Future<void> pumpVariant(WidgetTester tester, ThemeFile theme, Brightness bright
   if (media != null) home = MediaQuery(data: media.copyWith(size: size), child: home);
   await tester.pumpWidget(MaterialApp(
     debugShowCheckedModeBanner: false,
-    theme: MyDataTheme.fromLook(look),
+    // A desktop, so a focused field shows no touch selection handle.
+    theme: MyDataTheme.fromLook(look).copyWith(platform: TargetPlatform.linux),
     home: home,
   ));
   if (focus != null) {

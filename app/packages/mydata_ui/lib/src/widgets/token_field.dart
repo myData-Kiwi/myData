@@ -16,6 +16,7 @@ import 'select.dart' show matchesWordStart;
 import 'text_field.dart';
 import 'toggle_target.dart';
 import 'role_label.dart';
+import 'input_box.dart';
 
 /// A value a [TokenField] can suggest: an existing group, a contact's address.
 @immutable
@@ -763,11 +764,7 @@ class _TokenFieldState extends State<TokenField> with PendingInputRegistration<T
     Widget field = Container(
       key: _fieldKey,
       constraints: BoxConstraints(minHeight: context.density.controlHeight),
-      decoration: context.radius.decorate(BoxDecoration(
-        color: c.surface,
-        borderRadius: MyDataRadii.md(context.look),
-        border: Border.all(color: hasError ? c.danger : c.lineStrong, width: border),
-      )),
+      decoration: InputBox.of(context.look, edge: hasError ? c.danger : c.lineStrong, width: border),
       child: ConstrainedBox(
         constraints: BoxConstraints(maxHeight: inner + 2 * (context.space(1) - border)),
         child: SingleChildScrollView(

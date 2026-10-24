@@ -128,7 +128,7 @@ enum InputStyle with KeyedEnum {
   /// A `surface` box with a `line-strong` outline (Kiwi).
   outlined('outlined'),
 
-  /// No box: a `line-strong` line under the text, 2 px in `focus` while focused (Journal).
+  /// No box: a `line-strong` line under the text (Journal).
   underlined('underlined');
 
   const InputStyle(this.key);
