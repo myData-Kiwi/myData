@@ -9,7 +9,9 @@ import 'look.dart';
 
 export 'look.dart'
     show MyDataLook, MyDataTypeRole, MyDataTypeScale, MyDataShape, MyDataDensity, MyDataMotionSpec, MyDataEdges,
-        MyDataElevation, Bevel, LookFrame;
+        MyDataElevation, Bevel, LookFrame, MyDataVariants, PrimaryStyle, SecondaryStyle, ButtonShapeStyle, ListStyle,
+        SidebarStyle, ToolbarStyle, InputStyle, SelectionStyle, AvatarStyle, TabsStyle, ChatStyle, MonthStyle,
+        TodayStyle, DataColourStyle;
 export 'icons.dart' show MyDataIcon;
 export 'theme_file.dart'
     show CornerStyle, BorderWidth, BorderStyleKind, BorderColour, Separators, TitleRule, ElevationStyle, PressStyle,
@@ -220,4 +222,7 @@ extension MyDataLookContext on BuildContext {
   /// [icon]'s glyph in this look's icon set and weight; filled when [selected] and the theme fills selected
   /// icons (`Icon(context.icon(MyDataIcon.add))`).
   IconData icon(MyDataIcon icon, {bool selected = false}) => look.icons(icon, selected: selected);
+
+  /// How each component is drawn in this look (`context.variants.list`).
+  MyDataVariants get variants => look.variants;
 }

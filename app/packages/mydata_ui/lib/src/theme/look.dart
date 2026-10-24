@@ -4,8 +4,7 @@
 /// `context.motion.fast`).
 ///
 /// Phase 1 draws exactly what the apps drew before: Kiwi from design/tokens.json, in one of today's six
-/// colours. The groups phase 3 brings to the widgets (edges, materials, icons, variants) are resolved and
-/// carried already, but no widget reads them yet.
+/// colours; phase 3 brings each theme's rules and component variants to the widgets.
 library;
 
 
@@ -18,12 +17,15 @@ import '../accessibility.dart';
 import '../generated/tokens.g.dart';
 import 'builtin_themes.g.dart';
 import 'catalogue.dart';
-import 'colour.dart' show Rgb;
+import 'colour.dart' show Oklch, Rgb, hueDistance;
 import 'icons.dart';
 import 'motion.dart';
 import 'resolve.dart';
 import 'roles.dart';
 import 'theme_file.dart';
+import 'variants.dart';
+
+export 'variants.dart';
 
 /// A text role, as widgets name it: `context.type(MyDataTypeRole.body)`.
 typedef MyDataTypeRole = TypeRole;
@@ -844,17 +846,6 @@ class MyDataMotionSpec {
   }
 }
 
-/// How each component is drawn (theme.schema.json `components`), read by the widgets' variant switches in
-/// phase 3.
-@immutable
-class MyDataVariants {
-  const MyDataVariants(this.values);
-  final Map<String, String> values;
-
-  /// `variants['list']`, `variants['button.primary']`.
-  String? operator [](String key) => values[key];
-}
-
 /// One theme and palette, resolved for one brightness.
 @immutable
 class MyDataLook extends ThemeExtension<MyDataLook> {
@@ -895,6 +886,21 @@ class MyDataLook extends ThemeExtension<MyDataLook> {
   final MyDataIconTheme icons;
   final MyDataMotionSpec motion;
   final MyDataVariants variants;
+
+  static final _nearDanger = Expando<bool>('accent near danger');
+
+  /// The accent is within 25° of hue of `danger`, both colourful (2.2, "Kept apart"): Approve and every
+  /// filled primary button are then drawn in `ink`, with their label in `bg`, so Approve never looks like
+  /// Delete. Never in System, whose accent is the system's and whose destructive buttons are red text.
+  bool get accentNearDanger =>
+      frame == LookFrame.drawn && (_nearDanger[colors] ??= accentNearDangerOf(colors.accent, colors.danger));
+
+  /// Whether [accent] and [danger] are within 25° of hue, both with OKLCH chroma over 0.04 (the validator's
+  /// notice, checks.dart).
+  static bool accentNearDangerOf(Color accent, Color danger) {
+    final a = Oklch.of(Rgb.argb(accent.toARGB32())), d = Oklch.of(Rgb.argb(danger.toARGB32()));
+    return a.c > 0.04 && d.c > 0.04 && hueDistance(a.h, d.h) < 25;
+  }
 
   /// `space-n` in this look (`space(4)` is 16 at Kiwi's density).
   double space(num n) => density.space(n);
@@ -983,7 +989,7 @@ class MyDataLook extends ThemeExtension<MyDataLook> {
       materials: const MyDataMaterials(spec: _kiwiMaterials, blur: MyDataBlur.glass),
       icons: MyDataIconTheme(_kiwiIcons),
       motion: MyDataMotionSpec.kiwi,
-      variants: const MyDataVariants(_kiwiVariants),
+      variants: MyDataVariants.kiwi,
     );
   }
 
@@ -1181,19 +1187,3 @@ const _kiwiMaterials = MaterialsSpec(
   blur: MyDataBlur.glass,
 );
 const _kiwiIcons = IconsSpec(set: 'lucide', weight: 'regular', fillSelected: false, tiles: 'tinted');
-const _kiwiVariants = {
-  'button.primary': 'filled',
-  'button.secondary': 'tonal',
-  'button.shape': 'pill',
-  'list': 'inset',
-  'sidebar': 'column',
-  'toolbar': 'flat',
-  'inputs': 'outlined',
-  'selection': 'tint',
-  'avatar': 'circle',
-  'tabs': 'pill',
-  'chat': 'bubbles',
-  'month': 'boxed',
-  'today': 'disc',
-  'data-colours': 'colour',
-};
