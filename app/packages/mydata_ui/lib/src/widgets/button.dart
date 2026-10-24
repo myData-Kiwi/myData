@@ -140,6 +140,9 @@ class Button extends StatelessWidget {
       danger: variant.isRed,
       disabledReason: disabledReason,
       fadeWhenDisabled: !variant.isSolid,
+      // A hard, offset or bevel drop fills the band the ring is drawn in, along the bottom (and the right):
+      // the ring is two-tone there, its `surface` keyline between it and the drop (WCAG C40).
+      focusOnFill: !disabled && variant.fill(c) != null && context.look.elevation.control.isNotEmpty,
       child: ExcludeSemantics(
         child: Builder(builder: (context) {
           // The theme's depth under a button with a fill: a hard, offset or bevel drop that collapses while

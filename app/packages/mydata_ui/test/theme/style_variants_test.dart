@@ -9,6 +9,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mydata_ui/mydata_ui.dart';
 import 'package:mydata_ui/src/theme/builtin_themes.g.dart';
 
+import 'designed_themes.dart';
+
 void _noop() {}
 
 /// Kiwi as drawn today, with [edit] applied to its JSON.
@@ -208,6 +210,44 @@ void main() {
         await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/focus.plain-$corners.${b.name}.png'));
       });
     }
+  }
+
+  // A filled button over Sticker's hard drop: the drop fills the ring's band along the bottom, so the ring
+  // is two-tone there (its `surface` keyline between ring and drop), never red straight on the ink shadow.
+  for (final b in Brightness.values) {
+    testWidgets('focus ring golden: a Sticker button over its drop, ${b.name}', (tester) async {
+      debugDisableShadows = false;
+      try {
+        tester.view.physicalSize = const Size(320, 100);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        final focus = FocusNode();
+        addTearDown(focus.dispose);
+        final look = designedLook('mydata.sticker', b, platform: TargetPlatform.linux);
+        await tester.pumpWidget(MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: MyDataTheme.fromLook(look),
+          home: Builder(
+            builder: (context) => Material(
+              color: context.colors.bg,
+              child: Padding(
+                padding: EdgeInsets.all(context.space(6)),
+                child: Align(
+                  alignment: Alignment.topLeft,
+                  child: Button(label: 'Approve and send', variant: ButtonVariant.filled, focusNode: focus, onPressed: _noop),
+                ),
+              ),
+            ),
+          ),
+        ));
+        await tester.sendKeyEvent(LogicalKeyboardKey.shift);
+        focus.requestFocus();
+        await tester.pumpAndSettle();
+        await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/focus.sticker-drop.${b.name}.png'));
+      } finally {
+        debugDisableShadows = true;
+      }
+    });
   }
 
   group('the platform floor', () {
