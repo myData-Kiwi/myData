@@ -28,8 +28,11 @@ enum ApprovalState {
 ///
 /// - A solid `surface` card with `radius-lg`, a 1px `line-strong` edge and `shadow-2`, so it stands above the
 ///   conversation; after a decision the shadow drops to `shadow-1`. This structure is the same in every
-///   theme: a theme gives it its colours, fonts and corners only, never a pattern, glass or another button
-///   style (the Approve is filled, or outlined where the theme's primary is an outline; [Button.approval]).
+///   theme, never a pattern, glass or another button style: the Approve is filled, or outlined where the
+///   theme's primary is an outline, with no drop or bevel ([Button.approval]). A theme gives it its colours
+///   and fonts, and today also its corners, its elevation's shadows and Edit's secondary style; the decision
+///   says colours and fonts only, so whether those three may follow the theme is open for the owner
+///   (design/components/ApprovalCard).
 /// - The [question] ("Send this email?") in the `title` style, with a chip beside it: "Needs approval"
 ///   (`warning`) while [ApprovalState.pending]; then [decidedLabel] (`success`), "Rejected" (neutral) or
 ///   "Failed" (`danger`, with [error] below the source line). Decided 2026-10-12.
