@@ -55,8 +55,9 @@ class MacRecordHeader extends StatelessWidget {
     return total + gap * math.max(0, actions.length - 1);
   }
 
-  /// Whether the name fits beside the avatar in [width] without a word broken: its widest word does.
-  static bool nameFitsBeside(BuildContext context, String name, double width) {
+  /// Whether the name fits beside the avatar in [width] without a word broken: its widest word does, with
+  /// [reserve] beside it (the source badge that follows the name's last word).
+  static bool nameFitsBeside(BuildContext context, String name, double width, {double reserve = 0}) {
     final style = context.macLook.name;
     final scaler = MediaQuery.textScalerOf(context);
     var widest = 0.0;
@@ -67,8 +68,30 @@ class MacRecordHeader extends StatelessWidget {
       if (p.width > widest) widest = p.width;
       p.dispose();
     }
-    return width - MyDataMacSize.avatar - gap(context.look) >= widest;
+    return width - MyDataMacSize.avatar - gap(context.look) - reserve >= widest;
   }
+
+  /// How many lines the name takes in [width].
+  int _nameLines(BuildContext context, double width) {
+    final p = TextPainter(
+      text: TextSpan(text: name, style: context.macLook.name),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+    )..layout(maxWidth: math.max(0, width));
+    final lines = p.computeLineMetrics().length;
+    p.dispose();
+    return lines;
+  }
+
+  /// How far above the name's foot the badge sits, so it is centred on the name's last line.
+  static double _badgeLift(BuildContext context) {
+    final style = context.macLook.name;
+    final line = MediaQuery.textScalerOf(context).scale(style.fontSize!) * (style.height ?? 1.2);
+    return math.max(0, (line - context.macLook.icon) / 2);
+  }
+
+  /// The room the [badge] takes after the name: the gap and a glyph at the Mac `icon` size.
+  static double badgeRoom(BuildContext context) => context.space(2) + context.macLook.icon;
 
   @override
   Widget build(BuildContext context) {
@@ -87,11 +110,12 @@ class MacRecordHeader extends StatelessWidget {
       }
 
       final under = avatarShown &&
-          (!nameFitsBeside(context, name, box.maxWidth) ||
+          (!nameFitsBeside(context, name, box.maxWidth, reserve: badge == null ? 0 : badgeRoom(context)) ||
               (!fits(beside, context.space(2)) && fits(box.maxWidth, context.space(2))));
       final textWidth = !avatarShown || under ? box.maxWidth : beside;
       final actionSpacing = [actionGap(context.look), context.space(2), tightActionGap(context.look)]
           .firstWhere((g) => fits(textWidth, g), orElse: () => actionGap(context.look));
+      final oneLine = badge == null || _nameLines(context, textWidth - badgeRoom(context)) <= 1;
       final text = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -100,15 +124,30 @@ class MacRecordHeader extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // The badge goes under the name where the two do not fit side by side.
-                Wrap(crossAxisAlignment: WrapCrossAlignment.center, spacing: context.space(2), children: [
-                  Semantics(
-                    header: true,
-                    // In a drawn theme its `title`, in the display face where it sets titles in one.
-                    child: Text(name, style: context.macLook.name.copyWith(color: mac.label)),
-                  ),
-                  ?badge,
-                ]),
+                // The badge follows the name's last line, so it is never left alone on a line under the
+                // name it qualifies (Zen's tracked title at the smallest window): the name wraps first.
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: oneLine ? CrossAxisAlignment.center : CrossAxisAlignment.end,
+                  children: [
+                    Flexible(
+                      child: Semantics(
+                        header: true,
+                        // In a drawn theme its `title`, in the display face where it sets titles in one.
+                        // As wide as its longest line, so the badge sits at the end of the name, not
+                        // at the far side of the column.
+                        child: Text(name,
+                            textWidthBasis: TextWidthBasis.longestLine,
+                            style: context.macLook.name.copyWith(color: mac.label)),
+                      ),
+                    ),
+                    if (badge != null) ...[
+                      SizedBox(width: context.space(2)),
+                      // Centred on the name, or on its last line.
+                      Padding(padding: EdgeInsets.only(bottom: oneLine ? 0 : _badgeLift(context)), child: badge),
+                    ],
+                  ],
+                ),
                 if (subtitle.isNotEmpty)
                   Text(subtitle,
                       style: context.macLook.secondary(context.macLook.body).copyWith(color: mac.secondaryLabel)),

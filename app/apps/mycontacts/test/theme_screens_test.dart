@@ -112,4 +112,24 @@ void main() {
       expect(tops, hasLength(fits ? 1 : 2));
     });
   }
+
+  // The source badge stays on the name's last line at the smallest window, never alone on a line under it
+  // (Zen's and Arcade's did): the name wraps first.
+  for (final slug in narrowThemes) {
+    macTestWidgets('the source badge follows the name at the smallest window in $slug', (tester) async {
+      tester.view.physicalSize = macMinSize;
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final before = MacLook.debugOverride;
+      MacLook.debugOverride = true;
+      addTearDown(() => MacLook.debugOverride = before);
+      await tester.pumpWidget(people.build(ThemeCase(slug, Brightness.light, drawnOnMac: true)));
+      await people.before!(tester);
+      final header = find.byType(MacRecordHeader);
+      final name = tester.getRect(find.descendant(of: header, matching: find.text('Ava Fictional')));
+      final badge = tester.getRect(find.byType(MacSourceBadge));
+      expect(badge.center.dy, inInclusiveRange(name.top, name.bottom), reason: 'on a line of the name');
+      expect(badge.left, greaterThanOrEqualTo(name.right), reason: 'after it');
+    });
+  }
 }
