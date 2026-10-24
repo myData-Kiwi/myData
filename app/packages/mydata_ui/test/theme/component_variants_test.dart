@@ -604,6 +604,30 @@ void main() {
     }
   });
 
+  group('window grain', () {
+    // Paperback's ground: one tile of grain repeated, the same at every window size.
+    final grain = styleGroup('materials', {
+      'window': {
+        'kind': 'pattern',
+        'pattern': {'kind': 'grain', 'opacity': 0.3, 'colour': 'ink'},
+      },
+    });
+    for (final b in Brightness.values) {
+      testWidgets('variant golden: window grain, ${b.name}', (tester) async {
+        await pumpVariant(tester, kiwiWith(grain), b, const WindowGround(child: SizedBox.expand()),
+            size: const Size(300, 200));
+        await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/variant.window-grain.${b.name}.png'));
+      });
+    }
+
+    test('the grain tile is made once per colour, whatever the window size', () {
+      const colour = Color(0x0A000000);
+      final tile = PatternPainter.grainImage(colour);
+      expect((tile.width, tile.height), (PatternPainter.grainTile, PatternPainter.grainTile));
+      expect(PatternPainter.grainImage(colour), same(tile));
+    });
+  });
+
   group('icon tiles', () {
     for (final tiles in ['tinted', 'outlined', 'none']) {
       for (final b in Brightness.values) {

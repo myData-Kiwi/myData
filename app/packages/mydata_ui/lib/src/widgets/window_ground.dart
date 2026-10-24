@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
-import 'dart:ui' show PointMode;
+import 'dart:ui' as ui show Image, PictureRecorder, PointMode;
 
 import 'package:flutter/widgets.dart';
 
@@ -71,8 +71,11 @@ class WindowGround extends StatelessWidget {
 }
 
 /// A window pattern (`materials.window.pattern`), every [PatternSpec.spacing] px: dots, a grid, ruled lines,
-/// ruled lines with a margin rule three spacings in, grain (dots scattered the same way every time) or scan
-/// lines (1px lines half a spacing apart).
+/// ruled lines with a margin rule three spacings in, grain or scan lines (1px lines half a spacing apart).
+///
+/// Grain is one [grainTile] square of scattered points, made once per colour and repeated across the
+/// window, so a resize costs the same at any size and the grain stays where it is, never shimmering as the
+/// window is dragged.
 class PatternPainter extends CustomPainter {
   PatternPainter(this.spec, {required this.colour});
   final PatternSpec spec;
@@ -110,16 +113,37 @@ class PatternPainter extends CustomPainter {
       case 'scanlines':
         rows(math.max(2, step / 2));
       case 'grain':
-        // The same scatter every time: a fixed seed, about one grain per 6 square px.
-        final r = math.Random(7);
-        final n = (size.width * size.height / 6).clamp(0, 400000).toInt();
-        final xy = Float32List(n * 2);
-        for (var i = 0; i < n; i++) {
-          xy[2 * i] = r.nextDouble() * size.width;
-          xy[2 * i + 1] = r.nextDouble() * size.height;
-        }
-        canvas.drawRawPoints(PointMode.points, xy, paint);
+        canvas.drawRect(
+            Offset.zero & size,
+            Paint()
+              ..shader = ImageShader(grainImage(colour), TileMode.repeated, TileMode.repeated, Matrix4.identity().storage));
     }
+  }
+
+  /// The side of the grain's tile, in logical px.
+  static const grainTile = 128;
+
+  static final _grain = <Color, ui.Image>{};
+
+  /// The grain tile in [colour]: the same scatter every time (a fixed seed, about one grain per 6 square
+  /// px), made once per colour; a few colours are kept.
+  static ui.Image grainImage(Color colour) {
+    final cached = _grain[colour];
+    if (cached != null) return cached;
+    if (_grain.length >= 8) _grain.clear();
+    final r = math.Random(7);
+    const n = grainTile * grainTile ~/ 6;
+    final xy = Float32List(n * 2);
+    for (var i = 0; i < n; i++) {
+      xy[2 * i] = r.nextDouble() * grainTile;
+      xy[2 * i + 1] = r.nextDouble() * grainTile;
+    }
+    final recorder = ui.PictureRecorder();
+    Canvas(recorder).drawRawPoints(ui.PointMode.points, xy, Paint()..color = colour..strokeWidth = 1);
+    final picture = recorder.endRecording();
+    final image = picture.toImageSync(grainTile, grainTile);
+    picture.dispose();
+    return _grain[colour] = image;
   }
 
   @override
