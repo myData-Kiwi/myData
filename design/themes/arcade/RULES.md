@@ -48,7 +48,7 @@ A midnight heads-up display. A near-black ground with a faint grid floor, thin b
 - Window: a **grid floor** (32 px, the accent at 8%), painted once; reduced transparency turns it plain.
 - **In the Mac window each contact is a card on the floor:** the plain contact list draws every row as a cut-corner card with its bright edge and the card gap under it (the theme's lists are cards), as the prototype's list did. The record, the month and the day list stand on the floor itself; their text is checked against the grid composited.
 - Elevation: **glow**, on the primary button only (the approval card's Approve keeps a soft glow and nothing else of the theme's depth). Never on text, never on cards.
-- Borders: 1 px solid in the edge colour on cards, controls and month cells; inset separators. No blur anywhere.
+- Borders: 1 px solid in the edge colour on cards and controls; inset separators. The month's cells are ruled in the faint `line`, not the edge: its separators are inset, so the Mac month keeps the faint grid (as Sticker's does), and a bright edge round all 42 days would outshout today's ring. No blur anywhere.
 
 ## Icons
 
@@ -70,7 +70,7 @@ Phosphor Regular, the current section filled, on outlined tiles (cut, like every
 | Avatars | Cut-corner squares (a square avatar takes the theme's cut, at a rounded tile's radius) |
 | Tabs | Underline in the accent; labels in sentence case (format 1 sets case on the label and caption roles only, and a tab's label is neither) |
 | Chat | Cut-corner bubbles |
-| Month, today | Boxed cells; today an accent ring |
+| Month, today | Boxed: one grid in the faint `line`; today an accent ring |
 
 ## Do and don't
 
