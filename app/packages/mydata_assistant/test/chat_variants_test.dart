@@ -54,4 +54,42 @@ void main() {
       });
     }
   }
+
+  // Send is the composer's primary action, drawn as the theme draws a primary: a filled circle in Kiwi, an
+  // outlined square with no fill in Journal (its rules: square corners, plum almost never a fill).
+  for (final (slug, filled, square) in [('kiwi', true, false), ('journal', false, true)]) {
+    testWidgets('send is drawn as $slug draws a primary button', (tester) async {
+      tester.view.physicalSize = const Size(640, 200);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final look = ThemeLibrary.lookFor(ThemeChoice('mydata.$slug'), Brightness.light, platform: TargetPlatform.linux);
+      await tester.pumpWidget(MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: MyDataTheme.fromLook(look).copyWith(platform: TargetPlatform.linux),
+        home: Material(child: ChatView(controller: ChatController(ScriptedBackend()))),
+      ));
+      await tester.pumpAndSettle();
+      final box = tester.widget<Container>(
+          find.descendant(of: find.byKey(ChatView.sendKey), matching: find.byType(Container)).first);
+      final paint = ButtonPaint.of(look, ButtonVariant.filled);
+      final d = box.decoration!;
+      final (Color? fill, ShapeBorder? border) = switch (d) {
+        BoxDecoration() => (d.color, null),
+        ShapeDecoration() => (d.color, d.shape),
+        _ => (null, null),
+      };
+      expect(fill, filled ? look.colors.accent : isNull);
+      expect(paint.side != null, !filled);
+      if (square) {
+        expect(d, isA<BoxDecoration>());
+        expect((d as BoxDecoration).shape, BoxShape.rectangle);
+        expect(d.borderRadius, BorderRadius.zero);
+        expect(d.border, Border.fromBorderSide(paint.side!));
+      } else {
+        expect(border, isNull);
+        expect((d as BoxDecoration).shape, BoxShape.circle);
+      }
+      await expectLater(find.byKey(ChatView.sendKey), matchesGoldenFile('goldens/send.$slug.light.png'));
+    });
+  }
 }

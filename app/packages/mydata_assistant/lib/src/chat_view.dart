@@ -657,22 +657,53 @@ class _Composer extends StatelessWidget {
               ),
             ),
             SizedBox(width: context.space(2)),
-            Pressable(
-              key: ChatView.sendKey,
-              onPressed: busy ? null : onSend,
-              borderRadius: MyDataRadii.pill(context.look),
-              semanticLabel: ChatView.sendLabel,
-              tooltip: ChatView.sendLabel,
-              child: Container(
-                width: context.density.controlHeight,
-                height: context.density.controlHeight,
-                decoration: BoxDecoration(color: c.accent, shape: BoxShape.circle),
-                alignment: Alignment.center,
-                child: Icon(context.icon(MyDataIcon.send), size: context.density.icon, color: c.onAccent),
-              ),
-            ),
+            _SendButton(busy: busy, onSend: onSend),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Send, an icon-only primary action: drawn as the theme draws its primary button (`button.primary` and
+/// `button.shape`): a filled circle in Kiwi, an outlined square in Journal, in `ink` when the accent is near
+/// red, as every primary is.
+class _SendButton extends StatelessWidget {
+  const _SendButton({required this.busy, required this.onSend});
+  final bool busy;
+  final VoidCallback onSend;
+
+  @override
+  Widget build(BuildContext context) {
+    final look = context.look;
+    final paint = ButtonPaint.of(look, ButtonVariant.filled);
+    final (shape, radius) = Button.shapeOf(look);
+    final pill = look.variants.buttonShape == ButtonShapeStyle.pill;
+    final side = paint.side;
+    return Pressable(
+      key: ChatView.sendKey,
+      onPressed: busy ? null : onSend,
+      borderRadius: pill ? MyDataRadii.pill(look) : radius,
+      shape: pill ? null : shape,
+      semanticLabel: ChatView.sendLabel,
+      tooltip: ChatView.sendLabel,
+      child: Container(
+        width: context.density.controlHeight,
+        height: context.density.controlHeight,
+        // A pill on a square is a circle.
+        decoration: pill
+            ? BoxDecoration(
+                color: paint.fill,
+                shape: BoxShape.circle,
+                boxShadow: paint.shadows.isEmpty ? null : paint.shadows,
+                border: side == null ? null : Border.fromBorderSide(side))
+            : shape.decorate(BoxDecoration(
+                color: paint.fill,
+                borderRadius: radius,
+                boxShadow: paint.shadows.isEmpty ? null : paint.shadows,
+                border: side == null ? null : Border.fromBorderSide(side))),
+        alignment: Alignment.center,
+        child: Icon(context.icon(MyDataIcon.send), size: context.density.icon, color: paint.foreground),
       ),
     );
   }
