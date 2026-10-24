@@ -62,4 +62,37 @@ void main() {
       }
     });
   });
+
+  group('the approval card', () {
+    Widget card() => ApprovalCard(
+          question: 'Send this email?',
+          arguments: const [('To', 'ava@example.org'), ('Subject', 'Train on Friday')],
+          approveLabel: 'Approve and send',
+          decidedLabel: 'Sent',
+          onApprove: noop,
+          onEdit: noop,
+          onReject: noop,
+        );
+
+    // Its structure stays in every theme: a brutal, bevelled or push primary draws its Approve filled, and an
+    // outline primary outlined; the card keeps its solid surface and line-strong edge.
+    variantGoldens('button.primary', (_) => card(),
+        size: const Size(520, 260), focused: false, values: ['outline', 'brutal'], name: 'approval');
+
+    test('Approve is filled or outlined, never brutal, bevelled or a push button', () {
+      for (final value in componentValues['button.primary']!) {
+        final look = ThemeLibrary.look(kiwiWith(component('button.primary', value)), brightness: Brightness.light);
+        final approve = ButtonPaint.of(look, ButtonVariant.filled, approval: true);
+        final filled = ButtonPaint.of(
+            ThemeLibrary.look(kiwiWith(component('button.primary', 'filled')), brightness: Brightness.light),
+            ButtonVariant.filled);
+        if (value == 'outline') {
+          expect(approve.fill, isNull);
+        } else {
+          expect((approve.fill, approve.side, approve.collapses), (filled.fill, filled.side, false), reason: value);
+          expect(approve.shadows, filled.shadows, reason: value);
+        }
+      }
+    });
+  });
 }

@@ -26,8 +26,10 @@ enum ApprovalState {
 /// The card that asks the user before the assistant does something that cannot be undone
 /// (design/components/ApprovalCard).
 ///
-/// - A `surface` card with `radius-lg` and `shadow-2`, so it stands above the conversation; after a decision
-///   the shadow drops to `shadow-1`.
+/// - A solid `surface` card with `radius-lg`, a 1px `line-strong` edge and `shadow-2`, so it stands above the
+///   conversation; after a decision the shadow drops to `shadow-1`. This structure is the same in every
+///   theme: a theme gives it its colours, fonts and corners only, never a pattern, glass or another button
+///   style (the Approve is filled, or outlined where the theme's primary is an outline; [Button.approval]).
 /// - The [question] ("Send this email?") in the `title` style, with a chip beside it: "Needs approval"
 ///   (`warning`) while [ApprovalState.pending]; then [decidedLabel] (`success`), "Rejected" (neutral) or
 ///   "Failed" (`danger`, with [error] below the source line). Decided 2026-10-12.
@@ -144,6 +146,9 @@ class ApprovalCard extends StatefulWidget {
   /// [nameMaxFraction] of the well.
   static const nameWidth = 72.0;
 
+  /// The card's edge, in `line-strong`, in every theme.
+  static const edgeWidth = 1.0;
+
   /// The widest the name column grows, as a fraction of the well. Not in the spec.
   static const nameMaxFraction = 0.4;
 
@@ -230,7 +235,8 @@ class _ApprovalCardState extends State<ApprovalCard> {
           includeSemantics: false,
           child: ButtonRow(
             children: [
-              Button(label: widget.approveLabel, variant: ButtonVariant.filled, onPressed: widget.onApprove),
+              Button(
+                  label: widget.approveLabel, variant: ButtonVariant.filled, approval: true, onPressed: widget.onApprove),
               if (widget.onEdit != null) Button(label: ApprovalCard.editLabel, onPressed: widget.onEdit),
               Button(label: ApprovalCard.rejectLabel, variant: ButtonVariant.plain, onPressed: widget.onReject),
             ],
@@ -279,6 +285,11 @@ class _ApprovalCardState extends State<ApprovalCard> {
         color: c.surface,
         borderRadius: MyDataRadii.lg(context.look),
         boxShadow: _pending ? context.shadows.shadow2 : context.shadows.shadow1,
+      )),
+      // Over the content, so the edge takes no room from it.
+      foregroundDecoration: context.radius.decorate(BoxDecoration(
+        borderRadius: MyDataRadii.lg(context.look),
+        border: Border.all(color: c.lineStrong, width: ApprovalCard.edgeWidth),
       )),
       child: Column(
         mainAxisSize: MainAxisSize.min,
