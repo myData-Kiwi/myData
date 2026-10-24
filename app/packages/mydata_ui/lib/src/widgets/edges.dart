@@ -24,8 +24,9 @@ abstract final class MyDataEdgesPaint {
   /// the faint `line` ([MyDataEdges.controlColour]).
   static Border? control(MyDataLook look) => look.edges.controls ? Border.fromBorderSide(look.edges.controlSide) : null;
 
-  /// Strokes [path] as [style]: solid, dashed (dashes three widths long, two apart), or a double line drawn
-  /// as [path] and [inner] (the same outline two widths further in).
+  /// Strokes [path] as [style]: solid, dashed (dashes three widths long, two apart: [dashes]), or a double
+  /// line drawn as [path] and [inner] (the same outline two widths further in). A painter that keeps its
+  /// [path] while its size stays the same has its dashes worked out once.
   static void stroke(Canvas canvas, Path path, BorderSide side, BorderStyleKind style, {Path? inner}) {
     final paint = Paint()
       ..color = side.color
@@ -35,16 +36,38 @@ abstract final class MyDataEdgesPaint {
       case BorderStyleKind.solid:
         canvas.drawPath(path, paint);
       case BorderStyleKind.dashed:
-        final dash = math.max(3.0, side.width * 3), gap = math.max(2.0, side.width * 2);
-        for (final m in path.computeMetrics()) {
-          for (var d = 0.0; d < m.length; d += dash + gap) {
-            canvas.drawPath(m.extractPath(d, math.min(d + dash, m.length)), paint);
-          }
-        }
+        canvas.drawPath(_dashed[path] ??= dashes(path, side.width), paint);
       case BorderStyleKind.doubleLine:
         canvas.drawPath(path, paint);
         if (inner != null) canvas.drawPath(inner, paint);
     }
+  }
+
+  static final _dashed = Expando<Path>('dashes');
+
+  /// [path]'s dashes for a line [width] wide, as one path: about three widths on and two off, the period
+  /// stretched a little so it fits each contour evenly. A closed outline has whole periods, so no short or
+  /// doubled dash at its seam; an open line starts and ends on a dash.
+  static Path dashes(Path path, double width) {
+    final dash = math.max(3.0, width * 3), gap = math.max(2.0, width * 2);
+    final out = Path();
+    for (final m in path.computeMetrics()) {
+      if (m.length <= dash) {
+        out.addPath(m.extractPath(0, m.length), Offset.zero);
+        continue;
+      }
+      // Closed: n periods round the contour. Open: n dashes and n - 1 gaps along it.
+      final n = m.isClosed
+          ? math.max(1, (m.length / (dash + gap)).round())
+          : math.max(1, ((m.length + gap) / (dash + gap)).round());
+      final period = m.isClosed ? m.length / n : m.length / (n - gap / (dash + gap));
+      final on = period * dash / (dash + gap);
+      for (var i = 0; i < n; i++) {
+        final d = i * period;
+        out.addPath(m.extractPath(d, math.min(d + on, m.length)), Offset.zero);
+      }
+    }
+    return out;
   }
 }
 
@@ -100,11 +123,18 @@ class _StyledEdgePainter extends BoxPainter {
     final size = configuration.size;
     if (size == null) return;
     final rect = offset & size;
-    final w = d.side.width;
-    final outer = d.shape.ringPath(rect, d.radius, -w / 2);
-    final inner = d.style == BorderStyleKind.doubleLine ? d.shape.ringPath(rect, d.radius, -w * 2.5) : null;
-    MyDataEdgesPaint.stroke(canvas, outer, d.side, d.style, inner: inner);
+    if (rect != _rect) {
+      final w = d.side.width;
+      _rect = rect;
+      _outer = d.shape.ringPath(rect, d.radius, -w / 2);
+      _inner = d.style == BorderStyleKind.doubleLine ? d.shape.ringPath(rect, d.radius, -w * 2.5) : null;
+    }
+    MyDataEdgesPaint.stroke(canvas, _outer!, d.side, d.style, inner: _inner);
   }
+
+  // The outline as last drawn: kept while the box does not move or resize, with its dashes.
+  Rect? _rect;
+  Path? _outer, _inner;
 
   @override
   void dispose() {
@@ -282,13 +312,21 @@ class _RulePainter extends CustomPainter {
       ..moveTo(from, y)
       ..lineTo(to, y);
     final twoLines = style == BorderStyleKind.doubleLine && size.height >= w * 3;
+    if (size != _size) {
+      _size = size;
+      _line = line(twoLines ? w / 2 : size.height / 2);
+      _second = twoLines ? line(w * 2.5) : null;
+    }
     if (twoLines) {
-      MyDataEdgesPaint.stroke(canvas, line(w / 2), side, BorderStyleKind.doubleLine, inner: line(w * 2.5));
+      MyDataEdgesPaint.stroke(canvas, _line!, side, BorderStyleKind.doubleLine, inner: _second);
     } else {
-      MyDataEdgesPaint.stroke(canvas, line(size.height / 2), side,
-          style == BorderStyleKind.doubleLine ? BorderStyleKind.solid : style);
+      MyDataEdgesPaint.stroke(canvas, _line!, side, style == BorderStyleKind.doubleLine ? BorderStyleKind.solid : style);
     }
   }
+
+  // The rule as last drawn, kept while the size stays (a list repainting on hover reuses its dashes).
+  Size? _size;
+  Path? _line, _second;
 
   @override
   bool shouldRepaint(_RulePainter old) =>

@@ -281,6 +281,17 @@ void main() {
       expect(failures, isEmpty, reason: failures.join('\n'));
     });
 
+    test('dashes are one path, fitted so a closed outline has no odd dash at its seam', () {
+      final closed = MyDataEdgesPaint.dashes(Path()..addRect(const Rect.fromLTWH(0, 0, 101, 52)), 1);
+      final lengths = [for (final m in closed.computeMetrics()) m.length];
+      expect(lengths.length, (306 / 5).round());
+      expect(lengths.reduce(math.max) - lengths.reduce(math.min), lessThan(0.01), reason: 'every dash alike');
+      final open = MyDataEdgesPaint.dashes(Path()..moveTo(0, 0)..lineTo(100, 0), 1);
+      final bounds = open.getBounds();
+      expect(bounds.left, 0);
+      expect(bounds.right, closeTo(100, 0.01), reason: 'an open line ends on a dash');
+    });
+
     test('a control is never outlined in the faint line: line-strong stands in', () {
       // A theme (a custom one, say) that outlines controls in `line`.
       final json = jsonDecode(kiwiThemeJson) as Map<String, dynamic>;
