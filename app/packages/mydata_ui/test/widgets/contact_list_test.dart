@@ -481,6 +481,29 @@ void main() {
       expect(other.any((d) => d.border != null || d.color == c.accentSoft), isFalse);
     });
 
+    // A theme that outlines its tint (Zen: its 2 px edge in the colour, as its sidebar draws it) rings the
+    // selected row in `selection`, never in `ink`: an ink box was the strongest mark on a screen of hairlines.
+    testWidgets('an outlined tint rings the selected row in selection (zen)', (tester) async {
+      tester.view.physicalSize = const Size(900, 700);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+          themedFrame(const ThemeCase('zen', Brightness.light), _Harness(contacts: _people(), selected: 'a2')));
+      await tester.pump();
+      final look = MyDataLook.of(tester.element(_row('Ava Fictional')));
+      expect(look.variants.selection, SelectionStyle.tint);
+      expect(SelectionPaint.of(look).outline, isNotNull);
+      final rings = tester
+          .widgetList<DecoratedBox>(find.descendant(of: _row('Ava Fictional'), matching: find.byType(DecoratedBox)))
+          .map((d) => d.decoration.box)
+          .toList();
+      final ring = Border.all(color: look.colors.selection, width: ContactList.selectionRingWidth);
+      expect(rings.any((d) => d.border == ring), isTrue);
+      expect(look.colors.selection, look.colors.accent);
+      expect(rings.any((d) => d.border == Border.all(color: look.colors.ink, width: ContactList.selectionRingWidth)),
+          isFalse);
+    });
+
     testWidgets('hover fills an unselected row with surface-sunken; the selected row keeps accent-soft', (
       tester,
     ) async {

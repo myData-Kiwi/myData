@@ -111,8 +111,8 @@ class ContactListEntry {
 /// - **Pressing** a row calls [onOpen] with its id: the app selects it and shows it in the contact pane, or,
 ///   under 600px, pushes its page.
 /// - **Selected** (from 600px, [selectedId]): in the theme's selection style. A tint (Kiwi) is a
-///   [selectionRingWidth] `ink` ring inside the row over the `accent-soft` fill, an outline the same ring in
-///   `selection`; the others are drawn as [SelectionMark] draws them (a solid or inverse fill, a bar, the
+///   [selectionRingWidth] `ink` ring inside the row over the `accent-soft` fill (in `selection` where the
+///   theme outlines its tint, [SelectionPaint]: Sticker, Zen), an outline the same ring in `selection`; the others are drawn as [SelectionMark] draws them (a solid or inverse fill, a bar, the
 ///   highlighter's swipe). `selected` is in the semantics. Under 600px no row is shown selected.
 /// - **Keyboard.** The list is one tab stop, after the search field; Tab from it goes on to the contact pane.
 ///   - From 600px, Up and Down move the selection one row at a time, across the letter groups, calling
@@ -1501,11 +1501,13 @@ class _ContactRowState extends State<_ContactRow> {
     );
     final caption = e.caption;
     // The theme's selection: tint keeps the `ink` ring over its fill (the ring marks it), outline draws the
-    // ring in `selection`; the others mark the row through SelectionMark (a fill, a bar, a swipe).
+    // ring in `selection`, and so does a tint that SelectionPaint outlines (Sticker's, Zen's: the theme's
+    // 2 px edge in its colour, as its sidebar draws it); the others mark the row through SelectionMark (a
+    // fill, a bar, a swipe).
     final selection = widget.selected ? SelectionPaint.of(context.look) : null;
     final ringed = selection != null &&
         (selection.style == SelectionStyle.tint || selection.style == SelectionStyle.outline);
-    final ringColour = selection?.style == SelectionStyle.outline ? c.selection : c.ink;
+    final ringColour = selection?.outline?.color ?? c.ink;
     final selectedFill = selection?.fill;
     final outlined = list == ListStyle.bordered || table;
     final overOutline = ringed && (widget.joinsUp || widget.joinsDown || outlined);
