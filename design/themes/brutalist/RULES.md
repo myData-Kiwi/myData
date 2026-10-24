@@ -40,7 +40,7 @@ Square, heavy and honest. Black ink on off-white, 3 px outlines on every contain
 | Yellow | `yellow` | `#111111` / `#FFD60A` | light 16.1 / 8.7 / 14.5 / 18.9; dark 18.7 / 11.2 / 13.3 / 14.9 |
 | Green | `green` | `#007A3D` / `#3DDC84` | light 18.4 / 10.0 / 5.2 / 5.5; dark 18.7 / 11.2 / 10.5 / 11.8 |
 
-- **Yellow is a poster:** in light the ground (and so the sidebar) is yellow `#FFE14D` with white boxes and the primary a black block, since no yellow accent reaches 3:1 on white; in dark the accent and the shadows are yellow on black.
+- **Yellow is a poster:** in light the ground (and so the sidebar) is yellow `#FFE14D` with white boxes and the primary a black block, since no yellow accent reaches 3:1 on white; in dark the accent and the shadows are yellow on black. In the Mac window the boxes are the panes (`MacPanel`), so the yellow shows between the list, the record, the month and the day list and round the forms, not in the sidebar alone. Its links are ink, told from the text round them by their underline, the cue WCAG 1.4.1 asks for besides colour.
 - Blue and Green move the accent, its tint, the link and the dark shadow; grounds, ink, status and calendar colours stay.
 - Every palette gives every role the style does not fix and passes `ARCHITECTURE.md` 2.2 in both modes and at increased contrast (derived 7:1 values). No palette's accent is near `danger`'s red, so Approve is never drawn like Delete.
 
