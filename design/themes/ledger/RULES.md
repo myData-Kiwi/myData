@@ -105,6 +105,6 @@ No font or icon set is added: Ledger costs nothing of the font budget.
 - **Inter, not Inter Tight, for the titles,** as in Swiss: Inter's optical size axis gives display sizes its tight display cut, so no second family is bundled.
 - **No columns.** The prototype drew contacts as a table with name, email, phone and source columns and a narrow inspector beside it; that is layout, which stays out of themes. Ledger keeps the table's look (header bands, rules, stripes, density) on the one column every theme has.
 - **Today is an ink block on the day's number** in the Mac month, not the whole cell as the prototype drew it: the Mac month draws today's mark the same way in every inverse theme. The branded month grid (off the Mac) inverts the whole cell.
-- Phone numbers stay in the body face with tabular figures, not mono: the format cannot set a face per value.
+- Phone numbers and addresses are in the body face, with tabular figures, on the record (the prototype set them in mono); in the assistant's result cards and the approval card's To line they are in mono, as in every theme (those widgets set their values in the mono role). So a phone can show in both faces within Ledger, by place, not by value: the format sets faces per role, not per kind of value.
 - Its colours are the Teal palette (the hover fill a step darker so it reads 1.3:1 on the ground); Green and Blue are new.
 - The approval card keeps its 1 px `line-strong` edge and its fixed structure, as in every theme.
