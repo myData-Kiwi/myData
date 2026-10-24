@@ -346,6 +346,9 @@ class _MacSegmentedState<T> extends State<MacSegmented<T>> {
     final shape = m.controlRadius;
     final rest = m.itemSide ?? BorderSide(color: mac.separator, width: MyDataMacSize.hairline);
     final enabled = widget.onChanged != null;
+    // A drawn theme whose tabs are boxed marks the current segment as its shared tabs do, in `selection`
+    // with `on-selection` (High Contrast's inverse), never with a faint tint alone.
+    final boxed = !context.isSystemLook && context.variants.tabs == TabsStyle.boxed;
     Widget control = Container(
       height: height,
       padding: const EdgeInsets.all(MyDataMacSize.tight),
@@ -374,7 +377,9 @@ class _MacSegmentedState<T> extends State<MacSegmented<T>> {
                   padding: EdgeInsets.symmetric(horizontal: toolbar ? context.space(4) : context.space(3)),
                   alignment: Alignment.center,
                   decoration: m.decorate(BoxDecoration(
-                    color: value == widget.selected ? (toolbar ? mac.sidebarSelection : mac.toolbarItem) : null,
+                    color: value == widget.selected
+                        ? (boxed ? context.colors.selection : (toolbar ? mac.sidebarSelection : mac.toolbarItem))
+                        : null,
                     borderRadius: shape,
                     border: value == widget.selected && !toolbar
                         ? Border.all(color: mac.separator, width: MyDataMacSize.hairline)
@@ -383,7 +388,10 @@ class _MacSegmentedState<T> extends State<MacSegmented<T>> {
                   child: Text(
                     label,
                     style: (value == widget.selected && toolbar ? m.bodyEmphasized : m.body)
-                        .copyWith(color: enabled ? mac.label : mac.tertiaryLabel),
+                        .copyWith(
+                            color: !enabled
+                                ? mac.tertiaryLabel
+                                : (boxed && value == widget.selected ? context.colors.onSelection : mac.label)),
                   ),
                 ),
               ),
