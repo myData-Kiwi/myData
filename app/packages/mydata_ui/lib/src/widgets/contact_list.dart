@@ -1287,15 +1287,15 @@ class _PlainContactRowState extends State<_PlainContactRow> {
       );
     }
     // The keyboard's ring inside the row, as a list row's is, so the rows around it never cover it; two-tone
-    // on a fill. Inside an outline selection (Large's) it stands clear of the outline, so both show.
+    // on a fill. Inside an outline selection (Large's) it stands clear of the outline, and inside a bar
+    // (Swiss's, Arcade's) clear of the bar, so both show: over it, the ring covered the bar.
     if (widget.keyboardRing) {
-      final outline = paint?.outline;
       content = CustomPaint(
         foregroundPainter: InsetRingPainter(
           shape: look.shape,
           color: FocusRing.colourFor(context),
           borderRadius: radius,
-          inset: outline == null ? 0 : outline.width + MyDataMacSize.tight,
+          inset: macRingInset(paint),
           width: FocusRing.widthFor(context),
           keyline: FocusRing.keylineFor(context, onFill: paint?.fill != null),
         ),
@@ -1322,6 +1322,15 @@ class _PlainContactRowState extends State<_PlainContactRow> {
       padding: EdgeInsets.symmetric(horizontal: ruled ? 0 : MyDataMacSize.rowInset),
       child: content,
     );
+  }
+
+  /// How far the keyboard's ring stands in from a Mac row's edge under [paint] (null: not selected): clear of
+  /// an outline or a leading bar, so the selection's own mark still shows; at the edge otherwise.
+  static double macRingInset(SelectionPaint? paint) {
+    final outline = paint?.outline;
+    if (outline != null) return outline.width + MyDataMacSize.tight;
+    if (paint?.bar != null) return SelectionPaint.barWidth;
+    return 0;
   }
 
   Widget _semantics(Widget content) {
