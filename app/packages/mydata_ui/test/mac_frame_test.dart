@@ -50,6 +50,32 @@ void main() {
         home: Scaffold(body: Center(child: child)),
       );
 
+  testWidgets('a web address on a record is underlined in a drawn theme, in the accent in System', (tester) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final table = MacFieldTable(groups: [
+      [const MacField(label: 'work', value: 'ava@example.com')],
+      [MacField(label: 'website', value: 'example.com/ava', onOpen: () {})],
+    ]);
+    TextStyle style(String text) => tester.widget<Text>(find.text(text)).style!;
+
+    await tester.pumpWidget(frame(table));
+    expect(style('example.com/ava').decoration, isNot(TextDecoration.underline));
+    expect(style('example.com/ava').color, MyDataMacColors.light.accent);
+
+    // Hairline's link is almost its ink (14.3:1 on bg, as ink is): only the underline tells it apart.
+    for (final slug in ['hairline', 'kiwi', 'sticker']) {
+      final theme = MacTheme.forChoice(ThemeChoice('mydata.$slug'), Brightness.light, MyDataMacColors.light);
+      await tester.pumpWidget(MaterialApp(
+          theme: theme, themeAnimationDuration: Duration.zero, home: Scaffold(body: Center(child: table))));
+      final c = theme.extension<MyDataColors>()!;
+      expect(style('example.com/ava').decoration, TextDecoration.underline, reason: slug);
+      expect(style('example.com/ava').color, c.link, reason: slug);
+      expect(style('ava@example.com').decoration, isNot(TextDecoration.underline), reason: slug);
+    }
+  });
+
   testWidgets('Button is a push button in the Mac frame', (tester) async {
     tester.view.physicalSize = const Size(1280, 800);
     tester.view.devicePixelRatio = 1;

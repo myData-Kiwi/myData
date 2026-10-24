@@ -186,7 +186,8 @@ class MacField {
 /// `secondary-label`, the value beside it in `body` and `label`. [groups] are `space-4` apart (phones,
 /// emails, addresses...). There are no cards and no copy buttons:
 ///
-/// - **Clicking a value copies it** (a web address opens instead, in the accent). For a moment its label
+/// - **Clicking a value copies it** (a web address opens instead, in the accent; in a drawn theme in `link`
+///   and underlined). For a moment its label
 ///   reads [copiedLabel] in the accent; screen readers hear it.
 /// - **Right-click** offers Copy (and Open for a web address).
 /// - Under the pointer a value gets the `hover` fill.
@@ -224,6 +225,20 @@ class _FieldLine extends StatefulWidget {
 }
 
 class _FieldLineState extends State<_FieldLine> {
+  /// A value's style. A web address is in the accent, as Contacts.app draws it, in System; in a drawn theme
+  /// it is in `link` and underlined, as every link is (design/README.md "Links"), so it is never told from
+  /// the text around it by colour alone (WCAG 1.4.1): Hairline's link is almost its ink.
+  static TextStyle _valueStyle(BuildContext context, {required bool link}) {
+    final mac = context.mac;
+    if (context.isSystemLook) return MyDataMacType.body.copyWith(color: link ? mac.accent : mac.label);
+    final c = context.colors;
+    return MyDataMacType.body.copyWith(
+      color: link ? c.link : mac.label,
+      decoration: link ? TextDecoration.underline : null,
+      decorationColor: link ? c.link : null,
+    );
+  }
+
   bool _hovered = false;
   bool _copied = false;
   Timer? _timer;
@@ -264,7 +279,7 @@ class _FieldLineState extends State<_FieldLine> {
         color: _hovered ? mac.hover : null,
         borderRadius: const BorderRadius.all(Radius.circular(MyDataMacRadius.selection)),
       ),
-      child: Text(f.value, style: MyDataMacType.body.copyWith(color: open != null ? mac.accent : mac.label)),
+      child: Text(f.value, style: _valueStyle(context, link: open != null)),
     );
     value = MouseRegion(
       cursor: open != null ? SystemMouseCursors.click : SystemMouseCursors.basic,
