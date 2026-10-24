@@ -97,7 +97,7 @@ Pixelarticons (MIT), one weight, 24 px, no tiles.
 | JetBrains Mono | SIL OFL 1.1, bundled | https://github.com/google/fonts/tree/main/ofl/jetbrainsmono |
 | Pixelarticons 2.4.2 | MIT | https://github.com/halfmage/pixelarticons/blob/master/LICENSE |
 
-Pixelarticons' brand glyphs are never mapped: "clear" is drawn as its close cross, not its `x`, which is a brand's logo.
+Pixelarticons' brand glyphs are never mapped: its `x` is a brand's logo. "clear" is drawn as its `delete` key, so it is never the same glyph as "close"; a month is `calendar-2` (a grid of days), apart from the lined `calendar-text` of an event added; a record's message is the round `comment`, apart from the chat's `message-text`. Pixelarticons has no calendar with a tick.
 
 ## Ported from the prototype
 
