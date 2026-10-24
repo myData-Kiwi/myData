@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
@@ -39,6 +40,21 @@ class MacRecordHeader extends StatelessWidget {
   /// Between the round actions.
   static double actionGap(MyDataLook look) => look.space(4);
 
+  /// Between the round actions where [actionGap] would put one alone on a second line: the closest they
+  /// come (Large's 52 px targets touch at the smallest window; their circles stay apart).
+  static double tightActionGap(MyDataLook look) => look.space(1);
+
+  /// The width [actions] take on one line [gap] apart, or null when one of them is not a [MacQuickAction]
+  /// (its width is not known before layout).
+  static double? actionsWidth(BuildContext context, List<Widget> actions, double gap) {
+    var total = 0.0;
+    for (final a in actions) {
+      if (a is! MacQuickAction) return null;
+      total += MacQuickAction.widthOf(context, a.label);
+    }
+    return total + gap * math.max(0, actions.length - 1);
+  }
+
   /// Whether the name fits beside the avatar in [width] without a word broken: its widest word does.
   static bool nameFitsBeside(BuildContext context, String name, double width) {
     final style = context.macLook.name;
@@ -58,8 +74,24 @@ class MacRecordHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final mac = context.mac;
     // The name beside the avatar; under it where its widest word would not fit beside it (a narrow window
-    // in a large type), so a name is never broken mid-word.
+    // in a large type), so a name is never broken mid-word, or where the round actions would not fit on one
+    // line beside it, even closer together, but would under it: one action alone on a second line looked
+    // broken (Arcade and Swiss at the smallest window). Only where neither fits do they close up to
+    // [tightActionGap]; where nothing fits (Large's 52 px targets) they wrap.
     return LayoutBuilder(builder: (context, box) {
+      final avatarShown = Avatar.shown(context);
+      final beside = box.maxWidth - MyDataMacSize.avatar - gap(context.look);
+      bool fits(double width, double gap) {
+        final need = actionsWidth(context, actions, gap);
+        return need == null || need <= width;
+      }
+
+      final under = avatarShown &&
+          (!nameFitsBeside(context, name, box.maxWidth) ||
+              (!fits(beside, context.space(2)) && fits(box.maxWidth, context.space(2))));
+      final textWidth = !avatarShown || under ? box.maxWidth : beside;
+      final actionSpacing = [actionGap(context.look), context.space(2), tightActionGap(context.look)]
+          .firstWhere((g) => fits(textWidth, g), orElse: () => actionGap(context.look));
       final text = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -85,13 +117,13 @@ class MacRecordHeader extends StatelessWidget {
           ),
           if (actions.isNotEmpty) ...[
             SizedBox(height: context.space(3)),
-            Wrap(spacing: actionGap(context.look), runSpacing: context.space(2), children: actions),
+            Wrap(spacing: actionSpacing, runSpacing: context.space(2), children: actions),
           ],
         ],
       );
       // A drawn theme without avatars leaves out its place too.
-      if (!Avatar.shown(context)) return text;
-      if (!nameFitsBeside(context, name, box.maxWidth)) {
+      if (!avatarShown) return text;
+      if (under) {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [avatar, SizedBox(height: gap(context.look)), text],
@@ -131,6 +163,21 @@ class MacQuickAction extends StatefulWidget {
 
   @override
   State<MacQuickAction> createState() => _MacQuickActionState();
+
+  /// The width a quick action with [label] takes: its circle, its word under it or the theme's least
+  /// target, whichever is widest.
+  static double widthOf(BuildContext context, String label) {
+    final m = context.macLook;
+    final p = TextPainter(
+      text: TextSpan(text: label, style: m.action),
+      textDirection: TextDirection.ltr,
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout();
+    final word = p.width;
+    p.dispose();
+    return math.max(math.max(MyDataMacSize.actionButton, word), m.target);
+  }
 }
 
 class _MacQuickActionState extends State<MacQuickAction> {

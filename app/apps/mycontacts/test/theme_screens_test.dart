@@ -87,4 +87,29 @@ void main() {
       }
     });
   }
+
+  // At the smallest window the record's three actions share one line wherever they fit in the record's width
+  // at the closest gap (Arcade and Swiss left "mail" alone on a second line). Large's three 52 px targets are
+  // wider than its record there, so it alone wraps.
+  for (final slug in narrowThemes) {
+    macTestWidgets('the record\'s actions share one line at the smallest window in $slug', (tester) async {
+      tester.view.physicalSize = macMinSize;
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final before = MacLook.debugOverride;
+      MacLook.debugOverride = true;
+      addTearDown(() => MacLook.debugOverride = before);
+      await tester.pumpWidget(people.build(ThemeCase(slug, Brightness.light, drawnOnMac: true)));
+      await people.before!(tester);
+      final actions = find.byType(MacQuickAction);
+      expect(actions, findsNWidgets(3));
+      final header = tester.widget<MacRecordHeader>(find.byType(MacRecordHeader));
+      final context = tester.element(actions.first);
+      final need = MacRecordHeader.actionsWidth(context, header.actions, MacRecordHeader.tightActionGap(context.look))!;
+      final fits = need <= tester.getSize(find.byType(MacRecordHeader)).width;
+      expect(fits, slug != 'large', reason: 'the three fit in the record at the closest gap');
+      final tops = {for (final e in actions.evaluate()) tester.getTopLeft(find.byWidget(e.widget)).dy};
+      expect(tops, hasLength(fits ? 1 : 2));
+    });
+  }
 }
