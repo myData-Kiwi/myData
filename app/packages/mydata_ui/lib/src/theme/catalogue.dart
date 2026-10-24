@@ -63,7 +63,8 @@ const fontPackage = 'mydata_ui';
 
 /// ARCHITECTURE.md 1.5. All are OFL fonts with no Reserved Font Name. Three are core fonts, as before phase 3;
 /// phase 3 bundles the fonts the six built-ins name, as Latin subsets cut by tool/subset_fonts.sh; the fonts
-/// of the thirteen new themes come with them in phase 4.
+/// of the thirteen new themes come with them in phase 4 (Atkinson Hyperlegible Next and Mono with High
+/// Contrast and Large).
 const fontCatalogue = <String, CatalogueFont>{
   'figtree': CatalogueFont('figtree', 'Figtree', family: 'Figtree', core: true),
   'plus-jakarta-sans': CatalogueFont('plus-jakarta-sans', 'Plus Jakarta Sans', family: 'PlusJakartaSans', core: true),
@@ -85,8 +86,10 @@ const fontCatalogue = <String, CatalogueFont>{
   'space-grotesk': CatalogueFont('space-grotesk', 'Space Grotesk'),
   'space-mono': CatalogueFont('space-mono', 'Space Mono'),
   'pixelify-sans': CatalogueFont('pixelify-sans', 'Pixelify Sans', displayOnly: true),
-  'atkinson-hyperlegible-next': CatalogueFont('atkinson-hyperlegible-next', 'Atkinson Hyperlegible Next'),
-  'atkinson-hyperlegible-mono': CatalogueFont('atkinson-hyperlegible-mono', 'Atkinson Hyperlegible Mono'),
+  'atkinson-hyperlegible-next': CatalogueFont('atkinson-hyperlegible-next', 'Atkinson Hyperlegible Next',
+      family: 'AtkinsonHyperlegibleNext', italic: true),
+  'atkinson-hyperlegible-mono': CatalogueFont('atkinson-hyperlegible-mono', 'Atkinson Hyperlegible Mono',
+      family: 'AtkinsonHyperlegibleMono'),
   'azeret-mono': CatalogueFont('azeret-mono', 'Azeret Mono'),
   'chakra-petch': CatalogueFont('chakra-petch', 'Chakra Petch'),
   'outfit': CatalogueFont('outfit', 'Outfit'),

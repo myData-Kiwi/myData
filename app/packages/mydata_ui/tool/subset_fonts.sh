@@ -34,6 +34,9 @@ fredoka|fredoka|Fredoka[wdth,wght].ttf|2ba02e68b152868aef9ba28e24b3648c7d457fe6f
 nunito|nunito|Nunito[wght].ttf|bb55a5ca5c2042335b3991af27c4d0705d0ef41cac6164ac737fd8f2a1e85207||
 literata|literata|Literata[opsz,wght].ttf|b41138c9373112f32abb589cc22e8674b06ed4048b0c513be922bdd26f274440||
 literata|literata|Literata-Italic[opsz,wght].ttf|d483dfaeba9cbf4ce71d32a52ee65df82f7e35b15fff8d1011cdb242d1fcd465||italic
+atkinson-hyperlegible-next|atkinsonhyperlegiblenext|AtkinsonHyperlegibleNext[wght].ttf|5a455d1cfa099b601ab70751bb9673e8fe1854dc4500c80e1a220d0d75e31745||
+atkinson-hyperlegible-next|atkinsonhyperlegiblenext|AtkinsonHyperlegibleNext-Italic[wght].ttf|ce9cffed32742ad2d9238c561a93220385e5934cdc02b8eb4097a50efa957dc6||italic
+atkinson-hyperlegible-mono|atkinsonhyperlegiblemono|AtkinsonHyperlegibleMono[wght].ttf|5ce8b1698d1ded7dff2178c1a3ad159470085a58ea239e8b2cb88f4fb4a6f646||
 EOF
 )
 UNICODES='U+0000-024F,U+0259,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0300-036F,U+1E00-1EFF,U+2000-206F,U+20A0-20C0,U+2113,U+2122,U+2190-21FF,U+2212,U+2215,U+2303,U+2318,U+2325,U+232B,U+25A0-25FF,U+2713,U+FEFF,U+FFFD'

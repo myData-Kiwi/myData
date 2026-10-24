@@ -45,6 +45,8 @@ flutter:
     - assets/fonts/OFL-fredoka.txt
     - assets/fonts/OFL-nunito.txt
     - assets/fonts/OFL-literata.txt
+    - assets/fonts/OFL-atkinson-hyperlegible-next.txt
+    - assets/fonts/OFL-atkinson-hyperlegible-mono.txt
     - assets/fonts/ISC-lucide.txt
     - assets/fonts/MIT-tabler.txt
     - assets/fonts/MIT-phosphor.txt
