@@ -47,9 +47,9 @@ Every palette gives, in both modes, every role the style does not fix through `c
 
 ## Depth and materials
 
-The grain comes with phase 6 (materials); until then the window ground is solid `bg`.
+The grain is drawn since phase 3 (2026-10-24), behind the branded frame and, in the Mac window, behind the content column; reduced transparency turns it into solid `bg`. Background images wait for phase 6.
 
-- Window: a **grain pattern** (`kind: grain`, opacity 0.04, ink). Painted once from a 160 px tile behind the content; never per row.
+- Window: a **grain pattern** (`kind: grain`, opacity 0.04, ink). Painted once from one cached 128 px tile repeated behind the content; never per row.
 - Sidebar and bars: solid. No glass anywhere.
 - Elevation: soft and warm (`shadow` is a brown, strength 0.6). No borders on cards.
 

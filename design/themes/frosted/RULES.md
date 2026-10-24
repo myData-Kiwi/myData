@@ -44,7 +44,7 @@ Every palette gives all 43 roles in both modes (this style fixes none through `c
 
 ## Depth and materials
 
-The gradient, the translucent sidebar and the glass come with phase 6 (materials); until then the ground, sidebar and bars are solid `bg`, `sidebar` and `toolbar`.
+The gradient, the translucent sidebar and the glass are drawn since phase 3 (2026-10-24): the gradient behind the branded frame and, in the Mac window, behind the content column; reduced transparency makes the ground, sidebar and bars solid `bg`, `sidebar` and `toolbar`. Background images wait for phase 6.
 
 - Window: a **static linear gradient** at 160°, three stops per mode. Painted once behind everything, never animated.
 - Sidebar: **translucent** sidebar colour at about 62% with a blur of 24; on macOS this is the window's own sidebar material tinted (free to Flutter).
