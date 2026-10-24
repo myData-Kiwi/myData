@@ -417,6 +417,26 @@ void main() {
       expect([none.fast, none.base, none.slow, none.springDuration], everyElement(Duration.zero));
     });
 
+    test('each personality springs its own way, ends at exactly 1, and reduced motion does not spring', () {
+      double peak(Curve c) => [for (var i = 0; i <= 200; i++) c.transform(i / 200)].reduce(math.max);
+      final calm = of(MotionPersonality.calm).springCurve;
+      final lively = of(MotionPersonality.lively).springCurve;
+      expect(peak(calm), lessThanOrEqualTo(1.0 + 1e-9), reason: 'calm has no overshoot');
+      expect(peak(lively), greaterThan(peak(of(MotionPersonality.standard).springCurve)), reason: 'lively bounces');
+      // 100 ms in: crisp is further along than calm.
+      double at(MotionPersonality p) => of(p).springCurve.transform(100 / of(p).springDuration.inMilliseconds);
+      expect(at(MotionPersonality.crisp), greaterThan(at(MotionPersonality.calm)), reason: 'crisp gets there sooner');
+      for (final p in MotionPersonality.values) {
+        final m = of(p);
+        expect(m.springCurve.transform(1), 1, reason: p.name);
+        if (p != MotionPersonality.none) {
+          expect(m.springCurve.transform(0.999), closeTo(1, 0.02), reason: '${p.name}: no jump at the end');
+        }
+        expect(identical(m.springCurve, m.springCurve), isTrue, reason: 'made once');
+        expect(m.reduced.springCurve, m.standard, reason: p.name);
+      }
+    });
+
     test('scale multiplies every duration and slow stops at 500 ms', () {
       expect(of(MotionPersonality.standard, scale: 0.5).fast, MyDataMotion.fast * 0.5);
       expect(of(MotionPersonality.calm, scale: 1.5).slow, const Duration(milliseconds: 500));

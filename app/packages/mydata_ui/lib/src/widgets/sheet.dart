@@ -238,7 +238,7 @@ class _SheetState extends State<Sheet> with SingleTickerProviderStateMixin {
           context.motion.slow == Duration.zero
               ? 1
               : (context.motion.springDuration.inMicroseconds / context.motion.slow.inMicroseconds).clamp(0.0, 1.0),
-          curve: const SpringCurve()),
+          curve: context.motion.springCurve),
       reverseCurve: context.motion.standard,
     );
   }

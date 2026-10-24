@@ -97,7 +97,7 @@ class FloatingBar extends StatelessWidget {
                   width: itemWidth,
                   height: context.density.controlHeight,
                   duration: reduced ? Duration.zero : context.motion.springDuration,
-                  curve: const SpringCurve(),
+                  curve: context.motion.springCurve,
                   child: DecoratedBox(
                     decoration: context.radius.decorate(BoxDecoration(color: context.colors.accentSoft, borderRadius: MyDataRadii.pill(context.look))),
                   ),

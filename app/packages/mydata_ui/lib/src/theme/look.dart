@@ -690,6 +690,7 @@ class MyDataMotionSpec {
     required this.entranceStagger,
     required this.entranceMaxStaggered,
     required this.sheetDrop,
+    this.fixedSpringCurve,
   });
 
   final MotionPersonality personality;
@@ -701,6 +702,15 @@ class MyDataMotionSpec {
   /// Sheets, the segmented control's thumb and the tab pill.
   final SpringDescription spring;
   final Duration springDuration;
+
+  /// Stands in for [springCurve] (reduced motion's [standard]).
+  final Curve? fixedSpringCurve;
+  static final _springCurves = Expando<Curve>('spring curve');
+
+  /// [spring] over [springDuration] as a curve, for the widgets that spring (the segmented control's thumb,
+  /// the tab pill, the floating bar's pill, a sheet's rise): this personality's own spring, made once per
+  /// motion. With reduced motion it is [standard]: nothing overshoots.
+  Curve get springCurve => fixedSpringCurve ?? (_springCurves[this] ??= SpringCurve(spring, springDuration));
 
   /// A pressed control scales to [pressScale] and dims to [pressOpacity] at once, and returns over [fast].
   final double pressScale, pressOpacity;
@@ -759,6 +769,7 @@ class MyDataMotionSpec {
         entranceStagger: Duration.zero,
         entranceMaxStaggered: entranceMaxStaggered,
         sheetDrop: 0,
+        fixedSpringCurve: standard,
       );
 
   /// The personalities, at scale 1 (`motion.scale` multiplies them; `slow` is capped at 500 ms):

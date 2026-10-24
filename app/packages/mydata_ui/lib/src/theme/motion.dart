@@ -44,13 +44,20 @@ abstract final class MyDataMotion {
   static bool reduced(BuildContext context) => MyDataAccessibility.of(context).reduceMotion;
 }
 
-/// A curve that follows [MyDataMotion.spring] from 0 to 1 (with its slight overshoot).
+/// A curve that follows [spring] from 0 to 1 over [duration] (with the spring's overshoot, if it has one).
+/// A spring not quite settled by the end has the rest added in along the way, so the curve ends at exactly 1
+/// with no jump. Widgets take it from the look: `context.motion.springCurve`.
 class SpringCurve extends Curve {
-  const SpringCurve();
+  SpringCurve(SpringDescription spring, Duration duration)
+      : _sim = SpringSimulation(spring, 0, 1, 0),
+        _seconds = duration.inMicroseconds / Duration.microsecondsPerSecond {
+    _rest = _seconds == 0 ? 0 : 1 - _sim.x(_seconds);
+  }
 
-  static final _sim = SpringSimulation(MyDataMotion.spring, 0, 1, 0);
+  final SpringSimulation _sim;
+  final double _seconds;
+  late final double _rest;
 
   @override
-  double transformInternal(double t) =>
-      _sim.x(t * MyDataMotion.springDuration.inMicroseconds / Duration.microsecondsPerSecond);
+  double transformInternal(double t) => _sim.x(t * _seconds) + t * _rest;
 }

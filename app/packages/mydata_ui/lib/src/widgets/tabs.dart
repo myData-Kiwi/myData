@@ -57,7 +57,6 @@ class MyDataTabs extends StatefulWidget {
 class _MyDataTabsState extends State<MyDataTabs> with SingleTickerProviderStateMixin {
   late final AnimationController _slide =
       AnimationController(vsync: this, duration: context.lookNow.motion.springDuration, value: 1);
-  static const _curve = SpringCurve();
 
   final List<FocusNode> _nodes = [];
 
@@ -186,7 +185,7 @@ class _MyDataTabsState extends State<MyDataTabs> with SingleTickerProviderStateM
               final to = layout.rects[widget.current];
               final pill = !_sliding || _from == null || _slide.isCompleted
                   ? to
-                  : Rect.lerp(_from, to, _curve.transform(_slide.value))!;
+                  : Rect.lerp(_from, to, context.motion.springCurve.transform(_slide.value))!;
               _shown = pill;
               // The children stay in the same slots whether or not the thumb shows, so the tabs keep their state.
               return Stack(clipBehavior: Clip.none, children: [

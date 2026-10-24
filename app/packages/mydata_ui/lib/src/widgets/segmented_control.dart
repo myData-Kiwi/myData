@@ -296,7 +296,7 @@ class _SegmentedControlState<T> extends State<SegmentedControl<T>> {
         if (selected >= 0)
           AnimatedPositionedDirectional(
             duration: reduced ? Duration.zero : context.motion.springDuration,
-            curve: const SpringCurve(),
+            curve: context.motion.springCurve,
             start: thumbStart,
             top: context.space(1),
             width: widths[selected],
