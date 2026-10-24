@@ -39,6 +39,7 @@ A theme changes how the whole app looks: type, shape, density, borders, depth, i
 | Retro Desktop | The classic desktop, drawn new: grey panels, black outlines, bevelled buttons, pixel titles and icons on a dotted desk | Grey, Beige, Teal | `themes/retro-desktop/` |
 | Swiss | A Swiss poster: big tight grotesk titles set flush left, black rules, square corners, one colour | Red, Blue, Green | `themes/swiss/` |
 | Blueprint | A technical drawing: a faint drawn grid, dashed outlines, upper-case callouts, outline selection; white lines on a coloured board in dark | Blue, Sepia, Green | `themes/blueprint/` |
+| Arcade | A midnight heads-up display: cut corners, a faint grid floor, thin bright edges, a glow on the accent only | Magenta, Cyan, Lime | `themes/arcade/` |
 
 Each folder holds the theme file and its `RULES.md` (its design language, its palettes, do and don't, accessibility, font and icon licences). The six drawn themes are the phase 3 targets; until then the apps draw Kiwi, and the old colours are Kiwi's palettes. All twenty prototypes ship as built-ins (the owner, 2026-10-23): the 13 new ones are added in phase 4, each ported to palettes and the validator; High Contrast, E-ink, Large, Terminal, Notebook, Brutalist and Retro Desktop are in (2026-10-24). "System, tinted" (System with another accent) never exists on macOS; other platforms may allow a tint later (phase 5).
 

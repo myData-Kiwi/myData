@@ -14,6 +14,7 @@ void main() {
     ('retro-desktop', true),
     ('brutalist', true),
     ('blueprint', true),
+    ('arcade', false),
     ('high-contrast', false),
     ('sticker', false),
     (null, false),
@@ -32,7 +33,7 @@ void main() {
       await tester.pumpAndSettle();
       final context = tester.element(find.text('Ava Fictional'));
       expect(MacPanel.shown(context), panel);
-      expect(MacContentGround.drawsMaterial(context.look), panel);
+      expect(MacContentGround.drawsMaterial(context.look), panel || slug == 'arcade'); // Arcade's floor, no panels
       final card = find.ancestor(of: find.text('Ava Fictional'), matching: find.byType(CardEdge));
       expect(card, panel ? findsOneWidget : findsNothing);
       if (!panel) return;

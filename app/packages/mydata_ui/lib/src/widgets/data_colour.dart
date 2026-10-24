@@ -303,9 +303,14 @@ class DataBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     final s = _swatch(context.look, c, colour, ground, alsoOn, groundColour);
+    // A pill where corners round; a plain bar where they are cut, since a 4 px bar has no room for a chamfer
+    // (cut at the theme's cut size it came out as a diamond: Arcade).
+    final cut = context.look.shape.corners == CornerStyle.cut;
     Widget bar = DecoratedBox(
         decoration: context.radius.decorate(BoxDecoration(
-            color: s.fill, borderRadius: MyDataRadii.pill(context.look), border: _edge(context, c, s.edge))),
+            color: s.fill,
+            borderRadius: cut ? BorderRadius.zero : MyDataRadii.pill(context.look),
+            border: _edge(context, c, s.edge))),
         child: _BarBox(height: height));
     if (s.dots != null) bar = CustomPaint(foregroundPainter: _Dots(s.dots!, round: false), child: bar);
     return ExcludeSemantics(child: bar);

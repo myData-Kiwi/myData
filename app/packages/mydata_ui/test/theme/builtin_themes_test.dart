@@ -44,11 +44,12 @@ void main() {
         'mydata.system', 'mydata.kiwi', 'mydata.hairline', 'mydata.frosted', 'mydata.journal', 'mydata.sticker',
         'mydata.paperback', 'mydata.high-contrast', 'mydata.e-ink', 'mydata.large', 'mydata.terminal',
         'mydata.notebook', 'mydata.brutalist', 'mydata.retro-desktop', 'mydata.swiss', 'mydata.blueprint',
+        'mydata.arcade',
       ]);
       expect(ThemeLibrary.offered, ThemeLibrary.builtIns);
       expect(ThemeLibrary.builtIns.map((t) => t.name),
           ['System', 'Kiwi', 'Hairline', 'Frosted', 'Journal', 'Sticker', 'Paperback', 'High Contrast', 'E-ink',
-            'Large', 'Terminal', 'Notebook', 'Brutalist', 'Retro Desktop', 'Swiss', 'Blueprint']);
+            'Large', 'Terminal', 'Notebook', 'Brutalist', 'Retro Desktop', 'Swiss', 'Blueprint', 'Arcade']);
     });
 
     test('have the palettes decided on 2026-10-23, default first', () {
@@ -69,6 +70,7 @@ void main() {
         'Retro Desktop': ['Grey', 'Beige', 'Teal'],
         'Swiss': ['Red', 'Blue', 'Green'],
         'Blueprint': ['Blue', 'Sepia', 'Green'],
+        'Arcade': ['Magenta', 'Cyan', 'Lime'],
       });
       for (final t in ThemeLibrary.builtIns.skip(1)) {
         expect(t.defaultPalette, t.palettes.first, reason: t.name);
@@ -127,7 +129,7 @@ void main() {
         }
       }
       // The six of phase 3 have three each; so does every new built-in of phase 4 so far.
-      expect(palettes, 45);
+      expect(palettes, 48);
       expect(failures, isEmpty, reason: failures.join('\n'));
     });
 

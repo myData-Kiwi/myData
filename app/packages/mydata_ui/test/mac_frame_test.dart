@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mydata_ui/mydata_ui.dart';
+import 'package:mydata_ui/src/widgets/group_frame.dart' show GroupFrame;
 
 void main() {
   test("the Mac theme's text is in the system font, never under mydata_ui's package", () {
@@ -111,6 +112,43 @@ void main() {
       expect(find.byWidgetPredicate((w) => w is SelectionMark && w.selected), findsOneWidget, reason: slug);
       expect(tester.getSize(find.ancestor(of: find.text('Ben Sample', findRichText: true), matching: find.byType(Semantics)).first).height,
           rows, reason: '$slug rows are its own');
+    }
+  });
+
+  // Where the theme's lists are cards (Arcade), each row of the plain list is a card on the pane with the
+  // card gap under it, its edge and corners the theme's; the row heights the keyboard and scrolling use count
+  // the gap. Elsewhere no row is a card.
+  testWidgets("the Mac's plain list draws each row as a card where the theme's lists are cards", (tester) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final people = [
+      ContactListEntry(id: 'a', name: 'Ava Fictional', givenName: 'Ava', familyName: 'Fictional'),
+      ContactListEntry(id: 'b', name: 'Ben Sample', givenName: 'Ben', familyName: 'Sample'),
+    ];
+    for (final (slug, cards) in [('arcade', true), ('hairline', false)]) {
+      final theme = MacTheme.forChoice(ThemeChoice('mydata.$slug'), Brightness.light, MyDataMacColors.light);
+      await tester.pumpWidget(MaterialApp(
+        theme: theme,
+        themeAnimationDuration: Duration.zero,
+        home: Scaffold(
+          body: SizedBox(
+            width: 280,
+            height: 400,
+            child: ContactList(
+                style: ContactListStyle.plain, showSearch: false, contacts: people, selectedId: 'a', onOpen: (_) {}),
+          ),
+        ),
+      ));
+      await tester.pumpAndSettle();
+      final look = theme.extension<MyDataLook>()!;
+      Finder card(String name) =>
+          find.ancestor(of: find.text(name, findRichText: true), matching: find.byType(CardEdge));
+      expect(card('Ben Sample'), cards ? findsOneWidget : findsNothing, reason: slug);
+      if (!cards) continue;
+      final row = find.ancestor(of: find.text('Ben Sample', findRichText: true), matching: find.byType(Semantics)).first;
+      expect(tester.getSize(row).height - tester.getSize(card('Ben Sample')).height, GroupFrame.cardGap(look));
+      expect(tester.getSize(card('Ben Sample')).height, MacLookMetrics.forLook(look, system: false).rowHeight);
     }
   });
 

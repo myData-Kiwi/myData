@@ -143,6 +143,7 @@ void main() {
       'mydata.retro-desktop': ('pixelarticons', 'regular'),
       'mydata.swiss': ('material-sharp', 'regular'),
       'mydata.blueprint': ('tabler', 'thin'),
+      'mydata.arcade': ('phosphor', 'regular'),
     });
   });
 

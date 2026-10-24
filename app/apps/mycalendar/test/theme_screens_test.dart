@@ -36,6 +36,9 @@ void main() {
     // they differ in type, colour and the today mark. They score 0.3 or more on the other three screens.
     'blueprint and retro-desktop': (0.13, 'two panels of thin grid on a pattern'),
     'swiss and terminal': (0.17, 'the same square grid, other type'),
+    // 0.17: both draw the month as one boxed card with thin rules; Arcade's cut cells of the prototype are not
+    // the Mac month's, so here they differ in type, colour, the grid floor in the gutters and the today ring.
+    'arcade and kiwi': (0.17, 'one boxed month, other type'),
   });
 
   // Today is the theme's mark in a drawn theme (`components.today`), never System's red, which in Sticker

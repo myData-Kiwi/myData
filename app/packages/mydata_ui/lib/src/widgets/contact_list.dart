@@ -18,7 +18,7 @@ import 'group_frame.dart';
 import 'grouped_list.dart' show GroupedRow;
 import 'menu.dart';
 import 'multi_select.dart' show MultiSelectController;
-import 'pressable.dart' show FocusRing;
+import 'pressable.dart' show FocusRing, MyDataRadii;
 import 'selection.dart';
 import 'text_field.dart' show MyDataSearchField;
 import 'toggle_target.dart' show InsetRingPainter;
@@ -658,9 +658,13 @@ class _ContactListState extends State<ContactList> {
     }
 
     if (widget.style == ContactListStyle.plain) {
-      // The Mac's 24pt rows in System; a drawn theme's own rows, type and headings (MacLookMetrics).
+      // The Mac's 24pt rows in System; a drawn theme's own rows, type and headings (MacLookMetrics). Where the
+      // theme's lists are cards (Arcade), each row is a card with the card gap under it.
       final m = context.macLook;
-      final row = math.max(m.rowHeight, line(m.body) + context.space(2));
+      final gap = !context.isSystemLook && context.look.variants.list == ListStyle.cards
+          ? GroupFrame.cardGap(context.look)
+          : 0.0;
+      final row = math.max(m.rowHeight, line(m.body) + context.space(2)) + gap;
       final heading = math.max(m.sectionHeight, line(m.captionEmphasized) + context.space(2));
       final extents = <double>[];
       final tops = <double>[];
@@ -1239,8 +1243,8 @@ class _PlainContactRowState extends State<_PlainContactRow> {
 
   /// A drawn theme in the Mac window (design/themes/ARCHITECTURE.md 3.4): the theme's rows, type and
   /// selection ([SelectionMark]: Kiwi's tint and bar, Hairline's grey and ink bar, Journal's bar), its
-  /// corners, and a rule under each row where its lists are ruled or plain with separators (Journal,
-  /// Hairline). The theme's own focus ring shows where the keyboard is, on a selected row too; the row a
+  /// corners, a rule under each row where its lists are ruled or plain with separators (Journal,
+  /// Hairline), and each row a card on the pane, the card gap under it, where its lists are cards (Arcade). The theme's own focus ring shows where the keyboard is, on a selected row too; the row a
   /// context menu was opened on keeps the accent outline.
   Widget _drawn(BuildContext context) {
     final e = widget.entry;
@@ -1251,8 +1255,10 @@ class _PlainContactRowState extends State<_PlainContactRow> {
       ListStyle.plain => look.edges.separators != Separators.none,
       _ => false,
     };
-    // A ruled row is a band across the list: square ends, as a ruled list draws its rows.
-    final radius = ruled ? BorderRadius.zero : m.selectionRadius;
+    final cards = look.variants.list == ListStyle.cards;
+    // A ruled row is a band across the list: square ends, as a ruled list draws its rows. A card takes the
+    // theme's small radius, as a list's cards do.
+    final radius = ruled ? BorderRadius.zero : (cards ? MyDataRadii.sm(look) : m.selectionRadius);
     final paint = widget.selected ? SelectionPaint.of(look) : null;
     Widget content = Builder(builder: (context) {
       final ink = context.colors.ink;
@@ -1301,6 +1307,15 @@ class _PlainContactRowState extends State<_PlainContactRow> {
         position: DecorationPosition.foreground,
         decoration: BoxDecoration(border: Border(bottom: look.edges.side)),
         child: content,
+      );
+    }
+    if (cards) {
+      content = Padding(
+        padding: EdgeInsets.only(bottom: GroupFrame.cardGap(look)),
+        child: DecoratedBox(
+          decoration: look.shape.decorate(BoxDecoration(color: context.colors.surface, borderRadius: radius)),
+          child: CardEdge(radius: radius, child: look.shape.clip(radius, child: content)),
+        ),
       );
     }
     return Padding(

@@ -36,5 +36,8 @@ void main() {
     // offset shadows on a grey ground against Swiss's open white page are set apart by more than the metric's
     // 16 px blocks see, since the rules fall in the same rows. They score 0.3 or more elsewhere.
     'brutalist and swiss': (0.28, 'ink rules in the same rows'),
+    // 0.26: both box each group in a bright or black edge in the same place; Arcade's cut corners, glow and
+    // grid floor against Brutalist's square slabs and offset shadows fall inside the same 16 px blocks.
+    'arcade and brutalist': (0.26, 'boxed groups in the same place'),
   });
 }

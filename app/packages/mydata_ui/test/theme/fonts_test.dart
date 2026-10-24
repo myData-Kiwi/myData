@@ -101,6 +101,8 @@ const acceptedGaps = {
   'manrope': 'ʼ',
   // Retro Desktop's titles: Pixelify Sans, and Atkinson Hyperlegible Next behind it, have neither.
   'pixelify-sans': 'ʼ$vietnamese',
+  // Arcade's text: Outfit has no Vietnamese (Chakra Petch, its titles' face, has it all).
+  'outfit': vietnamese,
 };
 
 /// A bundled font's files: a core font's static weights, a font loaded on demand and its italic.

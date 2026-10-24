@@ -246,13 +246,13 @@ class MacPanel extends StatelessWidget {
   final Widget child;
 
   /// Whether [look] draws its panes as panels: a drawn look whose lists are bordered and whose depth is a
-  /// slab's (an offset shadow or a bevel), or whose boxed lists (bordered or cards) stand on a patterned window
-  /// (Blueprint's drawn grid, Arcade's grid floor), which text never sits on alone.
+  /// slab's (an offset shadow or a bevel), or stand on a patterned window (Blueprint's drawn grid), where a
+  /// list's names never sit on the pattern alone. A theme whose lists are cards (Arcade) draws its rows as
+  /// cards on the ground instead.
   static bool drawn(MyDataLook look) =>
       look.frame != LookFrame.system &&
-      ((look.variants.list == ListStyle.bordered && _slab(look)) ||
-          ((look.variants.list == ListStyle.bordered || look.variants.list == ListStyle.cards) &&
-              look.materials.spec.window == WindowKind.pattern));
+      look.variants.list == ListStyle.bordered &&
+      (_slab(look) || look.materials.spec.window == WindowKind.pattern);
 
   static bool _slab(MyDataLook look) =>
       look.elevation.style == ElevationStyle.offset || look.elevation.style == ElevationStyle.bevel;

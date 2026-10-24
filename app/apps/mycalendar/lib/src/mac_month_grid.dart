@@ -545,12 +545,16 @@ class _Number extends StatelessWidget {
               TodayStyle.ring => (null, c.ink, Border.all(color: c.accent, width: MonthGrid.todayRingWidth)),
               TodayStyle.inverse => (c.ink, c.bg, null),
             };
+      final mark = BoxDecoration(
+        color: fill,
+        border: ring,
+        borderRadius: MacMonthGrid.todayRadius(context.macLook, style),
+      );
+      // A disc or ring stays round in a theme with cut corners too (Arcade): cut at the theme's size, the
+      // small capsule came out as a lozenge.
+      final round = !system && style != TodayStyle.inverse && context.macLook.shape?.corners == CornerStyle.cut;
       return DecoratedBox(
-        decoration: context.macLook.decorate(BoxDecoration(
-          color: fill,
-          border: ring,
-          borderRadius: MacMonthGrid.todayRadius(context.macLook, style),
-        )),
+        decoration: round ? mark : context.macLook.decorate(mark),
         child: ConstrainedBox(
           constraints: BoxConstraints(minWidth: height, minHeight: height, maxHeight: height),
           child: Padding(
