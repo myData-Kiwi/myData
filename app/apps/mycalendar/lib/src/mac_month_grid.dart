@@ -158,6 +158,17 @@ class MacMonthGrid extends StatefulWidget {
     return math.max(scaler.scale(numberHeight), scaler.scale(body.fontSize!) * body.height!);
   }
 
+  /// Today's mark's corners in a drawn theme ([m] its Mac metrics), by its `components.today` and the theme's
+  /// corners: a disc or a ring is round (a circle, a capsule round "1 Nov") unless the theme's corners are
+  /// square (Terminal, Brutalist, Journal), where it is a square; an inverse mark is a control, in the
+  /// theme's control corners (High Contrast's 8 px, square in Terminal). System's is the system's capsule.
+  static BorderRadius todayRadius(MacLookMetrics m, TodayStyle style) {
+    if (m.system) return const BorderRadius.all(Radius.circular(MyDataMacRadius.field));
+    if (style == TodayStyle.inverse) return m.controlRadius;
+    if (m.shape?.corners == CornerStyle.square) return BorderRadius.zero;
+    return const BorderRadius.all(Radius.circular(MyDataShape.capsule));
+  }
+
   /// How many event lines a cell [height] tall holds at [scaler].
   static int linesFor(MyDataLook look, double height, TextScaler scaler, [MacLookMetrics? m]) {
     final room = height - 2 * cellPadding(look) - numberRowHeight(scaler, m);
@@ -507,8 +518,9 @@ class _CellState extends State<_Cell> {
 
 /// The day number at a cell's top end; today's in a capsule in the system red, as Calendar.app marks it.
 /// In a drawn theme today is the theme's (`components.today`): a disc in the accent with `on-accent`, a
-/// ring in the accent, or (inverse) an `ink` disc with `bg`, in the theme's control corners; the system red
-/// is System's alone, and in a theme whose danger is close to it (Sticker) it would read as an error.
+/// ring in the accent (both round unless the theme's corners are square), or (inverse) an `ink` box with `bg`
+/// in the theme's control corners ([MacMonthGrid.todayRadius]); the system red is System's alone, and in a
+/// theme whose danger is close to it (Sticker) it would read as an error.
 class _Number extends StatelessWidget {
   const _Number({required this.day, required this.today, required this.muted});
 
@@ -534,12 +546,10 @@ class _Number extends StatelessWidget {
               TodayStyle.inverse => (c.ink, c.bg, null),
             };
       return DecoratedBox(
-        // The system's capsule in System; a drawn theme's control corners in its corner style (a square in
-        // Terminal and Brutalist, a capsule where controls are pills).
         decoration: context.macLook.decorate(BoxDecoration(
           color: fill,
           border: ring,
-          borderRadius: context.macLook.controlRadius,
+          borderRadius: MacMonthGrid.todayRadius(context.macLook, style),
         )),
         child: ConstrainedBox(
           constraints: BoxConstraints(minWidth: height, minHeight: height, maxHeight: height),

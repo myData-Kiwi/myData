@@ -67,6 +67,49 @@ void main() {
     });
   }
 
+  // Today's shape is the theme's mark (`components.today`) in its corners: a disc or a ring is a circle in a
+  // round theme (Hairline's filled disc, Notebook's ring in pen), a square where the corners are square
+  // (Journal's ring); an inverse mark takes the control corners (High Contrast's 8 px, Terminal's square).
+  for (final (slug, style, square) in [
+    ('hairline', TodayStyle.disc, false),
+    ('paperback', TodayStyle.disc, false),
+    ('large', TodayStyle.disc, false),
+    ('notebook', TodayStyle.ring, false),
+    ('frosted', TodayStyle.ring, false),
+    ('journal', TodayStyle.ring, true),
+    ('high-contrast', TodayStyle.inverse, false),
+    ('terminal', TodayStyle.inverse, true),
+    ('brutalist', TodayStyle.inverse, true),
+  ]) {
+    macTestWidgets('today\'s mark in the Mac month is $slug\'s ${style.key}', (tester) async {
+      tester.view.physicalSize = const Size(1280, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      MacLook.debugOverride = true;
+      addTearDown(() => MacLook.debugOverride = null);
+      await tester.pumpWidget(_app(ThemeCase(slug, Brightness.light, drawnOnMac: true), day: '2026-10-16'));
+      await mac.settle(tester);
+      final context = tester.element(find.text('13'));
+      expect(context.variants.today, style);
+      final radius = todayMark(tester).borderRadius!.resolve(TextDirection.ltr);
+      final height = tester
+          .getSize(find.ancestor(of: find.text('13'), matching: find.byType(DecoratedBox)).first)
+          .height;
+      if (square) {
+        expect(radius, BorderRadius.zero);
+      } else if (style == TodayStyle.inverse) {
+        expect(radius, context.macLook.controlRadius);
+        expect(radius.topLeft.x, greaterThan(0));
+        expect(radius.topLeft.x, lessThan(height / 2));
+      } else {
+        // A circle: every corner at least half the mark's height.
+        for (final r in [radius.topLeft, radius.topRight, radius.bottomLeft, radius.bottomRight]) {
+          expect(r.x, greaterThanOrEqualTo(height / 2));
+        }
+      }
+    });
+  }
+
   // A calendar's colour as its source gives it can be near the ground (a dark grey Choir calendar on High
   // Contrast's black): a dot then carries DataColour's 3:1 edge, never the Mac's 2.2:1 hairline, and an
   // all-day chip carries the colour in a bar with that edge, never in a faint tint alone.
