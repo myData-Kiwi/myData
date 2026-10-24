@@ -796,6 +796,28 @@ void main() {
       }
     }
 
+    testWidgets("a floating toolbar's capsule makes room for a theme's taller title and subtitle", (tester) async {
+      tester.view.physicalSize = const Size(900, 200);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      // Sticker's heading and caption are taller than the capsule's usual height inside the band.
+      final look = designedLook('mydata.sticker', Brightness.light, platform: TargetPlatform.macOS);
+      expect(look.variants.toolbar, ToolbarStyle.floating);
+      await tester.pumpWidget(MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: MacTheme.drawn(look),
+        home: const Material(
+          child: MacPane(
+            toolbar: MacToolbar(title: 'Email Rishita the time of my dentist appointment', subtitle: 'Demo data'),
+            child: SizedBox.expand(),
+          ),
+        ),
+      ));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull, reason: 'no overflow');
+      expect(tester.getSize(find.byType(MacToolbar)).height, MyDataMacSize.toolbarHeight);
+    });
+
     test("a solid window keeps the Mac's content background; System always does", () {
       expect(MacContentGround.drawsMaterial(designedLook('mydata.kiwi', Brightness.light, platform: TargetPlatform.macOS)),
           isFalse);

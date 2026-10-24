@@ -61,9 +61,20 @@ class MacToolbar extends StatelessWidget {
       // The capsule is a FloatingBarSurface (below), in the theme's bar material.
       ToolbarStyle.floating => null,
     };
+    final titleStyle = (context.isSystemLook ? MyDataMacType.title : context.typeScale.heading).copyWith(color: mac.label);
+    final subtitleStyle =
+        (context.isSystemLook ? MyDataMacType.caption : context.typeScale.caption).copyWith(color: mac.secondaryLabel);
+    // A floating capsule stands `space-1` off the band's edges, less where a theme's title and subtitle need
+    // the room (Sticker's two lines are taller than the capsule would be).
+    final scaler = MediaQuery.textScalerOf(context);
+    double line(TextStyle s) => (scaler.scale(s.fontSize!) * (s.height ?? 1)).ceilToDouble();
+    final text = title == null ? 0.0 : line(titleStyle) + (subtitle == null ? 0 : line(subtitleStyle));
+    final inset = floating
+        ? ((MyDataMacSize.toolbarHeight - text) / 2 - FloatingBarSurface.strokeWidth).clamp(0.0, context.space(1))
+        : 0.0;
     Widget band = Container(
       height: floating
-          ? MyDataMacSize.toolbarHeight - 2 * (context.space(1) + FloatingBarSurface.strokeWidth)
+          ? MyDataMacSize.toolbarHeight - 2 * (inset + FloatingBarSurface.strokeWidth)
           : MyDataMacSize.toolbarHeight,
       padding: EdgeInsetsDirectional.only(
         // A floating capsule leaves the window's buttons their room outside it (below), not inside.
@@ -86,13 +97,9 @@ class MacToolbar extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // A drawn theme's title in its own type.
-                    Text(title!, maxLines: 1, overflow: TextOverflow.ellipsis,
-                        style: (context.isSystemLook ? MyDataMacType.title : context.typeScale.heading)
-                            .copyWith(color: mac.label)),
+                    Text(title!, maxLines: 1, overflow: TextOverflow.ellipsis, style: titleStyle),
                     if (subtitle != null)
-                      Text(subtitle!, maxLines: 1, overflow: TextOverflow.ellipsis,
-                          style: (context.isSystemLook ? MyDataMacType.caption : context.typeScale.caption)
-                              .copyWith(color: mac.secondaryLabel)),
+                      Text(subtitle!, maxLines: 1, overflow: TextOverflow.ellipsis, style: subtitleStyle),
                   ],
                 ),
               ),
@@ -111,8 +118,8 @@ class MacToolbar extends StatelessWidget {
         padding: EdgeInsetsDirectional.only(
           start: context.space(2) + (windowControls ? MyDataMacSize.windowControlsWidth : 0),
           end: context.space(2),
-          top: context.space(1),
-          bottom: context.space(1),
+          top: inset,
+          bottom: inset,
         ),
         child: FloatingBarSurface(padding: EdgeInsets.zero, child: band),
       );
