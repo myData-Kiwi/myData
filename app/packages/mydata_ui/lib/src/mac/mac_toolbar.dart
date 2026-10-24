@@ -206,7 +206,12 @@ class _MacToolbarButtonState extends State<MacToolbarButton> {
     final Widget face = widget.icon != null
         ? Icon(context.icon(widget.icon!), size: m.icon, color: ink)
         : Text(widget.text!, style: m.body.copyWith(color: enabled ? mac.label : mac.tertiaryLabel));
-    final rest = m.itemSide ?? BorderSide(color: mac.separator, width: MyDataMacSize.hairline);
+    // A disabled item's outline recedes with its label (`tertiary-label`, at the theme's width), so a theme
+    // that outlines its controls in full ink (Brutalist's 3 px) never draws a disabled one as enabled.
+    final side = m.itemSide;
+    final rest = side == null
+        ? BorderSide(color: mac.separator, width: MyDataMacSize.hairline)
+        : (enabled ? side : side.copyWith(color: mac.tertiaryLabel));
     Widget button = AnimatedContainer(
       duration: context.motion.fast,
       height: m.toolbarItemHeight,

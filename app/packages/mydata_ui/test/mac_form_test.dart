@@ -201,4 +201,35 @@ void main() {
       expect(d.box.color, bare ? isNull : isNotNull);
     });
   }
+
+  // A disabled toolbar item's outline recedes with its label in a theme that outlines its controls in full
+  // ink (Brutalist's 3 px), at the theme's width; an enabled one keeps the ink.
+  testWidgets('a disabled toolbar item\'s outline recedes in brutalist', (tester) async {
+    Future<BorderSide> edge(VoidCallback? onPressed) async {
+      await tester.pumpWidget(MaterialApp(
+        theme: MacTheme.forChoice(ThemeChoice('mydata.brutalist'), Brightness.light, MyDataMacColors.light),
+        themeAnimationDuration: Duration.zero,
+        home: Scaffold(
+            body: Center(
+                child: MacToolbarButton.text(
+                    text: 'Edit', label: 'Edit', onPressed: onPressed, disabledReason: 'Nothing to edit'))),
+      ));
+      await tester.pumpAndSettle();
+      final d = tester
+          .widgetList<AnimatedContainer>(
+              find.descendant(of: find.byType(MacToolbarButton), matching: find.byType(AnimatedContainer)))
+          .first
+          .decoration;
+      return (d.box.border! as Border).top;
+    }
+
+    final context = () => tester.element(find.byType(MacToolbarButton));
+    final enabled = await edge(() {});
+    final m = context().macLook;
+    expect(enabled, m.itemSide);
+    final disabled = await edge(null);
+    expect(disabled.color, context().mac.tertiaryLabel);
+    expect(disabled.width, m.itemSide!.width);
+    expect(disabled.color, isNot(m.itemSide!.color));
+  });
 }
