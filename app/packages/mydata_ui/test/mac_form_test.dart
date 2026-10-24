@@ -223,7 +223,7 @@ void main() {
       return (d.box.border! as Border).top;
     }
 
-    final context = () => tester.element(find.byType(MacToolbarButton));
+    BuildContext context() => tester.element(find.byType(MacToolbarButton));
     final enabled = await edge(() {});
     final m = context().macLook;
     expect(enabled, m.itemSide);
