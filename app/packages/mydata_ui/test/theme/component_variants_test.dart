@@ -418,6 +418,25 @@ void main() {
         also: styleGroup('borders', {'colour': 'edge', 'width': 2}));
   });
 
+  testWidgets("a table contact list starts its zebra stripes again in each letter's group", (tester) async {
+    final people = [
+      for (final n in ['Ava Fictional', 'Amy Example', 'Ann Sample', 'Ben Sample'])
+        ContactListEntry(id: n, name: n, givenName: n.split(' ').first, familyName: n.split(' ').last),
+    ];
+    await pumpVariant(tester, kiwiWith(component('list', 'table')), Brightness.light,
+        ContactList(contacts: people, selectedId: null, onOpen: (_) {}, showSearch: false),
+        size: const Size(400, 500));
+    final sunken = tester.element(find.byType(ContactList)).colors.surfaceSunken;
+    bool striped(String name) => find
+        .ancestor(
+            of: find.text(name),
+            matching: find.byWidgetPredicate(
+                (w) => w is DecoratedBox && w.decoration is BoxDecoration && (w.decoration as BoxDecoration).color == sunken))
+        .evaluate()
+        .isNotEmpty;
+    expect([for (final p in people) striped(p.name)], [false, true, false, false]);
+  });
+
   group('inputs', () {
     variantGoldens('inputs', (focus) => InputSpecimen(focus: focus), size: const Size(640, 260));
   });

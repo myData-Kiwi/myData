@@ -228,6 +228,9 @@ class ContactList extends StatefulWidget {
   /// Between letter groups (preview: `.sec{margin-bottom:24px}`).
   static double groupGap(MyDataLook look) => look.space(6);
 
+  /// Above and below the letter in a `table` list's header band (GroupFrame's band).
+  static double bandPadding(MyDataLook look) => look.space(2);
+
   /// Above every row but a group's first: the divider's slot, or the gap between rows in a `cards` list.
   static double rowGap(MyDataLook look) =>
       look.variants.list == ListStyle.cards ? GroupFrame.cardGap(look) : GroupFrame.dividerWidth;
@@ -473,11 +476,14 @@ final class _HeadingItem extends _Item {
 }
 
 final class _RowItem extends _Item {
-  const _RowItem(this.entry, this.row, {required this.first, required this.last});
+  const _RowItem(this.entry, this.row, {required this.first, required this.last, required this.inGroup});
   final ContactListEntry entry;
 
   /// Its index among the rows shown, which is keyboard order.
   final int row;
+
+  /// Its index in its letter group: a table's zebra stripes start again in each group.
+  final int inGroup;
   final bool first;
   final bool last;
 }
@@ -489,7 +495,7 @@ class _Model {
       for (final (j, c) in g.contacts.indexed) {
         rowIndex.putIfAbsent(c.id, () => rows.length);
         itemOfRow.add(items.length);
-        items.add(_RowItem(c, rows.length, first: j == 0, last: j == g.contacts.length - 1));
+        items.add(_RowItem(c, rows.length, first: j == 0, last: j == g.contacts.length - 1, inGroup: j));
         rows.add(c);
       }
     }
@@ -675,14 +681,17 @@ class _ContactListState extends State<ContactList> {
     );
     final plain = row(false);
     final captioned = row(true);
+    final table = context.look.variants.list == ListStyle.table;
     final extents = <double>[];
     final tops = <double>[];
     var y = _listTop;
     for (final item in _model.items) {
       final h = switch (item) {
-        _HeadingItem(:final first) => (first ? 0 : ContactList.groupGap(context.look)) + label + GroupFrame.headingPadding(context.look).bottom,
+        _HeadingItem(:final first) => (first ? 0 : ContactList.groupGap(context.look)) +
+            (table ? label + 2 * ContactList.bandPadding(context.look) : label + GroupFrame.headingPadding(context.look).bottom),
+        // A table's first row has the rule under its header band above it.
         _RowItem(:final entry, :final first) =>
-          (first ? 0 : ContactList.rowGap(context.look)) + (entry.caption == null ? plain : captioned),
+          (first && !table ? 0 : ContactList.rowGap(context.look)) + (entry.caption == null ? plain : captioned),
       };
       tops.add(y);
       extents.add(h);
@@ -1053,7 +1062,7 @@ class _ContactListState extends State<ContactList> {
         semanticChildCount: model.rows.length,
         itemBuilder: (context, i) => switch (model.items[i]) {
           _HeadingItem(:final letter, :final first) => _Heading(letter: letter, first: first),
-          _RowItem(:final entry, :final row, :final first, :final last) => IndexedSemantics(
+          _RowItem(:final entry, :final row, :final first, :final last, :final inGroup) => IndexedSemantics(
             index: row,
             child: _ContactRow(
               key: ValueKey(entry.id),
@@ -1064,7 +1073,7 @@ class _ContactListState extends State<ContactList> {
               selected: _isSelected(entry.id),
               joinsUp: !first && _isSelected(entry.id) && _isSelected(model.rows[row - 1].id),
               joinsDown: !last && _isSelected(entry.id) && _isSelected(model.rows[row + 1].id),
-              stripe: row.isOdd,
+              stripe: inGroup.isOdd,
               focusRing: ring && row == cursor,
               cursor: row == cursor,
               focused: _focused && row == cursor,
@@ -1258,16 +1267,39 @@ class _Heading extends StatelessWidget {
   final bool first;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: GroupFrame.headingPadding(context.look).add(EdgeInsets.only(top: first ? 0 : ContactList.groupGap(context.look))),
-    child: Align(
-      alignment: AlignmentDirectional.topStart,
-      child: Semantics(
-        header: true,
-        child: Text(letter, maxLines: 1, style: context.typeScale.label.copyWith(color: context.colors.inkMuted)),
+  Widget build(BuildContext context) {
+    final look = context.look;
+    final text = Semantics(
+      header: true,
+      child: Text(letter, maxLines: 1, style: context.typeScale.label.copyWith(color: context.colors.inkMuted)),
+    );
+    final gap = EdgeInsets.only(top: first ? 0 : ContactList.groupGap(look));
+    if (look.variants.list != ListStyle.table) {
+      return Padding(
+          padding: GroupFrame.headingPadding(look).add(gap),
+          child: Align(alignment: AlignmentDirectional.topStart, child: text));
+    }
+    // A table's letter is its header band, as GroupFrame draws a table's heading: `surface-sunken` inside the
+    // outline, open at the bottom where the first row's rule closes it.
+    final radius = GroupFrame.listRadius(look);
+    final top = BorderRadius.only(topLeft: radius.topLeft, topRight: radius.topRight);
+    final outline = GroupFrame.listOutline(look);
+    return Padding(
+      padding: gap,
+      child: CustomPaint(
+        painter: _CardPieceShadow(context.shadows.shadow1, radius: radius.topLeft.x, first: true, last: false),
+        foregroundPainter: InsetRingPainter(
+            shape: context.radius, color: outline.color, width: outline.width, borderRadius: top, bottom: false),
+        child: DecoratedBox(
+          decoration: context.radius.decorate(BoxDecoration(color: context.colors.surfaceSunken, borderRadius: top)),
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: look.space(4), vertical: ContactList.bandPadding(look)),
+            child: Align(alignment: AlignmentDirectional.centerStart, child: text),
+          ),
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 /// One contact row, drawn as its own piece of its letter group's card: `surface`, the group's corners when
@@ -1340,7 +1372,9 @@ class _ContactRowState extends State<_ContactRow> {
     final list = look.variants.list;
     final cards = list == ListStyle.cards;
     final card = list != ListStyle.plain && list != ListStyle.ruled;
-    final first = widget.first || cards, last = widget.last || cards;
+    // A table's first row sits under its header band: square at the top, with the band's rule above it.
+    final table = list == ListStyle.table;
+    final first = (widget.first && !table) || cards, last = widget.last || cards;
     final listRadius = GroupFrame.listRadius(look);
     final shape = BorderRadius.only(
       topLeft: first ? listRadius.topLeft : Radius.zero,
@@ -1515,7 +1549,7 @@ class _ContactRowState extends State<_ContactRow> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // The divider, but none inside a run of selected rows: the run reads as one block.
-          if (!widget.first && !cards)
+          if ((!widget.first || table) && !cards)
             EdgeRule(
                 extent: GroupFrame.dividerWidth,
                 inset: GroupFrame.textStart(look, lead: Avatar.shown(context)),
