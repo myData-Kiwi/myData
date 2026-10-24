@@ -49,6 +49,21 @@ class IconSpecimen extends StatelessWidget {
 }
 
 void main() {
+  // A filled weight keeps its disclosure carets and its check as strokes, from the set's bold weight: Phosphor
+  // Fill's caret is a media "play" triangle and its check a ticked box (Geometric's).
+  test('phosphor fill draws its carets and check as bold strokes, the rest filled', () {
+    final icons = MyDataIconTheme(const IconsSpec(set: 'phosphor', weight: 'fill', fillSelected: true, tiles: 'none'));
+    for (final id in MyDataIconTheme.strokedInFill) {
+      expect(icons(id), phosphorBoldIcons[id], reason: id.name);
+      expect(icons(id, selected: true), phosphorBoldIcons[id], reason: '${id.name}, selected');
+    }
+    expect(icons(MyDataIcon.people), phosphorFillIcons[MyDataIcon.people]);
+    expect(icons(MyDataIcon.success), phosphorFillIcons[MyDataIcon.success], reason: 'a filled tick in a disc reads as done');
+    final regular = MyDataIconTheme(const IconsSpec(set: 'phosphor', weight: 'regular', fillSelected: true, tiles: 'none'));
+    expect(regular(MyDataIcon.chevronRight), phosphorIcons[MyDataIcon.chevronRight]);
+    expect(regular(MyDataIcon.people, selected: true), phosphorFillIcons[MyDataIcon.people]);
+  });
+
   final json = jsonDecode(File('tool/icons.json').readAsStringSync()) as Map<String, Object?>;
   final rows = (json['icons'] as List).cast<Map<String, Object?>>();
 

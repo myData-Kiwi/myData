@@ -107,10 +107,34 @@ class MyDataIconTheme {
   factory MyDataIconTheme(IconsSpec spec) {
     final set = iconTables.containsKey(spec.set) ? spec.set : 'lucide';
     final weight = nearestIconWeight(set, spec.weight);
-    final glyphs = iconTables[set]![weight]!;
+    final glyphs = _stroked(set, weight, iconTables[set]![weight]!);
     final fill = iconTables[set]!['fill'];
-    return MyDataIconTheme._(spec, set, weight, glyphs, spec.fillSelected && fill != null ? fill : glyphs);
+    return MyDataIconTheme._(
+        spec, set, weight, glyphs, spec.fillSelected && fill != null ? _stroked(set, 'fill', fill) : glyphs);
   }
+
+  /// The glyphs that stay strokes in a filled weight ([strokedInFill]), in the set's boldest stroked weight.
+  static final _strokedTables = <Map<MyDataIcon, IconData>, Map<MyDataIcon, IconData>>{};
+
+  /// [glyphs] with [strokedInFill] drawn as strokes when [weight] is `fill`: a filled caret is a media "play"
+  /// triangle and a filled check a ticked box (Geometric's disclosure and progress steps read so).
+  static Map<MyDataIcon, IconData> _stroked(String set, String weight, Map<MyDataIcon, IconData> glyphs) {
+    if (weight != 'fill') return glyphs;
+    return _strokedTables.putIfAbsent(glyphs, () {
+      final stroke = iconTables[set]![nearestIconWeight(set, 'bold') == 'fill' ? 'regular' : nearestIconWeight(set, 'bold')];
+      if (stroke == null) return glyphs;
+      return {...glyphs, for (final id in strokedInFill) id: stroke[id]!};
+    });
+  }
+
+  /// The icons a filled weight still draws as strokes: the disclosure carets and the check mark.
+  static const strokedInFill = {
+    MyDataIcon.chevronLeft,
+    MyDataIcon.chevronRight,
+    MyDataIcon.chevronDown,
+    MyDataIcon.upDown,
+    MyDataIcon.check,
+  };
 
   const MyDataIconTheme._(this.spec, this.set, this.weight, this._glyphs, this._selected);
 

@@ -29,7 +29,7 @@ Circle, square, triangle; red, yellow, blue. Confident and structural: square bo
 
 - An off-white ground (`#F3EFE6`), white panels; black (`#121212`) and charcoal in dark.
 - The style fixes `edge` and `line` to `ink` (`colour-use.same-as`): every edge and rule is a 2 px ink line.
-- **The three colours keep their jobs:** the palette's primary acts (the primary button, links, today, the current tab); **yellow selects** (in light an ink block with `#F5C400` text, about 11:1, since a yellow block is 1.6:1 on white; in dark a yellow block with ink text); red, yellow and blue identify (avatars and the calendars).
+- **The three colours keep their jobs:** the palette's primary acts (the primary button, links, today); **yellow selects** "this one", the selected row, the current section and the current tab (in light an ink block with `#F5C400` text, about 11:1, since a yellow block is 1.6:1 on white; in dark a yellow block with ink text); red, yellow and blue identify (avatars and the calendars).
 - **A double focus ring** (3 px with its `surface` keyline, `borders.focus: double`): no one ring colour is 3:1 on both the dark grounds and the yellow block (ARCHITECTURE.md 2.3).
 
 ## Palettes
@@ -50,7 +50,7 @@ None: flat off-white or black, 2 px ink edges on every container and control, a 
 
 ## Icons
 
-Phosphor Fill at 20 px, no tiles.
+Phosphor Fill at 20 px, no tiles. The disclosure carets and the check stay strokes, in Phosphor Bold (`MyDataIconTheme.strokedInFill`): filled, a caret reads as a media "play" triangle and the check as a ticked box.
 
 ## Motion
 
@@ -65,7 +65,7 @@ Phosphor Fill at 20 px, no tiles.
 | Selection | Solid: light an ink block with yellow text, dark a yellow block with ink text |
 | Avatars | Shapes: red circle, blue square, yellow triangle, initials in white or ink by contrast |
 | Inputs | Outlined, 2 px |
-| Tabs | Boxed |
+| Tabs | Boxed; the current tab in the selection (an ink block with yellow text in light, a yellow block in dark) |
 | Chat | Blocks |
 | Month, today | Boxed 2 px grid; today a disc in the palette's colour |
 | Title rule | Single |
