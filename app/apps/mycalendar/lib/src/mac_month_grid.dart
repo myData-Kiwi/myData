@@ -380,6 +380,19 @@ class _CellState extends State<_Cell> {
     final w = widget;
     final ground = w.notRead ? mac.windowBackground : mac.contentBackground;
     final fill = _hovered && !w.selected ? Color.alphaBlend(mac.hover, ground) : ground;
+    // A drawn theme's month (`components.month`): open has rules between the weeks only, in its border
+    // colour (Journal's ink, Hairline's line); boxed rules every day in `line`; table every day in its
+    // control outline's colour. System keeps the Mac's `separator` hairlines round every day.
+    final system = context.isSystemLook;
+    final style = context.variants.month;
+    final columns = system || style != MonthStyle.open;
+    final rule = system
+        ? mac.separator
+        : switch (style) {
+            MonthStyle.open => context.look.edges.colour,
+            MonthStyle.boxed => context.colors.line,
+            MonthStyle.table => context.look.edges.controlColour,
+          };
     final scaler = MediaQuery.textScalerOf(context);
     final events = w.notRead ? <MacCellEvent>[] : w.events;
     final label = MonthGrid.dayLabel(
@@ -424,8 +437,8 @@ class _CellState extends State<_Cell> {
       decoration: BoxDecoration(
         color: fill,
         border: Border(
-          top: BorderSide(color: mac.separator),
-          left: w.leadingEdge ? BorderSide(color: mac.separator) : BorderSide.none,
+          top: BorderSide(color: rule),
+          left: w.leadingEdge && columns ? BorderSide(color: rule) : BorderSide.none,
         ),
       ),
       position: DecorationPosition.background,
@@ -433,7 +446,9 @@ class _CellState extends State<_Cell> {
         position: DecorationPosition.foreground,
         // The selection: a thin outline in the accent (in `tertiary-label` while the grid does not have
         // the keyboard), the system's focus ring once a key was used.
-        decoration: BoxDecoration(
+        // In a drawn theme the outline takes the theme's small radius in its corner style.
+        decoration: context.macLook.decorate(BoxDecoration(
+          borderRadius: context.isSystemLook ? null : context.macLook.selectionRadius,
           border: w.selected
               ? Border.all(
                   color: w.showFocus
@@ -442,7 +457,7 @@ class _CellState extends State<_Cell> {
                   width: w.showFocus ? MyDataMacSize.focusRingWidth : MacMonthGrid.selectionWidth,
                 )
               : null,
-        ),
+        )),
         child: ClipRect(child: body),
       ),
     );
@@ -469,6 +484,9 @@ class _CellState extends State<_Cell> {
 }
 
 /// The day number at a cell's top end; today's in a capsule in the system red, as Calendar.app marks it.
+/// In a drawn theme today is the theme's (`components.today`): a disc in the accent with `on-accent`, a
+/// ring in the accent, or (inverse) an `ink` disc with `bg`; the system red is System's alone, and in a
+/// theme whose danger is close to it (Sticker) it would read as an error.
 class _Number extends StatelessWidget {
   const _Number({required this.day, required this.today, required this.muted});
 
@@ -483,9 +501,20 @@ class _Number extends StatelessWidget {
     final height = MacMonthGrid.numberRowHeight(scaler, context.macLook);
     final text = MacMonthGrid.numberText(day);
     if (today) {
+      final system = context.isSystemLook;
+      final c = context.colors;
+      final style = context.variants.today;
+      final (Color? fill, Color ink, Border? ring) = system
+          ? (mac.red, MyDataMacColors.dark.onAccent, null)
+          : switch (style) {
+              TodayStyle.disc => (c.accent, c.onAccent, null),
+              TodayStyle.ring => (null, c.ink, Border.all(color: c.accent, width: MonthGrid.todayRingWidth)),
+              TodayStyle.inverse => (c.ink, c.bg, null),
+            };
       return DecoratedBox(
         decoration: BoxDecoration(
-          color: mac.red,
+          color: fill,
+          border: ring,
           borderRadius: const BorderRadius.all(Radius.circular(MyDataMacRadius.field)),
         ),
         child: ConstrainedBox(
@@ -494,7 +523,7 @@ class _Number extends StatelessWidget {
             padding: EdgeInsets.symmetric(horizontal: context.space(1) + MyDataMacSize.tight),
             child: Center(
               widthFactor: 1,
-              child: Text(text, style: context.macLook.bodyEmphasized.copyWith(color: MyDataMacColors.dark.onAccent)),
+              child: Text(text, style: context.macLook.bodyEmphasized.copyWith(color: ink)),
             ),
           ),
         ),
