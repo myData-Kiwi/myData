@@ -16,6 +16,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mydata_ui/mydata_ui.dart';
 
+export 'src/theme_preview.dart';
+
 const _fonts = {
   MyDataFontFamily.display: ['PlusJakartaSans-700.ttf'],
   MyDataFontFamily.body: ['Figtree-400.ttf', 'Figtree-600.ttf'],
@@ -224,10 +226,6 @@ final drawnMacMatrix = [
     for (final b in Brightness.values) ThemeCase(slug, b, drawnOnMac: true),
 ];
 
-/// Where `--dart-define=MYDATA_SHOTS=<folder>` asks the theme screens to write every screen of every theme
-/// and palette, off-screen (with `--update-goldens`); empty when not asked, and those tests are skipped.
-const shotsFolder = String.fromEnvironment('MYDATA_SHOTS');
-
 /// The Mac frame's two appearances. Its accent is the system's, not the host's theme, so one theme is enough.
 const macMatrix = [
   ThemeCase('kiwi', Brightness.light),
@@ -317,7 +315,7 @@ void screenMatrix(String name, Widget Function(ThemeCase theme) build,
   }
 }
 
-/// One of an app's key screens for the theme screenshots ([themeScreens]).
+/// One of an app's screens for the theme screenshots ([themeScreens]) and the preview harness ([themePreview]).
 class ThemeScreen {
   const ThemeScreen(this.name, this.build, {this.before});
 
@@ -331,15 +329,11 @@ class ThemeScreen {
   final Future<void> Function(WidgetTester tester)? before;
 }
 
-/// The app's key screens in each drawn built-in, inside the Mac window (design/themes/ARCHITECTURE.md 5,
-/// phase 3: every theme on an app scene in both modes):
-///
-/// - **Goldens:** the first of [screens] in each theme's default palette, light and dark, into
-///   `screenshots/theme_<screen>.<theme>-<mode>.png` (12 per app).
-/// - **Shots** (`--dart-define=MYDATA_SHOTS=<folder>` with `--update-goldens`, never on screen): every screen
-///   in every theme's default palette, and the first screen in every palette, into
-///   `<folder>/<app>/<theme>/<palette>-<screen>-<mode>.png`, for review side by side.
-void themeScreens(String app, List<ThemeScreen> screens, {Size size = const Size(1280, 800)}) {
+/// The app's key screen in each drawn built-in's default palette, inside the Mac window, light and dark, as
+/// goldens (design/themes/ARCHITECTURE.md 5, phase 3: every theme on an app scene in both modes):
+/// `screenshots/theme_<screen>.<theme>-<mode>.png` (12 per app). Pictures of every theme file and palette for
+/// review come from the preview harness ([themePreview], `app/tool/preview_themes.sh`).
+void themeScreens(ThemeScreen key, {Size size = const Size(1280, 800)}) {
   Future<void> shoot(WidgetTester tester, ThemeScreen screen, ThemeCase theme, String file) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
@@ -368,28 +362,10 @@ void themeScreens(String app, List<ThemeScreen> screens, {Size size = const Size
         .setMockMethodCallHandler(MacSystemColorsScope.channel, null);
   });
 
-  final key = screens.first;
   for (final theme in drawnMacMatrix) {
     macTestWidgets('theme screenshot: ${key.name} (${theme.label})',
         (tester) => shoot(tester, key, theme, 'screenshots/theme_${key.name}.${theme.label}.png'));
   }
-
-  group('shots', skip: shotsFolder.isEmpty ? 'only with --dart-define=MYDATA_SHOTS=<folder>' : null, () {
-    for (final slug in drawnThemes) {
-      final file = ThemeLibrary.byId('mydata.$slug')!;
-      for (final palette in file.palettes) {
-        final isDefault = palette.id == file.defaultPaletteId;
-        for (final screen in isDefault ? screens : [key]) {
-          for (final b in Brightness.values) {
-            final theme = ThemeCase(slug, b, palette: palette.id, drawnOnMac: true);
-            macTestWidgets('shot: $slug ${palette.id} ${screen.name} ${b.name}',
-                (tester) => shoot(tester, screen, theme,
-                    '$shotsFolder/$app/$slug/${palette.id}-${screen.name}-${b.name}.png'));
-          }
-        }
-      }
-    }
-  });
 }
 
 /// How far apart two pictures of one screen are in their shapes, not their colours (a drawn theme against
