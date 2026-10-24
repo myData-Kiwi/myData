@@ -47,6 +47,8 @@ enum ButtonVariant {
 /// - **secondary** ([ButtonVariant.tonal]): `tonal` (`accent-soft`, accent text), `outline` (no fill, the
 ///   control outline, `ink` text) or `text` (the accent label alone, underlined so it reads as an action);
 /// - [ButtonVariant.plain] and [ButtonVariant.plainDanger] stay text in every theme;
+/// - the approval card's Approve ([Button.approval]) is the same in every theme: filled, or outlined where the
+///   primary is an outline, with no drop, no bevel and at most a 1px `line-strong` outline;
 /// - **shape** (`button.shape`): `pill`, `rounded` (the theme's small radius), `square` or `cut`, whatever the
 ///   theme's other corners are ([shapeOf]).
 @immutable
@@ -101,7 +103,8 @@ class ButtonPaint {
   static const brutalDrop = Offset(4, 4);
 
   /// [variant] in [look], at rest and enabled. An [approval] button (the approval card's Approve) is filled
-  /// or outlined only, whatever primary the theme draws: the card's structure never changes with a theme.
+  /// or outlined only, whatever primary, elevation and borders the theme draws ([_approval]): the card's
+  /// structure never changes with a theme.
   factory ButtonPaint.of(MyDataLook look, ButtonVariant variant, {bool approval = false}) {
     final c = look.colors;
     final v = look.variants;
@@ -130,8 +133,8 @@ class ButtonPaint {
         final primary = variant == ButtonVariant.filled;
         final drop = elevation.control;
         final glow = primary ? elevation.glow : const <BoxShadow>[];
-        final style = approval && v.primary != PrimaryStyle.outline ? PrimaryStyle.filled : v.primary;
-        return switch (style) {
+        if (approval && primary) return _approval(look, base: base, on: on, glow: glow);
+        return switch (v.primary) {
           PrimaryStyle.filled =>
             ButtonPaint(fill: base, foreground: on, side: control, shadows: [...drop, ...glow], bevel: elevation.bevel, solid: true),
           PrimaryStyle.outline => ButtonPaint(
@@ -166,6 +169,27 @@ class ButtonPaint {
         };
     }
   }
+
+  /// The approval card's Approve, the same in every drawn theme whatever its primary, elevation and borders
+  /// (the card's fixed structure, ARCHITECTURE.md 1.2): [base] with its label in [on], a 1px `line-strong`
+  /// outline only where the theme outlines its controls, no drop and no bevel (so never brutal, bevelled or a
+  /// push button), only a blurred glow kept; outlined, in [base] and 2px, where the primary is an outline.
+  static ButtonPaint _approval(MyDataLook look, {required Color base, required Color on, required List<BoxShadow> glow}) {
+    final soft = [for (final s in glow) if (s.blurRadius > 0 && s.offset == Offset.zero) s];
+    if (look.variants.primary == PrimaryStyle.outline) {
+      return ButtonPaint(
+          fill: null, foreground: base, side: BorderSide(color: base, width: outlineWidth), shadows: soft);
+    }
+    return ButtonPaint(
+        fill: base,
+        foreground: on,
+        side: look.edges.controls ? BorderSide(color: look.colors.lineStrong, width: approvalEdgeWidth) : null,
+        shadows: soft,
+        solid: true);
+  }
+
+  /// The outline of a filled Approve in a theme that outlines its controls.
+  static const approvalEdgeWidth = 1.0;
 
   /// A bevel for a `bevel` primary in a theme whose elevation draws none: the elevation's own lines at full
   /// strength.
@@ -235,7 +259,8 @@ class Button extends StatelessWidget {
   final String? semanticLabel;
 
   /// The approval card's Approve: drawn filled, or outlined in a theme whose primary is an outline, never
-  /// brutal, bevelled or as a push button (ARCHITECTURE.md 1.2, the card's fixed structure).
+  /// brutal, bevelled or as a push button, and with no drop or bevel from the theme's elevation
+  /// (ARCHITECTURE.md 1.2, the card's fixed structure).
   final bool approval;
 
   /// Space on each side of the label. The preview's 22px lies halfway between `space-5` and `space-6`;
@@ -323,7 +348,9 @@ class Button extends StatelessWidget {
               ? [for (final s in paint.shadows) if (!(disabled || s.blurRadius == 0)) s]
               : paint.shadows;
           final side = solidDisabled
-              ? (MyDataEdgesPaint.control(look)?.top ?? BorderSide(color: c.lineStrong, width: disabledEdgeWidth))
+              ? (approval
+                  ? BorderSide(color: c.lineStrong, width: disabledEdgeWidth)
+                  : (MyDataEdgesPaint.control(look)?.top ?? BorderSide(color: c.lineStrong, width: disabledEdgeWidth)))
               : paint.side;
           Widget box = Container(
             height: context.density.controlHeight,

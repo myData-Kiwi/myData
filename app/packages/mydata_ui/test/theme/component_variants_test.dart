@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mydata_ui/mydata_ui.dart';
 
+import 'designed_themes.dart';
 import 'variant_harness.dart';
 
 /// Every role of button, the primary focused by keyboard, then the disabled ones.
@@ -247,16 +248,6 @@ void main() {
       expect(primary.foreground, look.colors.bg);
       expect(ButtonPaint.of(look, ButtonVariant.danger).fill, look.colors.danger);
     });
-
-    test('every primary looks like a button: a fill or an outline, never text alone', () {
-      for (final value in componentValues['button.primary']!) {
-        for (final b in Brightness.values) {
-          final look = ThemeLibrary.look(kiwiWith(component('button.primary', value)), brightness: b);
-          final p = ButtonPaint.of(look, ButtonVariant.filled);
-          expect(p.fill != null || (p.side?.width ?? 0) >= 2, isTrue, reason: value);
-        }
-      }
-    });
   });
 
   group('the approval card', () {
@@ -275,20 +266,70 @@ void main() {
     variantGoldens('button.primary', (_) => card(),
         size: const Size(520, 260), focused: false, values: ['outline', 'brutal'], name: 'approval');
 
-    test('Approve is filled or outlined, never brutal, bevelled or a push button', () {
+    // The designed Sticker (brutal, a hard 4px drop that collapses, 2px edge outlines) and a bevel elevation:
+    // Approve stays filled with no drop, no bevel and a 1px line-strong outline at most.
+    for (final b in Brightness.values) {
+      testWidgets('variant golden: approval in sticker, ${b.name}', (tester) async {
+        debugDisableShadows = false;
+        try {
+          await pumpVariant(tester, designedTheme('mydata.sticker'), b, card(), size: const Size(520, 260));
+          expect(tester.takeException(), isNull);
+          await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/variant.approval-sticker.${b.name}.png'));
+        } finally {
+          debugDisableShadows = true;
+        }
+      });
+    }
+    variantGoldens('button.primary', (_) => card(),
+        size: const Size(520, 260),
+        focused: false,
+        values: ['bevel'],
+        name: 'approval-bevel-elevation',
+        also: all([
+          styleGroup('elevation', {'style': 'bevel', 'strength': 1, 'offset': 2, 'press': 'collapse'}),
+          styleGroup('borders', {'controls': true, 'width': 2, 'colour': 'edge'}),
+        ]));
+
+    test('Approve is filled or outlined, never brutal, bevelled, a push button or on a drop', () {
+      final elevations = <String, Map<String, Object?>>{
+        'soft': {'style': 'soft', 'strength': 0.5},
+        'hard': {'style': 'hard', 'strength': 1, 'offset': 4, 'press': 'collapse'},
+        'offset': {'style': 'offset', 'strength': 1, 'offset': 3},
+        'bevel': {'style': 'bevel', 'strength': 1, 'offset': 2},
+        'glow': {'style': 'glow', 'strength': 1},
+      };
       for (final value in componentValues['button.primary']!) {
-        final look = ThemeLibrary.look(kiwiWith(component('button.primary', value)), brightness: Brightness.light);
-        final approve = ButtonPaint.of(look, ButtonVariant.filled, approval: true);
-        final filled = ButtonPaint.of(
-            ThemeLibrary.look(kiwiWith(component('button.primary', 'filled')), brightness: Brightness.light),
-            ButtonVariant.filled);
-        if (value == 'outline') {
-          expect(approve.fill, isNull);
-        } else {
-          expect((approve.fill, approve.side, approve.collapses), (filled.fill, filled.side, false), reason: value);
-          expect(approve.shadows, filled.shadows, reason: value);
+        for (final e in elevations.entries) {
+          for (final outlined in [false, true]) {
+            final look = ThemeLibrary.look(
+                kiwiWith(all([
+                  component('button.primary', value),
+                  styleGroup('elevation', e.value),
+                  styleGroup('borders', {'controls': outlined, 'width': 2, 'colour': 'edge'}),
+                ])),
+                brightness: Brightness.light);
+            final approve = ButtonPaint.of(look, ButtonVariant.filled, approval: true);
+            final why = '$value ${e.key} outlined: $outlined';
+            expect(approve.bevel, isNull, reason: why);
+            expect(approve.collapses, isFalse, reason: why);
+            expect(approve.shadows.where((s) => s.blurRadius == 0 || s.offset != Offset.zero), isEmpty, reason: why);
+            if (value == 'outline') {
+              expect((approve.fill, approve.side?.width), (null, ButtonPaint.outlineWidth), reason: why);
+            } else {
+              expect(approve.fill, look.colors.accent, reason: why);
+              expect(approve.side, outlined ? BorderSide(color: look.colors.lineStrong) : null, reason: why);
+            }
+          }
         }
       }
+    });
+
+    test("Sticker's Approve has no drop and no edge outline", () {
+      final look = designedLook('mydata.sticker', Brightness.light);
+      expect(ButtonPaint.of(look, ButtonVariant.filled).shadows, isNotEmpty);
+      final approve = ButtonPaint.of(look, ButtonVariant.filled, approval: true);
+      expect(approve.shadows, isEmpty);
+      expect(approve.side, BorderSide(color: look.colors.lineStrong));
     });
   });
 
