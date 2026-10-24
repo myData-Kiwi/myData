@@ -80,6 +80,10 @@ class MacFormSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final mac = context.mac;
+    // A drawn theme whose lists are ruled (Journal, E-ink) rules its groups too: no box and no fill, a rule
+    // above and below and between the rows, in its border colour, as its shared lists are drawn.
+    final ruled = !context.isSystemLook && context.variants.list == ListStyle.ruled;
+    final rule = context.look.edges.side;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
@@ -94,7 +98,9 @@ class MacFormSection extends StatelessWidget {
           ),
         if (rows.isNotEmpty)
           DecoratedBox(
-            decoration: context.macLook.decorate(BoxDecoration(
+            decoration: ruled
+                ? BoxDecoration(border: Border(top: rule, bottom: rule))
+                : context.macLook.decorate(BoxDecoration(
               color: fill(context),
               borderRadius: radius(context.look),
               border: Border.fromBorderSide(context.isSystemLook
@@ -108,8 +114,8 @@ class MacFormSection extends StatelessWidget {
                 for (final (i, row) in rows.indexed) ...[
                   if (i > 0)
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: context.space(3)),
-                      child: Container(height: 1, color: mac.separator),
+                      padding: EdgeInsets.symmetric(horizontal: ruled ? 0 : context.space(3)),
+                      child: Container(height: ruled ? rule.width : 1, color: ruled ? rule.color : mac.separator),
                     ),
                   row,
                 ],
