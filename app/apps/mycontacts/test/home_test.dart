@@ -77,6 +77,8 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('myContacts needs the desktop app'), findsOneWidget);
+    expect(tester.widget<MaterialApp>(find.byType(MaterialApp)).themeAnimationDuration, MyDataTheme.switchDuration,
+        reason: 'a theme switch is drawn at once, never through in-between type');
     expect(find.byType(AppFrame), findsNothing);
     expect(find.text(AppConnection.retryText), findsNothing);
   });

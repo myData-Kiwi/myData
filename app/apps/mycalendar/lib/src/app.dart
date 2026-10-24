@@ -82,6 +82,9 @@ class _MyCalendarAppState extends State<MyCalendarApp> {
           theme: light,
           darkTheme: dark,
           themeMode: mode,
+          // A theme change is drawn at once, in one rebuild: no lerp of type through in-between sizes and
+          // fonts (design/themes/ARCHITECTURE.md 3.5).
+          themeAnimationDuration: MyDataTheme.switchDuration,
           debugShowCheckedModeBanner: false,
           builder: MacShell.content,
           home: Builder(

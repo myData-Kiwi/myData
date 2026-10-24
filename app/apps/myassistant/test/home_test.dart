@@ -54,6 +54,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('myAssistant needs the desktop app'), findsOneWidget);
     expect(find.text('The web version needs the desktop app.'), findsOneWidget);
+    expect(tester.widget<MaterialApp>(find.byType(MaterialApp)).themeAnimationDuration, MyDataTheme.switchDuration,
+        reason: 'a theme switch is drawn at once, never through in-between type');
     // Retry cannot help here: no frame, so no "Cannot reach your host" and no Retry anywhere.
     expect(find.byType(AppFrame), findsNothing);
     expect(find.text(AppConnection.unreachableText), findsNothing);

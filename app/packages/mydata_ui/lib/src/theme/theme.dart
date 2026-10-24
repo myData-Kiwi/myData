@@ -68,6 +68,12 @@ class MyDataTheme {
   static ThemeData dataFor(ThemeChoice? choice, Brightness brightness) =>
       fromLook(ThemeLibrary.lookFor(choice, brightness));
 
+  /// How long the app takes to move to a new theme or mode: none. A switch is one rebuild with the new
+  /// look's fonts already loaded (ThemeController), never a lerp through in-between type, which would relay
+  /// out every line for a dozen frames and flip the font halfway (design/themes/ARCHITECTURE.md 3.5 and 3.6).
+  /// Every app passes it as MaterialApp's `themeAnimationDuration`.
+  static const switchDuration = Duration.zero;
+
   /// ThemeData for [look]: the look itself as an extension, its colours ([MyDataColors]) and shadows
   /// ([MyDataShadows]) as their own, and the Material widgets that remain (selection, scroll bars, dialogs,
   /// tooltips) set from the same values.

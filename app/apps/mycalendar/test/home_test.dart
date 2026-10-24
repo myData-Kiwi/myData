@@ -79,6 +79,8 @@ void main() {
     expect(inDayList('Dentist'), findsOneWidget);
     expect(inDayList('Choir practice'), findsOneWidget);
     expect(find.text('Example Dental, 4 Sample Road · Family'), findsOneWidget);
+    expect(tester.widget<MaterialApp>(find.byType(MaterialApp)).themeAnimationDuration, MyDataTheme.switchDuration,
+        reason: 'a theme switch is drawn at once, never through in-between type');
     // This Mac reads every day of October 2026: no notice.
     expect(find.byType(Notice), findsNothing);
   });

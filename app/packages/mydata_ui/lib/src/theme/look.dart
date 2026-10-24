@@ -167,20 +167,6 @@ class MyDataTypeScale {
       secondaryItalic: spec.secondaryItalic,
     );
   }
-
-  static MyDataTypeScale lerp(MyDataTypeScale a, MyDataTypeScale b, double t) => MyDataTypeScale(
-        displayXl: TextStyle.lerp(a.displayXl, b.displayXl, t)!,
-        displayLg: TextStyle.lerp(a.displayLg, b.displayLg, t)!,
-        title: TextStyle.lerp(a.title, b.title, t)!,
-        heading: TextStyle.lerp(a.heading, b.heading, t)!,
-        body: TextStyle.lerp(a.body, b.body, t)!,
-        bodyStrong: TextStyle.lerp(a.bodyStrong, b.bodyStrong, t)!,
-        label: TextStyle.lerp(a.label, b.label, t)!,
-        caption: TextStyle.lerp(a.caption, b.caption, t)!,
-        mono: TextStyle.lerp(a.mono, b.mono, t)!,
-        upper: t < 0.5 ? a.upper : b.upper,
-        secondaryItalic: t < 0.5 ? a.secondaryItalic : b.secondaryItalic,
-      );
 }
 
 /// Corner radii and the corner style.
@@ -724,7 +710,8 @@ class MyDataLook extends ThemeExtension<MyDataLook> {
       brightness: o.brightness,
       increasedContrast: o.increasedContrast,
       colors: colors.lerp(other.colors, t),
-      typeScale: MyDataTypeScale.lerp(typeScale, other.typeScale, t),
+      // Type is never drawn in between: past t = 0 it is the new look's (fonts, sizes and weights at once).
+      typeScale: t == 0 ? typeScale : other.typeScale,
       shape: MyDataShape.lerp(shape, other.shape, t),
       density: MyDataDensity.lerp(density, other.density, t),
       edges: o.edges,

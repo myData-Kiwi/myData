@@ -120,6 +120,8 @@ void main() {
     expect(find.text('tool search_mail failed'), findsOneWidget);
     expect(find.text('Claude on my laptop'), findsOneWidget);
     expect(find.text('Old script'), findsNothing, reason: 'only connected agents are listed');
+    expect(tester.widget<MaterialApp>(find.byType(MaterialApp)).themeAnimationDuration, MyDataTheme.switchDuration,
+        reason: 'a theme switch is drawn at once, never through in-between type');
   });
 
   testWidgets('the availability chip says it in a word, in its status colour', (tester) async {

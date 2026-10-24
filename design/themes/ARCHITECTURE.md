@@ -371,7 +371,7 @@ Today `tool/generate_tokens.dart` writes `tokens.g.dart`: static `MyDataColors.l
 
 | Effect | Rule | Cost |
 |---|---|---|
-| Theme switch | One `Theme` change, which rebuilds the tree once. Budget: under 50 ms on an M-series Mac, measured in a profile-mode test | One rebuild |
+| Theme switch | One `Theme` change, which rebuilds the tree once: every app passes `MyDataTheme.switchDuration` (zero) as `themeAnimationDuration`, so type never lerps through in-between sizes and fonts, and `MyDataLook.lerp` snaps type past t = 0 wherever a theme does animate. Budget: under 50 ms on an M-series Mac, measured in a profile-mode test (not yet) | One rebuild |
 | Gradient, pattern | Painted once behind the content in a `RepaintBoundary`, never per row. Rules and grids line up with text through a fixed strut (`forceStrutHeight`) | Nil |
 | Glass (`bars: blur`) | Toolbar, sidebar (outside macOS) and floating bars only, through one `BackdropGroup` per window with `BackdropFilter.grouped`. Never on rows or cards. Solid on the web, with reduced transparency, and when frame raster time goes over budget for 2 s | Bounded |
 | macOS sidebar material | The window's own NSVisualEffectView | Free to Flutter |
