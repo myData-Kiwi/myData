@@ -472,4 +472,25 @@ void main() {
       }
     }
   });
+
+  group('icon tiles', () {
+    for (final tiles in ['tinted', 'outlined', 'none']) {
+      for (final b in Brightness.values) {
+        testWidgets('variant golden: tiles $tiles, ${b.name}', (tester) async {
+          await pumpVariant(
+            tester,
+            kiwiWith(styleGroup('icons', {'tiles': tiles})),
+            b,
+            GroupedList(heading: 'Sync', rows: const [
+              GroupedRow(icon: MyDataIcon.mail, title: 'Mail', subtitle: '2 accounts'),
+              GroupedRow(icon: MyDataIcon.calendar, tone: MyDataTone.info, title: 'Calendar', subtitle: '3 calendars'),
+              GroupedRow(icon: MyDataIcon.photo, tone: MyDataTone.neutral, title: 'Photos'),
+            ]),
+            size: const Size(420, 260),
+          );
+          await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/variant.tiles-$tiles.${b.name}.png'));
+        });
+      }
+    }
+  });
 }
