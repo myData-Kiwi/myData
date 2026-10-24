@@ -144,6 +144,25 @@ void main() {
     expect([paperback.label.fontSize, paperback.caption.fontSize, paperback.mono.fontSize], [14, 13, 14]);
   });
 
+  testWidgets('Bold Text draws a variable font heavier: its wght moves, not only its fontWeight', (tester) async {
+    final hairline = designedLook('mydata.hairline', Brightness.light);
+    expect(hairline.typeScale.bold.body.fontVariations, [const FontVariation('wght', 700)]);
+    expect(hairline.typeScale.bold.label.fontVariations, [const FontVariation('wght', 800)]);
+    expect(MyDataTypeScale.kiwi.bold.body, same(MyDataTypeScale.kiwi.body), reason: "a static font is Text's to bolden");
+    Future<double> width({required bool bold}) async {
+      await tester.pumpWidget(MaterialApp(
+        theme: MyDataTheme.fromLook(hairline),
+        home: MediaQuery(
+          data: MediaQueryData(boldText: bold),
+          child: Center(child: Builder(builder: (context) => Text('Hamburgefonstiv', style: context.typeScale.body))),
+        ),
+      ));
+      return tester.getSize(find.text('Hamburgefonstiv')).width;
+    }
+
+    expect(await width(bold: true), greaterThan(await width(bold: false)));
+  });
+
   test('every designed built-in sets every type role itself: none is left to the base and ratio', () {
     for (final e in designedThemeTexts().entries) {
       final type = (readStrictJson(e.value) as Map<String, Object?>)['type'] as Map<String, Object?>?;

@@ -51,7 +51,7 @@ extension MacContext on BuildContext {
 /// sizes there. Call it before `copyWith`.
 extension MacTypeContext on BuildContext {
   TextStyle type(MyDataTypeRole role) {
-    final scale = MyDataLook.of(this).typeScale;
+    final scale = typeScale;
     return isSystemLook ? MacTheme.typeFor(role, scale) : scale(role);
   }
 }

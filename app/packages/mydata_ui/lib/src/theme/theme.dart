@@ -205,7 +205,9 @@ extension MyDataContext on BuildContext {
 extension MyDataLookContext on BuildContext {
   MyDataLook get look => MyDataLook.of(this);
   MyDataLook get lookNow => MyDataLook.of(this, listen: false);
-  MyDataTypeScale get typeScale => look.typeScale;
+  /// The look's type, heavier where the system asks for Bold Text ([MyDataTypeScale.bold]).
+  MyDataTypeScale get typeScale =>
+      (MediaQuery.maybeBoldTextOf(this) ?? false) ? look.typeScale.bold : look.typeScale;
   double space(num n) => look.density.space(n);
   MyDataShape get radius => look.shape;
   MyDataDensity get density => look.density;

@@ -9,6 +9,8 @@
 library;
 
 
+import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -85,6 +87,41 @@ class MyDataTypeScale {
   /// (design/themes/ARCHITECTURE.md 2.3). Widgets call this for their own labels, never for user text.
   String cased(MyDataTypeRole role, String text, {bool holdsName = false}) =>
       !holdsName && upper.contains(role) ? text.toUpperCase() : text;
+
+  /// How much heavier the system's Bold Text setting draws a variable font (`wght`). Flutter's Text asks
+  /// for bold by `fontWeight` alone, which a style's own `wght` variation overrides, so these fonts would not
+  /// get heavier at all. A font clamps the value to the top of its axis.
+  static const boldTextGain = 300.0;
+
+  static final _bold = Expando<MyDataTypeScale>('bold');
+
+  /// This scale for the system's Bold Text (`MediaQuery.boldTextOf`; iOS and Android): each role in a
+  /// variable font [boldTextGain] heavier on its `wght` axis (a static font is left to Text's own bold).
+  /// `context.typeScale` and `context.type` give it when Bold Text is on.
+  MyDataTypeScale get bold => _bold[this] ??= MyDataTypeScale(
+        displayXl: _bolder(displayXl),
+        displayLg: _bolder(displayLg),
+        title: _bolder(title),
+        heading: _bolder(heading),
+        body: _bolder(body),
+        bodyStrong: _bolder(bodyStrong),
+        label: _bolder(label),
+        caption: _bolder(caption),
+        mono: _bolder(mono),
+        upper: upper,
+        secondaryItalic: secondaryItalic,
+      );
+
+  static TextStyle _bolder(TextStyle s) {
+    final v = s.fontVariations;
+    final i = v?.indexWhere((f) => f.axis == 'wght') ?? -1;
+    // A static font: Text's own bold already reaches it.
+    if (i < 0) return s;
+    final wght = math.min(v![i].value + boldTextGain, 1000.0);
+    final w = FontWeight.values[((wght / 100).round() - 1).clamp(0, FontWeight.values.length - 1)];
+    return s.copyWith(
+        fontWeight: w, fontVariations: [for (final (j, f) in v.indexed) j == i ? FontVariation.weight(wght) : f]);
+  }
 
   /// Today's Kiwi type (design/tokens.json), the fallback.
   static const kiwi = MyDataTypeScale(
