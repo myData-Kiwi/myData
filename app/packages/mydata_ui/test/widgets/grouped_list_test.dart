@@ -43,14 +43,14 @@ void main() {
               heading: 'Sync',
               rows: const [
                 GroupedRow(
-                  icon: Icons.mail_outline_rounded,
+                  icon: MyDataIcon.mail,
                   title: 'Mail',
                   subtitle: '2 accounts',
                   trailing: GroupedTrailing.badge('Up to date', tone: MyDataTone.success),
                   onPressed: _noop,
                 ),
                 GroupedRow(
-                  icon: Icons.calendar_today_outlined,
+                  icon: MyDataIcon.calendar,
                   tone: MyDataTone.info,
                   title: 'Calendar',
                   subtitle: '3 calendars',
@@ -59,7 +59,7 @@ void main() {
                   selected: true,
                 ),
                 GroupedRow(
-                  icon: Icons.photo_outlined,
+                  icon: MyDataIcon.photo,
                   tone: MyDataTone.warning,
                   title: 'Photos',
                   subtitle: 'Indexing, example 64%',
@@ -67,7 +67,7 @@ void main() {
                   onPressed: _noop,
                 ),
                 GroupedRow(
-                  icon: Icons.smartphone_outlined,
+                  icon: MyDataIcon.thisMac,
                   title: 'Example phone',
                   subtitle: 'Seen 5 minutes ago',
                   trailing: GroupedTrailing.badge('Connected', tone: MyDataTone.info),
@@ -82,14 +82,14 @@ void main() {
               rows: const [
                 GroupedRow(
                   key: ValueKey('hovered'),
-                  icon: Icons.storage_outlined,
+                  icon: MyDataIcon.host,
                   title: 'Storage',
                   subtitle: 'Hovered',
                   trailing: GroupedTrailing.chevron(),
                   onPressed: _noop,
                 ),
                 GroupedRow(
-                  icon: Icons.backup_outlined,
+                  icon: MyDataIcon.cloud,
                   title: 'Back up',
                   subtitle: 'Focused',
                   trailing: GroupedTrailing.valueChevron('Every night'),
@@ -97,14 +97,14 @@ void main() {
                   autofocus: true,
                 ),
                 GroupedRow.toggle(
-                  icon: Icons.face_outlined,
+                  icon: MyDataIcon.person,
                   title: 'Group photos by face',
                   subtitle: 'You name the groups.',
                   value: true,
                   onChanged: _noopBool,
                 ),
                 GroupedRow.toggle(
-                  icon: Icons.public_outlined,
+                  icon: MyDataIcon.cloud,
                   tone: MyDataTone.info,
                   title: 'Search the web',
                   subtitle: 'Needs the assistant to be on.',
@@ -198,7 +198,7 @@ void main() {
           GroupedList(
             rows: [
               GroupedRow.toggle(
-                icon: Icons.face_outlined,
+                icon: MyDataIcon.person,
                 title: 'Group photos by face',
                 subtitle: 'You name the groups.',
                 value: false,
@@ -264,7 +264,7 @@ void main() {
             heading: 'Sync',
             rows: const [
               GroupedRow(
-                icon: Icons.mail_outline_rounded,
+                icon: MyDataIcon.mail,
                 title: 'Mail',
                 subtitle: '2 accounts',
                 trailing: GroupedTrailing.badge('Up to date', tone: MyDataTone.success),
@@ -311,7 +311,7 @@ void main() {
             heading: 'Sync',
             rows: const [
               GroupedRow(
-                icon: Icons.mail_outline_rounded,
+                icon: MyDataIcon.mail,
                 title: 'Mail',
                 subtitle: '2 accounts',
                 trailing: GroupedTrailing.valueChevron('2'),
@@ -333,7 +333,7 @@ void main() {
       final tile = tester.getRect(find.byType(IconTile));
       expect(tile.left - first.left, MyDataSpace.s4);
       expect(tester.getRect(find.text('Mail')).left - tile.right, MyDataSpace.s3);
-      final chevron = tester.getRect(find.byIcon(Icons.chevron_right_rounded));
+      final chevron = tester.getRect(findIcon(MyDataIcon.chevronRight));
       expect(first.right - chevron.right, MyDataSpace.s4);
       expect(chevron.left - tester.getRect(find.text('2')).right, GroupedRow.trailingGap(kiwiLook));
       // Dividers: between rows only, 1px of `line`, the full width of the group.
@@ -455,7 +455,7 @@ void main() {
     testWidgets('sizes to its content: works inside IntrinsicHeight and IntrinsicWidth', (tester) async {
       const rows = [
         GroupedRow(
-          icon: Icons.mail_outline_rounded,
+          icon: MyDataIcon.mail,
           title: 'Mail',
           subtitle: '2 accounts',
           trailing: GroupedTrailing.badge('Up to date', tone: MyDataTone.success),
@@ -532,7 +532,7 @@ void main() {
               width: 480,
               child: GroupedList(
                 rows: const [
-                  GroupedRow(icon: Icons.mail_outline_rounded, title: 'Mail', trailing: GroupedTrailing.value('2')),
+                  GroupedRow(icon: MyDataIcon.mail, title: 'Mail', trailing: GroupedTrailing.value('2')),
                 ],
               ),
             ),
@@ -568,10 +568,10 @@ void main() {
       expect(
         () => GroupedList(
           rows: const [
-            GroupedRow(icon: Icons.mail_outline_rounded, title: 'A'),
-            GroupedRow(icon: Icons.mail_outline_rounded, tone: MyDataTone.info, title: 'B'),
-            GroupedRow(icon: Icons.mail_outline_rounded, tone: MyDataTone.warning, title: 'C'),
-            GroupedRow(icon: Icons.mail_outline_rounded, tone: MyDataTone.success, title: 'D'),
+            GroupedRow(icon: MyDataIcon.mail, title: 'A'),
+            GroupedRow(icon: MyDataIcon.mail, tone: MyDataTone.info, title: 'B'),
+            GroupedRow(icon: MyDataIcon.mail, tone: MyDataTone.warning, title: 'C'),
+            GroupedRow(icon: MyDataIcon.mail, tone: MyDataTone.success, title: 'D'),
           ],
         ),
         throwsAssertionError,
@@ -580,10 +580,10 @@ void main() {
       expect(
         () => GroupedList(
           rows: const [
-            GroupedRow(icon: Icons.mail_outline_rounded, title: 'A'),
-            GroupedRow(icon: Icons.mail_outline_rounded, tone: MyDataTone.info, title: 'B'),
-            GroupedRow(icon: Icons.mail_outline_rounded, tone: MyDataTone.warning, title: 'C'),
-            GroupedRow(icon: Icons.mail_outline_rounded, tone: MyDataTone.neutral, title: 'D'),
+            GroupedRow(icon: MyDataIcon.mail, title: 'A'),
+            GroupedRow(icon: MyDataIcon.mail, tone: MyDataTone.info, title: 'B'),
+            GroupedRow(icon: MyDataIcon.mail, tone: MyDataTone.warning, title: 'C'),
+            GroupedRow(icon: MyDataIcon.mail, tone: MyDataTone.neutral, title: 'D'),
           ],
         ),
         returnsNormally,
@@ -592,9 +592,9 @@ void main() {
       expect(
         () => GroupedList(
           rows: const [
-            GroupedRow(icon: Icons.mail_outline_rounded, title: 'A'),
-            GroupedRow(icon: Icons.mail_outline_rounded, tone: MyDataTone.info, title: 'B'),
-            GroupedRow(icon: Icons.mail_outline_rounded, tone: MyDataTone.warning, title: 'C'),
+            GroupedRow(icon: MyDataIcon.mail, title: 'A'),
+            GroupedRow(icon: MyDataIcon.mail, tone: MyDataTone.info, title: 'B'),
+            GroupedRow(icon: MyDataIcon.mail, tone: MyDataTone.warning, title: 'C'),
             GroupedRow(tone: MyDataTone.success, title: 'D'),
           ],
         ),

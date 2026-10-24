@@ -113,7 +113,7 @@ class MacMonthView extends StatelessWidget {
                 child: MacToolbarGroup(
                   buttons: [
                     MacToolbarGroupButton(
-                      icon: rtl ? MacIcons.chevronRight : MacIcons.chevronLeft,
+                      icon: rtl ? MyDataIcon.chevronRight : MyDataIcon.chevronLeft,
                       label: MonthGrid.previousMonthLabel,
                       shortcut: previousShortcut,
                       onPressed: () => _step(-1),
@@ -125,7 +125,7 @@ class MacMonthView extends StatelessWidget {
                       onPressed: _today,
                     ),
                     MacToolbarGroupButton(
-                      icon: rtl ? MacIcons.chevronLeft : MacIcons.chevronRight,
+                      icon: rtl ? MyDataIcon.chevronLeft : MyDataIcon.chevronRight,
                       label: MonthGrid.nextMonthLabel,
                       shortcut: nextShortcut,
                       onPressed: () => _step(1),

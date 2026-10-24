@@ -95,7 +95,7 @@ void main() {
       await _pump(tester, _frame(Notice(message: _notReadYet, tone: tone)));
       final c = tester.element(find.byType(Notice)).colors;
       final icon = tester.widget<Icon>(find.byType(Icon));
-      expect(icon.icon, tone == NoticeTone.info ? Icons.info_outline_rounded : Icons.warning_amber_rounded);
+      expect(icon.icon, iconOf(tone == NoticeTone.info ? MyDataIcon.info : MyDataIcon.warning));
       expect(icon.color, tone == NoticeTone.info ? c.info : c.warning);
       expect(icon.size, MyDataSize.icon);
     }

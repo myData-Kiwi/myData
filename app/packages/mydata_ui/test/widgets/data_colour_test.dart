@@ -393,7 +393,7 @@ void main() {
           themeMatrix.first,
           list([
             CalendarListRow(colour: _red, name: 'Family', caption: 'iCloud', shown: true, onChanged: _noop),
-            const GroupedRow(icon: Icons.event_outlined, title: 'With a tile')
+            const GroupedRow(icon: MyDataIcon.calendar, title: 'With a tile')
           ])));
       final c = _colors('kiwi', Brightness.light);
       final row = tester.getRect(find.byType(CalendarListRow));

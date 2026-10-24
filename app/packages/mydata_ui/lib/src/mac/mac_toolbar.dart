@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import '../generated/tokens.g.dart';
 import '../theme/theme.dart';
 import 'mac_chrome.dart';
-import 'mac_icons.dart';
 import 'mac_overlays.dart' show MacMenuLook;
 import 'mac_theme.dart';
 
@@ -96,7 +95,7 @@ class MacToolbar extends StatelessWidget {
 class MacToolbarButton extends StatefulWidget {
   const MacToolbarButton({
     super.key,
-    required IconData this.icon,
+    required MyDataIcon this.icon,
     required this.label,
     required this.onPressed,
     this.disabledReason,
@@ -112,7 +111,7 @@ class MacToolbarButton extends StatefulWidget {
     this.shortcut,
   }) : icon = null;
 
-  final IconData? icon;
+  final MyDataIcon? icon;
   final String? text;
   final String label;
   final VoidCallback? onPressed;
@@ -140,7 +139,7 @@ class _MacToolbarButtonState extends State<MacToolbarButton> {
       if (!enabled && widget.disabledReason != null) widget.disabledReason!,
     ].join('\n');
     final Widget face = widget.icon != null
-        ? Icon(widget.icon, size: MyDataMacSize.icon, color: ink)
+        ? Icon(context.icon(widget.icon!), size: MyDataMacSize.icon, color: ink)
         : Text(widget.text!, style: MyDataMacType.body.copyWith(color: enabled ? mac.label : mac.tertiaryLabel));
     Widget button = AnimatedContainer(
       duration: context.motion.fast,
@@ -279,7 +278,7 @@ class _MacSearchFieldState extends State<MacSearchField> {
       ),
       child: Row(
         children: [
-          Icon(MacIcons.search, size: MyDataMacSize.icon, color: mac.secondaryLabel),
+          Icon(context.icon(MyDataIcon.search), size: MyDataMacSize.icon, color: mac.secondaryLabel),
           SizedBox(width: context.space(2)),
           Expanded(
             child: Focus(
@@ -307,7 +306,7 @@ class _MacSearchFieldState extends State<MacSearchField> {
               excludeSemantics: true,
               child: GestureDetector(
                 onTap: widget.controller.clear,
-                child: Icon(MacIcons.clear, size: MyDataMacSize.icon - MyDataMacSize.tight, color: mac.secondaryLabel),
+                child: Icon(context.icon(MyDataIcon.clear), size: MyDataMacSize.icon - MyDataMacSize.tight, color: mac.secondaryLabel),
               ),
             ),
         ],

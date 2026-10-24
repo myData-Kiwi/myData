@@ -14,10 +14,10 @@ enum NoticeTone {
   /// The user must act ("myData is not allowed to read this Mac's calendars ..."). A `warning` outline icon.
   warning;
 
-  /// The outline icon at the notice's start. The icon set is not drawn yet; these are Material outlines.
-  IconData get icon => switch (this) {
-        info => Icons.info_outline_rounded,
-        warning => Icons.warning_amber_rounded,
+  /// The icon at the notice's start.
+  MyDataIcon get icon => switch (this) {
+        info => MyDataIcon.info,
+        warning => MyDataIcon.warning,
       };
 
   /// The icon's colour: the tone's strong colour.
@@ -88,7 +88,7 @@ class Notice extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     final label = actionLabel;
-    final icon = ExcludeSemantics(child: Icon(tone.icon, size: context.density.icon, color: tone.iconColor(c)));
+    final icon = ExcludeSemantics(child: Icon(context.icon(tone.icon), size: context.density.icon, color: tone.iconColor(c)));
     final words = ExcludeSemantics(child: Text(message, style: context.type(MyDataTypeRole.body).copyWith(color: c.ink)));
     Widget content;
     if (label == null) {

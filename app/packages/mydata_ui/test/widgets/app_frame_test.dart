@@ -9,10 +9,10 @@ void _noop() {}
 const _updated = 'Last updated at 09:12';
 
 const _sections = [
-  AppSection(icon: Icons.photo_library_outlined, label: 'Library'),
-  AppSection(icon: Icons.photo_album_outlined, label: 'Albums'),
-  AppSection(icon: Icons.people_outline_rounded, label: 'People'),
-  AppSection(icon: Icons.place_outlined, label: 'Places'),
+  AppSection(icon: MyDataIcon.photo, label: 'Library'),
+  AppSection(icon: MyDataIcon.photo, label: 'Albums'),
+  AppSection(icon: MyDataIcon.people, label: 'People'),
+  AppSection(icon: MyDataIcon.map, label: 'Places'),
 ];
 
 /// A screen inside the frame, as an app would put there.
@@ -21,12 +21,12 @@ Widget _page(String title) => PageScaffold(
       actions: [Button(label: 'Add photos', variant: ButtonVariant.filled, onPressed: _noop)],
       children: const [
         MyDataCard(
-          icon: Icons.cloud_upload_outlined,
+          icon: MyDataIcon.cloud,
           name: 'Backing up 248 photos',
           child: Text('To the drive on this Mac. You can keep using myPhotos while this finishes.'),
         ),
         MyDataCard(
-          icon: Icons.face_outlined,
+          icon: MyDataIcon.person,
           name: 'Group photos by face',
           child: Text('Runs on your host.'),
         ),
@@ -129,9 +129,9 @@ void main() {
       await _pumpFrame(
         tester,
         _frame(1100, 600, sections: const [
-          AppSection(icon: Icons.contacts_outlined, label: 'Contacts'),
-          AppSection(icon: Icons.fact_check_outlined, label: 'Review', count: 4),
-          AppSection(icon: Icons.delete_outline_rounded, label: 'Deleted', count: 0),
+          AppSection(icon: MyDataIcon.contact, label: 'Contacts'),
+          AppSection(icon: MyDataIcon.review, label: 'Review', count: 4),
+          AppSection(icon: MyDataIcon.trash, label: 'Deleted', count: 0),
         ]),
       );
       final c = tester.element(find.byType(AppFrame)).colors;
@@ -256,7 +256,7 @@ void main() {
               sections: _sections,
               current: 0,
               onSelect: (_) {},
-              phoneTitleActions: [MyDataIconButton(icon: Icons.add_rounded, label: 'New contact', onPressed: () {})],
+              phoneTitleActions: [MyDataIconButton(icon: MyDataIcon.add, label: 'New contact', onPressed: () {})],
               child: const SizedBox.expand(),
             ),
           );
@@ -270,7 +270,7 @@ void main() {
     });
 
     testWidgets('a phone app with one section gets no tab bar', (tester) async {
-      await _pumpFrame(tester, _frame(375, 700, sections: const [AppSection(icon: Icons.chat_outlined, label: 'Chat')]),
+      await _pumpFrame(tester, _frame(375, 700, sections: const [AppSection(icon: MyDataIcon.chat, label: 'Chat')]),
           view: const Size(375, 700));
       expect(find.byType(FloatingBar), findsNothing);
     });

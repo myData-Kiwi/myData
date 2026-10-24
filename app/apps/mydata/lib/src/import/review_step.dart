@@ -256,42 +256,42 @@ class _ReviewStepState extends State<ReviewStep> {
     final rows = <GroupedRow>[
       if (fresh > 0)
         GroupedRow(
-          icon: Icons.person_add_alt_outlined,
+          icon: MyDataIcon.personAdd,
           tone: MyDataTone.accent,
           title: ImportText.summaryNew(fresh),
           subtitle: ImportText.summaryNewCaption,
         ),
       if (dup > 0)
         GroupedRow(
-          icon: Icons.people_alt_outlined,
+          icon: MyDataIcon.people,
           tone: MyDataTone.info,
           title: ImportText.summaryDuplicates(dup),
           subtitle: ImportText.summaryDuplicatesCaption,
         ),
       if (upd > 0)
         GroupedRow(
-          icon: Icons.sync_outlined,
+          icon: MyDataIcon.sync,
           tone: MyDataTone.neutral,
           title: ImportText.summaryUpdates(upd),
           subtitle: ImportText.summaryUpdatesCaption,
         ),
       if (already > 0)
         GroupedRow(
-          icon: Icons.check_circle_outline_rounded,
+          icon: MyDataIcon.success,
           tone: MyDataTone.neutral,
           title: ImportText.summaryAlready(already),
           subtitle: linked > 0 && linked == already ? ImportText.summaryLinkedCaption : ImportText.summaryAlreadyCaption,
         ),
       if (conflicts > 0)
         GroupedRow(
-          icon: Icons.edit_note_outlined,
+          icon: MyDataIcon.note,
           tone: MyDataTone.neutral,
           title: ImportText.summaryConflicts(conflicts),
           subtitle: ImportText.summaryConflictsCaption,
         ),
       if (skipped > 0)
         GroupedRow(
-          icon: Icons.warning_amber_rounded,
+          icon: MyDataIcon.warning,
           tone: MyDataTone.warning,
           title: ImportText.summarySkipped(skipped),
           subtitle: ImportText.summarySkippedCaption,

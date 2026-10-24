@@ -288,7 +288,7 @@ class _ReviewViewState extends State<ReviewView> {
                     alignment: AlignmentDirectional.centerStart,
                     child: Button(
                       label: ReviewView.title,
-                      icon: Icons.arrow_back_ios_new_rounded,
+                      icon: MyDataIcon.back,
                       variant: ButtonVariant.plain,
                       onPressed: () => Navigator.of(context).maybePop(),
                     ),

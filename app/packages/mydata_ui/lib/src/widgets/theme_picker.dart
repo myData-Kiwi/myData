@@ -356,7 +356,7 @@ class _SampleScreen extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const IconTile(icon: Icons.photo_outlined, tone: MyDataTone.accent),
+                const IconTile(icon: MyDataIcon.photo, tone: MyDataTone.accent),
                 SizedBox(width: context.space(3)),
                 Expanded(
                   child: Column(

@@ -109,13 +109,22 @@ const genericMonoFamilies = {
   'fuchsia': 'monospace',
 };
 
-/// The icon sets a theme may name (theme.schema.json). Phase 1 draws Lucide only; the others are cut as
-/// subset fonts in phase 3, and until then a theme naming one is drawn in Lucide, with a notice.
+/// The icon sets a theme may name (theme.schema.json). Lucide, Tabler and Phosphor are bundled (phase 3,
+/// tool/subset_icons.sh); the others come with the first theme that draws them, and until then a theme
+/// naming one is drawn in Lucide, with a notice.
 const iconSets = {
   'lucide', 'phosphor', 'tabler', 'material-outlined', 'material-rounded', 'material-sharp', 'pixelarticons',
   'iconoir',
 };
-const bundledIconSets = {'lucide'};
+
+/// The weights each bundled set has (the icon fonts of icon_sets.g.dart; test/theme/icons_test.dart checks
+/// the two agree). A weight a set lacks is drawn in the nearest it has.
+const bundledIconWeights = {
+  'lucide': {'regular'},
+  'tabler': {'thin', 'light', 'regular'},
+  'phosphor': {'light', 'regular', 'bold', 'fill'},
+};
+final bundledIconSets = bundledIconWeights.keys.toSet();
 
 /// Licences a theme may carry: SPDX identifiers (https://spdx.org/licenses/) for the licences people share
 /// designs and fonts under, plus NOASSERTION for a theme that is not shared. Not the whole SPDX list: an id

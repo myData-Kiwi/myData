@@ -874,7 +874,7 @@ class _MyDataSelectState<T> extends State<MyDataSelect<T>>
             ),
           ),
           SizedBox(width: context.space(2)),
-          Icon(Icons.unfold_more_rounded, size: context.density.icon, color: c.inkMuted),
+          Icon(context.icon(MyDataIcon.upDown), size: context.density.icon, color: c.inkMuted),
         ],
       );
       Widget box = AnimatedContainer(
@@ -1278,7 +1278,7 @@ class _ListRow<T> extends StatelessWidget {
                     ),
                     if (chosen) ...[
                       SizedBox(width: context.space(2)),
-                      Icon(Icons.check_rounded, size: context.density.icon, color: c.accent),
+                      Icon(context.icon(MyDataIcon.check), size: context.density.icon, color: c.accent),
                     ],
                   ],
                 ),

@@ -30,26 +30,26 @@ FocusNode? _focused;
 Widget _states() => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       for (final tone in IconButtonTone.values)
         Row(children: [
-          MyDataIconButton(icon: Icons.add_rounded, label: 'New event', tone: tone, onPressed: _noop),
-          MyDataIconButton(icon: Icons.content_copy_rounded, label: 'Copy', tone: tone, onPressed: _noop),
+          MyDataIconButton(icon: MyDataIcon.add, label: 'New event', tone: tone, onPressed: _noop),
+          MyDataIconButton(icon: MyDataIcon.copy, label: 'Copy', tone: tone, onPressed: _noop),
           if (tone != IconButtonTone.danger)
             MyDataIconButton(
-                icon: Icons.flag_outlined, toggledIcon: Icons.flag_rounded, label: 'Flag', tone: tone, toggled: true, onPressed: _noop)
+                icon: MyDataIcon.report, label: 'Flag', tone: tone, toggled: true, onPressed: _noop)
           else
             const SizedBox(width: MyDataSize.controlHeight),
           MyDataIconButton(
-              icon: Icons.content_copy_rounded, label: 'Copy', doneLabel: 'Copied', done: true, tone: tone, onPressed: _noop),
+              icon: MyDataIcon.copy, label: 'Copy', doneLabel: 'Copied', done: true, tone: tone, onPressed: _noop),
           MyDataIconButton(
-              icon: Icons.remove_circle_outline_rounded, label: 'Remove mobile number', tone: tone, onPressed: null,
+              icon: MyDataIcon.remove, label: 'Remove mobile number', tone: tone, onPressed: null,
               disabledReason: _reason),
           MyDataIconButton(
-              icon: Icons.add_rounded, label: 'New event', tone: tone, compact: true, onPressed: _noop),
+              icon: MyDataIcon.add, label: 'New event', tone: tone, compact: true, onPressed: _noop),
         ]),
       const SizedBox(height: MyDataSpace.s4),
       Row(children: [
         const SizedBox(width: MyDataSpace.s6),
         MyDataIconButton(
-          icon: Icons.add_rounded,
+          icon: MyDataIcon.add,
           label: 'New event',
           shortcut: MyDataShortcut.primary(LogicalKeyboardKey.keyN),
           focusNode: _focused = FocusNode(),
@@ -57,7 +57,7 @@ Widget _states() => Column(crossAxisAlignment: CrossAxisAlignment.start, childre
         ),
         const SizedBox(width: 120),
         const MyDataIconButton(
-            key: Key('hovered'), icon: Icons.content_copy_rounded, label: 'Copy work email', tone: IconButtonTone.quiet,
+            key: Key('hovered'), icon: MyDataIcon.copy, label: 'Copy work email', tone: IconButtonTone.quiet,
             onPressed: _noop),
       ]),
     ]);
@@ -86,7 +86,7 @@ void main() {
       'icon_button_focus_danger',
       () => Row(children: [
             MyDataIconButton(
-              icon: Icons.remove_circle_outline_rounded,
+              icon: MyDataIcon.remove,
               label: 'Remove mobile number',
               tone: IconButtonTone.danger,
               focusNode: dangerNode = FocusNode(),
@@ -95,7 +95,7 @@ void main() {
             const SizedBox(width: 160),
             const MyDataIconButton(
               key: Key('hovered'),
-              icon: Icons.remove_circle_outline_rounded,
+              icon: MyDataIcon.remove,
               label: 'Remove home number',
               tone: IconButtonTone.danger,
               onPressed: _noop,
@@ -106,8 +106,8 @@ void main() {
 
   testWidgets('a control-height circle with an icon-size glyph; compact is control-height-compact', (tester) async {
     await tester.pumpWidget(themedFrame(themeMatrix.first, const Row(children: [
-      MyDataIconButton(key: Key('a'), icon: Icons.add_rounded, label: 'New event', onPressed: _noop),
-      MyDataIconButton(key: Key('b'), icon: Icons.add_rounded, label: 'New event', compact: true, onPressed: _noop),
+      MyDataIconButton(key: Key('a'), icon: MyDataIcon.add, label: 'New event', onPressed: _noop),
+      MyDataIconButton(key: Key('b'), icon: MyDataIcon.add, label: 'New event', compact: true, onPressed: _noop),
     ])));
     expect(tester.getSize(find.byKey(const Key('a'))), const Size.square(MyDataSize.controlHeight));
     expect(tester.getSize(find.byKey(const Key('b'))), const Size.square(MyDataSize.controlHeightCompact));
@@ -117,11 +117,11 @@ void main() {
 
   testWidgets('tones colour the icon; toggled turns it accent on accent-soft with the filled glyph', (tester) async {
     await tester.pumpWidget(themedFrame(themeMatrix.first, const Row(children: [
-      MyDataIconButton(key: Key('n'), icon: Icons.add_rounded, label: 'A', onPressed: _noop),
-      MyDataIconButton(key: Key('q'), icon: Icons.add_rounded, label: 'B', tone: IconButtonTone.quiet, onPressed: _noop),
-      MyDataIconButton(key: Key('d'), icon: Icons.add_rounded, label: 'C', tone: IconButtonTone.danger, onPressed: _noop),
+      MyDataIconButton(key: Key('n'), icon: MyDataIcon.add, label: 'A', onPressed: _noop),
+      MyDataIconButton(key: Key('q'), icon: MyDataIcon.add, label: 'B', tone: IconButtonTone.quiet, onPressed: _noop),
+      MyDataIconButton(key: Key('d'), icon: MyDataIcon.add, label: 'C', tone: IconButtonTone.danger, onPressed: _noop),
       MyDataIconButton(
-          key: Key('t'), icon: Icons.flag_outlined, toggledIcon: Icons.flag_rounded, label: 'Flag', toggled: true, onPressed: _noop),
+          key: Key('t'), icon: MyDataIcon.report, label: 'Flag', toggled: true, onPressed: _noop),
     ])));
     final c = tester.element(find.byKey(const Key('n'))).colors;
     expect(_iconColour(tester, find.byKey(const Key('n'))), c.ink);
@@ -129,7 +129,7 @@ void main() {
     expect(_iconColour(tester, find.byKey(const Key('d'))), c.danger);
     expect(_iconColour(tester, find.byKey(const Key('t'))), c.accent);
     expect(tester.widget<Icon>(find.descendant(of: find.byKey(const Key('t')), matching: find.byType(Icon))).icon,
-        Icons.flag_rounded);
+        iconOf(MyDataIcon.report, selected: true));
   });
 
   testWidgets('Tab, Return and Space press it; the danger tone takes the ink ring', (tester) async {
@@ -138,9 +138,9 @@ void main() {
     addTearDown(normal.dispose);
     addTearDown(danger.dispose);
     await tester.pumpWidget(themedFrame(themeMatrix.first, Row(children: [
-      MyDataIconButton(key: const Key('n'), icon: Icons.add_rounded, label: 'New event', focusNode: normal, onPressed: () => pressed++),
+      MyDataIconButton(key: const Key('n'), icon: MyDataIcon.add, label: 'New event', focusNode: normal, onPressed: () => pressed++),
       MyDataIconButton(
-          key: const Key('d'), icon: Icons.remove_rounded, label: 'Remove', tone: IconButtonTone.danger, focusNode: danger,
+          key: const Key('d'), icon: MyDataIcon.remove, label: 'Remove', tone: IconButtonTone.danger, focusNode: danger,
           onPressed: () => pressed++),
     ])));
     final c = tester.element(find.byKey(const Key('n'))).colors;
@@ -164,7 +164,7 @@ void main() {
     final node = FocusNode();
     addTearDown(node.dispose);
     await tester.pumpWidget(themedFrame(themeMatrix.first, MyDataIconButton(
-      icon: Icons.add_rounded,
+      icon: MyDataIcon.add,
       label: 'New event',
       shortcut: MyDataShortcut.primary(LogicalKeyboardKey.keyN, platform: TargetPlatform.linux),
       focusNode: node,
@@ -189,7 +189,7 @@ void main() {
     final node = FocusNode();
     addTearDown(node.dispose);
     await tester.pumpWidget(themedFrame(themeMatrix.first, MyDataIconButton(
-      icon: Icons.sync_rounded,
+      icon: MyDataIcon.sync,
       label: 'Sync now',
       focusNode: node,
       onPressed: null,
@@ -222,9 +222,9 @@ void main() {
   testWidgets('semantics: named by its label; a toggle keeps one name and says on or off', (tester) async {
     final handle = tester.ensureSemantics();
     await tester.pumpWidget(themedFrame(themeMatrix.first, const Row(children: [
-      MyDataIconButton(key: Key('a'), icon: Icons.chevron_left_rounded, label: 'Previous month', onPressed: _noop),
-      MyDataIconButton(key: Key('f'), icon: Icons.flag_outlined, label: 'Flag', toggled: false, onPressed: _noop),
-      MyDataIconButton(key: Key('g'), icon: Icons.flag_outlined, label: 'Flag', toggled: true, onPressed: _noop),
+      MyDataIconButton(key: Key('a'), icon: MyDataIcon.chevronLeft, label: 'Previous month', onPressed: _noop),
+      MyDataIconButton(key: Key('f'), icon: MyDataIcon.report, label: 'Flag', toggled: false, onPressed: _noop),
+      MyDataIconButton(key: Key('g'), icon: MyDataIcon.report, label: 'Flag', toggled: true, onPressed: _noop),
     ])));
     expect(
       tester.getSemantics(_pressable(find.byKey(const Key('a')))),
@@ -245,7 +245,7 @@ void main() {
 
   testWidgets('done shows a check in its tone and the result word', (tester) async {
     await tester.pumpWidget(themedFrame(themeMatrix.first, const MyDataIconButton(
-      icon: Icons.content_copy_rounded,
+      icon: MyDataIcon.copy,
       label: 'Copy work email',
       doneLabel: 'Copied',
       done: true,
@@ -253,7 +253,7 @@ void main() {
       onPressed: _noop,
     )));
     final icon = tester.widget<Icon>(find.byType(Icon));
-    expect(icon.icon, Icons.check_rounded);
+    expect(icon.icon, iconOf(MyDataIcon.check));
     expect(icon.color, tester.element(find.byType(Icon)).colors.inkMuted);
     final tooltip = tester.widget<Tooltip>(find.byType(Tooltip));
     expect(tooltip.richMessage!.toPlainText(), 'Copied');

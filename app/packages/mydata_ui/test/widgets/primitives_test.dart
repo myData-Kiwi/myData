@@ -12,7 +12,7 @@ void main() {
     () => Builder(
       builder: (context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Wrap(spacing: MyDataSpace.s3, children: [
-          for (final t in MyDataTone.values) IconTile(icon: Icons.folder_outlined, tone: t),
+          for (final t in MyDataTone.values) IconTile(icon: MyDataIcon.importFile, tone: t),
         ]),
         const SizedBox(height: MyDataSpace.s4),
         Text('Your data, kept at home', style: MyDataType.displayLg.copyWith(color: context.colors.ink)),

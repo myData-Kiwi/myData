@@ -115,8 +115,8 @@ class StatusPanel extends StatelessWidget {
     final showBar = kind == StatusPanelKind.working && progress != null;
     final Widget? lead = switch (kind) {
       StatusPanelKind.working => showBar ? null : KiwiLoader(size: loaderSize(context.look)),
-      StatusPanelKind.info => const IconTile(icon: Icons.info_outline_rounded, tone: MyDataTone.accent),
-      StatusPanelKind.error => const IconTile(icon: Icons.error_outline_rounded, tone: MyDataTone.danger),
+      StatusPanelKind.info => const IconTile(icon: MyDataIcon.info, tone: MyDataTone.accent),
+      StatusPanelKind.error => const IconTile(icon: MyDataIcon.error, tone: MyDataTone.danger),
     };
     final panel = ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: maxWidth),

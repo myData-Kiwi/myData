@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
-import 'package:flutter/material.dart' show Icons;
 import 'package:flutter/widgets.dart';
 
 import '../generated/tokens.g.dart';
@@ -128,7 +127,7 @@ class _Letters extends StatelessWidget {
     final initials = this.initials;
     return Center(
       child: initials == null
-          ? Icon(Icons.person_outline_rounded, size: size.iconSize(context.look), color: c.inkMuted)
+          ? Icon(context.icon(MyDataIcon.person), size: size.iconSize(context.look), color: c.inkMuted)
           // At the default text size the letters keep their type size: the preview's 36px circle has no inset,
           // and two wide capitals ("WW", about 30px of body-strong) fit. A small side inset (2.25px at 36px)
           // keeps the corners of letters scaled down for a large system text size inside the circle: they are

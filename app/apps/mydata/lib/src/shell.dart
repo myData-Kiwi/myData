@@ -71,16 +71,16 @@ class HomeShell extends StatefulWidget {
   static String openFailed(MyDataAppId app) => 'myData could not open ${app.displayName}. Open it yourself.';
 
   static const sections = [
-    AppSection(icon: Icons.monitor_heart_outlined, label: 'Status'),
-    AppSection(icon: Icons.move_to_inbox_outlined, label: 'Import'),
-    AppSection(icon: Icons.settings_outlined, label: 'Settings'),
+    AppSection(icon: MyDataIcon.status, label: 'Status'),
+    AppSection(icon: MyDataIcon.importFile, label: 'Import'),
+    AppSection(icon: MyDataIcon.settings, label: 'Settings'),
   ];
 
   /// The sections as the Mac frame's sidebar shows them, with its icons (Lucide, in place of SF Symbols).
   static const macSections = [
-    AppSection(icon: MacIcons.status, label: 'Status'),
-    AppSection(icon: MacIcons.importFile, label: 'Import'),
-    AppSection(icon: MacIcons.settings, label: 'Settings'),
+    AppSection(icon: MyDataIcon.status, label: 'Status'),
+    AppSection(icon: MyDataIcon.importFile, label: 'Import'),
+    AppSection(icon: MyDataIcon.settings, label: 'Settings'),
   ];
 
   /// The sections' names in the menu bar's View menu, in its title case.

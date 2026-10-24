@@ -124,7 +124,7 @@ A phone tab bar, a toolbar over a photo grid and the assistant's input bar float
 - An icon alone always has an accessible name.
 - Illustration is the kiwi, in first-run, empty screens and loading only.
 
-Those are Kiwi's sizes. Under System on macOS the icons are Lucide (`MacIcons` in `mydata_ui`, one set for every app) at 16px; the branded frame still uses Material outline icons. A theme picks its own set and weight (from phase 3, through semantic icon ids). Android moves to Material Symbols in its own pass.
+Those are Kiwi's sizes. Under System on macOS the icons are Lucide at 16px, and Kiwi draws Lucide too. Widgets name icons by meaning (`MyDataIcon` in `mydata_ui`); a theme picks its own set and weight (Lucide, Tabler or Phosphor so far). Android moves to Material Symbols in its own pass.
 
 ## Accessibility
 

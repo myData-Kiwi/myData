@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import '../generated/tokens.g.dart';
 import 'choice.dart';
 import 'library.dart';
+import 'icons.dart';
 import 'look.dart';
 
 export 'look.dart' show MyDataLook, MyDataTypeRole, MyDataTypeScale, MyDataShape, MyDataDensity, MyDataMotionSpec, LookFrame;
+export 'icons.dart' show MyDataIcon;
 
 /// Light, dark, or whatever the device uses. Stored per device.
 enum MyDataMode {
@@ -202,4 +204,8 @@ extension MyDataLookContext on BuildContext {
   MyDataShape get radius => look.shape;
   MyDataDensity get density => look.density;
   MyDataMotionSpec get motion => look.motion;
+
+  /// [icon]'s glyph in this look's icon set and weight; filled when [selected] and the theme fills selected
+  /// icons (`Icon(context.icon(MyDataIcon.add))`).
+  IconData icon(MyDataIcon icon, {bool selected = false}) => look.icons(icon, selected: selected);
 }

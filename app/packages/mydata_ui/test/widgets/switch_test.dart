@@ -42,13 +42,13 @@ void main() {
                 onChanged: _noop),
             SwitchRow(
                 key: ValueKey('hovered'),
-                icon: Icons.cloud_sync_outlined,
+                icon: MyDataIcon.sync,
                 title: 'Back up every night',
                 description: 'Copies your data to the backup drive at 2am.',
                 value: true,
                 onChanged: _noop),
             SwitchRow(
-                icon: Icons.public_outlined,
+                icon: MyDataIcon.cloud,
                 tone: MyDataTone.neutral,
                 title: 'Search the web',
                 description: 'Needs the assistant to be on.',
@@ -214,7 +214,7 @@ void main() {
           SizedBox(
               width: 480,
               child: SwitchRow(
-                  icon: Icons.face_outlined,
+                  icon: MyDataIcon.person,
                   title: 'Group photos by face',
                   description: 'Finds the same person across your photos.',
                   value: false,
@@ -267,7 +267,7 @@ void main() {
           SizedBox(
               width: 480,
               child: SwitchRow(
-                  icon: Icons.face_outlined,
+                  icon: MyDataIcon.person,
                   title: 'Group photos by face',
                   description: 'You name the groups.',
                   value: true,

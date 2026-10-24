@@ -53,11 +53,11 @@ class AppsSection extends StatelessWidget {
 
 /// The words of the apps' rows.
 abstract final class AppsText {
-  static IconData icon(MyDataAppId app) => switch (app) {
-    MyDataAppId.mycontacts => Icons.people_outline,
-    MyDataAppId.mycalendar => Icons.event_outlined,
-    MyDataAppId.myassistant => Icons.chat_bubble_outline_rounded,
-    MyDataAppId.mydata => Icons.dns_outlined,
+  static MyDataIcon icon(MyDataAppId app) => switch (app) {
+    MyDataAppId.mycontacts => MyDataIcon.people,
+    MyDataAppId.mycalendar => MyDataIcon.calendar,
+    MyDataAppId.myassistant => MyDataIcon.chat,
+    MyDataAppId.mydata => MyDataIcon.host,
   };
 
   static const assistant = 'Ask about your contacts and calendars in a chat.';

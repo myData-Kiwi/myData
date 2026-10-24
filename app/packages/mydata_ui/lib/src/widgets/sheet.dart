@@ -499,7 +499,7 @@ class SheetPickerRow extends StatelessWidget {
                 if (caption != null) Text(caption!, style: context.typeScale.caption.copyWith(color: c.inkMuted)),
               ]),
             ),
-            if (chosen) Icon(Icons.check_rounded, size: context.density.icon, color: c.accent),
+            if (chosen) Icon(context.icon(MyDataIcon.check), size: context.density.icon, color: c.accent),
           ]),
         ),
       ),

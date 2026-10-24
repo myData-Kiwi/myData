@@ -315,7 +315,7 @@ void main() {
       await _key(tester, LogicalKeyboardKey.tab);
       await _optionDown(tester);
       expect(find.byKey(const ValueKey('picker-row-38')), findsOneWidget); // 09:30
-      expect(find.byIcon(Icons.check_rounded), findsOneWidget);
+      expect(findIcon(MyDataIcon.check), findsOneWidget);
       await _key(tester, LogicalKeyboardKey.arrowDown);
       await _key(tester, LogicalKeyboardKey.enter);
       expect(changes, [_t(hour: 9, minute: 45)]);

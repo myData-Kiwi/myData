@@ -21,9 +21,8 @@ class FloatingBarItem {
   final String label;
 
   /// An optional icon, drawn at `icon` size in the label's colour. With a visible label the icon sits above
-  /// it, as on a phone tab bar, so five items fit on a phone. The icon set is not drawn yet; pass a Material
-  /// outlined or rounded icon.
-  final IconData? icon;
+  /// it, as on a phone tab bar, so five items fit on a phone.
+  final MyDataIcon? icon;
 
   /// Called when the item is pressed. Null disables it (45% opacity, not focusable).
   final VoidCallback? onPressed;
@@ -151,7 +150,7 @@ class _FloatingBarButton extends StatelessWidget {
           duration: context.motion.fast,
           curve: context.motion.standard,
           builder: (context, color, _) {
-            final icon = item.icon == null ? null : Icon(item.icon, size: context.density.icon, color: color);
+            final icon = item.icon == null ? null : Icon(context.icon(item.icon!), size: context.density.icon, color: color);
             if (!item.showLabel) return Center(child: icon);
             // The preview's 14px label is between `body` and `caption`. A text tab is `body` (400) or
             // `body-strong` (600), keeping the preview's weights. Under an icon the label is `caption` (400)

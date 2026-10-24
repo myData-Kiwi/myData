@@ -1008,7 +1008,7 @@ class _Token extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (invalid) ...[
-            Icon(Icons.error_outline_rounded, size: context.density.icon, color: c.danger),
+            Icon(context.icon(MyDataIcon.error), size: context.density.icon, color: c.danger),
             SizedBox(width: context.space(2)),
           ],
           Flexible(
@@ -1064,7 +1064,7 @@ class _RemoveX extends StatelessWidget {
             height: context.density.iconTile,
             decoration: BoxDecoration(color: s.hovered ? c.surface : null, shape: BoxShape.circle),
             alignment: Alignment.center,
-            child: Icon(Icons.close_rounded, size: context.density.icon, color: colour),
+            child: Icon(context.icon(MyDataIcon.close), size: context.density.icon, color: colour),
           ),
         ),
       ),

@@ -4,7 +4,6 @@ import '../generated/tokens.g.dart';
 import '../theme/theme.dart';
 import '../widgets/kiwi.dart';
 import '../widgets/progress_bar.dart';
-import 'mac_icons.dart';
 import 'mac_theme.dart';
 
 /// What a [MacEmptyState] leads with.
@@ -69,8 +68,8 @@ class MacEmptyState extends StatelessWidget {
         : switch (symbol) {
             MacEmptySymbol.kiwi => MacKiwi(height: symbolSize(context.look)),
             MacEmptySymbol.working => KiwiLoader(size: symbolSize(context.look)),
-            MacEmptySymbol.info => Icon(MacIcons.info, size: symbolSize(context.look), color: mac.secondaryLabel),
-            MacEmptySymbol.error => Icon(MacIcons.warning, size: symbolSize(context.look), color: mac.secondaryLabel),
+            MacEmptySymbol.info => Icon(context.icon(MyDataIcon.info), size: symbolSize(context.look), color: mac.secondaryLabel),
+            MacEmptySymbol.error => Icon(context.icon(MyDataIcon.warning), size: symbolSize(context.look), color: mac.secondaryLabel),
           };
     final column = ConstrainedBox(
       constraints: BoxConstraints(maxWidth: maxWidth(context.look)),

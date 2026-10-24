@@ -11,7 +11,6 @@ import '../widgets/form_row.dart' show FormRemoveButton;
 import '../widgets/form_scope.dart';
 import '../widgets/menu.dart';
 import '../widgets/pressable.dart';
-import 'mac_icons.dart';
 import 'mac_theme.dart';
 
 /// The Mac frame's form controls (docs/2026-10-23-plan.md section 5, "Mac density"): what a form in the Mac
@@ -313,7 +312,7 @@ class _MacPopUpButtonState<T> extends State<MacPopUpButton<T>> {
                 style: MyDataMacType.body.copyWith(color: mac.label)),
           ),
           SizedBox(width: context.space(2)),
-          Icon(MacIcons.upDown, size: MyDataMacSize.icon - context.space(1), color: mac.accent),
+          Icon(context.icon(MyDataIcon.upDown), size: MyDataMacSize.icon - context.space(1), color: mac.accent),
         ]),
       );
     } else {
@@ -328,7 +327,7 @@ class _MacPopUpButtonState<T> extends State<MacPopUpButton<T>> {
                 style: MyDataMacType.callout.copyWith(color: mac.secondaryLabel)),
           ),
           SizedBox(width: context.space(1)),
-          Icon(MacIcons.chevronDown, size: MyDataMacSize.icon - context.space(1), color: mac.secondaryLabel),
+          Icon(context.icon(MyDataIcon.chevronDown), size: MyDataMacSize.icon - context.space(1), color: mac.secondaryLabel),
         ]),
       );
     }
@@ -448,7 +447,7 @@ class MacRemoveButton extends StatelessWidget {
         disabledReason: onPressed == null ? FormRemoveButton.defaultDisabledReason : null,
         child: SizedBox.square(
           dimension: MacControl.height,
-          child: Icon(MacIcons.remove, size: MyDataMacSize.icon, color: context.colors.danger),
+          child: Icon(context.icon(MyDataIcon.remove), size: MyDataMacSize.icon, color: context.colors.danger),
         ),
       );
 }
@@ -488,7 +487,7 @@ class MacAddButton extends StatelessWidget {
             width: size,
             height: size,
             decoration: BoxDecoration(color: mac.green, shape: BoxShape.circle),
-            child: Icon(MacIcons.add, size: size - 2 * MyDataMacSize.tight, color: MyDataMacColors.light.onAccent),
+            child: Icon(context.icon(MyDataIcon.add), size: size - 2 * MyDataMacSize.tight, color: MyDataMacColors.light.onAccent),
           ),
           SizedBox(width: context.space(2)),
           Text(label, style: MyDataMacType.body.copyWith(color: mac.label)),

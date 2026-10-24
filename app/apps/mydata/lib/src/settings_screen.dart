@@ -324,7 +324,7 @@ class _AssistantSectionState extends State<AssistantSection> {
         footer: text,
         rows: [
           MacFormRow(
-            icon: MacIcons.assistant,
+            icon: MyDataIcon.assistant,
             title: 'Assistant',
             trailing: [
               MacSwitch(value: enabled, onChanged: _saving || status == null ? null : _set, semanticLabel: 'Assistant'),
@@ -343,7 +343,7 @@ class _AssistantSectionState extends State<AssistantSection> {
       heading: 'Assistant',
       rows: [
         GroupedRow.toggle(
-          icon: Icons.auto_awesome_outlined,
+          icon: MyDataIcon.assistant,
           title: 'Assistant',
           subtitle: text,
           value: enabled,

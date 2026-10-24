@@ -1,0 +1,376 @@
+{
+  "_about": "Semantic icon ids (MyDataIcon) and the glyph each icon set draws for them, by the set's own name. tool/subset_icons.sh cuts each set's fonts to these glyphs and writes lib/src/theme/icon_sets.g.dart; test/theme/icons_test.dart checks every set maps every id.",
+  "icons": [
+    {
+      "id": "people",
+      "meaning": "Several people: a list of contacts, the People section",
+      "lucide": "users-round",
+      "tabler": "users",
+      "phosphor": "users"
+    },
+    {
+      "id": "person",
+      "meaning": "One person",
+      "lucide": "user-round",
+      "tabler": "user",
+      "phosphor": "user"
+    },
+    {
+      "id": "personAdd",
+      "meaning": "Add a person",
+      "lucide": "user-plus",
+      "tabler": "user-plus",
+      "phosphor": "user-plus"
+    },
+    {
+      "id": "contact",
+      "meaning": "A contact card, the Contacts app",
+      "lucide": "contact",
+      "tabler": "address-book",
+      "phosphor": "address-book"
+    },
+    {
+      "id": "calendar",
+      "meaning": "A calendar, an event, the Calendar app",
+      "lucide": "calendar",
+      "tabler": "calendar",
+      "phosphor": "calendar-blank"
+    },
+    {
+      "id": "calendarMonth",
+      "meaning": "A month of days",
+      "lucide": "calendar-days",
+      "tabler": "calendar-month",
+      "phosphor": "calendar-dots"
+    },
+    {
+      "id": "calendarCheck",
+      "meaning": "An event made or accepted",
+      "lucide": "calendar-check",
+      "tabler": "calendar-check",
+      "phosphor": "calendar-check"
+    },
+    {
+      "id": "clock",
+      "meaning": "A time",
+      "lucide": "clock",
+      "tabler": "clock",
+      "phosphor": "clock"
+    },
+    {
+      "id": "photo",
+      "meaning": "A photo",
+      "lucide": "image",
+      "tabler": "photo",
+      "phosphor": "image"
+    },
+    {
+      "id": "assistant",
+      "meaning": "The assistant",
+      "lucide": "sparkles",
+      "tabler": "sparkles",
+      "phosphor": "sparkle"
+    },
+    {
+      "id": "chat",
+      "meaning": "A conversation",
+      "lucide": "message-square",
+      "tabler": "message",
+      "phosphor": "chat-centered"
+    },
+    {
+      "id": "status",
+      "meaning": "The host's status",
+      "lucide": "activity",
+      "tabler": "activity",
+      "phosphor": "pulse"
+    },
+    {
+      "id": "importFile",
+      "meaning": "Import",
+      "lucide": "inbox",
+      "tabler": "inbox",
+      "phosphor": "tray"
+    },
+    {
+      "id": "settings",
+      "meaning": "Settings",
+      "lucide": "settings",
+      "tabler": "settings",
+      "phosphor": "gear"
+    },
+    {
+      "id": "layers",
+      "meaning": "Several sources in one, a merge",
+      "lucide": "layers",
+      "tabler": "stack-2",
+      "phosphor": "stack"
+    },
+    {
+      "id": "review",
+      "meaning": "Review suggestions",
+      "lucide": "list-checks",
+      "tabler": "list-check",
+      "phosphor": "list-checks"
+    },
+    {
+      "id": "list",
+      "meaning": "A list of results",
+      "lucide": "list",
+      "tabler": "list",
+      "phosphor": "list"
+    },
+    {
+      "id": "note",
+      "meaning": "A note, an edit to a card",
+      "lucide": "square-pen",
+      "tabler": "edit",
+      "phosphor": "note-pencil"
+    },
+    {
+      "id": "trash",
+      "meaning": "Delete, Recently deleted",
+      "lucide": "trash-2",
+      "tabler": "trash",
+      "phosphor": "trash"
+    },
+    {
+      "id": "thisMac",
+      "meaning": "This computer as a source",
+      "lucide": "laptop",
+      "tabler": "device-laptop",
+      "phosphor": "laptop"
+    },
+    {
+      "id": "host",
+      "meaning": "The host",
+      "lucide": "server",
+      "tabler": "server",
+      "phosphor": "hard-drives"
+    },
+    {
+      "id": "cloud",
+      "meaning": "An online account as a source",
+      "lucide": "cloud",
+      "tabler": "cloud",
+      "phosphor": "cloud"
+    },
+    {
+      "id": "sync",
+      "meaning": "Sync now",
+      "lucide": "refresh-cw",
+      "tabler": "refresh",
+      "phosphor": "arrows-clockwise"
+    },
+    {
+      "id": "agents",
+      "meaning": "Agents connected through MCP",
+      "lucide": "network",
+      "tabler": "network",
+      "phosphor": "graph"
+    },
+    {
+      "id": "key",
+      "meaning": "A password or token",
+      "lucide": "key-round",
+      "tabler": "key",
+      "phosphor": "key"
+    },
+    {
+      "id": "add",
+      "meaning": "Add",
+      "lucide": "plus",
+      "tabler": "plus",
+      "phosphor": "plus"
+    },
+    {
+      "id": "remove",
+      "meaning": "Remove a value",
+      "lucide": "circle-minus",
+      "tabler": "circle-minus",
+      "phosphor": "minus-circle"
+    },
+    {
+      "id": "edit",
+      "meaning": "Edit",
+      "lucide": "pencil",
+      "tabler": "pencil",
+      "phosphor": "pencil-simple"
+    },
+    {
+      "id": "copy",
+      "meaning": "Copy",
+      "lucide": "copy",
+      "tabler": "copy",
+      "phosphor": "copy"
+    },
+    {
+      "id": "search",
+      "meaning": "Search",
+      "lucide": "search",
+      "tabler": "search",
+      "phosphor": "magnifying-glass"
+    },
+    {
+      "id": "clear",
+      "meaning": "Clear a field",
+      "lucide": "circle-x",
+      "tabler": "circle-x",
+      "phosphor": "x-circle"
+    },
+    {
+      "id": "close",
+      "meaning": "Close",
+      "lucide": "x",
+      "tabler": "x",
+      "phosphor": "x"
+    },
+    {
+      "id": "more",
+      "meaning": "More actions",
+      "lucide": "ellipsis",
+      "tabler": "dots",
+      "phosphor": "dots-three"
+    },
+    {
+      "id": "send",
+      "meaning": "Send a message",
+      "lucide": "arrow-up",
+      "tabler": "arrow-up",
+      "phosphor": "arrow-up"
+    },
+    {
+      "id": "check",
+      "meaning": "A chosen item, done",
+      "lucide": "check",
+      "tabler": "check",
+      "phosphor": "check"
+    },
+    {
+      "id": "fileCheck",
+      "meaning": "A file read and checked",
+      "lucide": "file-check",
+      "tabler": "file-check",
+      "phosphor": "file-text"
+    },
+    {
+      "id": "report",
+      "meaning": "Report a problem",
+      "lucide": "flag",
+      "tabler": "flag",
+      "phosphor": "flag"
+    },
+    {
+      "id": "download",
+      "meaning": "Export, save a copy",
+      "lucide": "download",
+      "tabler": "download",
+      "phosphor": "download-simple"
+    },
+    {
+      "id": "message",
+      "meaning": "Send a text message",
+      "lucide": "message-circle",
+      "tabler": "message-circle",
+      "phosphor": "chat-circle"
+    },
+    {
+      "id": "call",
+      "meaning": "Call",
+      "lucide": "phone",
+      "tabler": "phone",
+      "phosphor": "phone"
+    },
+    {
+      "id": "video",
+      "meaning": "Video call",
+      "lucide": "video",
+      "tabler": "video",
+      "phosphor": "video-camera"
+    },
+    {
+      "id": "mail",
+      "meaning": "Email",
+      "lucide": "mail",
+      "tabler": "mail",
+      "phosphor": "envelope-simple"
+    },
+    {
+      "id": "map",
+      "meaning": "An address on a map",
+      "lucide": "map-pin",
+      "tabler": "map-pin",
+      "phosphor": "map-pin"
+    },
+    {
+      "id": "info",
+      "meaning": "Information",
+      "lucide": "info",
+      "tabler": "info-circle",
+      "phosphor": "info"
+    },
+    {
+      "id": "warning",
+      "meaning": "A warning",
+      "lucide": "triangle-alert",
+      "tabler": "alert-triangle",
+      "phosphor": "warning"
+    },
+    {
+      "id": "error",
+      "meaning": "An error",
+      "lucide": "circle-alert",
+      "tabler": "alert-circle",
+      "phosphor": "warning-circle"
+    },
+    {
+      "id": "success",
+      "meaning": "Success",
+      "lucide": "circle-check",
+      "tabler": "circle-check",
+      "phosphor": "check-circle"
+    },
+    {
+      "id": "sidebar",
+      "meaning": "Show or hide the sidebar",
+      "lucide": "panel-left",
+      "tabler": "layout-sidebar",
+      "phosphor": "sidebar-simple"
+    },
+    {
+      "id": "back",
+      "meaning": "Back",
+      "lucide": "arrow-left",
+      "tabler": "arrow-left",
+      "phosphor": "arrow-left"
+    },
+    {
+      "id": "chevronLeft",
+      "meaning": "Previous, or a row that opens to the left",
+      "lucide": "chevron-left",
+      "tabler": "chevron-left",
+      "phosphor": "caret-left"
+    },
+    {
+      "id": "chevronRight",
+      "meaning": "Next, or a row that opens",
+      "lucide": "chevron-right",
+      "tabler": "chevron-right",
+      "phosphor": "caret-right"
+    },
+    {
+      "id": "chevronDown",
+      "meaning": "A menu that opens downward",
+      "lucide": "chevron-down",
+      "tabler": "chevron-down",
+      "phosphor": "caret-down"
+    },
+    {
+      "id": "upDown",
+      "meaning": "A pop-up button",
+      "lucide": "chevrons-up-down",
+      "tabler": "selector",
+      "phosphor": "caret-up-down"
+    }
+  ]
+}

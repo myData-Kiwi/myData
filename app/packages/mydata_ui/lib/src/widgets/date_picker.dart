@@ -880,7 +880,7 @@ class _DatePickerState extends State<DatePicker> with PendingInputRegistration<D
       boxKey: _boxKey,
       controller: _text,
       focusNode: _node,
-      icon: Icons.calendar_today_outlined,
+      icon: MyDataIcon.calendar,
       fieldWidth: pickerFieldWidth(context, samples, style),
       semanticLabel: name,
       label: widget.showLabel ? widget.label : null,
@@ -1015,12 +1015,12 @@ class _Calendar extends StatelessWidget {
         if (birthday) const Spacer(),
         SizedBox(width: context.space(1)),
         _MonthButton(
-            icon: rtl ? Icons.chevron_right_rounded : Icons.chevron_left_rounded,
+            icon: rtl ? MyDataIcon.chevronRight : MyDataIcon.chevronLeft,
             label: DatePicker.previousMonthLabel,
             onPressed: onPrevious),
         SizedBox(width: context.space(1)),
         _MonthButton(
-            icon: rtl ? Icons.chevron_left_rounded : Icons.chevron_right_rounded,
+            icon: rtl ? MyDataIcon.chevronLeft : MyDataIcon.chevronRight,
             label: DatePicker.nextMonthLabel,
             onPressed: onNext),
       ]),
@@ -1112,7 +1112,7 @@ class _Calendar extends StatelessWidget {
 /// "Previous month" and "Next month": [MyDataIconButton]s in the normal tone.
 class _MonthButton extends StatelessWidget {
   const _MonthButton({required this.icon, required this.label, required this.onPressed});
-  final IconData icon;
+  final MyDataIcon icon;
   final String label;
   final VoidCallback onPressed;
 
@@ -1179,7 +1179,7 @@ class _MiniSelectState extends State<_MiniSelect> {
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         Text(widget.items[widget.selected], maxLines: 1, style: context.typeScale.body.copyWith(color: c.ink)),
         SizedBox(width: context.space(1)),
-        Icon(Icons.unfold_more_rounded, size: context.density.icon, color: c.inkMuted),
+        Icon(context.icon(MyDataIcon.upDown), size: context.density.icon, color: c.inkMuted),
       ]),
     );
     return PickerPopover(

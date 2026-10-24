@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart' show Icons;
 import 'package:flutter/widgets.dart';
 
 import '../theme/theme.dart';
@@ -151,8 +150,8 @@ class DropZone extends StatelessWidget {
 
     final Widget tile = switch (state) {
       DropZoneState.reading => KiwiLoader(size: context.density.iconTile, semanticLabel: 'Reading'),
-      DropZoneState.error => _Tile(icon: Icons.warning_amber_rounded, fill: c.warningSoft, ink: c.warning),
-      _ => _Tile(icon: Icons.move_to_inbox_outlined, fill: c.accentSoft, ink: c.accent),
+      DropZoneState.error => _Tile(icon: MyDataIcon.warning, fill: c.warningSoft, ink: c.warning),
+      _ => _Tile(icon: MyDataIcon.importFile, fill: c.accentSoft, ink: c.accent),
     };
 
     final instructionText = this.instructionText();
@@ -236,7 +235,7 @@ class DropZone extends StatelessWidget {
 
 class _Tile extends StatelessWidget {
   const _Tile({required this.icon, required this.fill, required this.ink});
-  final IconData icon;
+  final MyDataIcon icon;
   final Color fill;
   final Color ink;
 
@@ -246,6 +245,6 @@ class _Tile extends StatelessWidget {
         height: context.density.iconTile,
         decoration: BoxDecoration(color: fill, borderRadius: MyDataRadii.sm(context.look)),
         alignment: Alignment.center,
-        child: Icon(icon, size: context.density.icon, color: ink),
+        child: Icon(context.icon(icon), size: context.density.icon, color: ink),
       );
 }

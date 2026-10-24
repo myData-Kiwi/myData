@@ -404,7 +404,7 @@ class _CopyButton extends StatelessWidget {
         child: Semantics(
           value: copied ? FieldRow.copiedLabel : null,
           child: MyDataIconButton(
-            icon: Icons.content_copy_outlined,
+            icon: MyDataIcon.copy,
             label: name,
             tone: IconButtonTone.quiet,
             done: copied,

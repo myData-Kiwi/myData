@@ -93,7 +93,7 @@ class MacQuickAction extends StatefulWidget {
     this.disabledReason,
   });
 
-  final IconData icon;
+  final MyDataIcon icon;
 
   /// The word under the circle, in lower case as the system's apps write it ("message").
   final String label;
@@ -146,7 +146,7 @@ class _MacQuickActionState extends State<MacQuickAction> {
                     color: _pressed ? mac.tertiaryLabel : mac.quaternaryLabel,
                     border: _focused ? Border.all(color: mac.focusRing, width: MyDataMacSize.focusRingWidth) : null,
                   ),
-                  child: Icon(widget.icon, size: MyDataMacSize.icon, color: tint),
+                  child: Icon(context.icon(widget.icon), size: MyDataMacSize.icon, color: tint),
                 ),
                 SizedBox(height: context.space(1)),
                 Text(widget.label, style: MyDataMacType.action.copyWith(color: enabled ? mac.secondaryLabel : tint)),
@@ -309,13 +309,13 @@ class _FieldLineState extends State<_FieldLine> {
 }
 
 /// Where a record comes from, as a small glyph with the full sentence as its help tag and accessible name
-/// (plan 5.5: "Ownership and source as small glyph badges. Explanations behind ⓘ."): [MacIcons.cloud] for an
-/// iCloud account, [MacIcons.thisMac] for this Mac, [MacIcons.host] for what the host owns. In
+/// (plan 5.5: "Ownership and source as small glyph badges. Explanations behind ⓘ."): [MyDataIcon.cloud] for an
+/// iCloud account, [MyDataIcon.thisMac] for this Mac, [MyDataIcon.host] for what the host owns. In
 /// `secondary-label`, at `icon` size.
 class MacSourceBadge extends StatelessWidget {
   const MacSourceBadge({super.key, required this.icon, required this.sentence});
 
-  final IconData icon;
+  final MyDataIcon icon;
 
   /// "From the iCloud account you@example.com. Change it in your iCloud account."
   final String sentence;
@@ -329,7 +329,7 @@ class MacSourceBadge extends StatelessWidget {
       child: MacMenuLook.helpTag(
         context,
         message: sentence,
-        child: Icon(icon, size: MyDataMacSize.icon, color: mac.secondaryLabel),
+        child: Icon(context.icon(icon), size: MyDataMacSize.icon, color: mac.secondaryLabel),
       ),
     );
   }

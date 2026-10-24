@@ -217,7 +217,7 @@ void main() {
       expect(tester.getSize(find.byType(AnimatedContainer).first).height, MyDataSize.controlHeight);
       expect(tester.getRect(find.text('Book club')).top - tester.getRect(find.text('Calendar')).bottom,
           greaterThanOrEqualTo(MyDataSpace.s2));
-      expect(find.byIcon(Icons.unfold_more_rounded), findsOneWidget);
+      expect(findIcon(MyDataIcon.upDown), findsOneWidget);
     });
 
     testWidgets('semantics: "Calendar, Book club, pop-up button", collapsed', (tester) async {
@@ -434,10 +434,10 @@ void main() {
       final panelRect = tester.getRect(panel);
       expect(panelRect.top - fieldRect.bottom, MyDataSpace.s1);
       expect(panelRect.width, greaterThanOrEqualTo(fieldRect.width));
-      final check = tester.widget<Icon>(find.byIcon(Icons.check_rounded));
+      final check = tester.widget<Icon>(findIcon(MyDataIcon.check));
       expect(check.color, _kiwi.accent);
       // The check sits on the current value's row.
-      expect(tester.getCenter(find.byIcon(Icons.check_rounded)).dy,
+      expect(tester.getCenter(findIcon(MyDataIcon.check)).dy,
           closeTo(tester.getCenter(find.text('Book club').last).dy, 1));
     });
 
@@ -564,7 +564,7 @@ void main() {
       await tester.pumpAndSettle();
       final top = tester.getRect(find.text('iPhone').last).top;
       expect(top, lessThan(tester.getRect(find.text('Mobile')).top));
-      expect(tester.getCenter(find.byIcon(Icons.check_rounded)).dy,
+      expect(tester.getCenter(findIcon(MyDataIcon.check)).dy,
           closeTo(tester.getCenter(find.text('iPhone').last).dy, 1));
       // Opening and closing changes nothing.
       await tester.sendKeyEvent(LogicalKeyboardKey.escape);

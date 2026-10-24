@@ -31,7 +31,7 @@ class MyDataCard extends StatelessWidget {
 
   /// The icon on the header's tile. The spec has the caller always provide one, so that the headers of
   /// cards side by side line up.
-  final IconData icon;
+  final MyDataIcon icon;
 
   /// The tint of the header's tile. Give the same kind of thing the same tone everywhere.
   final MyDataTone iconTone;
@@ -124,7 +124,7 @@ class StatCard extends StatelessWidget {
   });
 
   /// The icon on the header's tile.
-  final IconData icon;
+  final MyDataIcon icon;
 
   /// The tint of the header's tile.
   final MyDataTone iconTone;

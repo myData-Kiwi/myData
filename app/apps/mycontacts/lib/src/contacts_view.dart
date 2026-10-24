@@ -186,7 +186,7 @@ class _ContactsViewState extends State<ContactsView> {
           trailing: [
             if (edit == null)
               MacToolbarButton(
-                icon: MacIcons.add,
+                icon: MyDataIcon.add,
                 label: ContactsView.newContactLabel,
                 shortcut: AppMenuBar.newShortcut.label(platform),
                 onPressed: () => unawaited(_actions.newContact()),
@@ -373,7 +373,7 @@ class _ContactsViewState extends State<ContactsView> {
                   onReturn: (id) => unawaited(_actions.edit(id)),
                   onDelete: () => unawaited(_actions.deleteSelected()),
                   searchTrailing: MyDataIconButton(
-                    icon: Icons.add_rounded,
+                    icon: MyDataIcon.add,
                     label: ContactsView.newContactLabel,
                     shortcut: AppMenuBar.newShortcut.activator(Theme.of(context).platform),
                     onPressed: () => unawaited(_actions.newContact()),
@@ -558,7 +558,7 @@ class _PushedContactPageState extends State<_PushedContactPage> {
               Row(children: [
                 Button(
                   label: ContactsView.backLabel,
-                  icon: Icons.arrow_back_ios_new_rounded,
+                  icon: MyDataIcon.back,
                   variant: ButtonVariant.plain,
                   onPressed: () => Navigator.of(context).maybePop(),
                 ),

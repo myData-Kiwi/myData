@@ -20,7 +20,7 @@ class MacToolbarGroupButton {
   }) : assert((text == null) != (icon == null), 'a button has a word or an icon');
 
   final String? text;
-  final IconData? icon;
+  final MyDataIcon? icon;
 
   /// Its tooltip and accessible name.
   final String label;
@@ -107,7 +107,7 @@ class _PartState extends State<_Part> {
         border: _focused ? Border.all(color: FocusRing.colourFor(context), width: MyDataMacSize.focusRingWidth) : null,
       ),
       child: s.icon != null
-          ? Icon(s.icon, size: MyDataMacSize.icon, color: ink)
+          ? Icon(context.icon(s.icon!), size: MyDataMacSize.icon, color: ink)
           : Text(s.text!, style: MyDataMacType.body.copyWith(color: ink)),
     );
     part = FocusableActionDetector(

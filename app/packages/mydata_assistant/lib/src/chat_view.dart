@@ -432,7 +432,7 @@ class _ProgressRow extends StatelessWidget {
         SizedBox.square(
           dimension: context.density.icon,
           child: line.done
-              ? Icon(Icons.check_rounded, size: context.density.icon, color: c.inkMuted)
+              ? Icon(context.icon(MyDataIcon.check), size: context.density.icon, color: c.inkMuted)
               : ExcludeSemantics(child: KiwiLoader(size: context.density.icon)),
         ),
         SizedBox(width: context.space(2)),
@@ -489,7 +489,7 @@ class _ErrorRow extends StatelessWidget {
         Padding(
           // Centres the icon on the title's first line.
           padding: EdgeInsets.only(top: (_lineHeight(context.look) - context.density.icon) / 2),
-          child: Icon(Icons.error_outline_rounded, size: context.density.icon, color: c.danger),
+          child: Icon(context.icon(MyDataIcon.error), size: context.density.icon, color: c.danger),
         ),
         SizedBox(width: context.space(2)),
         Expanded(
@@ -576,7 +576,7 @@ class _Composer extends StatelessWidget {
                 height: context.density.controlHeight,
                 decoration: BoxDecoration(color: c.accent, shape: BoxShape.circle),
                 alignment: Alignment.center,
-                child: Icon(Icons.arrow_upward_rounded, size: context.density.icon, color: c.onAccent),
+                child: Icon(context.icon(MyDataIcon.send), size: context.density.icon, color: c.onAccent),
               ),
             ),
           ],

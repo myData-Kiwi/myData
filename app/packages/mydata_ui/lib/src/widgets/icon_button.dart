@@ -42,8 +42,9 @@ enum IconButtonTone {
 ///   focusable (design/platforms.md "Disabled controls"): focus and hover show the tooltip with the reason on
 ///   a second line in `ink-muted`, and screen readers hear it as the hint.
 /// - **Toggled on** ([toggled] true, for a button that switches a state on a record, such as Flag): an
-///   `accent-soft` fill, the icon in `accent` and in its filled form ([toggledIcon]). It is announced as a
-///   toggle that is on or off, and its name never changes ("Flag", never "Unflag").
+///   `accent-soft` fill, the icon in `accent`, drawn as the theme draws a selected icon (filled where it fills
+///   them), or [toggledIcon] when one is given. It is announced as a toggle that is on or off, and its name
+///   never changes ("Flag", never "Unflag").
 /// - **Done** ([done] true, for a one-shot result shown in place, such as Copy): the icon becomes a check in
 ///   the button's tone and the tooltip becomes [doneLabel] ("Copied").
 /// - **Tooltip:** `surface-raised`, `radius-sm`, `shadow-2`, `caption` in `ink`, `space-1` by `space-2`
@@ -75,8 +76,8 @@ class MyDataIconButton extends StatefulWidget {
   }) : assert(onPressed != null || disabledReason != null, 'A button is never disabled without a reason.'),
        assert(toggled == null || tone != IconButtonTone.danger, 'The danger tone has no toggled state.');
 
-  /// The outline icon. The icon set is not drawn yet; pass a Material outlined or rounded icon.
-  final IconData icon;
+  /// The icon, by meaning; the look's icon set draws it.
+  final MyDataIcon icon;
 
   /// The accessible name and the tooltip, in sentence case with no full stop.
   final String label;
@@ -89,8 +90,8 @@ class MyDataIconButton extends StatefulWidget {
   /// Non-null makes it a toggle button, announced as on or off.
   final bool? toggled;
 
-  /// The filled form of [icon], shown while [toggled] is true (a filled flag for an outline flag).
-  final IconData? toggledIcon;
+  /// Another icon to show while [toggled] is true. Without one, [icon] is drawn as a selected icon.
+  final MyDataIcon? toggledIcon;
 
   /// The one-shot result is showing: a check in place of the icon, and [doneLabel] in the tooltip.
   final bool done;
@@ -170,7 +171,7 @@ class _MyDataIconButtonState extends State<MyDataIconButton> {
     final size = widget.compact ? context.density.controlHeightCompact : context.density.controlHeight;
     final fg = on ? c.accent : widget.tone.foreground(c);
     final glyph = widget.done
-        ? Icons.check_rounded
+        ? MyDataIcon.check
         : (on && widget.toggledIcon != null ? widget.toggledIcon! : widget.icon);
 
     Widget body = AnimatedContainer(
@@ -181,7 +182,7 @@ class _MyDataIconButtonState extends State<MyDataIconButton> {
       decoration: BoxDecoration(
           color: on ? c.accentSoft : c.accentSoft.withValues(alpha: 0), borderRadius: MyDataRadii.pill(context.look)),
       alignment: Alignment.center,
-      child: Icon(glyph, size: context.density.icon, color: fg),
+      child: Icon(context.icon(glyph, selected: on && !widget.done), size: context.density.icon, color: fg),
     );
 
     body = Pressable(

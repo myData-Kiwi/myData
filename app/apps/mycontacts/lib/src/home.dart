@@ -60,9 +60,9 @@ class ContactsHome extends StatefulWidget {
 
   static const appName = 'myContacts';
   static const sections = [
-    AppSection(icon: Icons.contacts_outlined, label: 'Contacts'),
-    AppSection(icon: Icons.delete_outline_rounded, label: 'Deleted'),
-    AppSection(icon: Icons.fact_check_outlined, label: 'Review'),
+    AppSection(icon: MyDataIcon.contact, label: 'Contacts'),
+    AppSection(icon: MyDataIcon.trash, label: 'Deleted'),
+    AppSection(icon: MyDataIcon.review, label: 'Review'),
   ];
 
   /// The sections with Review's count ("Review, 4").
@@ -75,7 +75,7 @@ class ContactsHome extends StatefulWidget {
   /// The sections as the Mac frame's sidebar shows them, with its icons (Lucide, in place of SF Symbols), in
   /// the Mac's title case and without counts, as Contacts.app's sidebar (and the SwiftUI prototype's).
   static List<AppSection> get macSections => [
-        for (final (i, icon) in [MacIcons.people, MacIcons.trash, MacIcons.review].indexed)
+        for (final (i, icon) in [MyDataIcon.people, MyDataIcon.trash, MyDataIcon.review].indexed)
           AppSection(icon: icon, label: macTitles[i]),
       ];
 
@@ -258,7 +258,7 @@ class _ContactsHomeState extends State<ContactsHome> {
       ? const []
       : [
           MyDataIconButton(
-            icon: Icons.add_rounded,
+            icon: MyDataIcon.add,
             label: ContactActions.newLabel,
             onPressed: () => unawaited(_newContact()),
           ),

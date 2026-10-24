@@ -294,7 +294,7 @@ void main() {
     final c = tester.element(find.byType(Avatar).first).colors;
     final icons = tester.widgetList<Icon>(find.byType(Icon)).toList();
     expect(icons, hasLength(2));
-    expect(icons.map((i) => i.icon), everyElement(Icons.person_outline_rounded));
+    expect(icons.map((i) => i.icon), everyElement(iconOf(MyDataIcon.person)));
     expect(icons.map((i) => i.color), everyElement(c.inkMuted));
     expect(icons.first.size, MyDataSize.icon);
     expect(icons.last.size, MyDataSize.icon * 2);

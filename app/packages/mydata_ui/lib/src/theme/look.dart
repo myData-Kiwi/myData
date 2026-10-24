@@ -16,6 +16,7 @@ import '../generated/tokens.g.dart';
 import 'builtin_themes.g.dart';
 import 'catalogue.dart';
 import 'colour.dart' show Rgb;
+import 'icons.dart';
 import 'motion.dart';
 import 'resolve.dart';
 import 'roles.dart';
@@ -398,16 +399,6 @@ class MyDataMaterials {
   final double blur;
 }
 
-/// The icon set (Lucide until phase 3 cuts the others).
-@immutable
-class MyDataIconTheme {
-  const MyDataIconTheme({required this.spec, required this.fontFamily});
-  final IconsSpec spec;
-
-  /// The font the icons are drawn from.
-  final String fontFamily;
-}
-
 /// Durations, curves, press and entrance (theme.schema.json `motion`). `standard` at scale 1 is
 /// design/motion.md ([MyDataMotion]).
 @immutable
@@ -621,7 +612,7 @@ class MyDataLook extends ThemeExtension<MyDataLook> {
       elevation: MyDataElevation.of(s.elevation,
           shadow: colors.shadow, accent: colors.accent, dark: brightness == Brightness.dark),
       materials: MyDataMaterials(spec: s.materials, blur: s.materials.blur),
-      icons: MyDataIconTheme(spec: s.icons, fontFamily: MyDataMacFont.icons),
+      icons: MyDataIconTheme(s.icons),
       motion: MyDataMotionSpec.of(s.motion),
       variants: MyDataVariants(s.components.values),
     );
@@ -649,7 +640,7 @@ class MyDataLook extends ThemeExtension<MyDataLook> {
       elevation: MyDataElevation(
           style: ElevationStyle.soft, shadows: dark ? MyDataShadows.dark : MyDataShadows.light, collapse: false),
       materials: const MyDataMaterials(spec: _kiwiMaterials, blur: MyDataBlur.glass),
-      icons: const MyDataIconTheme(spec: _kiwiIcons, fontFamily: MyDataMacFont.icons),
+      icons: MyDataIconTheme(_kiwiIcons),
       motion: MyDataMotionSpec.kiwi,
       variants: const MyDataVariants(_kiwiVariants),
     );

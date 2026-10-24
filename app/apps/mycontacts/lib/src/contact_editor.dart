@@ -400,7 +400,7 @@ class _ContactEditorState extends State<ContactEditor> {
         alignment: AlignmentDirectional.centerStart,
         child: Button(
           label: ContactEditor.addBirthdayLabel,
-          icon: Icons.add_rounded,
+          icon: MyDataIcon.add,
           variant: ButtonVariant.plain,
           focusNode: _addBirthdayFocus,
           onPressed: () {

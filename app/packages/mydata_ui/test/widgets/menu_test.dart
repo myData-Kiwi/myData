@@ -14,17 +14,17 @@ const _reason = 'Contacts from this Mac are changed in Contacts.';
 List<MenuEntry> _contactItems(List<String> log, {bool followed = false}) => [
       MenuItem(
         label: 'Edit contact',
-        icon: Icons.edit_outlined,
+        icon: MyDataIcon.edit,
         shortcut: const SingleActivator(LogicalKeyboardKey.keyE, control: true),
         enabled: !followed,
         disabledReason: followed ? _reason : null,
         onSelected: () => log.add('edit'),
       ),
-      MenuItem(label: 'Add to group…', icon: Icons.group_add_outlined, onSelected: () => log.add('group')),
+      MenuItem(label: 'Add to group…', icon: MyDataIcon.personAdd, onSelected: () => log.add('group')),
       const MenuSeparator(),
       MenuItem(
         label: 'Delete contact',
-        icon: Icons.delete_outline_rounded,
+        icon: MyDataIcon.trash,
         shortcut: const SingleActivator(LogicalKeyboardKey.delete),
         destructive: true,
         enabled: !followed,

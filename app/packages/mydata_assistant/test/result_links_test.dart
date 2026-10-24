@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mydata_assistant/mydata_assistant.dart';
 import 'package:mydata_core/mydata_core.dart';
 import 'package:mydata_ui/mydata_ui.dart';
+import 'package:mydata_testing/mydata_testing.dart';
 
 const _id = '2f1c9a52-7d3e-4b8a-9c61-0e5d4f3a2b10';
 
@@ -74,7 +75,7 @@ void main() {
     testWidgets('a real contact opens in myContacts, with a chevron and a hint', (tester) async {
       final semantics = tester.ensureSemantics();
       await show(tester, 'contacts', _contacts);
-      expect(find.byIcon(Icons.chevron_right_rounded), findsOneWidget);
+      expect(findIcon(MyDataIcon.chevronRight), findsOneWidget);
       await tester.tap(find.text('Ava Fictional'));
       expect(opened, [OpenContact(_id)]);
       expect(
@@ -123,7 +124,7 @@ void main() {
     testWidgets('not interactive when its app is not installed', (tester) async {
       await show(tester, 'contacts', _contacts, installed: {MyDataAppId.mycalendar});
       expect(find.byType(Pressable), findsNothing);
-      expect(find.byIcon(Icons.chevron_right_rounded), findsNothing);
+      expect(findIcon(MyDataIcon.chevronRight), findsNothing);
       await tester.tap(find.text('Ava Fictional'));
       expect(opened, isEmpty);
     });

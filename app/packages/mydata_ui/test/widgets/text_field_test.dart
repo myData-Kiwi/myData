@@ -274,7 +274,7 @@ void main() {
     expectOneNamedTarget();
 
     // The icon is part of the target.
-    await tester.tap(find.byIcon(Icons.search_rounded));
+    await tester.tap(findIcon(MyDataIcon.search));
     await tester.pump();
     expect(node.hasFocus, isTrue);
     await tester.enterText(find.byType(EditableText), 'Patel');

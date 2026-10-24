@@ -228,10 +228,10 @@ class _MacApprovalCardState extends State<_MacApprovalCard> {
     final c = context.colors;
     final mac = context.mac;
     final (icon, colour, text) = switch (widget.state) {
-      ApprovalState.pending => (MacIcons.warning, c.warning, ApprovalCard.pendingLabel),
-      ApprovalState.approved => (MacIcons.success, c.success, widget.decidedLabel),
-      ApprovalState.rejected => (MacIcons.close, mac.secondaryLabel, ApprovalCard.rejectedLabel),
-      ApprovalState.failed => (MacIcons.error, c.danger, ApprovalCard.failedLabel),
+      ApprovalState.pending => (MyDataIcon.warning, c.warning, ApprovalCard.pendingLabel),
+      ApprovalState.approved => (MyDataIcon.success, c.success, widget.decidedLabel),
+      ApprovalState.rejected => (MyDataIcon.close, mac.secondaryLabel, ApprovalCard.rejectedLabel),
+      ApprovalState.failed => (MyDataIcon.error, c.danger, ApprovalCard.failedLabel),
     };
     return Semantics(
       liveRegion: true,
@@ -239,7 +239,7 @@ class _MacApprovalCardState extends State<_MacApprovalCard> {
         key: ValueKey(widget.state),
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: MyDataMacSize.icon, color: colour),
+          Icon(context.icon(icon), size: MyDataMacSize.icon, color: colour),
           SizedBox(width: context.space(1)),
           Text(text, style: MyDataMacType.callout.copyWith(color: mac.secondaryLabel)),
         ],

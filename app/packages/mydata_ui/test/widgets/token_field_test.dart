@@ -290,7 +290,7 @@ void main() {
       await _key(tester, LogicalKeyboardKey.tab);
       await _key(tester, LogicalKeyboardKey.tab);
       expect(after.hasFocus, isTrue, reason: 'the typing point, then on: the × are not stops');
-      await tester.tap(find.byIcon(Icons.close_rounded).first);
+      await tester.tap(findIcon(MyDataIcon.close).first);
       await tester.pumpAndSettle();
       expect(changes.last, ['Work']);
     });
@@ -377,7 +377,7 @@ void main() {
       final bad = tester.widget<Container>(
           find.descendant(of: find.byKey(const ValueKey('token:ben@example')), matching: find.byType(Container)).first);
       expect((bad.decoration! as BoxDecoration).color, _kiwi.dangerSoft);
-      expect(find.descendant(of: find.byKey(const ValueKey('token:ben@example')), matching: find.byIcon(Icons.error_outline_rounded)),
+      expect(find.descendant(of: find.byKey(const ValueKey('token:ben@example')), matching: findIcon(MyDataIcon.error)),
           findsOneWidget);
       expect(find.text('ben@example is not a complete address. It looks like name@example.org.'), findsOneWidget);
       await tester.tap(_typing);
@@ -410,7 +410,7 @@ void main() {
                   values: ['Family'],
                   onChanged: null,
                   disabledReason: 'Groups from this Mac are changed in Contacts.'))));
-      expect(find.byIcon(Icons.close_rounded), findsNothing);
+      expect(findIcon(MyDataIcon.close), findsNothing);
       expect(find.ancestor(of: find.text('Groups from this Mac are changed in Contacts.'), matching: find.byType(Opacity)),
           findsNothing);
       await _key(tester, LogicalKeyboardKey.tab);
@@ -423,13 +423,13 @@ void main() {
       addTearDown(() => tester.binding.focusManager.highlightStrategy = FocusHighlightStrategy.automatic);
       await tester.pumpWidget(themedFrame(themeMatrix.first, const _Host(initial: ['Family'])));
       final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
-      await mouse.addPointer(location: tester.getCenter(find.byIcon(Icons.close_rounded)));
+      await mouse.addPointer(location: tester.getCenter(findIcon(MyDataIcon.close)));
       addTearDown(mouse.removePointer);
       await tester.pump();
       final circle = tester.widget<Container>(
-          find.ancestor(of: find.byIcon(Icons.close_rounded), matching: find.byType(Container)).first);
+          find.ancestor(of: findIcon(MyDataIcon.close), matching: find.byType(Container)).first);
       expect((circle.decoration! as BoxDecoration).color, _kiwi.surface);
-      expect(tester.getSize(find.ancestor(of: find.byIcon(Icons.close_rounded), matching: find.byType(Container)).first),
+      expect(tester.getSize(find.ancestor(of: findIcon(MyDataIcon.close), matching: find.byType(Container)).first),
           const Size.square(MyDataSize.iconTile));
     });
 
@@ -437,8 +437,8 @@ void main() {
       await _desktop(tester);
       final changes = <List<String>>[];
       await tester.pumpWidget(themedFrame(themeMatrix.first, _Host(initial: const ['Family'], onChanged: changes.add)));
-      final x = tester.getRect(find.byIcon(Icons.close_rounded));
-      final circle = tester.getRect(find.ancestor(of: find.byIcon(Icons.close_rounded), matching: find.byType(Container)).first);
+      final x = tester.getRect(findIcon(MyDataIcon.close));
+      final circle = tester.getRect(find.ancestor(of: findIcon(MyDataIcon.close), matching: find.byType(Container)).first);
       await tester.tapAt(Offset(x.center.dx, circle.top - 3));
       await tester.pumpAndSettle();
       expect(changes.last, isEmpty);

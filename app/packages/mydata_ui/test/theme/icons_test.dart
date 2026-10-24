@@ -1,0 +1,212 @@
+// Icons by meaning (design/themes/ARCHITECTURE.md 1.5 and 3.6): every bundled set maps every semantic id in
+// every weight it has, each glyph is in its subset font, the tables agree with tool/icons.json and the
+// catalogue, a theme's set and weight are drawn (the nearest weight it lacks, Lucide for a set not bundled),
+// and System on a Mac draws Lucide. One golden per icon set and weight the six built-ins use, light and dark.
+import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:mydata_testing/mydata_testing.dart';
+import 'package:mydata_ui/mydata_ui.dart';
+import 'package:mydata_ui/src/theme/catalogue.dart';
+import 'package:mydata_ui/src/theme/icon_sets.g.dart';
+import 'package:mydata_ui/src/theme/theme_file.dart';
+
+import 'designed_themes.dart';
+
+/// The code points a TrueType font maps, from its `cmap` table (formats 4 and 12).
+Set<int> codePoints(Uint8List font) {
+  final d = ByteData.sublistView(font);
+  final tables = d.getUint16(4);
+  for (var i = 0; i < tables; i++) {
+    final rec = 12 + 16 * i;
+    if (String.fromCharCodes(font.sublist(rec, rec + 4)) != 'cmap') continue;
+    final cmap = d.getUint32(rec + 8);
+    final out = <int>{};
+    for (var j = 0; j < d.getUint16(cmap + 2); j++) {
+      final sub = cmap + d.getUint32(cmap + 4 + 8 * j + 4);
+      switch (d.getUint16(sub)) {
+        case 4:
+          final segs = d.getUint16(sub + 6) ~/ 2;
+          for (var s = 0; s < segs; s++) {
+            final end = d.getUint16(sub + 14 + 2 * s);
+            final start = d.getUint16(sub + 16 + 2 * segs + 2 * s);
+            for (var c = start; c <= end && c != 0xffff; c++) {
+              out.add(c);
+            }
+          }
+        case 12:
+          final groups = d.getUint32(sub + 12);
+          for (var g = 0; g < groups; g++) {
+            final at = sub + 16 + 12 * g;
+            for (var c = d.getUint32(at); c <= d.getUint32(at + 4); c++) {
+              out.add(c);
+            }
+          }
+      }
+    }
+    return out;
+  }
+  return const {};
+}
+
+IconsSpec _spec(String set, String weight, {bool fill = false}) =>
+    IconsSpec(set: set, weight: weight, fillSelected: fill, tiles: 'tinted');
+
+/// Every icon, one per cell, in the look's set and weight; the last row selected (filled where the theme
+/// fills selected icons): what an icon golden shows.
+class IconSpecimen extends StatelessWidget {
+  const IconSpecimen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    Widget cell(MyDataIcon i, {bool selected = false}) => SizedBox.square(
+          dimension: context.density.icon + context.space(3),
+          child: Center(
+            child: Icon(context.icon(i, selected: selected),
+                size: context.density.icon, color: selected ? c.accent : c.ink),
+          ),
+        );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(children: [for (final i in MyDataIcon.values) cell(i)]),
+        SizedBox(height: context.space(3)),
+        Wrap(children: [
+          for (final i in [MyDataIcon.people, MyDataIcon.calendar, MyDataIcon.chat, MyDataIcon.settings, MyDataIcon.trash])
+            cell(i, selected: true),
+        ]),
+      ],
+    );
+  }
+}
+
+void main() {
+  final json = jsonDecode(File('tool/icons.json').readAsStringSync()) as Map<String, Object?>;
+  final rows = (json['icons'] as List).cast<Map<String, Object?>>();
+
+  test('tool/icons.json names every semantic id once, in order, with a glyph in every bundled set', () {
+    expect(rows.map((r) => r['id']), MyDataIcon.values.map((i) => i.name));
+    for (final r in rows) {
+      for (final set in bundledIconSets) {
+        expect(r[set], isA<String>().having((s) => s.isNotEmpty, 'non-empty', isTrue), reason: '${r['id']} in $set');
+      }
+      expect(r['meaning'], isNotEmpty);
+    }
+  });
+
+  test('every bundled set and weight maps every id, as the catalogue says', () {
+    expect(iconTables.keys.toSet(), bundledIconSets);
+    for (final e in iconTables.entries) {
+      expect(e.value.keys.toSet(), bundledIconWeights[e.key], reason: e.key);
+      for (final table in e.value.entries) {
+        expect(table.value.keys.toSet(), MyDataIcon.values.toSet(), reason: '${e.key} ${table.key} misses an id');
+      }
+    }
+  });
+
+  test('every glyph is in its subset font, declared in the pubspec, with its licence', () {
+    final pubspec = File('pubspec.yaml').readAsStringSync();
+    for (final weights in iconTables.values) {
+      for (final table in weights.values) {
+        final family = table.values.first.fontFamily!;
+        final file = 'assets/fonts/$family-subset.ttf';
+        expect(pubspec, contains('family: $family\n      fonts:\n        - asset: $file'), reason: family);
+        final mapped = codePoints(File(file).readAsBytesSync());
+        for (final e in table.entries) {
+          expect(e.value.fontFamily, family);
+          expect(e.value.fontPackage, fontPackage);
+          expect(mapped, contains(e.value.codePoint), reason: '$family has no glyph for ${e.key.name}');
+        }
+      }
+    }
+    for (final l in ['ISC-lucide.txt', 'MIT-tabler.txt', 'MIT-phosphor.txt']) {
+      expect(File('assets/fonts/$l').existsSync(), isTrue, reason: l);
+      expect(pubspec, contains('- assets/fonts/$l'));
+      expect(bundledFontLicenses.values, contains(l));
+    }
+  });
+
+  test('a theme draws its set at its weight, the nearest weight a set lacks, and Lucide for a set not bundled', () {
+    expect(MyDataIconTheme(_spec('tabler', 'light'))(MyDataIcon.add), tablerLightIcons[MyDataIcon.add]);
+    expect(MyDataIconTheme(_spec('tabler', 'bold')).weight, 'regular');
+    expect(MyDataIconTheme(_spec('tabler', 'fill')).weight, 'regular');
+    expect(MyDataIconTheme(_spec('phosphor', 'thin')).weight, 'light');
+    expect(MyDataIconTheme(_spec('lucide', 'light')).weight, 'regular');
+    final material = MyDataIconTheme(_spec('material-rounded', 'regular'));
+    expect(material.set, 'lucide');
+    expect(material(MyDataIcon.add), lucideIcons[MyDataIcon.add]);
+  });
+
+  test('a theme that fills selected icons draws the fill for a selected one, where the set has a fill', () {
+    final phosphor = MyDataIconTheme(_spec('phosphor', 'bold', fill: true));
+    expect(phosphor(MyDataIcon.people), phosphorBoldIcons[MyDataIcon.people]);
+    expect(phosphor(MyDataIcon.people, selected: true), phosphorFillIcons[MyDataIcon.people]);
+    final same = MyDataIconTheme(_spec('phosphor', 'light'));
+    expect(same(MyDataIcon.people, selected: true), phosphorLightIcons[MyDataIcon.people]);
+    final lucide = MyDataIconTheme(_spec('lucide', 'regular', fill: true));
+    expect(lucide(MyDataIcon.people, selected: true), lucideIcons[MyDataIcon.people]);
+  });
+
+  test('Kiwi and System draw Lucide; the six built-ins draw the sets their rules name', () {
+    expect(iconOf(MyDataIcon.add), lucideIcons[MyDataIcon.add]);
+    final system = MacTheme.data('kiwi', Brightness.light, MyDataMacColors.light).extension<MyDataLook>()!;
+    expect(system.icons.set, 'lucide');
+    expect(system.icons(MyDataIcon.add).fontFamily, MyDataMacFont.icons);
+    final sets = {
+      for (final id in drawnBuiltIns)
+        id: (designedLook(id, Brightness.light).icons.set, designedLook(id, Brightness.light).icons.weight),
+    };
+    expect(sets, {
+      'mydata.kiwi': ('lucide', 'regular'),
+      'mydata.hairline': ('tabler', 'light'),
+      'mydata.frosted': ('phosphor', 'regular'),
+      'mydata.journal': ('phosphor', 'light'),
+      'mydata.sticker': ('phosphor', 'bold'),
+      'mydata.paperback': ('lucide', 'regular'),
+    });
+  });
+
+  testWidgets('context.icon resolves through the look, and the app frame fills a selected section', (tester) async {
+    final sticker = designedLook('mydata.sticker', Brightness.light);
+    late IconData plain, selected;
+    await tester.pumpWidget(MaterialApp(
+      theme: MyDataTheme.fromLook(sticker),
+      home: Builder(builder: (context) {
+        plain = context.icon(MyDataIcon.people);
+        selected = context.icon(MyDataIcon.people, selected: true);
+        return const SizedBox();
+      }),
+    ));
+    expect(plain, phosphorBoldIcons[MyDataIcon.people]);
+    expect(selected, phosphorFillIcons[MyDataIcon.people]);
+  });
+
+  // One golden per set and weight the six built-ins draw: Kiwi (Lucide), Hairline (Tabler light), Frosted
+  // (Phosphor regular, filled when selected), Journal (Phosphor light), Sticker (Phosphor bold, filled when
+  // selected). Paperback draws Lucide as Kiwi does (its `light` is Lucide's one weight).
+  for (final id in ['mydata.kiwi', 'mydata.hairline', 'mydata.frosted', 'mydata.journal', 'mydata.sticker']) {
+    for (final b in Brightness.values) {
+      final slug = id.substring('mydata.'.length);
+      testWidgets('icon golden ($slug-${b.name})', (tester) async {
+        tester.view.physicalSize = const Size(480, 300);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        await tester.pumpWidget(MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: MyDataTheme.fromLook(designedLook(id, b)),
+          home: Builder(
+            builder: (context) => Material(
+              color: context.colors.bg,
+              child: Padding(padding: EdgeInsets.all(context.space(4)), child: const IconSpecimen()),
+            ),
+          ),
+        ));
+        await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/icons.$slug-${b.name}.png'));
+      });
+    }
+  }
+}

@@ -21,11 +21,17 @@ const _fonts = {
   MyDataFontFamily.mono: ['JetBrainsMono-400.ttf'],
 };
 
-/// Loads the bundled fonts under the names Flutter gives package fonts (the core three, and every theme font
-/// the catalogue bundles, as the apps load them on demand), and Material Icons when the package under test
+/// Loads the bundled fonts under the names Flutter gives package fonts (the core three, every theme font the
+/// catalogue bundles, as the apps load them on demand, and every icon set), and Material Icons when the package under test
 /// bundles them.
 Future<void> loadMyDataFonts() async {
   await ThemeFonts.ensureAll();
+  // The icon sets, as the pubspec declares them (the engine registers them in an app; tests load them).
+  for (final family in iconFontFamilies) {
+    await (FontLoader('packages/${MyDataFontFamily.package}/$family')
+          ..addFont(rootBundle.load('packages/${MyDataFontFamily.package}/assets/fonts/$family-subset.ttf')))
+        .load();
+  }
   for (final e in _fonts.entries) {
     final loader = FontLoader('packages/${MyDataFontFamily.package}/${e.key}');
     for (final file in e.value) {
@@ -44,7 +50,7 @@ Future<void> loadMyDataFonts() async {
 /// Where macOS keeps the system font (SF Pro, a variable font). Read, never copied into the repo.
 const macSystemFontFile = '/System/Library/Fonts/SFNS.ttf';
 
-/// Loads the Mac frame's fonts: Lucide (bundled in mydata_ui) and a font under the names Flutter's macOS
+/// Loads the Mac frame's fonts: Lucide (bundled in mydata_ui; [loadMyDataFonts] loads it too) and a font under the names Flutter's macOS
 /// engine gives the system font ([MyDataMacFont.text] and [MyDataMacFont.display]).
 ///
 /// - By default that font is the bundled Figtree (SIL OFL), so committed screenshots of the Mac frame hold no
@@ -80,6 +86,13 @@ Future<bool> loadMacFonts({bool systemFont = false}) async {
 /// test that has no BuildContext at hand. Spacing, sizes, radii and type do not change with the colour or
 /// the mode, so it serves goldens in every theme.
 final kiwiLook = MyDataLook.fallback(Brightness.light);
+
+/// [icon]'s glyph as Kiwi and System draw it (Lucide, in both the branded frame and the Mac frame): for a
+/// finder or a comparison with an [Icon]'s `icon`.
+IconData iconOf(MyDataIcon icon, {bool selected = false}) => kiwiLook.icons(icon, selected: selected);
+
+/// Finds the [Icon]s that draw [icon] as Kiwi and System do ([iconOf]).
+Finder findIcon(MyDataIcon icon) => find.byIcon(iconOf(icon));
 
 /// For test/flutter_test_config.dart:
 /// `Future<void> testExecutable(FutureOr<void> Function() main) => myDataTestExecutable(main);`

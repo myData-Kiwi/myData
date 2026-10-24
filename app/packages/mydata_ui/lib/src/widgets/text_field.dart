@@ -307,7 +307,7 @@ class _MyDataSearchFieldState extends State<MyDataSearchField> {
         readPlaceholder: false,
         leading: Padding(
           padding: EdgeInsets.only(left: context.space(4)),
-          child: Icon(Icons.search_rounded, size: context.density.icon, color: c.inkMuted),
+          child: Icon(context.icon(MyDataIcon.search), size: context.density.icon, color: c.inkMuted),
         ),
       ),
     );

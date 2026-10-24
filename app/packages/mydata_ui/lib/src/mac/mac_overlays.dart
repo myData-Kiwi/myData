@@ -4,7 +4,6 @@ import '../generated/tokens.g.dart';
 import '../theme/theme.dart';
 import '../widgets/kiwi.dart';
 import '../widgets/pressable.dart';
-import 'mac_icons.dart';
 import 'mac_theme.dart';
 
 /// What opens over a window in the Mac frame (docs/2026-10-23-plan.md section 5: "Restyled: Dialog (push
@@ -219,7 +218,7 @@ abstract final class MacMenuLook {
   static Widget item(
     BuildContext context, {
     required String label,
-    IconData? icon,
+    MyDataIcon? icon,
     bool iconSpace = false,
     String? shortcut,
     bool checked = false,
@@ -245,7 +244,7 @@ abstract final class MacMenuLook {
         // The check mark's column, as a macOS menu keeps it.
         SizedBox(
           width: MyDataMacSize.icon,
-          child: checked ? Icon(MacIcons.check, size: MyDataMacSize.icon - MyDataMacSize.tight, color: fg) : null,
+          child: checked ? Icon(context.icon(MyDataIcon.check), size: MyDataMacSize.icon - MyDataMacSize.tight, color: fg) : null,
         ),
         SizedBox(width: context.space(1)),
         if (iconSpace) ...[
@@ -253,7 +252,7 @@ abstract final class MacMenuLook {
             opacity: faded,
             child: SizedBox.square(
               dimension: MyDataMacSize.icon,
-              child: icon == null ? null : Icon(icon, size: MyDataMacSize.icon, color: on ? fg : muted),
+              child: icon == null ? null : Icon(context.icon(icon), size: MyDataMacSize.icon, color: on ? fg : muted),
             ),
           ),
           SizedBox(width: context.space(2)),

@@ -71,7 +71,7 @@ class _MacStatusViewState extends State<MacStatusView> {
             MacFormSection(
               rows: [
                 MacFormRow(
-                  icon: MacIcons.warning,
+                  icon: MyDataIcon.warning,
                   title: MacStatusView.errorTitle,
                   subtitle: formatWhen(error.at),
                   trailing: [
@@ -94,7 +94,7 @@ class _MacStatusViewState extends State<MacStatusView> {
               rows: [
                 for (final a in connected)
                   MacFormRow(
-                    icon: MacIcons.agents,
+                    icon: MyDataIcon.agents,
                     title: a.name,
                     subtitle: 'Last seen ${a.lastSeenAt == null ? 'never' : formatWhen(a.lastSeenAt!)}',
                   ),
@@ -233,11 +233,11 @@ class _MacStatusViewState extends State<MacStatusView> {
 }
 
 /// Each app's icon in the Mac frame.
-IconData macAppIcon(MyDataAppId app) => switch (app) {
-  MyDataAppId.mycontacts => MacIcons.people,
-  MyDataAppId.mycalendar => MacIcons.calendar,
-  MyDataAppId.myassistant => MacIcons.chat,
-  MyDataAppId.mydata => MacIcons.host,
+MyDataIcon macAppIcon(MyDataAppId app) => switch (app) {
+  MyDataAppId.mycontacts => MyDataIcon.people,
+  MyDataAppId.mycalendar => MyDataIcon.calendar,
+  MyDataAppId.myassistant => MyDataIcon.chat,
+  MyDataAppId.mydata => MyDataIcon.host,
 };
 
 /// The assistant's availability in the Mac frame: a status dot and a word.

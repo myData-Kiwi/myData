@@ -21,11 +21,11 @@ Widget _allStates() => Column(crossAxisAlignment: CrossAxisAlignment.start, chil
       ]),
       const SizedBox(height: MyDataSpace.s4),
       const ButtonRow(children: [
-        Button(label: 'Add a device', variant: ButtonVariant.filled, icon: Icons.add_rounded, onPressed: _noop),
-        Button(label: 'Open in myData', icon: Icons.open_in_new_rounded, onPressed: _noop),
-        Button(label: 'Retry', variant: ButtonVariant.plain, icon: Icons.refresh_rounded, onPressed: _noop),
-        Button(label: 'Delete', variant: ButtonVariant.danger, icon: Icons.delete_outline_rounded, onPressed: _noop),
-        Button(label: 'Remove', variant: ButtonVariant.plainDanger, icon: Icons.link_off_rounded, onPressed: _noop),
+        Button(label: 'Add a device', variant: ButtonVariant.filled, icon: MyDataIcon.add, onPressed: _noop),
+        Button(label: 'Open in myData', icon: MyDataIcon.chevronRight, onPressed: _noop),
+        Button(label: 'Retry', variant: ButtonVariant.plain, icon: MyDataIcon.sync, onPressed: _noop),
+        Button(label: 'Delete', variant: ButtonVariant.danger, icon: MyDataIcon.trash, onPressed: _noop),
+        Button(label: 'Remove', variant: ButtonVariant.plainDanger, icon: MyDataIcon.clear, onPressed: _noop),
       ]),
       const SizedBox(height: MyDataSpace.s4),
       const ButtonRow(children: [
@@ -143,7 +143,7 @@ void main() {
   testWidgets('semantics: a button named by its label, enabled or not', (tester) async {
     final handle = tester.ensureSemantics();
     await tester.pumpWidget(themedFrame(themeMatrix.first, ButtonRow(children: [
-      Button(label: 'Open in myData', icon: Icons.open_in_new_rounded, onPressed: () {}),
+      Button(label: 'Open in myData', icon: MyDataIcon.chevronRight, onPressed: () {}),
       const Button(label: 'Add a device', onPressed: null),
     ])));
     expect(
@@ -168,7 +168,7 @@ void main() {
   testWidgets('every variant is control-height tall and at least 44px wide; label is body-strong', (tester) async {
     await tester.pumpWidget(themedFrame(themeMatrix.first, ButtonRow(children: [
       for (final v in ButtonVariant.values) Button(label: 'Go', variant: v, onPressed: () {}),
-      Button(label: 'Go', icon: Icons.add_rounded, onPressed: () {}),
+      Button(label: 'Go', icon: MyDataIcon.add, onPressed: () {}),
     ])));
     for (final e in find.byType(Button).evaluate()) {
       final size = tester.getSize(find.byWidget(e.widget));

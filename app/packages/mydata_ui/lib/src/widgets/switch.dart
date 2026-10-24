@@ -156,9 +156,8 @@ class SwitchRow extends StatelessWidget {
   /// Called with the new value when the user flips the row. Null disables it.
   final ValueChanged<bool>? onChanged;
 
-  /// An optional icon on an [IconTile] at the left. The icon set is not drawn yet; pass a Material outlined
-  /// or rounded icon.
-  final IconData? icon;
+  /// An optional icon on an [IconTile] at the left.
+  final MyDataIcon? icon;
 
   /// The tile's tint; [MyDataTone.neutral] is the untinted `surface-sunken` tile.
   final MyDataTone tone;

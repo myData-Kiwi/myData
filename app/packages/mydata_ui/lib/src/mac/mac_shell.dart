@@ -166,7 +166,7 @@ class MacAppFrame extends StatelessWidget {
   /// again ([MacSourceList.showConnection]).
   final bool showConnection;
 
-  /// The app's own sections, as in AppFrame; their icons from MacIcons.
+  /// The app's own sections, as in AppFrame; their icons by meaning ([MyDataIcon]).
   final List<AppSection> sections;
   final int current;
   final ValueChanged<int> onSelect;

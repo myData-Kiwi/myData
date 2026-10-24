@@ -24,28 +24,28 @@ abstract final class ThemePreviewScenes {
 
   static Widget mydata(BuildContext context) => const _SceneWindow(
     sections: ['Status', 'Import', 'Settings'],
-    icons: [Icons.monitor_heart_outlined, Icons.download_outlined, Icons.settings_outlined],
+    icons: [MyDataIcon.status, MyDataIcon.download, MyDataIcon.settings],
     title: 'Status',
     child: _StatusScene(),
   );
 
   static Widget contacts(BuildContext context) => const _SceneWindow(
     sections: ['Contacts', 'Recently deleted', 'Review'],
-    icons: [Icons.person_outline, Icons.delete_outline, Icons.rule_outlined],
+    icons: [MyDataIcon.person, MyDataIcon.trash, MyDataIcon.review],
     title: 'Contacts',
     child: _ContactsScene(),
   );
 
   static Widget calendar(BuildContext context) => const _SceneWindow(
     sections: ['Month', 'Calendars'],
-    icons: [Icons.calendar_month_outlined, Icons.list_outlined],
+    icons: [MyDataIcon.calendarMonth, MyDataIcon.list],
     title: 'March 2026',
     child: _CalendarScene(),
   );
 
   static Widget assistant(BuildContext context) => const _SceneWindow(
     sections: ['Chat'],
-    icons: [Icons.chat_bubble_outline],
+    icons: [MyDataIcon.chat],
     title: 'myAssistant',
     child: _AssistantScene(),
   );
@@ -57,7 +57,7 @@ class _SceneWindow extends StatelessWidget {
   const _SceneWindow({required this.sections, required this.icons, required this.title, required this.child});
 
   final List<String> sections;
-  final List<IconData> icons;
+  final List<MyDataIcon> icons;
   final String title;
   final Widget child;
 
@@ -87,7 +87,7 @@ class _SceneWindow extends StatelessWidget {
                     decoration: BoxDecoration(color: i == 0 ? c.accentSoft : null, borderRadius: r),
                     child: Row(
                       children: [
-                        Icon(icons[i], size: context.density.icon, color: i == 0 ? c.accent : c.inkMuted),
+                        Icon(context.icon(icons[i]), size: context.density.icon, color: i == 0 ? c.accent : c.inkMuted),
                         SizedBox(width: context.space(2)),
                         Expanded(
                           child: Text(
@@ -384,7 +384,7 @@ class _StatusScene extends StatelessWidget {
     final c = context.colors;
     final r = BorderRadius.all(Radius.circular(context.radius.lg));
     final caption = context.type(MyDataTypeRole.caption).copyWith(color: c.inkMuted);
-    Widget card(IconData icon, String title, String line, Widget trailing) => Container(
+    Widget card(MyDataIcon icon, String title, String line, Widget trailing) => Container(
       margin: EdgeInsets.only(bottom: context.space(3)),
       padding: EdgeInsets.all(context.space(4)),
       decoration: BoxDecoration(color: c.surfaceRaised, borderRadius: r, boxShadow: context.shadows.shadow1),
@@ -411,13 +411,13 @@ class _StatusScene extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           card(
-            Icons.dns_outlined,
+            MyDataIcon.host,
             'Host',
             'Running on this Mac',
             const MyDataBadge('Running', tone: MyDataTone.success),
           ),
-          card(Icons.person_outline, 'Contacts', '248 contacts, 3 sources', const SizedBox.shrink()),
-          card(Icons.auto_awesome_outlined, 'Assistant', 'Answers on this computer', const SwitchTrack(value: true)),
+          card(MyDataIcon.person, 'Contacts', '248 contacts, 3 sources', const SizedBox.shrink()),
+          card(MyDataIcon.assistant, 'Assistant', 'Answers on this computer', const SwitchTrack(value: true)),
           const Align(
             alignment: AlignmentDirectional.centerStart,
             child: Button(label: 'Import contacts…', variant: ButtonVariant.filled, onPressed: _noop),

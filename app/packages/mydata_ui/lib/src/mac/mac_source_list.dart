@@ -149,7 +149,7 @@ class _Row extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  Icon(section.icon, size: MyDataMacSize.icon, color: icon),
+                  Icon(context.icon(section.icon, selected: current), size: MyDataMacSize.icon, color: icon),
                   SizedBox(width: context.space(2)),
                   Expanded(
                     child: Text(section.label,

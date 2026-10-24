@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 
-import 'package:flutter/material.dart' show Icons;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
@@ -157,9 +156,8 @@ class GroupedRow extends StatelessWidget {
        selected = false,
        enabled = true;
 
-  /// An optional icon on an [IconTile] at the left. The icon set is not drawn yet; pass a Material outlined
-  /// or rounded icon.
-  final IconData? icon;
+  /// An optional icon on an [IconTile] at the left.
+  final MyDataIcon? icon;
 
   /// The tile's tint: `accent-soft`, a status `-soft` fill, or [MyDataTone.neutral] (`surface-sunken`).
   /// Give the same kind of thing the same tone everywhere.
@@ -298,7 +296,7 @@ class GroupedRow extends StatelessWidget {
       overflow: TextOverflow.ellipsis,
       style: context.type(MyDataTypeRole.body).copyWith(color: c.inkMuted),
     );
-    final chevron = Icon(Icons.chevron_right_rounded, size: context.density.icon, color: c.inkMuted);
+    final chevron = Icon(context.icon(MyDataIcon.chevronRight), size: context.density.icon, color: c.inkMuted);
     return switch (t) {
       GroupedBadge(:final label, :final tone) => MyDataBadge(label, tone: tone),
       GroupedValue(:final text) => value(text),

@@ -390,7 +390,7 @@ void main() {
       final pressable = tester.widget<Pressable>(_copyButton(row));
       expect(pressable.borderRadius, MyDataRadii.pill(kiwiLook));
       expect(pressable.hoverFill, _kiwi.surfaceHover);
-      expect(_copyIcon(tester, row), Icons.content_copy_outlined);
+      expect(_copyIcon(tester, row), iconOf(MyDataIcon.copy));
       expect(tester.widget<Icon>(find.byType(Icon)).color, _kiwi.inkMuted);
       expect(tester.widget<Icon>(find.byType(Icon)).size, MyDataSize.icon);
       expect(_tooltip(tester, row), 'Copy mobile number');
@@ -408,7 +408,7 @@ void main() {
       await tester.tap(_copyButton(row));
       await tester.pump();
       expect(_clipboard, '+44 7700 900123');
-      expect(_copyIcon(tester, row), Icons.check_rounded);
+      expect(_copyIcon(tester, row), iconOf(MyDataIcon.check));
       expect(_tooltip(tester, row), FieldRow.copiedLabel);
       expect(tester.takeAnnouncements().map((a) => a.message), [FieldRow.copiedLabel]);
       final node = tester.getSemantics(_copyButton(row));
@@ -430,19 +430,19 @@ void main() {
       await _pump(tester, two('+44 7700 900123'));
       await tester.tap(_copyButton(a));
       await tester.pump();
-      expect(_copyIcon(tester, a), Icons.check_rounded);
+      expect(_copyIcon(tester, a), iconOf(MyDataIcon.check));
       // Rebuilt with the same value: still copied.
       await _pump(tester, two('+44 7700 900123'));
-      expect(_copyIcon(tester, a), Icons.check_rounded);
+      expect(_copyIcon(tester, a), iconOf(MyDataIcon.check));
       await tester.tap(_copyButton(b));
       await tester.pump();
       expect(_clipboard, 'ava@example.com');
-      expect(_copyIcon(tester, a), Icons.content_copy_outlined);
+      expect(_copyIcon(tester, a), iconOf(MyDataIcon.copy));
       expect(_tooltip(tester, a), 'Copy mobile number');
-      expect(_copyIcon(tester, b), Icons.check_rounded);
+      expect(_copyIcon(tester, b), iconOf(MyDataIcon.check));
       // A new value in the copied row: it offers to copy again.
       await _pump(tester, two('+44 7700 900999'));
-      expect(_copyIcon(tester, b), Icons.check_rounded);
+      expect(_copyIcon(tester, b), iconOf(MyDataIcon.check));
       await _pump(
         tester,
         Column(
@@ -452,7 +452,7 @@ void main() {
           ],
         ),
       );
-      expect(_copyIcon(tester, b), Icons.content_copy_outlined);
+      expect(_copyIcon(tester, b), iconOf(MyDataIcon.copy));
     });
 
     testWidgets('keyboard: the value is not a Tab stop; the copy button is, and Enter and Space copy', (tester) async {
@@ -616,7 +616,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(_clipboard, '+44 7700 900123');
       expect(find.text(FieldRow.copyMenuLabel), findsNothing);
-      expect(_copyIcon(tester, row), Icons.check_rounded);
+      expect(_copyIcon(tester, row), iconOf(MyDataIcon.check));
 
       // Open it on the label, then click away.
       await tester.tapAt(tester.getCenter(find.text('Mobile')), buttons: kSecondaryButton);
@@ -637,7 +637,7 @@ void main() {
       await tester.tap(find.text(FieldRow.copyMenuLabel));
       await tester.pumpAndSettle();
       expect(_clipboard, '+44 7700 900123');
-      expect(_copyIcon(tester, row), Icons.check_rounded);
+      expect(_copyIcon(tester, row), iconOf(MyDataIcon.check));
       expect(find.text(FieldRow.copyMenuLabel), findsNothing);
     });
 
@@ -651,7 +651,7 @@ void main() {
       await tester.tap(find.text(FieldRow.copyMenuLabel));
       await tester.pumpAndSettle();
       expect(_clipboard, '+44 7700 900123');
-      expect(_copyIcon(tester, row), Icons.check_rounded);
+      expect(_copyIcon(tester, row), iconOf(MyDataIcon.check));
     }, variant: const TargetPlatformVariant({TargetPlatform.android, TargetPlatform.iOS}));
 
     testWidgets('Escape closes the row\'s menu and gives focus back', (tester) async {
@@ -826,7 +826,7 @@ void main() {
       await tester.tap(find.text(FieldRow.copyMenuLabel));
       await tester.pumpAndSettle();
       expect(_clipboard, value);
-      expect(_copyIcon(tester, row), Icons.check_rounded);
+      expect(_copyIcon(tester, row), iconOf(MyDataIcon.check));
       expect(find.byType(CupertinoDesktopTextSelectionToolbar), findsNothing);
     }, variant: mac);
 
@@ -852,7 +852,7 @@ void main() {
       await tester.tap(find.text('Copy'));
       await tester.pumpAndSettle();
       expect(_clipboard, '7700');
-      expect(_copyIcon(tester, row), Icons.content_copy_outlined);
+      expect(_copyIcon(tester, row), iconOf(MyDataIcon.copy));
 
       // A right-click on another word, outside that selection, is the row's Copy again.
       await tester.tapAt(at(tester, '900123'), buttons: kSecondaryButton);
@@ -861,7 +861,7 @@ void main() {
       await tester.tap(find.text(FieldRow.copyMenuLabel));
       await tester.pumpAndSettle();
       expect(_clipboard, value);
-      expect(_copyIcon(tester, row), Icons.check_rounded);
+      expect(_copyIcon(tester, row), iconOf(MyDataIcon.check));
     }, variant: mac);
   });
 

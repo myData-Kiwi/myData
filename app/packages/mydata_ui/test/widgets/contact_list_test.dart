@@ -462,7 +462,7 @@ void main() {
       expect(eli.label, 'Eli Sample', reason: 'no caption line');
       expect(eli.flagsCollection.isSelected, ui.Tristate.isFalse);
       expect(find.text('+44 7700 900123'), findsOneWidget, reason: "Aaron's caption is his phone");
-      expect(find.byIcon(Icons.chevron_right_rounded), findsNothing, reason: 'nothing at the end from 600px');
+      expect(findIcon(MyDataIcon.chevronRight), findsNothing, reason: 'nothing at the end from 600px');
       semantics.dispose();
     });
 
@@ -754,7 +754,7 @@ void main() {
       tester.binding.focusManager.highlightStrategy = FocusHighlightStrategy.alwaysTraditional;
       addTearDown(() => tester.binding.focusManager.highlightStrategy = FocusHighlightStrategy.automatic);
       await _pump(tester, _Harness(contacts: _people(), selected: 'a2', opened: opened, focusNode: list), width: 390);
-      expect(find.byIcon(Icons.chevron_right_rounded), findsNWidgets(6));
+      expect(findIcon(MyDataIcon.chevronRight), findsNWidgets(6));
       expect(_rowNode(tester, 'Ava Fictional').flagsCollection.isSelected, ui.Tristate.none);
       list.requestFocus();
       await tester.pump();

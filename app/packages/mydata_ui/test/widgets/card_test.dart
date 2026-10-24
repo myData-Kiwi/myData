@@ -25,14 +25,14 @@ Widget _gallery() => SizedBox(
       width: 760,
       child: CardGrid(children: [
         StatCard(
-          icon: Icons.storage_rounded,
+          icon: MyDataIcon.host,
           name: 'Storage',
           figure: '412 GB',
           caption: 'Example: of 1 TB on Home drive',
           child: _meter(),
         ),
         StatCard(
-          icon: Icons.photo_outlined,
+          icon: MyDataIcon.photo,
           iconTone: MyDataTone.success,
           name: 'Photos',
           figure: '18,240',
@@ -40,7 +40,7 @@ Widget _gallery() => SizedBox(
           action: Button(label: 'Open myPhotos', onPressed: () {}),
         ),
         StatCard(
-          icon: Icons.smartphone_outlined,
+          icon: MyDataIcon.thisMac,
           iconTone: MyDataTone.info,
           name: 'Devices',
           figure: '3',
@@ -48,7 +48,7 @@ Widget _gallery() => SizedBox(
           action: Button(label: 'Add a device', onPressed: () {}),
         ),
         MyDataCard(
-          icon: Icons.backup_outlined,
+          icon: MyDataIcon.cloud,
           name: 'Backups',
           action: Button(label: 'Back up now', onPressed: () {}),
           child: const Text('Last backup finished this morning. Your photos and mail are copied to the Home drive.'),
@@ -59,7 +59,7 @@ Widget _gallery() => SizedBox(
 List<Widget> _cards(int n) => [
       for (var i = 0; i < n; i++)
         MyDataCard(
-            icon: Icons.folder_outlined, name: 'Card $i', child: Text('Line ${'more ' * (i == 1 ? 30 : 1)}')),
+            icon: MyDataIcon.importFile, name: 'Card $i', child: Text('Line ${'more ' * (i == 1 ? 30 : 1)}')),
     ];
 
 Widget _grid(int n, {double width = 760, bool entrance = true}) =>
@@ -82,7 +82,7 @@ void main() {
   testWidgets('a card is surface, radius-lg, shadow-1 and space-5 padding, with no border', (tester) async {
     await tester.pumpWidget(themedFrame(themeMatrix.first,
         const SizedBox(
-            width: 300, child: MyDataCard(icon: Icons.storage_rounded, name: 'Storage', child: Text('Content')))));
+            width: 300, child: MyDataCard(icon: MyDataIcon.host, name: 'Storage', child: Text('Content')))));
     final context = tester.element(find.byType(MyDataCard));
     final box = tester.widget<DecoratedBox>(
         find.descendant(of: find.byType(MyDataCard), matching: find.byType(DecoratedBox)).first);
@@ -99,7 +99,7 @@ void main() {
   testWidgets('the header is the icon tile and the name in body-strong; text in the content is body',
       (tester) async {
     await tester.pumpWidget(themedFrame(themeMatrix.first,
-        const SizedBox(width: 300, child: MyDataCard(icon: Icons.storage_rounded, iconTone: MyDataTone.info,
+        const SizedBox(width: 300, child: MyDataCard(icon: MyDataIcon.host, iconTone: MyDataTone.info,
             name: 'Storage', child: Text('Content')))));
     final context = tester.element(find.byType(MyDataCard));
     expect(tester.widget<IconTile>(find.byType(IconTile)).tone, MyDataTone.info);
@@ -118,7 +118,7 @@ void main() {
         themeMatrix.first,
         const SizedBox(
             width: 300,
-            child: StatCard(icon: Icons.photo_outlined, name: 'Photos', figure: '18,240', caption: '126 added this week.'))));
+            child: StatCard(icon: MyDataIcon.photo, name: 'Photos', figure: '18,240', caption: '126 added this week.'))));
     final context = tester.element(find.byType(StatCard));
     expect(tester.widget<Text>(find.text('18,240')).style, MyDataType.displayLg.copyWith(color: context.colors.ink));
     expect(tester.widget<Text>(find.text('126 added this week.')).style,
@@ -136,7 +136,7 @@ void main() {
         SizedBox(
             width: 300,
             child: StatCard(
-              icon: Icons.smartphone_outlined,
+              icon: MyDataIcon.thisMac,
               name: 'Devices',
               figure: '3',
               caption: 'All seen today.',
@@ -161,7 +161,7 @@ void main() {
         SizedBox(
             width: 300,
             child: MyDataCard(
-                icon: Icons.backup_outlined,
+                icon: MyDataIcon.cloud,
                 name: 'Backups',
                 action: Button(label: 'Back up now', onPressed: () {}), child: const Text('Done')))));
     expect(tester.getSemantics(find.text('Backups')), matchesSemantics(label: 'Backups', isHeader: true));
@@ -180,9 +180,9 @@ void main() {
         const SizedBox(
             width: 400,
             child: MyDataCard(
-                icon: Icons.folder_outlined,
+                icon: MyDataIcon.importFile,
                 name: 'Outer',
-                child: StatCard(icon: Icons.photo_outlined, name: 'Inner', figure: '1', caption: 'Nested.')))));
+                child: StatCard(icon: MyDataIcon.photo, name: 'Inner', figure: '1', caption: 'Nested.')))));
     FlutterError.onError = previous;
     expect(errors.first.exception, isA<FlutterError>());
     expect('${errors.first.exception}', contains('inside another card'));
@@ -326,7 +326,7 @@ void main() {
     testWidgets('a card keeps its state through the entrance', (tester) async {
       await tester.pumpWidget(themedFrame(
           themeMatrix.first,
-          const SizedBox(width: 400, child: CardGrid(children: [MyDataCard(icon: Icons.folder_outlined, name: 'Card 0', child: _Stateful())]))));
+          const SizedBox(width: 400, child: CardGrid(children: [MyDataCard(icon: MyDataIcon.importFile, name: 'Card 0', child: _Stateful())]))));
       final before = tester.state(find.byType(_Stateful));
       await tester.pumpAndSettle();
       expect(tester.state(find.byType(_Stateful)), same(before));

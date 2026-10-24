@@ -7,7 +7,7 @@ import 'package:mydata_ui/mydata_ui.dart';
 void _noop() {}
 
 ActionRow _connected() => ActionRow(
-  icon: Icons.key_outlined,
+  icon: MyDataIcon.key,
   title: 'Claude on my laptop',
   subtitle: 'Created 1 Oct, last seen today',
   badge: const MyDataBadge('Connected', tone: MyDataTone.success),
@@ -29,14 +29,14 @@ void main() {
             parts: [
               _connected(),
               ActionRow(
-                icon: Icons.key_outlined,
+                icon: MyDataIcon.key,
                 title: 'Notes sync script',
                 subtitle: 'Created 1 Oct, last seen 9 Oct',
                 badge: const MyDataBadge('Not connected', tone: MyDataTone.neutral),
                 actions: const [Button(label: 'Revoke', variant: ButtonVariant.plainDanger, onPressed: _noop)],
               ),
               ActionRow(
-                icon: Icons.key_outlined,
+                icon: MyDataIcon.key,
                 title: 'Old test agent',
                 subtitle: 'Created 1 Oct, never used',
                 badge: const MyDataBadge('Revoked', tone: MyDataTone.neutral),
@@ -58,7 +58,7 @@ void main() {
               _connected(),
               // A short title with a long caption also moves its chip and button under the text.
               ActionRow(
-                icon: Icons.key_outlined,
+                icon: MyDataIcon.key,
                 title: 'Laptop',
                 subtitle: 'Created 1 Oct at home, last seen today at the office',
                 badge: const MyDataBadge('Connected', tone: MyDataTone.success),
@@ -90,7 +90,7 @@ void main() {
   });
 
   ActionRow laptop(String subtitle) => ActionRow(
-    icon: Icons.key_outlined,
+    icon: MyDataIcon.key,
     title: 'Laptop',
     subtitle: subtitle,
     badge: const MyDataBadge('Connected', tone: MyDataTone.success),
@@ -161,7 +161,7 @@ void main() {
   testWidgets('very narrow with two buttons: everything wraps, nothing overflows', (tester) async {
     await tester.pumpWidget(_frame(
       ActionRow(
-        icon: Icons.key_outlined,
+        icon: MyDataIcon.key,
         title: 'Claude on my laptop and the long name of its computer',
         subtitle: 'Created 1 Oct, last seen today',
         badge: const MyDataBadge('Not connected', tone: MyDataTone.neutral),
@@ -204,7 +204,7 @@ void main() {
 
   testWidgets('a revoked item keeps its row and neutral chip and has no buttons', (tester) async {
     await tester.pumpWidget(_frame(ActionRow(
-      icon: Icons.key_outlined,
+      icon: MyDataIcon.key,
       title: 'Old test agent',
       subtitle: 'Created 1 Oct, never used',
       badge: const MyDataBadge('Revoked', tone: MyDataTone.neutral),

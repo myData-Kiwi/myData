@@ -33,7 +33,7 @@ On macOS every app draws the Mac frame; there is no switch back. It is built onc
 - **Colours, font and accent are the system's** (under System): read from NSColor in both appearances and followed when the user changes them (the `macos` colour tokens are fallbacks only). The plan's separate "Accent" setting is replaced by the theme per app; There is no "System, tinted" (another accent on System) on macOS, where the accent is always the system's (the owner, 2026-10-23); other platforms may allow one later. Light or dark is still this device's mode.
 - **Focus ring:** under System, the system's (`focus-ring`, `focus-ring-width`, `focus-ring-offset`) on every control, red ones included. A drawn theme uses its own `focus` colour with the `ink` rule (README, "Focus and danger").
 - **Lists are lists** (System): one plain source list with section letters, the accent selection while the list has focus (grey otherwise), no cards. Inset groups only in forms and settings.
-- **Icons:** Lucide (`MacIcons`, one set for every app) in place of SF Symbols, which may only be drawn by Apple's own frameworks. A drawn theme may pick another set (phase 3).
+- **Icons:** Lucide (through `MyDataIcon`, one set for every app) in place of SF Symbols, which may only be drawn by Apple's own frameworks. A drawn theme may pick another set.
 - Screens an app has not moved to the Mac frame yet keep their branded layout, drawn in the system's font and colours.
 
 ## The branded frame (every platform but macOS, for now)

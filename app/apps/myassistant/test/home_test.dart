@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mydata_assistant/mydata_assistant.dart';
 import 'package:mydata_core/mydata_core.dart';
 import 'package:mydata_ui/mydata_ui.dart';
+import 'package:mydata_testing/mydata_testing.dart';
 import 'package:myassistant/src/app.dart';
 import 'package:myassistant/src/home.dart';
 
@@ -276,7 +277,7 @@ void linksTests() {
     final opened = <MyDataLink>[];
     await tester.pumpWidget(app(launch, opened));
     await ask(tester, "Ava's number and what's on Friday?");
-    expect(find.byIcon(Icons.chevron_right_rounded), findsNWidgets(2));
+    expect(findIcon(MyDataIcon.chevronRight), findsNWidgets(2));
     await tester.tap(find.text('ava.fictional@example.com'));
     await tester.tap(find.text('Dinner with Ava (invented)'));
     await tester.pump();
@@ -291,7 +292,7 @@ void linksTests() {
     await ask(tester, "Ava's number and what's on Friday?");
     expect(launch.lookups, 2); // one per app, once
     // myCalendar is not installed: its row does nothing.
-    expect(find.byIcon(Icons.chevron_right_rounded), findsOneWidget);
+    expect(findIcon(MyDataIcon.chevronRight), findsOneWidget);
     await tester.tap(find.text('Dinner with Ava (invented)'));
     expect(opened, isEmpty);
 
@@ -300,7 +301,7 @@ void linksTests() {
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pumpAndSettle();
     expect(launch.lookups, 4);
-    expect(find.byIcon(Icons.chevron_right_rounded), findsNWidgets(2));
+    expect(findIcon(MyDataIcon.chevronRight), findsNWidgets(2));
     await tester.tap(find.text('Dinner with Ava (invented)'));
     expect(opened, [OpenDay(DateTime(2026, 3, 20))]);
   });
@@ -310,7 +311,7 @@ void linksTests() {
     final opened = <MyDataLink>[];
     await tester.pumpWidget(app(FakeLaunchServices(), opened));
     await ask(tester, "Ava's number and what's on Friday?");
-    expect(find.byIcon(Icons.chevron_right_rounded), findsNothing);
+    expect(findIcon(MyDataIcon.chevronRight), findsNothing);
     expect(find.byType(Pressable), findsWidgets); // the composer's button; not the rows:
     await tester.tap(find.text('ava.fictional@example.com'));
     expect(opened, isEmpty);
@@ -321,7 +322,7 @@ void linksTests() {
     final opened = <MyDataLink>[];
     await tester.pumpWidget(app(FakeLaunchServices({...MyDataAppId.values}), opened, real: false));
     await ask(tester, "Ava's number and what's on Friday?");
-    expect(find.byIcon(Icons.chevron_right_rounded), findsNothing);
+    expect(findIcon(MyDataIcon.chevronRight), findsNothing);
     await tester.tap(find.text('ava.fictional@example.com'));
     expect(opened, isEmpty);
   });
@@ -337,6 +338,6 @@ void linksTests() {
     await tester.pumpAndSettle();
     expect(find.text(AssistantHome.openFailed(MyDataAppId.mycontacts)), findsOneWidget);
     expect(launch.lookups, 4);
-    expect(find.byIcon(Icons.chevron_right_rounded), findsNothing);
+    expect(findIcon(MyDataIcon.chevronRight), findsNothing);
   });
 }

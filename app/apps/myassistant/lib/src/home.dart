@@ -42,7 +42,7 @@ class AssistantHome extends StatefulWidget {
   static String openFailed(MyDataAppId app) => 'myAssistant could not open ${app.displayName}. Open it yourself.';
 
   static const appName = 'myAssistant';
-  static const sections = [AppSection(icon: Icons.chat_bubble_outline_rounded, label: 'Chat')];
+  static const sections = [AppSection(icon: MyDataIcon.chat, label: 'Chat')];
   static const chatTitle = 'Chat';
   static const demoLabel = 'Demo data';
 

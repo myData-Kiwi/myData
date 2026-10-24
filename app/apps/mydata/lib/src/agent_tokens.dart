@@ -257,7 +257,7 @@ class AgentTokenRow extends StatelessWidget {
     final (label, tone) = state(a);
     if (MacWindow.of(context)) {
       return MacFormRow(
-        icon: MacIcons.key,
+        icon: MyDataIcon.key,
         title: a.name,
         subtitle: 'Created ${formatWhen(a.createdAt)} · $lastSeen',
         trailing: [
@@ -267,7 +267,7 @@ class AgentTokenRow extends StatelessWidget {
       );
     }
     return ActionRow(
-      icon: Icons.key_outlined,
+      icon: MyDataIcon.key,
       title: a.name,
       subtitle: 'Created ${formatWhen(a.createdAt)} · $lastSeen',
       badge: MyDataBadge(label, tone: tone),
@@ -292,7 +292,7 @@ class AgentListProblem extends StatelessWidget {
           heading: heading,
           rows: [
             MacFormRow(
-              icon: MacIcons.warning,
+              icon: MyDataIcon.warning,
               title: 'The agent list could not be read',
               subtitle: error,
               trailing: [Button(label: 'Retry', variant: ButtonVariant.tonal, onPressed: onRetry)],

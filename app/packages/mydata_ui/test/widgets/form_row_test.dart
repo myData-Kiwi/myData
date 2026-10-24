@@ -285,7 +285,7 @@ void main() {
       expect(message.top, greaterThan(tester.getRect(find.text('Name')).bottom));
       expect(message.bottom, lessThan(tester.getRect(find.text('First name')).top));
       expect(tester.widget<Text>(find.text('A contact needs a name.')).style!.color, _kiwi.danger);
-      expect(find.byIcon(Icons.error_outline_rounded), findsOneWidget);
+      expect(findIcon(MyDataIcon.error), findsOneWidget);
       // It is not a Tab stop.
       await tester.sendKeyEvent(LogicalKeyboardKey.tab);
       await tester.pump();
@@ -321,7 +321,7 @@ void main() {
           find.descendant(of: find.byType(FormRemoveButton).first, matching: find.byType(Tooltip)));
       expect(tip.richMessage!.toPlainText(), 'Remove mobile number');
       expect(find.byType(MyDataIconButton), findsWidgets);
-      expect(tester.widget<Icon>(find.byIcon(Icons.remove_circle_outline_rounded).first).color, _kiwi.danger);
+      expect(tester.widget<Icon>(findIcon(MyDataIcon.remove).first).color, _kiwi.danger);
       expect(find.bySemanticsLabel('Remove mobile number'), findsOneWidget);
       handle.dispose();
     });

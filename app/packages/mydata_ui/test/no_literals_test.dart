@@ -19,8 +19,11 @@ const roots = [
   '../mydata_testing/lib',
 ];
 
-/// The one file allowed to contain literals.
-const generated = '../mydata_ui/lib/src/generated/tokens.g.dart';
+/// The generated files allowed to contain literals: the tokens, and the icon tables (each glyph's font).
+const generated = {
+  '../mydata_ui/lib/src/generated/tokens.g.dart',
+  '../mydata_ui/lib/src/theme/icon_sets.g.dart',
+};
 
 /// The font catalogue: the one place a font is named.
 const catalogue = '../mydata_ui/lib/src/theme/catalogue.dart';
@@ -111,7 +114,7 @@ void main() {
     final found = <String>[];
     var scanned = 0;
     for (final f in sources()) {
-      if (f.path == generated) continue;
+      if (generated.contains(f.path)) continue;
       scanned++;
       found.addAll(violations(f));
     }

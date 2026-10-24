@@ -67,8 +67,8 @@ class CalendarHome extends StatefulWidget {
 
   static const appName = 'myCalendar';
   static const sections = [
-    AppSection(icon: Icons.calendar_month_outlined, label: MonthPage.title),
-    AppSection(icon: Icons.layers_outlined, label: CalendarsPage.title),
+    AppSection(icon: MyDataIcon.calendarMonth, label: MonthPage.title),
+    AppSection(icon: MyDataIcon.layers, label: CalendarsPage.title),
   ];
 
   static const emptyTitle = 'No calendars yet';

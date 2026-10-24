@@ -42,7 +42,7 @@ class MenuItem extends MenuEntry {
   final VoidCallback onSelected;
 
   /// An optional icon in `ink-muted` (`danger` when [destructive]).
-  final IconData? icon;
+  final MyDataIcon? icon;
 
   /// The same action's shortcut, shown at the end as the platform writes it ([MyDataShortcut]); not shown on
   /// a phone.
@@ -494,7 +494,7 @@ class _MenuItemTile extends StatelessWidget {
           opacity: faded,
           child: SizedBox.square(
             dimension: context.density.icon,
-            child: item.icon == null ? null : Icon(item.icon, size: context.density.icon, color: iconColour),
+            child: item.icon == null ? null : Icon(context.icon(item.icon!), size: context.density.icon, color: iconColour),
           ),
         ),
         SizedBox(width: context.space(3)),
@@ -510,7 +510,7 @@ class _MenuItemTile extends StatelessWidget {
       ],
       if (item.checked) ...[
         SizedBox(width: Menu.shortcutGap(context.look)),
-        Icon(Icons.check_rounded, size: context.density.icon, color: c.accent),
+        Icon(context.icon(MyDataIcon.check), size: context.density.icon, color: c.accent),
       ],
     ]);
 
@@ -731,7 +731,7 @@ class _MoreActionsButtonState extends State<MoreActionsButton> {
         child: Listener(
           onPointerDown: (_) => _pointer = true,
           child: MyDataIconButton(
-            icon: Icons.more_horiz_rounded,
+            icon: MyDataIcon.more,
             label: widget.label,
             tone: widget.tone,
             compact: widget.compact,

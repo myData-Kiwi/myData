@@ -196,7 +196,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(opened.map((l) => l.app), [MyDataAppId.mycontacts, MyDataAppId.mycalendar]);
       // Each row that opens something ends in a chevron.
-      expect(find.byIcon(MacIcons.chevronRight), findsNWidgets(2));
+      expect(findIcon(MyDataIcon.chevronRight), findsNWidgets(2));
     });
 
     macTestWidgets('a phone-sized window keeps the branded phone layout', (tester) async {

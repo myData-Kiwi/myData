@@ -101,8 +101,8 @@ void main() {
           home: Scaffold(
             body: MacAppFrame(
               sections: const [
-                AppSection(icon: MacIcons.people, label: 'Contacts'),
-                AppSection(icon: MacIcons.trash, label: 'Recently Deleted'),
+                AppSection(icon: MyDataIcon.people, label: 'Contacts'),
+                AppSection(icon: MyDataIcon.trash, label: 'Recently Deleted'),
               ],
               current: 0,
               onSelect: (_) {},

@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart' show defaultTargetPlatform, listEquals;
-import 'package:flutter/material.dart' show Icons;
 import 'package:flutter/semantics.dart' show CustomSemanticsAction;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -1360,7 +1359,7 @@ class _ContactRowState extends State<_ContactRow> {
           ),
           if (widget.phone) ...[
             SizedBox(width: GroupedRow.gap(context.look)),
-            Icon(Icons.chevron_right_rounded, size: context.density.icon, color: c.inkMuted),
+            Icon(context.icon(MyDataIcon.chevronRight), size: context.density.icon, color: c.inkMuted),
           ],
         ],
       ),

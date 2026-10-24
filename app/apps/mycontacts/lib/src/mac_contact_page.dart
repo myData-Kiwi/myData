@@ -112,10 +112,10 @@ class MacContactPage extends StatelessWidget {
   }
 
   /// The source badge's glyph: the host's own contact, this Mac's, or an iCloud account's.
-  static IconData sourceIcon(ContactDetailOut d) => switch (d.source_) {
-        ContactDetailOutSource_Enum.mydata => MacIcons.host,
-        ContactDetailOutSource_Enum.mac => MacIcons.thisMac,
-        _ => MacIcons.cloud,
+  static MyDataIcon sourceIcon(ContactDetailOut d) => switch (d.source_) {
+        ContactDetailOutSource_Enum.mydata => MyDataIcon.host,
+        ContactDetailOutSource_Enum.mac => MyDataIcon.thisMac,
+        _ => MyDataIcon.cloud,
       };
 
   /// message, call, mail and map for [d]: the first phone number, email address and address; none without.
@@ -133,13 +133,13 @@ class MacContactPage extends StatelessWidget {
     return [
       if (dial != null && dial.isNotEmpty) ...[
         MacQuickAction(
-          icon: MacIcons.message,
+          icon: MyDataIcon.message,
           label: messageLabel,
           tooltip: 'Message $who',
           onPressed: () => onOpenLink(Uri(scheme: 'sms', path: dial)),
         ),
         MacQuickAction(
-          icon: MacIcons.call,
+          icon: MyDataIcon.call,
           label: callLabel,
           tooltip: 'Call $who',
           onPressed: () => onOpenLink(Uri(scheme: 'tel', path: dial)),
@@ -147,14 +147,14 @@ class MacContactPage extends StatelessWidget {
       ],
       if (email != null)
         MacQuickAction(
-          icon: MacIcons.mail,
+          icon: MyDataIcon.mail,
           label: mailLabel,
           tooltip: 'Mail $who',
           onPressed: () => onOpenLink(Uri(scheme: 'mailto', path: email)),
         ),
       if (address != null)
         MacQuickAction(
-          icon: MacIcons.map,
+          icon: MyDataIcon.map,
           label: mapLabel,
           tooltip: 'Show $who\'s address in Maps',
           onPressed: () => onOpenLink(Uri.https('maps.apple.com', '/', {'q': address.replaceAll('\n', ', ')})),

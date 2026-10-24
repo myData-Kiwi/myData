@@ -85,7 +85,7 @@ void main() {
     expect(find.byType(GroupedList), findsOneWidget);
     final tiles = tester.widgetList<IconTile>(find.byType(IconTile)).toList();
     expect(tiles, hasLength(2));
-    expect(tiles.every((t) => t.icon == Icons.event_outlined && t.tone == MyDataTone.accent), isTrue);
+    expect(tiles.every((t) => t.icon == MyDataIcon.calendar && t.tone == MyDataTone.accent), isTrue);
   });
 
   testWidgets('mail: sender, subject, snippet and day', (tester) async {

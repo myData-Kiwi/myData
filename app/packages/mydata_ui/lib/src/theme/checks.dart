@@ -253,6 +253,13 @@ List<ThemeFinding> checkStyle(ThemeFile theme) {
   if (!bundledIconSets.contains(icons.set)) {
     out.add(ThemeFinding('The ${icons.set} icons come with a later version of myData; until then Lucide is used.',
         notice: true));
+  } else if (!bundledIconWeights[icons.set]!.contains(icons.weight)) {
+    out.add(ThemeFinding('The ${icons.set} icons have no ${icons.weight} weight; the nearest one is used.',
+        notice: true));
+  }
+  if (icons.fillSelected && !(bundledIconWeights[icons.set]?.contains('fill') ?? false)) {
+    out.add(ThemeFinding('The ${bundledIconSets.contains(icons.set) ? icons.set : 'lucide'} icons have no '
+        'filled glyphs; a selected icon is drawn as the others.', notice: true));
   }
   if (theme.style.materials.window == WindowKind.image) {
     out.add(const ThemeFinding('Background images come with a later version of myData.'));

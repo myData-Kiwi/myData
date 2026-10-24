@@ -88,13 +88,13 @@ class ResultCard extends StatelessWidget {
   static double headerGap(MyDataLook look) => look.space(2);
 
   /// The icon on each row's tile for [kind].
-  static IconData iconFor(String kind) => switch (kind) {
-    'events' => Icons.event_outlined,
-    'event_created' => Icons.event_available_outlined,
-    'mail' => Icons.mail_outline_rounded,
-    'contacts' => Icons.person_outline_rounded,
-    'photos' => Icons.photo_outlined,
-    _ => Icons.list_alt_rounded,
+  static MyDataIcon iconFor(String kind) => switch (kind) {
+    'events' => MyDataIcon.calendar,
+    'event_created' => MyDataIcon.calendarCheck,
+    'mail' => MyDataIcon.mail,
+    'contacts' => MyDataIcon.person,
+    'photos' => MyDataIcon.photo,
+    _ => MyDataIcon.list,
   };
 
   /// The tile tone for [kind]. Three tones at most across every kind, so a conversation that shows them
@@ -105,14 +105,14 @@ class ResultCard extends StatelessWidget {
     _ => MyDataTone.neutral,
   };
 
-  /// The Mac frame's icon for [kind]'s rows (Lucide, [MacIcons]).
-  static IconData macIconFor(String kind) => switch (kind) {
-    'events' => MacIcons.calendar,
-    'event_created' => MacIcons.calendarCheck,
-    'mail' => MacIcons.mail,
-    'contacts' => MacIcons.person,
-    'photos' => MacIcons.photo,
-    _ => MacIcons.list,
+  /// The Mac frame's icon for [kind]'s rows (Lucide under System, [MyDataIcon]).
+  static MyDataIcon macIconFor(String kind) => switch (kind) {
+    'events' => MyDataIcon.calendar,
+    'event_created' => MyDataIcon.calendarCheck,
+    'mail' => MyDataIcon.mail,
+    'contacts' => MyDataIcon.person,
+    'photos' => MyDataIcon.photo,
+    _ => MyDataIcon.list,
   };
 
   Widget _mac(BuildContext context) {
@@ -298,7 +298,7 @@ class _Line {
 class _ResultRow extends GroupedRow {
   _ResultRow({
     required this.kind,
-    required IconData icon,
+    required MyDataIcon icon,
     required super.tone,
     required this.lines,
     this.end,
@@ -354,7 +354,7 @@ class _ResultRow extends GroupedRow {
             ],
             if (onPressed != null) ...[
               SizedBox(width: GroupedRow.gap(context.look)),
-              Icon(Icons.chevron_right_rounded, size: context.density.icon, color: c.inkMuted),
+              Icon(context.icon(MyDataIcon.chevronRight), size: context.density.icon, color: c.inkMuted),
             ],
           ],
         ),
@@ -405,7 +405,7 @@ class _MacRow extends StatelessWidget {
           Padding(
             padding: EdgeInsets.only(top: (firstLine - MyDataMacSize.icon) / 2),
             child: Icon(
-              ResultCard.macIconFor(row.kind),
+              context.icon(ResultCard.macIconFor(row.kind)),
               size: MyDataMacSize.icon,
               color: row.tone == MyDataTone.accent ? mac.accent : mac.secondaryLabel,
             ),
@@ -434,7 +434,7 @@ class _MacRow extends StatelessWidget {
             SizedBox(width: context.space(2)),
             Padding(
               padding: EdgeInsets.only(top: (firstLine - MyDataMacSize.icon) / 2),
-              child: Icon(MacIcons.chevronRight, size: MyDataMacSize.icon, color: mac.tertiaryLabel),
+              child: Icon(context.icon(MyDataIcon.chevronRight), size: MyDataMacSize.icon, color: mac.tertiaryLabel),
             ),
           ],
         ],

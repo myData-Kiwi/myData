@@ -40,7 +40,7 @@ class StatusScreen extends StatelessWidget {
         CardGrid(
           children: [
             MyDataCard(
-              icon: Icons.dns_outlined,
+              icon: MyDataIcon.host,
               name: 'Host',
               child: _Facts([
                 Fact('Version', Text(s.version, style: context.typeScale.mono)),
@@ -63,7 +63,7 @@ class StatusScreen extends StatelessWidget {
               ]),
             ),
             MyDataCard(
-              icon: Icons.auto_awesome_outlined,
+              icon: MyDataIcon.assistant,
               name: 'Assistant',
               child: _Facts([
                 Fact('State', availabilityBadge(assistantAvailability(s))),
@@ -75,7 +75,7 @@ class StatusScreen extends StatelessWidget {
               ]),
             ),
             MyDataCard(
-              icon: Icons.report_outlined,
+              icon: MyDataIcon.report,
               name: 'Last error',
               child: error == null
                   ? Text('None', style: context.typeScale.body.copyWith(color: context.colors.inkMuted))
@@ -185,7 +185,7 @@ class _ConnectedAgents extends StatelessWidget {
           else
             for (final a in connected)
               GroupedRow(
-                icon: Icons.hub_outlined,
+                icon: MyDataIcon.agents,
                 tone: MyDataTone.neutral,
                 title: a.name,
                 subtitle: 'Last seen ${a.lastSeenAt == null ? 'never' : formatWhen(a.lastSeenAt!)}',

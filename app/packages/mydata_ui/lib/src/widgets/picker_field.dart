@@ -89,7 +89,7 @@ class PickerField extends StatelessWidget {
   final GlobalKey boxKey;
   final TextEditingController controller;
   final FocusNode focusNode;
-  final IconData icon;
+  final MyDataIcon icon;
   final double fieldWidth;
 
   /// The accessible name: the label, or what the field holds when two fields share one label ("Start date").
@@ -200,7 +200,7 @@ class PickerField extends StatelessWidget {
       child: Row(children: [
         Expanded(child: text),
         SizedBox(width: context.space(2)),
-        ExcludeSemantics(child: Icon(icon, size: mac ? MyDataMacSize.icon : context.density.icon, color: c.inkMuted)),
+        ExcludeSemantics(child: Icon(context.icon(icon), size: mac ? MyDataMacSize.icon : context.density.icon, color: c.inkMuted)),
         SizedBox(width: inset - border),
       ]),
     );
@@ -708,7 +708,7 @@ class _PickerListBoxState extends State<PickerListBox> {
                         SizedBox.square(
                           dimension: PickerListBox.checkSize(context.look),
                           child: checked
-                              ? Icon(Icons.check_rounded, size: PickerListBox.checkSize(context.look), color: c.accent)
+                              ? Icon(context.icon(MyDataIcon.check), size: PickerListBox.checkSize(context.look), color: c.accent)
                               : null,
                         ),
                       ]),

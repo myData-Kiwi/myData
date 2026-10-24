@@ -111,7 +111,7 @@ class MacProgressRow extends StatelessWidget {
         SizedBox.square(
           dimension: MyDataMacSize.icon,
           child: line.done
-              ? Icon(MacIcons.check, size: MyDataMacSize.icon, color: mac.secondaryLabel)
+              ? Icon(context.icon(MyDataIcon.check), size: MyDataMacSize.icon, color: mac.secondaryLabel)
               : const ExcludeSemantics(child: KiwiLoader(size: MyDataMacSize.icon)),
         ),
         SizedBox(width: context.space(2)),
@@ -170,7 +170,7 @@ class MacErrorRow extends StatelessWidget {
         Padding(
           // Centres the icon on the title's first line.
           padding: EdgeInsets.only(top: (lineHeight - MyDataMacSize.icon) / 2),
-          child: Icon(MacIcons.error, size: MyDataMacSize.icon, color: context.colors.danger),
+          child: Icon(context.icon(MyDataIcon.error), size: MyDataMacSize.icon, color: context.colors.danger),
         ),
         SizedBox(width: context.space(2)),
         Expanded(
@@ -289,7 +289,7 @@ class MacComposer extends StatelessWidget {
                       height: MacChat.sendSize,
                       decoration: BoxDecoration(color: ready ? mac.accent : mac.quaternaryLabel, shape: BoxShape.circle),
                       alignment: Alignment.center,
-                      child: Icon(MacIcons.send, size: MyDataMacSize.icon, color: ready ? mac.onAccent : mac.tertiaryLabel),
+                      child: Icon(context.icon(MyDataIcon.send), size: MyDataMacSize.icon, color: ready ? mac.onAccent : mac.tertiaryLabel),
                     ),
                   ),
                 );

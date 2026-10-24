@@ -81,8 +81,8 @@ class Button extends StatelessWidget {
   final ButtonVariant variant;
 
   /// An optional leading icon, drawn at `icon` size in the label's colour. Decorative: the label names the
-  /// button. The icon set is not drawn yet; pass a Material outlined or rounded icon.
-  final IconData? icon;
+  /// button.
+  final MyDataIcon? icon;
 
   final FocusNode? focusNode;
   final bool autofocus;
@@ -134,7 +134,7 @@ class Button extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (icon != null) ...[
-                Icon(icon, size: context.density.icon, color: fg),
+                Icon(context.icon(icon!), size: context.density.icon, color: fg),
                 SizedBox(width: iconGap(context.look)),
               ],
               Flexible(child: text),
@@ -181,7 +181,7 @@ class Button extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (icon != null) ...[
-                Icon(icon, size: MyDataMacSize.icon, color: fg),
+                Icon(context.icon(icon!), size: MyDataMacSize.icon, color: fg),
                 SizedBox(width: context.space(1)),
               ],
               Flexible(

@@ -46,9 +46,8 @@ class ActionRow extends StatelessWidget {
          "screen's main action (design/components/ActionRow)",
        );
 
-  /// An optional icon on an [IconTile] at the left. The icon set is not drawn yet; pass a Material outlined
-  /// or rounded icon.
-  final IconData? icon;
+  /// An optional icon on an [IconTile] at the left.
+  final MyDataIcon? icon;
 
   /// The tile's tint. Defaults to [MyDataTone.neutral], the untinted `surface-sunken` tile.
   final MyDataTone tone;

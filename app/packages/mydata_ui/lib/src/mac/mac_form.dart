@@ -6,7 +6,6 @@ import '../theme/motion.dart';
 import '../theme/theme.dart';
 import '../widgets/pressable.dart';
 import 'mac_chrome.dart';
-import 'mac_icons.dart';
 import 'mac_theme.dart';
 
 /// The Mac frame's grouped forms, as System Settings and an app's Settings window draw them (plan section 5:
@@ -134,7 +133,7 @@ class MacFormRow extends StatelessWidget {
     this.subtitleColor,
   });
 
-  final IconData? icon;
+  final MyDataIcon? icon;
   final String title;
   final String? subtitle;
   final List<Widget> trailing;
@@ -155,7 +154,7 @@ class MacFormRow extends StatelessWidget {
         child: Row(
           children: [
             if (icon != null) ...[
-              Icon(icon, size: MyDataMacSize.icon, color: mac.secondaryLabel),
+              Icon(context.icon(icon!), size: MyDataMacSize.icon, color: mac.secondaryLabel),
               SizedBox(width: context.space(2)),
             ],
             Expanded(
@@ -439,7 +438,7 @@ class MacDisclosure extends StatelessWidget {
                         turns: open ? 0.25 : 0,
                         duration: MyDataMotion.reduced(context) ? Duration.zero : context.motion.fast,
                         curve: context.motion.standard,
-                        child: Icon(MacIcons.chevronRight, size: MyDataMacSize.icon - MyDataMacSize.tight, color: mac.secondaryLabel),
+                        child: Icon(context.icon(MyDataIcon.chevronRight), size: MyDataMacSize.icon - MyDataMacSize.tight, color: mac.secondaryLabel),
                       ),
                       SizedBox(width: context.space(2)),
                       Expanded(child: Text(title, style: MyDataMacType.body.copyWith(color: mac.label))),

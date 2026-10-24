@@ -55,8 +55,8 @@ abstract final class PhoneType {
 class AppSection {
   const AppSection({required this.icon, required this.label, this.count, this.countMore = false});
 
-  /// Drawn at `icon` size: a `MacIcons` icon in the Mac frame, a Material outlined or rounded one elsewhere.
-  final IconData icon;
+  /// Drawn at `icon` size in the look's icon set (Lucide in the Mac frame under System).
+  final MyDataIcon icon;
 
   /// One short word in sentence case, so it also fits the rail and the phone tab bar.
   final String label;
@@ -405,7 +405,7 @@ class _SidebarRow extends StatelessWidget {
             height: context.density.controlHeight,
             padding: EdgeInsets.symmetric(horizontal: context.space(3)),
             child: Row(children: [
-              Icon(section.icon, size: context.density.icon, color: fg),
+              Icon(context.icon(section.icon, selected: current), size: context.density.icon, color: fg),
               SizedBox(width: context.space(3)),
               Expanded(
                 child: Text(
@@ -465,7 +465,7 @@ class _RailItem extends StatelessWidget {
               decoration: BoxDecoration(
                   color: current ? c.accentSoft : c.accentSoft.withValues(alpha: 0), borderRadius: MyDataRadii.pill(context.look)),
               alignment: Alignment.center,
-              child: Icon(section.icon, size: context.density.icon, color: fg),
+              child: Icon(context.icon(section.icon, selected: current), size: context.density.icon, color: fg),
             ),
             SizedBox(height: context.space(1)),
             Text(
@@ -590,7 +590,7 @@ class _ConnectionLine extends StatelessWidget {
         );
       case AppConnectionState.unreachable:
         final line = _lead(context,
-          Icon(Icons.warning_amber_rounded, size: context.density.icon, color: c.warning),
+          Icon(context.icon(MyDataIcon.warning), size: context.density.icon, color: c.warning),
           Text(AppConnection.unreachableText, style: context.typeScale.label.copyWith(color: c.warning)),
         );
         // Captions under the words, not the icon.
@@ -681,7 +681,7 @@ class _RailConnection extends StatelessWidget {
           container: true,
           explicitChildNodes: true,
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Icon(Icons.warning_amber_rounded, size: context.density.icon, color: c.warning),
+            Icon(context.icon(MyDataIcon.warning), size: context.density.icon, color: c.warning),
             gap,
             Text(AppConnection.unreachableText,
                 textAlign: TextAlign.center, style: context.typeScale.label.copyWith(color: c.warning)),

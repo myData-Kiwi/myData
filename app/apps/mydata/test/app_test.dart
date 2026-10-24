@@ -527,7 +527,7 @@ void main() {
     );
     await pumpApp(tester, host);
     expect(find.text('0.1.0'), findsOneWidget);
-    await tester.tap(find.byIcon(Icons.settings_outlined));
+    await tester.tap(findIcon(MyDataIcon.settings));
     await settle(tester);
     await tester.ensureVisible(find.text('Old script'));
     await settle(tester);

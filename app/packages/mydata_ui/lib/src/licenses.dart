@@ -5,12 +5,14 @@ import 'generated/tokens.g.dart';
 import 'theme/catalogue.dart';
 
 /// The bundled fonts and icon sets and their licence files, in assets/fonts: SIL Open Font License 1.1 for
-/// every font of the catalogue this build bundles, and ISC (with MIT for the icons Lucide takes from Feather)
-/// for Lucide.
+/// every font of the catalogue this build bundles, ISC (with MIT for the icons Lucide takes from Feather) for
+/// Lucide, and MIT for Tabler Icons and Phosphor.
 final Map<String, String> bundledFontLicenses = {
   for (final f in fontCatalogue.values)
     if (f.bundled) f.name: f.licence,
   MyDataMacFont.icons: 'ISC-lucide.txt',
+  'Tabler Icons': 'MIT-tabler.txt',
+  'Phosphor Icons': 'MIT-phosphor.txt',
 };
 
 /// Adds the fonts' licences to Flutter's licence registry, so they appear wherever the app lists licences.

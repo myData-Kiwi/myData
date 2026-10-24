@@ -48,6 +48,8 @@ flutter:
     - assets/fonts/OFL-nunito.txt
     - assets/fonts/OFL-literata.txt
     - assets/fonts/ISC-lucide.txt
+    - assets/fonts/MIT-tabler.txt
+    - assets/fonts/MIT-phosphor.txt
   # The core fonts, in the weights Kiwi uses (design/README.md, "Type"). Licences: assets/fonts/OFL-*.txt.
   fonts:
     - family: PlusJakartaSans
@@ -64,7 +66,30 @@ flutter:
       fonts:
         - asset: assets/fonts/JetBrainsMono-400.ttf
           weight: 400
-    # The Mac frame's icons: Lucide (ISC, assets/fonts/ISC-lucide.txt), cut down by tool/subset_lucide.sh.
+    # The icon sets, one font per weight, cut to the semantic ids by tool/subset_icons.sh
+    # (lib/src/theme/icon_sets.g.dart): Lucide (ISC; also System's icons on macOS), Tabler Icons (MIT) and
+    # Phosphor (MIT). Licences: assets/fonts/ISC-lucide.txt, MIT-tabler.txt, MIT-phosphor.txt.
     - family: Lucide
       fonts:
         - asset: assets/fonts/Lucide-subset.ttf
+    - family: TablerThin
+      fonts:
+        - asset: assets/fonts/TablerThin-subset.ttf
+    - family: TablerLight
+      fonts:
+        - asset: assets/fonts/TablerLight-subset.ttf
+    - family: Tabler
+      fonts:
+        - asset: assets/fonts/Tabler-subset.ttf
+    - family: PhosphorLight
+      fonts:
+        - asset: assets/fonts/PhosphorLight-subset.ttf
+    - family: Phosphor
+      fonts:
+        - asset: assets/fonts/Phosphor-subset.ttf
+    - family: PhosphorBold
+      fonts:
+        - asset: assets/fonts/PhosphorBold-subset.ttf
+    - family: PhosphorFill
+      fonts:
+        - asset: assets/fonts/PhosphorFill-subset.ttf

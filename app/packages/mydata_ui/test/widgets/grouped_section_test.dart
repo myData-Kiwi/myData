@@ -32,7 +32,7 @@ GroupedSection _appearance() => GroupedSection(
       ),
     ),
     const GroupedRow.toggle(
-      icon: Icons.auto_awesome_outlined,
+      icon: MyDataIcon.assistant,
       title: 'Assistant',
       subtitle: 'Ready. Switching it off unloads the model.',
       value: true,
@@ -70,14 +70,14 @@ GroupedSection _agents() => GroupedSection(
       ),
     ),
     ActionRow(
-      icon: Icons.key_outlined,
+      icon: MyDataIcon.key,
       title: 'Claude on my laptop',
       subtitle: 'Created 1 Oct, last seen today',
       badge: const MyDataBadge('Connected', tone: MyDataTone.success),
       actions: const [Button(label: 'Revoke', variant: ButtonVariant.plainDanger, onPressed: _noop)],
     ),
     ActionRow(
-      icon: Icons.key_outlined,
+      icon: MyDataIcon.key,
       title: 'Old test agent',
       subtitle: 'Created 1 Oct, never used',
       badge: const MyDataBadge('Revoked', tone: MyDataTone.neutral),
@@ -198,7 +198,7 @@ void main() {
   });
 
   test('at most three tile tones across its rows and action rows', () {
-    GroupedRow row(MyDataTone tone) => GroupedRow(icon: Icons.circle_outlined, tone: tone, title: tone.name);
+    GroupedRow row(MyDataTone tone) => GroupedRow(icon: MyDataIcon.clear, tone: tone, title: tone.name);
     expect(
       () => GroupedSection(
         heading: 'Too many',
@@ -206,7 +206,7 @@ void main() {
           row(MyDataTone.accent),
           row(MyDataTone.info),
           row(MyDataTone.warning),
-          ActionRow(icon: Icons.key_outlined, tone: MyDataTone.success, title: 'Agent'),
+          ActionRow(icon: MyDataIcon.key, tone: MyDataTone.success, title: 'Agent'),
         ],
       ),
       throwsAssertionError,
@@ -222,7 +222,7 @@ void main() {
       parts: [
         row(MyDataTone.accent),
         row(MyDataTone.info),
-        ActionRow(icon: Icons.key_outlined, title: 'Agent'),
+        ActionRow(icon: MyDataIcon.key, title: 'Agent'),
         ActionRow(title: 'No tile', tone: MyDataTone.danger),
         const GroupedRow(title: 'No tile', tone: MyDataTone.success),
         const GroupedContentPart(child: SizedBox()),

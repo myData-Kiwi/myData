@@ -8,7 +8,7 @@ void _noop() {}
 
 List<Widget> _sections() => [
       const MyDataCard(
-        icon: Icons.storage_outlined,
+        icon: MyDataIcon.host,
         name: 'Storage',
         child: Text('412 GB free of 1 TB on Home drive.'),
       ),
@@ -43,7 +43,7 @@ Widget _phone() => _window(
       const Size(375, 520),
       AppFrame(
         appName: 'myData',
-        sections: const [AppSection(icon: Icons.monitor_heart_outlined, label: 'Status')],
+        sections: const [AppSection(icon: MyDataIcon.status, label: 'Status')],
         current: 0,
         onSelect: (_) {},
         child: PageScaffold(
@@ -149,8 +149,8 @@ void main() {
           child: AppFrame(
             appName: 'myPhotos',
             sections: const [
-              AppSection(icon: Icons.photo_library_outlined, label: 'Library'),
-              AppSection(icon: Icons.photo_album_outlined, label: 'Albums'),
+              AppSection(icon: MyDataIcon.photo, label: 'Library'),
+              AppSection(icon: MyDataIcon.photo, label: 'Albums'),
             ],
             current: 0,
             onSelect: (_) {},

@@ -91,7 +91,7 @@ class SourcesSections extends StatelessWidget {
     heading: heading,
     rows: [
       MacFormRow(
-        icon: MacIcons.warning,
+        icon: MyDataIcon.warning,
         title: 'The sources could not be read',
         subtitle: error,
         trailing: [Button(label: 'Retry', variant: ButtonVariant.tonal, onPressed: sources.load)],
@@ -281,20 +281,20 @@ class _ThisMacSectionState extends State<ThisMacSection> {
     return MacFormSection(
       rows: [
         MacFormRow(
-          icon: MacIcons.thisMac,
+          icon: MyDataIcon.thisMac,
           title: ThisMacText.title,
           subtitle: mac.enabled ? ThisMacText.caption(mac) : ThisMacText.off,
           trailing: [MacSwitch(value: mac.enabled, onChanged: _saving ? null : _turn, semanticLabel: ThisMacText.title)],
         ),
         if (mac.enabled) ...[
-          _macAccessRow('contacts', MacIcons.people, mac.contactsStatus),
-          _macAccessRow('calendars', MacIcons.calendar, mac.calendarsStatus),
+          _macAccessRow('contacts', MyDataIcon.people, mac.contactsStatus),
+          _macAccessRow('calendars', MyDataIcon.calendar, mac.calendarsStatus),
         ],
       ],
     );
   }
 
-  Widget _macAccessRow(String kind, IconData icon, String? status) {
+  Widget _macAccessRow(String kind, MyDataIcon icon, String? status) {
     final s = ThisMacText.access(kind, status, running: _mac.readerRunning ?? false);
     final asking = _asking.contains(kind);
     return KeyedSubtree(
@@ -326,7 +326,7 @@ class _ThisMacSectionState extends State<ThisMacSection> {
       heading: SourcesSections.heading,
       parts: [
         GroupedRow.toggle(
-          icon: Icons.laptop_mac_outlined,
+          icon: MyDataIcon.thisMac,
           // A source: the same tone as the followed iCloud accounts. Contacts and calendars are accent.
           tone: MyDataTone.neutral,
           title: ThisMacText.title,
@@ -335,14 +335,14 @@ class _ThisMacSectionState extends State<ThisMacSection> {
           onChanged: _saving ? null : _turn,
         ),
         if (mac.enabled) ...[
-          _accessRow('contacts', Icons.people_outline, mac.contactsStatus),
-          _accessRow('calendars', Icons.event_outlined, mac.calendarsStatus),
+          _accessRow('contacts', MyDataIcon.people, mac.contactsStatus),
+          _accessRow('calendars', MyDataIcon.calendar, mac.calendarsStatus),
         ],
       ],
     );
   }
 
-  Widget _accessRow(String kind, IconData icon, String? status) {
+  Widget _accessRow(String kind, MyDataIcon icon, String? status) {
     final s = ThisMacText.access(kind, status, running: _mac.readerRunning ?? false);
     final asking = _asking.contains(kind);
     return ActionRow(
@@ -433,7 +433,7 @@ class _IncludedSectionState extends State<IncludedSection> {
           if (!contactsReadable || mac.contactContainers.isEmpty)
             MacFormRow(
               key: const ValueKey('included-contacts-none'),
-              icon: MacIcons.people,
+              icon: MyDataIcon.people,
               title: 'Contacts',
               subtitle: IncludedSection.waiting('contacts', readable: contactsReadable),
             )
@@ -441,7 +441,7 @@ class _IncludedSectionState extends State<IncludedSection> {
             for (final k in mac.contactContainers)
               MacFormRow(
                 key: ValueKey('container-${k.id}'),
-                icon: MacIcons.people,
+                icon: MyDataIcon.people,
                 title: k.name.isEmpty ? 'Contacts' : k.name,
                 subtitle: 'Contacts · ${IncludedSection.containerKind(k.kind)}',
                 trailing: [
@@ -455,7 +455,7 @@ class _IncludedSectionState extends State<IncludedSection> {
           if (!calendarsReadable || mac.calendars.isEmpty)
             MacFormRow(
               key: const ValueKey('included-calendars-none'),
-              icon: MacIcons.calendar,
+              icon: MyDataIcon.calendar,
               title: 'Calendars',
               subtitle: IncludedSection.waiting('calendars', readable: calendarsReadable),
             )
@@ -463,7 +463,7 @@ class _IncludedSectionState extends State<IncludedSection> {
             for (final k in mac.calendars)
               MacFormRow(
                 key: ValueKey('calendar-${k.id}'),
-                icon: MacIcons.calendar,
+                icon: MyDataIcon.calendar,
                 title: k.name.isEmpty ? 'Calendar' : k.name,
                 subtitle: k.sourceName.isEmpty ? 'Calendar' : 'Calendar · ${k.sourceName}',
                 trailing: [
@@ -483,7 +483,7 @@ class _IncludedSectionState extends State<IncludedSection> {
         if (!contactsReadable || mac.contactContainers.isEmpty)
           GroupedRow(
             key: const ValueKey('included-contacts-none'),
-            icon: Icons.people_outline,
+            icon: MyDataIcon.people,
             title: 'Contacts',
             subtitle: IncludedSection.waiting('contacts', readable: contactsReadable),
           )
@@ -491,7 +491,7 @@ class _IncludedSectionState extends State<IncludedSection> {
           for (final k in mac.contactContainers)
             GroupedRow.toggle(
               key: ValueKey('container-${k.id}'),
-              icon: Icons.people_outline,
+              icon: MyDataIcon.people,
               title: k.name.isEmpty ? 'Contacts' : k.name,
               subtitle: 'Contacts · ${IncludedSection.containerKind(k.kind)}',
               value: k.included,
@@ -500,7 +500,7 @@ class _IncludedSectionState extends State<IncludedSection> {
         if (!calendarsReadable || mac.calendars.isEmpty)
           GroupedRow(
             key: const ValueKey('included-calendars-none'),
-            icon: Icons.event_outlined,
+            icon: MyDataIcon.calendar,
             title: 'Calendars',
             subtitle: IncludedSection.waiting('calendars', readable: calendarsReadable),
           )
@@ -508,7 +508,7 @@ class _IncludedSectionState extends State<IncludedSection> {
           for (final k in mac.calendars)
             GroupedRow.toggle(
               key: ValueKey('calendar-${k.id}'),
-              icon: Icons.event_outlined,
+              icon: MyDataIcon.calendar,
               title: k.name.isEmpty ? 'Calendar' : k.name,
               subtitle: k.sourceName.isEmpty ? 'Calendar' : 'Calendar · ${k.sourceName}',
               value: k.included,
@@ -673,7 +673,7 @@ class _IcloudSectionState extends State<IcloudSection> {
             child: form,
           )
         else ...[
-          MacFormRow(icon: MacIcons.cloud, title: IcloudSection.title),
+          MacFormRow(icon: MyDataIcon.cloud, title: IcloudSection.title),
           form,
         ],
         for (final a in accounts) _macRow(a, twice: twice),
@@ -775,7 +775,7 @@ class _IcloudSectionState extends State<IcloudSection> {
     return KeyedSubtree(
       key: ValueKey('account-${a.id}'),
       child: MacFormRow(
-        icon: MacIcons.cloud,
+        icon: MyDataIcon.cloud,
         title: a.email ?? 'iCloud account',
         subtitle: twice ? '$state\n${IcloudSection.notNeededOnMac}' : state,
         trailing: [
@@ -881,7 +881,7 @@ class _IcloudSectionState extends State<IcloudSection> {
     };
     return ActionRow(
       key: ValueKey('account-${a.id}'),
-      icon: Icons.cloud_outlined,
+      icon: MyDataIcon.cloud,
       title: a.email ?? 'iCloud account',
       subtitle: subtitle,
       badge: badge,

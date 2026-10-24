@@ -280,7 +280,7 @@ void main() {
               selectedId: 'a1',
               onOpen: (_) {},
               searchFocusNode: search,
-              searchTrailing: MyDataIconButton(icon: Icons.add_rounded, label: 'New contact', onPressed: () {}),
+              searchTrailing: MyDataIconButton(icon: MyDataIcon.add, label: 'New contact', onPressed: () {}),
             ),
           ));
       final field = tester.getRect(find.byType(MyDataSearchField));

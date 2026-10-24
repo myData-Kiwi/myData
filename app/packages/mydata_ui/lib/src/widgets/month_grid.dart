@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 
-import 'package:flutter/material.dart' show Icons;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -498,12 +497,12 @@ class _Header extends StatelessWidget {
         Button(label: MonthGrid.todayLabel, onPressed: onToday),
         SizedBox(width: MonthGrid.headerGap(context.look)),
         MyDataIconButton(
-            icon: rtl ? Icons.chevron_right_rounded : Icons.chevron_left_rounded,
+            icon: rtl ? MyDataIcon.chevronRight : MyDataIcon.chevronLeft,
             label: MonthGrid.previousMonthLabel,
             onPressed: onPrevious),
         SizedBox(width: MonthGrid.headerGap(context.look)),
         MyDataIconButton(
-            icon: rtl ? Icons.chevron_left_rounded : Icons.chevron_right_rounded,
+            icon: rtl ? MyDataIcon.chevronLeft : MyDataIcon.chevronRight,
             label: MonthGrid.nextMonthLabel,
             onPressed: onNext),
       ]),

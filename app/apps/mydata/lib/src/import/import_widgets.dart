@@ -225,7 +225,7 @@ class DisclosurePart extends StatelessWidget {
                     turns: open ? 0.25 : 0,
                     duration: MyDataMotion.reduced(context) ? Duration.zero : context.motion.fast,
                     curve: context.motion.standard,
-                    child: Icon(Icons.chevron_right_rounded, size: context.density.icon, color: c.inkMuted),
+                    child: Icon(context.icon(MyDataIcon.chevronRight), size: context.density.icon, color: c.inkMuted),
                   ),
                 ]),
               ),

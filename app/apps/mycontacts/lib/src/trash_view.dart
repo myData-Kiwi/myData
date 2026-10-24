@@ -389,7 +389,7 @@ class _TrashViewState extends State<TrashView> {
                     alignment: AlignmentDirectional.centerStart,
                     child: Button(
                       label: TrashView.title,
-                      icon: Icons.arrow_back_ios_new_rounded,
+                      icon: MyDataIcon.back,
                       variant: ButtonVariant.plain,
                       onPressed: () => Navigator.of(context).maybePop(),
                     ),

@@ -259,7 +259,7 @@ class _ImportPageState extends State<ImportPage> {
         for (final a in accounts)
           ActionRow(
             key: ValueKey('import-account-${a.id}'),
-            icon: Icons.cloud_outlined,
+            icon: MyDataIcon.cloud,
             title: ImportText.account(a.email),
             subtitle: c.readingAccount == a.id
                 ? ImportText.readingAccount(a.counts?.contacts ?? 0)
@@ -280,7 +280,7 @@ class _ImportPageState extends State<ImportPage> {
         if (macShown)
           ActionRow(
             key: const ValueKey('import-account-mac'),
-            icon: Icons.laptop_mac_outlined,
+            icon: MyDataIcon.thisMac,
             title: ThisMacText.title,
             subtitle: ImportText.macNotImportable,
             actions: [Button(label: ImportText.showHow, variant: ButtonVariant.plain, onPressed: _showHow)],

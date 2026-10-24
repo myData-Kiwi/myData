@@ -55,10 +55,10 @@ FloatingBar _tabs({int current = 0, ValueChanged<int>? onTab, bool icons = false
       current: current,
       items: [
         for (final (i, (label, icon)) in const [
-          ('Library', Icons.photo_library_outlined),
-          ('Albums', Icons.photo_album_outlined),
-          ('People', Icons.people_outline_rounded),
-          ('Places', Icons.place_outlined),
+          ('Library', MyDataIcon.photo),
+          ('Albums', MyDataIcon.photo),
+          ('People', MyDataIcon.people),
+          ('Places', MyDataIcon.map),
         ].indexed)
           FloatingBarItem(label: label, icon: icons ? icon : null, onPressed: () => onTab?.call(i)),
       ],
@@ -71,21 +71,21 @@ FloatingBar _fiveTabs({int current = 0, bool icons = true, bool forceSolid = fal
       forceSolid: forceSolid,
       items: [
         for (final (label, icon) in const [
-          ('Library', Icons.photo_library_outlined),
-          ('Albums', Icons.photo_album_outlined),
-          ('People', Icons.people_outline_rounded),
-          ('Places', Icons.place_outlined),
-          ('Search', Icons.search_rounded),
+          ('Library', MyDataIcon.photo),
+          ('Albums', MyDataIcon.photo),
+          ('People', MyDataIcon.people),
+          ('Places', MyDataIcon.map),
+          ('Search', MyDataIcon.search),
         ])
           FloatingBarItem(label: label, icon: icons ? icon : null, onPressed: () {}),
       ],
     );
 
 FloatingBar _toolbar({VoidCallback? onShare}) => FloatingBar(items: [
-      FloatingBarItem(label: 'Share', icon: Icons.ios_share_rounded, showLabel: false, onPressed: onShare ?? () {}),
-      FloatingBarItem(label: 'Add to album', icon: Icons.add_photo_alternate_outlined, showLabel: false, onPressed: () {}),
-      FloatingBarItem(label: 'Add to favourites', icon: Icons.favorite_border_rounded, showLabel: false, onPressed: () {}),
-      const FloatingBarItem(label: 'Delete', icon: Icons.delete_outline_rounded, showLabel: false),
+      FloatingBarItem(label: 'Share', icon: MyDataIcon.send, showLabel: false, onPressed: onShare ?? () {}),
+      FloatingBarItem(label: 'Add to album', icon: MyDataIcon.photo, showLabel: false, onPressed: () {}),
+      FloatingBarItem(label: 'Add to favourites', icon: MyDataIcon.check, showLabel: false, onPressed: () {}),
+      const FloatingBarItem(label: 'Delete', icon: MyDataIcon.trash, showLabel: false),
     ]);
 
 /// A stand-in for the assistant's input bar, built on the bare surface.
@@ -103,7 +103,7 @@ Widget _composer() => FloatingBarSurface(
             semanticLabel: 'Send',
             child: SizedBox.square(
               dimension: MyDataSize.controlHeight,
-              child: Icon(Icons.arrow_upward_rounded, size: MyDataSize.icon, color: context.colors.accent),
+              child: Icon(context.icon(MyDataIcon.send), size: MyDataSize.icon, color: context.colors.accent),
             ),
           ),
         ]),
@@ -144,7 +144,7 @@ void main() {
     expect(tapped, [2, 0]);
     await tester.tap(find.byTooltip('Share'));
     expect(shares, 1);
-    await tester.tap(find.byIcon(Icons.delete_outline_rounded), warnIfMissed: false);
+    await tester.tap(findIcon(MyDataIcon.trash), warnIfMissed: false);
     expect(shares, 1);
   });
 
@@ -283,7 +283,7 @@ void main() {
       if (icons) {
         // The icon sits above its label, both inside the control-height item.
         final item = tester.getRect(find.ancestor(of: find.text('Library'), matching: find.byType(Pressable)));
-        final icon = tester.getRect(find.byIcon(Icons.photo_library_outlined));
+        final icon = tester.getRect(findIcon(MyDataIcon.photo).first);
         final label = tester.getRect(find.text('Library'));
         expect(icon.bottom, lessThanOrEqualTo(label.top));
         expect(icon.top, greaterThanOrEqualTo(item.top));

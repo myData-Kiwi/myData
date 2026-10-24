@@ -16,7 +16,7 @@ Looks like the rest of your computer. myData disappears into the platform: the u
 | Type | `.AppleSystemUIFont` (SF Pro through CoreText), never bundled. Body 13/16, title 15/20 bold, pane title 22/28 bold, caption 11/14 | Roboto (the device font) | The platform font: Segoe UI Variable on Windows (to verify), the fontconfig default on Linux (to verify), bundled Figtree on the web |
 | Density | Mac: 28 pt controls, 24 pt list rows, 32 pt sidebar rows, 16 px icons | 48 dp targets | Kiwi's |
 | Focus | The system ring (`keyboardFocusIndicatorColor`, follows the accent), on every control, red ones included | Material | Kiwi's red ring and its `ink` rule |
-| Icons | Lucide (ISC), `MacIcons`, in place of SF Symbols (Apple's frameworks only) | Material Symbols (Apache 2.0) | Lucide |
+| Icons | Lucide (ISC), through `MyDataIcon`, in place of SF Symbols (Apple's frameworks only) | Material Symbols (Apache 2.0) | Lucide |
 | Motion | The platform's curves; reduced motion respected | Material motion | Kiwi's |
 
 ## Component styles on macOS (what the preview shows)

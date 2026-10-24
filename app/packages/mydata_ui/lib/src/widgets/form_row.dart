@@ -247,7 +247,7 @@ class FormErrorMessage extends StatelessWidget {
           label: message,
           child: ExcludeSemantics(
             child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Icon(Icons.error_outline_rounded, size: context.density.icon, color: c.danger),
+              Icon(context.icon(MyDataIcon.error), size: context.density.icon, color: c.danger),
               SizedBox(width: gap(context.look)),
               Expanded(child: Text(message, style: context.typeScale.caption.copyWith(color: c.danger))),
             ]),
@@ -353,7 +353,7 @@ class FormRemoveButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => MyDataIconButton(
-        icon: Icons.remove_circle_outline_rounded,
+        icon: MyDataIcon.remove,
         label: label,
         tone: IconButtonTone.danger,
         onPressed: onPressed,
@@ -558,7 +558,7 @@ class _RepeatableFormGroupState<K> extends State<RepeatableFormGroup<K>> with Ti
             label: widget.addLabel,
             onPressed: widget.onAdd,
             variant: ButtonVariant.plain,
-            icon: Icons.add_rounded,
+            icon: MyDataIcon.add,
             focusNode: _addFocus,
           ),
         ),
