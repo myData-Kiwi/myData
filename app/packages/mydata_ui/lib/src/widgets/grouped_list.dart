@@ -275,6 +275,8 @@ class GroupedRow extends StatelessWidget {
         button: !isSwitch,
         selected: selected ? true : null,
         toggled: switchValue,
+        // A selected row is filled: its ring is two-tone.
+        focusOnFill: selected,
         child: content,
       );
     } else if (selected) {

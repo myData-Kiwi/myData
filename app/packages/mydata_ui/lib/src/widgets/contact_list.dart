@@ -1412,7 +1412,12 @@ class _ContactRowState extends State<_ContactRow> {
             child: IgnorePointer(
               child: Padding(
                 padding: EdgeInsets.all(inset),
-                child: FocusRing(visible: true, borderRadius: _shrink(shape, inset), child: const SizedBox.expand()),
+                // Inside a selected row the ring is on its fill: two-tone.
+                child: FocusRing(
+                    visible: true,
+                    onFill: widget.selected,
+                    borderRadius: _shrink(shape, inset),
+                    child: const SizedBox.expand()),
               ),
             ),
           ),

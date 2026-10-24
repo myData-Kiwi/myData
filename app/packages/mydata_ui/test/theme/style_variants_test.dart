@@ -139,8 +139,8 @@ Future<void> pumpSpecimen(WidgetTester tester, ThemeFile theme, Brightness brigh
 }
 
 /// A focused control on a filled ground (a solid selected row): its ring touches the fill on both sides, so
-/// it is two-tone, with a `surface` keyline on its inner edge (WCAG C40); beside it the same control on the
-/// plain ground. One golden per corner style.
+/// it is two-tone, a `surface` keyline filling the gap between control and ring (WCAG C40); beside it the
+/// same control on the plain ground, focused in a second golden. One pair per corner style.
 class TwoToneSpecimen extends StatelessWidget {
   const TwoToneSpecimen({super.key, required this.onFill, required this.plain});
   final FocusNode onFill, plain;
@@ -203,6 +203,9 @@ void main() {
         onFill.requestFocus();
         await tester.pumpAndSettle();
         await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/focus.two-tone-$corners.${b.name}.png'));
+        plain.requestFocus();
+        await tester.pumpAndSettle();
+        await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/focus.plain-$corners.${b.name}.png'));
       });
     }
   }

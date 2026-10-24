@@ -257,8 +257,9 @@ class PressedScope extends InheritedWidget {
 ///
 /// It follows the control's shape in the look's corner style ([shape]; round when null, as in the Mac
 /// frame), drawn as a stroke of the shape grown outward, never a clip, so a cut or continuous corner keeps
-/// its ring (ARCHITECTURE.md 3.2). With a [keyline], a 1px line in that colour runs along the ring's inner
-/// edge: the two-tone ring for a ring that sits on a fill (WCAG technique C40, ARCHITECTURE.md 2.3).
+/// its ring (ARCHITECTURE.md 3.2). With a [keyline], the gap between the control and the ring is filled in
+/// that colour, so control, keyline and ring meet with no line of the ground between them: the two-tone
+/// ring for a ring that sits on a fill (WCAG technique C40, ARCHITECTURE.md 2.3).
 class _FocusRingPainter extends CustomPainter {
   _FocusRingPainter(this.color, this.radius, {this.width = 2, this.offset = 2, this.shape, this.keyline});
   final Color color;
@@ -302,15 +303,17 @@ class _FocusRingPainter extends CustomPainter {
           paint);
       return;
     }
-    canvas.drawPath(_ring(size, offset + width / 2), paint);
     if (keyline != null) {
+      // The whole gap, from the control's edge to the ring's inner edge, overlapping both by a quarter pixel
+      // so no ground shows through at the seams.
       canvas.drawPath(
-          _ring(size, offset - 0.5),
+          _ring(size, offset / 2),
           Paint()
             ..color = keyline!
             ..style = PaintingStyle.stroke
-            ..strokeWidth = 1);
+            ..strokeWidth = offset + 0.5);
     }
+    canvas.drawPath(_ring(size, offset + width / 2), paint);
   }
 
   @override
@@ -341,8 +344,9 @@ class FocusRing extends StatelessWidget {
   /// The thing is in its red state (a field in error): the ring is `ink` ([colourOf]).
   final bool danger;
 
-  /// The ring sits on a filled shape (a solid or inverse selected row): it gets a 1px `surface` keyline on
-  /// its inner edge, so it reads at 3:1 against both sides whatever the fill (WCAG C40).
+  /// The ring sits on a filled shape (a selected row, a control over its drop shadow): the gap between the
+  /// control and the ring is filled with a `surface` keyline, so it reads at 3:1 against both sides
+  /// whatever the fill (WCAG C40).
   final bool onFill;
 
   /// The branded rule for a keyboard focus ring's colour (design/README.md "Focus and danger"): `focus` (red)
