@@ -14,17 +14,43 @@ import 'package:mydata_ui/src/theme/theme_file.dart';
 import 'cmap.dart';
 import 'designed_themes.dart';
 
-/// The font files an app built with this package carries: every font and icon font in assets/fonts (the
-/// pubspec's fonts and the catalogue's on-demand fonts), and any font the app adds itself.
-int fontBytes(Iterable<Directory> dirs) {
-  var total = 0;
-  for (final d in dirs.where((d) => d.existsSync())) {
-    for (final f in d.listSync(recursive: true).whereType<File>()) {
-      if (RegExp(r'\.(ttf|otf|woff2?)$').hasMatch(f.path)) total += f.lengthSync();
+/// The font files a package's pubspec puts in an app: each `fonts:` asset, and each `assets:` entry that is
+/// a font file or a folder (its font files), relative to [package]. Files in the folder but not declared are
+/// not counted: they never reach the app.
+List<File> declaredFonts(String package) {
+  final pubspec = File('$package/pubspec.yaml').readAsLinesSync();
+  final out = <File>[];
+  final font = RegExp(r'\.(ttf|otf)$');
+  for (final line in pubspec) {
+    final asset = RegExp(r'^\s+- asset: (\S+)').firstMatch(line)?.group(1);
+    final listed = RegExp(r'^\s+- (assets/\S+)$').firstMatch(line)?.group(1);
+    if (asset != null) out.add(File('$package/$asset'));
+    if (listed == null) continue;
+    if (listed.endsWith('/')) {
+      out.addAll(Directory('$package/$listed').listSync().whereType<File>().where((f) => font.hasMatch(f.path)));
+    } else if (font.hasMatch(listed)) {
+      out.add(File('$package/$listed'));
     }
   }
-  return total;
+  return out;
 }
+
+/// The framework's fonts an app carries: Material Icons (every app: mydata_ui sets `uses-material-design`),
+/// and Cupertino Icons when the app depends on `cupertino_icons`. Neither is tree-shaken in debug and
+/// profile builds.
+List<File> frameworkFonts(String app) {
+  // flutter_tester is in <flutter>/bin/cache/artifacts/engine/<platform>/.
+  final cache = File(Platform.resolvedExecutable).parent.parent.parent;
+  final out = [File('${cache.path}/material_fonts/MaterialIcons-Regular.otf')];
+  if (File('$app/pubspec.yaml').readAsStringSync().contains(RegExp(r'^\s+cupertino_icons:', multiLine: true))) {
+    final config = File('../../.dart_tool/package_config.json').readAsStringSync();
+    final root = RegExp(r'"name": "cupertino_icons",\s*"rootUri": "([^"]+)"').firstMatch(config)!.group(1)!;
+    out.add(File('${Uri.parse(root).toFilePath()}/assets/CupertinoIcons.ttf'));
+  }
+  return out;
+}
+
+int bytesOf(Iterable<File> files) => files.fold(0, (n, f) => n + f.lengthSync());
 
 /// A font's variation axes from its `fvar` table: tag to (min, default, max).
 Map<String, (double, double, double)> fvarAxes(Uint8List font) {
@@ -176,18 +202,29 @@ void main() {
     }
   });
 
-  test('each app stays within the font budget', () {
-    final shared = fontBytes([Directory('assets')]);
-    final apps = Directory('../../apps').listSync().whereType<Directory>();
+  test('each app stays within the font budget: every font it carries, the framework\'s included', () {
+    final shared = bytesOf(declaredFonts('.'));
+    final apps = Directory('../../apps').listSync().whereType<Directory>().toList();
     expect(apps, isNotEmpty);
     for (final app in apps) {
-      final total = shared + fontBytes([Directory('${app.path}/assets')]);
+      for (final f in frameworkFonts(app.path)) {
+        expect(f.existsSync(), isTrue, reason: f.path);
+      }
+      final total = shared + bytesOf(declaredFonts(app.path)) + bytesOf(frameworkFonts(app.path));
       expect(total, lessThanOrEqualTo(fontBudgetBytes), reason: '${app.path}: $total bytes of fonts');
+      // Recorded for the decision's estimate (ARCHITECTURE.md 3.5; tool/measure_fonts.sh measures the bundle).
+      // ignore: avoid_print
+      print('${app.uri.pathSegments[app.uri.pathSegments.length - 2]}: ${(total / 1024 / 1024).toStringAsFixed(2)} MB '
+          'of ${fontBudgetBytes ~/ 1024 ~/ 1024} MB of fonts');
     }
-    // Recorded for the decision's estimate (ARCHITECTURE.md 3.5).
-    // ignore: avoid_print
-    print('fonts bundled in every app: ${(shared / 1024 / 1024).toStringAsFixed(2)} MB of '
-        '${fontBudgetBytes ~/ 1024 ~/ 1024} MB');
+  });
+
+  test('every font file in assets/fonts is declared: none is carried by mistake, none left behind', () {
+    final declared = declaredFonts('.').map((f) => f.uri.normalizePath().toFilePath()).toSet();
+    for (final f in Directory('assets/fonts').listSync(recursive: true).whereType<File>()) {
+      if (!RegExp(r'\.(ttf|otf)$').hasMatch(f.path)) continue;
+      expect(declared, contains(File(f.path).uri.normalizePath().toFilePath()), reason: '${f.path} is not declared');
+    }
   });
 
   testWidgets('a variable font is drawn at the weight a theme names, its italic from its own file',
