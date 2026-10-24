@@ -112,6 +112,9 @@ void main() {
   group('screenshots', () {
     macScreenMatrix('mac_alert', (t) => macApp(t, const _Opener(_purgeAlert)), size: _size,
         before: (tester) async {
+      // The alert shows the app's icon, an image decoded off the test's clock: decode it first, or a busy
+      // machine takes the screenshot before it is drawn.
+      await tester.runAsync(() => precacheImage(MyDataAppIcons.mycontacts, tester.element(find.text('Open'))));
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
     });
