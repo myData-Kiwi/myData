@@ -101,18 +101,23 @@ Future<void> pumpVariant(WidgetTester tester, ThemeFile theme, Brightness bright
   await tester.pumpAndSettle();
 }
 
+/// A phone's width and height, for the variant goldens' phone pass.
+const phoneSize = Size(360, 740);
+
 /// One golden per value of [key] in light and dark, `goldens/variant.<key>-<value>[-<name>].<mode>.png`, each
-/// [build] pumped in Kiwi with that value (and [also]); every target meets the desktop floor, and nothing
-/// overflows.
+/// [build] pumped in Kiwi with that value (and [also]); every target meets [minTarget] (the desktop floor),
+/// and nothing overflows. [modes] narrows the modes (a phone pass draws light only).
 void variantGoldens(String key, Widget Function(FocusNode focus) build,
     {Size size = const Size(560, 200),
     bool focused = true,
     List<String>? values,
     String? name,
     void Function(Map<String, dynamic> json)? also,
-    Future<void> Function(WidgetTester tester)? before}) {
+    Future<void> Function(WidgetTester tester)? before,
+    List<Brightness> modes = Brightness.values,
+    double minTarget = 24}) {
   for (final value in values ?? componentValues[key]!) {
-    for (final b in Brightness.values) {
+    for (final b in modes) {
       final file = '$key-$value${name == null ? '' : '-$name'}';
       testWidgets('variant golden: $file, ${b.name}', (tester) async {
         debugDisableShadows = false;
@@ -124,7 +129,7 @@ void variantGoldens(String key, Widget Function(FocusNode focus) build,
               size: size, focus: focused ? focus : null);
           await before?.call(tester);
           expect(tester.takeException(), isNull);
-          await expectLater(tester, meetsGuideline(const MinimumTapTargetGuideline(size: Size(24, 24), link: '')));
+          await expectLater(tester, meetsGuideline(MinimumTapTargetGuideline(size: Size(minTarget, minTarget), link: '')));
           await expectLater(
               find.byType(MaterialApp), matchesGoldenFile('goldens/variant.$file.${b.name}.png'));
         } finally {

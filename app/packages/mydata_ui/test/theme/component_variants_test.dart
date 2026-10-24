@@ -229,6 +229,58 @@ class MonthSpecimen extends StatelessWidget {
       );
 }
 
+/// The approval card, as myAssistant shows it in a phone's column.
+class PhoneApprovalSpecimen extends StatelessWidget {
+  const PhoneApprovalSpecimen({super.key});
+
+  @override
+  Widget build(BuildContext context) => const Align(
+        alignment: Alignment.topCenter,
+        child: ApprovalCard(
+          question: 'Send this email?',
+          arguments: [('To', 'ava@example.org'), ('Subject', 'Train on Friday')],
+          approveLabel: 'Approve and send',
+          decidedLabel: 'Sent',
+          onApprove: noop,
+          onEdit: noop,
+          onReject: noop,
+        ),
+      );
+}
+
+/// A contact list over a grouped list, in one column as a phone shows them.
+class PhoneListSpecimen extends StatelessWidget {
+  const PhoneListSpecimen({super.key});
+
+  @override
+  Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        SizedBox(
+            height: 380,
+            child: ContactList(contacts: SelectionSpecimen.people, selectedId: null, onOpen: (_) {}, showSearch: false)),
+        SizedBox(height: context.space(4)),
+        GroupedList(heading: 'Phone', rows: const [
+          GroupedRow(icon: MyDataIcon.call, title: 'Mobile', subtitle: '+44 7700 900123'),
+          GroupedRow(title: 'Open in myContacts', trailing: GroupedChevron(), onPressed: noop),
+        ]),
+      ]);
+}
+
+/// Tabs and segmented controls too wide for a phone's row.
+class PhoneTabsSpecimen extends StatelessWidget {
+  const PhoneTabsSpecimen({super.key});
+
+  @override
+  Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        MyDataTabs(
+            tabs: const ['General', 'Accounts', 'Privacy', 'Devices', 'Advanced'], current: 3, onChanged: (_) {}),
+        SizedBox(height: context.space(4)),
+        SegmentedControl<int>(segments: const [(0, 'Day'), (1, 'Week'), (2, 'Month')], selected: 2, onChanged: (_) {}),
+        SizedBox(height: context.space(4)),
+        SegmentedControl<int>(
+            segments: const [(0, 'Light'), (1, 'Dark'), (2, 'Match system')], selected: 0, onChanged: (_) {}),
+      ]);
+}
+
 void main() {
   group('buttons', () {
     for (final key in ['button.primary', 'button.secondary', 'button.shape']) {
@@ -770,6 +822,22 @@ void main() {
         });
       }
     }
+  });
+
+  // Every value of the variants that change most at a phone's width, light only: tabs and buttons wrapping,
+  // a brutal drop in a wrapping row, the approval card, lists in a column, the compact month, avatars.
+  group('at phone width', () {
+    void phone(String key, Widget Function(FocusNode focus) build, {bool focused = false, String? name}) =>
+        variantGoldens(key, build,
+            size: phoneSize, focused: focused, modes: const [Brightness.light], minTarget: 44, name: name == null ? 'phone' : '$name-phone');
+    for (final key in ['button.primary', 'button.secondary', 'button.shape']) {
+      phone(key, (focus) => ButtonSpecimen(focus: focus), focused: true);
+    }
+    phone('button.primary', (_) => const PhoneApprovalSpecimen(), name: 'approval');
+    phone('list', (_) => const PhoneListSpecimen());
+    phone('tabs', (_) => const PhoneTabsSpecimen());
+    phone('month', (focus) => MonthSpecimen(focus: focus), focused: true);
+    phone('avatar', (_) => const AvatarSpecimen());
   });
 
   // Pairs that meet in one widget (ARCHITECTURE.md 5, "pairwise golden sets for risky pairs").
