@@ -213,4 +213,19 @@ void main() {
       });
     }
   }
+
+  // Two meanings never share a glyph, so icons shown side by side always tell things apart (Pixelarticons
+  // drew the search field's clear and a sheet's close as one glyph).
+  test('no two ids share a glyph in any set and weight', () {
+    for (final weights in iconTables.entries) {
+      for (final table in weights.value.entries) {
+        final seen = <int, MyDataIcon>{};
+        for (final e in table.value.entries) {
+          final other = seen[e.value.codePoint];
+          expect(other, isNull, reason: '${weights.key} ${table.key}: ${e.key.name} draws ${other?.name}\'s glyph');
+          seen[e.value.codePoint] = e.key;
+        }
+      }
+    }
+  });
 }

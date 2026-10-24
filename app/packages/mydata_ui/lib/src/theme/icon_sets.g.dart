@@ -471,7 +471,7 @@ const pixelarticonsIcons = <MyDataIcon, IconData>{
   MyDataIcon.personAdd: IconData(0xeddb, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // user-plus
   MyDataIcon.contact: IconData(0xeb45, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // contact
   MyDataIcon.calendar: IconData(0xeaed, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // calendar
-  MyDataIcon.calendarMonth: IconData(0xeaec, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // calendar-weeks
+  MyDataIcon.calendarMonth: IconData(0xeae5, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // calendar-2
   MyDataIcon.calendarCheck: IconData(0xeaea, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // calendar-text
   MyDataIcon.clock: IconData(0xeb2f, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // clock
   MyDataIcon.photo: IconData(0xebfb, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // image
@@ -496,7 +496,7 @@ const pixelarticonsIcons = <MyDataIcon, IconData>{
   MyDataIcon.edit: IconData(0xecc5, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // pencil
   MyDataIcon.copy: IconData(0xeb49, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // copy
   MyDataIcon.search: IconData(0xed18, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // search
-  MyDataIcon.clear: IconData(0xeb30, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // close
+  MyDataIcon.clear: IconData(0xeb6d, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // delete
   MyDataIcon.close: IconData(0xeb30, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // close
   MyDataIcon.more: IconData(0xeca3, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // more-horizontal
   MyDataIcon.send: IconData(0xea7a, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // arrow-up
@@ -504,7 +504,7 @@ const pixelarticonsIcons = <MyDataIcon, IconData>{
   MyDataIcon.fileCheck: IconData(0xeb99, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // file-text
   MyDataIcon.report: IconData(0xeba0, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // flag
   MyDataIcon.download: IconData(0xeb7f, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // download
-  MyDataIcon.message: IconData(0xec93, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // message
+  MyDataIcon.message: IconData(0xeb3f, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // comment
   MyDataIcon.call: IconData(0xeccc, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // phone
   MyDataIcon.video: IconData(0xede8, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // video
   MyDataIcon.mail: IconData(0xec77, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // mail

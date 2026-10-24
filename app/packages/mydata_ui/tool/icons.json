@@ -53,7 +53,7 @@
       "tabler": "calendar-month",
       "phosphor": "calendar-dots",
       "material": "calendar_month",
-      "pixelarticons": "calendar-weeks"
+      "pixelarticons": "calendar-2"
     },
     {
       "id": "calendarCheck",
@@ -278,7 +278,7 @@
       "tabler": "circle-x",
       "phosphor": "x-circle",
       "material": "cancel",
-      "pixelarticons": "close"
+      "pixelarticons": "delete"
     },
     {
       "id": "close",
@@ -350,7 +350,7 @@
       "tabler": "message-circle",
       "phosphor": "chat-circle",
       "material": "chat_bubble",
-      "pixelarticons": "message"
+      "pixelarticons": "comment"
     },
     {
       "id": "call",
