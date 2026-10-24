@@ -263,7 +263,16 @@ class ThemeController extends ChangeNotifier {
       // Keep drawing what was read last; the next poll tries again.
       return;
     }
+    // The theme's fonts first, so its text never shows in a fallback font and reflows (ARCHITECTURE.md 3.6).
+    await _fontsFor(ThemeSettings.fromJson(v[ThemeSettings.key])?.choiceFor(appId));
+    if (_disposed || generation != _generation) return;
     _apply(v);
+  }
+
+  /// Loads the fonts [choice]'s theme needs (none for a theme this build does not have).
+  static Future<void> _fontsFor(ThemeChoice? choice) async {
+    final theme = ThemeLibrary.byId(ThemeLibrary.normalise(choice).theme);
+    if (theme != null && !ThemeFonts.readyFor(theme)) await ThemeFonts.ensureFor(theme);
   }
 
   /// The everywhere choice a device that has none starts with, or null while it cannot be known yet.
@@ -323,6 +332,7 @@ class ThemeController extends ChangeNotifier {
       before = ThemeSettings.fromJson(r) ?? const ThemeSettings();
       return {...now, ThemeSettings.key: change(before).writtenOver(r, clearApps: clearApps)};
     });
+    await _fontsFor(ThemeSettings.fromJson(v[ThemeSettings.key])?.choiceFor(appId));
     if (!_disposed) {
       _apply(v);
       notifyListeners();
@@ -330,18 +340,35 @@ class ThemeController extends ChangeNotifier {
     return (raw, before);
   }
 
-  /// Draws [choice] without storing it (the gallery's live preview); null ends the preview.
+  /// Draws [choice] without storing it (the gallery's live preview); null ends the preview. A theme whose
+  /// fonts are not loaded yet is drawn once they are, unless another preview came first.
   void preview(ThemeChoice? choice) {
-    if (_disposed || choice == _preview) return;
+    if (_disposed) return;
+    _previewWanted = choice;
+    if (choice == _preview) return;
+    final theme = choice == null ? null : ThemeLibrary.byId(ThemeLibrary.normalise(choice).theme);
+    if (theme != null && !ThemeFonts.readyFor(theme)) {
+      unawaited(ThemeFonts.ensureFor(theme).then((_) {
+        if (!_disposed && _previewWanted == choice && _preview != choice) {
+          _preview = choice;
+          notifyListeners();
+        }
+      }));
+      return;
+    }
     _preview = choice;
     notifyListeners();
   }
+
+  /// The last preview asked for, which a font load still running may be waiting to draw.
+  ThemeChoice? _previewWanted;
 
   /// Use in this app (or in [app]): stores [choice] as that app's own, and ends the preview (the gallery
   /// closes). Changing only the palette is the same write; a palette is never written for a theme without
   /// palettes (System).
   Future<void> use(ThemeChoice choice, {String? app}) async {
     await _change((s) => s.copyWith(apps: {...s.apps, app ?? appId: choice}));
+    _previewWanted = null;
     if (_disposed || _preview == null) return;
     _preview = null;
     notifyListeners();

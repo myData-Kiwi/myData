@@ -21,9 +21,11 @@ const _fonts = {
   MyDataFontFamily.mono: ['JetBrainsMono-400.ttf'],
 };
 
-/// Loads the bundled fonts under the names Flutter gives package fonts, and Material Icons when the package
-/// under test bundles them.
+/// Loads the bundled fonts under the names Flutter gives package fonts (the core three, and every theme font
+/// the catalogue bundles, as the apps load them on demand), and Material Icons when the package under test
+/// bundles them.
 Future<void> loadMyDataFonts() async {
+  await ThemeFonts.ensureAll();
   for (final e in _fonts.entries) {
     final loader = FontLoader('packages/${MyDataFontFamily.package}/${e.key}');
     for (final file in e.value) {

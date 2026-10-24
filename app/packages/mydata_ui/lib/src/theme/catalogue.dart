@@ -4,7 +4,14 @@ library;
 
 /// A font a theme may name, by its catalogue id.
 class CatalogueFont {
-  const CatalogueFont(this.id, this.name, {this.family, this.displayOnly = false});
+  const CatalogueFont(
+    this.id,
+    this.name, {
+    this.family,
+    this.core = false,
+    this.italic = false,
+    this.displayOnly = false,
+  });
 
   /// The id a theme file uses (`plus-jakarta-sans`).
   final String id;
@@ -12,35 +19,60 @@ class CatalogueFont {
   /// The font's name as people write it.
   final String name;
 
-  /// The family registered in this package's pubspec, when the font is bundled today; null until phase 3
-  /// bundles it (a stack then falls through to its next entry).
+  /// The family it is drawn under, in this package (`packages/mydata_ui/<family>`), when this build bundles
+  /// it; null for a font a later phase bundles (a stack then falls through to its next entry).
   final String? family;
+
+  /// One of the three core fonts, declared in the pubspec as static weights: registered when the app starts.
+  /// Every other bundled font is a variable Latin subset in assets/fonts/catalogue/ (`<id>.ttf`, and
+  /// `<id>-italic.ttf` when [italic]), loaded when a theme that needs it is chosen or previewed
+  /// (`ThemeFonts.ensure` in fonts.dart) and drawn at any weight through its `wght` axis.
+  final bool core;
+
+  /// It has an italic of its own; otherwise an italic is slanted by the text engine.
+  final bool italic;
 
   /// Display-only fonts are allowed only in `display` and in roles of 16 px or more (Research B).
   final bool displayOnly;
 
   bool get bundled => family != null;
+
+  /// A variable font: weights are drawn through its `wght` axis.
+  bool get variable => bundled && !core;
+
+  /// Its files in this package's assets, for a font loaded on demand.
+  List<String> get assets => variable
+      ? ['assets/fonts/catalogue/$id.ttf', if (italic) 'assets/fonts/catalogue/$id-italic.ttf']
+      : const [];
+
+  /// Its licence text in assets/fonts (every catalogue font is SIL OFL 1.1, with no Reserved Font Name).
+  String get licence => switch (id) {
+        'plus-jakarta-sans' => 'OFL-plusjakartasans.txt',
+        'jetbrains-mono' => 'OFL-jetbrainsmono.txt',
+        _ => 'OFL-$id.txt',
+      };
 }
 
 /// The package that holds the bundled fonts.
 const fontPackage = 'mydata_ui';
 
-/// ARCHITECTURE.md 1.5. All are OFL fonts with no Reserved Font Name. Phase 1 bundles the three the apps
-/// draw today; the rest are bundled as Latin subsets with the themes that use them (phase 3).
+/// ARCHITECTURE.md 1.5. All are OFL fonts with no Reserved Font Name. Three are core fonts, as before phase 3;
+/// phase 3 bundles the fonts the six built-ins name, as Latin subsets cut by tool/subset_fonts.sh; the fonts
+/// of the thirteen new themes come with them in phase 4.
 const fontCatalogue = <String, CatalogueFont>{
-  'figtree': CatalogueFont('figtree', 'Figtree', family: 'Figtree'),
-  'plus-jakarta-sans': CatalogueFont('plus-jakarta-sans', 'Plus Jakarta Sans', family: 'PlusJakartaSans'),
-  'jetbrains-mono': CatalogueFont('jetbrains-mono', 'JetBrains Mono', family: 'JetBrainsMono'),
-  'inter': CatalogueFont('inter', 'Inter'),
+  'figtree': CatalogueFont('figtree', 'Figtree', family: 'Figtree', core: true),
+  'plus-jakarta-sans': CatalogueFont('plus-jakarta-sans', 'Plus Jakarta Sans', family: 'PlusJakartaSans', core: true),
+  'jetbrains-mono': CatalogueFont('jetbrains-mono', 'JetBrains Mono', family: 'JetBrainsMono', core: true),
+  'inter': CatalogueFont('inter', 'Inter', family: 'Inter'),
   'inter-tight': CatalogueFont('inter-tight', 'Inter Tight'),
-  'sora': CatalogueFont('sora', 'Sora'),
-  'manrope': CatalogueFont('manrope', 'Manrope'),
-  'fraunces': CatalogueFont('fraunces', 'Fraunces'),
-  'instrument-sans': CatalogueFont('instrument-sans', 'Instrument Sans'),
+  'sora': CatalogueFont('sora', 'Sora', family: 'Sora'),
+  'manrope': CatalogueFont('manrope', 'Manrope', family: 'Manrope'),
+  'fraunces': CatalogueFont('fraunces', 'Fraunces', family: 'Fraunces'),
+  'instrument-sans': CatalogueFont('instrument-sans', 'Instrument Sans', family: 'InstrumentSans', italic: true),
   'instrument-serif': CatalogueFont('instrument-serif', 'Instrument Serif'),
-  'fredoka': CatalogueFont('fredoka', 'Fredoka', displayOnly: true),
-  'nunito': CatalogueFont('nunito', 'Nunito'),
-  'literata': CatalogueFont('literata', 'Literata'),
+  'fredoka': CatalogueFont('fredoka', 'Fredoka', family: 'Fredoka', displayOnly: true),
+  'nunito': CatalogueFont('nunito', 'Nunito', family: 'Nunito'),
+  'literata': CatalogueFont('literata', 'Literata', family: 'Literata', italic: true),
   'hanken-grotesk': CatalogueFont('hanken-grotesk', 'Hanken Grotesk'),
   'newsreader': CatalogueFont('newsreader', 'Newsreader'),
   'kalam': CatalogueFont('kalam', 'Kalam', displayOnly: true),
@@ -58,9 +90,24 @@ const fontCatalogue = <String, CatalogueFont>{
   'zen-kaku-gothic-new': CatalogueFont('zen-kaku-gothic-new', 'Zen Kaku Gothic New'),
 };
 
+/// The most the fonts and icon fonts bundled in one app may weigh (decided 2026-10-23: Latin subsets, a cap
+/// of 6 MB per app; test/theme/fonts_test.dart).
+const fontBudgetBytes = 6 * 1024 * 1024;
+
 /// Generic families: the platform's own fonts, reached through the OS, never bundled (SF Pro, New York and
 /// Segoe never are).
 const genericFonts = {'system', 'system-mono', 'sans', 'serif', 'mono'};
+
+/// The family a generic monospace (`mono`, `system-mono`) is drawn in, by platform (`TargetPlatform.name`);
+/// the other generics are the platform's default font. Only macOS's is verified (2026-10-23).
+const genericMonoFamilies = {
+  'macOS': 'Menlo',
+  'iOS': 'Menlo',
+  'windows': 'Consolas',
+  'linux': 'monospace',
+  'android': 'monospace',
+  'fuchsia': 'monospace',
+};
 
 /// The icon sets a theme may name (theme.schema.json). Phase 1 draws Lucide only; the others are cut as
 /// subset fonts in phase 3, and until then a theme naming one is drawn in Lucide, with a notice.

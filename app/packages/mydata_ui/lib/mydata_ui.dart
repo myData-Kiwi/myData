@@ -22,6 +22,7 @@ export 'src/mac/mac_toolbar.dart';
 export 'src/mac/mac_toolbar_group.dart';
 export 'src/mac/mac_window.dart';
 export 'src/theme/choice.dart';
+export 'src/theme/fonts.dart';
 export 'src/theme/library.dart';
 export 'src/theme/look.dart';
 export 'src/theme/motion.dart';

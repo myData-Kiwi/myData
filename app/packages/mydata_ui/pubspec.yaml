@@ -33,11 +33,22 @@ flutter:
     - assets/themes/
     # The four apps' icons, for an alert's icon (MyDataAppIcons); rendered by design/assets/Logos/app-icons.
     - assets/app_icons/
+    # The theme fonts loaded on demand (lib/src/theme/fonts.dart): Latin subsets cut by tool/subset_fonts.sh.
+    - assets/fonts/catalogue/
+    # Every bundled font's and icon set's licence (lib/src/licenses.dart).
     - assets/fonts/OFL-plusjakartasans.txt
     - assets/fonts/OFL-figtree.txt
     - assets/fonts/OFL-jetbrainsmono.txt
+    - assets/fonts/OFL-inter.txt
+    - assets/fonts/OFL-sora.txt
+    - assets/fonts/OFL-manrope.txt
+    - assets/fonts/OFL-fraunces.txt
+    - assets/fonts/OFL-instrument-sans.txt
+    - assets/fonts/OFL-fredoka.txt
+    - assets/fonts/OFL-nunito.txt
+    - assets/fonts/OFL-literata.txt
     - assets/fonts/ISC-lucide.txt
-  # Only the weights the design uses (design/README.md, "Type"). Licences: assets/fonts/OFL-*.txt.
+  # The core fonts, in the weights Kiwi uses (design/README.md, "Type"). Licences: assets/fonts/OFL-*.txt.
   fonts:
     - family: PlusJakartaSans
       fonts:
