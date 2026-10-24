@@ -7,7 +7,6 @@ import 'package:flutter/widgets.dart';
 import '../generated/tokens.g.dart';
 import '../theme/motion.dart';
 import '../theme/theme.dart';
-import 'pressable.dart' show MyDataRadii;
 
 /// The two sizes of [Avatar] (design/components/Avatar).
 enum AvatarSize {
@@ -132,8 +131,8 @@ class Avatar extends StatelessWidget {
       AvatarStyle.rounded => (look.shape, BorderRadius.circular(size == AvatarSize.small ? look.shape.sm : look.shape.lg)),
       AvatarStyle.square => (look.shape.withCorners(CornerStyle.square), BorderRadius.zero),
       AvatarStyle.shape when geometric == AvatarShape.square => (look.shape.withCorners(CornerStyle.square), BorderRadius.zero),
-      // A circle: round whatever the theme's corners.
-      _ => (look.shape.withCorners(CornerStyle.round), MyDataRadii.pill(look)),
+      // A circle: round whatever the theme's corners or its controls' radius.
+      _ => (look.shape.withCorners(CornerStyle.round), const BorderRadius.all(Radius.circular(MyDataShape.capsule))),
     };
     final Widget body;
     if (geometric == AvatarShape.triangle) {
