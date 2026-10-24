@@ -568,9 +568,36 @@ class _EventLine extends StatelessWidget {
     final style = context.macLook.caption.copyWith(
       color: title.isEmpty || muted ? mac.secondaryLabel : mac.label,
     );
-    final text = Text(title.isEmpty ? MonthGrid.noTitle : title, maxLines: 1, softWrap: false,
+    Widget text = Text(title.isEmpty ? MonthGrid.noTitle : title, maxLines: 1, softWrap: false,
         overflow: TextOverflow.ellipsis, style: style);
     final colour = event.colour;
+    // A theme that draws calendars as patterns (E-ink): no colour at all; each event carries its calendar's
+    // mark and initial, as the shared month does (DataPattern), and an all-day chip is a plain grey.
+    final pattern = !context.isSystemLook && context.variants.dataColours == DataColourStyle.pattern;
+    if (pattern) {
+      final initial = DataPattern.initialOf(event.calendarName);
+      text = Row(children: [
+        if (initial.isNotEmpty) ...[
+          Text(initial, maxLines: 1, softWrap: false, style: style.copyWith(fontWeight: FontWeight.w700)),
+          SizedBox(width: context.space(1)),
+        ],
+        Expanded(child: text),
+      ]);
+    }
+    if (event.allDay && pattern) {
+      return Container(
+        height: height,
+        padding: EdgeInsets.symmetric(horizontal: context.space(1)),
+        alignment: AlignmentDirectional.centerStart,
+        decoration: BoxDecoration(
+            color: Color.alphaBlend(mac.quaternaryLabel, ground), borderRadius: MacMonthGrid.chipRadius),
+        child: Row(children: [
+          DataBar(colour: colour, groundColour: ground, height: height - context.space(1)),
+          SizedBox(width: context.space(1)),
+          Expanded(child: text),
+        ]),
+      );
+    }
     if (event.allDay) {
       final tint = colour == null
           ? mac.quaternaryLabel
@@ -590,18 +617,21 @@ class _EventLine extends StatelessWidget {
         padding: EdgeInsets.symmetric(horizontal: context.space(1)),
         child: Row(
           children: [
-            Container(
-              width: MacMonthGrid.dotSize,
-              height: MacMonthGrid.dotSize,
-              decoration: BoxDecoration(
-                color: dot,
-                shape: BoxShape.circle,
-                // A hairline, so a dark dot on a dark cell reads as filled, not as a ring.
-                border: dataColourNeedsEdge(dot, ground)
-                    ? Border.all(color: mac.tertiaryLabel, width: MyDataMacSize.hairline)
-                    : null,
+            if (pattern)
+              DataDot(colour: colour, groundColour: ground)
+            else
+              Container(
+                width: MacMonthGrid.dotSize,
+                height: MacMonthGrid.dotSize,
+                decoration: BoxDecoration(
+                  color: dot,
+                  shape: BoxShape.circle,
+                  // A hairline, so a dark dot on a dark cell reads as filled, not as a ring.
+                  border: dataColourNeedsEdge(dot, ground)
+                      ? Border.all(color: mac.tertiaryLabel, width: MyDataMacSize.hairline)
+                      : null,
+                ),
               ),
-            ),
             SizedBox(width: context.space(1)),
             Expanded(child: text),
             if (time && event.time != null) ...[

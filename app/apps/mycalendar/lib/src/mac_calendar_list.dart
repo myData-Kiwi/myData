@@ -151,6 +151,12 @@ class _MacCalendarRowState extends State<MacCalendarRow> {
         children: [
           MacColourCheckbox(colour: widget.colour, checked: widget.shown),
           SizedBox(width: context.space(2)),
+          // A theme that draws calendars as patterns (E-ink): the calendar's mark beside its name; the box
+          // is in `ink` (MacColourCheckbox).
+          if (!context.isSystemLook && context.variants.dataColours == DataColourStyle.pattern) ...[
+            DataDot(colour: widget.colour, groundColour: mac.sidebarBackground),
+            SizedBox(width: context.space(2)),
+          ],
           Expanded(
             child: Text(widget.name,
                 maxLines: 1, overflow: TextOverflow.ellipsis, style: context.macLook.body.copyWith(color: mac.label)),
@@ -197,10 +203,16 @@ class MacColourCheckbox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final mac = context.mac;
-    final fill = colour?.withValues(alpha: 1) ?? Color.alphaBlend(mac.secondaryLabel, mac.sidebarBackground);
+    // A theme that draws calendars as patterns has no calendar colours: the box is in `label` (ink).
+    final pattern = !context.isSystemLook && context.variants.dataColours == DataColourStyle.pattern;
+    final fill = pattern
+        ? mac.label
+        : colour?.withValues(alpha: 1) ?? Color.alphaBlend(mac.secondaryLabel, mac.sidebarBackground);
     final weak = dataColourNeedsEdge(fill, mac.sidebarBackground);
     final white = MyDataMacColors.light.contentBackground, black = MyDataMacColors.light.label;
-    final tick = dataColourContrast(fill, white) >= dataColourContrast(fill, black) ? white : black;
+    final tick = pattern
+        ? mac.sidebarBackground
+        : (dataColourContrast(fill, white) >= dataColourContrast(fill, black) ? white : black);
     return SizedBox.square(
       dimension: size,
       child: DecoratedBox(
