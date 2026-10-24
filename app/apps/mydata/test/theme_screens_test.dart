@@ -31,6 +31,6 @@ void main() {
     // 0.26: two paper themes with a serif, italic secondary text and the same rows; what sets Notebook
     // apart here (its ruled paper, 12% lines a step under the metric's, the handwritten titles, unboxed
     // groups and the highlighter) mostly falls inside the same blocks. They score 0.3 or more elsewhere.
-    'paperback and notebook': 'ruled paper under the edge step',
+    'notebook and paperback': (0.26, 'ruled paper under the edge step'),
   });
 }

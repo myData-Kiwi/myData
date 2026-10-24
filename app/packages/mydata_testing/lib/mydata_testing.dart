@@ -515,17 +515,24 @@ const edgeStep = 24.0;
 /// The side of the blocks [shapeDifference] counts edges in.
 const edgeBlock = 16;
 
+/// How far under its measured score a pair [themesDistinct] lets through may drift: a picture's small
+/// changes (a line of text, a mark's shape) move a score by a hundredth or so.
+const alikeSlack = 0.02;
+
 /// Checks that the theme screenshots of [screen] ([themeScreens]' goldens, light mode) of every pair of
 /// drawn themes differ by more than colour: a [shapeDifference] of at least [least]. A drawn theme in the
 /// Mac window is its whole look, not the Mac's widgets in its colours (design/themes/ARCHITECTURE.md 3.4);
 /// before that was built Kiwi and Hairline scored 0.22 on myContacts' people. It reads the goldens the theme
 /// screens test keeps up to date, so it runs after them.
 ///
-/// [alike] names pairs (`'paperback and notebook'`) that may score under [least] on this screen, each with
-/// the reason the metric cannot see what sets them apart (a ruled ground fainter than [edgeStep], a
-/// handwritten face where the other sets a serif): an exception said out loud, never a lower bar for all.
+/// [alike] names pairs (`'notebook and paperback'`, in either order) that may score under [least] on this
+/// screen, each with the score it was measured at and the reason the metric cannot see what sets them apart
+/// (a ruled ground fainter than [edgeStep], a handwritten face where the other sets a serif): an exception
+/// said out loud, never a lower bar for all. It has a floor: the pair fails when it drifts more than
+/// [alikeSlack] under its measured score, and when it clears [least] (the exception is then stale and goes).
+/// A key that names no pair of drawn themes fails too.
 void themesDistinct(String screen,
-    {double least = 0.3, Size size = const Size(1280, 800), Map<String, String> alike = const {}}) {
+    {double least = 0.3, Size size = const Size(1280, 800), Map<String, (double, String)> alike = const {}}) {
   testWidgets('every pair of drawn themes draws $screen in more than its colours', (tester) async {
     final pictures = <String, ByteData>{};
     for (final slug in drawnThemes) {
@@ -539,14 +546,45 @@ void themesDistinct(String screen,
         return data;
       }))!;
     }
-    final close = <String>[];
-    for (var i = 0; i < drawnThemes.length; i++) {
-      for (var j = i + 1; j < drawnThemes.length; j++) {
-        final a = drawnThemes[i], b = drawnThemes[j];
-        final d = shapeDifference(pictures[a]!, pictures[b]!, size);
-        if (d < least && !alike.containsKey('$a and $b')) close.add('$a and $b: ${d.toStringAsFixed(2)}');
-      }
-    }
-    expect(close, isEmpty, reason: 'these draw $screen in little more than their colours');
+    final scores = <String, double>{
+      for (var i = 0; i < drawnThemes.length; i++)
+        for (var j = i + 1; j < drawnThemes.length; j++)
+          themePair(drawnThemes[i], drawnThemes[j]):
+              shapeDifference(pictures[drawnThemes[i]]!, pictures[drawnThemes[j]]!, size),
+    };
+    expect(distinctProblems(scores, least: least, alike: alike, themes: drawnThemes), isEmpty,
+        reason: 'these draw $screen in little more than their colours, or their exception is off');
   });
+}
+
+/// Two themes' pair as [themesDistinct] names it: their slugs in alphabetical order (`notebook and paperback`).
+String themePair(String a, String b) => ([a, b]..sort()).join(' and ');
+
+/// What [themesDistinct] fails on, given every pair's [scores] (keyed by [themePair]): a pair under [least]
+/// that [alike] does not name; a pair it names that is more than [alikeSlack] under the score it was measured
+/// at, or that clears [least] now (a stale exception); and a key of [alike] that names no pair of [themes].
+List<String> distinctProblems(Map<String, double> scores,
+    {required double least, required Map<String, (double, String)> alike, required List<String> themes}) {
+  final problems = <String>[];
+  final allowed = <String, double>{};
+  for (final e in alike.entries) {
+    final slugs = e.key.split(' and ');
+    if (slugs.length != 2 || slugs[0] == slugs[1] || !slugs.every(themes.contains)) {
+      problems.add('"${e.key}" names no pair of drawn themes');
+    } else {
+      allowed[themePair(slugs[0], slugs[1])] = e.value.$1;
+    }
+  }
+  for (final e in scores.entries) {
+    final score = allowed[e.key];
+    final shown = e.value.toStringAsFixed(2);
+    if (score == null) {
+      if (e.value < least) problems.add('${e.key}: $shown');
+    } else if (e.value < score - alikeSlack) {
+      problems.add('${e.key}: $shown, under the ${score.toStringAsFixed(2)} its exception was measured at');
+    } else if (e.value >= least) {
+      problems.add('${e.key}: $shown clears $least now; drop its exception');
+    }
+  }
+  return problems;
 }

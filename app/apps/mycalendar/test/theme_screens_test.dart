@@ -31,10 +31,10 @@ void main() {
   themesDistinct('month', least: 0.18, size: const Size(1280, 900), alike: {
     // 0.15: the Mac month is one grid in every theme, and both rule it in black (2 and 3 px) and mark today
     // in ink; here they differ in type alone. Brutalist's offset shadows are not drawn in the Mac month.
-    'high-contrast and brutalist': 'the same black grid, other type',
+    'brutalist and high-contrast': (0.15, 'the same black grid, other type'),
     // 0.13: both rule every day in a thin dark line and mark today in ink; Retro Desktop's dotted desk is
     // fainter than the metric's step, and the Mac month draws no bevel.
-    'terminal and retro-desktop': 'the same thin grid, other type',
+    'retro-desktop and terminal': (0.13, 'the same thin grid, other type'),
   });
 
   // Today is the theme's mark in a drawn theme (`components.today`), never System's red, which in Sticker
