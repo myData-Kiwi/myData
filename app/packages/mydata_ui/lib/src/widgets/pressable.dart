@@ -15,6 +15,8 @@ import '../theme/theme.dart';
 ///   the system's ring ([FocusRing.painter]);
 /// - [hoverFill], when given, fills the shape while hovered or pressed (rows); controls leave it null;
 /// - disabled ([onPressed] null): 45% opacity, no focus, no cursor change (the previews' disabled state);
+///   a control that draws its own disabled look (a filled button on `surface-sunken`) sets [fadeWhenDisabled]
+///   false;
 /// - disabled with a [disabledReason]: focusable but inert (design/platforms.md "Disabled controls"), for a
 ///   control whose reason shows only on demand (an icon button's tooltip, a menu item's caption).
 class Pressable extends StatefulWidget {
@@ -34,6 +36,7 @@ class Pressable extends StatefulWidget {
     this.tooltip,
     this.danger = false,
     this.disabledReason,
+    this.fadeWhenDisabled = true,
   });
 
   /// Null disables the control: out of the Tab order, or focusable but inert with a [disabledReason].
@@ -65,6 +68,10 @@ class Pressable extends StatefulWidget {
   /// at once on keyboard focus, and on hover as usual. Leave it null where the reason is visible text next to
   /// the control (a help line or caption): the control then leaves the Tab order.
   final String? disabledReason;
+
+  /// Whether a disabled control fades to [disabledOpacity]. False for a control that draws its own disabled
+  /// colours: a filled button, whose label would fall to about 1.5:1 faded (design/themes/ARCHITECTURE.md 6a).
+  final bool fadeWhenDisabled;
 
   /// Opacity of a disabled control.
   static const disabledOpacity = 0.45;
@@ -128,7 +135,9 @@ class _PressableState extends State<Pressable> {
     }
     // Press: in at once (duration zero on the way down), out over `fast`.
     body = AnimatedOpacity(
-      opacity: !_enabled ? Pressable.disabledOpacity : (down ? context.motion.pressOpacity : 1),
+      opacity: !_enabled
+          ? (widget.fadeWhenDisabled ? Pressable.disabledOpacity : 1)
+          : (down ? context.motion.pressOpacity : 1),
       duration: down ? Duration.zero : context.motion.fast,
       curve: context.motion.standard,
       child: widget.scaleOnPress && !reduced

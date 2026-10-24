@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -203,6 +205,42 @@ void main() {
     expect(labelOf('plainDanger'), c.danger);
   });
 
+  testWidgets('disabled, filled and danger sit on surface-sunken with an ink-muted label, unfaded; the rest fade',
+      (tester) async {
+    await tester.pumpWidget(themedFrame(themeMatrix.first, ButtonRow(children: [
+      for (final v in ButtonVariant.values) Button(label: v.name, variant: v, onPressed: null),
+    ])));
+    final c = tester.element(find.byType(ButtonRow)).colors;
+    Color? fillOf(String label) => ((tester.widget<Container>(
+                find.ancestor(of: find.text(label), matching: find.byType(Container)).first))
+            .decoration as BoxDecoration)
+        .color;
+    Color? labelOf(String label) => tester.widget<Text>(find.text(label)).style!.color;
+    double opacityOf(String label) => tester
+        .widget<AnimatedOpacity>(find.ancestor(of: find.text(label), matching: find.byType(AnimatedOpacity)).first)
+        .opacity;
+    for (final v in [ButtonVariant.filled, ButtonVariant.danger]) {
+      expect(fillOf(v.name), c.surfaceSunken, reason: v.name);
+      expect(labelOf(v.name), c.inkMuted, reason: v.name);
+      expect(opacityOf(v.name), 1, reason: v.name);
+    }
+    expect(fillOf('tonal'), c.accentSoft);
+    for (final v in [ButtonVariant.tonal, ButtonVariant.plain, ButtonVariant.plainDanger]) {
+      expect(opacityOf(v.name), Pressable.disabledOpacity, reason: v.name);
+    }
+  });
+
+  test('a disabled filled button\'s label is at least 4.5:1 in every palette of every drawn built-in', () {
+    for (final theme in ThemeLibrary.builtIns.where((t) => t.palettes.isNotEmpty)) {
+      for (final p in theme.palettes) {
+        for (final b in Brightness.values) {
+          final c = ThemeLibrary.look(theme, paletteId: p.id, brightness: b).colors;
+          expect(_contrast(c.inkMuted, c.surfaceSunken), greaterThanOrEqualTo(4.5), reason: '${p.id} ${b.name}');
+        }
+      }
+    }
+  });
+
   testWidgets('plain danger presses, focuses and disables exactly as plain', (tester) async {
     var revoked = 0;
     await tester.pumpWidget(themedFrame(themeMatrix.first, ButtonRow(children: [
@@ -301,4 +339,9 @@ void main() {
     expect(find.text('Compare'), findsOneWidget);
     handle.dispose();
   });
+}
+
+double _contrast(Color a, Color b) {
+  final la = a.computeLuminance(), lb = b.computeLuminance();
+  return (math.max(la, lb) + 0.05) / (math.min(la, lb) + 0.05);
 }

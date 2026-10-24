@@ -36,6 +36,17 @@ enum ButtonVariant {
   /// Drawn in `danger`: the focus ring is then `ink`, not the red `focus` (design/README.md "Focus and danger").
   bool get isRed => this == danger || this == plainDanger;
 
+  /// A solid fill ([filled], [danger]). Disabled, such a button is drawn on `surface-sunken` with an
+  /// `ink-muted` label (about 4.5:1) instead of fading: faded, its label fell to about 1.5:1
+  /// (design/themes/ARCHITECTURE.md 6a, decided 2026-10-23). The other variants fade to 45%.
+  bool get isSolid => this == filled || this == danger;
+
+  /// The fill of a disabled button: `surface-sunken` for a [isSolid] one, else its usual fill (it fades).
+  Color? disabledFill(MyDataColors c) => isSolid ? c.surfaceSunken : fill(c);
+
+  /// The label of a disabled button: `ink-muted` for a [isSolid] one, else its usual colour (it fades).
+  Color disabledForeground(MyDataColors c) => isSolid ? c.inkMuted : foreground(c);
+
   /// The colour of the label and the icon.
   Color foreground(MyDataColors c) => switch (this) {
         filled => c.onAccent,
@@ -53,7 +64,9 @@ enum ButtonVariant {
 ///   [ButtonVariant.plainDanger] it is `ink` (design/README.md "Focus and danger").
 /// - Pressing dims to 85% and scales to 97% at once and returns over `fast` ([Pressable]); with reduced
 ///   motion it only dims.
-/// - [onPressed] null disables it: 45% opacity, not focusable, announced as disabled.
+/// - [onPressed] null disables it: not focusable (unless [disabledReason] is given), announced as disabled. A
+///   [ButtonVariant.filled] or [ButtonVariant.danger] button is then drawn on `surface-sunken` with an
+///   `ink-muted` label, in every drawn theme; the others fade to 45%.
 /// - The label is a verb and its object ("Approve and send", "Delete 12 photos"), in sentence case. Never
 ///   "OK" or "Submit".
 /// - Use one [ButtonVariant.filled] per screen or card; other actions are [ButtonVariant.tonal] or
@@ -107,7 +120,8 @@ class Button extends StatelessWidget {
   Widget build(BuildContext context) {
     if (context.isSystemLook) return _mac(context);
     final c = context.colors;
-    final fg = variant.foreground(c);
+    final disabled = onPressed == null;
+    final fg = disabled ? variant.disabledForeground(c) : variant.foreground(c);
     final text = Text(
       label,
       maxLines: 1,
@@ -123,12 +137,15 @@ class Button extends StatelessWidget {
       semanticLabel: semanticLabel ?? label,
       danger: variant.isRed,
       disabledReason: disabledReason,
+      fadeWhenDisabled: !variant.isSolid,
       child: ExcludeSemantics(
         child: Container(
           height: context.density.controlHeight,
           constraints: BoxConstraints(minWidth: context.density.controlHeight),
           padding: EdgeInsets.symmetric(horizontal: horizontalPadding(context.look)),
-          decoration: BoxDecoration(color: variant.fill(c), borderRadius: MyDataRadii.control(context.look)),
+          decoration: BoxDecoration(
+              color: disabled ? variant.disabledFill(c) : variant.fill(c),
+              borderRadius: MyDataRadii.control(context.look)),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
