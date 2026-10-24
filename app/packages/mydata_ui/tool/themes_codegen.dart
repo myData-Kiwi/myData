@@ -25,6 +25,7 @@ const builtinThemesPath = 'lib/src/theme/builtin_themes.g.dart';
 const builtInOrder = [
   'system', 'kiwi', 'hairline', 'frosted', 'journal', 'sticker', 'paperback', 'high-contrast', 'e-ink', 'large',
   'terminal', 'notebook', 'brutalist', 'retro-desktop', 'swiss', 'blueprint', 'arcade', 'geometric', 'zen',
+  'ledger',
 ];
 
 /// The folders of design/themes that hold a theme, in the gallery's order. A folder [builtInOrder] does not

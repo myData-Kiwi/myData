@@ -161,6 +161,7 @@ void main() {
       'mydata.arcade': ('phosphor', 'regular'),
       'mydata.geometric': ('phosphor', 'fill'),
       'mydata.zen': ('phosphor', 'light'),
+      'mydata.ledger': ('tabler', 'light'),
     });
   });
 

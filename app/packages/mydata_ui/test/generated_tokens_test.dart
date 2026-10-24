@@ -35,6 +35,7 @@ void main() {
     expect(designThemeSlugs(), [
       'system', 'kiwi', 'hairline', 'frosted', 'journal', 'sticker', 'paperback', 'high-contrast', 'e-ink', 'large',
       'terminal', 'notebook', 'brutalist', 'retro-desktop', 'swiss', 'blueprint', 'arcade', 'geometric', 'zen',
+      'ledger',
     ]);
     expect(builtInThemeJson.keys, [for (final s in designThemeSlugs()) 'mydata.$s']);
     for (final slug in designThemeSlugs()) {

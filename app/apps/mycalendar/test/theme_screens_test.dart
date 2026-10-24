@@ -44,6 +44,10 @@ void main() {
     // accent outline (the Mac month's selection in every drawn theme); here they differ in type (Jost against
     // Atkinson Hyperlegible) and today (a blue disc against an ink block).
     'geometric and high-contrast': (0.15, 'the same 2 px ink grid, other type'),
+    // 0.15: both draw a table month (every day ruled in the control outline's grey, small corners or none) with
+    // today an ink block; Ledger's zebra stripes are its lists', not the month's, so here they differ in type
+    // (Inter against JetBrains Mono) and colour. They score 0.3 or more on the other three screens.
+    'ledger and terminal': (0.15, 'the same ruled table month, other type'),
   });
 
   // Today is the theme's mark in a drawn theme (`components.today`), never System's red, which in Sticker
