@@ -144,6 +144,7 @@ void main() {
       'mydata.swiss': ('material-sharp', 'regular'),
       'mydata.blueprint': ('tabler', 'thin'),
       'mydata.arcade': ('phosphor', 'regular'),
+      'mydata.geometric': ('phosphor', 'fill'),
     });
   });
 

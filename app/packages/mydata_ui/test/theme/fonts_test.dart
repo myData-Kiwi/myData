@@ -103,6 +103,8 @@ const acceptedGaps = {
   'pixelify-sans': 'ʼ$vietnamese',
   // Arcade's text: Outfit has no Vietnamese (Chakra Petch, its titles' face, has it all).
   'outfit': vietnamese,
+  // Geometric's titles and text: Jost has no Vietnamese and no modifier apostrophe.
+  'jost': 'ʼ$vietnamese',
 };
 
 /// A bundled font's files: a core font's static weights, a font loaded on demand and its italic.

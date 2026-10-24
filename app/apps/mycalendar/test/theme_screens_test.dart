@@ -39,6 +39,9 @@ void main() {
     // 0.17: both draw the month as one boxed card with thin rules; Arcade's cut cells of the prototype are not
     // the Mac month's, so here they differ in type, colour, the grid floor in the gutters and the today ring.
     'arcade and kiwi': (0.17, 'one boxed month, other type'),
+    // 0.15: both draw the month as one boxed grid ruled in 2 px ink; here they differ in type (Jost against
+    // Atkinson Hyperlegible), today (a blue disc against an inverse block) and the yellow selection.
+    'geometric and high-contrast': (0.15, 'the same 2 px ink grid, other type'),
   });
 
   // Today is the theme's mark in a drawn theme (`components.today`), never System's red, which in Sticker
