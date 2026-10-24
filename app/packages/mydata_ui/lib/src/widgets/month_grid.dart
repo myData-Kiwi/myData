@@ -181,6 +181,12 @@ class MonthGrid extends StatefulWidget {
         MonthStyle.open => BorderRadius.zero,
       };
 
+  /// Whether the weekday headings are a table's header band in [look]: a `table` month in a theme whose lists
+  /// are tables too (Ledger), the headings on `surface-sunken` over the grid's first rule, as its lists head
+  /// each letter. Swiss, Blueprint and Terminal draw a table month under plain headings.
+  static bool bandedHeadings(MyDataLook look) =>
+      look.variants.month == MonthStyle.table && look.variants.list == ListStyle.table;
+
   /// The hover edge: "a 1px `line-strong` edge inside the cell".
   static const hoverEdgeWidth = 1.0;
 
@@ -695,7 +701,7 @@ class _Grid extends StatelessWidget {
           ],
         ]);
 
-    final headings = Row(children: [
+    Widget headings = Row(children: [
       for (var i = 0; i < 7; i++)
         Expanded(
             child: Padding(
@@ -713,6 +719,14 @@ class _Grid extends StatelessWidget {
 
     final radius = MonthGrid.gridRadius(look);
     final corner = radius.bottomLeft;
+    // A table's header band, inside the outline; the first week's rule, in the outline's colour, is its rule.
+    if (MonthGrid.bandedHeadings(look)) {
+      headings = DecoratedBox(
+        decoration: context.radius.decorate(BoxDecoration(
+            color: c.surfaceSunken, borderRadius: BorderRadius.only(topLeft: radius.topLeft, topRight: radius.topRight))),
+        child: headings,
+      );
+    }
     final weeksBody = Column(
       key: ValueKey(_key(month)),
       mainAxisSize: MainAxisSize.min,

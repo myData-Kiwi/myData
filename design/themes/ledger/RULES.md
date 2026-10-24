@@ -72,7 +72,7 @@ Crisp at ×0.7 (about 60 ms); a press dims; nothing slides or fades in. Reduced 
 | Avatars | Small rounded tiles |
 | Tabs | Boxed segments, the current one filled in the colour |
 | Chat | Transcript: each turn under its speaker, beside a rule |
-| Month, today | Table: every day ruled in the control outline's grey; today inverse, an ink block |
+| Month, today | Table: every day ruled in the control outline's grey, the weekdays a header band on `surface-sunken` over the first week's `line-strong` rule, as the lists head each letter; today inverse, an ink block |
 | Title rule | Single |
 
 ## Do and don't
@@ -80,7 +80,7 @@ Crisp at ×0.7 (about 60 ms); a press dims; nothing slides or fades in. Reduced 
 - Do let the user's text size setting scale everything.
 - Do keep every target at 24 px or more on the desktop, with spacing.
 - Don't use this density on phones or with a finger on a desktop (the run-time floors raise it to 44).
-- Don't stripe anything but tables: forms, cards and the month stay plain.
+- Don't stripe anything but tables: forms, cards and the month are never striped (the month takes only the header band).
 - Don't add columns: the contact list stays one column of names, as in every theme (layout stays out of themes, decision 9).
 
 ## Accessibility

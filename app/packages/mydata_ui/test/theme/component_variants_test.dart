@@ -638,6 +638,32 @@ void main() {
     variantGoldens('data-colours', (focus) => MonthSpecimen(focus: focus), size: size, focused: false);
     // The selected day in each selection style, focused by keyboard.
     variantGoldens('selection', (focus) => MonthSpecimen(focus: focus), size: size, name: 'month');
+    // A table month in a theme whose lists are tables too (Ledger): the weekdays are its header band.
+    variantGoldens('month', (focus) => MonthSpecimen(focus: focus),
+        size: size, focused: false, values: ['table'], name: 'banded', also: component('list', 'table'));
+
+    testWidgets("a table month heads its weekdays with a header band only where the theme's lists are tables",
+        (tester) async {
+      for (final (list, banded) in [('table', true), ('inset', false)]) {
+        await pumpVariant(tester, kiwiWith(all([component('month', 'table'), component('list', list)])),
+            Brightness.light, const MonthSpecimen(),
+            size: size);
+        final sunken = tester.element(find.text('Mon')).colors.surfaceSunken;
+        final band = find.ancestor(
+            of: find.text('Mon'),
+            matching: find.byWidgetPredicate((w) =>
+                w is DecoratedBox &&
+                switch (w.decoration) {
+                  BoxDecoration(:final color) || ShapeDecoration(:final color) => color == sunken,
+                  _ => false,
+                }));
+        expect(band, banded ? findsOneWidget : findsNothing, reason: list);
+        if (banded) {
+          // Across the grid, over the first week's rule.
+          expect(tester.getSize(band).width, tester.getSize(find.byType(MonthGrid)).width);
+        }
+      }
+    });
 
     testWidgets("swatches on today's inverse cell and a filled selected day take the edge rule against that fill",
         (tester) async {

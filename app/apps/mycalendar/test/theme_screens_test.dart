@@ -45,10 +45,41 @@ void main() {
     // Atkinson Hyperlegible) and today (a blue disc against an ink block).
     'geometric and high-contrast': (0.15, 'the same 2 px ink grid, other type'),
     // 0.15: both draw a table month (every day ruled in the control outline's grey, small corners or none) with
-    // today an ink block; Ledger's zebra stripes are its lists', not the month's, so here they differ in type
-    // (Inter against JetBrains Mono) and colour. They score 0.3 or more on the other three screens.
+    // today an ink block. Ledger heads its month with a table's header band (its weekdays on `surface-sunken`,
+    // as its lists head each letter), but that is one row, finer than the metric's step; so here they differ
+    // in type (Inter against JetBrains Mono), colour and the band. They score 0.3 or more on the other three
+    // screens. Open for the owner: whether Ledger's month needs more of the theme.
     'ledger and terminal': (0.15, 'the same ruled table month, other type'),
   });
+
+  // Where the theme's month and lists are tables (Ledger), the Mac month's weekdays are the table's header
+  // band, on `surface-sunken` over the first week's rule; Swiss and Terminal draw a table month under plain
+  // headings, and System keeps the Mac's.
+  for (final (slug, drawn, banded) in [
+    ('ledger', true, true),
+    ('swiss', true, false),
+    ('terminal', true, false),
+    ('kiwi', false, false),
+  ]) {
+    macTestWidgets('the Mac month heads its weekdays with a band: $slug${drawn ? '' : ' (System)'}', (tester) async {
+      tester.view.physicalSize = const Size(1280, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      MacLook.debugOverride = true;
+      addTearDown(() => MacLook.debugOverride = null);
+      await tester.pumpWidget(_app(ThemeCase(slug, Brightness.light, drawnOnMac: drawn), day: '2026-10-16'));
+      await mac.settle(tester);
+      final c = tester.element(find.text('Wed')).colors;
+      final band = find.ancestor(
+          of: find.text('Wed'), matching: find.byWidgetPredicate((w) => w is ColoredBox && w.color == c.surfaceSunken));
+      expect(band, banded ? findsOneWidget : findsNothing);
+      if (banded) {
+        // Across the month, every weekday on it.
+        expect(find.descendant(of: band, matching: find.text('Sun')), findsOneWidget);
+        expect(find.descendant(of: band, matching: find.text('Sat')), findsOneWidget);
+      }
+    });
+  }
 
   // Today is the theme's mark in a drawn theme (`components.today`), never System's red, which in Sticker
   // reads as its danger colour; System keeps the red capsule, as Calendar.app does.

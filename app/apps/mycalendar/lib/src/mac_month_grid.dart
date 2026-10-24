@@ -274,8 +274,12 @@ class _MacMonthGridState extends State<MacMonthGrid> {
     final selected = _key(widget.selected), today = _key(widget.today);
     final focused = _node.hasFocus && MacChrome.of(context).windowActive;
 
-    final headings = SizedBox(
+    // Where the theme's month and lists are tables (Ledger), the headings are the table's header band, on
+    // `surface-sunken` over the first week's rule (MonthGrid.bandedHeadings).
+    final banded = !context.isSystemLook && MonthGrid.bandedHeadings(context.look);
+    final headings = Container(
       height: MacMonthGrid.headingHeight,
+      color: banded ? context.colors.surfaceSunken : null,
       child: Row(
         children: [
           for (var d = 0; d < 7; d++)
