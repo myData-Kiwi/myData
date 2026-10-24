@@ -137,7 +137,75 @@ Future<void> pumpSpecimen(WidgetTester tester, ThemeFile theme, Brightness brigh
   await tester.pumpAndSettle();
 }
 
+/// A focused control on a filled ground (a solid selected row): its ring touches the fill on both sides, so
+/// it is two-tone, with a `surface` keyline on its inner edge (WCAG C40); beside it the same control on the
+/// plain ground. One golden per corner style.
+class TwoToneSpecimen extends StatelessWidget {
+  const TwoToneSpecimen({super.key, required this.onFill, required this.plain});
+  final FocusNode onFill, plain;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    Widget control(FocusNode node, {required bool fill}) => Pressable(
+          onPressed: _noop,
+          focusNode: node,
+          focusOnFill: fill,
+          borderRadius: MyDataRadii.control(context.look),
+          child: Container(
+            height: context.density.controlHeight,
+            padding: EdgeInsets.symmetric(horizontal: context.space(4)),
+            alignment: Alignment.center,
+            decoration: context.radius.decorate(
+                BoxDecoration(color: c.surface, borderRadius: MyDataRadii.control(context.look))),
+            child: Text('Open', style: context.typeScale.bodyStrong.copyWith(color: c.ink)),
+          ),
+        );
+    return Row(children: [
+      Container(
+        padding: EdgeInsets.all(context.space(4)),
+        decoration: context.radius.decorate(BoxDecoration(color: c.ink, borderRadius: MyDataRadii.md(context.look))),
+        child: control(onFill, fill: true),
+      ),
+      SizedBox(width: context.space(6)),
+      control(plain, fill: false),
+    ]);
+  }
+}
+
 void main() {
+  for (final corners in ['round', 'continuous', 'cut', 'square']) {
+    for (final b in Brightness.values) {
+      testWidgets('focus ring golden: two-tone on a fill, $corners, ${b.name}', (tester) async {
+        tester.view.physicalSize = const Size(320, 120);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        final onFill = FocusNode(), plain = FocusNode();
+        addTearDown(onFill.dispose);
+        addTearDown(plain.dispose);
+        final theme = variantTheme(_set('shape', {'corners': corners, 'cut-size': 8}));
+        final look = ThemeLibrary.look(theme, brightness: b, platform: TargetPlatform.linux);
+        await tester.pumpWidget(MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: MyDataTheme.fromLook(look),
+          home: Builder(
+            builder: (context) => Material(
+              color: context.colors.bg,
+              child: Padding(
+                padding: EdgeInsets.all(context.space(4)),
+                child: TwoToneSpecimen(onFill: onFill, plain: plain),
+              ),
+            ),
+          ),
+        ));
+        await tester.sendKeyEvent(LogicalKeyboardKey.shift);
+        onFill.requestFocus();
+        await tester.pumpAndSettle();
+        await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/focus.two-tone-$corners.${b.name}.png'));
+      });
+    }
+  }
+
   for (final (v, pressed) in [for (final v in styleVariants) (v, false), for (final v in pressedVariants) (v, true)]) {
     for (final b in Brightness.values) {
       testWidgets('style golden: ${v.name}, ${b.name}', (tester) async {
