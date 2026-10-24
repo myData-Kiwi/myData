@@ -15,8 +15,9 @@ import 'pressable.dart';
 ///   with `shadow-1` on a `surface-sunken` track;
 /// - `underline`: a 2px `accent` line under the current one and its label in `accent`; a segmented control
 ///   has no track, only a `line` rule under it;
-/// - `boxed`: each tab, or the segmented control's track, in the control outline with `radius-sm`, the
-///   current one filled in `selection` with its label in `on-selection`.
+/// - `boxed`: the tabs as one outlined group with `radius-sm` at its ends and straight dividers between them
+///   (each run its own group when the row wraps), or the segmented control's track in the control outline;
+///   the current one filled in `selection` with its label in `on-selection`.
 abstract final class TabMark {
   /// The underline's width.
   static const underlineWidth = 2.0;
@@ -27,8 +28,9 @@ abstract final class TabMark {
         _ => MyDataRadii.sm(look),
       };
 
-  /// The current tab's mark, under its label ([segment]: a segmented control's thumb).
-  static Decoration mark(MyDataLook look, {bool segment = false}) {
+  /// The current tab's mark, under its label ([segment]: a segmented control's thumb), with [corners] in
+  /// place of [radius] (a boxed tab inside its group).
+  static Decoration mark(MyDataLook look, {bool segment = false, BorderRadius? corners}) {
     final c = look.colors;
     return switch (look.variants.tabs) {
       TabsStyle.pill => look.shape.decorate(BoxDecoration(
@@ -37,8 +39,20 @@ abstract final class TabMark {
           boxShadow: segment ? look.elevation.shadows.shadow1 : null)),
       TabsStyle.underline =>
         BoxDecoration(border: Border(bottom: BorderSide(color: c.accent, width: underlineWidth))),
-      TabsStyle.boxed => look.shape.decorate(BoxDecoration(color: c.selection, borderRadius: radius(look))),
+      TabsStyle.boxed => look.shape.decorate(BoxDecoration(color: c.selection, borderRadius: corners ?? radius(look))),
     };
+  }
+
+  /// A boxed tab's corners in its run: rounded only at the run's two outer ends ([left], [right]), so the
+  /// run reads as one outlined group with straight dividers between its tabs.
+  static BorderRadius boxedCorners(MyDataLook look, {required bool left, required bool right}) {
+    final r = radius(look);
+    return BorderRadius.only(
+      topLeft: left ? r.topLeft : Radius.zero,
+      bottomLeft: left ? r.bottomLeft : Radius.zero,
+      topRight: right ? r.topRight : Radius.zero,
+      bottomRight: right ? r.bottomRight : Radius.zero,
+    );
   }
 
   /// The colour of the current tab's label ([segment]: a segmented control's).
@@ -95,10 +109,13 @@ class MyDataTabs extends StatefulWidget {
   /// count, "Review, 4" rather than "Review 4". Null reads [tabs].
   final List<String>? spokenTabs;
 
-  /// Space between tabs, across and down: the preview's 6px gap snapped to a token (decision 2026-10-12);
-  /// boxed tabs share their outlines.
+  /// Space between tabs across: the preview's 6px gap snapped to a token (decision 2026-10-12); boxed tabs
+  /// share their dividers.
   static double gap(MyDataLook look) =>
       look.variants.tabs == TabsStyle.boxed ? -TabMark.outline(look).width : look.space(2);
+
+  /// Space between the runs of a wrapped row, in every style.
+  static double runGap(MyDataLook look) => look.space(2);
 
   /// Space either side of a tab's label: the preview's `padding: 0 16px`.
   static double labelPadding(MyDataLook look) => look.space(4);
@@ -227,7 +244,7 @@ class _MyDataTabsState extends State<MyDataTabs> with SingleTickerProviderStateM
             height: layout.size.height,
             child: Stack(children: [
               for (var i = 0; i < widget.tabs.length; i++)
-                Positioned.fromRect(rect: layout.rects[i], child: _tab(context, i, enabled)),
+                Positioned.fromRect(rect: layout.rects[i], child: _tab(context, i, enabled, layout)),
             ]),
           );
           return AnimatedBuilder(
@@ -246,7 +263,7 @@ class _MyDataTabsState extends State<MyDataTabs> with SingleTickerProviderStateM
                   child: _sliding
                       ? Opacity(
                           opacity: enabled ? 1 : Pressable.disabledOpacity,
-                          child: DecoratedBox(decoration: TabMark.mark(context.look)),
+                          child: DecoratedBox(decoration: TabMark.mark(context.look, corners: _corners(context.look, layout, widget.current))),
                         )
                       : const SizedBox.shrink(),
                 ),
@@ -259,11 +276,16 @@ class _MyDataTabsState extends State<MyDataTabs> with SingleTickerProviderStateM
     );
   }
 
-  Widget _tab(BuildContext context, int i, bool enabled) {
+  /// Tab [i]'s corners: [TabMark.radius], or for a boxed tab only its run's outer ones.
+  BorderRadius _corners(MyDataLook look, _TabsLayout layout, int i) => look.variants.tabs == TabsStyle.boxed
+      ? TabMark.boxedCorners(look, left: layout.leftEnds[i], right: layout.rightEnds[i])
+      : TabMark.radius(look);
+
+  Widget _tab(BuildContext context, int i, bool enabled, _TabsLayout layout) {
     final c = context.colors;
     final look = context.look;
     final selected = i == widget.current;
-    final radius = TabMark.radius(look);
+    final radius = _corners(look, layout, i);
     final boxed = look.variants.tabs == TabsStyle.boxed;
     // The resting mark sits inside the Pressable, so it presses (and dims when disabled) with the label.
     Widget body = Center(
@@ -278,7 +300,7 @@ class _MyDataTabsState extends State<MyDataTabs> with SingleTickerProviderStateM
     );
     final spoken = widget.spokenTabs?[i];
     if (spoken != null) body = ExcludeSemantics(child: body);
-    if (selected && !_sliding) body = DecoratedBox(decoration: TabMark.mark(look), child: body);
+    if (selected && !_sliding) body = DecoratedBox(decoration: TabMark.mark(look, corners: radius), child: body);
     if (boxed) {
       body = DecoratedBox(
         position: DecorationPosition.foreground,
@@ -326,7 +348,7 @@ class _MyDataTabsState extends State<MyDataTabs> with SingleTickerProviderStateM
     for (final w in widths) {
       if (x > 0 && x + w > maxWidth) {
         x = 0;
-        y += h + MyDataTabs.gap(context.look);
+        y += h + MyDataTabs.runGap(context.look);
       }
       rects.add(Rect.fromLTWH(x, y, w, h));
       extent = math.max(extent, x + w);
@@ -339,12 +361,23 @@ class _MyDataTabsState extends State<MyDataTabs> with SingleTickerProviderStateM
         rects[i] = Rect.fromLTWH(extent - r.right, r.top, r.width, r.height);
       }
     }
-    return _TabsLayout(rects, size);
+    // The outer ends of each run, on screen (after RTL).
+    bool end(int i, bool Function(Rect other, Rect me) beyond) =>
+        !rects.any((o) => o != rects[i] && o.top == rects[i].top && beyond(o, rects[i]));
+    return _TabsLayout(
+      rects,
+      size,
+      leftEnds: [for (var i = 0; i < rects.length; i++) end(i, (o, me) => o.left < me.left)],
+      rightEnds: [for (var i = 0; i < rects.length; i++) end(i, (o, me) => o.right > me.right)],
+    );
   }
 }
 
 class _TabsLayout {
-  const _TabsLayout(this.rects, this.size);
+  const _TabsLayout(this.rects, this.size, {required this.leftEnds, required this.rightEnds});
   final List<Rect> rects;
   final Size size;
+
+  /// Whether each tab is the first or last of its run on screen.
+  final List<bool> leftEnds, rightEnds;
 }

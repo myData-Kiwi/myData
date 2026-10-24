@@ -460,6 +460,22 @@ void main() {
         });
   });
 
+  // Boxed tabs too wide for their row: each run is its own group, outer corners rounded, straight dividers.
+  variantGoldens(
+      'tabs',
+      (_) => Align(
+            alignment: Alignment.topLeft,
+            child: SizedBox(
+              width: 250,
+              child: MyDataTabs(
+                  tabs: const ['General', 'Accounts', 'Privacy', 'Devices'], current: 2, onChanged: (_) {}),
+            ),
+          ),
+      size: const Size(300, 150),
+      focused: false,
+      values: ['boxed'],
+      name: 'wrapped');
+
   group('the month', () {
     const size = Size(900, 840);
     variantGoldens('month', (focus) => MonthSpecimen(focus: focus), size: size);
