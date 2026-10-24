@@ -56,7 +56,9 @@ void main() {
     expect(rows.map((r) => r['id']), MyDataIcon.values.map((i) => i.name));
     for (final r in rows) {
       for (final set in bundledIconSets) {
-        expect(r[set], isA<String>().having((s) => s.isNotEmpty, 'non-empty', isTrue), reason: '${r['id']} in $set');
+        // Material Symbols' styles share one set of names.
+        final key = set.startsWith('material-') ? 'material' : set;
+        expect(r[key], isA<String>().having((s) => s.isNotEmpty, 'non-empty', isTrue), reason: '${r['id']} in $set');
       }
       expect(r['meaning'], isNotEmpty);
     }
@@ -87,7 +89,7 @@ void main() {
         }
       }
     }
-    for (final l in ['ISC-lucide.txt', 'MIT-tabler.txt', 'MIT-phosphor.txt']) {
+    for (final l in ['ISC-lucide.txt', 'MIT-tabler.txt', 'MIT-phosphor.txt', 'Apache-material-symbols.txt']) {
       expect(File('assets/fonts/$l').existsSync(), isTrue, reason: l);
       expect(pubspec, contains('- assets/fonts/$l'));
       expect(bundledFontLicenses.values, contains(l));
@@ -100,9 +102,10 @@ void main() {
     expect(MyDataIconTheme(_spec('tabler', 'fill')).weight, 'regular');
     expect(MyDataIconTheme(_spec('phosphor', 'thin')).weight, 'light');
     expect(MyDataIconTheme(_spec('lucide', 'light')).weight, 'regular');
-    final material = MyDataIconTheme(_spec('material-rounded', 'regular'));
-    expect(material.set, 'lucide');
-    expect(material(MyDataIcon.add), lucideIcons[MyDataIcon.add]);
+    expect(MyDataIconTheme(_spec('material-outlined', 'thin')).weight, 'light');
+    final sharp = MyDataIconTheme(_spec('material-sharp', 'regular'));
+    expect(sharp.set, 'lucide');
+    expect(sharp(MyDataIcon.add), lucideIcons[MyDataIcon.add]);
   });
 
   test('a theme that fills selected icons draws the fill for a selected one, where the set has a fill', () {
@@ -170,6 +173,31 @@ void main() {
           ),
         ));
         await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/icons.$slug-${b.name}.png'));
+      });
+    }
+  }
+
+  // Material Symbols, Outlined and Rounded, in every weight they are cut in (the fill as the selected row),
+  // on Kiwi's look: the glyphs as the sets draw them, whichever theme names them.
+  for (final set in ['material-outlined', 'material-rounded']) {
+    for (final weight in ['light', 'regular', 'bold']) {
+      testWidgets('icon golden ($set-$weight)', (tester) async {
+        tester.view.physicalSize = const Size(480, 300);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        final look = designedLook('mydata.kiwi', Brightness.light)
+            .copyWith(icons: MyDataIconTheme(_spec(set, weight, fill: true)));
+        await tester.pumpWidget(MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: MyDataTheme.fromLook(look),
+          home: Builder(
+            builder: (context) => Material(
+              color: context.colors.bg,
+              child: Padding(padding: EdgeInsets.all(context.space(4)), child: const IconSpecimen()),
+            ),
+          ),
+        ));
+        await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/icons.$set-$weight.png'));
       });
     }
   }

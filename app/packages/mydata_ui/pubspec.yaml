@@ -50,6 +50,7 @@ flutter:
     - assets/fonts/ISC-lucide.txt
     - assets/fonts/MIT-tabler.txt
     - assets/fonts/MIT-phosphor.txt
+    - assets/fonts/Apache-material-symbols.txt
   # The core fonts, in the weights Kiwi uses (design/README.md, "Type"). Licences: assets/fonts/OFL-*.txt.
   fonts:
     - family: PlusJakartaSans
@@ -67,8 +68,9 @@ flutter:
         - asset: assets/fonts/JetBrainsMono-400.ttf
           weight: 400
     # The icon sets, one font per weight, cut to the semantic ids by tool/subset_icons.sh
-    # (lib/src/theme/icon_sets.g.dart): Lucide (ISC; also System's icons on macOS), Tabler Icons (MIT) and
-    # Phosphor (MIT). Licences: assets/fonts/ISC-lucide.txt, MIT-tabler.txt, MIT-phosphor.txt.
+    # (lib/src/theme/icon_sets.g.dart): Lucide (ISC; also System's icons on macOS), Tabler Icons (MIT),
+    # Phosphor (MIT) and Material Symbols Outlined and Rounded (Apache-2.0). Licences: assets/fonts/ISC-lucide.txt,
+    # MIT-tabler.txt, MIT-phosphor.txt, Apache-material-symbols.txt.
     - family: Lucide
       fonts:
         - asset: assets/fonts/Lucide-subset.ttf
@@ -93,3 +95,27 @@ flutter:
     - family: PhosphorFill
       fonts:
         - asset: assets/fonts/PhosphorFill-subset.ttf
+    - family: MaterialOutlinedLight
+      fonts:
+        - asset: assets/fonts/MaterialOutlinedLight-subset.ttf
+    - family: MaterialOutlined
+      fonts:
+        - asset: assets/fonts/MaterialOutlined-subset.ttf
+    - family: MaterialOutlinedBold
+      fonts:
+        - asset: assets/fonts/MaterialOutlinedBold-subset.ttf
+    - family: MaterialOutlinedFill
+      fonts:
+        - asset: assets/fonts/MaterialOutlinedFill-subset.ttf
+    - family: MaterialRoundedLight
+      fonts:
+        - asset: assets/fonts/MaterialRoundedLight-subset.ttf
+    - family: MaterialRounded
+      fonts:
+        - asset: assets/fonts/MaterialRounded-subset.ttf
+    - family: MaterialRoundedBold
+      fonts:
+        - asset: assets/fonts/MaterialRoundedBold-subset.ttf
+    - family: MaterialRoundedFill
+      fonts:
+        - asset: assets/fonts/MaterialRoundedFill-subset.ttf
