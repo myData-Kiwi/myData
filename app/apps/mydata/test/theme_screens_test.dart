@@ -36,14 +36,15 @@ void main() {
     // offset shadows on a grey ground against Swiss's open white page are set apart by more than the metric's
     // 16 px blocks see, since the rules fall in the same rows. They score 0.3 or more elsewhere.
     'brutalist and swiss': (0.28, 'ink rules in the same rows'),
-    // 0.26: both box each group in a bright or black edge in the same place; Arcade's cut corners, glow and
-    // grid floor against Brutalist's square slabs and offset shadows fall inside the same 16 px blocks.
-    'arcade and brutalist': (0.26, 'boxed groups in the same place'),
-    // 0.14 and 0.24: square (or cut) boxes with heavy edges round each group and an inverse selected section;
+    // 0.24: both box each group in a bright or black edge in the same place, on the white panel of their
+    // cards; Arcade's cut corners, glow and grid floor against Brutalist's square slabs and offset shadows fall
+    // inside the same 16 px blocks.
+    'arcade and brutalist': (0.24, 'boxed groups in the same place'),
+    // 0.14 and 0.21: square (or cut) white boxes with heavy edges round each group and an inverse selected section;
     // Geometric's shapes, its people drawn as circles, squares and triangles, are not on this screen, and
     // Brutalist's offset shadows and grey ground are finer than the metric's blocks. They clear the bar on
     // myContacts' people and myAssistant's approval.
     'brutalist and geometric': (0.14, 'square ink boxes, shapes not on this screen'),
-    'arcade and geometric': (0.24, 'boxed groups in the same place'),
+    'arcade and geometric': (0.21, 'boxed groups in the same place'),
   });
 }

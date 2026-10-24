@@ -5,12 +5,35 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mydata_testing/mydata_testing.dart';
 import 'package:mydata_ui/mydata_ui.dart';
 
+import 'theme/designed_themes.dart';
+
 Widget frame(Widget child) => MaterialApp(
   theme: MacTheme.data('kiwi', Brightness.light, MyDataMacColors.light),
   home: Scaffold(body: MacForm(children: [MacFormSection(heading: 'Group', footer: 'A note.', rows: [child])])),
 );
 
 void main() {
+  // A drawn theme that outlines its cards fills a form's group as one of its cards, in its own panel colour
+  // (`surface-raised`: Arcade's and Geometric's white panels), never a neutral shade of ink that sat grey on a
+  // tinted ground; one without card edges (Zen) keeps the Mac's shade, which the group needs to show at all.
+  for (final (id, card) in [('mydata.arcade', true), ('mydata.geometric', true), ('mydata.zen', false)]) {
+    testWidgets('a form group in $id is filled ${card ? 'as its card' : 'with the Mac\'s shade'}', (tester) async {
+      for (final b in Brightness.values) {
+        final look = designedLook(id, b, platform: TargetPlatform.macOS);
+        await tester.pumpWidget(MaterialApp(
+          theme: MacTheme.drawn(look),
+          home: const Material(child: MacFormSection(heading: 'Apps', rows: [SizedBox(height: 40)])),
+        ));
+        await tester.pumpAndSettle();
+        final context = tester.element(find.byType(MacFormSection));
+        final mac = context.mac;
+        expect(MacFormSection.fill(context),
+            card ? look.colors.surfaceRaised : Color.alphaBlend(mac.hover, mac.contentBackground),
+            reason: b.name);
+      }
+    });
+  }
+
   testWidgets('a switch flips on a click and is announced as toggled', (tester) async {
     var value = false;
     await tester.pumpWidget(

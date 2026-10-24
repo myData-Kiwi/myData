@@ -100,6 +100,6 @@ Phosphor Regular, the current section filled, on outlined tiles (cut, like every
 - Chakra Petch is bundled at its one weight, 600, the only weight the theme sets it in (45 KB).
 - A mono role, tabular figures, phone density and plain text buttons are given.
 - The contact list's rows as cards in the Mac window are new for the Mac list (the shared lists drew cards already). Today in the Mac month stays a round ring, and a calendar's colour bar a plain bar: cut at the theme's size, the small capsule came out as a lozenge and the 4 px bar as a diamond.
-- The prototype's month of separate cut cells is not the Mac month's (one boxed grid in every theme), so `themesDistinct` lets Arcade and Kiwi through on the month at 0.17, and Arcade and Brutalist on myData's status at 0.26 (both box each group in the same place).
+- The prototype's month of separate cut cells is not the Mac month's (one boxed grid in every theme), so `themesDistinct` lets Arcade and Kiwi through on the month at 0.17, and Arcade and Brutalist on myData's status at 0.24 (both box each group in the same place, in white panels).
 - Research B wanted Phosphor Duotone; format 1 has no duotone weight.
 - The approval card keeps its 1 px `line-strong` edge (here the bright edge) and its fixed structure.

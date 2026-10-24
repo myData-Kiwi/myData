@@ -316,13 +316,15 @@ class _HomeShellState extends State<HomeShell> {
   }
 
   /// Import's groups drawn as the Mac's grouped forms: the form's faint fill and no shadow
-  /// ([MacFormSection.fill]), lines in the system's separator, sunken wells and tiles on `quaternary-label`.
+  /// ([MacFormSection.fill]), lines in the system's separator, sunken wells and tiles on `quaternary-label`;
+  /// in a drawn theme whose groups are its cards (an edge marks them), its own panel and wells.
   static Widget _macGroups(BuildContext context, Widget child) {
     final theme = Theme.of(context);
     final mac = context.mac;
+    final cards = !context.isSystemLook && context.look.edges.card != null;
     final colors = context.colors.copyWith(
       surface: MacFormSection.fill(context),
-      surfaceSunken: Color.alphaBlend(mac.quaternaryLabel, mac.contentBackground),
+      surfaceSunken: cards ? context.colors.surfaceSunken : Color.alphaBlend(mac.quaternaryLabel, mac.contentBackground),
       line: mac.separator,
     );
     final shadows = context.shadows.copyWith(shadow1: const []);

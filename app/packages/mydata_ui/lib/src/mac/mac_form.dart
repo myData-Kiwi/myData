@@ -78,8 +78,13 @@ class MacFormSection extends StatelessWidget {
   /// The group's corners: a Settings group's, the nearest token (in a drawn theme, its corner style).
   static BorderRadius radius(MyDataLook look) => BorderRadius.all(Radius.circular(look.shape.sm));
 
-  /// The group's fill: `hover` over `content-background`, a shade off the page in both appearances.
-  static Color fill(BuildContext context) => Color.alphaBlend(context.mac.hover, context.mac.contentBackground);
+  /// The group's fill: `hover` over `content-background`, a shade off the page in both appearances. In a
+  /// drawn theme that outlines its cards the group is one of its cards, told by its edge: `surface-raised`,
+  /// the palette's panel (Arcade's and Geometric's white panels), never a neutral shade of `ink` that sat
+  /// grey on a tinted ground.
+  static Color fill(BuildContext context) => !context.isSystemLook && context.look.edges.card != null
+      ? context.colors.surfaceRaised
+      : Color.alphaBlend(context.mac.hover, context.mac.contentBackground);
 
   @override
   Widget build(BuildContext context) {

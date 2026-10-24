@@ -96,5 +96,5 @@ Phosphor Fill at 20 px, no tiles.
 - The double focus ring is new: the prototype's red ring was 1.5:1 on the dark yellow block.
 - Plain buttons are underlined words; elevation is written out as none.
 - Not expressible in format 1, as the prototype said: a square primary with a round secondary, a red rule under titles, and calendar event dots drawn as shapes.
-- **In the Mac window it is close to Brutalist and High Contrast** on the screens without people: myData's status (square ink boxes round each group, an inverse selected section; `themesDistinct` allows Brutalist at 0.14 and Arcade at 0.24) and myCalendar's month (one 2 px ink grid; High Contrast at 0.15). What sets it apart, the people drawn as shapes, shows where avatars do: the shared lists, the record header and the chat.
+- **In the Mac window it is close to Brutalist and High Contrast** on the screens without people: myData's status (square ink boxes round each group, an inverse selected section; `themesDistinct` allows Brutalist at 0.14 and Arcade at 0.21) and myCalendar's month (one 2 px ink grid; High Contrast at 0.15). What sets it apart, the people drawn as shapes, shows where avatars do: the shared lists, the record header and the chat.
 - The approval card keeps its 1 px `line-strong` edge and its fixed structure, as in every theme.
