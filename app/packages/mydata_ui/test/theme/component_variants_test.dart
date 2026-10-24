@@ -380,7 +380,19 @@ void main() {
     const size = Size(900, 840);
     variantGoldens('month', (focus) => MonthSpecimen(focus: focus), size: size);
     variantGoldens('today', (focus) => MonthSpecimen(focus: focus), size: size, focused: false);
+    variantGoldens('data-colours', (focus) => MonthSpecimen(focus: focus), size: size, focused: false);
     // The selected day in each selection style, focused by keyboard.
     variantGoldens('selection', (focus) => MonthSpecimen(focus: focus), size: size, name: 'month');
+
+    test('a pattern tells eight hues apart by grey and hatch', () {
+      final seen = {
+        for (final hex in ['#FF2968', '#FF9500', '#FFCC00', '#63DA38', '#1BADF8', '#5856D6', '#CC73E1', '#A2845E'])
+          () {
+            final p = DataPattern.of(parseDataColour(hex)!);
+            return (p.level, p.hatched);
+          }(),
+      };
+      expect(seen.length, greaterThanOrEqualTo(6));
+    });
   });
 }

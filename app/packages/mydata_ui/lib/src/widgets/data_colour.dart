@@ -70,11 +70,62 @@ enum DataGround {
 /// How a data colour is drawn on [ground] and the [alsoOn] grounds: the colour as the source gives it
 /// (opaque, never tinted), or `line-strong` when there is none, with a 1px `line-strong` inner edge when it
 /// has less than 3:1 contrast with any of those grounds.
-({Color fill, bool edge}) _swatch(MyDataColors c, Color? colour, DataGround ground, List<DataGround> alsoOn) {
-  if (colour == null) return (fill: c.lineStrong, edge: false);
+({Color fill, bool edge, bool hatch}) _swatch(
+    MyDataLook look, MyDataColors c, Color? colour, DataGround ground, List<DataGround> alsoOn) {
+  if (colour == null) return (fill: c.lineStrong, edge: false, hatch: false);
+  if (look.variants.dataColours == DataColourStyle.pattern) {
+    final p = DataPattern.of(colour);
+    return (fill: Color.lerp(c.surface, c.ink, p.level)!, edge: true, hatch: p.hatched);
+  }
   final fill = colour.withValues(alpha: 1);
   final edge = dataColourNeedsEdge(fill, ground.of(c)) || alsoOn.any((g) => dataColourNeedsEdge(fill, g.of(c)));
-  return (fill: fill, edge: edge);
+  return (fill: fill, edge: edge, hatch: false);
+}
+
+/// A data colour drawn as a pattern (`data-colours: pattern`, E-ink): calendars told apart by a grey and
+/// a hatch instead of their colour, with the name always beside or in the accessible name. Eight colours
+/// by hue (45° each): four greys, each plain or hatched. Every swatch carries the `line-strong` edge.
+@immutable
+class DataPattern {
+  const DataPattern({required this.level, required this.hatched});
+
+  /// How far from `surface` towards `ink` the grey is.
+  final double level;
+
+  /// Diagonal `surface` lines over the grey.
+  final bool hatched;
+
+  static const levels = [0.18, 0.4, 0.62, 0.85];
+
+  /// The pattern for [colour]; a colour with almost no hue (a grey calendar) is the plain lightest grey.
+  factory DataPattern.of(Color colour) {
+    final hsv = HSVColor.fromColor(colour.withValues(alpha: 1));
+    if (hsv.saturation < 0.12) return const DataPattern(level: 0.18, hatched: false);
+    final bucket = ((hsv.hue + 22.5) % 360 ~/ 45).toInt();
+    return DataPattern(level: levels[bucket % 4], hatched: bucket >= 4);
+  }
+}
+
+/// Diagonal lines in [colour], 3px apart, across the swatch they are painted over.
+class _Hatch extends CustomPainter {
+  _Hatch(this.colour);
+  final Color colour;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.save();
+    canvas.clipRect(Offset.zero & size);
+    final paint = Paint()
+      ..color = colour
+      ..strokeWidth = 1;
+    for (var x = -size.height; x < size.width; x += 3) {
+      canvas.drawLine(Offset(x, size.height), Offset(x + size.height, 0), paint);
+    }
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_Hatch old) => old.colour != colour;
 }
 
 /// Spec: "a 1px inner edge in `line-strong`".
@@ -133,12 +184,13 @@ class DataDot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final s = _swatch(c, colour, ground, alsoOn);
-    Widget dot = ExcludeSemantics(
-        child: Container(
-            width: diameter(context.look),
-            height: diameter(context.look),
-            decoration: BoxDecoration(color: s.fill, shape: BoxShape.circle, border: _edge(context, c, s.edge))));
+    final s = _swatch(context.look, c, colour, ground, alsoOn);
+    Widget dot = Container(
+        width: diameter(context.look),
+        height: diameter(context.look),
+        decoration: BoxDecoration(color: s.fill, shape: BoxShape.circle, border: _edge(context, c, s.edge)));
+    if (s.hatch) dot = ClipOval(child: CustomPaint(foregroundPainter: _Hatch(c.surface), child: dot));
+    dot = ExcludeSemantics(child: dot);
     if (slot) {
       dot = SizedBox.square(dimension: context.density.iconTile, child: Center(child: dot));
     }
@@ -184,11 +236,15 @@ class DataBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final s = _swatch(c, colour, ground, alsoOn);
-    return ExcludeSemantics(
-        child: DecoratedBox(
-            decoration: context.radius.decorate(BoxDecoration(color: s.fill, borderRadius: MyDataRadii.pill(context.look), border: _edge(context, c, s.edge))),
-            child: _BarBox(height: height)));
+    final s = _swatch(context.look, c, colour, ground, alsoOn);
+    Widget bar = DecoratedBox(
+        decoration: context.radius.decorate(BoxDecoration(
+            color: s.fill, borderRadius: MyDataRadii.pill(context.look), border: _edge(context, c, s.edge))),
+        child: _BarBox(height: height));
+    if (s.hatch) {
+      bar = context.radius.clip(MyDataRadii.pill(context.look), child: CustomPaint(foregroundPainter: _Hatch(c.surface), child: bar));
+    }
+    return ExcludeSemantics(child: bar);
   }
 }
 
