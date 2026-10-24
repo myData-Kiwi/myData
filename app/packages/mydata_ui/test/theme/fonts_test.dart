@@ -3,6 +3,7 @@
 // six built-ins find every font they name, the variable fonts draw the weight asked for, and no app goes over
 // the font budget (decided 2026-10-23: 6 MB per app).
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -21,6 +22,24 @@ int fontBytes(Iterable<Directory> dirs) {
     }
   }
   return total;
+}
+
+/// A font's variation axes from its `fvar` table: tag to (min, default, max).
+Map<String, (double, double, double)> fvarAxes(Uint8List font) {
+  final d = ByteData.sublistView(font);
+  for (var i = 0; i < d.getUint16(4); i++) {
+    final rec = 12 + 16 * i;
+    if (String.fromCharCodes(font.sublist(rec, rec + 4)) != 'fvar') continue;
+    final at = d.getUint32(rec + 8);
+    double fixed(int o) => d.getInt32(o) / 65536;
+    final first = at + d.getUint16(at + 4), size = d.getUint16(at + 10);
+    return {
+      for (var a = 0; a < d.getUint16(at + 8); a++)
+        String.fromCharCodes(font.sublist(first + a * size, first + a * size + 4)):
+            (fixed(first + a * size + 4), fixed(first + a * size + 8), fixed(first + a * size + 12)),
+    };
+  }
+  return const {};
 }
 
 void main() {
@@ -42,6 +61,16 @@ void main() {
         .toSet();
     expect(present, wanted);
     expect(pubspec, contains('- assets/fonts/catalogue/'));
+  });
+
+  test('each font loaded on demand keeps only its weight axis, with regular (400) as its default', () {
+    for (final f in onDemand) {
+      for (final asset in f.assets) {
+        final axes = fvarAxes(File(asset).readAsBytesSync());
+        expect(axes.keys, ['wght'], reason: asset);
+        expect(axes['wght']!.$2, 400, reason: '$asset: a style without its wght variation is drawn regular');
+      }
+    }
   });
 
   test('the core fonts are in the pubspec and only they are', () {

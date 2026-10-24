@@ -9,7 +9,7 @@
 #   marks, tabular and lining figures);
 # - pinned on every axis but weight (`wght` stays, so any weight a theme names is drawn exactly): optical size
 #   at the font's default, except Fraunces at 36 (it is a display face, set at 22 px and up), width at 100,
-#   Fraunces' SOFT 0 and WONK 0;
+#   Fraunces' SOFT 0 and WONK 0; the weight axis's default moved to 400 where it was another;
 # - written as assets/fonts/catalogue/<id>.ttf (and <id>-italic.ttf), with its licence as
 #   assets/fonts/OFL-<id>.txt.
 # Every font here is SIL OFL 1.1 with no Reserved Font Name (the copyright line of each OFL.txt was read,
@@ -63,6 +63,13 @@ for pin in filter(None, pins.split(',')):
     limits[axis] = None if value == 'default' else float(value)
 if limits:
     font = instancer.instantiateVariableFont(font, limits)
+# The default instance at regular (400) where the axis reaches it, so text that ever loses its `wght`
+# variation (a style built from the family alone) is drawn regular, not the source's default (Fraunces
+# Black, Manrope and Nunito ExtraLight, Fredoka Light). The whole weight range stays.
+wght = next(a for a in font['fvar'].axes if a.axisTag == 'wght')
+if wght.defaultValue != 400 and wght.minValue <= 400 <= wght.maxValue:
+    font = instancer.instantiateVariableFont(font, {'wght': (wght.minValue, 400, wght.maxValue)})
+    font['OS/2'].usWeightClass = 400
 # Keep the source's timestamp, so a rerun writes the same bytes.
 font.recalcTimestamp = False
 font.save(out)
