@@ -103,9 +103,9 @@ void main() {
     expect(MyDataIconTheme(_spec('phosphor', 'thin')).weight, 'light');
     expect(MyDataIconTheme(_spec('lucide', 'light')).weight, 'regular');
     expect(MyDataIconTheme(_spec('material-outlined', 'thin')).weight, 'light');
-    final sharp = MyDataIconTheme(_spec('material-sharp', 'regular'));
-    expect(sharp.set, 'lucide');
-    expect(sharp(MyDataIcon.add), lucideIcons[MyDataIcon.add]);
+    final iconoir = MyDataIconTheme(_spec('iconoir', 'regular'));
+    expect(iconoir.set, 'lucide');
+    expect(iconoir(MyDataIcon.add), lucideIcons[MyDataIcon.add]);
   });
 
   test('a theme that fills selected icons draws the fill for a selected one, where the set has a fill', () {
@@ -184,12 +184,13 @@ void main() {
     }
   }
 
-  // Material Symbols, Outlined and Rounded, in every weight they are cut in (the fill as the selected row),
+  // Material Symbols, Outlined, Rounded and Sharp, in every weight they are cut in (the fill as the selected row),
   // and Pixelarticons in its one weight, on Kiwi's look: the glyphs as the sets draw them, whichever theme
   // names them.
   for (final (set, weights) in [
     ('material-outlined', ['light', 'regular', 'bold']),
     ('material-rounded', ['light', 'regular', 'bold']),
+    ('material-sharp', ['light', 'regular', 'bold']),
     ('pixelarticons', ['regular']),
   ]) {
     for (final weight in weights) {

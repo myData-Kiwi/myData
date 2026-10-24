@@ -977,6 +977,234 @@ const materialRoundedFillIcons = <MyDataIcon, IconData>{
   MyDataIcon.upDown: IconData(0xe5d7, fontFamily: 'MaterialRoundedFill', fontPackage: fontPackage), // unfold_more
 };
 
+/// MaterialSharpLight: material-sharp, light.
+const materialSharpLightIcons = <MyDataIcon, IconData>{
+  MyDataIcon.people: IconData(0xea21, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // group
+  MyDataIcon.person: IconData(0xf0d3, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // person
+  MyDataIcon.personAdd: IconData(0xea4d, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // person_add
+  MyDataIcon.contact: IconData(0xe0ba, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // contacts
+  MyDataIcon.calendar: IconData(0xe935, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // calendar_today
+  MyDataIcon.calendarMonth: IconData(0xebcc, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // calendar_month
+  MyDataIcon.calendarCheck: IconData(0xe614, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // event_available
+  MyDataIcon.clock: IconData(0xefd6, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // schedule
+  MyDataIcon.photo: IconData(0xe3f4, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // image
+  MyDataIcon.assistant: IconData(0xe65f, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // auto_awesome
+  MyDataIcon.chat: IconData(0xe0c9, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // chat
+  MyDataIcon.status: IconData(0xeaa2, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // monitor_heart
+  MyDataIcon.importFile: IconData(0xe156, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // inbox
+  MyDataIcon.settings: IconData(0xe8b8, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // settings
+  MyDataIcon.layers: IconData(0xe53b, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // layers
+  MyDataIcon.review: IconData(0xe6b1, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // checklist
+  MyDataIcon.list: IconData(0xe896, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // list
+  MyDataIcon.note: IconData(0xf88d, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // edit_square
+  MyDataIcon.trash: IconData(0xe92e, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // delete
+  MyDataIcon.thisMac: IconData(0xe31e, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // laptop
+  MyDataIcon.host: IconData(0xe875, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // dns
+  MyDataIcon.cloud: IconData(0xf15c, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // cloud
+  MyDataIcon.sync: IconData(0xe627, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // sync
+  MyDataIcon.agents: IconData(0xeb2f, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // lan
+  MyDataIcon.key: IconData(0xe73c, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // key
+  MyDataIcon.add: IconData(0xe145, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // add
+  MyDataIcon.remove: IconData(0xf08f, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // do_not_disturb_on
+  MyDataIcon.edit: IconData(0xf097, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // edit
+  MyDataIcon.copy: IconData(0xe14d, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // content_copy
+  MyDataIcon.search: IconData(0xef7a, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // search
+  MyDataIcon.clear: IconData(0xe888, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // cancel
+  MyDataIcon.close: IconData(0xe5cd, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // close
+  MyDataIcon.more: IconData(0xe5d3, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // more_horiz
+  MyDataIcon.send: IconData(0xe5d8, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // arrow_upward
+  MyDataIcon.check: IconData(0xe668, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // check
+  MyDataIcon.fileCheck: IconData(0xf075, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // task
+  MyDataIcon.report: IconData(0xf0c6, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // flag
+  MyDataIcon.download: IconData(0xf090, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // download
+  MyDataIcon.message: IconData(0xe0cb, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // chat_bubble
+  MyDataIcon.call: IconData(0xf0d4, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // call
+  MyDataIcon.video: IconData(0xe04b, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // videocam
+  MyDataIcon.mail: IconData(0xe159, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // mail
+  MyDataIcon.map: IconData(0xf1db, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // location_on
+  MyDataIcon.info: IconData(0xe88e, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // info
+  MyDataIcon.warning: IconData(0xf083, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // warning
+  MyDataIcon.error: IconData(0xf8b6, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // error
+  MyDataIcon.success: IconData(0xf0be, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // check_circle
+  MyDataIcon.sidebar: IconData(0xe9e2, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // side_navigation
+  MyDataIcon.back: IconData(0xe5c4, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // arrow_back
+  MyDataIcon.chevronLeft: IconData(0xe5cb, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // chevron_left
+  MyDataIcon.chevronRight: IconData(0xe5cc, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // chevron_right
+  MyDataIcon.chevronDown: IconData(0xe5cf, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // expand_more
+  MyDataIcon.upDown: IconData(0xe5d7, fontFamily: 'MaterialSharpLight', fontPackage: fontPackage), // unfold_more
+};
+
+/// MaterialSharp: material-sharp, regular.
+const materialSharpIcons = <MyDataIcon, IconData>{
+  MyDataIcon.people: IconData(0xea21, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // group
+  MyDataIcon.person: IconData(0xf0d3, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // person
+  MyDataIcon.personAdd: IconData(0xea4d, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // person_add
+  MyDataIcon.contact: IconData(0xe0ba, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // contacts
+  MyDataIcon.calendar: IconData(0xe935, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // calendar_today
+  MyDataIcon.calendarMonth: IconData(0xebcc, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // calendar_month
+  MyDataIcon.calendarCheck: IconData(0xe614, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // event_available
+  MyDataIcon.clock: IconData(0xefd6, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // schedule
+  MyDataIcon.photo: IconData(0xe3f4, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // image
+  MyDataIcon.assistant: IconData(0xe65f, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // auto_awesome
+  MyDataIcon.chat: IconData(0xe0c9, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // chat
+  MyDataIcon.status: IconData(0xeaa2, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // monitor_heart
+  MyDataIcon.importFile: IconData(0xe156, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // inbox
+  MyDataIcon.settings: IconData(0xe8b8, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // settings
+  MyDataIcon.layers: IconData(0xe53b, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // layers
+  MyDataIcon.review: IconData(0xe6b1, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // checklist
+  MyDataIcon.list: IconData(0xe896, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // list
+  MyDataIcon.note: IconData(0xf88d, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // edit_square
+  MyDataIcon.trash: IconData(0xe92e, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // delete
+  MyDataIcon.thisMac: IconData(0xe31e, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // laptop
+  MyDataIcon.host: IconData(0xe875, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // dns
+  MyDataIcon.cloud: IconData(0xf15c, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // cloud
+  MyDataIcon.sync: IconData(0xe627, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // sync
+  MyDataIcon.agents: IconData(0xeb2f, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // lan
+  MyDataIcon.key: IconData(0xe73c, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // key
+  MyDataIcon.add: IconData(0xe145, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // add
+  MyDataIcon.remove: IconData(0xf08f, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // do_not_disturb_on
+  MyDataIcon.edit: IconData(0xf097, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // edit
+  MyDataIcon.copy: IconData(0xe14d, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // content_copy
+  MyDataIcon.search: IconData(0xef7a, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // search
+  MyDataIcon.clear: IconData(0xe888, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // cancel
+  MyDataIcon.close: IconData(0xe5cd, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // close
+  MyDataIcon.more: IconData(0xe5d3, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // more_horiz
+  MyDataIcon.send: IconData(0xe5d8, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // arrow_upward
+  MyDataIcon.check: IconData(0xe668, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // check
+  MyDataIcon.fileCheck: IconData(0xf075, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // task
+  MyDataIcon.report: IconData(0xf0c6, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // flag
+  MyDataIcon.download: IconData(0xf090, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // download
+  MyDataIcon.message: IconData(0xe0cb, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // chat_bubble
+  MyDataIcon.call: IconData(0xf0d4, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // call
+  MyDataIcon.video: IconData(0xe04b, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // videocam
+  MyDataIcon.mail: IconData(0xe159, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // mail
+  MyDataIcon.map: IconData(0xf1db, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // location_on
+  MyDataIcon.info: IconData(0xe88e, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // info
+  MyDataIcon.warning: IconData(0xf083, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // warning
+  MyDataIcon.error: IconData(0xf8b6, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // error
+  MyDataIcon.success: IconData(0xf0be, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // check_circle
+  MyDataIcon.sidebar: IconData(0xe9e2, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // side_navigation
+  MyDataIcon.back: IconData(0xe5c4, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // arrow_back
+  MyDataIcon.chevronLeft: IconData(0xe5cb, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // chevron_left
+  MyDataIcon.chevronRight: IconData(0xe5cc, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // chevron_right
+  MyDataIcon.chevronDown: IconData(0xe5cf, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // expand_more
+  MyDataIcon.upDown: IconData(0xe5d7, fontFamily: 'MaterialSharp', fontPackage: fontPackage), // unfold_more
+};
+
+/// MaterialSharpBold: material-sharp, bold.
+const materialSharpBoldIcons = <MyDataIcon, IconData>{
+  MyDataIcon.people: IconData(0xea21, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // group
+  MyDataIcon.person: IconData(0xf0d3, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // person
+  MyDataIcon.personAdd: IconData(0xea4d, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // person_add
+  MyDataIcon.contact: IconData(0xe0ba, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // contacts
+  MyDataIcon.calendar: IconData(0xe935, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // calendar_today
+  MyDataIcon.calendarMonth: IconData(0xebcc, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // calendar_month
+  MyDataIcon.calendarCheck: IconData(0xe614, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // event_available
+  MyDataIcon.clock: IconData(0xefd6, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // schedule
+  MyDataIcon.photo: IconData(0xe3f4, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // image
+  MyDataIcon.assistant: IconData(0xe65f, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // auto_awesome
+  MyDataIcon.chat: IconData(0xe0c9, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // chat
+  MyDataIcon.status: IconData(0xeaa2, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // monitor_heart
+  MyDataIcon.importFile: IconData(0xe156, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // inbox
+  MyDataIcon.settings: IconData(0xe8b8, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // settings
+  MyDataIcon.layers: IconData(0xe53b, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // layers
+  MyDataIcon.review: IconData(0xe6b1, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // checklist
+  MyDataIcon.list: IconData(0xe896, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // list
+  MyDataIcon.note: IconData(0xf88d, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // edit_square
+  MyDataIcon.trash: IconData(0xe92e, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // delete
+  MyDataIcon.thisMac: IconData(0xe31e, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // laptop
+  MyDataIcon.host: IconData(0xe875, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // dns
+  MyDataIcon.cloud: IconData(0xf15c, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // cloud
+  MyDataIcon.sync: IconData(0xe627, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // sync
+  MyDataIcon.agents: IconData(0xeb2f, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // lan
+  MyDataIcon.key: IconData(0xe73c, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // key
+  MyDataIcon.add: IconData(0xe145, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // add
+  MyDataIcon.remove: IconData(0xf08f, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // do_not_disturb_on
+  MyDataIcon.edit: IconData(0xf097, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // edit
+  MyDataIcon.copy: IconData(0xe14d, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // content_copy
+  MyDataIcon.search: IconData(0xef7a, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // search
+  MyDataIcon.clear: IconData(0xe888, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // cancel
+  MyDataIcon.close: IconData(0xe5cd, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // close
+  MyDataIcon.more: IconData(0xe5d3, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // more_horiz
+  MyDataIcon.send: IconData(0xe5d8, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // arrow_upward
+  MyDataIcon.check: IconData(0xe668, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // check
+  MyDataIcon.fileCheck: IconData(0xf075, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // task
+  MyDataIcon.report: IconData(0xf0c6, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // flag
+  MyDataIcon.download: IconData(0xf090, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // download
+  MyDataIcon.message: IconData(0xe0cb, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // chat_bubble
+  MyDataIcon.call: IconData(0xf0d4, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // call
+  MyDataIcon.video: IconData(0xe04b, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // videocam
+  MyDataIcon.mail: IconData(0xe159, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // mail
+  MyDataIcon.map: IconData(0xf1db, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // location_on
+  MyDataIcon.info: IconData(0xe88e, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // info
+  MyDataIcon.warning: IconData(0xf083, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // warning
+  MyDataIcon.error: IconData(0xf8b6, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // error
+  MyDataIcon.success: IconData(0xf0be, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // check_circle
+  MyDataIcon.sidebar: IconData(0xe9e2, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // side_navigation
+  MyDataIcon.back: IconData(0xe5c4, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // arrow_back
+  MyDataIcon.chevronLeft: IconData(0xe5cb, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // chevron_left
+  MyDataIcon.chevronRight: IconData(0xe5cc, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // chevron_right
+  MyDataIcon.chevronDown: IconData(0xe5cf, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // expand_more
+  MyDataIcon.upDown: IconData(0xe5d7, fontFamily: 'MaterialSharpBold', fontPackage: fontPackage), // unfold_more
+};
+
+/// MaterialSharpFill: material-sharp, fill.
+const materialSharpFillIcons = <MyDataIcon, IconData>{
+  MyDataIcon.people: IconData(0xea21, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // group
+  MyDataIcon.person: IconData(0xf0d3, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // person
+  MyDataIcon.personAdd: IconData(0xea4d, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // person_add
+  MyDataIcon.contact: IconData(0xe0ba, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // contacts
+  MyDataIcon.calendar: IconData(0xe935, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // calendar_today
+  MyDataIcon.calendarMonth: IconData(0xebcc, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // calendar_month
+  MyDataIcon.calendarCheck: IconData(0xe614, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // event_available
+  MyDataIcon.clock: IconData(0xefd6, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // schedule
+  MyDataIcon.photo: IconData(0xe3f4, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // image
+  MyDataIcon.assistant: IconData(0xe65f, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // auto_awesome
+  MyDataIcon.chat: IconData(0xe0c9, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // chat
+  MyDataIcon.status: IconData(0xeaa2, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // monitor_heart
+  MyDataIcon.importFile: IconData(0xe156, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // inbox
+  MyDataIcon.settings: IconData(0xe8b8, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // settings
+  MyDataIcon.layers: IconData(0xe53b, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // layers
+  MyDataIcon.review: IconData(0xe6b1, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // checklist
+  MyDataIcon.list: IconData(0xe896, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // list
+  MyDataIcon.note: IconData(0xf88d, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // edit_square
+  MyDataIcon.trash: IconData(0xe92e, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // delete
+  MyDataIcon.thisMac: IconData(0xe31e, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // laptop
+  MyDataIcon.host: IconData(0xe875, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // dns
+  MyDataIcon.cloud: IconData(0xf15c, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // cloud
+  MyDataIcon.sync: IconData(0xe627, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // sync
+  MyDataIcon.agents: IconData(0xeb2f, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // lan
+  MyDataIcon.key: IconData(0xe73c, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // key
+  MyDataIcon.add: IconData(0xe145, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // add
+  MyDataIcon.remove: IconData(0xf08f, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // do_not_disturb_on
+  MyDataIcon.edit: IconData(0xf097, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // edit
+  MyDataIcon.copy: IconData(0xe14d, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // content_copy
+  MyDataIcon.search: IconData(0xef7a, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // search
+  MyDataIcon.clear: IconData(0xe888, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // cancel
+  MyDataIcon.close: IconData(0xe5cd, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // close
+  MyDataIcon.more: IconData(0xe5d3, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // more_horiz
+  MyDataIcon.send: IconData(0xe5d8, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // arrow_upward
+  MyDataIcon.check: IconData(0xe668, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // check
+  MyDataIcon.fileCheck: IconData(0xf075, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // task
+  MyDataIcon.report: IconData(0xf0c6, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // flag
+  MyDataIcon.download: IconData(0xf090, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // download
+  MyDataIcon.message: IconData(0xe0cb, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // chat_bubble
+  MyDataIcon.call: IconData(0xf0d4, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // call
+  MyDataIcon.video: IconData(0xe04b, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // videocam
+  MyDataIcon.mail: IconData(0xe159, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // mail
+  MyDataIcon.map: IconData(0xf1db, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // location_on
+  MyDataIcon.info: IconData(0xe88e, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // info
+  MyDataIcon.warning: IconData(0xf083, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // warning
+  MyDataIcon.error: IconData(0xf8b6, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // error
+  MyDataIcon.success: IconData(0xf0be, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // check_circle
+  MyDataIcon.sidebar: IconData(0xe9e2, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // side_navigation
+  MyDataIcon.back: IconData(0xe5c4, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // arrow_back
+  MyDataIcon.chevronLeft: IconData(0xe5cb, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // chevron_left
+  MyDataIcon.chevronRight: IconData(0xe5cc, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // chevron_right
+  MyDataIcon.chevronDown: IconData(0xe5cf, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // expand_more
+  MyDataIcon.upDown: IconData(0xe5d7, fontFamily: 'MaterialSharpFill', fontPackage: fontPackage), // unfold_more
+};
+
 /// Every bundled icon font, by set and weight.
 const iconTables = <String, Map<String, Map<MyDataIcon, IconData>>>{
   'lucide': {'regular': lucideIcons},
@@ -985,4 +1213,5 @@ const iconTables = <String, Map<String, Map<MyDataIcon, IconData>>>{
   'pixelarticons': {'regular': pixelarticonsIcons},
   'material-outlined': {'light': materialOutlinedLightIcons, 'regular': materialOutlinedIcons, 'bold': materialOutlinedBoldIcons, 'fill': materialOutlinedFillIcons},
   'material-rounded': {'light': materialRoundedLightIcons, 'regular': materialRoundedIcons, 'bold': materialRoundedBoldIcons, 'fill': materialRoundedFillIcons},
+  'material-sharp': {'light': materialSharpLightIcons, 'regular': materialSharpIcons, 'bold': materialSharpBoldIcons, 'fill': materialSharpFillIcons},
 };

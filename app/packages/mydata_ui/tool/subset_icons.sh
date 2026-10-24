@@ -4,15 +4,15 @@
 # lib/src/theme/icon_sets.g.dart, the const IconData tables (const, so release builds can tree-shake them).
 #   tool/subset_icons.sh            (from app/packages/mydata_ui; needs curl, python3 and uv)
 #
-# Sets and weights bundled (Iconoir and Material Symbols Sharp come with the first theme that draws them):
+# Sets and weights bundled (Iconoir comes with the first theme that draws it):
 # - Lucide (ISC): one weight, `Lucide`. Also System's icons on macOS, in place of SF Symbols, which may only
 #   be used through Apple's own frameworks (docs/2026-10-23-plan.md, 3(d)).
 # - Tabler Icons (MIT): stroke 200, 300 and 400 as thin, light and regular (`TablerThin`, `TablerLight`,
 #   `Tabler`). Its filled set covers too few icons to stand for `fill`.
 # - Phosphor (MIT): light, regular, bold and fill (`PhosphorLight`, `Phosphor`, `PhosphorBold`, `PhosphorFill`).
-# - Material Symbols (Apache-2.0), Outlined and Rounded: the variable font pinned at static instances (optical
-#   size 20, grade 0) at weight 300, 400 and 600 as light, regular and bold, and filled at 400 as fill
-#   (`MaterialOutlinedLight` ... `MaterialRoundedFill`). From google/material-design-icons at one commit,
+# - Material Symbols (Apache-2.0), Outlined, Rounded and Sharp: the variable font pinned at static instances
+#   (optical size 20, grade 0) at weight 300, 400 and 600 as light, regular and bold, and filled at 400 as fill
+#   (`MaterialOutlinedLight` ... `MaterialSharpFill`). From google/material-design-icons at one commit,
 #   checked against its SHA-256; names from the font's own `.codepoints` file (`material` in tool/icons.json).
 # - Pixelarticons (MIT): one weight, `Pixelarticons`, drawn on a 24 px grid (Retro Desktop). Its glyphs are
 #   the font the package ships, with names from its CSS.
@@ -35,6 +35,7 @@ MATERIAL_COMMIT=737e3324305806514d7909874fa1818ae1808232
 MATERIAL=$(cat <<'EOF'
 Outlined|5ca6cdf74da4018e8a7687995c9e392b1a7ec49588fade2be3a97a2a06dd3262|225bd09137103cb7746bc93dc08d08764c9f0c3bd04f4b958d4a3c3c19432dd6
 Rounded|95b24392bb49efd1bc3e92cff4e2452ad094461bab7c97e7d8723fab97e330ca|225bd09137103cb7746bc93dc08d08764c9f0c3bd04f4b958d4a3c3c19432dd6
+Sharp|361bb7f45689c31de332511c5d18a1ec7b0e1a2489d33b83a09c0755edc060d2|225bd09137103cb7746bc93dc08d08764c9f0c3bd04f4b958d4a3c3c19432dd6
 EOF
 )
 
@@ -128,7 +129,7 @@ fonts = [
     ('Pixelarticons', 'pixelarticons', 'regular', f'{work}/pixelarticons/package/fonts/pixelart-icons-font.ttf', pixel,
      'pixelarticons', None),
 ]
-for style in ('Outlined', 'Rounded'):
+for style in ('Outlined', 'Rounded', 'Sharp'):
     for weight, fill, wght in (('light', 0, 300), ('regular', 0, 400), ('bold', 0, 600), ('fill', 1, 400)):
         family = f'Material{style}{"" if weight == "regular" else weight.capitalize()}'
         fonts.append((family, f'material-{style.lower()}', weight, f'{work}/material/{style}.ttf', material(style),

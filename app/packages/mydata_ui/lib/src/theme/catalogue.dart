@@ -130,8 +130,8 @@ const genericMonoFamilies = {
 
 /// The icon sets a theme may name (theme.schema.json). Lucide, Tabler and Phosphor are bundled (phase 3,
 /// tool/subset_icons.sh), Material Symbols Outlined and Rounded since High Contrast and Large (phase 4),
-/// Pixelarticons since Retro Desktop; the others come with the first theme that draws them, and until then a
-/// theme naming one is drawn in Lucide, with a notice.
+/// Pixelarticons since Retro Desktop, Material Symbols Sharp since Swiss; Iconoir comes with the first theme
+/// that draws it, and until then a theme naming it is drawn in Lucide, with a notice.
 const iconSets = {
   'lucide', 'phosphor', 'tabler', 'material-outlined', 'material-rounded', 'material-sharp', 'pixelarticons',
   'iconoir',
@@ -145,6 +145,7 @@ const bundledIconWeights = {
   'phosphor': {'light', 'regular', 'bold', 'fill'},
   'material-outlined': {'light', 'regular', 'bold', 'fill'},
   'material-rounded': {'light', 'regular', 'bold', 'fill'},
+  'material-sharp': {'light', 'regular', 'bold', 'fill'},
   'pixelarticons': {'regular'},
 };
 final bundledIconSets = bundledIconWeights.keys.toSet();
