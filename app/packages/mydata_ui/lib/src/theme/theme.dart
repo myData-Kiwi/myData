@@ -213,7 +213,10 @@ extension MyDataLookContext on BuildContext {
   MyDataDensity get density => MyDataAccessibility.of(this).coarsePointer
       ? look.density.atLeast(MyDataDensity.coarseFloor)
       : look.density;
-  MyDataMotionSpec get motion => look.motion;
+  /// The look's motion, or its reduced form while the system asks for less motion
+  /// ([MyDataMotionSpec.reduced]).
+  MyDataMotionSpec get motion =>
+      MyDataAccessibility.of(this).reduceMotion ? look.motion.reduced : look.motion;
 
   /// [icon]'s glyph in this look's icon set and weight; filled when [selected] and the theme fills selected
   /// icons (`Icon(context.icon(MyDataIcon.add))`).

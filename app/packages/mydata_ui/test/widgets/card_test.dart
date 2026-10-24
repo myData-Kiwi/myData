@@ -1,8 +1,11 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mydata_testing/mydata_testing.dart';
 import 'package:mydata_ui/mydata_ui.dart';
+import 'package:mydata_ui/src/theme/builtin_themes.g.dart';
 
 /// The preview's storage meter: an 8px `surface-sunken` track with a 40% `accent` fill.
 Widget _meter() => Builder(
@@ -298,6 +301,21 @@ void main() {
       }
       expect(tester.hasRunningAnimations, isFalse);
     });
+
+    for (final (enter, rises, plays) in [('none', false, false), ('fade', false, true), ('fade-rise', true, true)]) {
+      testWidgets('a theme whose entrance is $enter: ${plays ? 'the cards fade${rises ? ' and rise' : ''}' : 'cards show at once'}',
+          (tester) async {
+        final json = jsonDecode(kiwiThemeJson) as Map<String, dynamic>;
+        (json['motion'] as Map<String, dynamic>)['enter'] = enter;
+        final look = ThemeLibrary.look(ThemeFile.fromJson(json, base: json), brightness: Brightness.light);
+        await tester.pumpWidget(MaterialApp(theme: MyDataTheme.fromLook(look), home: Material(child: _grid(3))));
+        await tester.pump(MyDataMotion.entranceStagger);
+        expect(_opacity(tester, 0), plays ? lessThan(1) : 1);
+        expect(_rise(tester, 0), rises ? greaterThan(0) : 0);
+        await tester.pumpAndSettle();
+        expect(_opacity(tester, 2), 1);
+      });
+    }
 
     testWidgets('rebuilding the grid makes no new animations: every card listens to the one controller',
         (tester) async {

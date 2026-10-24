@@ -372,6 +372,68 @@ void main() {
       expect(height, 24);
     });
   });
+
+  group('motion (phase 3)', () {
+    MyDataMotionSpec of(MotionPersonality p, {double scale = 1, PressStyle press = PressStyle.dimScale, EnterStyle enter = EnterStyle.fadeRise}) =>
+        MyDataMotionSpec.of(MotionSpec(personality: p, scale: scale, press: press, enter: enter));
+
+    test('standard is motion.md; calm is longer, crisp shorter, none takes no time', () {
+      final standard = of(MotionPersonality.standard);
+      expect(standard.fast, MyDataMotion.fast);
+      expect(standard.base, MyDataMotion.base);
+      expect(standard.slow, MyDataMotion.slow);
+      expect(of(MotionPersonality.calm).base, greaterThan(standard.base));
+      expect(of(MotionPersonality.crisp).base, lessThan(standard.base));
+      final none = of(MotionPersonality.none);
+      expect([none.fast, none.base, none.slow, none.springDuration], everyElement(Duration.zero));
+    });
+
+    test('scale multiplies every duration and slow stops at 500 ms', () {
+      expect(of(MotionPersonality.standard, scale: 0.5).fast, MyDataMotion.fast * 0.5);
+      expect(of(MotionPersonality.calm, scale: 1.5).slow, const Duration(milliseconds: 500));
+    });
+
+    test('press styles: dim-scale dims and shrinks, dim only dims, none, sink and invert neither', () {
+      expect(of(MotionPersonality.standard).pressScale, MyDataMotion.pressScale);
+      expect(of(MotionPersonality.standard, press: PressStyle.dim).pressScale, 1);
+      expect(of(MotionPersonality.standard, press: PressStyle.dim).pressOpacity, MyDataMotion.pressOpacity);
+      for (final p in [PressStyle.none, PressStyle.sink, PressStyle.invert]) {
+        expect(of(MotionPersonality.standard, press: p).pressScale, 1, reason: p.name);
+        expect(of(MotionPersonality.standard, press: p).pressOpacity, 1, reason: p.name);
+      }
+      expect(of(MotionPersonality.standard, enter: EnterStyle.fade).entranceRise, 0);
+    });
+
+    test('reduced motion: every personality is a fast fade with nothing moving; none stays nothing', () {
+      for (final p in MotionPersonality.values) {
+        for (final press in PressStyle.values) {
+          final r = of(p, press: press).reduced;
+          expect([r.base, r.slow, r.springDuration], everyElement(lessThanOrEqualTo(r.fast)), reason: '$p $press');
+          expect(r.pressScale, 1);
+          expect(r.entranceRise, 0);
+          expect(r.sheetDrop, 0);
+          expect(r.press, isNot(anyOf(PressStyle.sink, PressStyle.dimScale)));
+          if (p == MotionPersonality.none) expect(r.fast, Duration.zero);
+        }
+      }
+    });
+
+    testWidgets('context.motion is the reduced form while the system reduces motion', (tester) async {
+      late MyDataMotionSpec motion;
+      await tester.pumpWidget(MaterialApp(
+        theme: MyDataTheme.fromLook(MyDataLook.fallback(Brightness.light)),
+        home: MediaQuery(
+          data: const MediaQueryData(disableAnimations: true),
+          child: Builder(builder: (context) {
+            motion = context.motion;
+            return const SizedBox();
+          }),
+        ),
+      ));
+      expect(motion.base, MyDataMotion.fast);
+      expect(motion.pressScale, 1);
+    });
+  });
 }
 
 class _ReadsInInitState extends StatefulWidget {

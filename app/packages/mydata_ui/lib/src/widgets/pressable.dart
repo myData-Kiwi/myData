@@ -139,18 +139,37 @@ class _PressableState extends State<Pressable> {
         child: body,
       );
     }
-    // Press: in at once (duration zero on the way down), out over `fast`.
+    final motion = context.motion;
+    // Press, in the theme's style (`motion.press`): in at once (duration zero on the way down), out over
+    // `fast`. dim and dim-scale dim (and shrink); sink moves the control into where its shadow was; invert
+    // draws it in reverse on an `ink` ground; none does nothing. Rows ([scaleOnPress] false) only dim.
+    if (widget.scaleOnPress && motion.press == PressStyle.sink) {
+      final drop = context.look.elevation.sink;
+      body = TweenAnimationBuilder<Offset>(
+        tween: Tween(end: down ? (drop == Offset.zero ? Offset(0, context.space(0.5)) : drop) : Offset.zero),
+        duration: down ? Duration.zero : motion.fast,
+        curve: motion.standard,
+        builder: (context, offset, child) => Transform.translate(offset: offset, child: child),
+        child: body,
+      );
+    } else if (widget.scaleOnPress && motion.press == PressStyle.invert) {
+      body = DecoratedBox(
+        decoration: context.radius.decorate(BoxDecoration(
+            color: down ? c.ink : c.ink.withValues(alpha: 0), borderRadius: widget.borderRadius)),
+        child: ColorFiltered(colorFilter: ColorFilter.matrix(down ? _invert : _identity), child: body),
+      );
+    }
     body = AnimatedOpacity(
       opacity: !_enabled
           ? (widget.fadeWhenDisabled ? Pressable.disabledOpacity : 1)
-          : (down ? context.motion.pressOpacity : 1),
-      duration: down ? Duration.zero : context.motion.fast,
-      curve: context.motion.standard,
+          : (down ? motion.pressOpacity : 1),
+      duration: down ? Duration.zero : motion.fast,
+      curve: motion.standard,
       child: widget.scaleOnPress && !reduced
           ? AnimatedScale(
-              scale: down ? context.motion.pressScale : 1,
-              duration: down ? Duration.zero : context.motion.fast,
-              curve: context.motion.standard,
+              scale: down ? motion.pressScale : 1,
+              duration: down ? Duration.zero : motion.fast,
+              curve: motion.standard,
               child: body)
           : body,
     );
@@ -209,6 +228,16 @@ class _PressableState extends State<Pressable> {
     return body;
   }
 }
+
+/// Colours turned around (an `invert` press): each pixel's luminance reversed, in grey, so a pressed control
+/// reads in reverse in any palette (light on dark where it was dark on light), and left as they are.
+const _invert = <double>[
+  -0.2126, -0.7152, -0.0722, 0, 255, //
+  -0.2126, -0.7152, -0.0722, 0, 255, //
+  -0.2126, -0.7152, -0.0722, 0, 255, //
+  0, 0, 0, 1, 0,
+];
+const _identity = <double>[1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0];
 
 /// Whether the [Pressable] around a widget is pressed right now, for a control that draws its pressed state
 /// itself: a hard, offset or bevel shadow that collapses (`elevation.press: collapse`), a bevel that flips.

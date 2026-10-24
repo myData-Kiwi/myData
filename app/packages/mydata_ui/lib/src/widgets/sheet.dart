@@ -231,7 +231,13 @@ class _SheetState extends State<Sheet> with SingleTickerProviderStateMixin {
     _rise?.dispose();
     _rise = CurvedAnimation(
       parent: animation,
-      curve: Interval(0, context.motion.springDuration.inMicroseconds / context.motion.slow.inMicroseconds,
+      // The spring's share of the sheet's run: all of it when the spring is the longer (a lively theme), and
+      // when nothing moves at all (`motion: none`, whose durations are zero).
+      curve: Interval(
+          0,
+          context.motion.slow == Duration.zero
+              ? 1
+              : (context.motion.springDuration.inMicroseconds / context.motion.slow.inMicroseconds).clamp(0.0, 1.0),
           curve: const SpringCurve()),
       reverseCurve: context.motion.standard,
     );

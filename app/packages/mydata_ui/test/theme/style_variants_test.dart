@@ -55,6 +55,15 @@ final List<StyleVariant> styleVariants = [
 final List<StyleVariant> pressedVariants = [
   for (final press in ['none', 'collapse'])
     (name: 'elevation-press-$press', edit: _set('elevation', {'style': 'hard', 'strength': 1, 'offset': 4, 'press': press})),
+  // Motion's press styles; sink on a hard shadow that collapses, so the button takes the shadow's place.
+  for (final press in ['none', 'dim', 'dim-scale', 'sink', 'invert'])
+    (
+      name: 'motion-press-$press',
+      edit: (json) {
+        _set('motion', {'press': press})(json);
+        if (press == 'sink') _set('elevation', {'style': 'hard', 'strength': 1, 'offset': 4, 'press': 'collapse'})(json);
+      },
+    ),
 ];
 
 /// Real components: buttons (the first focused by keyboard), an icon button, a segmented control and a

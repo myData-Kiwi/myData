@@ -731,7 +731,39 @@ class MyDataMotionSpec {
     sheetDrop: MyDataMotion.sheetDrop,
   );
 
-  /// The personalities other than `standard` are first values, tuned when phase 3 draws them.
+  static final _reduced = Expando<MyDataMotionSpec>('reduced');
+
+  /// This motion when the system asks for less (ARCHITECTURE.md 2.3, "System settings win"): every
+  /// personality becomes a `fast` fade, and `none` stays nothing. Nothing moves: no scale or sink on a press
+  /// (a dim instead; `invert` keeps its colours, which do not move), no rise on entering, no sheet travel,
+  /// and every duration, spring included, is at most `fast`.
+  MyDataMotionSpec get reduced => _reduced[this] ??= MyDataMotionSpec(
+        personality: personality,
+        fast: fast,
+        base: fast,
+        slow: fast,
+        standard: standard,
+        spring: spring,
+        springDuration: fast,
+        pressScale: 1,
+        pressOpacity: press == PressStyle.none || press == PressStyle.invert ? pressOpacity : MyDataMotion.pressOpacity,
+        press: switch (press) {
+          PressStyle.dimScale || PressStyle.sink => PressStyle.dim,
+          _ => press,
+        },
+        enter: enter == EnterStyle.fadeRise ? EnterStyle.fade : enter,
+        entranceRise: 0,
+        entranceStagger: Duration.zero,
+        entranceMaxStaggered: entranceMaxStaggered,
+        sheetDrop: 0,
+      );
+
+  /// The personalities, at scale 1 (`motion.scale` multiplies them; `slow` is capped at 500 ms):
+  /// - standard: design/motion.md, today's (120, 240 and 380 ms, a gentle spring);
+  /// - calm: a third longer, an even curve and a spring with no overshoot;
+  /// - crisp: a quarter shorter, a sharp curve and a stiff spring;
+  /// - lively: about as long, with an overshooting curve and a bouncy spring;
+  /// - none: nothing animates; every change is at once.
   factory MyDataMotionSpec.of(MotionSpec m) {
     final (fast, base, slow, curve, spring, springMs) = switch (m.personality) {
       MotionPersonality.standard => (

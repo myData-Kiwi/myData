@@ -214,7 +214,9 @@ class CardGrid extends StatefulWidget {
 }
 
 class _CardGridState extends State<CardGrid> with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(vsync: this, value: widget.entrance ? 0 : 1);
+  // No entrance when the theme has none (`motion.enter: none`).
+  late final AnimationController _controller = AnimationController(
+      vsync: this, value: widget.entrance && context.lookNow.motion.enter != EnterStyle.none ? 0 : 1);
   bool _started = false;
   bool _reduced = false;
 
@@ -248,6 +250,8 @@ class _CardGridState extends State<CardGrid> with SingleTickerProviderStateMixin
     // With reduced motion every card fades together over the whole (`fast`) run.
     if (_reduced) return context.motion.standard;
     final total = _total.inMicroseconds;
+    // No entrance, or one that takes no time: every card is in place at once.
+    if (total <= 0 || context.motion.entranceMaxStaggered < 1) return context.motion.standard;
     final delay = (context.motion.entranceStagger * math.min(index, context.motion.entranceMaxStaggered - 1))
         .inMicroseconds;
     return Interval(delay / total, (delay + context.motion.base.inMicroseconds) / total,
