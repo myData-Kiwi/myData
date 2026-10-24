@@ -8567,7 +8567,7 @@ const builtInThemeJson = {
         "light": {
           "surface-raised": "#FFFFFF",
           "surface-sunken": "#E9E8F2",
-          "surface-hover": "#D9D9DD",
+          "surface-hover": "#D8D6EA",
           "sidebar": "#F0EEFF",
           "toolbar": "#FFFFFF",
           "line": "#E4E1F5",
@@ -8661,7 +8661,7 @@ const builtInThemeJson = {
         "light": {
           "surface-raised": "#FFFFFF",
           "surface-sunken": "#E9E8F2",
-          "surface-hover": "#D9D9DD",
+          "surface-hover": "#D8D6EA",
           "sidebar": "#F0EEFF",
           "toolbar": "#FFFFFF",
           "line": "#E4E1F5",
@@ -8755,7 +8755,7 @@ const builtInThemeJson = {
         "light": {
           "surface-raised": "#FFFFFF",
           "surface-sunken": "#E9E8F2",
-          "surface-hover": "#D9D9DD",
+          "surface-hover": "#D8D6EA",
           "sidebar": "#F0EEFF",
           "toolbar": "#FFFFFF",
           "line": "#E4E1F5",
