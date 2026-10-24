@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 
 import '../generated/tokens.g.dart';
 import '../mac/mac_theme.dart';
+import '../mac/mac_window.dart';
 import '../theme/theme.dart';
 import 'pressable.dart';
 import 'edges.dart';
@@ -307,6 +308,14 @@ class Button extends StatelessWidget {
     };
   }
 
+  /// A drawn button's label: `body-strong`; inside the Mac window no larger than the theme's `label`, so a
+  /// button beside a form row's title never outweighs it (Paperback's 16 px Literata semibold did).
+  static TextStyle labelStyle(BuildContext context) {
+    final s = context.typeScale;
+    if (!MacWindow.of(context) || s.bodyStrong.fontSize! <= s.label.fontSize!) return s.bodyStrong;
+    return s.bodyStrong.copyWith(fontSize: s.label.fontSize);
+  }
+
   @override
   Widget build(BuildContext context) {
     if (context.isSystemLook) return _mac(context);
@@ -341,7 +350,7 @@ class Button extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             softWrap: false,
-            style: context.typeScale.bodyStrong.copyWith(
+            style: labelStyle(context).copyWith(
                 color: fg,
                 decoration: paint.underline ? TextDecoration.underline : null,
                 decorationColor: fg),

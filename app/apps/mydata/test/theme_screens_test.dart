@@ -46,4 +46,7 @@ void main() {
       before: (tester) => mac.openSettings(tester, SettingsTab.sources),
     ),
   ]);
+
+  // The pictures above differ by more than colour between every two themes.
+  themesDistinct('status');
 }

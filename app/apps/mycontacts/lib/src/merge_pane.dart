@@ -145,7 +145,7 @@ class MergePane extends StatelessWidget {
                   if (names && mac)
                     // The Mac frame: a pop-up button after its label, as a Mac form writes it.
                     Row(children: [
-                      Text('$keepLabel:', style: MyDataMacType.body.copyWith(color: context.mac.label)),
+                      Text('$keepLabel:', style: context.macLook.body.copyWith(color: context.mac.label)),
                       SizedBox(width: context.space(2)),
                       Flexible(
                         child: MacPopUpButton<String>(

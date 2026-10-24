@@ -465,7 +465,7 @@ class AboutSection extends StatelessWidget {
         Center(
           child: Semantics(
             header: true,
-            child: Text('myData', style: MyDataMacType.name.copyWith(color: mac.label)),
+            child: Text('myData', style: context.macLook.name.copyWith(color: mac.label)),
           ),
         ),
         SizedBox(height: context.space(1)),
@@ -473,7 +473,7 @@ class AboutSection extends StatelessWidget {
           child: Text(
             tagline,
             textAlign: TextAlign.center,
-            style: MyDataMacType.body.copyWith(color: mac.secondaryLabel),
+            style: context.macLook.secondary(context.macLook.body).copyWith(color: mac.secondaryLabel),
           ),
         ),
         SizedBox(height: context.space(6)),

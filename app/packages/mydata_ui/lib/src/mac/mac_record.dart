@@ -8,6 +8,7 @@ import '../generated/tokens.g.dart';
 import '../theme/theme.dart';
 import '../widgets/avatar.dart' show Avatar;
 import '../widgets/menu.dart';
+import 'mac_metrics.dart';
 import 'mac_overlays.dart' show MacMenuLook;
 import 'mac_theme.dart';
 
@@ -59,13 +60,15 @@ class MacRecordHeader extends StatelessWidget {
                       Flexible(
                         child: Semantics(
                           header: true,
-                          child: Text(name, style: MyDataMacType.name.copyWith(color: mac.label)),
+                          // In a drawn theme its `title`, in the display face where it sets titles in one.
+                          child: Text(name, style: context.macLook.name.copyWith(color: mac.label)),
                         ),
                       ),
                       if (badge != null) ...[SizedBox(width: context.space(2)), badge!],
                     ]),
                     if (subtitle.isNotEmpty)
-                      Text(subtitle, style: MyDataMacType.body.copyWith(color: mac.secondaryLabel)),
+                      Text(subtitle,
+                          style: context.macLook.secondary(context.macLook.body).copyWith(color: mac.secondaryLabel)),
                   ],
                 ),
               ),
@@ -115,8 +118,11 @@ class _MacQuickActionState extends State<MacQuickAction> {
   @override
   Widget build(BuildContext context) {
     final mac = context.mac;
+    final m = context.macLook;
     final enabled = widget.onPressed != null;
     final tint = enabled ? mac.accent : mac.tertiaryLabel;
+    // A circle in System and where the theme's controls are capsules; the theme's control corners else.
+    final round = m.system || context.look.variants.buttonShape == ButtonShapeStyle.pill;
     final name = widget.tooltip ?? widget.label;
     return Semantics(
       button: true,
@@ -142,15 +148,23 @@ class _MacQuickActionState extends State<MacQuickAction> {
                 Container(
                   width: MyDataMacSize.actionButton,
                   height: MyDataMacSize.actionButton,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: _pressed ? mac.tertiaryLabel : mac.quaternaryLabel,
-                    border: _focused ? Border.all(color: mac.focusRing, width: MyDataMacSize.focusRingWidth) : null,
-                  ),
-                  child: Icon(context.icon(widget.icon), size: MyDataMacSize.icon, color: tint),
+                  decoration: round
+                      ? BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: _pressed ? mac.tertiaryLabel : mac.quaternaryLabel,
+                          border: _focused ? Border.all(color: mac.focusRing, width: MyDataMacSize.focusRingWidth) : null,
+                        )
+                      : m.decorate(BoxDecoration(
+                          borderRadius: m.controlRadius,
+                          color: _pressed ? mac.tertiaryLabel : mac.quaternaryLabel,
+                          border: _focused
+                              ? Border.all(color: mac.focusRing, width: MyDataMacSize.focusRingWidth)
+                              : (m.itemSide == null ? null : Border.fromBorderSide(m.itemSide!)),
+                        )),
+                  child: Icon(context.icon(widget.icon), size: m.icon, color: tint),
                 ),
                 SizedBox(height: context.space(1)),
-                Text(widget.label, style: MyDataMacType.action.copyWith(color: enabled ? mac.secondaryLabel : tint)),
+                Text(widget.label, style: m.action.copyWith(color: enabled ? mac.secondaryLabel : tint)),
               ],
             ),
           ),
@@ -232,7 +246,7 @@ class _FieldLineState extends State<_FieldLine> {
     final mac = context.mac;
     if (context.isSystemLook) return MyDataMacType.body.copyWith(color: link ? mac.accent : mac.label);
     final c = context.colors;
-    return MyDataMacType.body.copyWith(
+    return context.macLook.body.copyWith(
       color: link ? c.link : mac.label,
       decoration: link ? TextDecoration.underline : null,
       decorationColor: link ? c.link : null,
@@ -271,14 +285,14 @@ class _FieldLineState extends State<_FieldLine> {
       textAlign: TextAlign.right,
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
-      style: MyDataMacType.callout.copyWith(color: _copied ? mac.accent : mac.secondaryLabel),
+      style: context.macLook.secondary(context.macLook.callout).copyWith(color: _copied ? mac.accent : mac.secondaryLabel),
     );
     Widget value = Container(
       padding: EdgeInsets.symmetric(horizontal: context.space(1), vertical: 2 * MyDataMacSize.hairline),
-      decoration: BoxDecoration(
+      decoration: context.macLook.decorate(BoxDecoration(
         color: _hovered ? mac.hover : null,
-        borderRadius: const BorderRadius.all(Radius.circular(MyDataMacRadius.selection)),
-      ),
+        borderRadius: context.macLook.selectionRadius,
+      )),
       child: Text(f.value, style: _valueStyle(context, link: open != null)),
     );
     value = MouseRegion(
@@ -345,7 +359,7 @@ class MacSourceBadge extends StatelessWidget {
       child: MacMenuLook.helpTag(
         context,
         message: sentence,
-        child: Icon(context.icon(icon), size: MyDataMacSize.icon, color: mac.secondaryLabel),
+        child: Icon(context.icon(icon), size: context.macLook.icon, color: mac.secondaryLabel),
       ),
     );
   }

@@ -10,6 +10,7 @@ import '../widgets/app_frame.dart' show AppConnection, AppConnectionState, AppSe
 import '../widgets/pressable.dart' show MyDataRadii;
 import '../widgets/selection.dart';
 import 'mac_chrome.dart';
+import 'mac_metrics.dart';
 import 'mac_shell.dart' show MacContentGround;
 import 'mac_theme.dart';
 
@@ -171,10 +172,12 @@ class _Row extends StatelessWidget {
     );
   }
 
-  /// A drawn theme in the Mac window: the same rows, the current one marked in the theme's selection style
-  /// ([SelectionMark]) and its corners, its text in the theme's type.
+  /// A drawn theme in the Mac window: the same rows at the theme's control height, the current one marked
+  /// in the theme's selection style ([SelectionMark]) and its corners, its text and icons in the theme's
+  /// type and icon size.
   Widget _drawn(BuildContext context) {
     final c = context.colors;
+    final m = context.macLook;
     final paint = current ? SelectionPaint.of(context.look) : null;
     final ink = paint?.foreground ?? c.ink;
     final radius = MyDataRadii.sm(context.look);
@@ -193,12 +196,12 @@ class _Row extends StatelessWidget {
               selected: current,
               borderRadius: radius,
               child: Container(
-                height: MyDataMacSize.sidebarRowHeight,
+                height: m.sidebarRowHeight,
                 padding: const EdgeInsets.symmetric(horizontal: MyDataMacSize.rowPadding),
                 child: Row(
                   children: [
                     Icon(context.icon(section.icon, selected: current),
-                        size: MyDataMacSize.icon, color: current ? (paint?.foreground ?? c.accent) : c.inkMuted),
+                        size: m.icon, color: current ? (paint?.foreground ?? c.accent) : c.inkMuted),
                     SizedBox(width: context.space(2)),
                     Expanded(
                       child: Align(
@@ -265,14 +268,21 @@ class MacSidebar extends StatelessWidget {
       ],
     );
     const margin = MyDataMacSize.sidebarMargin;
-    const radius = BorderRadius.all(Radius.circular(MyDataMacRadius.sidebar));
+    // The floating panel's corners: macOS 26's in System, the theme's large radius in its corner style in a
+    // drawn theme (square in Journal), with its card outline where it outlines cards.
+    final m = context.macLook;
+    final radius = drawn ? BorderRadius.all(Radius.circular(context.look.shape.lg)) : m.groupRadius;
+    // System's look in the Mac shell has round corners (MyDataLook.asSystem).
+    final shape = context.look.shape;
+    final edge = drawn ? (context.look.edges.card ?? BorderSide(color: mac.separator, width: MyDataMacSize.hairline))
+        : BorderSide(color: mac.separator, width: MyDataMacSize.hairline);
     final panel = Padding(
       padding: const EdgeInsets.fromLTRB(margin, margin, 0, margin),
       child: DecoratedBox(
         position: DecorationPosition.foreground,
-        decoration: BoxDecoration(borderRadius: radius, border: Border.all(color: mac.separator, width: MyDataMacSize.hairline)),
-        child: ClipRRect(
-          borderRadius: radius,
+        decoration: m.decorate(BoxDecoration(borderRadius: radius, border: Border.fromBorderSide(edge))),
+        child: shape.clip(
+          radius,
           child: solid || tint != null
               ? DecoratedBox(decoration: BoxDecoration(color: tint ?? mac.sidebarBackground, borderRadius: radius), child: list)
               : list,
@@ -281,7 +291,7 @@ class MacSidebar extends StatelessWidget {
     );
     final column = SizedBox(
       width: MyDataMacSize.sidebarWidth,
-      child: CustomPaint(painter: _AroundPanel(color: mac.contentBackground), child: panel),
+      child: CustomPaint(painter: _AroundPanel(color: mac.contentBackground, radius: radius, shape: shape), child: panel),
     );
     return solid ? column : chrome.sidebar!(column);
   }
@@ -318,26 +328,26 @@ class MacSidebarFrame extends StatelessWidget {
 /// Paints [color] over the sidebar column except the rounded panel, so the window's material shows only
 /// through the panel.
 class _AroundPanel extends CustomPainter {
-  const _AroundPanel({required this.color});
+  const _AroundPanel({required this.color, required this.radius, required this.shape});
 
   final Color color;
+  final BorderRadius radius;
+  final MyDataShape shape;
 
   @override
   void paint(Canvas canvas, Size size) {
     const m = MyDataMacSize.sidebarMargin;
-    final panel = RRect.fromRectAndRadius(
-      Rect.fromLTRB(m, m, size.width, size.height - m),
-      const Radius.circular(MyDataMacRadius.sidebar),
-    );
+    final panel = shape.path(Rect.fromLTRB(m, m, size.width, size.height - m), radius);
     final path = Path()
       ..fillType = PathFillType.evenOdd
       ..addRect(Offset.zero & size)
-      ..addRRect(panel);
+      ..addPath(panel, Offset.zero);
     canvas.drawPath(path, Paint()..color = color);
   }
 
   @override
-  bool shouldRepaint(_AroundPanel old) => old.color != color;
+  bool shouldRepaint(_AroundPanel old) =>
+      old.color != color || old.radius != radius || old.shape.corners != shape.corners;
 }
 
 /// The host's state in one line at the bottom of a Mac sidebar: nothing while connected, "Starting your
@@ -359,7 +369,7 @@ class MacConnectionLine extends StatelessWidget {
       AppConnectionState.unreachable when c.retrying => (AppConnection.retryingText, null, null),
       AppConnectionState.unreachable => (AppConnection.unreachableText, AppConnection.retryText, c.onRetry),
     };
-    final style = MyDataMacType.caption.copyWith(color: mac.secondaryLabel);
+    final style = context.macLook.caption.copyWith(color: mac.secondaryLabel);
     return Padding(
       padding: EdgeInsets.fromLTRB(
           MyDataMacSize.rowInset + MyDataMacSize.rowPadding, context.space(2), MyDataMacSize.rowInset, context.space(3)),

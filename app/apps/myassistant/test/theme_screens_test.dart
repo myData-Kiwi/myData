@@ -44,4 +44,7 @@ void main() {
     ),
     ThemeScreen('empty', (t) => mac.app(t, HostPhase.running, status: hostStatus()), before: mac.settle),
   ]);
+
+  // The pictures above differ by more than colour between every two themes.
+  themesDistinct('approval');
 }

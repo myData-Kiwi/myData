@@ -154,7 +154,7 @@ class MacMonthView extends StatelessWidget {
                 MyDataDates.month(m),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: MyDataMacType.paneTitle.copyWith(color: mac.label),
+                style: context.macLook.paneTitle.copyWith(color: mac.label),
               ),
             ),
           ),

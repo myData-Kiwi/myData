@@ -138,19 +138,23 @@ class MacMonthGrid extends StatefulWidget {
   /// "3 more".
   static String moreText(int n) => '$n more';
 
-  /// One event line's height at [scaler].
-  static double lineHeight(TextScaler scaler) =>
-      scaler.scale(MyDataMacType.caption.fontSize!) * MyDataMacType.caption.height! + 2 * linePadding;
+  /// One event line's height at [scaler], in [m]'s caption (System's unless given).
+  static double lineHeight(TextScaler scaler, [MacLookMetrics? m]) {
+    final caption = m?.caption ?? MyDataMacType.caption;
+    return scaler.scale(caption.fontSize!) * caption.height! + 2 * linePadding;
+  }
 
-  /// The number's row at [scaler].
-  static double numberRowHeight(TextScaler scaler) => math.max(
-      scaler.scale(numberHeight), scaler.scale(MyDataMacType.body.fontSize!) * MyDataMacType.body.height!);
+  /// The number's row at [scaler], in [m]'s body (System's unless given).
+  static double numberRowHeight(TextScaler scaler, [MacLookMetrics? m]) {
+    final body = m?.body ?? MyDataMacType.body;
+    return math.max(scaler.scale(numberHeight), scaler.scale(body.fontSize!) * body.height!);
+  }
 
   /// How many event lines a cell [height] tall holds at [scaler].
-  static int linesFor(MyDataLook look, double height, TextScaler scaler) {
-    final room = height - 2 * cellPadding(look) - numberRowHeight(scaler);
+  static int linesFor(MyDataLook look, double height, TextScaler scaler, [MacLookMetrics? m]) {
+    final room = height - 2 * cellPadding(look) - numberRowHeight(scaler, m);
     if (room <= 0) return 0;
-    return math.max(0, ((room + lineGap(look)) / (lineHeight(scaler) + lineGap(look))).floor());
+    return math.max(0, ((room + lineGap(look)) / (lineHeight(scaler, m) + lineGap(look))).floor());
   }
 
   @override
@@ -255,7 +259,7 @@ class _MacMonthGridState extends State<MacMonthGrid> {
                   alignment: AlignmentDirectional.centerEnd,
                   child: Text(
                     MonthGrid.weekdayShortName(days[d].weekday),
-                    style: MyDataMacType.callout.copyWith(color: mac.secondaryLabel),
+                    style: context.macLook.secondary(context.macLook.callout).copyWith(color: mac.secondaryLabel),
                   ),
                 ),
               ),
@@ -387,7 +391,7 @@ class _CellState extends State<_Cell> {
 
     final body = LayoutBuilder(
       builder: (context, constraints) {
-        final fits = MacMonthGrid.linesFor(context.look, constraints.maxHeight, scaler);
+        final fits = MacMonthGrid.linesFor(context.look, constraints.maxHeight, scaler, context.macLook);
         final times = constraints.maxWidth >= scaler.scale(MacMonthGrid.timeMinCellWidth);
         final List<Widget> lines;
         if (events.length <= fits) {
@@ -476,7 +480,7 @@ class _Number extends StatelessWidget {
   Widget build(BuildContext context) {
     final mac = context.mac;
     final scaler = MediaQuery.textScalerOf(context);
-    final height = MacMonthGrid.numberRowHeight(scaler);
+    final height = MacMonthGrid.numberRowHeight(scaler, context.macLook);
     final text = MacMonthGrid.numberText(day);
     if (today) {
       return DecoratedBox(
@@ -490,7 +494,7 @@ class _Number extends StatelessWidget {
             padding: EdgeInsets.symmetric(horizontal: context.space(1) + MyDataMacSize.tight),
             child: Center(
               widthFactor: 1,
-              child: Text(text, style: MyDataMacType.bodyEmphasized.copyWith(color: MyDataMacColors.dark.onAccent)),
+              child: Text(text, style: context.macLook.bodyEmphasized.copyWith(color: MyDataMacColors.dark.onAccent)),
             ),
           ),
         ),
@@ -503,7 +507,7 @@ class _Number extends StatelessWidget {
         child: Align(
           alignment: AlignmentDirectional.centerEnd,
           widthFactor: 1,
-          child: Text(text, style: MyDataMacType.body.copyWith(color: muted ? mac.tertiaryLabel : mac.label)),
+          child: Text(text, style: context.macLook.body.copyWith(color: muted ? mac.tertiaryLabel : mac.label)),
         ),
       ),
     );
@@ -530,9 +534,9 @@ class _EventLine extends StatelessWidget {
     final mac = context.mac;
     final dark = Theme.of(context).brightness == Brightness.dark;
     final scaler = MediaQuery.textScalerOf(context);
-    final height = MacMonthGrid.lineHeight(scaler);
+    final height = MacMonthGrid.lineHeight(scaler, context.macLook);
     final title = event.title.trim();
-    final style = MyDataMacType.caption.copyWith(
+    final style = context.macLook.caption.copyWith(
       color: title.isEmpty || muted ? mac.secondaryLabel : mac.label,
     );
     final text = Text(title.isEmpty ? MonthGrid.noTitle : title, maxLines: 1, softWrap: false,
@@ -573,7 +577,7 @@ class _EventLine extends StatelessWidget {
             Expanded(child: text),
             if (time && event.time != null) ...[
               SizedBox(width: context.space(1)),
-              Text(event.time!, style: MyDataMacType.caption.copyWith(color: mac.secondaryLabel)),
+              Text(event.time!, style: context.macLook.caption.copyWith(color: mac.secondaryLabel)),
             ],
           ],
         ),
@@ -589,13 +593,13 @@ class _MoreLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SizedBox(
-    height: MacMonthGrid.lineHeight(MediaQuery.textScalerOf(context)),
+    height: MacMonthGrid.lineHeight(MediaQuery.textScalerOf(context), context.macLook),
     child: Padding(
       padding: EdgeInsetsDirectional.only(start: context.space(1) + MacMonthGrid.dotSize + context.space(1)),
       child: Align(
         alignment: AlignmentDirectional.centerStart,
         child: Text(MacMonthGrid.moreText(count),
-            style: MyDataMacType.caption.copyWith(color: context.mac.secondaryLabel)),
+            style: context.macLook.caption.copyWith(color: context.mac.secondaryLabel)),
       ),
     ),
   );

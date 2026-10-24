@@ -5,6 +5,7 @@ import '../generated/tokens.g.dart';
 import '../theme/theme.dart';
 import '../widgets/floating_bar.dart' show FloatingBarSurface;
 import 'mac_chrome.dart';
+import 'mac_metrics.dart';
 import 'mac_overlays.dart' show MacMenuLook;
 import 'mac_theme.dart';
 
@@ -172,6 +173,7 @@ class _MacToolbarButtonState extends State<MacToolbarButton> {
   @override
   Widget build(BuildContext context) {
     final mac = context.mac;
+    final m = context.macLook;
     final enabled = widget.onPressed != null;
     final ink = enabled ? mac.label : mac.tertiaryLabel;
     final tip = [
@@ -179,22 +181,26 @@ class _MacToolbarButtonState extends State<MacToolbarButton> {
       if (!enabled && widget.disabledReason != null) widget.disabledReason!,
     ].join('\n');
     final Widget face = widget.icon != null
-        ? Icon(context.icon(widget.icon!), size: MyDataMacSize.icon, color: ink)
-        : Text(widget.text!, style: MyDataMacType.body.copyWith(color: enabled ? mac.label : mac.tertiaryLabel));
+        ? Icon(context.icon(widget.icon!), size: m.icon, color: ink)
+        : Text(widget.text!, style: m.body.copyWith(color: enabled ? mac.label : mac.tertiaryLabel));
+    final rest = m.itemSide ?? BorderSide(color: mac.separator, width: MyDataMacSize.hairline);
     Widget button = AnimatedContainer(
       duration: context.motion.fast,
-      height: MyDataMacSize.toolbarItemHeight,
-      constraints: const BoxConstraints(minWidth: MyDataMacSize.toolbarItemHeight),
+      height: m.toolbarItemHeight,
+      constraints: BoxConstraints(minWidth: m.toolbarItemHeight),
       // A word is a capsule (macOS 26's toolbar text items), wider than tall: never a circle round a word.
       padding: EdgeInsets.symmetric(horizontal: widget.icon != null ? 0 : context.space(4)),
       alignment: Alignment.center,
-      decoration: BoxDecoration(
+      // An icon on its own is a circle where the controls are capsules, else the controls' corners.
+      decoration: m.decorate(BoxDecoration(
         color: enabled && (_hovered || _pressed)
             ? Color.alphaBlend(_pressed ? mac.quaternaryLabel : mac.hover, mac.toolbarItem)
             : mac.toolbarItem,
-        borderRadius: const BorderRadius.all(Radius.circular(MyDataMacRadius.field)),
-        border: Border.all(color: _focused ? mac.focusRing : mac.separator, width: _focused ? MyDataMacSize.focusRingWidth : MyDataMacSize.hairline),
-      ),
+        borderRadius: m.controlRadius,
+        border: _focused
+            ? Border.all(color: mac.focusRing, width: MyDataMacSize.focusRingWidth)
+            : Border.fromBorderSide(rest),
+      )),
       child: face,
     );
     button = FocusableActionDetector(
@@ -304,21 +310,22 @@ class _MacSearchFieldState extends State<MacSearchField> {
   @override
   Widget build(BuildContext context) {
     final mac = context.mac;
+    final m = context.macLook;
     final hasText = widget.controller.text.isNotEmpty;
     final field = Container(
       width: widget.width,
-      height: MyDataMacSize.toolbarItemHeight,
+      height: m.toolbarItemHeight,
       padding: EdgeInsets.symmetric(horizontal: context.space(3)),
-      decoration: BoxDecoration(
+      decoration: m.decorate(BoxDecoration(
         color: mac.toolbarItem,
-        borderRadius: const BorderRadius.all(Radius.circular(MyDataMacRadius.field)),
+        borderRadius: m.controlRadius,
         border: _focused
             ? Border.all(color: mac.focusRing, width: MyDataMacSize.focusRingWidth)
-            : Border.all(color: mac.separator, width: MyDataMacSize.hairline),
-      ),
+            : Border.fromBorderSide(m.itemSide ?? BorderSide(color: mac.separator, width: MyDataMacSize.hairline)),
+      )),
       child: Row(
         children: [
-          Icon(context.icon(MyDataIcon.search), size: MyDataMacSize.icon, color: mac.secondaryLabel),
+          Icon(context.icon(MyDataIcon.search), size: m.icon, color: mac.secondaryLabel),
           SizedBox(width: context.space(2)),
           Expanded(
             child: Focus(
@@ -329,12 +336,12 @@ class _MacSearchFieldState extends State<MacSearchField> {
               child: TextField(
                 controller: widget.controller,
                 focusNode: _focus,
-                style: MyDataMacType.body.copyWith(color: mac.label),
+                style: m.body.copyWith(color: mac.label),
                 cursorColor: mac.accent,
-                cursorHeight: MyDataMacType.body.fontSize! + MyDataMacSize.tight,
+                cursorHeight: m.body.fontSize! + MyDataMacSize.tight,
                 decoration: InputDecoration.collapsed(
                   hintText: widget.placeholder,
-                  hintStyle: MyDataMacType.body.copyWith(color: mac.secondaryLabel),
+                  hintStyle: m.secondary(m.body).copyWith(color: mac.secondaryLabel),
                 ),
               ),
             ),
@@ -346,7 +353,7 @@ class _MacSearchFieldState extends State<MacSearchField> {
               excludeSemantics: true,
               child: GestureDetector(
                 onTap: widget.controller.clear,
-                child: Icon(context.icon(MyDataIcon.clear), size: MyDataMacSize.icon - MyDataMacSize.tight, color: mac.secondaryLabel),
+                child: Icon(context.icon(MyDataIcon.clear), size: m.icon - MyDataMacSize.tight, color: mac.secondaryLabel),
               ),
             ),
         ],

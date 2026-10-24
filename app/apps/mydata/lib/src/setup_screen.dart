@@ -348,14 +348,14 @@ class _ThisMacStepState extends State<ThisMacStep> {
                 child: Text(
                   ThisMacStep.macTitle,
                   textAlign: TextAlign.center,
-                  style: MyDataMacType.name.copyWith(color: mac.label),
+                  style: context.macLook.name.copyWith(color: mac.label),
                 ),
               ),
               SizedBox(height: context.space(2)),
               Text(
                 ThisMacStep.sentence,
                 textAlign: TextAlign.center,
-                style: MyDataMacType.body.copyWith(color: mac.secondaryLabel),
+                style: context.macLook.secondary(context.macLook.body).copyWith(color: mac.secondaryLabel),
               ),
               SizedBox(height: context.space(6)),
               ButtonRow(
@@ -379,7 +379,7 @@ class _ThisMacStepState extends State<ThisMacStep> {
               Text(
                 ThisMacStep.macNote,
                 textAlign: TextAlign.center,
-                style: MyDataMacType.caption.copyWith(color: mac.secondaryLabel),
+                style: context.macLook.caption.copyWith(color: mac.secondaryLabel),
               ),
             ],
           ),

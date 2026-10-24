@@ -52,4 +52,7 @@ void main() {
       await mac.settle(tester);
     }),
   ]);
+
+  // The pictures above differ by more than colour between every two themes.
+  themesDistinct('people');
 }

@@ -135,13 +135,13 @@ class _MacStatusViewState extends State<MacStatusView> {
                     Flexible(
                       child: Semantics(
                         header: true,
-                        child: Text(MacStatusView.title, style: MyDataMacType.name.copyWith(color: mac.label)),
+                        child: Text(MacStatusView.title, style: context.macLook.name.copyWith(color: mac.label)),
                       ),
                     ),
                   ],
                 ),
                 SizedBox(height: context.space(1)),
-                Text(MacStatusView.line(s, widget.sources), style: MyDataMacType.body.copyWith(color: mac.secondaryLabel)),
+                Text(MacStatusView.line(s, widget.sources), style: context.macLook.secondary(context.macLook.body).copyWith(color: mac.secondaryLabel)),
                 if (demo) ...[
                   SizedBox(height: context.space(2)),
                   Button(
@@ -214,13 +214,13 @@ class _MacStatusViewState extends State<MacStatusView> {
             padding: EdgeInsets.symmetric(horizontal: context.space(3), vertical: MyDataMacSize.tight),
             child: Row(
               children: [
-                Text(label, style: MyDataMacType.body.copyWith(color: mac.label)),
+                Text(label, style: context.macLook.body.copyWith(color: mac.label)),
                 SizedBox(width: context.space(3)),
                 Expanded(
                   child: SelectableText(
                     value,
                     textAlign: TextAlign.end,
-                    style: MyDataMacType.body.copyWith(color: mac.secondaryLabel),
+                    style: context.macLook.secondary(context.macLook.body).copyWith(color: mac.secondaryLabel),
                   ),
                 ),
               ],

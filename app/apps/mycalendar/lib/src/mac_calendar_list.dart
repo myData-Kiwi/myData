@@ -53,7 +53,7 @@ class MacCalendarList extends StatelessWidget {
         child: Text(text,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: (strong ? MyDataMacType.captionEmphasized : MyDataMacType.caption).copyWith(color: mac.secondaryLabel)),
+            style: (strong ? context.macLook.captionEmphasized : context.macLook.caption).copyWith(color: mac.secondaryLabel)),
       ),
     );
     return ListenableBuilder(
@@ -70,7 +70,7 @@ class MacCalendarList extends StatelessWidget {
               Padding(
                 padding: EdgeInsets.symmetric(
                     horizontal: MyDataMacSize.rowInset + MyDataMacSize.rowPadding, vertical: context.space(2)),
-                child: Text(CalendarsPage.none, style: MyDataMacType.caption.copyWith(color: mac.secondaryLabel)),
+                child: Text(CalendarsPage.none, style: context.macLook.caption.copyWith(color: mac.secondaryLabel)),
               ),
             for (final (source, items) in groups) ...[
               // This Mac alone: its accounts head the groups, as in Calendar.app.
@@ -153,7 +153,7 @@ class _MacCalendarRowState extends State<MacCalendarRow> {
           SizedBox(width: context.space(2)),
           Expanded(
             child: Text(widget.name,
-                maxLines: 1, overflow: TextOverflow.ellipsis, style: MyDataMacType.body.copyWith(color: mac.label)),
+                maxLines: 1, overflow: TextOverflow.ellipsis, style: context.macLook.body.copyWith(color: mac.label)),
           ),
         ],
       ),

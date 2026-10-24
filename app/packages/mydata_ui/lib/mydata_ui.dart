@@ -10,6 +10,7 @@ export 'src/mac/mac_chrome.dart';
 export 'src/mac/mac_controls.dart';
 export 'src/mac/mac_empty_state.dart';
 export 'src/mac/mac_form.dart';
+export 'src/mac/mac_metrics.dart';
 export 'src/mac/mac_overlays.dart';
 export 'src/mac/mac_pair_table.dart';
 export 'src/mac/mac_record.dart';

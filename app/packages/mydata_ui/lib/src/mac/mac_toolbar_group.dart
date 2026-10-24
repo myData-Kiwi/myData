@@ -4,6 +4,7 @@ import '../generated/tokens.g.dart';
 import '../theme/theme.dart';
 import '../widgets/pressable.dart' show FocusRing;
 import 'mac_chrome.dart';
+import 'mac_metrics.dart';
 import 'mac_overlays.dart' show MacMenuLook;
 import 'mac_theme.dart';
 
@@ -53,14 +54,15 @@ class MacToolbarGroup extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final mac = context.mac;
+    final m = context.macLook;
     final item = Container(
-      height: MyDataMacSize.toolbarItemHeight,
+      height: m.toolbarItemHeight,
       padding: const EdgeInsets.all(inset),
-      decoration: BoxDecoration(
+      decoration: m.decorate(BoxDecoration(
         color: mac.toolbarItem,
-        borderRadius: const BorderRadius.all(Radius.circular(MyDataMacRadius.field)),
-        border: Border.all(color: mac.separator, width: MyDataMacSize.hairline),
-      ),
+        borderRadius: m.controlRadius,
+        border: Border.fromBorderSide(m.itemSide ?? BorderSide(color: mac.separator, width: MyDataMacSize.hairline)),
+      )),
       child: Row(mainAxisSize: MainAxisSize.min, children: [for (final b in buttons) _Part(button: b)]),
     );
     return MacChrome.of(context).toolbarItem(
@@ -86,6 +88,7 @@ class _PartState extends State<_Part> {
   @override
   Widget build(BuildContext context) {
     final mac = context.mac;
+    final m = context.macLook;
     final s = widget.button;
     final enabled = s.onPressed != null;
     final ink = enabled ? mac.label : mac.tertiaryLabel;
@@ -94,21 +97,21 @@ class _PartState extends State<_Part> {
         : enabled && _hovered
         ? mac.hover
         : null;
-    final height = MyDataMacSize.toolbarItemHeight - 2 * MacToolbarGroup.inset;
+    final height = m.toolbarItemHeight - 2 * MacToolbarGroup.inset;
     Widget part = AnimatedContainer(
       duration: context.motion.fast,
       height: height,
       constraints: BoxConstraints(minWidth: height),
       padding: EdgeInsets.symmetric(horizontal: s.icon != null ? 0 : context.space(3)),
       alignment: Alignment.center,
-      decoration: BoxDecoration(
+      decoration: m.decorate(BoxDecoration(
         color: fill,
-        borderRadius: const BorderRadius.all(Radius.circular(MyDataMacRadius.field)),
+        borderRadius: m.controlRadius,
         border: _focused ? Border.all(color: FocusRing.colourFor(context), width: MyDataMacSize.focusRingWidth) : null,
-      ),
+      )),
       child: s.icon != null
-          ? Icon(context.icon(s.icon!), size: MyDataMacSize.icon, color: ink)
-          : Text(s.text!, style: MyDataMacType.body.copyWith(color: ink)),
+          ? Icon(context.icon(s.icon!), size: m.icon, color: ink)
+          : Text(s.text!, style: m.body.copyWith(color: ink)),
     );
     part = FocusableActionDetector(
       enabled: enabled,

@@ -70,7 +70,7 @@ class MacDayList extends StatelessWidget {
                   header: true,
                   child: Text(formatDayHeading(day, today: today),
                       maxLines: 2, overflow: TextOverflow.ellipsis,
-                      style: MyDataMacType.title.copyWith(color: mac.label)),
+                      style: context.macLook.title.copyWith(color: mac.label)),
                 ),
               ),
             ),
@@ -111,7 +111,7 @@ class _Row extends StatelessWidget {
     final title = event.title.trim();
     final when = eventWhen(event, day, use24HourFormat: use24HourFormat) ?? (time: '', under: null);
     final caption = eventCaption(event, day, use24HourFormat: use24HourFormat, withSource: withSource);
-    final small = MyDataMacType.caption.copyWith(color: mac.secondaryLabel);
+    final small = context.macLook.caption.copyWith(color: mac.secondaryLabel);
     return MergeSemantics(
       child: Padding(
         padding: MacDayList.rowPadding(context.look),
@@ -130,7 +130,7 @@ class _Row extends StatelessWidget {
                       title.isEmpty ? EventRow.noTitle : title,
                       maxLines: EventRow.titleMaxLines,
                       overflow: TextOverflow.ellipsis,
-                      style: MyDataMacType.bodyEmphasized.copyWith(color: title.isEmpty ? mac.secondaryLabel : mac.label),
+                      style: context.macLook.bodyEmphasized.copyWith(color: title.isEmpty ? mac.secondaryLabel : mac.label),
                     ),
                     Text(EventRow.whenLabel(when), style: small),
                     Text(caption, style: small),
@@ -153,6 +153,6 @@ class _Line extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
     padding: MacDayList.rowPadding(context.look),
-    child: Text(text, style: MyDataMacType.body.copyWith(color: context.mac.secondaryLabel)),
+    child: Text(text, style: context.macLook.secondary(context.macLook.body).copyWith(color: context.mac.secondaryLabel)),
   );
 }

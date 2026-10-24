@@ -100,7 +100,7 @@ extension _MacContactForm on _ContactEditorState {
                         Icon(context.icon(MyDataIcon.error), size: MyDataMacSize.icon, color: context.colors.danger),
                         SizedBox(width: context.space(2)),
                         Expanded(
-                          child: Text(formError, style: MyDataMacType.callout.copyWith(color: context.colors.danger)),
+                          child: Text(formError, style: context.macLook.callout.copyWith(color: context.colors.danger)),
                         ),
                       ],
                     ),

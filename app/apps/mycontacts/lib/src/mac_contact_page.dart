@@ -65,11 +65,11 @@ class MacContactPage extends StatelessWidget {
     final Widget? below = switch (detail) {
       DetailReady(:final contact) => MacFieldTable(groups: fieldsFor(contact, onOpenLink: onOpenLink)),
       DetailLoading() => null,
-      DetailMissing() => Text(ContactPage.missingText, style: MyDataMacType.body.copyWith(color: mac.secondaryLabel)),
+      DetailMissing() => Text(ContactPage.missingText, style: context.macLook.secondary(context.macLook.body).copyWith(color: mac.secondaryLabel)),
       DetailFailed() => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(ContactPage.failedText, style: MyDataMacType.body.copyWith(color: mac.secondaryLabel)),
+          Text(ContactPage.failedText, style: context.macLook.secondary(context.macLook.body).copyWith(color: mac.secondaryLabel)),
           SizedBox(height: context.space(2)),
           MacToolbarButton.text(
             text: ContactPage.retryLabel,
@@ -84,7 +84,7 @@ class MacContactPage extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (error != null) ...[
-          Semantics(liveRegion: true, child: Text(error, style: MyDataMacType.body.copyWith(color: context.colors.danger))),
+          Semantics(liveRegion: true, child: Text(error, style: context.macLook.body.copyWith(color: context.colors.danger))),
           SizedBox(height: context.space(4)),
         ],
         if (entry != null || d != null)

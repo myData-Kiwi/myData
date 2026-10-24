@@ -331,11 +331,11 @@ class _TrashViewState extends State<TrashView> {
       Text(t.title,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: MyDataMacType.body.copyWith(color: on ? mac.onAccent : mac.label)),
+          style: context.macLook.body.copyWith(color: on ? mac.onAccent : mac.label)),
       Text('Deleted ${TrashView.day(t.deletedAt)}',
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: MyDataMacType.caption.copyWith(color: on ? mac.onAccent : mac.secondaryLabel)),
+          style: context.macLook.caption.copyWith(color: on ? mac.onAccent : mac.secondaryLabel)),
     ]);
   }
 
@@ -457,7 +457,7 @@ class _One extends StatelessWidget {
       SizedBox(height: context.space(5)),
       Text(
         'It is deleted for good on ${TrashView.day(item.purgeAfter)}, unless you restore it.',
-        style: MyDataMacType.callout.copyWith(color: mac.secondaryLabel),
+        style: context.macLook.secondary(context.macLook.callout).copyWith(color: mac.secondaryLabel),
       ),
       SizedBox(height: context.space(4)),
       ButtonRow(children: [

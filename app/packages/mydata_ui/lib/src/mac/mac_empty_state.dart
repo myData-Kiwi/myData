@@ -4,6 +4,7 @@ import '../generated/tokens.g.dart';
 import '../theme/theme.dart';
 import '../widgets/kiwi.dart';
 import '../widgets/progress_bar.dart';
+import 'mac_metrics.dart';
 import 'mac_theme.dart';
 
 /// What a [MacEmptyState] leads with.
@@ -84,19 +85,19 @@ class MacEmptyState extends StatelessWidget {
             if (lead != null) ...[ExcludeSemantics(child: lead), SizedBox(height: context.space(4))],
             Semantics(
               header: true,
-              child: Text(title, textAlign: TextAlign.center, style: MyDataMacType.title.copyWith(color: mac.label)),
+              child: Text(title, textAlign: TextAlign.center, style: context.macLook.title.copyWith(color: mac.label)),
             ),
             if (progress != null) ...[
               SizedBox(height: context.space(4)),
               MyDataProgressBar(label: progressLabel!, value: progress!, caption: line ?? ''),
             ] else if (line != null && line!.isNotEmpty) ...[
               SizedBox(height: context.space(1)),
-              Text(line!, textAlign: TextAlign.center, style: MyDataMacType.body.copyWith(color: mac.secondaryLabel)),
+              Text(line!, textAlign: TextAlign.center, style: context.macLook.secondary(context.macLook.body).copyWith(color: mac.secondaryLabel)),
             ],
             if (detail != null && detail!.isNotEmpty) ...[
               SizedBox(height: context.space(3)),
               SelectableText(detail!,
-                  textAlign: TextAlign.center, style: MyDataMacType.caption.copyWith(color: mac.tertiaryLabel)),
+                  textAlign: TextAlign.center, style: context.macLook.caption.copyWith(color: mac.tertiaryLabel)),
             ],
             if (action != null) ...[SizedBox(height: context.space(5)), action!],
           ],

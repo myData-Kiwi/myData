@@ -8,6 +8,7 @@ library;
 
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/painting.dart' as painting;
@@ -388,5 +389,80 @@ void themeScreens(String app, List<ThemeScreen> screens, {Size size = const Size
         }
       }
     }
+  });
+}
+
+/// How far apart two pictures of one screen are in their shapes, not their colours (a drawn theme against
+/// another): each picture becomes a map of its edges (a pixel whose lightness differs from its right or
+/// lower neighbour's by more than [edgeStep]), counted in [edgeBlock]-pixel blocks; the score is the sum of
+/// the blocks' differences over the sum of their counts, from 0 (the same shapes) to 1 (none shared).
+/// Colour alone hardly moves it: one theme's palettes score 0.00 to 0.02 against each other on myContacts'
+/// people (measured 2026-10-24, all 18 palettes), while another type, density, corner style, selection or
+/// rule moves the edges. A text blur of a pixel or two stays inside its block.
+double shapeDifference(ByteData a, ByteData b, Size size) {
+  final w = size.width.toInt(), h = size.height.toInt();
+  final bw = w ~/ edgeBlock, bh = h ~/ edgeBlock;
+  List<int> blocks(ByteData d) {
+    double lum(int x, int y) {
+      final i = (y * w + x) * 4;
+      return 0.2126 * d.getUint8(i) + 0.7152 * d.getUint8(i + 1) + 0.0722 * d.getUint8(i + 2);
+    }
+
+    final counts = List<int>.filled(bw * bh, 0);
+    for (var y = 0; y < bh * edgeBlock; y++) {
+      for (var x = 0; x < bw * edgeBlock; x++) {
+        if (x + 1 >= w || y + 1 >= h) continue;
+        final l = lum(x, y);
+        if ((l - lum(x + 1, y)).abs() > edgeStep || (l - lum(x, y + 1)).abs() > edgeStep) {
+          counts[(y ~/ edgeBlock) * bw + x ~/ edgeBlock]++;
+        }
+      }
+    }
+    return counts;
+  }
+
+  final ba = blocks(a), bb = blocks(b);
+  var differ = 0, total = 0;
+  for (var i = 0; i < ba.length; i++) {
+    differ += (ba[i] - bb[i]).abs();
+    total += ba[i] + bb[i];
+  }
+  return total == 0 ? 0 : differ / total;
+}
+
+/// The step in lightness (0 to 255) that counts as an edge in [shapeDifference].
+const edgeStep = 24.0;
+
+/// The side of the blocks [shapeDifference] counts edges in.
+const edgeBlock = 16;
+
+/// Checks that the theme screenshots of [screen] ([themeScreens]' goldens, light mode) of every pair of
+/// drawn themes differ by more than colour: a [shapeDifference] of at least [least]. A drawn theme in the
+/// Mac window is its whole look, not the Mac's widgets in its colours (design/themes/ARCHITECTURE.md 3.4);
+/// before that was built Kiwi and Hairline scored 0.22 on myContacts' people. It reads the goldens the theme
+/// screens test keeps up to date, so it runs after them.
+void themesDistinct(String screen, {double least = 0.3, Size size = const Size(1280, 800)}) {
+  testWidgets('every pair of drawn themes draws $screen in more than its colours', (tester) async {
+    final pictures = <String, ByteData>{};
+    for (final slug in drawnThemes) {
+      final bytes = File('test/screenshots/theme_$screen.$slug-light.png').readAsBytesSync();
+      pictures[slug] = (await tester.runAsync<ByteData?>(() async {
+        final codec = await ui.instantiateImageCodec(bytes);
+        final frame = await codec.getNextFrame();
+        final data = await frame.image.toByteData(format: ui.ImageByteFormat.rawRgba);
+        frame.image.dispose();
+        codec.dispose();
+        return data;
+      }))!;
+    }
+    final close = <String>[];
+    for (var i = 0; i < drawnThemes.length; i++) {
+      for (var j = i + 1; j < drawnThemes.length; j++) {
+        final a = drawnThemes[i], b = drawnThemes[j];
+        final d = shapeDifference(pictures[a]!, pictures[b]!, size);
+        if (d < least) close.add('$a and $b: ${d.toStringAsFixed(2)}');
+      }
+    }
+    expect(close, isEmpty, reason: 'these draw $screen in little more than their colours');
   });
 }

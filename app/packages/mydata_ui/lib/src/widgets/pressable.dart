@@ -391,13 +391,18 @@ class FocusRing extends StatelessWidget {
   /// `ink` for a ring by itself.
   static Color colourFor(BuildContext context, {bool danger = false}) {
     final mac = Theme.of(context).extension<MyDataMacColors>();
-    return mac != null ? mac.focusRing : colourOf(context.colors, danger: danger);
+    return mac != null && _macSystem(context) ? mac.focusRing : colourOf(context.colors, danger: danger);
   }
+
+  /// The ring is the system's: System in the Mac shell. A drawn theme in the Mac window draws its own ring
+  /// (2px, following its corners, two-tone on a fill), as it does everywhere else.
+  static bool _macSystem(BuildContext context) =>
+      Theme.of(context).extension<MyDataMacColors>() != null && context.look.frame == LookFrame.system;
 
   /// The keyline of a ring that sits on a fill ([onFill]): `surface`; none in the Mac frame, whose ring is
   /// the system's.
   static Color? keylineFor(BuildContext context, {bool onFill = false}) =>
-      !onFill || Theme.of(context).extension<MyDataMacColors>() != null ? null : context.colors.surface;
+      !onFill || _macSystem(context) ? null : context.colors.surface;
 
   /// The ring around a shape with [radius]: 2px of [colourFor] 2px outside it, following the look's corner
   /// style; in the Mac frame `focus-ring-width` at `focus-ring-offset` (tokens.json "macos"), round.
@@ -405,7 +410,7 @@ class FocusRing extends StatelessWidget {
   static CustomPainter painter(BuildContext context, BorderRadius radius,
       {bool danger = false, bool onFill = false, MyDataShape? shape}) {
     final color = colourFor(context, danger: danger);
-    if (Theme.of(context).extension<MyDataMacColors>() == null) {
+    if (!_macSystem(context)) {
       return _FocusRingPainter(color, radius,
           shape: shape ?? context.radius, keyline: keylineFor(context, onFill: onFill));
     }

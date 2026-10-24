@@ -211,7 +211,7 @@ class DisclosurePart extends StatelessWidget {
           semanticLabel: action == null ? title : '$title, $action',
           child: ExcludeSemantics(
             child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: MacWindow.of(context) ? MacFormRow.minHeight(context.look) : context.density.rowHeight),
+              constraints: BoxConstraints(minHeight: MacWindow.of(context) ? MacFormRow.minHeight(context.look, system: context.isSystemLook) : context.density.rowHeight),
               child: Padding(
                 padding: MacWindow.of(context) ? MacFormRow.padding(context.look) : GroupedRow.padding(context.look),
                 child: Row(children: [

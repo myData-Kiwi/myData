@@ -689,7 +689,7 @@ class _IcloudSectionState extends State<IcloudSection> {
         children: [
           SizedBox(
             width: IcloudForm.macLabelWidth,
-            child: Text(label, style: MyDataMacType.body.copyWith(color: mac.label)),
+            child: Text(label, style: context.macLook.body.copyWith(color: mac.label)),
           ),
           Expanded(child: input),
         ],
@@ -701,7 +701,7 @@ class _IcloudSectionState extends State<IcloudSection> {
         children: [
           Text(
             '${widget.onMacHost ? IcloudSection.forOtherHosts : ''}${IcloudSection.why}',
-            style: MyDataMacType.caption.copyWith(color: mac.secondaryLabel),
+            style: context.macLook.caption.copyWith(color: mac.secondaryLabel),
           ),
           SizedBox(height: context.space(3)),
           field(
@@ -733,14 +733,14 @@ class _IcloudSectionState extends State<IcloudSection> {
             padding: const EdgeInsetsDirectional.only(start: IcloudForm.macLabelWidth),
             child: Text(
               'Make one at account.apple.com, in Sign-In and Security.',
-              style: MyDataMacType.caption.copyWith(color: mac.secondaryLabel),
+              style: context.macLook.caption.copyWith(color: mac.secondaryLabel),
             ),
           ),
           if (_error != null) ...[
             SizedBox(height: context.space(2)),
             Semantics(
               liveRegion: true,
-              child: Text(_error!, style: MyDataMacType.caption.copyWith(color: context.colors.danger)),
+              child: Text(_error!, style: context.macLook.caption.copyWith(color: context.colors.danger)),
             ),
           ],
           SizedBox(height: context.space(3)),

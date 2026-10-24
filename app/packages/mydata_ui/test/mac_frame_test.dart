@@ -50,6 +50,70 @@ void main() {
         home: Scaffold(body: Center(child: child)),
       );
 
+  test('the Mac widgets draw System in the Mac tokens and a drawn theme in its own type, density and corners', () {
+    final system = MacLookMetrics.forLook(
+        MacTheme.data(null, Brightness.light, MyDataMacColors.light).extension<MyDataLook>()!, system: true);
+    expect(system.body, MyDataMacType.body);
+    expect(system.name, MyDataMacType.name);
+    expect(system.rowHeight, MyDataMacSize.rowHeight);
+    expect(system.toolbarItemHeight, MyDataMacSize.toolbarItemHeight);
+    expect(system.controlRadius, const BorderRadius.all(Radius.circular(MyDataMacRadius.field)));
+    expect(system.secondary(MyDataMacType.body), MyDataMacType.body);
+
+    MyDataLook drawn(String slug) => MacTheme.forChoice(ThemeChoice('mydata.$slug'), Brightness.light, MyDataMacColors.light)
+        .extension<MyDataLook>()!;
+    // Hairline's desktop density (its RULES.md: 30 px controls, 40 px rows), its round 5 px controls.
+    final hairline = MacLookMetrics.forLook(drawn('hairline'), system: false);
+    expect(hairline.rowHeight, 40);
+    expect(hairline.toolbarItemHeight, 30);
+    expect(hairline.controlRadius, const BorderRadius.all(Radius.circular(5)));
+    expect(hairline.itemSide, isNotNull, reason: 'Hairline outlines its controls');
+    // Journal: a name in its display face (Fraunces), square controls, secondary text italic.
+    final journalLook = drawn('journal');
+    final journal = MacLookMetrics.forLook(journalLook, system: false);
+    expect(journal.name.fontFamily, journalLook.typeScale.title.fontFamily);
+    expect(journal.name.fontFamily, contains('Fraunces'));
+    expect(journal.body.fontFamily, isNot(contains('Fraunces')));
+    expect(journal.controlRadius, BorderRadius.zero);
+    expect(journal.secondary(journal.body).fontStyle, FontStyle.italic);
+    // Kiwi's capsules, never taller than the toolbar band leaves room for.
+    final kiwi = MacLookMetrics.forLook(drawn('kiwi'), system: false);
+    expect(kiwi.toolbarItemHeight, MacLookMetrics.toolbarItemMax);
+    expect(kiwi.controlRadius.topLeft.x, greaterThan(kiwi.toolbarItemHeight / 2));
+  });
+
+  testWidgets("the Mac's plain list marks the selection in a drawn theme's own style and rows", (tester) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final people = [
+      ContactListEntry(id: 'a', name: 'Ava Fictional', givenName: 'Ava', familyName: 'Fictional'),
+      ContactListEntry(id: 'b', name: 'Ben Sample', givenName: 'Ben', familyName: 'Sample'),
+    ];
+    for (final (slug, rows) in [('hairline', 40.0), ('journal', 52.0)]) {
+      final theme = MacTheme.forChoice(ThemeChoice('mydata.$slug'), Brightness.light, MyDataMacColors.light);
+      await tester.pumpWidget(MaterialApp(
+        theme: theme,
+        themeAnimationDuration: Duration.zero,
+        home: Scaffold(
+          body: SizedBox(
+            width: 280,
+            height: 400,
+            child: ContactList(
+                style: ContactListStyle.plain, showSearch: false, contacts: people, selectedId: 'a', onOpen: (_) {}),
+          ),
+        ),
+      ));
+      await tester.pumpAndSettle();
+      final look = theme.extension<MyDataLook>()!;
+      expect(look.variants.selection, SelectionStyle.bar, reason: slug);
+      // The theme's selection (a tint and a bar), never the Mac's accent fill.
+      expect(find.byWidgetPredicate((w) => w is SelectionMark && w.selected), findsOneWidget, reason: slug);
+      expect(tester.getSize(find.ancestor(of: find.text('Ben Sample', findRichText: true), matching: find.byType(Semantics)).first).height,
+          rows, reason: '$slug rows are its own');
+    }
+  });
+
   testWidgets('a web address on a record is underlined in a drawn theme, in the accent in System', (tester) async {
     tester.view.physicalSize = const Size(1280, 800);
     tester.view.devicePixelRatio = 1;

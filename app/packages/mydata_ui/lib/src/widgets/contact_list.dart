@@ -8,6 +8,7 @@ import 'package:flutter/widgets.dart';
 
 import '../generated/tokens.g.dart';
 import '../mac/mac_chrome.dart';
+import '../mac/mac_metrics.dart';
 import '../mac/mac_theme.dart';
 import '../theme/theme.dart';
 import 'app_frame.dart' show AppLayout;
@@ -657,8 +658,10 @@ class _ContactListState extends State<ContactList> {
     }
 
     if (widget.style == ContactListStyle.plain) {
-      final row = math.max(MyDataMacSize.rowHeight, line(MyDataMacType.body) + context.space(2));
-      final heading = math.max(MyDataMacSize.sectionHeight, line(MyDataMacType.captionEmphasized) + context.space(2));
+      // The Mac's 24pt rows in System; a drawn theme's own rows, type and headings (MacLookMetrics).
+      final m = context.macLook;
+      final row = math.max(m.rowHeight, line(m.body) + context.space(2));
+      final heading = math.max(m.sectionHeight, line(m.captionEmphasized) + context.space(2));
       final extents = <double>[];
       final tops = <double>[];
       var y = _listTop;
@@ -706,7 +709,7 @@ class _ContactListState extends State<ContactList> {
 
   /// A screenful's worth of rows, for Page Up and Page Down in the selection.
   double get _rowHeight =>
-      widget.style == ContactListStyle.plain ? MyDataMacSize.rowHeight : context.density.rowHeight;
+      widget.style == ContactListStyle.plain ? context.macLook.rowHeight : context.density.rowHeight;
 
   /// The row the keyboard is on: the cursor if it is shown; from 600px the selected row if it is shown;
   /// otherwise the first row. Null when no rows are shown.
@@ -1020,7 +1023,7 @@ class _ContactListState extends State<ContactList> {
                 alignment: AlignmentDirectional.topStart,
                 child: Text(ContactList.noMatches(_query),
                     style: plain
-                        ? MyDataMacType.body.copyWith(color: context.mac.secondaryLabel)
+                        ? context.macLook.secondary(context.macLook.body).copyWith(color: context.mac.secondaryLabel)
                         : context.typeScale.body.copyWith(color: c.inkMuted)),
               ),
             );
@@ -1044,6 +1047,7 @@ class _ContactListState extends State<ContactList> {
               joinsUp: !first && _isSelected(entry.id) && _isSelected(model.rows[row - 1].id),
               joinsDown: !last && _isSelected(entry.id) && _isSelected(model.rows[row + 1].id),
               focusRing: ring && row == cursor && !_isSelected(entry.id),
+              keyboardRing: ring && row == cursor,
               cursor: row == cursor,
               focused: _focused && row == cursor,
               menu: widget.menuFor == null ? null : () => widget.menuFor!(entry.id),
@@ -1126,7 +1130,7 @@ class _PlainHeading extends StatelessWidget {
         padding: EdgeInsets.only(bottom: context.space(1)),
         child: Semantics(
           header: true,
-          child: Text(letter, maxLines: 1, style: MyDataMacType.captionEmphasized.copyWith(color: context.mac.secondaryLabel)),
+          child: Text(letter, maxLines: 1, style: context.macLook.captionEmphasized.copyWith(color: context.mac.secondaryLabel)),
         ),
       ),
     ),
@@ -1143,6 +1147,7 @@ class _PlainContactRow extends StatefulWidget {
     required this.joinsUp,
     required this.joinsDown,
     required this.focusRing,
+    this.keyboardRing = false,
     required this.cursor,
     required this.focused,
     required this.onPressed,
@@ -1157,6 +1162,10 @@ class _PlainContactRow extends StatefulWidget {
   final bool joinsUp;
   final bool joinsDown;
   final bool focusRing;
+
+  /// The keyboard is on this row, selected or not: a drawn theme rings it (System marks a selected row in
+  /// a focused list with the accent instead).
+  final bool keyboardRing;
   final bool cursor;
   final bool focused;
   final VoidCallback onPressed;
@@ -1174,6 +1183,7 @@ class _PlainContactRowState extends State<_PlainContactRow> {
   Widget build(BuildContext context) {
     final mac = context.mac;
     final e = widget.entry;
+    if (!context.isSystemLook) return _semantics(_menuRegion(_drawn(context)));
     final onAccent = widget.selected && widget.emphasised;
     final ink = onAccent ? mac.onAccent : mac.label;
     const corner = Radius.circular(MyDataMacRadius.selection);
@@ -1205,6 +1215,11 @@ class _PlainContactRowState extends State<_PlainContactRow> {
       padding: const EdgeInsets.symmetric(horizontal: MyDataMacSize.rowInset),
       child: content,
     );
+    return _semantics(_menuRegion(content));
+  }
+
+  /// [content] as the row's target, with its context menu.
+  Widget _menuRegion(Widget content) {
     content = GestureDetector(
       behavior: HitTestBehavior.opaque,
       excludeFromSemantics: true,
@@ -1219,6 +1234,81 @@ class _PlainContactRowState extends State<_PlainContactRow> {
         child: content,
       );
     }
+    return content;
+  }
+
+  /// A drawn theme in the Mac window (design/themes/ARCHITECTURE.md 3.4): the theme's rows, type and
+  /// selection ([SelectionMark]: Kiwi's tint and bar, Hairline's grey and ink bar, Journal's bar), its
+  /// corners, and a rule under each row where its lists are ruled or plain with separators (Journal,
+  /// Hairline). The theme's own focus ring shows where the keyboard is, on a selected row too; the row a
+  /// context menu was opened on keeps the accent outline.
+  Widget _drawn(BuildContext context) {
+    final e = widget.entry;
+    final look = context.look;
+    final m = context.macLook;
+    final ruled = switch (look.variants.list) {
+      ListStyle.ruled || ListStyle.table => true,
+      ListStyle.plain => look.edges.separators != Separators.none,
+      _ => false,
+    };
+    // A ruled row is a band across the list: square ends, as a ruled list draws its rows.
+    final radius = ruled ? BorderRadius.zero : m.selectionRadius;
+    final paint = widget.selected ? SelectionPaint.of(look) : null;
+    Widget content = Builder(builder: (context) {
+      final ink = context.colors.ink;
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: MyDataMacSize.rowPadding),
+        alignment: AlignmentDirectional.centerStart,
+        child: SelectionHighlight(
+          child: Builder(
+            builder: (context) => Text.rich(
+              plainNameSpan(e, m.body.copyWith(color: ink), m.bodyEmphasized.copyWith(color: ink)),
+              maxLines: 1,
+              softWrap: false,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ),
+      );
+    });
+    content = SelectionMark(selected: widget.selected, borderRadius: radius, child: content);
+    if (_menuOpen && !widget.selected) {
+      content = DecoratedBox(
+        position: DecorationPosition.foreground,
+        decoration: m.decorate(BoxDecoration(
+            borderRadius: radius, border: Border.all(color: context.colors.accent, width: MyDataMacSize.tight))),
+        child: content,
+      );
+    }
+    // The keyboard's ring inside the row, as a list row's is, so the rows around it never cover it; two-tone
+    // on a fill.
+    if (widget.keyboardRing) {
+      content = CustomPaint(
+        foregroundPainter: InsetRingPainter(
+          shape: look.shape,
+          color: FocusRing.colourFor(context),
+          borderRadius: radius,
+          keyline: FocusRing.keylineFor(context, onFill: paint?.fill != null),
+        ),
+        child: content,
+      );
+    }
+    if (ruled) {
+      content = DecoratedBox(
+        position: DecorationPosition.foreground,
+        decoration: BoxDecoration(border: Border(bottom: look.edges.side)),
+        child: content,
+      );
+    }
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: ruled ? 0 : MyDataMacSize.rowInset),
+      child: content,
+    );
+  }
+
+  Widget _semantics(Widget content) {
+    final e = widget.entry;
+    final menu = widget.menu;
     final caption = e.caption;
     return Semantics(
       container: true,

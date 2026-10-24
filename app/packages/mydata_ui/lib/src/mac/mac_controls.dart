@@ -11,6 +11,7 @@ import '../widgets/form_row.dart' show FormRemoveButton;
 import '../widgets/form_scope.dart';
 import '../widgets/menu.dart';
 import '../widgets/pressable.dart';
+import 'mac_metrics.dart';
 import 'mac_theme.dart';
 
 /// The Mac frame's form controls (docs/2026-10-23-plan.md section 5, "Mac density"): what a form in the Mac
@@ -145,7 +146,7 @@ class _MacEditFieldState extends State<MacEditField> {
     final mac = context.mac;
     final c = context.colors;
     final error = widget.error;
-    final style = MyDataMacType.body.copyWith(color: mac.label);
+    final style = context.macLook.body.copyWith(color: mac.label);
     final line = style.fontSize! * style.height!;
     final vertical = widget.multiline ? context.space(1) : (MacControl.height - line) / 2 - MyDataMacSize.hairline * 2;
     final field = TextField(
@@ -198,7 +199,7 @@ class _MacEditFieldState extends State<MacEditField> {
           box,
           if (error != null) ...[
             SizedBox(height: MacControl.noteGap(context.look)),
-            ExcludeSemantics(child: Text(error, style: MyDataMacType.caption.copyWith(color: c.danger))),
+            ExcludeSemantics(child: Text(error, style: context.macLook.caption.copyWith(color: c.danger))),
           ],
         ],
       ),
@@ -309,7 +310,7 @@ class _MacPopUpButtonState<T> extends State<MacPopUpButton<T>> {
           Flexible(
             child: Text(_shown,
                 maxLines: 1, overflow: TextOverflow.ellipsis, softWrap: false,
-                style: MyDataMacType.body.copyWith(color: mac.label)),
+                style: context.macLook.body.copyWith(color: mac.label)),
           ),
           SizedBox(width: context.space(2)),
           Icon(context.icon(MyDataIcon.upDown), size: MyDataMacSize.icon - context.space(1), color: mac.accent),
@@ -324,7 +325,7 @@ class _MacPopUpButtonState<T> extends State<MacPopUpButton<T>> {
           Flexible(
             child: Text(_shown,
                 maxLines: 1, overflow: TextOverflow.ellipsis, softWrap: false, textAlign: TextAlign.end,
-                style: MyDataMacType.callout.copyWith(color: mac.secondaryLabel)),
+                style: context.macLook.secondary(context.macLook.callout).copyWith(color: mac.secondaryLabel)),
           ),
           SizedBox(width: context.space(1)),
           Icon(context.icon(MyDataIcon.chevronDown), size: MyDataMacSize.icon - context.space(1), color: mac.secondaryLabel),
@@ -399,7 +400,7 @@ class MacEditorRow extends StatelessWidget {
           widthFactor: 1,
           child: Text(text,
               maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.end,
-              style: MyDataMacType.callout.copyWith(color: context.mac.secondaryLabel)),
+              style: context.macLook.secondary(context.macLook.callout).copyWith(color: context.mac.secondaryLabel)),
         ),
       );
 
@@ -490,7 +491,7 @@ class MacAddButton extends StatelessWidget {
             child: Icon(context.icon(MyDataIcon.add), size: size - 2 * MyDataMacSize.tight, color: MyDataMacColors.light.onAccent),
           ),
           SizedBox(width: context.space(2)),
-          Text(label, style: MyDataMacType.body.copyWith(color: mac.label)),
+          Text(label, style: context.macLook.body.copyWith(color: mac.label)),
         ]),
       ),
     );

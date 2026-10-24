@@ -6,6 +6,7 @@ import '../widgets/avatar.dart';
 import '../widgets/button.dart';
 import '../widgets/duplicate_pair.dart';
 import 'mac_controls.dart';
+import 'mac_metrics.dart';
 import 'mac_theme.dart';
 
 /// [DuplicatePair] in the Mac frame: the same versions, rows, differences, after column and actions, laid
@@ -99,7 +100,7 @@ class _MacPairTableState extends State<MacPairTable> {
         if (rows.isEmpty && !widget.loading)
           Padding(
             padding: EdgeInsets.symmetric(vertical: context.space(2)),
-            child: Text(DuplicatePair.nothingDiffers, style: MyDataMacType.body.copyWith(color: mac.secondaryLabel)),
+            child: Text(DuplicatePair.nothingDiffers, style: context.macLook.secondary(context.macLook.body).copyWith(color: mac.secondaryLabel)),
           ),
         for (final (i, f) in rows.indexed) ...[
           if (i > 0) _hairline(context),
@@ -112,9 +113,9 @@ class _MacPairTableState extends State<MacPairTable> {
           SizedBox(height: context.space(5)),
           Semantics(
             header: true,
-            child: Text(widget.after!.title, style: MyDataMacType.bodyEmphasized.copyWith(color: mac.label)),
+            child: Text(widget.after!.title, style: context.macLook.bodyEmphasized.copyWith(color: mac.label)),
           ),
-          Text(widget.after!.caption, style: MyDataMacType.caption.copyWith(color: mac.secondaryLabel)),
+          Text(widget.after!.caption, style: context.macLook.caption.copyWith(color: mac.secondaryLabel)),
           SizedBox(height: context.space(2)),
           Container(height: 1, color: mac.separator),
           for (final (i, f) in rows.indexed) ...[
@@ -139,7 +140,7 @@ class _MacPairTableState extends State<MacPairTable> {
       if (widget.note != null) {
         children.addAll([
           SizedBox(height: context.space(3)),
-          Text(widget.note!, style: MyDataMacType.caption.copyWith(color: mac.secondaryLabel)),
+          Text(widget.note!, style: context.macLook.caption.copyWith(color: mac.secondaryLabel)),
         ]);
       }
       if (widget.message != null) {
@@ -148,7 +149,7 @@ class _MacPairTableState extends State<MacPairTable> {
           Semantics(
             liveRegion: true,
             child: Text(widget.message!,
-                style: MyDataMacType.body.copyWith(color: widget.messageIsError ? c.danger : mac.label)),
+                style: context.macLook.body.copyWith(color: widget.messageIsError ? c.danger : mac.label)),
           ),
         ]);
       }
@@ -194,11 +195,11 @@ class _MacPairTableState extends State<MacPairTable> {
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
                     Text(col.title,
                         maxLines: 1, overflow: TextOverflow.ellipsis,
-                        style: MyDataMacType.bodyEmphasized.copyWith(color: mac.label)),
+                        style: context.macLook.bodyEmphasized.copyWith(color: mac.label)),
                     if (col.caption.isNotEmpty)
                       Text(col.caption,
                           maxLines: 1, overflow: TextOverflow.ellipsis,
-                          style: MyDataMacType.caption.copyWith(color: mac.secondaryLabel)),
+                          style: context.macLook.caption.copyWith(color: mac.secondaryLabel)),
                   ]),
                 ),
               ]),
@@ -226,11 +227,11 @@ class _MacPairTableState extends State<MacPairTable> {
             width: MyDataMacSize.labelColumn,
             child: Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
               Text(f.label.toLowerCase(),
-                  textAlign: TextAlign.end, style: MyDataMacType.callout.copyWith(color: mac.secondaryLabel)),
+                  textAlign: TextAlign.end, style: context.macLook.secondary(context.macLook.callout).copyWith(color: mac.secondaryLabel)),
               if (differs && mark)
                 Text(DuplicatePair.differsLabel,
                     textAlign: TextAlign.end,
-                    style: MyDataMacType.captionEmphasized.copyWith(color: mac.secondaryLabel)),
+                    style: context.macLook.captionEmphasized.copyWith(color: mac.secondaryLabel)),
             ]),
           ),
           for (final col in columns) ...[
@@ -265,21 +266,21 @@ class _MacPairTableState extends State<MacPairTable> {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
       ..._values(context, col.valuesOf(f)),
       for (final l in leftOut)
-        Text('${DuplicatePair.leftOutPrefix}$l', style: MyDataMacType.caption.copyWith(color: mac.secondaryLabel)),
+        Text('${DuplicatePair.leftOutPrefix}$l', style: context.macLook.caption.copyWith(color: mac.secondaryLabel)),
     ]);
   }
 
   List<Widget> _values(BuildContext context, List<PairValue> values) {
     final mac = context.mac;
     if (values.isEmpty) {
-      return [Text(DuplicatePair.noneLabel, style: MyDataMacType.body.copyWith(color: mac.tertiaryLabel))];
+      return [Text(DuplicatePair.noneLabel, style: context.macLook.body.copyWith(color: mac.tertiaryLabel))];
     }
     return [
       for (final v in values)
         Text.rich(TextSpan(children: [
           if (v.label.isNotEmpty)
-            TextSpan(text: '${v.label} ', style: MyDataMacType.caption.copyWith(color: mac.secondaryLabel)),
-          TextSpan(text: v.value, style: MyDataMacType.body.copyWith(color: mac.label)),
+            TextSpan(text: '${v.label} ', style: context.macLook.caption.copyWith(color: mac.secondaryLabel)),
+          TextSpan(text: v.value, style: context.macLook.body.copyWith(color: mac.label)),
         ])),
     ];
   }

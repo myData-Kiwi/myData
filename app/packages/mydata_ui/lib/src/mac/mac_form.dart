@@ -6,6 +6,7 @@ import '../theme/motion.dart';
 import '../theme/theme.dart';
 import '../widgets/pressable.dart';
 import 'mac_chrome.dart';
+import 'mac_metrics.dart';
 import 'mac_theme.dart';
 
 /// The Mac frame's grouped forms, as System Settings and an app's Settings window draw them (plan section 5:
@@ -19,7 +20,9 @@ import 'mac_theme.dart';
 /// - [MacFormPart]: anything else in a group (a short form, a sentence);
 /// - controls: [MacSwitch], [MacSegmented], [MacDisclosure], [MacStatusDot]; text in a [MacEditField].
 ///
-/// Mac density: rows `control-height` plus `space-3` tall at least, controls `push-button-height`.
+/// Mac density: rows `control-height` plus `space-3` tall at least, controls `push-button-height`. In a drawn
+/// theme ([MacLookMetrics]) the theme's type (secondary text italic where it says so), control height and
+/// corners, and its card outline round a group where it outlines cards.
 class MacForm extends StatelessWidget {
   const MacForm({super.key, required this.children, this.controller, this.maxWidth = MacForm.columnWidth});
 
@@ -38,7 +41,7 @@ class MacForm extends StatelessWidget {
   Widget build(BuildContext context) {
     final mac = context.mac;
     return DefaultTextStyle.merge(
-      style: MyDataMacType.body.copyWith(color: mac.label),
+      style: context.macLook.body.copyWith(color: mac.label),
       child: SingleChildScrollView(
         controller: controller,
         padding: EdgeInsets.fromLTRB(context.space(5), context.space(2), context.space(5), context.space(8)),
@@ -68,7 +71,7 @@ class MacFormSection extends StatelessWidget {
   final String? footer;
   final List<Widget> rows;
 
-  /// The group's corners: a Settings group's, the nearest token.
+  /// The group's corners: a Settings group's, the nearest token (in a drawn theme, its corner style).
   static BorderRadius radius(MyDataLook look) => BorderRadius.all(Radius.circular(look.shape.sm));
 
   /// The group's fill: `hover` over `content-background`, a shade off the page in both appearances.
@@ -86,16 +89,18 @@ class MacFormSection extends StatelessWidget {
             padding: EdgeInsets.fromLTRB(context.space(3), 0, context.space(3), context.space(2)),
             child: Semantics(
               header: true,
-              child: Text(heading!, style: MyDataMacType.bodyEmphasized.copyWith(color: mac.label)),
+              child: Text(heading!, style: context.macLook.bodyEmphasized.copyWith(color: mac.label)),
             ),
           ),
         if (rows.isNotEmpty)
           DecoratedBox(
-            decoration: BoxDecoration(
+            decoration: context.macLook.decorate(BoxDecoration(
               color: fill(context),
               borderRadius: radius(context.look),
-              border: Border.all(color: mac.separator, width: MyDataMacSize.hairline),
-            ),
+              border: Border.fromBorderSide(context.isSystemLook
+                  ? BorderSide(color: mac.separator, width: MyDataMacSize.hairline)
+                  : (context.look.edges.card ?? BorderSide(color: mac.separator, width: MyDataMacSize.hairline))),
+            )),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisSize: MainAxisSize.min,
@@ -114,7 +119,8 @@ class MacFormSection extends StatelessWidget {
         if (footer != null)
           Padding(
             padding: EdgeInsets.fromLTRB(context.space(3), context.space(2), context.space(3), 0),
-            child: Text(footer!, style: MyDataMacType.caption.copyWith(color: mac.secondaryLabel)),
+            child: Text(footer!,
+                style: context.macLook.secondary(context.macLook.caption).copyWith(color: mac.secondaryLabel)),
           ),
       ],
     );
@@ -141,20 +147,22 @@ class MacFormRow extends StatelessWidget {
   /// The subtitle's colour when it says something is wrong; null: `secondary-label`.
   final Color? subtitleColor;
 
-  static double minHeight(MyDataLook look) => MyDataMacSize.controlHeight + look.space(3);
+  static double minHeight(MyDataLook look, {bool system = true}) =>
+      MacLookMetrics.forLook(look, system: system).controlHeight + look.space(3);
   static EdgeInsets padding(MyDataLook look) => EdgeInsets.symmetric(horizontal: look.space(3), vertical: look.space(2));
 
   @override
   Widget build(BuildContext context) {
     final mac = context.mac;
+    final m = context.macLook;
     return ConstrainedBox(
-      constraints: BoxConstraints(minHeight: minHeight(context.look)),
+      constraints: BoxConstraints(minHeight: minHeight(context.look, system: m.system)),
       child: Padding(
         padding: padding(context.look),
         child: Row(
           children: [
             if (icon != null) ...[
-              Icon(context.icon(icon!), size: MyDataMacSize.icon, color: mac.secondaryLabel),
+              Icon(context.icon(icon!), size: m.icon, color: mac.secondaryLabel),
               SizedBox(width: context.space(2)),
             ],
             Expanded(
@@ -163,13 +171,13 @@ class MacFormRow extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(title, style: MyDataMacType.body.copyWith(color: mac.label)),
+                    Text(title, style: m.body.copyWith(color: mac.label)),
                     if (subtitle != null && subtitle!.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(top: MyDataMacSize.tight),
                         child: Text(
                           subtitle!,
-                          style: MyDataMacType.caption.copyWith(color: subtitleColor ?? mac.secondaryLabel),
+                          style: m.secondary(m.caption).copyWith(color: subtitleColor ?? mac.secondaryLabel),
                         ),
                       ),
                   ],
@@ -196,7 +204,7 @@ class MacFormPart extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
     padding: EdgeInsets.all(context.space(3)),
-    child: DefaultTextStyle.merge(style: MyDataMacType.body.copyWith(color: context.mac.label), child: child),
+    child: DefaultTextStyle.merge(style: context.macLook.body.copyWith(color: context.mac.label), child: child),
   );
 }
 
@@ -214,7 +222,7 @@ class MacFormValue extends StatelessWidget {
     mainAxisSize: MainAxisSize.min,
     children: [
       if (dot != null) ...[MacStatusDot(color: dot!), SizedBox(width: context.space(1) + MyDataMacSize.tight)],
-      Text(text, style: MyDataMacType.body.copyWith(color: context.mac.secondaryLabel)),
+      Text(text, style: context.macLook.secondary(context.macLook.body).copyWith(color: context.mac.secondaryLabel)),
     ],
   );
 }
@@ -332,20 +340,22 @@ class _MacSegmentedState<T> extends State<MacSegmented<T>> {
   @override
   Widget build(BuildContext context) {
     final mac = context.mac;
+    final m = context.macLook;
     final toolbar = widget.toolbar;
-    final height = toolbar ? MyDataMacSize.toolbarItemHeight : MyDataMacSize.pushButtonHeight;
-    const shape = BorderRadius.all(Radius.circular(MyDataMacRadius.field));
+    final height = toolbar ? m.toolbarItemHeight : m.pushButtonHeight;
+    final shape = m.controlRadius;
+    final rest = m.itemSide ?? BorderSide(color: mac.separator, width: MyDataMacSize.hairline);
     final enabled = widget.onChanged != null;
     Widget control = Container(
       height: height,
       padding: const EdgeInsets.all(MyDataMacSize.tight),
-      decoration: BoxDecoration(
+      decoration: m.decorate(BoxDecoration(
         color: toolbar ? mac.toolbarItem : mac.quaternaryLabel,
         borderRadius: shape,
         border: _focused
             ? Border.all(color: FocusRing.colourFor(context), width: MyDataMacSize.focusRingWidth)
-            : (toolbar ? Border.all(color: mac.separator, width: MyDataMacSize.hairline) : null),
-      ),
+            : (toolbar || m.itemSide != null ? Border.fromBorderSide(rest) : null),
+      )),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -363,16 +373,16 @@ class _MacSegmentedState<T> extends State<MacSegmented<T>> {
                   duration: MyDataMotion.reduced(context) ? Duration.zero : context.motion.fast,
                   padding: EdgeInsets.symmetric(horizontal: toolbar ? context.space(4) : context.space(3)),
                   alignment: Alignment.center,
-                  decoration: BoxDecoration(
+                  decoration: m.decorate(BoxDecoration(
                     color: value == widget.selected ? (toolbar ? mac.sidebarSelection : mac.toolbarItem) : null,
                     borderRadius: shape,
                     border: value == widget.selected && !toolbar
                         ? Border.all(color: mac.separator, width: MyDataMacSize.hairline)
                         : null,
-                  ),
+                  )),
                   child: Text(
                     label,
-                    style: (value == widget.selected && toolbar ? MyDataMacType.bodyEmphasized : MyDataMacType.body)
+                    style: (value == widget.selected && toolbar ? m.bodyEmphasized : m.body)
                         .copyWith(color: enabled ? mac.label : mac.tertiaryLabel),
                   ),
                 ),
@@ -429,7 +439,7 @@ class MacDisclosure extends StatelessWidget {
             semanticLabel: title,
             child: ExcludeSemantics(
               child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: MacFormRow.minHeight(context.look)),
+                constraints: BoxConstraints(minHeight: MacFormRow.minHeight(context.look, system: context.macLook.system)),
                 child: Padding(
                   padding: MacFormRow.padding(context.look),
                   child: Row(
@@ -441,9 +451,10 @@ class MacDisclosure extends StatelessWidget {
                         child: Icon(context.icon(MyDataIcon.chevronRight), size: MyDataMacSize.icon - MyDataMacSize.tight, color: mac.secondaryLabel),
                       ),
                       SizedBox(width: context.space(2)),
-                      Expanded(child: Text(title, style: MyDataMacType.body.copyWith(color: mac.label))),
+                      Expanded(child: Text(title, style: context.macLook.body.copyWith(color: mac.label))),
                       if (subtitle != null)
-                        Text(subtitle!, style: MyDataMacType.body.copyWith(color: mac.secondaryLabel)),
+                        Text(subtitle!,
+                            style: context.macLook.secondary(context.macLook.body).copyWith(color: mac.secondaryLabel)),
                     ],
                   ),
                 ),
