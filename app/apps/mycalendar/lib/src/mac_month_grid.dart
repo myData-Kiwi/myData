@@ -602,12 +602,22 @@ class _EventLine extends StatelessWidget {
       final tint = colour == null
           ? mac.quaternaryLabel
           : colour.withValues(alpha: dark ? MacMonthGrid.chipTintDark : MacMonthGrid.chipTintLight);
+      // A drawn theme also marks the chip with the calendar's colour as given, in a bar with DataColour's
+      // edge where it is under 3:1 (as the shared month marks every event): a faint tint alone can be
+      // 1.4:1 on the ground (High Contrast's dark), which tells the calendar by a fill difference only.
+      final system = context.isSystemLook;
       return Container(
         height: height,
         padding: EdgeInsets.symmetric(horizontal: context.space(1)),
         alignment: AlignmentDirectional.centerStart,
         decoration: BoxDecoration(color: Color.alphaBlend(tint, ground), borderRadius: MacMonthGrid.chipRadius),
-        child: text,
+        child: system
+            ? text
+            : Row(children: [
+                DataBar(colour: colour, groundColour: Color.alphaBlend(tint, ground), height: height - context.space(1)),
+                SizedBox(width: context.space(1)),
+                Expanded(child: text),
+              ]),
       );
     }
     final dot = colour ?? mac.tertiaryLabel;
@@ -626,10 +636,14 @@ class _EventLine extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: dot,
                   shape: BoxShape.circle,
-                  // A hairline, so a dark dot on a dark cell reads as filled, not as a ring.
-                  border: dataColourNeedsEdge(dot, ground)
-                      ? Border.all(color: mac.tertiaryLabel, width: MyDataMacSize.hairline)
-                      : null,
+                  // A hairline, so a dark dot on a dark cell reads as filled, not as a ring; in a drawn theme
+                  // DataColour's own edge, a full point of `line-strong` (High Contrast's ink), since the
+                  // hairline in `tertiary-label` was 2.2:1 there.
+                  border: !dataColourNeedsEdge(dot, ground)
+                      ? null
+                      : context.isSystemLook
+                          ? Border.all(color: mac.tertiaryLabel, width: MyDataMacSize.hairline)
+                          : Border.all(color: context.colors.lineStrong, strokeAlign: BorderSide.strokeAlignInside),
                 ),
               ),
             SizedBox(width: context.space(1)),

@@ -52,4 +52,36 @@ void main() {
       }
     });
   }
+
+  // A calendar's colour as its source gives it can be near the ground (a dark grey Choir calendar on High
+  // Contrast's black): a dot then carries DataColour's 3:1 edge, never the Mac's 2.2:1 hairline, and an
+  // all-day chip carries the colour in a bar with that edge, never in a faint tint alone.
+  macTestWidgets('every calendar mark in the Mac month reads at 3:1 in high contrast, dark', (tester) async {
+    tester.view.physicalSize = const Size(1280, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    MacLook.debugOverride = true;
+    addTearDown(() => MacLook.debugOverride = null);
+    await tester.pumpWidget(_app(const ThemeCase('high-contrast', Brightness.dark, drawnOnMac: true), day: '2026-10-16'));
+    await mac.settle(tester);
+    final c = tester.element(find.text('13')).colors;
+    double ratio(Color a, Color b) => dataColourContrast(a, b);
+    final dots = tester
+        .widgetList<Container>(find.byType(Container))
+        .map((w) => w.decoration)
+        .whereType<BoxDecoration>()
+        .where((d) => d.shape == BoxShape.circle && d.color != null)
+        .toList();
+    expect(dots, isNotEmpty);
+    for (final d in dots) {
+      if (ratio(d.color!, c.surface) >= 3) continue;
+      final edge = (d.border! as Border).top;
+      expect(ratio(edge.color, c.surface), greaterThanOrEqualTo(3), reason: '${d.color}');
+      expect(edge.width, greaterThanOrEqualTo(1), reason: '${d.color}');
+    }
+    for (final chip in ['Rent', 'Seed swap']) {
+      final box = find.ancestor(of: find.text(chip), matching: find.byType(Container)).first;
+      expect(find.descendant(of: box, matching: find.byType(DataBar)), findsOneWidget, reason: chip);
+    }
+  });
 }

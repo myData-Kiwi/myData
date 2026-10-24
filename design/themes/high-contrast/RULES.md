@@ -31,7 +31,7 @@ Regular plus: 40 px controls, 48 px rows, 20 px icons on the desktop; 48 / 56 / 
 
 - Grounds: white and black (`bg` and `surface` alike). `ink` is black or white; `ink-muted` #2B2B2B or #E0E0E0, 14 to 16:1.
 - The style fixes four roles in every palette (`colour-use.same-as`): `selection` and `line-strong` and `edge` are `ink`, `on-selection` is `bg`. So selection is always inverse (black on white, white on black) and every edge is ink, whatever the palette.
-- Status colours and every text pair reach 7:1, on their soft fills too. The calendar colours are moved in lightness (hue kept) so each is 3:1 on the ground and needs no edge.
+- Status colours and every text pair reach 7:1, on their soft fills too. The palette's calendar colours (the ones offered for a calendar myData owns) are moved in lightness (hue kept) so each is 3:1 on the ground and needs no edge. A calendar's own colour from its source is drawn as given, so it can sit near the ground (a dark grey on black): every dot and bar under 3:1 then carries a 1 px ink edge, and in the Mac window's month an all-day chip carries its colour in such a bar, never in its faint tint alone.
 - Focus is a magenta-red (#B2055B; #E865AB in dark), 6.8:1 on the ground and 3:1 against the ink of an inverse selection, apart in hue from every accent.
 
 ## Palettes
