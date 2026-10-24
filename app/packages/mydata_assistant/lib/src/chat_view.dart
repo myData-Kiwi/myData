@@ -10,8 +10,10 @@ import 'result_view.dart';
 /// The conversation and the message input. Enter sends; Shift+Enter starts a new line.
 ///
 /// - The conversation is a reading column at most `content-max` wide, on the ground (`bg`), padded like a
-///   page ([PageScaffold.paddingFor]). The user's messages are right-aligned on `accent-soft` with `ink`
-///   text and `radius-lg`; the assistant's sentences are plain `body` text, with no bubble. Progress lines
+///   page ([PageScaffold.paddingFor]). In the theme's chat style: Kiwi's bubbles put the user's messages
+///   right-aligned on `accent-soft` with `ink` text and `radius-lg`, and the assistant's sentences in plain
+///   `body` text, with no bubble; blocks put each turn full width, the user's on `surface-sunken`; a
+///   transcript sets each turn under its speaker's name ("You", "myAssistant") beside a rule. Progress lines
 ///   are `caption` / `ink-muted` with a small turning kiwi while the tool runs (still with reduced motion)
 ///   and a check once it is done. Results and approval cards are the only raised surfaces. When the host
 ///   switches between demo and real mode, one centred `caption` / `ink-muted` line says that a new
@@ -73,6 +75,17 @@ class ChatView extends StatefulWidget {
 
   /// The widest a message of the user's gets, as a share of the column.
   static const bubbleMaxShare = 3 / 4;
+
+  /// The speakers' names over a transcript's turns (`chat: transcript`).
+  static const youLabel = 'You';
+  static const assistantLabel = 'myAssistant';
+
+  /// A transcript turn's rule at its leading edge.
+  static const turnRuleWidth = 2.0;
+
+  /// Around a block's text (`chat: blocks`), the user's on its fill and the assistant's lined up with it.
+  static EdgeInsets blockPadding(MyDataLook look) =>
+      EdgeInsets.symmetric(horizontal: look.space(4), vertical: look.space(3));
 
   @override
   State<ChatView> createState() => _ChatViewState();
@@ -380,7 +393,9 @@ class _MacItemView extends StatelessWidget {
   };
 }
 
-/// The user's message: right-aligned on `accent-soft`, `ink` text, `radius-lg`.
+/// The user's message in the theme's chat style (`components.chat`): a bubble, right-aligned on `accent-soft`
+/// with `ink` text and `radius-lg` (Kiwi); a full-width block on `surface-sunken`; or a transcript turn,
+/// under "You", with a `line-strong` rule at its leading edge.
 class _UserMessage extends StatelessWidget {
   const _UserMessage(this.text);
   final String text;
@@ -388,33 +403,88 @@ class _UserMessage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return LayoutBuilder(
-      builder: (context, constraints) => Align(
-        alignment: AlignmentDirectional.centerEnd,
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: constraints.maxWidth * ChatView.bubbleMaxShare),
-          child: DecoratedBox(
-            decoration: context.radius.decorate(BoxDecoration(color: c.accentSoft, borderRadius: MyDataRadii.lg(context.look))),
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: context.space(4), vertical: context.space(3)),
-              child: Text(text, style: context.typeScale.body.copyWith(color: c.ink)),
+    final body = Text(text, style: context.typeScale.body.copyWith(color: c.ink));
+    return switch (context.variants.chat) {
+      ChatStyle.bubbles => LayoutBuilder(
+        builder: (context, constraints) => Align(
+          alignment: AlignmentDirectional.centerEnd,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: constraints.maxWidth * ChatView.bubbleMaxShare),
+            child: DecoratedBox(
+              decoration: context.radius.decorate(
+                BoxDecoration(color: c.accentSoft, borderRadius: MyDataRadii.lg(context.look)),
+              ),
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: context.space(4), vertical: context.space(3)),
+                child: body,
+              ),
             ),
           ),
         ),
       ),
-    );
+      ChatStyle.blocks => DecoratedBox(
+        decoration: context.radius.decorate(
+          BoxDecoration(color: c.surfaceSunken, borderRadius: MyDataRadii.md(context.look)),
+        ),
+        child: Padding(padding: ChatView.blockPadding(context.look), child: Align(alignment: AlignmentDirectional.centerStart, child: body)),
+      ),
+      ChatStyle.transcript => _Turn(speaker: ChatView.youLabel, rule: c.lineStrong, child: body),
+    };
   }
 }
 
-/// The assistant's sentence: plain body text on the ground.
+/// The assistant's sentence: plain body text on the ground; in blocks, padded as the user's block is; in a
+/// transcript, under "myAssistant" with an `accent` rule at its leading edge.
 class _AssistantText extends StatelessWidget {
   const _AssistantText(this.text);
   final String text;
 
   @override
-  Widget build(BuildContext context) => Align(
-    alignment: AlignmentDirectional.centerStart,
-    child: Text(text, style: context.typeScale.body.copyWith(color: context.colors.ink)),
+  Widget build(BuildContext context) {
+    final body = Text(text, style: context.typeScale.body.copyWith(color: context.colors.ink));
+    return switch (context.variants.chat) {
+      ChatStyle.bubbles => Align(alignment: AlignmentDirectional.centerStart, child: body),
+      ChatStyle.blocks => Padding(
+        padding: ChatView.blockPadding(context.look),
+        child: Align(alignment: AlignmentDirectional.centerStart, child: body),
+      ),
+      ChatStyle.transcript =>
+        _Turn(speaker: ChatView.assistantLabel, speakerIsName: true, rule: context.colors.accent, child: body),
+    };
+  }
+}
+
+/// One turn of a transcript: the speaker's name in `caption` (italic where the theme sets captions so)
+/// and `ink-muted`, then the paragraph, beside a rule at the leading edge.
+class _Turn extends StatelessWidget {
+  const _Turn({required this.speaker, required this.rule, required this.child, this.speakerIsName = false});
+  final String speaker;
+  final Color rule;
+  final Widget child;
+  final bool speakerIsName;
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: BoxDecoration(
+      border: BorderDirectional(start: BorderSide(color: rule, width: ChatView.turnRuleWidth)),
+    ),
+    child: Padding(
+      padding: EdgeInsetsDirectional.only(start: context.space(3)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          RoleLabel(
+            speaker,
+            role: MyDataTypeRole.caption,
+            color: context.colors.inkMuted,
+            holdsName: speakerIsName,
+          ),
+          SizedBox(height: context.space(1)),
+          child,
+        ],
+      ),
+    ),
   );
 }
 
