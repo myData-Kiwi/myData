@@ -145,6 +145,7 @@ void main() {
       'mydata.blueprint': ('tabler', 'thin'),
       'mydata.arcade': ('phosphor', 'regular'),
       'mydata.geometric': ('phosphor', 'fill'),
+      'mydata.zen': ('phosphor', 'light'),
     });
   });
 

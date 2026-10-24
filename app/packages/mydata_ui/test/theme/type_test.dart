@@ -231,8 +231,10 @@ void main() {
     for (final b in Brightness.values) {
       final slug = id.substring('mydata.'.length);
       testWidgets('type golden ($slug-${b.name})', (tester) async {
-        // Large's 19 px text and Notebook's 40 px handwriting on a 28 px pitch need a taller specimen.
-        tester.view.physicalSize = Size(640, switch (id) { 'mydata.large' => 480, 'mydata.notebook' => 440, _ => 400 });
+        // Large's 19 px text, Notebook's 40 px handwriting on a 28 px pitch and Zen's open line heights need a
+        // taller specimen.
+        tester.view.physicalSize =
+            Size(640, switch (id) { 'mydata.large' => 480, 'mydata.notebook' || 'mydata.zen' => 440, _ => 400 });
         tester.view.devicePixelRatio = 1;
         addTearDown(tester.view.reset);
         final look = designedLook(id, b);

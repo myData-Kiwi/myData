@@ -23,8 +23,8 @@ import 'validate.dart';
 /// blue, Forest), Sticker (Rose, Mint, Mustard), Paperback (Amber, Sepia, Linen), High Contrast (Blue,
 /// Yellow, Cyan), E-ink (White, Cream, Grey), Large (Blue, Green, Purple), Terminal (Green, Amber, Cyan),
 /// Notebook (Blue, Green, Violet), Brutalist (Blue, Yellow, Green), Retro Desktop (Grey, Beige, Teal), Swiss
-/// (Red, Blue, Green), Blueprint (Blue, Sepia, Green), Arcade (Magenta, Cyan, Lime) and Geometric (Blue, Red,
-/// Green).
+/// (Red, Blue, Green), Blueprint (Blue, Sepia, Green), Arcade (Magenta, Cyan, Lime), Geometric (Blue, Red,
+/// Green) and Zen (Indigo, Moss, Ochre).
 ///
 /// **Today's old colours** (`graphite`, `dusk`, `plum`, `rose`, `amber`: the host's old `/appearance` ids,
 /// and Kiwi's palettes in phases 1 and 2) are hidden aliases on Kiwi: a choice of Kiwi in one of them is
