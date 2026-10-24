@@ -370,11 +370,11 @@ void themeScreens(ThemeScreen key, {Size size = const Size(1280, 800)}) {
   }
 }
 
-/// [key] in the largest-type and the edge-heaviest themes (Large, High Contrast; light) in the Mac window at
+/// [key] in the themes with the widest type and the heaviest edges ([narrowThemes]; light) in the Mac window at
 /// its smallest, 720 by 480 (MacShell.swift's minimum): nothing overflows, as golden
 /// `screenshots/theme_<screen>.<theme>-narrow.png`. The 1280-wide pictures above never showed what Large's
 /// wider sidebar and 19 px text leave room for.
-void themeNarrow(ThemeScreen key, {List<String> slugs = const ['large', 'high-contrast'], Size size = macMinSize}) {
+void themeNarrow(ThemeScreen key, {List<String> slugs = narrowThemes, Size size = macMinSize}) {
   for (final slug in slugs) {
     macTestWidgets('${key.name} at the smallest window in $slug', (tester) async {
       tester.view.physicalSize = size;
@@ -398,6 +398,12 @@ void themeNarrow(ThemeScreen key, {List<String> slugs = const ['large', 'high-co
     });
   }
 }
+
+/// The themes [themeNarrow] draws at the smallest window: Large (19 px text, a wider sidebar), High Contrast
+/// (2 px edges), Brutalist (3 px edges, 44 px Archivo Black titles, panels in a gutter), Notebook (Kalam
+/// titles at 26 to 32 px on 56 px rows), Retro Desktop (24 px icons, panels in a gutter) and Terminal (a
+/// monospace face, wider per letter).
+const narrowThemes = ['large', 'high-contrast', 'brutalist', 'notebook', 'retro-desktop', 'terminal'];
 
 /// The Mac windows' smallest size (MacShell.swift's `minSize`).
 const macMinSize = Size(720, 480);
