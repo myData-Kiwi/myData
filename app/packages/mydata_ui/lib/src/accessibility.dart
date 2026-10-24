@@ -59,10 +59,11 @@ class _MyDataAccessibilityScopeState extends State<MyDataAccessibilityScope> {
   bool _systemReduceTransparency = false;
   bool _coarsePointer = false;
 
-  /// Every press in the app, before any widget handles it: a finger makes targets coarse, anything else
-  /// fine.
+  /// Every press in the app: a finger makes targets coarse, anything else fine. Taken when the press ends,
+  /// not when it starts, so the controls do not change size under the finger that is still on them (the
+  /// tap itself was hit-tested on the way down and fires before the next layout).
   void _pointer(PointerEvent e) {
-    if (e is! PointerDownEvent) return;
+    if (e is! PointerUpEvent) return;
     final coarse = e.kind == PointerDeviceKind.touch;
     if (coarse != _coarsePointer && mounted) setState(() => _coarsePointer = coarse);
   }

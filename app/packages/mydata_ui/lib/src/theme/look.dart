@@ -14,6 +14,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../accessibility.dart';
 import '../generated/tokens.g.dart';
 import 'builtin_themes.g.dart';
 import 'catalogue.dart';
@@ -924,12 +925,16 @@ class MyDataLook extends ThemeExtension<MyDataLook> {
 
   /// Kiwi in its own colour from the generated constants: the first frame, tests, and whenever no look is
   /// in the theme, so nothing is ever drawn unthemed.
-  static MyDataLook fallback(Brightness brightness) =>
-      brightness == Brightness.dark ? (_fallbackDark ??= _fallback(Brightness.dark)) : (_fallbackLight ??= _fallback(Brightness.light));
+  /// Its density is held at the platform's floor ([MyDataDensity.floorFor]), as a resolved look's is, so
+  /// Android's first frame has 48 px targets too.
+  static MyDataLook fallback(Brightness brightness) {
+    final floor = MyDataDensity.floorFor(defaultTargetPlatform);
+    return _fallbacks[(brightness, floor)] ??= _fallback(brightness, floor);
+  }
 
-  static MyDataLook? _fallbackLight, _fallbackDark;
+  static final _fallbacks = <(Brightness, double), MyDataLook>{};
 
-  static MyDataLook _fallback(Brightness b) {
+  static MyDataLook _fallback(Brightness b, double floor) {
     final dark = b == Brightness.dark;
     return MyDataLook(
       themeId: 'mydata.kiwi',
@@ -939,7 +944,7 @@ class MyDataLook extends ThemeExtension<MyDataLook> {
       colors: dark ? MyDataColors.dark : MyDataColors.light,
       typeScale: MyDataTypeScale.kiwi,
       shape: MyDataShape.kiwi,
-      density: MyDataDensity.kiwi,
+      density: MyDataDensity.kiwi.atLeast(floor),
       edges: MyDataEdges(_kiwiBorders, colour: (dark ? MyDataColors.dark : MyDataColors.light).line),
       elevation: MyDataElevation(
           style: ElevationStyle.soft, shadows: dark ? MyDataShadows.dark : MyDataShadows.light, collapse: false),
@@ -952,9 +957,31 @@ class MyDataLook extends ThemeExtension<MyDataLook> {
 
   /// The look in [context]'s theme. With [listen] false the widget is not rebuilt when the theme changes, and
   /// it may be read where a dependency cannot be made (`initState`, a late field first used there).
+  ///
+  /// While the pointer is coarse (a finger on a desktop's touch screen, [MyDataAccessibility.coarsePointer])
+  /// its density is raised to [MyDataDensity.coarseFloor] ([coarse]), so every read of a size, `look.density`
+  /// in a layout sum as much as `context.density` in a build, agrees with what is drawn.
   static MyDataLook of(BuildContext context, {bool listen = true}) {
     final theme = listen ? Theme.of(context) : context.findAncestorWidgetOfExactType<Theme>()?.data;
-    return theme?.extension<MyDataLook>() ?? fallback(theme?.brightness ?? Brightness.light);
+    final look = theme?.extension<MyDataLook>() ?? fallback(theme?.brightness ?? Brightness.light);
+    final access = listen
+        ? context.dependOnInheritedWidgetOfExactType<MyDataAccessibility>()
+        : context.getInheritedWidgetOfExactType<MyDataAccessibility>();
+    return access?.coarsePointer ?? false ? look.coarse : look;
+  }
+
+  static final _coarse = Expando<(double, MyDataLook)>('coarse');
+
+  /// This look for a coarse pointer: its density at least [MyDataDensity.coarseFloor]; itself when already
+  /// there. Kept per look, so a widget that reads it many times a build makes it once.
+  MyDataLook get coarse {
+    final floor = MyDataDensity.coarseFloor;
+    if (floor <= density.minTarget) return this;
+    final kept = _coarse[this];
+    if (kept != null && kept.$1 == floor) return kept.$2;
+    final raised = copyWith(density: density.atLeast(floor));
+    _coarse[this] = (floor, raised);
+    return raised;
   }
 
   @override

@@ -112,7 +112,8 @@ class StyleSpecimen extends StatelessWidget {
 }
 
 /// Pumps [theme] in [brightness] on the specimen, with the filled button focused by keyboard.
-Future<void> pumpSpecimen(WidgetTester tester, ThemeFile theme, Brightness brightness, {Size size = const Size(600, 860)}) async {
+Future<void> pumpSpecimen(WidgetTester tester, ThemeFile theme, Brightness brightness,
+    {Size size = const Size(600, 860), TargetPlatform platform = TargetPlatform.linux}) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
@@ -120,7 +121,7 @@ Future<void> pumpSpecimen(WidgetTester tester, ThemeFile theme, Brightness brigh
   final controller = TextEditingController(text: 'Kitchen Mac');
   addTearDown(focus.dispose);
   addTearDown(controller.dispose);
-  final look = ThemeLibrary.look(theme, brightness: brightness, platform: TargetPlatform.linux);
+  final look = ThemeLibrary.look(theme, brightness: brightness, platform: platform);
   await tester.pumpWidget(MaterialApp(
     debugShowCheckedModeBanner: false,
     theme: MyDataTheme.fromLook(look),
@@ -205,6 +206,28 @@ void main() {
       });
     }
   }
+
+  group('the platform floor', () {
+    // The harness holds every golden at the desktop's 24; this one shows Android's real 48.
+    setUp(() => MyDataDensity.debugFloor = null);
+    tearDown(() => MyDataDensity.debugFloor = MyDataDensity.desktopFloor);
+
+    testWidgets('style golden: Android holds every target at 48', (tester) async {
+      debugDisableShadows = false;
+      try {
+        final json = jsonDecode(kiwiThemeJson) as Map<String, dynamic>;
+        // A fresh file: the library keeps looks it resolved under the held floor.
+        await pumpSpecimen(tester, ThemeFile.fromJson(json, base: json), Brightness.light,
+            platform: TargetPlatform.android, size: const Size(600, 1000));
+        expect(tester.takeException(), isNull);
+        expect(tester.getSize(find.ancestor(of: find.text('Edit'), matching: find.byType(Pressable)).first).height, 48);
+        await expectLater(tester, meetsGuideline(androidTapTargetGuideline));
+        await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/style.floor-android.light.png'));
+      } finally {
+        debugDisableShadows = true;
+      }
+    });
+  });
 
   for (final (v, pressed) in [for (final v in styleVariants) (v, false), for (final v in pressedVariants) (v, true)]) {
     for (final b in Brightness.values) {

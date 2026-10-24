@@ -209,10 +209,9 @@ extension MyDataLookContext on BuildContext {
       (MediaQuery.maybeBoldTextOf(this) ?? false) ? look.typeScale.bold : look.typeScale;
   double space(num n) => look.density.space(n);
   MyDataShape get radius => look.shape;
-  /// The look's density, raised to 44 while the pointer is coarse (a finger on a desktop's touch screen).
-  MyDataDensity get density => MyDataAccessibility.of(this).coarsePointer
-      ? look.density.atLeast(MyDataDensity.coarseFloor)
-      : look.density;
+  /// The look's density, raised to 44 while the pointer is coarse (a finger on a desktop's touch screen):
+  /// [MyDataLook.of] raises it, so `look.density` and `lookNow.density` say the same.
+  MyDataDensity get density => look.density;
   /// The look's motion, or its reduced form while the system asks for less motion
   /// ([MyDataMotionSpec.reduced]).
   MyDataMotionSpec get motion =>
