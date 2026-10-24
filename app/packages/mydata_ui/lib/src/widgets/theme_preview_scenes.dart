@@ -1,6 +1,9 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
-import '../mac/mac_theme.dart' show MacTypeContext;
+import '../generated/tokens.g.dart' show MyDataMacSize;
+import '../mac/mac_theme.dart' show MacTypeContext, MacSystemLook;
 import '../theme/theme.dart';
 import 'avatar.dart';
 import 'badge.dart';
@@ -64,6 +67,11 @@ class _SceneWindow extends StatelessWidget {
   final Widget child;
 
   static const sidebarWidth = 168.0;
+
+  /// [sidebarWidth], widened in proportion where the theme's body is over 16 px (Large), as the Mac
+  /// window's sidebar is (MacSidebar.width), so a section's name fits.
+  static double sidebarWidthFor(BuildContext context) =>
+      sidebarWidth * math.max(1, (context.typeScale.body.fontSize ?? 16) / 16);
   static const toolbarHeight = 52.0;
 
   @override
@@ -76,7 +84,7 @@ class _SceneWindow extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Container(
-            width: sidebarWidth,
+            width: sidebarWidthFor(context),
             color: c.sidebar,
             padding: EdgeInsets.fromLTRB(context.space(2), toolbarHeight, context.space(2), context.space(2)),
             child: Column(
@@ -207,23 +215,53 @@ class _ContactsScene extends StatelessWidget {
           ),
         ),
         Expanded(
-          child: Padding(
+          // What fits, as a window shows it (Large loses the last lines).
+          child: ClipRect(
+            child: OverflowBox(
+              alignment: Alignment.topCenter,
+              maxHeight: double.infinity,
+              child: Padding(
             padding: EdgeInsets.all(context.space(6)),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Row(
-                  children: [
+                // The name beside the avatar, or under it where a theme's title would not fit there whole
+                // (Large): never broken mid-word.
+                LayoutBuilder(builder: (context, box) {
+                  final nameStyle = context.type(MyDataTypeRole.title).copyWith(color: c.ink);
+                  final name = Text('Ava Fictional', style: nameStyle);
+                  final avatar = [
                     if (Avatar.shown(context)) ...[
                       const Avatar(name: 'Ava Fictional', size: AvatarSize.large),
                       SizedBox(width: context.space(4)),
                     ],
-                    Expanded(
-                      child: Text('Ava Fictional', style: context.type(MyDataTypeRole.title).copyWith(color: c.ink)),
-                    ),
-                    const Button(label: 'Edit', onPressed: _noop),
-                  ],
-                ),
+                  ];
+                  final word = (TextPainter(
+                    text: TextSpan(text: 'Fictional', style: nameStyle),
+                    textDirection: TextDirection.ltr,
+                    textScaler: MediaQuery.textScalerOf(context),
+                  )..layout()).width;
+                  final label = (TextPainter(
+                    text: TextSpan(text: 'Edit', style: Button.labelStyle(context)),
+                    textDirection: TextDirection.ltr,
+                    textScaler: MediaQuery.textScalerOf(context),
+                  )..layout()).width;
+                  final edit = context.isSystemLook
+                      ? math.max(MyDataMacSize.pushButtonHeight * 3, label + 2 * context.space(3))
+                      : math.max(context.density.controlHeight, label + 2 * Button.horizontalPadding(context.look));
+                  final room = box.maxWidth -
+                      (Avatar.shown(context) ? AvatarSize.large.diameter(context.look) + context.space(4) : 0) -
+                      edit;
+                  if (word <= room) {
+                    return Row(children: [...avatar, Expanded(child: name), const Button(label: 'Edit', onPressed: _noop)]);
+                  }
+                  return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Row(children: [...avatar, const Spacer(), const Button(label: 'Edit', onPressed: _noop)]),
+                    SizedBox(height: context.space(2)),
+                    name,
+                  ]);
+                }),
                 SizedBox(height: context.space(6)),
                 Text('Email', style: muted),
                 Text('ava@example.org', style: context.type(MyDataTypeRole.body).copyWith(color: c.link)),
@@ -234,6 +272,8 @@ class _ContactsScene extends StatelessWidget {
                 Text('Birthday', style: muted),
                 Text('18 March', style: context.type(MyDataTypeRole.body).copyWith(color: c.ink)),
               ],
+            ),
+              ),
             ),
           ),
         ),
@@ -263,6 +303,7 @@ class _CalendarScene extends StatelessWidget {
       20: ('Housewarming', c.dataOrange),
       26: ('Flight', c.dataRed),
     };
+    final patterns = context.variants.dataColours == DataColourStyle.pattern;
     Widget day(int n) {
       final inMonth = n >= 1 && n <= 31;
       final label = inMonth ? '$n' : '${n < 1 ? 28 + n : n - 31}';
@@ -275,8 +316,15 @@ class _CalendarScene extends StatelessWidget {
             left: BorderSide(color: c.line),
           ),
         ),
-        child: Column(
+        // What fits, as a month cell shows it: a theme with larger type (Large) shows the day and loses the
+        // event, never overflowing the cell.
+        child: ClipRect(
+          child: OverflowBox(
+            alignment: AlignmentDirectional.topStart,
+            maxHeight: double.infinity,
+            child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
               padding: EdgeInsets.symmetric(horizontal: context.space(1)),
@@ -292,10 +340,11 @@ class _CalendarScene extends StatelessWidget {
               Container(
                 margin: EdgeInsets.only(top: context.space(1)),
                 padding: EdgeInsets.symmetric(horizontal: context.space(1)),
+                // A theme that draws calendars as patterns (E-ink) shows no colour: a grey chip, an ink mark.
                 decoration: BoxDecoration(
-                  color: event.$2.withValues(alpha: 0.18),
+                  color: patterns ? c.surfaceSunken : event.$2.withValues(alpha: 0.18),
                   border: BorderDirectional(
-                    start: BorderSide(color: event.$2, width: markWidth),
+                    start: BorderSide(color: patterns ? c.ink : event.$2, width: markWidth),
                   ),
                 ),
                 child: Text(
@@ -306,6 +355,8 @@ class _CalendarScene extends StatelessWidget {
                 ),
               ),
           ],
+            ),
+          ),
         ),
       );
     }
@@ -382,7 +433,11 @@ class _AssistantScene extends StatelessWidget {
                     padding: EdgeInsets.only(bottom: context.space(1)),
                     child: Row(
                       children: [
-                        Container(width: 3, height: 18, color: colour),
+                        // No colour where calendars are patterns (E-ink).
+                        Container(
+                            width: 3,
+                            height: 18,
+                            color: context.variants.dataColours == DataColourStyle.pattern ? c.ink : colour),
                         SizedBox(width: context.space(2)),
                         Text(time, style: body.copyWith(color: c.inkMuted)),
                         SizedBox(width: context.space(3)),
@@ -438,10 +493,16 @@ class _StatusScene extends StatelessWidget {
         ],
       ),
     );
-    return Padding(
+    // What fits, as a window shows it: a theme with larger type and rows (Large) loses the last lines.
+    return ClipRect(
+      child: OverflowBox(
+        alignment: Alignment.topCenter,
+        maxHeight: double.infinity,
+        child: Padding(
       padding: EdgeInsets.all(context.space(5)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
         children: [
           card(
             MyDataIcon.host,
@@ -456,6 +517,8 @@ class _StatusScene extends StatelessWidget {
             child: Button(label: 'Import contacts…', variant: ButtonVariant.filled, onPressed: _noop),
           ),
         ],
+      ),
+        ),
       ),
     );
   }
