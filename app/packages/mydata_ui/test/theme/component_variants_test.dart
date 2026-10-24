@@ -493,4 +493,21 @@ void main() {
       }
     }
   });
+
+  // Pairs that meet in one widget (ARCHITECTURE.md 5, "pairwise golden sets for risky pairs").
+  group('risky pairs', () {
+    variantGoldens('selection', (focus) => SelectionSpecimen(focus: focus),
+        size: const Size(1100, 340), values: ['inverse'], name: 'table', also: component('list', 'table'));
+    variantGoldens('selection', (focus) => SelectionSpecimen(focus: focus),
+        size: const Size(1100, 340), values: ['highlighter'], name: 'ruled', also: component('list', 'ruled'));
+    variantGoldens('button.primary', (focus) => ButtonSpecimen(focus: focus),
+        size: const Size(560, 150),
+        values: ['brutal'],
+        name: 'pressed-cut',
+        also: all([component('button.shape', 'cut'), styleGroup('elevation', {'press': 'collapse'})]),
+        before: (tester) async {
+          await tester.startGesture(tester.getCenter(find.text('Delete')));
+          await tester.pump();
+        });
+  });
 }
