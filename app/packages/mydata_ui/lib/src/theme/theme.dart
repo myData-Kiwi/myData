@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../accessibility.dart';
 import '../generated/tokens.g.dart';
 import 'choice.dart';
 import 'library.dart';
@@ -208,7 +209,10 @@ extension MyDataLookContext on BuildContext {
       (MediaQuery.maybeBoldTextOf(this) ?? false) ? look.typeScale.bold : look.typeScale;
   double space(num n) => look.density.space(n);
   MyDataShape get radius => look.shape;
-  MyDataDensity get density => look.density;
+  /// The look's density, raised to 44 while the pointer is coarse (a finger on a desktop's touch screen).
+  MyDataDensity get density => MyDataAccessibility.of(this).coarsePointer
+      ? look.density.atLeast(MyDataDensity.coarseFloor)
+      : look.density;
   MyDataMotionSpec get motion => look.motion;
 
   /// [icon]'s glyph in this look's icon set and weight; filled when [selected] and the theme fills selected

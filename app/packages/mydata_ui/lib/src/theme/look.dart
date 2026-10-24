@@ -371,7 +371,8 @@ class MyDataShape {
 
 double lerpDouble(double a, double b, double t) => a + (b - a) * t;
 
-/// Control, row and icon sizes and the spacing scale, for this device's class (desktop or phone).
+/// Control, row and icon sizes and the spacing scale, for this device's class (desktop or phone), never
+/// under the platform's floor for a target ([minTarget], ARCHITECTURE.md 1.4).
 @immutable
 class MyDataDensity {
   const MyDataDensity({
@@ -381,6 +382,7 @@ class MyDataDensity {
     required this.icon,
     required this.iconTile,
     required this.spaceScale,
+    this.minTarget = desktopFloor,
   });
 
   /// Buttons, inputs, chips and the minimum touch target.
@@ -401,8 +403,30 @@ class MyDataDensity {
   /// Multiplier on the 4px spacing scale.
   final double spaceScale;
 
+  /// The smallest target this device takes: 24 on a desktop (WCAG 2.2 SC 2.5.8), 44 on iOS and for a coarse
+  /// pointer anywhere, 48 on Android. Controls and rows are never smaller, whatever the theme says.
+  final double minTarget;
+
   /// `space-n` (`space(4)` is 16 at 1×).
   double space(num n) => n * 4 * spaceScale;
+
+  /// The floors of ARCHITECTURE.md 1.4.
+  static const desktopFloor = 24.0, iosFloor = 44.0, androidFloor = 48.0, coarsePointerFloor = 44.0;
+
+  /// The floor while the pointer is coarse ([debugFloor] in tests).
+  static double get coarseFloor => debugFloor ?? coarsePointerFloor;
+
+  /// Stands in for every platform's floor while set: the test harness sets [desktopFloor], so the shared
+  /// goldens, which Flutter renders as Android by default, show the look's own sizes rather than Android's
+  /// floor; the floors themselves have their own tests. Never set outside tests (mydata_testing).
+  static double? debugFloor;
+
+  /// [platform]'s floor for a target (with a fine pointer; [atLeast] raises it for a coarse one).
+  static double floorFor(TargetPlatform platform) => debugFloor ?? switch (platform) {
+        TargetPlatform.iOS => iosFloor,
+        TargetPlatform.android || TargetPlatform.fuchsia => androidFloor,
+        _ => desktopFloor,
+      };
 
   static const kiwi = MyDataDensity(
     controlHeight: MyDataSize.controlHeight,
@@ -413,15 +437,32 @@ class MyDataDensity {
     spaceScale: 1,
   );
 
-  /// The platform floors of ARCHITECTURE.md 1.4 are applied from phase 3; phase 1 draws the file's numbers.
-  factory MyDataDensity.of(DensitySet d) => MyDataDensity(
-        controlHeight: d.control,
-        controlHeightCompact: (d.control - 8).clamp(24, d.control).toDouble(),
-        rowHeight: d.row,
-        icon: d.icon,
-        iconTile: d.icon + 16,
-        spaceScale: d.space,
-      );
+  /// A theme's density set [d], raised to [floor] where it is smaller: controls and rows are targets.
+  factory MyDataDensity.of(DensitySet d, {double floor = desktopFloor}) {
+    final control = math.max(d.control, floor);
+    return MyDataDensity(
+      controlHeight: control,
+      controlHeightCompact: math.max((d.control - 8).clamp(24, d.control).toDouble(), floor),
+      rowHeight: math.max(d.row, floor),
+      icon: d.icon,
+      iconTile: d.icon + 16,
+      spaceScale: d.space,
+      minTarget: floor,
+    );
+  }
+
+  /// This density for a floor of at least [floor] (a coarse pointer on a desktop): itself when already there.
+  MyDataDensity atLeast(double floor) => floor <= minTarget
+      ? this
+      : MyDataDensity(
+          controlHeight: math.max(controlHeight, floor),
+          controlHeightCompact: math.max(controlHeightCompact, floor),
+          rowHeight: math.max(rowHeight, floor),
+          icon: icon,
+          iconTile: iconTile,
+          spaceScale: spaceScale,
+          minTarget: floor,
+        );
 
   static MyDataDensity lerp(MyDataDensity a, MyDataDensity b, double t) => MyDataDensity(
         controlHeight: lerpDouble(a.controlHeight, b.controlHeight, t),
@@ -430,6 +471,7 @@ class MyDataDensity {
         icon: lerpDouble(a.icon, b.icon, t),
         iconTile: lerpDouble(a.iconTile, b.iconTile, t),
         spaceScale: lerpDouble(a.spaceScale, b.spaceScale, t),
+        minTarget: t < 0.5 ? a.minTarget : b.minTarget,
       );
 }
 
@@ -833,7 +875,7 @@ class MyDataLook extends ThemeExtension<MyDataLook> {
       colors: colors,
       typeScale: MyDataTypeScale.of(s.type, platform: target),
       shape: MyDataShape.of(s.shape),
-      density: MyDataDensity.of(phone ? s.density.phone : s.density.desktop),
+      density: MyDataDensity.of(phone ? s.density.phone : s.density.desktop, floor: MyDataDensity.floorFor(target)),
       edges: MyDataEdges(s.borders, colour: MyDataEdges.colourOf(s.borders, colors), allControls: increasedContrast),
       elevation: MyDataElevation.of(s.elevation,
           shadow: colors.shadow,

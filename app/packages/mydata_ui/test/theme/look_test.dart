@@ -1,8 +1,12 @@
 // The run-time look (design/themes/ARCHITECTURE.md 3.1 and 3.3): MyDataTheme carries it, widgets read it
 // through their context, and the Mac shell's theme is the System look in the Mac window.
+import 'dart:convert';
+
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mydata_ui/mydata_ui.dart';
+import 'package:mydata_ui/src/theme/builtin_themes.g.dart';
 import 'package:mydata_ui/src/theme/theme_file.dart';
 
 void main() {
@@ -302,6 +306,70 @@ void main() {
       expect(e.style, ElevationStyle.soft);
       expect(e.controlShadows(primary: true), isEmpty);
       expect(e.bevel, isNull);
+    });
+  });
+
+  group('density floors (phase 3)', () {
+    setUp(() => MyDataDensity.debugFloor = null);
+    tearDown(() => MyDataDensity.debugFloor = MyDataDensity.desktopFloor);
+
+    ThemeFile small() {
+      final json = jsonDecode(kiwiThemeJson) as Map<String, dynamic>;
+      json['density'] = {
+        'desktop': {'control': 24, 'row': 24, 'icon': 14, 'space': 0.75},
+        'phone': {'control': 24, 'row': 24, 'icon': 14, 'space': 0.75},
+      };
+      return ThemeFile.fromJson(json, base: json);
+    }
+
+    test('no file goes under the platform floor: 24 on a desktop, 44 on iOS, 48 on Android', () {
+      for (final (platform, floor) in [
+        (TargetPlatform.macOS, 24.0),
+        (TargetPlatform.linux, 24.0),
+        (TargetPlatform.windows, 24.0),
+        (TargetPlatform.iOS, 44.0),
+        (TargetPlatform.android, 48.0),
+      ]) {
+        final d = ThemeLibrary.look(small(), brightness: Brightness.light, platform: platform).density;
+        expect(d.controlHeight, floor, reason: platform.name);
+        expect(d.rowHeight, floor, reason: platform.name);
+        expect(d.controlHeightCompact, floor, reason: platform.name);
+        expect(d.minTarget, floor, reason: platform.name);
+      }
+    });
+
+    test('Kiwi keeps its 44 on a desktop and iOS, and rises to 48 on Android', () {
+      // A fresh file: the library keeps looks it resolved under the tests' held floor.
+      final json = jsonDecode(kiwiThemeJson) as Map<String, dynamic>;
+      final kiwi = ThemeFile.fromJson(json, base: json);
+      expect(ThemeLibrary.look(kiwi, brightness: Brightness.light, platform: TargetPlatform.macOS)
+          .density.controlHeight, 44);
+      expect(ThemeLibrary.look(kiwi, brightness: Brightness.light, platform: TargetPlatform.iOS)
+          .density.controlHeight, 44);
+      final android = ThemeLibrary.look(kiwi, brightness: Brightness.light, platform: TargetPlatform.android);
+      expect(android.density.controlHeight, 48);
+      expect(android.density.rowHeight, 56);
+    });
+
+    testWidgets('a finger on a desktop raises every target to 44; a mouse puts them back', (tester) async {
+      final look = ThemeLibrary.look(small(), brightness: Brightness.light, platform: TargetPlatform.linux);
+      late double height;
+      await tester.pumpWidget(MaterialApp(
+        theme: MyDataTheme.fromLook(look),
+        home: MyDataAccessibilityScope(
+          child: Builder(builder: (context) {
+            height = context.density.controlHeight;
+            return const SizedBox.expand();
+          }),
+        ),
+      ));
+      expect(height, 24);
+      await tester.tapAt(const Offset(10, 10), kind: PointerDeviceKind.touch);
+      await tester.pump();
+      expect(height, 44);
+      await tester.tapAt(const Offset(10, 10), kind: PointerDeviceKind.mouse);
+      await tester.pump();
+      expect(height, 24);
     });
   });
 }

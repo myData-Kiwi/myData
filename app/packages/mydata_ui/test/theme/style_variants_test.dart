@@ -46,6 +46,9 @@ final List<StyleVariant> styleVariants = [
   // Depth: each elevation style at full strength, its drop 4px.
   for (final style in ['none', 'soft', 'hard', 'offset', 'bevel', 'glow'])
     (name: 'elevation-$style', edit: _set('elevation', {'style': style, 'strength': 1, 'offset': 4})),
+  // Density: the three presets, on a desktop.
+  for (final preset in ['compact', 'regular', 'roomy'])
+    (name: 'density-$preset', edit: (json) => json['density'] = {'preset': preset}),
 ];
 
 /// Drawn with the filled button held down: the press styles of elevation and motion.
@@ -138,6 +141,8 @@ void main() {
             await tester.pump();
           }
           expect(tester.takeException(), isNull);
+          // Every target meets the desktop floor (WCAG 2.2 SC 2.5.8), whatever the rule.
+          await expectLater(tester, meetsGuideline(const MinimumTapTargetGuideline(size: Size(24, 24), link: '')));
           await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/style.${v.name}.${b.name}.png'));
         } finally {
           await hold?.up();

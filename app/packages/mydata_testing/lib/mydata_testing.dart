@@ -117,8 +117,13 @@ Finder findIcon(MyDataIcon icon) => find.byIcon(iconOf(icon));
 
 /// For test/flutter_test_config.dart:
 /// `Future<void> testExecutable(FutureOr<void> Function() main) => myDataTestExecutable(main);`
+///
+/// Flutter tests run as Android unless a test says otherwise, so the theme's density floor is held at the
+/// desktop's 24 ([MyDataDensity.debugFloor]): the shared goldens show each theme's own sizes, and Android's
+/// 48 and iOS's 44 are tested on their own (mydata_ui's look_test).
 Future<void> myDataTestExecutable(FutureOr<void> Function() testMain) async {
   TestWidgetsFlutterBinding.ensureInitialized();
+  MyDataDensity.debugFloor = MyDataDensity.desktopFloor;
   await loadMyDataFonts();
   await testMain();
 }

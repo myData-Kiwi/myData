@@ -1,18 +1,30 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-/// The two system settings the design system follows: reduced motion and reduced transparency.
+/// The two system settings the design system follows, reduced motion and reduced transparency, and whether
+/// the last pointer was coarse (a finger on a touch screen), which raises every target to 44
+/// (design/themes/ARCHITECTURE.md 1.4; `context.density`).
 ///
 /// Flutter reports reduced motion through MediaQuery but has no reduced-transparency flag, so on macOS both
 /// are also read from the app's Runner over the `mydata/accessibility` channel (NSWorkspace). The web build
 /// always uses solid bars (design/README.md, "Floating bars").
 class MyDataAccessibility extends InheritedWidget {
-  const MyDataAccessibility(
-      {super.key, required this.reduceMotion, required this.reduceTransparency, required super.child});
+  const MyDataAccessibility({
+    super.key,
+    required this.reduceMotion,
+    required this.reduceTransparency,
+    this.coarsePointer = false,
+    required super.child,
+  });
 
   final bool reduceMotion;
   final bool reduceTransparency;
+
+  /// The last press came from a finger (`PointerDeviceKind.touch`); a mouse, trackpad or pen makes it false
+  /// again. Phones have their own floor already; this is for a touch screen on a desktop.
+  final bool coarsePointer;
 
   /// The nearest settings; outside a [MyDataAccessibilityScope] only MediaQuery (and the web rule) count.
   static MyDataAccessibility of(BuildContext context) {
@@ -26,7 +38,9 @@ class MyDataAccessibility extends InheritedWidget {
 
   @override
   bool updateShouldNotify(MyDataAccessibility old) =>
-      old.reduceMotion != reduceMotion || old.reduceTransparency != reduceTransparency;
+      old.reduceMotion != reduceMotion ||
+      old.reduceTransparency != reduceTransparency ||
+      old.coarsePointer != coarsePointer;
 }
 
 /// Put once above each app (inside MaterialApp's builder): follows the system settings as they change.
@@ -43,10 +57,20 @@ class MyDataAccessibilityScope extends StatefulWidget {
 class _MyDataAccessibilityScopeState extends State<MyDataAccessibilityScope> {
   bool _systemReduceMotion = false;
   bool _systemReduceTransparency = false;
+  bool _coarsePointer = false;
+
+  /// Every press in the app, before any widget handles it: a finger makes targets coarse, anything else
+  /// fine.
+  void _pointer(PointerEvent e) {
+    if (e is! PointerDownEvent) return;
+    final coarse = e.kind == PointerDeviceKind.touch;
+    if (coarse != _coarsePointer && mounted) setState(() => _coarsePointer = coarse);
+  }
 
   @override
   void initState() {
     super.initState();
+    GestureBinding.instance.pointerRouter.addGlobalRoute(_pointer);
     if (kIsWeb) return;
     MyDataAccessibilityScope.channel.setMethodCallHandler((call) async {
       if (call.method == 'changed') _apply(call.arguments);
@@ -68,6 +92,7 @@ class _MyDataAccessibilityScopeState extends State<MyDataAccessibilityScope> {
 
   @override
   void dispose() {
+    GestureBinding.instance.pointerRouter.removeGlobalRoute(_pointer);
     if (!kIsWeb) MyDataAccessibilityScope.channel.setMethodCallHandler(null);
     super.dispose();
   }
@@ -76,6 +101,7 @@ class _MyDataAccessibilityScopeState extends State<MyDataAccessibilityScope> {
   Widget build(BuildContext context) => MyDataAccessibility(
         reduceMotion: _systemReduceMotion || (MediaQuery.maybeDisableAnimationsOf(context) ?? false),
         reduceTransparency: kIsWeb || _systemReduceTransparency,
+        coarsePointer: _coarsePointer,
         child: widget.child,
       );
 }
