@@ -94,7 +94,7 @@ Crisp at ×0.9 (about 80 ms), nothing fades in (`enter: none`); a press inverts 
 
 ## Ported from the prototype
 
-- **Inter, not Inter Tight, for the titles.** Inter's optical size axis reaches 32, and its display cut is the tight grotesk the prototype wanted, so one family is bundled, not two (Inter Tight's Latin subset would add about 0.3 MB).
+- **Inter, not Inter Tight, for the titles.** Inter's optical size axis reaches 32, and its display cut is the tight grotesk the prototype wanted, so one family is bundled, not two.
 - **Danger is red again.** The prototype moved it to a crimson magenta so it would not match the red accent; the decided rule keeps danger's hue and draws the primary in ink instead (above).
 - Its colours are the Red palette (lightness moved where a pair needed it); Blue and Green are new.
 - Square corners are explicit (`radius` all 0), and plain buttons are underlined words, as in the other ruled themes.
