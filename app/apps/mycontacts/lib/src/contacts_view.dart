@@ -197,20 +197,22 @@ class _ContactsViewState extends State<ContactsView> {
           ],
         ),
         Expanded(
-          child: ContactList(
-            style: ContactListStyle.plain,
-            showSearch: false,
-            searchController: _search,
-            searchFocusNode: _searchFocus,
-            contacts: _controller.entries,
-            selectedId: selected,
-            selection: selection,
-            focusNode: _listFocus,
-            onOpen: (id) => unawaited(_open(id)),
-            menuFor: _actions.menuFor,
-            onReturn: (id) => unawaited(_actions.edit(id)),
-            onDelete: () => unawaited(_actions.deleteSelected()),
-            padding: EdgeInsets.symmetric(vertical: context.space(2)),
+          child: MacPanel(
+            child: ContactList(
+              style: ContactListStyle.plain,
+              showSearch: false,
+              searchController: _search,
+              searchFocusNode: _searchFocus,
+              contacts: _controller.entries,
+              selectedId: selected,
+              selection: selection,
+              focusNode: _listFocus,
+              onOpen: (id) => unawaited(_open(id)),
+              menuFor: _actions.menuFor,
+              onReturn: (id) => unawaited(_actions.edit(id)),
+              onDelete: () => unawaited(_actions.deleteSelected()),
+              padding: EdgeInsets.symmetric(vertical: context.space(2)),
+            ),
           ),
         ),
       ],
@@ -291,7 +293,7 @@ class _ContactsViewState extends State<ContactsView> {
             ),
           ],
         ),
-        Expanded(child: pane),
+        Expanded(child: MacPanel(child: pane)),
       ],
     );
 
@@ -303,7 +305,7 @@ class _ContactsViewState extends State<ContactsView> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           SizedBox(width: listWidth, child: list),
-          VerticalDivider(width: 1, thickness: 1, color: mac.separator),
+          if (!MacPanel.shown(context)) VerticalDivider(width: 1, thickness: 1, color: mac.separator),
           Expanded(child: contact),
         ],
       );

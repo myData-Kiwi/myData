@@ -207,6 +207,8 @@ class MacMonthView extends StatelessWidget {
     final ruled = !context.isSystemLook && MacMonthGrid.ruled(context.look);
     final line = ruled ? context.look.edges.colour : mac.separator;
     final lineWidth = ruled ? MacMonthGrid.ruleWidth(context.look) : 1.0;
+    // Where the month and the day are panels on the window's ground (MacPanel), the ground divides them.
+    final panels = MacPanel.shown(context);
     Widget divider({required bool vertical}) => vertical
         ? VerticalDivider(width: lineWidth, thickness: lineWidth, color: line)
         : Divider(height: lineWidth, thickness: lineWidth, color: line);
@@ -227,18 +229,18 @@ class MacMonthView extends StatelessWidget {
                   return Row(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Expanded(child: monthColumn),
-                      divider(vertical: true),
-                      SizedBox(width: dayListWidth, child: day),
+                      Expanded(child: MacPanel(child: monthColumn)),
+                      if (!panels) divider(vertical: true),
+                      SizedBox(width: dayListWidth, child: MacPanel(child: day)),
                     ],
                   );
                 }
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Expanded(flex: 3, child: monthColumn),
-                    divider(vertical: false),
-                    Expanded(flex: 2, child: day),
+                    Expanded(flex: 3, child: MacPanel(child: monthColumn)),
+                    if (!panels) divider(vertical: false),
+                    Expanded(flex: 2, child: MacPanel(child: day)),
                   ],
                 );
               },
