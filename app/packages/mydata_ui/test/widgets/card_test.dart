@@ -65,6 +65,24 @@ List<Widget> _cards(int n) => [
             icon: MyDataIcon.importFile, name: 'Card $i', child: Text('Line ${'more ' * (i == 1 ? 30 : 1)}')),
     ];
 
+/// A block that grows when told to, without its card or grid being rebuilt (as text does when a font
+/// finishes loading).
+class _Grows extends StatefulWidget {
+  const _Grows({super.key});
+
+  @override
+  State<_Grows> createState() => _GrowsState();
+}
+
+class _GrowsState extends State<_Grows> {
+  double height = 20;
+
+  void grow() => setState(() => height = 80);
+
+  @override
+  Widget build(BuildContext context) => SizedBox(height: height);
+}
+
 Widget _grid(int n, {double width = 760, bool entrance = true}) =>
     SizedBox(width: width, child: CardGrid(entrance: entrance, children: _cards(n)));
 
@@ -198,6 +216,26 @@ void main() {
   });
 
   group('CardGrid layout', () {
+    testWidgets('a card whose content grows on its own is measured again, never cut off', (tester) async {
+      final grows = GlobalKey<_GrowsState>();
+      await tester.pumpWidget(themedFrame(
+          themeMatrix.first,
+          SizedBox(
+            width: 760,
+            child: CardGrid(entrance: false, children: [
+              const MyDataCard(icon: MyDataIcon.host, name: 'Card 0', child: Text('Short')),
+              MyDataCard(icon: MyDataIcon.host, name: 'Card 1', child: _Grows(key: grows)),
+            ]),
+          )));
+      final before = tester.getSize(_card(1)).height;
+      grows.currentState!.grow();
+      await tester.pump();
+      expect(tester.takeException(), isNull, reason: 'no overflow');
+      expect(tester.getSize(_card(1)).height, greaterThan(before + 50));
+      expect(tester.getSize(_card(0)).height, tester.getSize(_card(1)).height,
+          reason: 'the row is stretched to its tallest again');
+    });
+
     testWidgets('columns of at least 220px share the width, space-4 apart; a row is as tall as its tallest card',
         (tester) async {
       tester.view.physicalSize = const Size(900, 900);

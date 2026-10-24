@@ -432,8 +432,11 @@ class _RenderCardGrid extends RenderBox
         final index = row * columns + column;
         if (index >= children.length) break;
         final child = children[index];
-        // Stretch every card in the row to the tallest.
-        child.layout(BoxConstraints.tightFor(width: columnWidth, height: rows[row]));
+        // Stretch every card in the row to the tallest. Not with tight constraints: those would make the card a
+        // relayout boundary, so a card whose content grows later (a font that finishes loading, a theme's
+        // type) would lay itself out again in its old height and overflow, never measured again here.
+        child.layout(BoxConstraints(minWidth: columnWidth, maxWidth: columnWidth, minHeight: rows[row]),
+            parentUsesSize: true);
         final x = column * (columnWidth + _gap);
         (child.parentData! as _CardGridParentData).offset = Offset(rtl ? width - x - columnWidth : x, y);
       }
