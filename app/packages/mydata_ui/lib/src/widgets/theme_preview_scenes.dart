@@ -84,7 +84,7 @@ class _SceneWindow extends StatelessWidget {
                   Container(
                     margin: EdgeInsets.only(bottom: context.space(1)),
                     padding: EdgeInsets.symmetric(horizontal: context.space(3), vertical: context.space(2)),
-                    decoration: BoxDecoration(color: i == 0 ? c.accentSoft : null, borderRadius: r),
+                    decoration: context.radius.decorate(BoxDecoration(color: i == 0 ? c.accentSoft : null, borderRadius: r)),
                     child: Row(
                       children: [
                         Icon(context.icon(icons[i]), size: context.density.icon, color: i == 0 ? c.accent : c.inkMuted),
@@ -157,7 +157,7 @@ class _ContactsScene extends StatelessWidget {
               for (var i = 0; i < people.length; i++)
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: context.space(2), vertical: context.space(2)),
-                  decoration: BoxDecoration(color: i == 0 ? c.selection : null, borderRadius: r),
+                  decoration: context.radius.decorate(BoxDecoration(color: i == 0 ? c.selection : null, borderRadius: r)),
                   child: Row(
                     children: [
                       Avatar(name: people[i]),
@@ -249,7 +249,7 @@ class _CalendarScene extends StatelessWidget {
             Container(
               padding: EdgeInsets.symmetric(horizontal: context.space(1)),
               decoration: n == today
-                  ? BoxDecoration(color: c.accent, borderRadius: BorderRadius.all(Radius.circular(context.radius.pill)))
+                  ? context.radius.decorate(BoxDecoration(color: c.accent, borderRadius: BorderRadius.all(Radius.circular(context.radius.pill))))
                   : null,
               child: Text(
                 label,
@@ -322,18 +322,18 @@ class _AssistantScene extends StatelessWidget {
             alignment: AlignmentDirectional.centerEnd,
             child: Container(
               padding: EdgeInsets.symmetric(horizontal: context.space(4), vertical: context.space(2)),
-              decoration: BoxDecoration(color: c.accent, borderRadius: r),
+              decoration: context.radius.decorate(BoxDecoration(color: c.accent, borderRadius: r)),
               child: Text("What's on Friday?", style: body.copyWith(color: c.onAccent)),
             ),
           ),
           SizedBox(height: context.space(4)),
           Container(
             padding: EdgeInsets.all(context.space(4)),
-            decoration: BoxDecoration(
+            decoration: context.radius.decorate(BoxDecoration(
               color: c.surfaceRaised,
               borderRadius: r,
               border: Border.all(color: c.line),
-            ),
+            )),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -364,10 +364,10 @@ class _AssistantScene extends StatelessWidget {
           const Spacer(),
           Container(
             padding: EdgeInsets.symmetric(horizontal: context.space(4), vertical: context.space(3)),
-            decoration: BoxDecoration(
+            decoration: context.radius.decorate(BoxDecoration(
               color: c.surfaceSunken,
               borderRadius: BorderRadius.all(Radius.circular(context.radius.pill)),
-            ),
+            )),
             child: Text('Ask about your contacts and calendar', style: body.copyWith(color: c.inkMuted)),
           ),
         ],
@@ -387,7 +387,7 @@ class _StatusScene extends StatelessWidget {
     Widget card(MyDataIcon icon, String title, String line, Widget trailing) => Container(
       margin: EdgeInsets.only(bottom: context.space(3)),
       padding: EdgeInsets.all(context.space(4)),
-      decoration: BoxDecoration(color: c.surfaceRaised, borderRadius: r, boxShadow: context.shadows.shadow1),
+      decoration: context.radius.decorate(BoxDecoration(color: c.surfaceRaised, borderRadius: r, boxShadow: context.shadows.shadow1)),
       child: Row(
         children: [
           IconTile(icon: icon),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../theme/theme.dart';
 import 'form_scope.dart';
 
 // Not exported from the package: the shared behaviour of a Checkbox and a form Switch row, whose look
@@ -115,6 +116,8 @@ class InsetRingPainter extends CustomPainter {
     this.width = 2,
     this.top = true,
     this.bottom = true,
+    this.shape,
+    this.keyline,
   });
 
   final Color color;
@@ -124,8 +127,19 @@ class InsetRingPainter extends CustomPainter {
   final bool top;
   final bool bottom;
 
+  /// The look's corner style; round when null.
+  final MyDataShape? shape;
+
+  /// A 1px line along the ring's inner edge, for a ring drawn on a fill (the two-tone ring, WCAG C40).
+  final Color? keyline;
+
   @override
   void paint(Canvas canvas, Size size) {
+    final s = shape;
+    if (s != null && s.corners != CornerStyle.round && s.corners != CornerStyle.square) {
+      _paintShaped(canvas, size, s);
+      return;
+    }
     final paint = Paint()..color = color;
     final outer = (Offset.zero & size).deflate(inset);
     if (outer.isEmpty) return;
@@ -153,6 +167,49 @@ class InsetRingPainter extends CustomPainter {
         ..addRRect(o)
         ..addRRect(i), paint)
       ..restore();
+    final k = keyline;
+    if (k != null) {
+      final kRect = Rect.fromLTRB(innerRect.left + 1, innerRect.top + (top ? 1 : 0), innerRect.right - 1,
+          innerRect.bottom - (bottom ? 1 : 0));
+      Radius less1(Radius x) => Radius.circular((x.x - 1).clamp(0, double.infinity));
+      final k2 = RRect.fromRectAndCorners(kRect,
+          topLeft: less1(i.tlRadius), topRight: less1(i.trRadius), bottomLeft: less1(i.blRadius), bottomRight: less1(i.brRadius));
+      canvas
+        ..save()
+        ..clipRRect(o)
+        ..drawPath(Path()
+          ..fillType = PathFillType.evenOdd
+          ..addRRect(i)
+          ..addRRect(k2), Paint()..color = k)
+        ..restore();
+    }
+  }
+
+  /// A cut or continuous ring: the same bands, on the look's own corners.
+  void _paintShaped(Canvas canvas, Size size, MyDataShape s) {
+    final outer = (Offset.zero & size).deflate(inset);
+    if (outer.isEmpty) return;
+    final r = borderRadius.resolve(TextDirection.ltr);
+    final masked = BorderRadius.only(
+      topLeft: top ? r.topLeft : Radius.zero,
+      topRight: top ? r.topRight : Radius.zero,
+      bottomLeft: bottom ? r.bottomLeft : Radius.zero,
+      bottomRight: bottom ? r.bottomRight : Radius.zero,
+    );
+    Path band(double from) {
+      final rect = Rect.fromLTRB(outer.left + from, outer.top + (top ? from : -1), outer.right - from,
+          outer.bottom - (bottom ? from : -1));
+      return s.cornerPath(rect, s.grow(masked, -(inset + from)));
+    }
+
+    final o = band(0);
+    void fill(Path a, Path b, Color colour) => canvas
+      ..save()
+      ..clipPath(o)
+      ..drawPath(Path.combine(PathOperation.difference, a, b), Paint()..color = colour)
+      ..restore();
+    fill(o, band(width), color);
+    if (keyline != null) fill(band(width), band(width + 1), keyline!);
   }
 
   @override
@@ -162,5 +219,8 @@ class InsetRingPainter extends CustomPainter {
       old.inset != inset ||
       old.width != width ||
       old.top != top ||
-      old.bottom != bottom;
+      old.bottom != bottom ||
+      old.shape?.corners != shape?.corners ||
+      old.shape?.cutSize != shape?.cutSize ||
+      old.keyline != keyline;
 }

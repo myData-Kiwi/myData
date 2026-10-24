@@ -394,7 +394,7 @@ class _UserMessage extends StatelessWidget {
         child: ConstrainedBox(
           constraints: BoxConstraints(maxWidth: constraints.maxWidth * ChatView.bubbleMaxShare),
           child: DecoratedBox(
-            decoration: BoxDecoration(color: c.accentSoft, borderRadius: MyDataRadii.lg(context.look)),
+            decoration: context.radius.decorate(BoxDecoration(color: c.accentSoft, borderRadius: MyDataRadii.lg(context.look))),
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: context.space(4), vertical: context.space(3)),
               child: Text(text, style: context.typeScale.body.copyWith(color: c.ink)),

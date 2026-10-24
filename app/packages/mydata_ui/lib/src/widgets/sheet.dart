@@ -327,7 +327,7 @@ class _SheetState extends State<Sheet> with SingleTickerProviderStateMixin {
             child: Container(
               width: Sheet.grabberWidth(context.look),
               height: Sheet.grabberHeight(context.look),
-              decoration: BoxDecoration(color: c.lineStrong, borderRadius: MyDataRadii.pill(context.look)),
+              decoration: context.radius.decorate(BoxDecoration(color: c.lineStrong, borderRadius: MyDataRadii.pill(context.look))),
             ),
           ),
           SizedBox(height: context.space(1)),
@@ -382,11 +382,11 @@ class _SheetState extends State<Sheet> with SingleTickerProviderStateMixin {
 
     Widget panel = Container(
       key: _panelKey,
-      decoration: BoxDecoration(
+      decoration: context.radius.decorate(BoxDecoration(
         color: editor ? c.surface : c.surfaceRaised,
         borderRadius: BorderRadius.vertical(top: Radius.circular(context.radius.xl)),
         boxShadow: context.shadows.shadow2,
-      ),
+      )),
       child: Padding(
         padding: EdgeInsets.only(bottom: keyboard),
         child: Column(

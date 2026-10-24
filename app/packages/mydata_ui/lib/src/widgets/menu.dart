@@ -426,7 +426,7 @@ class _MenuPanelState extends State<_MenuPanel> {
             padding: mac ? MacMenuLook.padding(context.look) : EdgeInsets.all(context.space(1)),
             decoration: mac
                 ? MacMenuLook.panel(context)
-                : BoxDecoration(color: c.surfaceRaised, borderRadius: MyDataRadii.md(context.look), boxShadow: context.shadows.shadow2),
+                : context.radius.decorate(BoxDecoration(color: c.surfaceRaised, borderRadius: MyDataRadii.md(context.look), boxShadow: context.shadows.shadow2)),
             child: IntrinsicWidth(
               child: SingleChildScrollView(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: children),
@@ -539,15 +539,15 @@ class _MenuItemTile extends StatelessWidget {
       curve: context.motion.standard,
       constraints: BoxConstraints(minHeight: height),
       padding: EdgeInsets.symmetric(horizontal: context.space(3), vertical: reason != null ? context.space(2) : 0),
-      decoration: BoxDecoration(
+      decoration: context.radius.decorate(BoxDecoration(
         color: active && item.enabled ? fill : fill.withValues(alpha: 0),
         borderRadius: MyDataRadii.sm(context.look),
-      ),
+      )),
       foregroundDecoration: ring
-          ? BoxDecoration(
+          ? context.radius.decorate(BoxDecoration(
               borderRadius: MyDataRadii.sm(context.look),
               border: Border.all(color: FocusRing.colourFor(context, danger: item.destructive), width: ringWidth),
-            )
+            ))
           : null,
       child: row,
     );

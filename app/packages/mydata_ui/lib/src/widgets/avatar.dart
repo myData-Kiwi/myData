@@ -99,11 +99,11 @@ class Avatar extends StatelessWidget {
     final photo = this.photo;
 
     Widget body = DecoratedBox(
-      decoration: BoxDecoration(color: c.kiwiWash, borderRadius: MyDataRadii.pill(context.look)),
+      decoration: context.radius.decorate(BoxDecoration(color: c.kiwiWash, borderRadius: MyDataRadii.pill(context.look))),
       child: photo == null
           ? letters
-          : ClipRRect(
-              borderRadius: MyDataRadii.pill(context.look),
+          : context.radius.clip(
+              MyDataRadii.pill(context.look),
               child: _Photo(image: photo, diameter: size.diameter(context.look), letters: letters),
             ),
     );

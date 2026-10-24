@@ -480,7 +480,7 @@ class _MyDataDialogState extends State<MyDataDialog> {
         : Container(
       width: MyDataDialog.widthFor(context.look, size.width),
       padding: EdgeInsets.all(MyDataDialog.padding(context.look)),
-      decoration: BoxDecoration(color: c.surfaceRaised, borderRadius: MyDataRadii.xl(context.look), boxShadow: context.shadows.shadow2),
+      decoration: context.radius.decorate(BoxDecoration(color: c.surfaceRaised, borderRadius: MyDataRadii.xl(context.look), boxShadow: context.shadows.shadow2)),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,

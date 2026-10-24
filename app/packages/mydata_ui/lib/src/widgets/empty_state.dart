@@ -95,7 +95,7 @@ class EmptyState extends StatelessWidget {
                 alignment: Alignment.center,
                 // The preview's `.mark`: `border-radius:28px`, which is `radius-xl`.
                 decoration:
-                    BoxDecoration(color: c.paper, borderRadius: MyDataRadii.xl(context.look), boxShadow: context.shadows.shadow1),
+                    context.radius.decorate(BoxDecoration(color: c.paper, borderRadius: MyDataRadii.xl(context.look), boxShadow: context.shadows.shadow1)),
                 child: const KiwiMark(height: markWidth / KiwiMark.aspect, semanticLabel: null),
               ),
             ),

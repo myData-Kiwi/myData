@@ -99,7 +99,7 @@ class FloatingBar extends StatelessWidget {
                   duration: reduced ? Duration.zero : context.motion.springDuration,
                   curve: const SpringCurve(),
                   child: DecoratedBox(
-                    decoration: BoxDecoration(color: context.colors.accentSoft, borderRadius: MyDataRadii.pill(context.look)),
+                    decoration: context.radius.decorate(BoxDecoration(color: context.colors.accentSoft, borderRadius: MyDataRadii.pill(context.look))),
                   ),
                 ),
               Row(children: [
@@ -226,25 +226,25 @@ class FloatingBarSurface extends StatelessWidget {
         child: child);
     if (forceSolid || solid(context)) {
       return DecoratedBox(
-        decoration: BoxDecoration(color: c.surface, borderRadius: MyDataRadii.xl(context.look), boxShadow: shadows.shadow2),
+        decoration: context.radius.decorate(BoxDecoration(color: c.surface, borderRadius: MyDataRadii.xl(context.look), boxShadow: shadows.shadow2)),
         child: inner,
       );
     }
     return CustomPaint(
       painter: _OutsideShadowPainter(shadows.shadowGlass, MyDataRadii.xl(context.look)),
-      child: ClipRRect(
-        borderRadius: MyDataRadii.xl(context.look),
+      child: context.radius.clip(
+        MyDataRadii.xl(context.look),
         child: BackdropFilter(
           filter: ImageFilter.compose(
             outer: const ColorFilter.matrix(_saturate),
             inner: ImageFilter.blur(sigmaX: context.look.materials.blur, sigmaY: context.look.materials.blur),
           ),
           child: DecoratedBox(
-            decoration: BoxDecoration(
+            decoration: context.radius.decorate(BoxDecoration(
               color: c.glassFill,
               borderRadius: MyDataRadii.xl(context.look),
               border: Border.all(color: c.glassStroke, width: strokeWidth),
-            ),
+            )),
             child: inner,
           ),
         ),

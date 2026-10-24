@@ -143,9 +143,9 @@ class Button extends StatelessWidget {
           height: context.density.controlHeight,
           constraints: BoxConstraints(minWidth: context.density.controlHeight),
           padding: EdgeInsets.symmetric(horizontal: horizontalPadding(context.look)),
-          decoration: BoxDecoration(
+          decoration: context.radius.decorate(BoxDecoration(
               color: disabled ? variant.disabledFill(c) : variant.fill(c),
-              borderRadius: MyDataRadii.control(context.look)),
+              borderRadius: MyDataRadii.control(context.look))),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
@@ -192,7 +192,7 @@ class Button extends StatelessWidget {
           height: MyDataMacSize.pushButtonHeight,
           constraints: const BoxConstraints(minWidth: MyDataMacSize.pushButtonHeight * 3),
           padding: EdgeInsets.symmetric(horizontal: fill == null ? context.space(1) : context.space(3)),
-          decoration: BoxDecoration(color: fill, borderRadius: shape),
+          decoration: context.radius.decorate(BoxDecoration(color: fill, borderRadius: shape)),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,

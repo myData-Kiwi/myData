@@ -75,7 +75,7 @@ class GroupFrame extends StatelessWidget {
     // Not clipped: each part takes the group's corners itself, so a row's selected fill and hover fill
     // follow them and a focus ring, drawn 2px outside, is not cut off at the group's edge.
     final group = DecoratedBox(
-      decoration: BoxDecoration(color: c.surface, borderRadius: MyDataRadii.lg(context.look), boxShadow: context.shadows.shadow1),
+      decoration: context.radius.decorate(BoxDecoration(color: c.surface, borderRadius: MyDataRadii.lg(context.look), boxShadow: context.shadows.shadow1)),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,

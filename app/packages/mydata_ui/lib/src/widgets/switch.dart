@@ -95,11 +95,11 @@ class SwitchTrack extends StatelessWidget {
         width: width,
         height: height,
         padding: const EdgeInsets.all(thumbInset),
-        decoration: BoxDecoration(
+        decoration: context.radius.decorate(BoxDecoration(
           color: value ? c.accent : c.surfaceSunken,
           borderRadius: MyDataRadii.pill(context.look),
           border: Border.all(color: value ? c.accent : c.lineStrong, width: borderWidth),
-        ),
+        )),
         child: AnimatedAlign(
           // Movement: slides over `fast`; with reduced motion it jumps.
           duration: reduced ? Duration.zero : context.motion.fast,

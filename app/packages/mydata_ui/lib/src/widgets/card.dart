@@ -73,7 +73,7 @@ class MyDataCard extends StatelessWidget {
       container: true,
       explicitChildNodes: true,
       child: DecoratedBox(
-        decoration: BoxDecoration(color: c.surface, borderRadius: MyDataRadii.lg(context.look), boxShadow: context.shadows.shadow1),
+        decoration: context.radius.decorate(BoxDecoration(color: c.surface, borderRadius: MyDataRadii.lg(context.look), boxShadow: context.shadows.shadow1)),
         child: Padding(
           padding: padding(context.look),
           child: _InsideCard(

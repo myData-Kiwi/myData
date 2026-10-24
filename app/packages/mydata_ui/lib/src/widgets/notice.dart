@@ -119,7 +119,7 @@ class Notice extends StatelessWidget {
       liveRegion: true,
       label: message,
       child: DecoratedBox(
-        decoration: BoxDecoration(color: c.surfaceSunken, borderRadius: MyDataRadii.md(context.look)),
+        decoration: context.radius.decorate(BoxDecoration(color: c.surfaceSunken, borderRadius: MyDataRadii.md(context.look))),
         child: content,
       ),
     );

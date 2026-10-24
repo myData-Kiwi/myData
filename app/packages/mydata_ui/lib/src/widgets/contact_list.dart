@@ -1370,10 +1370,10 @@ class _ContactRowState extends State<_ContactRow> {
     content = AnimatedContainer(
       duration: context.motion.fast,
       curve: context.motion.standard,
-      decoration: BoxDecoration(
+      decoration: context.radius.decorate(BoxDecoration(
         color: lit ? c.surfaceHover : c.surfaceHover.withValues(alpha: 0),
         borderRadius: shape,
-      ),
+      )),
       child: content,
     );
     // Press: dims at once, returns over `fast` (Pressable's press, without the scale: rows fill instead).
@@ -1390,7 +1390,7 @@ class _ContactRowState extends State<_ContactRow> {
       fit: StackFit.passthrough,
       children: [
         DecoratedBox(
-          decoration: BoxDecoration(color: widget.selected ? c.accentSoft : null, borderRadius: shape),
+          decoration: context.radius.decorate(BoxDecoration(color: widget.selected ? c.accentSoft : null, borderRadius: shape)),
           position: DecorationPosition.background,
           child: content,
         ),
@@ -1399,10 +1399,10 @@ class _ContactRowState extends State<_ContactRow> {
           Positioned.fill(
             child: IgnorePointer(
               child: DecoratedBox(
-                decoration: BoxDecoration(
+                decoration: context.radius.decorate(BoxDecoration(
                   border: Border.all(color: c.ink, width: ContactList.selectionRingWidth),
                   borderRadius: shape,
-                ),
+                )),
               ),
             ),
           ),
@@ -1465,6 +1465,7 @@ class _ContactRowState extends State<_ContactRow> {
       // next row, so the run's sides have no gap.
       foregroundPainter: widget.selected && (widget.joinsUp || widget.joinsDown)
           ? InsetRingPainter(
+              shape: context.radius,
               color: c.ink,
               width: ContactList.selectionRingWidth,
               borderRadius: shape,
@@ -1473,7 +1474,7 @@ class _ContactRowState extends State<_ContactRow> {
             )
           : null,
       child: DecoratedBox(
-        decoration: BoxDecoration(color: c.surface, borderRadius: shape),
+        decoration: context.radius.decorate(BoxDecoration(color: c.surface, borderRadius: shape)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

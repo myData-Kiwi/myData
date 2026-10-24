@@ -187,11 +187,11 @@ class _MyDataTextFieldState extends State<MyDataTextField> {
       horizontalInset: context.space(4) - borderWidth,
       verticalInset: borderWidth,
       multiline: widget.multiline,
-      decoration: BoxDecoration(
+      decoration: context.radius.decorate(BoxDecoration(
         color: c.surface,
         borderRadius: MyDataRadii.md(context.look),
         border: Border.all(color: hasError ? c.danger : c.lineStrong, width: borderWidth),
-      ),
+      )),
       borderRadius: MyDataRadii.md(context.look),
       danger: hasError,
     );
@@ -302,7 +302,7 @@ class _MyDataSearchFieldState extends State<MyDataSearchField> {
         textInputAction: TextInputAction.search,
         horizontalInset: context.space(4),
         verticalInset: 0,
-        decoration: BoxDecoration(color: c.surfaceSunken, borderRadius: MyDataRadii.pill(context.look)),
+        decoration: context.radius.decorate(BoxDecoration(color: c.surfaceSunken, borderRadius: MyDataRadii.pill(context.look))),
         borderRadius: MyDataRadii.pill(context.look),
         // The outer label is the name; reading the placeholder too would say it twice.
         readPlaceholder: false,
@@ -361,7 +361,7 @@ class _Field extends StatelessWidget {
 
   /// The border's width, which the text's vertical padding gives back.
   final double verticalInset;
-  final BoxDecoration decoration;
+  final Decoration decoration;
   final BorderRadius borderRadius;
 
   /// Whether the placeholder joins the field's semantic label. The search field turns this off: its

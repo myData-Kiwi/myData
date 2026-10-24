@@ -215,18 +215,18 @@ class DropZone extends StatelessWidget {
         curve: context.motion.standard,
         width: double.infinity,
         padding: padding(context.look),
-        decoration: BoxDecoration(
+        decoration: context.radius.decorate(BoxDecoration(
           color: dragging ? c.accentSoft : c.surfaceSunken,
           borderRadius: MyDataRadii.lg(context.look),
-        ),
-        foregroundDecoration: BoxDecoration(
+        )),
+        foregroundDecoration: context.radius.decorate(BoxDecoration(
           borderRadius: MyDataRadii.lg(context.look),
           border: Border.all(
             color: dragging ? c.accent : c.accent.withValues(alpha: 0),
             width: dragLineWidth,
             strokeAlign: BorderSide.strokeAlignInside,
           ),
-        ),
+        )),
         child: content,
       ),
     );
@@ -243,7 +243,7 @@ class _Tile extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         width: context.density.iconTile,
         height: context.density.iconTile,
-        decoration: BoxDecoration(color: fill, borderRadius: MyDataRadii.sm(context.look)),
+        decoration: context.radius.decorate(BoxDecoration(color: fill, borderRadius: MyDataRadii.sm(context.look))),
         alignment: Alignment.center,
         child: Icon(context.icon(icon), size: context.density.icon, color: ink),
       );

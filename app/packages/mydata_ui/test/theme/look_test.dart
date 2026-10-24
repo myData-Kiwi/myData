@@ -165,6 +165,50 @@ void main() {
     expect(mac, MyDataMacType.body);
     expect(branded, MyDataType.body);
   });
+  group('shape (phase 3)', () {
+    MyDataShape shape(CornerStyle corners) => MyDataShape(
+        corners: corners, xs: 4, sm: 8, md: 12, lg: 20, xl: 28, control: 999, pill: 999, cutSize: 10);
+    final r = BorderRadius.circular(20);
+
+    test('each corner style draws its own outline', () {
+      expect(shape(CornerStyle.round).outline(r), isA<RoundedRectangleBorder>());
+      expect(shape(CornerStyle.continuous).outline(r), isA<RoundedSuperellipseBorder>());
+      expect(shape(CornerStyle.cut).outline(r), isA<BeveledRectangleBorder>());
+      final square = shape(CornerStyle.square).outline(r) as RoundedRectangleBorder;
+      expect(square.borderRadius, BorderRadius.zero);
+    });
+
+    test('a cut is the cut size, never more than the radius it replaces, and a square corner stays square', () {
+      final cut = shape(CornerStyle.cut);
+      expect((cut.outline(r) as BeveledRectangleBorder).borderRadius, BorderRadius.circular(10));
+      expect((cut.outline(BorderRadius.circular(4)) as BeveledRectangleBorder).borderRadius, BorderRadius.circular(4));
+      final top = cut.outline(const BorderRadius.vertical(top: Radius.circular(20))) as BeveledRectangleBorder;
+      expect((top.borderRadius as BorderRadius).bottomLeft, Radius.zero);
+    });
+
+    test('decorate keeps a box for round and square corners, and draws the others as shapes', () {
+      final box = BoxDecoration(color: const Color(0xFF00FF00), borderRadius: r, boxShadow: const [BoxShadow()]);
+      expect(identical(shape(CornerStyle.round).decorate(box), box), isTrue);
+      expect(identical(shape(CornerStyle.square).decorate(box), box), isTrue);
+      final cut = shape(CornerStyle.cut).decorate(box) as ShapeDecoration;
+      expect(cut.color, box.color);
+      expect(cut.shadows, box.boxShadow);
+      expect(cut.shape, isA<BeveledRectangleBorder>());
+      // A border on every side goes onto the shape; an underline stays a box.
+      final edged = shape(CornerStyle.continuous)
+          .decorate(BoxDecoration(borderRadius: r, border: Border.all(width: 2))) as ShapeDecoration;
+      expect((edged.shape as OutlinedBorder).side.width, 2);
+      final underline = BoxDecoration(borderRadius: r, border: const Border(bottom: BorderSide()));
+      expect(identical(shape(CornerStyle.cut).decorate(underline), underline), isTrue);
+    });
+
+    test('a ring around a shape keeps an even gap: round corners grow by the gap, a chamfer by (2 - √2) of it', () {
+      expect(shape(CornerStyle.round).grow(r, 3).topLeft, const Radius.circular(23));
+      expect(shape(CornerStyle.cut).grow(r, 3).topLeft.x, closeTo(10 + 3 * 0.5858, 0.001));
+      expect(shape(CornerStyle.cut).grow(BorderRadius.zero, 3).topLeft, Radius.zero);
+    });
+  });
+
 }
 
 class _ReadsInInitState extends StatefulWidget {
@@ -184,4 +228,5 @@ class _ReadsInInitStateState extends State<_ReadsInInitState> {
 
   @override
   Widget build(BuildContext context) => const SizedBox();
+
 }

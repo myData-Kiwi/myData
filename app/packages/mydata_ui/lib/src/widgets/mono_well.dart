@@ -88,7 +88,7 @@ class _MonoWellState extends State<MonoWell> {
   Widget build(BuildContext context) {
     final c = context.colors;
     Widget well = DecoratedBox(
-      decoration: BoxDecoration(color: c.surfaceSunken, borderRadius: MyDataRadii.md(context.look)),
+      decoration: context.radius.decorate(BoxDecoration(color: c.surfaceSunken, borderRadius: MyDataRadii.md(context.look))),
       child: Padding(padding: MonoWell.padding(context.look), child: _WellText(value: widget.value)),
     );
     final copyLabel = widget.copyLabel;

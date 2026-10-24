@@ -724,7 +724,7 @@ class _Grid extends StatelessWidget {
     );
 
     return DecoratedBox(
-      decoration: BoxDecoration(color: c.surface, borderRadius: MyDataRadii.lg(context.look), boxShadow: context.shadows.shadow1),
+      decoration: context.radius.decorate(BoxDecoration(color: c.surface, borderRadius: MyDataRadii.lg(context.look), boxShadow: context.shadows.shadow1)),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -858,7 +858,7 @@ class _CellState extends State<_Cell> {
     final cell = ConstrainedBox(
       constraints: BoxConstraints(minHeight: widget.compact ? MonthGrid.compactCellHeight(context.look) : MonthGrid.cellMinHeight(context.look)),
       child: DecoratedBox(
-        decoration: BoxDecoration(color: fill, borderRadius: shape),
+        decoration: context.radius.decorate(BoxDecoration(color: fill, borderRadius: shape)),
         child: TweenAnimationBuilder<double>(
           tween: Tween(end: _hovered && !widget.selected ? 1 : 0),
           duration: context.motion.fast,
@@ -872,6 +872,8 @@ class _CellState extends State<_Cell> {
               ringColour: c.ink,
               focused: widget.selected && widget.showFocus,
               focusColour: FocusRing.colourFor(context),
+              corners: context.radius,
+              keyline: FocusRing.keylineFor(context, onFill: true),
             ),
             child: child,
           ),
@@ -1015,6 +1017,8 @@ class _MonthGridDayState extends State<MonthGridDay> {
               ringColour: c.ink,
               focused: w.focused,
               focusColour: FocusRing.colourFor(context),
+              corners: context.radius,
+              keyline: FocusRing.keylineFor(context, onFill: true),
             ),
             child: child,
           ),
@@ -1037,7 +1041,9 @@ class _MonthGridDayState extends State<MonthGridDay> {
 }
 
 /// Draws a cell's edges, inside its shape: the hover edge (1px `line-strong`, faded by [hover]), or the
-/// selection ring (2px `ink`); then the focus ring (2px `focus`) just inside the selection ring.
+/// selection ring (2px `ink`); then the focus ring (2px `focus`) just inside the selection ring. On a selected
+/// day the focus ring touches the `ink` ring, so a 1px [keyline] (`surface`) runs between them: the
+/// two-tone ring (WCAG C40, ARCHITECTURE.md 2.3), which reads at 3:1 whatever the ring's neighbours.
 class _MarksPainter extends CustomPainter {
   _MarksPainter({
     required this.shape,
@@ -1047,6 +1053,8 @@ class _MarksPainter extends CustomPainter {
     required this.ringColour,
     required this.focused,
     required this.focusColour,
+    required this.corners,
+    this.keyline,
   });
 
   final BorderRadius shape;
@@ -1057,10 +1065,22 @@ class _MarksPainter extends CustomPainter {
   final bool focused;
   final Color focusColour;
 
+  /// The look's corner style.
+  final MyDataShape corners;
+  final Color? keyline;
+
   /// A stroke of [width] whose outer edge is [inset] inside the cell, following its corners.
   void _ring(Canvas canvas, Size size, double inset, double width, Color colour) {
     final d = inset + width / 2;
     final rect = (Offset.zero & size).deflate(d);
+    final paint = Paint()
+      ..color = colour
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = width;
+    if (corners.corners != CornerStyle.round) {
+      canvas.drawPath(corners.ringPath(Offset.zero & size, shape, -d), paint);
+      return;
+    }
     Radius shrink(Radius r) => Radius.circular(math.max(0, r.x - d));
     canvas.drawRRect(
         RRect.fromRectAndCorners(rect,
@@ -1068,10 +1088,7 @@ class _MarksPainter extends CustomPainter {
             topRight: shrink(shape.topRight),
             bottomLeft: shrink(shape.bottomLeft),
             bottomRight: shrink(shape.bottomRight)),
-        Paint()
-          ..color = colour
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = width);
+        paint);
   }
 
   @override
@@ -1081,7 +1098,10 @@ class _MarksPainter extends CustomPainter {
     } else if (hover > 0) {
       _ring(canvas, size, 0, MonthGrid.hoverEdgeWidth, hoverColour.withValues(alpha: hoverColour.a * hover));
     }
-    if (focused) _ring(canvas, size, MonthGrid.selectionRingWidth, MonthGrid.focusRingWidth, focusColour);
+    if (!focused) return;
+    final k = selected ? keyline : null;
+    if (k != null) _ring(canvas, size, MonthGrid.selectionRingWidth, 1, k);
+    _ring(canvas, size, MonthGrid.selectionRingWidth + (k == null ? 0 : 1), MonthGrid.focusRingWidth, focusColour);
   }
 
   @override
@@ -1092,5 +1112,7 @@ class _MarksPainter extends CustomPainter {
       old.selected != selected ||
       old.ringColour != ringColour ||
       old.focused != focused ||
-      old.focusColour != focusColour;
+      old.focusColour != focusColour ||
+      old.corners.corners != corners.corners ||
+      old.keyline != keyline;
 }

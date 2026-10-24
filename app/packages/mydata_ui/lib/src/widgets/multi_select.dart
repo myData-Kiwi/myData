@@ -264,7 +264,7 @@ class MultiSelectRowFrame extends StatelessWidget {
     );
     return CustomPaint(
       foregroundPainter: focused
-          ? InsetRingPainter(color: FocusRing.colourFor(context), borderRadius: shape, inset: focusInset)
+          ? InsetRingPainter(shape: context.radius, color: FocusRing.colourFor(context), borderRadius: shape, inset: focusInset)
           : null,
       child: TweenAnimationBuilder<Color?>(
         tween: ColorTween(end: selected ? c.ink : c.ink.withValues(alpha: 0)),
@@ -272,16 +272,17 @@ class MultiSelectRowFrame extends StatelessWidget {
         curve: context.motion.standard,
         builder: (context, ring, child) => CustomPaint(
           foregroundPainter: InsetRingPainter(
+              shape: context.radius,
               color: ring!, borderRadius: shape, width: ringWidth, top: !joinsUp, bottom: !joinsDown),
           child: child,
         ),
         child: AnimatedContainer(
           duration: context.motion.fast,
           curve: context.motion.standard,
-          decoration: BoxDecoration(
+          decoration: context.radius.decorate(BoxDecoration(
             color: selected ? c.accentSoft : (hovered ? c.surfaceHover : c.surfaceHover.withValues(alpha: 0)),
             borderRadius: shape,
-          ),
+          )),
           child: child,
         ),
       ),
@@ -591,7 +592,7 @@ class _MultiSelectListState<K> extends State<MultiSelectList<K>> {
     }
 
     return _focusable(DecoratedBox(
-      decoration: BoxDecoration(color: c.surface, borderRadius: MyDataRadii.lg(context.look), boxShadow: context.shadows.shadow1),
+      decoration: context.radius.decorate(BoxDecoration(color: c.surface, borderRadius: MyDataRadii.lg(context.look), boxShadow: context.shadows.shadow1)),
       child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: children),
     ));
   }

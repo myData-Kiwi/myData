@@ -178,7 +178,7 @@ class FormGroup extends StatelessWidget {
         constraints: const BoxConstraints(maxWidth: MyDataSize.contentMax),
         child: DecoratedBox(
           decoration:
-              BoxDecoration(color: c.surface, borderRadius: MyDataRadii.lg(context.look), boxShadow: context.shadows.shadow1),
+              context.radius.decorate(BoxDecoration(color: c.surface, borderRadius: MyDataRadii.lg(context.look), boxShadow: context.shadows.shadow1)),
           child: Padding(padding: EdgeInsets.all(phone ? context.space(4) : context.space(5)), child: fields),
         ),
       );

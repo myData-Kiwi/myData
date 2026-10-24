@@ -275,11 +275,11 @@ class _ApprovalCardState extends State<ApprovalCard> {
       duration: context.motion.fast,
       curve: context.motion.standard,
       padding: EdgeInsets.fromLTRB(padding, padding, padding, linked ? linkedBottomPadding : padding),
-      decoration: BoxDecoration(
+      decoration: context.radius.decorate(BoxDecoration(
         color: c.surface,
         borderRadius: MyDataRadii.lg(context.look),
         boxShadow: _pending ? context.shadows.shadow2 : context.shadows.shadow1,
-      ),
+      )),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -389,7 +389,7 @@ class _ApprovalCardState extends State<ApprovalCard> {
 
     return Container(
       padding: ApprovalCard.wellPadding(context.look),
-      decoration: BoxDecoration(color: c.surfaceSunken, borderRadius: MyDataRadii.md(context.look)),
+      decoration: context.radius.decorate(BoxDecoration(color: c.surfaceSunken, borderRadius: MyDataRadii.md(context.look))),
       child: Table(
         columnWidths: {
           0: MinColumnWidth(

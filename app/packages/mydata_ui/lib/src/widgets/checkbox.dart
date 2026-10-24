@@ -48,11 +48,11 @@ class CheckboxBox extends StatelessWidget {
         curve: context.motion.standard,
         width: size(context.look),
         height: size(context.look),
-        decoration: BoxDecoration(
+        decoration: context.radius.decorate(BoxDecoration(
           color: on ? c.accent : (hovered ? c.surfaceHover : c.surface),
           borderRadius: MyDataRadii.xs(context.look),
           border: Border.all(color: on ? c.accent : c.lineStrong, width: edgeWidth),
-        ),
+        )),
         child: AnimatedOpacity(
           duration: context.motion.fast,
           curve: context.motion.standard,
@@ -660,12 +660,12 @@ class _RowShell extends StatelessWidget {
     final c = context.colors;
     Widget faded(Widget w) => enabled ? w : Opacity(opacity: Pressable.disabledOpacity, child: w);
     return CustomPaint(
-      foregroundPainter: focused ? InsetRingPainter(color: FocusRing.colourFor(context), borderRadius: shape) : null,
+      foregroundPainter: focused ? InsetRingPainter(shape: context.radius, color: FocusRing.colourFor(context), borderRadius: shape) : null,
       child: AnimatedContainer(
         duration: context.motion.fast,
         curve: context.motion.standard,
-        decoration: BoxDecoration(
-            color: hovered || pressed ? c.surfaceHover : c.surfaceHover.withValues(alpha: 0), borderRadius: shape),
+        decoration: context.radius.decorate(BoxDecoration(
+            color: hovered || pressed ? c.surfaceHover : c.surfaceHover.withValues(alpha: 0), borderRadius: shape)),
         child: AnimatedOpacity(
           opacity: pressed ? context.motion.pressOpacity : 1,
           duration: pressed ? Duration.zero : context.motion.fast,

@@ -81,7 +81,7 @@ class MyDataProgressBar extends StatelessWidget {
           SizedBox(
             height: trackHeight,
             child: DecoratedBox(
-              decoration: BoxDecoration(color: c.surfaceSunken, borderRadius: MyDataRadii.pill(context.look)),
+              decoration: context.radius.decorate(BoxDecoration(color: c.surfaceSunken, borderRadius: MyDataRadii.pill(context.look))),
               child: TweenAnimationBuilder<double>(
                 // Begin is left null, so the first build shows [fraction] at once; later changes animate.
                 tween: Tween<double>(end: fraction),
@@ -93,7 +93,7 @@ class MyDataProgressBar extends StatelessWidget {
                   heightFactor: 1,
                   child: t <= 0
                       ? const SizedBox.shrink()
-                      : DecoratedBox(decoration: BoxDecoration(color: c.accent, borderRadius: MyDataRadii.pill(context.look))),
+                      : DecoratedBox(decoration: context.radius.decorate(BoxDecoration(color: c.accent, borderRadius: MyDataRadii.pill(context.look)))),
                 ),
               ),
             ),

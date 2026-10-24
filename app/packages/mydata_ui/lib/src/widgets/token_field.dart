@@ -763,11 +763,11 @@ class _TokenFieldState extends State<TokenField> with PendingInputRegistration<T
     Widget field = Container(
       key: _fieldKey,
       constraints: BoxConstraints(minHeight: context.density.controlHeight),
-      decoration: BoxDecoration(
+      decoration: context.radius.decorate(BoxDecoration(
         color: c.surface,
         borderRadius: MyDataRadii.md(context.look),
         border: Border.all(color: hasError ? c.danger : c.lineStrong, width: border),
-      ),
+      )),
       child: ConstrainedBox(
         constraints: BoxConstraints(maxHeight: inner + 2 * (context.space(1) - border)),
         child: SingleChildScrollView(
@@ -848,16 +848,16 @@ class _TokenFieldState extends State<TokenField> with PendingInputRegistration<T
             onTap: () => _take(o),
             child: CustomPaint(
               foregroundPainter: highlighted && _keyHighlight
-                  ? InsetRingPainter(color: FocusRing.colourFor(context), borderRadius: MyDataRadii.sm(context.look))
+                  ? InsetRingPainter(shape: context.radius, color: FocusRing.colourFor(context), borderRadius: MyDataRadii.sm(context.look))
                   : null,
               child: Container(
                 height: phone ? context.density.rowHeight : _rowExtent(context.look, o),
                 padding: EdgeInsets.symmetric(horizontal: phone ? context.space(4) : context.space(3)),
                 alignment: AlignmentDirectional.centerStart,
-                decoration: BoxDecoration(
+                decoration: context.radius.decorate(BoxDecoration(
                   color: highlighted ? c.surfaceHover : null,
                   borderRadius: phone ? null : MyDataRadii.sm(context.look),
-                ),
+                )),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -886,9 +886,9 @@ class _TokenFieldState extends State<TokenField> with PendingInputRegistration<T
     return TapRegion(
       groupId: _tapGroup,
       child: DecoratedBox(
-        decoration: BoxDecoration(color: c.surface, borderRadius: MyDataRadii.lg(context.look)),
-        child: ClipRRect(
-          borderRadius: MyDataRadii.lg(context.look),
+        decoration: context.radius.decorate(BoxDecoration(color: c.surface, borderRadius: MyDataRadii.lg(context.look))),
+        child: context.radius.clip(
+          MyDataRadii.lg(context.look),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -918,11 +918,11 @@ class _TokenFieldState extends State<TokenField> with PendingInputRegistration<T
     }
     final reduced = MyDataAccessibility.of(context).reduceMotion;
     final panel = Container(
-      decoration: BoxDecoration(
+      decoration: context.radius.decorate(BoxDecoration(
         color: c.surfaceRaised,
         borderRadius: MyDataRadii.md(context.look),
         boxShadow: context.shadows.shadow2,
-      ),
+      )),
       padding: EdgeInsets.all(context.space(1)),
       child: ConstrainedBox(
         constraints: BoxConstraints(maxHeight: math.min(height, TokenField.visibleRows * context.density.controlHeight)),
@@ -1004,7 +1004,7 @@ class _Token extends StatelessWidget {
         start: invalid ? context.space(2) : context.space(3),
         end: removable ? 0 : context.space(3),
       ),
-      decoration: BoxDecoration(color: fill, borderRadius: MyDataRadii.pill(context.look)),
+      decoration: context.radius.decorate(BoxDecoration(color: fill, borderRadius: MyDataRadii.pill(context.look))),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [

@@ -8,6 +8,9 @@ import 'look.dart';
 
 export 'look.dart' show MyDataLook, MyDataTypeRole, MyDataTypeScale, MyDataShape, MyDataDensity, MyDataMotionSpec, LookFrame;
 export 'icons.dart' show MyDataIcon;
+export 'theme_file.dart'
+    show CornerStyle, BorderWidth, BorderStyleKind, BorderColour, Separators, TitleRule, ElevationStyle, PressStyle,
+        EnterStyle, MotionPersonality;
 
 /// Light, dark, or whatever the device uses. Stored per device.
 enum MyDataMode {
@@ -153,16 +156,16 @@ class MyDataTheme {
       textSelectionTheme: TextSelectionThemeData(
           cursorColor: c.accent, selectionColor: c.accent.withValues(alpha: 0.25), selectionHandleColor: c.accent),
       tooltipTheme: TooltipThemeData(
-        decoration: BoxDecoration(
+        decoration: r.decorate(BoxDecoration(
             color: c.surfaceRaised,
             borderRadius: BorderRadius.all(Radius.circular(r.sm)),
-            boxShadow: shadows.shadow2),
+            boxShadow: shadows.shadow2)),
         textStyle: type.caption.copyWith(color: c.ink),
       ),
       dialogTheme: DialogThemeData(
           backgroundColor: c.surfaceRaised,
           surfaceTintColor: Colors.transparent,
-          shape: RoundedRectangleBorder(borderRadius: xl),
+          shape: r.outline(xl),
           titleTextStyle: type.title.copyWith(color: c.ink),
           contentTextStyle: type.body.copyWith(color: c.ink),
           barrierColor: c.scrim),
@@ -170,17 +173,17 @@ class MyDataTheme {
           backgroundColor: c.surfaceRaised,
           surfaceTintColor: Colors.transparent,
           modalBarrierColor: c.scrim,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(r.xl)))),
+          shape: r.outline(BorderRadius.vertical(top: Radius.circular(r.xl)))),
       popupMenuTheme: PopupMenuThemeData(
           color: c.surfaceRaised,
           surfaceTintColor: Colors.transparent,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(r.md))),
+          shape: r.outline(BorderRadius.all(Radius.circular(r.md))),
           textStyle: type.body.copyWith(color: c.ink)),
       snackBarTheme: SnackBarThemeData(
           backgroundColor: c.ink,
           contentTextStyle: type.body.copyWith(color: c.bg),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(r.md)))),
+          shape: r.outline(BorderRadius.all(Radius.circular(r.md)))),
       scrollbarTheme: ScrollbarThemeData(thumbColor: WidgetStatePropertyAll(c.inkMuted.withValues(alpha: 0.5))),
     );
   }

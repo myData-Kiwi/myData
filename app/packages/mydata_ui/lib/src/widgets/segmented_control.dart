@@ -289,7 +289,7 @@ class _SegmentedControlState<T> extends State<SegmentedControl<T>> {
           child: Opacity(
             opacity: disabledOpacity,
             child: DecoratedBox(
-              decoration: BoxDecoration(color: c.surfaceSunken, borderRadius: MyDataRadii.pill(context.look)),
+              decoration: context.radius.decorate(BoxDecoration(color: c.surfaceSunken, borderRadius: MyDataRadii.pill(context.look))),
             ),
           ),
         ),
@@ -304,11 +304,11 @@ class _SegmentedControlState<T> extends State<SegmentedControl<T>> {
             child: Opacity(
               opacity: disabledOpacity,
               child: DecoratedBox(
-                decoration: BoxDecoration(
+                decoration: context.radius.decorate(BoxDecoration(
                   color: c.surface,
                   borderRadius: MyDataRadii.pill(context.look),
                   boxShadow: context.shadows.shadow1,
-                ),
+                )),
               ),
             ),
           ),

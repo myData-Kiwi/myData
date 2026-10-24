@@ -32,7 +32,7 @@ class KiwiTile extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         width: size,
         height: size,
-        decoration: BoxDecoration(color: context.colors.paper, borderRadius: MyDataRadii.lg(context.look), boxShadow: context.shadows.shadow1),
+        decoration: context.radius.decorate(BoxDecoration(color: context.colors.paper, borderRadius: MyDataRadii.lg(context.look), boxShadow: context.shadows.shadow1)),
         alignment: Alignment.center,
         child: KiwiMark(height: size * 0.5),
       );

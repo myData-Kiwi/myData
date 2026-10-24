@@ -884,11 +884,11 @@ class _MyDataSelectState<T> extends State<MyDataSelect<T>>
         curve: context.motion.standard,
         height: context.density.controlHeight,
         padding: EdgeInsets.symmetric(horizontal: context.space(4) - borderWidth),
-        decoration: BoxDecoration(
+        decoration: context.radius.decorate(BoxDecoration(
           color: _hovered && _enabled ? c.surfaceHover : c.surface,
           borderRadius: MyDataRadii.md(context.look),
           border: Border.all(color: hasError ? c.danger : c.lineStrong, width: borderWidth),
-        ),
+        )),
         child: ExcludeSemantics(child: value),
       );
       // A custom label longer than the presets is cut short; its tooltip shows it in full.
@@ -1088,11 +1088,11 @@ class _MyDataSelectState<T> extends State<MyDataSelect<T>>
     final maxRows = MyDataSelect.visibleRows * context.density.controlHeight;
 
     Widget panel = Container(
-      decoration: BoxDecoration(
+      decoration: context.radius.decorate(BoxDecoration(
         color: c.surfaceRaised,
         borderRadius: MyDataRadii.md(context.look),
         boxShadow: context.shadows.shadow2,
-      ),
+      )),
       padding: EdgeInsets.all(context.space(1)),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1248,12 +1248,12 @@ class _ListRow<T> extends StatelessWidget {
             onTap: onTap,
             child: CustomPaint(
               foregroundPainter: ring
-                  ? InsetRingPainter(color: FocusRing.colourFor(context), borderRadius: MyDataRadii.sm(context.look))
+                  ? InsetRingPainter(shape: context.radius, color: FocusRing.colourFor(context), borderRadius: MyDataRadii.sm(context.look))
                   : null,
               child: Container(
                 height: item.caption == null ? context.density.controlHeight : context.density.rowHeight,
                 padding: EdgeInsets.symmetric(horizontal: context.space(3)),
-                decoration: BoxDecoration(color: highlighted ? c.surfaceHover : null, borderRadius: MyDataRadii.sm(context.look)),
+                decoration: context.radius.decorate(BoxDecoration(color: highlighted ? c.surfaceHover : null, borderRadius: MyDataRadii.sm(context.look))),
                 child: Row(
                   children: [
                     if (item.hasDot) ...[
@@ -1315,11 +1315,11 @@ class _CustomLabelField extends StatelessWidget {
       borderRadius: MyDataRadii.md(context.look),
       child: Container(
         height: context.density.controlHeight,
-        decoration: BoxDecoration(
+        decoration: context.radius.decorate(BoxDecoration(
           color: c.surface,
           borderRadius: MyDataRadii.md(context.look),
           border: Border.all(color: c.lineStrong, width: MyDataTextField.borderWidth),
-        ),
+        )),
         child: Focus(
           canRequestFocus: false,
           skipTraversal: true,

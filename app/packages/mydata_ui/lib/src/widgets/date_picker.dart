@@ -1174,8 +1174,8 @@ class _MiniSelectState extends State<_MiniSelect> {
       key: _key,
       height: context.density.controlHeight,
       padding: EdgeInsetsDirectional.only(start: context.space(3), end: context.space(2)),
-      decoration: BoxDecoration(
-          color: c.surface, borderRadius: MyDataRadii.md(context.look), border: Border.all(color: c.lineStrong)),
+      decoration: context.radius.decorate(BoxDecoration(
+          color: c.surface, borderRadius: MyDataRadii.md(context.look), border: Border.all(color: c.lineStrong))),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         Text(widget.items[widget.selected], maxLines: 1, style: context.typeScale.body.copyWith(color: c.ink)),
         SizedBox(width: context.space(1)),

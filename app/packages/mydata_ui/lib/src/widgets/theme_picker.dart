@@ -198,7 +198,7 @@ class _Swatch extends StatelessWidget {
       constraints: BoxConstraints(minHeight: context.density.controlHeight),
       padding: EdgeInsetsDirectional.only(
           start: ThemePicker.leadingPadding(context.look), end: ThemePicker.trailingPadding(context.look)),
-      decoration: BoxDecoration(
+      decoration: context.radius.decorate(BoxDecoration(
         color: c.surface,
         borderRadius: MyDataRadii.pill(context.look),
         // Selected: the ring replaces the shadow (decided 2026-10-12).
@@ -209,7 +209,7 @@ class _Swatch extends StatelessWidget {
                 color: c.ink.withValues(alpha: 0),
                 width: ThemePicker.ringWidth,
                 strokeAlign: BorderSide.strokeAlignOutside),
-      ),
+      )),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -338,7 +338,7 @@ class _SampleScreen extends StatelessWidget {
     final c = context.colors;
     final shadow = context.shadows.shadow1;
     final caption = context.typeScale.caption.copyWith(color: c.inkMuted);
-    BoxDecoration card() => BoxDecoration(color: c.surface, borderRadius: MyDataRadii.lg(context.look), boxShadow: shadow);
+    Decoration card() => context.radius.decorate(BoxDecoration(color: c.surface, borderRadius: MyDataRadii.lg(context.look), boxShadow: shadow));
 
     // Preview: `.main{padding:16px 16px 16px 8px; gap:14px}`; 14px snaps to space-4, as cards are space-4
     // apart.
@@ -375,13 +375,13 @@ class _SampleScreen extends StatelessWidget {
                       // The ProgressBar's track and fill, without its label and caption.
                       Container(
                         height: MyDataProgressBar.trackHeight,
-                        decoration: BoxDecoration(color: c.surfaceSunken, borderRadius: MyDataRadii.pill(context.look)),
+                        decoration: context.radius.decorate(BoxDecoration(color: c.surfaceSunken, borderRadius: MyDataRadii.pill(context.look))),
                         alignment: AlignmentDirectional.centerStart,
                         child: FractionallySizedBox(
                           widthFactor: ThemeSample.barValue,
                           heightFactor: 1,
                           child: DecoratedBox(
-                              decoration: BoxDecoration(color: c.accent, borderRadius: MyDataRadii.pill(context.look))),
+                              decoration: context.radius.decorate(BoxDecoration(color: c.accent, borderRadius: MyDataRadii.pill(context.look)))),
                         ),
                       ),
                     ],
@@ -422,7 +422,7 @@ class _SampleScreen extends StatelessWidget {
     return Container(
       // A window on the ground, edged with a hairline of `line` as in the preview (no shadow, so no card
       // with both a border and a shadow).
-      decoration: BoxDecoration(color: c.bg, borderRadius: MyDataRadii.lg(context.look), border: Border.all(color: c.line)),
+      decoration: context.radius.decorate(BoxDecoration(color: c.bg, borderRadius: MyDataRadii.lg(context.look), border: Border.all(color: c.line))),
       child: IntrinsicHeight(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -449,7 +449,7 @@ class _SampleSidebar extends StatelessWidget {
     // to `body`; `.nav.sel{background:accent-soft;color:accent;font-weight:600}`.
     Widget place(String name, {bool selected = false}) => Container(
           padding: EdgeInsets.symmetric(horizontal: context.space(3), vertical: context.space(2)),
-          decoration: BoxDecoration(color: selected ? c.accentSoft : null, borderRadius: MyDataRadii.pill(context.look)),
+          decoration: context.radius.decorate(BoxDecoration(color: selected ? c.accentSoft : null, borderRadius: MyDataRadii.pill(context.look))),
           child: Text(name,
               maxLines: 1,
               softWrap: false,

@@ -267,14 +267,93 @@ class MyDataShape {
     );
   }
 
-  /// The outline of a shape with corner [radius], in this look's corner style (3.2). Not used by the widgets
-  /// until phase 3, which also measures `continuous` against the system's corners.
-  OutlinedBorder border(double radius, {BorderSide side = BorderSide.none}) => switch (corners) {
-        CornerStyle.round => RoundedRectangleBorder(borderRadius: BorderRadius.circular(radius), side: side),
-        CornerStyle.continuous =>
-          RoundedSuperellipseBorder(borderRadius: BorderRadius.circular(radius), side: side),
-        CornerStyle.cut => BeveledRectangleBorder(borderRadius: BorderRadius.circular(cutSize), side: side),
+  /// The outline of a shape with corner [radius], in this look's corner style (3.2).
+  OutlinedBorder border(double radius, {BorderSide side = BorderSide.none}) =>
+      outline(BorderRadius.circular(radius), side: side);
+
+  /// The outline of a shape whose corners the tokens give as [radius] (`MyDataRadii.lg(look)`), in this
+  /// look's corner style (ARCHITECTURE.md 3.2):
+  /// - round: the radii as given (`RoundedRectangleBorder`);
+  /// - continuous: the same radii as a superellipse, the system's corner (`RoundedSuperellipseBorder`);
+  /// - cut: a chamfer of [cutSize] on every rounded corner, never more than the radius it replaces, so a
+  ///   small row keeps a small cut and a square corner stays square (`BeveledRectangleBorder`);
+  /// - square: no rounding at all.
+  OutlinedBorder outline(BorderRadiusGeometry radius, {BorderSide side = BorderSide.none}) => switch (corners) {
+        CornerStyle.round => RoundedRectangleBorder(borderRadius: radius, side: side),
+        CornerStyle.continuous => RoundedSuperellipseBorder(borderRadius: radius, side: side),
+        CornerStyle.cut => BeveledRectangleBorder(borderRadius: _cut(radius.resolve(TextDirection.ltr)), side: side),
         CornerStyle.square => RoundedRectangleBorder(side: side),
+      };
+
+  BorderRadius _cut(BorderRadius r) {
+    Radius c(Radius x) => x.x <= 0 ? Radius.zero : Radius.circular(math.min(cutSize, x.x));
+    return BorderRadius.only(
+        topLeft: c(r.topLeft), topRight: c(r.topRight), bottomLeft: c(r.bottomLeft), bottomRight: c(r.bottomRight));
+  }
+
+  /// Whether a [BoxDecoration] with a border radius already draws this look's corners: round corners, and
+  /// square ones (whose radii are all 0). Then [decorate] gives it back unchanged.
+  bool get boxCorners => corners == CornerStyle.round || corners == CornerStyle.square;
+
+  /// [d] in this look's corner style: unchanged when a box draws it ([boxCorners]), a circle, without a
+  /// border radius, or with a border that is not the same on every side (an underline); otherwise the same
+  /// fill, gradient, shadows and uniform border on [outline]. Every widget passes its rounded decorations
+  /// through here (`context.radius.decorate(BoxDecoration(...))`), so a theme's corners reach all of them.
+  Decoration decorate(BoxDecoration d) {
+    final radius = d.borderRadius;
+    if (boxCorners || radius == null || d.shape != BoxShape.rectangle) return d;
+    final border = d.border;
+    BorderSide side = BorderSide.none;
+    if (border != null) {
+      if (border is! Border || !border.isUniform) return d;
+      side = border.top;
+    }
+    return ShapeDecoration(
+      color: d.color,
+      gradient: d.gradient,
+      image: d.image,
+      shadows: d.boxShadow,
+      shape: outline(radius, side: side),
+    );
+  }
+
+  /// [child] clipped to a shape with corners [radius] in this look's corner style: a `ClipRRect` for box
+  /// corners (as before), else a clip to [outline].
+  Widget clip(BorderRadius radius, {required Widget child}) => boxCorners
+      ? ClipRRect(borderRadius: radius, child: child)
+      : ClipPath(clipper: ShapeBorderClipper(shape: outline(radius)), child: child);
+
+  /// The path of a shape with corners [radius] filling [rect], in this look's corner style.
+  Path path(Rect rect, BorderRadius radius) => outline(radius).getOuterPath(rect);
+
+  /// Corners [radius] grown by [by] on every side, so the shape [by] outside a rounded one keeps an even
+  /// gap: a round or continuous radius grows by [by], a chamfer by `by × (2 − √2)` (a cut corner's diagonal
+  /// moves out by [by] too). A corner of 0 grows into the same curve as any other, as today's ring does.
+  BorderRadius grow(BorderRadius radius, double by) {
+    Radius g(Radius r) => switch (corners) {
+          CornerStyle.square => Radius.circular(math.max(0, by)),
+          CornerStyle.cut =>
+            r.x <= 0 ? Radius.zero : Radius.circular(math.max(0, math.min(cutSize, r.x) + by * (2 - math.sqrt2))),
+          _ => Radius.circular(math.max(0, r.x + by)),
+        };
+    return BorderRadius.only(
+        topLeft: g(radius.topLeft),
+        topRight: g(radius.topRight),
+        bottomLeft: g(radius.bottomLeft),
+        bottomRight: g(radius.bottomRight));
+  }
+
+  /// The ring around (or, with a negative [by], inside) a shape with corners [radius] in [rect]: its path
+  /// [by] outside the shape. A cut ring is cut again, with its chamfer grown so the gap stays even; other
+  /// rings are rounded, as the shape is (a square shape's ring rounds by the gap, as a CSS outline does).
+  Path ringPath(Rect rect, BorderRadius radius, double by) => cornerPath(rect.inflate(by), grow(radius, by));
+
+  /// [rect] with corners [radii] taken as they are (already cut or grown, [grow]), in this look's corner
+  /// style: chamfered when cut, a superellipse when continuous, rounded otherwise.
+  Path cornerPath(Rect rect, BorderRadius radii) => switch (corners) {
+        CornerStyle.cut => BeveledRectangleBorder(borderRadius: radii).getOuterPath(rect),
+        CornerStyle.continuous => RoundedSuperellipseBorder(borderRadius: radii).getOuterPath(rect),
+        _ => Path()..addRRect(radii.toRRect(rect)),
       };
 
   static MyDataShape lerp(MyDataShape a, MyDataShape b, double t) => MyDataShape(

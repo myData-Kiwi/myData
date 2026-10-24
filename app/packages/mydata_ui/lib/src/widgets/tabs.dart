@@ -195,7 +195,7 @@ class _MyDataTabsState extends State<MyDataTabs> with SingleTickerProviderStateM
                   child: _sliding
                       ? Opacity(
                           opacity: enabled ? 1 : Pressable.disabledOpacity,
-                          child: DecoratedBox(decoration: BoxDecoration(color: c.accentSoft, borderRadius: MyDataRadii.pill(context.look))),
+                          child: DecoratedBox(decoration: context.radius.decorate(BoxDecoration(color: c.accentSoft, borderRadius: MyDataRadii.pill(context.look)))),
                         )
                       : const SizedBox.shrink(),
                 ),
@@ -222,9 +222,9 @@ class _MyDataTabsState extends State<MyDataTabs> with SingleTickerProviderStateM
           selected: selected,
           // The resting pill sits inside the Pressable, so it presses (and dims when disabled) with the label.
           child: DecoratedBox(
-            decoration: BoxDecoration(
+            decoration: context.radius.decorate(BoxDecoration(
                 color: selected && !_sliding ? c.accentSoft : c.accentSoft.withValues(alpha: 0),
-                borderRadius: MyDataRadii.pill(context.look)),
+                borderRadius: MyDataRadii.pill(context.look))),
             child: Center(
               child: AnimatedDefaultTextStyle(
                 duration: context.motion.fast,

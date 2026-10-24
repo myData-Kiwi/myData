@@ -340,7 +340,7 @@ class _DuplicatePairState extends State<DuplicatePair> {
       if (!widget.framed) return column;
       return Container(
         padding: EdgeInsets.all(context.space(5)),
-        decoration: BoxDecoration(color: c.surface, borderRadius: MyDataRadii.lg(context.look), boxShadow: context.shadows.shadow1),
+        decoration: context.radius.decorate(BoxDecoration(color: c.surface, borderRadius: MyDataRadii.lg(context.look), boxShadow: context.shadows.shadow1)),
         child: column,
       );
     });
@@ -407,10 +407,10 @@ class _DuplicatePairState extends State<DuplicatePair> {
       child: Container(
         margin: EdgeInsets.only(bottom: context.space(1)),
         padding: EdgeInsets.symmetric(horizontal: context.space(2), vertical: context.space(2)),
-        decoration: BoxDecoration(
+        decoration: context.radius.decorate(BoxDecoration(
           color: differs ? c.surfaceSunken : c.surfaceSunken.withValues(alpha: 0),
           borderRadius: MyDataRadii.sm(context.look),
-        ),
+        )),
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           SizedBox(
             width: DuplicatePair.labelWidth - context.space(2),
@@ -530,6 +530,6 @@ class _Bar extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         height: context.space(4),
         margin: EdgeInsets.symmetric(vertical: context.space(1)),
-        decoration: BoxDecoration(color: context.colors.surfaceSunken, borderRadius: MyDataRadii.xs(context.look)),
+        decoration: context.radius.decorate(BoxDecoration(color: context.colors.surfaceSunken, borderRadius: MyDataRadii.xs(context.look))),
       );
 }

@@ -179,8 +179,8 @@ class _MyDataIconButtonState extends State<MyDataIconButton> {
       curve: context.motion.standard,
       width: size,
       height: size,
-      decoration: BoxDecoration(
-          color: on ? c.accentSoft : c.accentSoft.withValues(alpha: 0), borderRadius: MyDataRadii.pill(context.look)),
+      decoration: context.radius.decorate(BoxDecoration(
+          color: on ? c.accentSoft : c.accentSoft.withValues(alpha: 0), borderRadius: MyDataRadii.pill(context.look))),
       alignment: Alignment.center,
       child: Icon(context.icon(glyph, selected: on && !widget.done), size: context.density.icon, color: fg),
     );

@@ -648,11 +648,11 @@ class _ToastBar extends StatelessWidget {
       ),
       decoration: mac
           ? MacToastLook.decoration(context)
-          : BoxDecoration(
+          : context.radius.decorate(BoxDecoration(
               color: c.surfaceRaised,
               borderRadius: MyDataRadii.xl(context.look),
               boxShadow: context.shadows.shadow2,
-            ),
+            )),
       child: AnimatedSize(
         duration: reduced ? Duration.zero : context.motion.fast,
         curve: context.motion.standard,

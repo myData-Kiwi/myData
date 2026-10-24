@@ -187,7 +187,7 @@ class DataBar extends StatelessWidget {
     final s = _swatch(c, colour, ground, alsoOn);
     return ExcludeSemantics(
         child: DecoratedBox(
-            decoration: BoxDecoration(color: s.fill, borderRadius: MyDataRadii.pill(context.look), border: _edge(context, c, s.edge)),
+            decoration: context.radius.decorate(BoxDecoration(color: s.fill, borderRadius: MyDataRadii.pill(context.look), border: _edge(context, c, s.edge))),
             child: _BarBox(height: height)));
   }
 }

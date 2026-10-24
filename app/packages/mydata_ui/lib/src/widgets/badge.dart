@@ -65,11 +65,11 @@ class MyDataBadge extends StatelessWidget {
         constraints: const BoxConstraints(minHeight: height),
         // Preview: 10px either side, between space-2 and space-3; the nearest token on the larger side.
         padding: EdgeInsets.symmetric(horizontal: context.space(3)),
-        decoration: BoxDecoration(
+        decoration: context.radius.decorate(BoxDecoration(
           color: host ? c.surface : tone.fill(c),
           borderRadius: MyDataRadii.pill(context.look),
           boxShadow: host ? context.shadows.shadow1 : null,
-        ),
+        )),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [

@@ -392,7 +392,7 @@ class _SidebarRow extends StatelessWidget {
     return AnimatedContainer(
       duration: context.motion.fast,
       curve: context.motion.standard,
-      decoration: BoxDecoration(color: current ? c.accentSoft : c.accentSoft.withValues(alpha: 0), borderRadius: MyDataRadii.pill(context.look)),
+      decoration: context.radius.decorate(BoxDecoration(color: current ? c.accentSoft : c.accentSoft.withValues(alpha: 0), borderRadius: MyDataRadii.pill(context.look))),
       child: Pressable(
         onPressed: onPressed,
         focusNode: focusNode,
@@ -463,8 +463,8 @@ class _RailItem extends StatelessWidget {
               curve: context.motion.standard,
               width: indicatorWidth(context.look),
               height: indicatorHeight(context.look),
-              decoration: BoxDecoration(
-                  color: current ? c.accentSoft : c.accentSoft.withValues(alpha: 0), borderRadius: MyDataRadii.pill(context.look)),
+              decoration: context.radius.decorate(BoxDecoration(
+                  color: current ? c.accentSoft : c.accentSoft.withValues(alpha: 0), borderRadius: MyDataRadii.pill(context.look))),
               alignment: Alignment.center,
               child: Icon(context.icon(section.icon, selected: current), size: context.density.icon, color: fg),
             ),

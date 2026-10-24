@@ -193,11 +193,11 @@ class PickerField extends StatelessWidget {
       height: height,
       decoration: mac
           ? MacControl.bezel(context, error: hasError)
-          : BoxDecoration(
+          : context.radius.decorate(BoxDecoration(
               color: c.surface,
               borderRadius: MyDataRadii.md(context.look),
               border: Border.all(color: hasError ? c.danger : c.lineStrong, width: border),
-            ),
+            )),
       child: Row(children: [
         Expanded(child: text),
         SizedBox(width: context.space(2)),
@@ -348,7 +348,7 @@ class _PickerPopoverState extends State<PickerPopover> with SingleTickerProvider
     final rtl = Directionality.of(context) == TextDirection.rtl;
     Widget surface = Container(
       padding: widget.padding,
-      decoration: BoxDecoration(color: c.surfaceRaised, borderRadius: MyDataRadii.md(context.look), boxShadow: context.shadows.shadow2),
+      decoration: context.radius.decorate(BoxDecoration(color: c.surfaceRaised, borderRadius: MyDataRadii.md(context.look), boxShadow: context.shadows.shadow2)),
       child: Builder(builder: widget.popover),
     );
     if (widget.semanticLabel != null) {
@@ -689,8 +689,8 @@ class _PickerListBoxState extends State<PickerListBox> {
                         : null,
                     child: Container(
                       key: ValueKey('picker-row-$i'),
-                      decoration: BoxDecoration(
-                          color: highlighted ? c.surfaceHover : null, borderRadius: MyDataRadii.sm(context.look)),
+                      decoration: context.radius.decorate(BoxDecoration(
+                          color: highlighted ? c.surfaceHover : null, borderRadius: MyDataRadii.sm(context.look))),
                       padding: EdgeInsets.symmetric(horizontal: context.space(3)),
                       child: Row(children: [
                         Text(item.title, maxLines: 1, softWrap: false, style: context.typeScale.body.copyWith(color: c.ink)),

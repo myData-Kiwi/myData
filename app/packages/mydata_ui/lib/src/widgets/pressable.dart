@@ -37,6 +37,7 @@ class Pressable extends StatefulWidget {
     this.danger = false,
     this.disabledReason,
     this.fadeWhenDisabled = true,
+    this.focusOnFill = false,
   });
 
   /// Null disables the control: out of the Tab order, or focusable but inert with a [disabledReason].
@@ -68,6 +69,10 @@ class Pressable extends StatefulWidget {
   /// at once on keyboard focus, and on hover as usual. Leave it null where the reason is visible text next to
   /// the control (a help line or caption): the control then leaves the Tab order.
   final String? disabledReason;
+
+  /// The control sits on a filled shape (a solid or inverse selected row): its focus ring is two-tone
+  /// ([FocusRing.onFill]).
+  final bool focusOnFill;
 
   /// Whether a disabled control fades to [disabledOpacity]. False for a control that draws its own disabled
   /// colours: a filled button, whose label would fall to about 1.5:1 faded (design/themes/ARCHITECTURE.md 6a).
@@ -127,9 +132,9 @@ class _PressableState extends State<Pressable> {
       body = AnimatedContainer(
         duration: context.motion.fast,
         curve: context.motion.standard,
-        decoration: BoxDecoration(
+        decoration: context.radius.decorate(BoxDecoration(
             color: (_hovered || down) && _enabled ? widget.hoverFill : widget.hoverFill!.withValues(alpha: 0),
-            borderRadius: widget.borderRadius),
+            borderRadius: widget.borderRadius)),
         child: body,
       );
     }
@@ -150,7 +155,7 @@ class _PressableState extends State<Pressable> {
     );
     body = CustomPaint(
       foregroundPainter: _focused && (_enabled || _inert)
-          ? FocusRing.painter(context, widget.borderRadius, danger: widget.danger)
+          ? FocusRing.painter(context, widget.borderRadius, danger: widget.danger, onFill: widget.focusOnFill)
           : null,
       child: body,
     );
@@ -206,44 +211,96 @@ class _PressableState extends State<Pressable> {
 
 /// The keyboard focus ring: 2px of `focus`, 2px outside the control (tokens.json "focus"); in the Mac frame
 /// `focus-ring-width` of `focus-ring`, `focus-ring-offset` outside it (tokens.json "macos").
+///
+/// It follows the control's shape in the look's corner style ([shape]; round when null, as in the Mac
+/// frame), drawn as a stroke of the shape grown outward, never a clip, so a cut or continuous corner keeps
+/// its ring (ARCHITECTURE.md 3.2). With a [keyline], a 1px line in that colour runs along the ring's inner
+/// edge: the two-tone ring for a ring that sits on a fill (WCAG technique C40, ARCHITECTURE.md 2.3).
 class _FocusRingPainter extends CustomPainter {
-  _FocusRingPainter(this.color, this.radius, {this.width = 2, this.offset = 2});
+  _FocusRingPainter(this.color, this.radius, {this.width = 2, this.offset = 2, this.shape, this.keyline});
   final Color color;
   final BorderRadius radius;
   final double width;
   final double offset;
+  final MyDataShape? shape;
+  final Color? keyline;
+
+  Path _ring(Size size, double by) {
+    final r = radius.resolve(TextDirection.ltr);
+    final s = shape;
+    if (s != null && s.corners != CornerStyle.round) return s.ringPath(Offset.zero & size, r, by);
+    final grow = Radius.circular(by);
+    return Path()
+      ..addRRect(RRect.fromRectAndCorners((Offset.zero & size).inflate(by),
+          topLeft: r.topLeft + grow,
+          topRight: r.topRight + grow,
+          bottomLeft: r.bottomLeft + grow,
+          bottomRight: r.bottomRight + grow));
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
-    final rect = (Offset.zero & size).inflate(offset + width / 2);
-    final r = radius.resolve(TextDirection.ltr);
-    final grow = Radius.circular(offset + width / 2);
-    final grown = RRect.fromRectAndCorners(rect,
-        topLeft: r.topLeft + grow,
-        topRight: r.topRight + grow,
-        bottomLeft: r.bottomLeft + grow,
-        bottomRight: r.bottomRight + grow);
-    canvas.drawRRect(grown, Paint()
+    final paint = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
-      ..strokeWidth = width);
+      ..strokeWidth = width;
+    final s = shape;
+    if (keyline == null && (s == null || s.corners == CornerStyle.round)) {
+      // Today's ring, drawn exactly as before.
+      final rect = (Offset.zero & size).inflate(offset + width / 2);
+      final r = radius.resolve(TextDirection.ltr);
+      final grow = Radius.circular(offset + width / 2);
+      canvas.drawRRect(
+          RRect.fromRectAndCorners(rect,
+              topLeft: r.topLeft + grow,
+              topRight: r.topRight + grow,
+              bottomLeft: r.bottomLeft + grow,
+              bottomRight: r.bottomRight + grow),
+          paint);
+      return;
+    }
+    canvas.drawPath(_ring(size, offset + width / 2), paint);
+    if (keyline != null) {
+      canvas.drawPath(
+          _ring(size, offset - 0.5),
+          Paint()
+            ..color = keyline!
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1);
+    }
   }
 
   @override
   bool shouldRepaint(_FocusRingPainter old) =>
-      old.color != color || old.radius != radius || old.width != width || old.offset != offset;
+      old.color != color ||
+      old.radius != radius ||
+      old.width != width ||
+      old.offset != offset ||
+      old.shape?.corners != shape?.corners ||
+      old.shape?.cutSize != shape?.cutSize ||
+      old.keyline != keyline;
 }
 
 /// Draws the focus ring around a non-[Pressable] focusable thing (a text field), when [visible].
 class FocusRing extends StatelessWidget {
-  const FocusRing(
-      {super.key, required this.visible, required this.borderRadius, required this.child, this.danger = false});
+  const FocusRing({
+    super.key,
+    required this.visible,
+    required this.borderRadius,
+    required this.child,
+    this.danger = false,
+    this.onFill = false,
+  });
   final bool visible;
   final BorderRadius borderRadius;
   final Widget child;
 
   /// The thing is in its red state (a field in error): the ring is `ink` ([colourOf]).
   final bool danger;
+
+  /// The ring sits on a filled shape (a solid or inverse selected row): it gets a 1px `surface` keyline on
+  /// its inner edge, so it reads at 3:1 against both sides whatever the fill (WCAG C40).
+  final bool onFill;
 
   /// The branded rule for a keyboard focus ring's colour (design/README.md "Focus and danger"): `focus` (red)
   /// everywhere, `ink` on something already red ([danger]: drawn in `danger` or `danger-soft`), where a red
@@ -258,18 +315,26 @@ class FocusRing extends StatelessWidget {
     return mac != null ? mac.focusRing : colourOf(context.colors, danger: danger);
   }
 
-  /// The ring around a shape with [radius]: 2px of [colourFor] 2px outside it; in the Mac frame
-  /// `focus-ring-width` at `focus-ring-offset` (tokens.json "macos").
-  static CustomPainter painter(BuildContext context, BorderRadius radius, {bool danger = false}) {
+  /// The keyline of a ring that sits on a fill ([onFill]): `surface`; none in the Mac frame, whose ring is
+  /// the system's.
+  static Color? keylineFor(BuildContext context, {bool onFill = false}) =>
+      !onFill || Theme.of(context).extension<MyDataMacColors>() != null ? null : context.colors.surface;
+
+  /// The ring around a shape with [radius]: 2px of [colourFor] 2px outside it, following the look's corner
+  /// style; in the Mac frame `focus-ring-width` at `focus-ring-offset` (tokens.json "macos"), round.
+  static CustomPainter painter(BuildContext context, BorderRadius radius, {bool danger = false, bool onFill = false}) {
     final color = colourFor(context, danger: danger);
-    if (Theme.of(context).extension<MyDataMacColors>() == null) return _FocusRingPainter(color, radius);
+    if (Theme.of(context).extension<MyDataMacColors>() == null) {
+      return _FocusRingPainter(color, radius, shape: context.radius, keyline: keylineFor(context, onFill: onFill));
+    }
     return _FocusRingPainter(color, radius,
         width: MyDataMacSize.focusRingWidth, offset: MyDataMacSize.focusRingOffset);
   }
 
   @override
   Widget build(BuildContext context) => CustomPaint(
-      foregroundPainter: visible ? painter(context, borderRadius, danger: danger) : null, child: child);
+      foregroundPainter: visible ? painter(context, borderRadius, danger: danger, onFill: onFill) : null,
+      child: child);
 }
 
 /// Radii as BorderRadius, for the shapes the tokens name.

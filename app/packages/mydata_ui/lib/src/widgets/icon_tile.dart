@@ -23,7 +23,7 @@ class IconTile extends StatelessWidget {
     return Container(
       width: context.density.iconTile,
       height: context.density.iconTile,
-      decoration: BoxDecoration(color: tone.fill(c), borderRadius: MyDataRadii.sm(context.look)),
+      decoration: context.radius.decorate(BoxDecoration(color: tone.fill(c), borderRadius: MyDataRadii.sm(context.look))),
       alignment: Alignment.center,
       child: Icon(context.icon(icon), size: context.density.icon, color: tone.strong(c), semanticLabel: semanticLabel),
     );

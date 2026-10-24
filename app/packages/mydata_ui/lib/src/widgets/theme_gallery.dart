@@ -533,12 +533,12 @@ class _ThemeGalleryState extends State<ThemeGallery> {
     final panel = Container(
       width: panelWidth,
       constraints: BoxConstraints(maxHeight: math.max(0.0, MediaQuery.sizeOf(context).height - 2 * margin)),
-      decoration: BoxDecoration(
+      decoration: context.radius.decorate(BoxDecoration(
         color: c.surfaceRaised,
         borderRadius: BorderRadius.all(Radius.circular(context.radius.xl)),
         boxShadow: context.shadows.shadow2,
         border: Border.all(color: c.line),
-      ),
+      )),
       clipBehavior: Clip.antiAlias,
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -645,8 +645,8 @@ class _ThemeCardState extends State<_ThemeCard> {
     final ring = _focused && FocusManager.instance.highlightMode == FocusHighlightMode.traditional;
 
     Widget preview(Brightness b) => Expanded(
-      child: ClipRRect(
-        borderRadius: BorderRadius.all(Radius.circular(context.radius.sm)),
+      child: context.radius.clip(
+        BorderRadius.all(Radius.circular(context.radius.sm)),
         child: ThemeScenePreview(choice: widget.choice, brightness: b, scene: widget.scene),
       ),
     );
@@ -654,14 +654,14 @@ class _ThemeCardState extends State<_ThemeCard> {
     final card = Container(
       width: ThemeGallery.cardWidth,
       padding: EdgeInsets.all(context.space(3)),
-      decoration: BoxDecoration(
+      decoration: context.radius.decorate(BoxDecoration(
         color: c.surface,
         borderRadius: radius,
         border: Border.all(
           color: widget.selected ? c.ink : c.line,
           width: widget.selected ? ThemePicker.ringWidth : GroupFrame.dividerWidth,
         ),
-      ),
+      )),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
