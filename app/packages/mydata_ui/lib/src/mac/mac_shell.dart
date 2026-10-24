@@ -255,6 +255,14 @@ class MacPanel extends StatelessWidget {
   /// then left out, since the ground between the panels divides them.
   static bool shown(BuildContext context) => !context.isSystemLook && drawn(context.look);
 
+  /// The drop under a Mac control in a theme whose panes are panels (Brutalist's offset shadow, Retro
+  /// Desktop's 2 px drop), gone while it is [pressed] where the theme collapses it; none elsewhere.
+  static List<BoxShadow> controlShadows(BuildContext context, {bool pressed = false}) =>
+      shown(context) ? context.look.elevation.controlShadows(pressed: pressed) : const [];
+
+  /// The resting shadow under a Mac form's group in a theme whose panes are panels; none elsewhere.
+  static List<BoxShadow> groupShadows(BuildContext context) => shown(context) ? context.shadows.shadow1 : const [];
+
   /// Between a panel and its pane's edges: the sidebar panel's margin, more than the deepest offset shadow.
   static const gutter = MyDataMacSize.sidebarMargin;
 

@@ -10,6 +10,7 @@ import '../widgets/pressable.dart';
 import '../widgets/role_label.dart';
 import 'mac_chrome.dart';
 import 'mac_metrics.dart';
+import 'mac_shell.dart' show MacPanel;
 import 'mac_theme.dart';
 
 /// The Mac frame's grouped forms, as System Settings and an app's Settings window draw them (plan section 5:
@@ -120,6 +121,7 @@ class MacFormSection extends StatelessWidget {
                 ? BoxDecoration(border: Border(top: rule, bottom: rule))
                 : context.macLook.decorate(BoxDecoration(
               color: fill(context),
+              boxShadow: MacPanel.groupShadows(context),
               borderRadius: radius(context.look),
               border: Border.fromBorderSide(context.isSystemLook
                   ? BorderSide(color: mac.separator, width: MyDataMacSize.hairline)

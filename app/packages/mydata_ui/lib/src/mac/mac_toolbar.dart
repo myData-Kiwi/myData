@@ -7,6 +7,7 @@ import '../widgets/floating_bar.dart' show FloatingBarSurface;
 import 'mac_chrome.dart';
 import 'mac_metrics.dart';
 import 'mac_overlays.dart' show MacMenuLook;
+import 'mac_shell.dart' show MacPanel;
 import 'mac_theme.dart';
 
 /// The Mac frame's toolbar band: `toolbar-height` tall across the content, in the window's title bar
@@ -228,6 +229,9 @@ class _MacToolbarButtonState extends State<MacToolbarButton> {
         border: _focused
             ? Border.all(color: mac.focusRing, width: MyDataMacSize.focusRingWidth)
             : Border.fromBorderSide(rest),
+        // A slab's drop where the panes are panels (Brutalist, Retro Desktop), collapsing under a press; a
+        // disabled item has none, so it recedes.
+        boxShadow: enabled ? MacPanel.controlShadows(context, pressed: _pressed) : null,
       )),
       child: face,
     );

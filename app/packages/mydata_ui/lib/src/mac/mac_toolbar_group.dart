@@ -6,6 +6,7 @@ import '../widgets/pressable.dart' show FocusRing;
 import 'mac_chrome.dart';
 import 'mac_metrics.dart';
 import 'mac_overlays.dart' show MacMenuLook;
+import 'mac_shell.dart' show MacPanel;
 import 'mac_theme.dart';
 
 /// One button of a [MacToolbarGroup]: a word or an icon.
@@ -59,6 +60,7 @@ class MacToolbarGroup extends StatelessWidget {
       color: mac.toolbarItem,
       borderRadius: m.controlRadius,
       border: Border.fromBorderSide(m.itemSide ?? BorderSide(color: mac.separator, width: MyDataMacSize.hairline)),
+      boxShadow: MacPanel.controlShadows(context),
     ));
     final row = Row(mainAxisSize: MainAxisSize.min, children: [for (final b in buttons) _Part(button: b)]);
     // A theme that promises its control height for every target (Large): the parts take the press over the
