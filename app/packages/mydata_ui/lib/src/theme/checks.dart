@@ -33,6 +33,12 @@ String roleWords(ColourRole r) => switch (r) {
 String _ratio(double v) => v.toStringAsFixed(2);
 String _need(double v) => v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toString();
 
+/// How far a table's header band stands from its stripes (2.2, "Tables").
+const tableBandStep = 1.08;
+
+/// How far a table's selected row stands from a striped row and from a plain one (2.2, "Tables").
+const tableSelectionStep = 1.2;
+
 /// The 2.2 checks of one resolved palette. [defaults] gives the reference hues of `danger` and the calendar
 /// colours. At increased contrast, text needs 7:1 and materials count as solid (2.3).
 List<ThemeFinding> checkColours(ThemeFile theme, ResolvedPalette p, RoleDefaults defaults, {String? palette}) {
@@ -125,6 +131,26 @@ List<ThemeFinding> checkColours(ThemeFile theme, ResolvedPalette p, RoleDefaults
     }
   } else {
     pair('the $sel selection marker (${markerRole.key})', marker, roleWords(ColourRole.surface), v(ColourRole.surface), 3);
+  }
+  // A table (`components.list: table`): its header band (`surface-sunken`) a step past its stripes, and a
+  // selected row's fill told from a striped row and a plain one by more than its bar, since every second row
+  // of a table is tinted too. Notices: a palette of seeds alone may fall short (its stripe and tint are
+  // derived); every built-in table passes them (builtin_themes_test.dart).
+  if (style.components.values['list'] == 'table') {
+    pair("the table's header band (surface-sunken)", v(ColourRole.surfaceSunken), 'its stripes (stripe)',
+        v(ColourRole.stripe), tableBandStep, notice: true);
+    final fill = switch (sel) {
+      'tint' || 'bar' => ColourRole.accentSoft,
+      'solid' => ColourRole.selection,
+      'inverse' => ColourRole.ink,
+      _ => null,
+    };
+    if (fill != null) {
+      pair('a selected row (${fill.key})', v(fill), 'a striped row (stripe)', v(ColourRole.stripe),
+          tableSelectionStep, notice: true);
+      pair('a selected row (${fill.key})', v(fill), 'a plain row (surface)', v(ColourRole.surface),
+          tableSelectionStep, notice: true);
+    }
   }
   // A double ring always has its `surface` keyline between it and what it surrounds (2.3), so it is checked
   // against the grounds only.

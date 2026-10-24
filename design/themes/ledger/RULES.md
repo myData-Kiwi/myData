@@ -30,20 +30,21 @@ An account book: dense rows ruled and striped like a ledger's columns, figures t
 ## Colour use
 
 - Cool or tinted greys for the ground (`#F5F6F8` / `#0D1114` in Teal), white or near-black surfaces, one ink colour per palette.
-- **Zebra stripes** on tables only: every second row of a letter group on `surface-sunken`, starting again under each letter. Subtle on purpose; `ink` and `ink-muted` pass on both.
-- Rules: 1 px `line` between rows and round cards, a 1 px `line-strong` under a table's header row (the letter band), a single rule under titles. Controls take the control outline (`line-strong`, since `line` is under 3:1). The style fixes `edge` to `line-strong` (`colour-use.same-as`).
-- Selection: a bar, the colour's pale tint with a 3 px leading bar in the colour.
+- **Three steps from the page:** a plain row on `surface`; a **zebra stripe** on `stripe`, every second row of a letter group, starting again under each letter (about 1.1:1 on `surface`, subtle on purpose); a table's **header band** (the letter) on `surface-sunken`, a near-neutral grey a step past the stripe (about 1.2:1 on `surface`, 1.1:1 on a stripe), so a striped last row never runs into the next band. `ink` and `ink-muted` pass on all three. Tables only: `stripe` is the one role no other part of the app reads, so the stripe's tint (Green's green bar) stays in the tables.
+- Rules: 1 px `line` between rows and round cards, a 1 px `line-strong` under a table's header row (the letter band; 3:1 or more on the band), a single rule under titles. Controls take the control outline (`line-strong`, since `line` is under 3:1). The style fixes `edge` to `line-strong` (`colour-use.same-as`).
+- Selection: a bar, the colour's tint with a 3 px leading bar in the colour. The tint is stronger than a ledger's stripes so a selected row is never read as one: about 1.27:1 on a stripe and 1.4:1 on a plain row (the validator's table notices ask 1.2), so the selection never rests on the bar alone. `selection-inactive` is the Mac's own list's (System's), which a drawn theme never paints.
 - The focus ring is today's red (`#B3261E`, `#F2867E` in dark) in every palette: none of the three colours is near it, so it never reads as the selection.
 
 ## Palettes
 
 | Palette | Id | Accent (light / dark) | `ink` / `ink-muted` / `link` on `bg`, label on `accent` |
 |---|---|---|---|
-| Teal (default) | `teal` | `#0F6E78` / `#5CC8D2` | light 17.1 / 6.6 / 5.5 / 6.0; dark 15.5 / 7.7 / 9.6 / 8.2 |
-| Green | `green` | `#3A6B1E` / `#9DD27A` | light 16.9 / 6.7 / 5.9 / 6.4; dark 15.5 / 7.7 / 10.7 / 9.1 |
+| Teal (default) | `teal` | `#0F6E78` / `#5CC8D2` | light 17.1 / 6.6 / 5.9 / 6.0; dark 15.5 / 7.7 / 9.6 / 8.2 |
+| Green | `green` | `#3A6B1E` / `#9DD27A` | light 16.9 / 6.7 / 5.8 / 6.4; dark 15.5 / 7.7 / 10.7 / 9.1 |
 | Blue | `blue` | `#2A4E9C` / `#93B2F2` | light 17.2 / 6.7 / 7.3 / 7.9; dark 15.5 / 7.7 / 9.0 / 8.1 |
 
-- **Teal** is the prototype's colour. **Green** is green-bar listing paper: its stripes and grounds take a pale green. **Blue** is a ledger's blue ruling ink. A palette moves the accent, its tint, the link and the tint of the grounds and stripes; status and calendar colours stay.
+- **Teal** is the prototype's colour. **Green** is green-bar listing paper: its stripes and grounds take a pale green, while its header bands and sunken panels (the approval card's message, wells) stay a near-neutral grey, so the green bar is only in the tables. **Blue** is a ledger's blue ruling ink. A palette moves the accent, its tint, the link and the tint of the grounds and stripes; status and calendar colours stay.
+- Teal's light link is a step darker than its accent (`#0F6973`), so it still reads at 4.5:1 on the stronger selection tint.
 - A red was left out: it would sit on `danger`'s hue, and a ledger's red is for what is owed.
 - Every palette gives every role the style does not fix and passes `ARCHITECTURE.md` 2.2 in both modes and at increased contrast (the derived 7:1 values).
 
@@ -64,7 +65,7 @@ Crisp at ×0.7 (about 60 ms); a press dims; nothing slides or fades in. Reduced 
 | Part | Variant |
 |---|---|
 | Buttons | Primary filled, small rounded; secondary 1 px outline; plain a word in the colour |
-| Lists | **Table**: each letter group a header band on `surface-sunken` with its `line-strong` rule, full `line` rules, zebra stripes; boxed in the outline with small corners where the list is a group (the branded frame), across the pane in the Mac window |
+| Lists | **Table**: each letter group a header band on `surface-sunken` with its `line-strong` rule, full `line` rules, zebra stripes on the lighter `stripe`; a selected row's tint covers its stripe; boxed in the outline with small corners where the list is a group (the branded frame), across the pane in the Mac window |
 | Selection | Bar: the pale tint and a 3 px leading bar |
 | Sidebar, toolbar | A solid column; a flat band with its rule |
 | Inputs | Outlined |
@@ -84,7 +85,7 @@ Crisp at ×0.7 (about 60 ms); a press dims; nothing slides or fades in. Reduced 
 
 ## Accessibility
 
-- Ink 16.9 to 17.2:1 on the light grounds and 15.5:1 on the dark; secondary text 6.6:1 or more everywhere, the stripes included.
+- Ink 16.9 to 17.2:1 on the light grounds and 15.5:1 on the dark; secondary text 6.5:1 or more on the grounds and stripes, 5.9:1 on the header bands and 5.1:1 on a selected row.
 - `line-strong` (the control outline, the header rule and `edge`) 3.4:1 or more on `bg` and 3.7:1 or more on `surface`; the selection bar 3:1 or more on both surfaces.
 - Increased contrast: the derived 7:1 values for every text pair, links and status words included.
 

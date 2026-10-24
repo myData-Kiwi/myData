@@ -154,7 +154,9 @@ void main() {
 
   // Where the theme's lists are tables (Ledger), the plain list is a table across the pane: each letter a
   // header band on `surface-sunken` with a `line-strong` rule under it, and every second row of a letter group
-  // on `surface-sunken` (zebra stripes, started again under each letter). Elsewhere neither is drawn.
+  // on `stripe` (zebra stripes, started again under each letter), lighter than the band so a striped last row
+  // never runs into the next band. A selected striped row shows the selection's fill over its stripe. Hairline
+  // draws neither, and nor does System (the Mac's own list).
   testWidgets("the Mac's plain list draws a table theme's header bands and zebra stripes", (tester) async {
     tester.view.physicalSize = const Size(1280, 800);
     tester.view.devicePixelRatio = 1;
@@ -166,7 +168,7 @@ void main() {
       ContactListEntry(id: 'd', name: 'Ben Sample', givenName: 'Ben', familyName: 'Sample'),
       ContactListEntry(id: 'e', name: 'Bea Testa', givenName: 'Bea', familyName: 'Testa'),
     ];
-    for (final (slug, table) in [('ledger', true), ('hairline', false)]) {
+    for (final (slug, table) in [('ledger', true), ('hairline', false), ('system', false)]) {
       final theme = MacTheme.forChoice(ThemeChoice('mydata.$slug'), Brightness.light, MyDataMacColors.light);
       await tester.pumpWidget(
         MaterialApp(
@@ -180,7 +182,8 @@ void main() {
                 style: ContactListStyle.plain,
                 showSearch: false,
                 contacts: people,
-                selectedId: 'a',
+                // The second row of A: a striped row.
+                selectedId: 'b',
                 onOpen: (_) {},
               ),
             ),
@@ -190,12 +193,13 @@ void main() {
       await tester.pumpAndSettle();
       final look = theme.extension<MyDataLook>()!;
       expect(look.variants.list == ListStyle.table, table, reason: slug);
-      final sunken = look.colors.surfaceSunken;
-      bool striped(String name) => tester
-          .widgetList<ColoredBox>(
-            find.ancestor(of: find.text(name, findRichText: true), matching: find.byType(ColoredBox)),
-          )
-          .any((b) => b.color == sunken);
+      expect(look.frame == LookFrame.system, slug == 'system', reason: slug);
+      final sunken = look.colors.surfaceSunken, stripe = look.colors.stripe;
+      // The band and the stripe are told apart.
+      expect(stripe, isNot(sunken), reason: slug);
+      Finder text(String name) => find.text(name, findRichText: true);
+      final isStripe = find.byWidgetPredicate((w) => w is ColoredBox && w.color == stripe);
+      bool striped(String name) => find.ancestor(of: text(name), matching: isStripe).evaluate().isNotEmpty;
       // The rows in the order given: A is Ava, Abe, Aaron; B is Ben, Bea.
       expect(striped('Ava Fictional'), isFalse, reason: '$slug: the first row of A');
       expect(striped('Abe Dummy'), table, reason: '$slug: the second row of A');
@@ -206,12 +210,23 @@ void main() {
           .widgetList<DecoratedBox>(find.ancestor(of: find.text('B'), matching: find.byType(DecoratedBox)))
           .map((d) => d.decoration)
           .whereType<BoxDecoration>()
-          .where((d) => d.color == sunken);
+          .where((d) => d.color == sunken || d.color == stripe);
       expect(bands, table ? hasLength(1) : isEmpty, reason: slug);
       if (table) {
+        expect(bands.single.color, sunken);
         expect((bands.single.border! as Border).bottom.color, look.colors.lineStrong);
         // The letter lines up with the names under it.
-        expect(tester.getTopLeft(find.text('B')).dx, tester.getTopLeft(find.text('Ben Sample', findRichText: true)).dx);
+        expect(tester.getTopLeft(find.text('B')).dx, tester.getTopLeft(text('Ben Sample')).dx);
+        // The selected striped row: the selection's fill over the stripe, across the whole row, so the row
+        // reads as selected, not as another stripe.
+        final fill = SelectionPaint.of(look).fill!;
+        expect(fill, isNot(stripe));
+        final isFill = find.byWidgetPredicate((w) =>
+            w is DecoratedBox && w.decoration is BoxDecoration && (w.decoration as BoxDecoration).color == fill);
+        final over = find.descendant(of: find.ancestor(of: text('Abe Dummy'), matching: isStripe), matching: isFill);
+        expect(over, findsOneWidget);
+        expect(find.ancestor(of: text('Abe Dummy'), matching: over), findsOneWidget);
+        expect(tester.getSize(over), tester.getSize(find.ancestor(of: text('Abe Dummy'), matching: isStripe)));
       }
     }
   });

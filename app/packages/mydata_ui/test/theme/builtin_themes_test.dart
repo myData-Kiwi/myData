@@ -137,6 +137,31 @@ void main() {
       expect(failures, isEmpty, reason: failures.join('\n'));
     });
 
+    // A table's header band, its stripes and a selected row are three steps the eye reads apart (2.2,
+    // "Tables"): the validator only notes them, since a palette of seeds alone may fall short, so every
+    // built-in table is held to them here, at both contrast levels.
+    test('every built-in table sets its header band, stripes and selected row apart', () {
+      var tables = 0;
+      final found = <String>[];
+      for (final theme in ThemeLibrary.builtIns) {
+        if (theme.style.components.values['list'] != 'table') continue;
+        tables++;
+        for (final p in theme.palettes) {
+          for (final mode in LookMode.values) {
+            for (final increased in const [false, true]) {
+              final r = resolvePalette(theme, p, mode, defaults: ThemeLibrary.defaults, increasedContrast: increased);
+              expect(r[ColourRole.stripe], isNot(r[ColourRole.surfaceSunken]));
+              found.addAll(checkColours(theme, r, ThemeLibrary.defaults, palette: '${theme.name} ${p.name}')
+                  .map((f) => f.message)
+                  .where((m) => m.contains('header band') || m.contains('selected row')));
+            }
+          }
+        }
+      }
+      expect(tables, 1, reason: 'Ledger');
+      expect(found, isEmpty, reason: found.join('\n'));
+    });
+
     test('the six drawn looks are told apart by more than colour: no two share their components and shape', () {
       final drawn = ThemeLibrary.builtIns.where((t) => t.frame == ThemeFrame.drawn).toList();
       final keys = {for (final t in drawn) t.name: '${t.style.shape.corners} ${t.style.components.values}'};

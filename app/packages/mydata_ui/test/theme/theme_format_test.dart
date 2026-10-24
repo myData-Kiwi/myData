@@ -366,6 +366,39 @@ void main() {
       expect(grey.notices, contains(contains('danger has no colour; it is told by its word alone.')));
     });
 
+    test("a table's stripe is derived lighter than its header band; a table that blurs them is noted", () {
+      final table = drawn(extra: {
+        'components': {'list': 'table'},
+      });
+      final r = check(table);
+      expect(r.ok, isTrue, reason: r.errors.join('\n'));
+      final theme = r.theme!;
+      final p = resolvePalette(theme, theme.palettes.single, LookMode.light, defaults: ThemeLibrary.defaults);
+      expect(p.derived, contains(ColourRole.stripe));
+      expect(contrast(p[ColourRole.stripe], p[ColourRole.surface]),
+          lessThan(contrast(p[ColourRole.surfaceSunken], p[ColourRole.surface])));
+      // A stripe given as the band, and a tint as faint as a stripe.
+      final blurred = check(drawn(extra: {
+        'components': {'list': 'table'},
+      }, palettes: [
+        palette(overrides: {
+          'light': {'surface-sunken': '#F0F2F5', 'stripe': '#F0F2F5', 'accent-soft': '#E6EEF8'},
+        }),
+      ]));
+      expect(blurred.ok, isTrue, reason: blurred.errors.join('\n'));
+      expect(blurred.notices, containsAll([
+        contains("light mode: the table's header band (surface-sunken) on its stripes (stripe) is 1.00:1"),
+        contains('light mode: a selected row (accent-soft) on a striped row (stripe)'),
+      ]));
+      // Not a table: neither is checked.
+      final list = check(drawn(palettes: [
+        palette(overrides: {
+          'light': {'surface-sunken': '#F0F2F5', 'stripe': '#F0F2F5', 'accent-soft': '#E6EEF8'},
+        }),
+      ]));
+      expect(list.notices.where((n) => n.contains('header band') || n.contains('selected row')), isEmpty);
+    });
+
     test('palette ids are unique and the default names one of them', () {
       final r = check({
         ...drawn(palettes: [palette(), palette()]),
