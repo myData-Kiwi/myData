@@ -23,6 +23,9 @@ void main() {
   // Large's 52 px targets reach the Mac window's own controls: "‹ Today ›", the calendar list, the days.
   themeTargets(month, size: const Size(1280, 900));
 
+  // The smallest window, in the largest type and the heaviest edges: the month over the day list.
+  themeNarrow(month);
+
   // The month's grid is the same in every theme (layout stays out of themes), so its pictures differ less
   // than a list's; before the drawn looks reached it the closest two (Frosted and Paperback) scored 0.06.
   themesDistinct('month', least: 0.18, size: const Size(1280, 900));

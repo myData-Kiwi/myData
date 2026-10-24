@@ -48,6 +48,9 @@ class ContactsView extends StatefulWidget {
   /// The list's content width at its narrowest, in a narrow window.
   static const listMinWidth = 240.0;
 
+  /// The least the contact beside the list has in the Mac window before the list narrows.
+  static const macRecordMinWidth = 320.0;
+
   /// The share of the window's content the list pane takes before it reaches [listMaxWidth].
   static const listShare = 0.4;
 
@@ -292,20 +295,25 @@ class _ContactsViewState extends State<ContactsView> {
       ],
     );
 
-    final row = Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        SizedBox(width: MyDataMacSize.listWidth, child: list),
-        VerticalDivider(width: 1, thickness: 1, color: mac.separator),
-        Expanded(child: contact),
-      ],
-    );
-    if (edit == null) return row;
-    // A toast centres on the list, beside the inspector, never over it.
-    return Stack(children: [
-      Positioned.fill(child: row),
-      const PositionedDirectional(start: 0, top: 0, bottom: 0, width: MyDataMacSize.listWidth, child: ToastArea()),
-    ]);
+    // The list keeps its width while the contact beside it has [ContactsView.macRecordMinWidth]; in a narrower window (the
+    // smallest is 720 wide, less a sidebar a large theme widens) it gives up width down to [listMinWidth].
+    return LayoutBuilder(builder: (context, box) {
+      final listWidth = (box.maxWidth - ContactsView.macRecordMinWidth).clamp(ContactsView.listMinWidth, MyDataMacSize.listWidth);
+      final row = Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(width: listWidth, child: list),
+          VerticalDivider(width: 1, thickness: 1, color: mac.separator),
+          Expanded(child: contact),
+        ],
+      );
+      if (edit == null) return row;
+      // A toast centres on the list, beside the inspector, never over it.
+      return Stack(children: [
+        Positioned.fill(child: row),
+        PositionedDirectional(start: 0, top: 0, bottom: 0, width: listWidth, child: const ToastArea()),
+      ]);
+    });
   }
 
   @override

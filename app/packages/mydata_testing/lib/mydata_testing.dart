@@ -370,6 +370,38 @@ void themeScreens(ThemeScreen key, {Size size = const Size(1280, 800)}) {
   }
 }
 
+/// [key] in the largest-type and the edge-heaviest themes (Large, High Contrast; light) in the Mac window at
+/// its smallest, 720 by 480 (MacShell.swift's minimum): nothing overflows, as golden
+/// `screenshots/theme_<screen>.<theme>-narrow.png`. The 1280-wide pictures above never showed what Large's
+/// wider sidebar and 19 px text leave room for.
+void themeNarrow(ThemeScreen key, {List<String> slugs = const ['large', 'high-contrast'], Size size = macMinSize}) {
+  for (final slug in slugs) {
+    macTestWidgets('${key.name} at the smallest window in $slug', (tester) async {
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final before = MacLook.debugOverride;
+      MacLook.debugOverride = true;
+      addTearDown(() => MacLook.debugOverride = before);
+      EditableText.debugDeterministicCursor = true;
+      addTearDown(() => EditableText.debugDeterministicCursor = false);
+      painting.debugDisableShadows = false;
+      try {
+        await tester.pumpWidget(key.build(ThemeCase(slug, Brightness.light, drawnOnMac: true)));
+        if (key.before != null) await key.before!(tester);
+        await tester.pump(const Duration(seconds: 1));
+        expect(tester.takeException(), isNull, reason: 'nothing overflows at ${size.width}x${size.height}');
+        await expectLater(find.byType(MaterialApp).first, matchesGoldenFile('screenshots/theme_${key.name}.$slug-narrow.png'));
+      } finally {
+        painting.debugDisableShadows = true;
+      }
+    });
+  }
+}
+
+/// The Mac windows' smallest size (MacShell.swift's `minSize`).
+const macMinSize = Size(720, 480);
+
 /// Every control a pointer can press on [key] in the theme [slug] (inside the Mac window, light) is at least
 /// [least] by [least]: its accessible node's box, which is the area that takes the press (a search field's
 /// whole box). Large promises 52 px targets on the desktop (design/themes/large/RULES.md); the density tokens

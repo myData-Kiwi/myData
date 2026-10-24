@@ -430,17 +430,26 @@ class _CellState extends State<_Cell> {
             _MoreLine(count: events.length - (fits - 1)),
           ];
         }
-        return Padding(
-          padding: EdgeInsets.all(MacMonthGrid.cellPadding(context.look)),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Align(
-                alignment: AlignmentDirectional.topEnd,
-                child: _Number(day: w.day, today: w.today, muted: !w.inMonth || w.notRead),
+        // What fits: in the smallest window in a large type a cell is shorter than its day's number, which
+        // is then cut at the cell's foot rather than overflowing it.
+        return ClipRect(
+          child: OverflowBox(
+            alignment: Alignment.topCenter,
+            maxHeight: double.infinity,
+            child: Padding(
+              padding: EdgeInsets.all(MacMonthGrid.cellPadding(context.look)),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Align(
+                    alignment: AlignmentDirectional.topEnd,
+                    child: _Number(day: w.day, today: w.today, muted: !w.inMonth || w.notRead),
+                  ),
+                  for (final l in lines) ...[SizedBox(height: MacMonthGrid.lineGap(context.look)), l],
+                ],
               ),
-              for (final l in lines) ...[SizedBox(height: MacMonthGrid.lineGap(context.look)), l],
-            ],
+            ),
           ),
         );
       },

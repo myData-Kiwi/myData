@@ -113,8 +113,24 @@ class MacToolbar extends StatelessWidget {
               ),
               ),
             ),
-          if (title == null && trailing.isNotEmpty) const Spacer(),
-          for (final (i, w) in trailing.indexed) ...[if (i > 0) SizedBox(width: itemGap(context.look)), w],
+          // Without a title the trailing items sit at the end, and a search field among them gives up width
+          // before anything overflows: at the window's smallest (720 wide) the pane beside a list is narrower
+          // than its 325.
+          if (title == null && trailing.isNotEmpty && leading.isNotEmpty) SizedBox(width: itemGap(context.look)),
+          if (title == null && trailing.isNotEmpty)
+            Expanded(
+              child: Align(
+                alignment: AlignmentDirectional.centerEnd,
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  for (final (i, w) in trailing.indexed) ...[
+                    if (i > 0) SizedBox(width: itemGap(context.look)),
+                    w is MacSearchField ? Flexible(child: w) : w,
+                  ],
+                ]),
+              ),
+            )
+          else
+            for (final (i, w) in trailing.indexed) ...[if (i > 0) SizedBox(width: itemGap(context.look)), w],
         ],
       ),
     );
@@ -322,8 +338,9 @@ class _MacSearchFieldState extends State<MacSearchField> {
     final mac = context.mac;
     final m = context.macLook;
     final hasText = widget.controller.text.isNotEmpty;
+    // Its [width] at most: in a narrow pane the toolbar gives it less ([MacToolbar]).
     final field = Container(
-      width: widget.width,
+      constraints: BoxConstraints(maxWidth: widget.width),
       height: m.toolbarItemHeight,
       padding: EdgeInsets.symmetric(horizontal: context.space(3)),
       decoration: m.decorate(BoxDecoration(

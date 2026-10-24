@@ -84,6 +84,7 @@ Material Symbols Rounded, regular, 24 px, filled when selected, on tinted tiles.
 ## Accessibility
 
 - Text: ink 18.0:1 (light) and 17.2:1 (dark); secondary text 9.6 and 12.0:1.
+- Each app's `theme_screens_test.dart` also draws its key screen in Large and High Contrast in the smallest Mac window, 720 by 480 (`themeNarrow`): nothing overflows. There myContacts' list narrows to 240 so the contact keeps 320, the avatar goes above a name that would break beside it, a record's label goes above its value, the search field gives up width, and myCalendar's day cells cut what does not fit.
 - Each app's `theme_screens_test.dart` measures every target on its key screen in Large (`themeTargets`, myData's Settings too): none is under 52 px but a link inside a line of text.
 - `accessibility_themes_test.dart` holds its promises: no role under 16 px, body 19, targets 52 / 56 and 24 px icons, 2 px outlines, an outline selection, faint Mac text at 4.5:1, and the Mac skeleton unchanged but for the sidebar's width.
 

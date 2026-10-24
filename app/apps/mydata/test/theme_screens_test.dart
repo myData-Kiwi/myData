@@ -14,6 +14,9 @@ void main() {
 
   // Large's 52 px targets reach the Mac window's own controls: the toolbar, the switches, the segments.
   themeTargets(status);
+
+  // The smallest window, in the largest type and the heaviest edges.
+  themeNarrow(status);
   themeTargets(ThemeScreen(
     'settings',
     (t) => mac.app(mac.realHost(mac: macSource(calendars: 'denied', counts: SyncCounts(contacts: 412))), t),

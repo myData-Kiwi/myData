@@ -16,6 +16,9 @@ void main() {
   // Large's 52 px targets reach the Mac window's own controls: the toolbar, the record's actions.
   themeTargets(people);
 
+  // The smallest window, in the largest type and the heaviest edges.
+  themeNarrow(people);
+
   // The pictures above differ by more than colour between every two themes.
   themesDistinct('people');
 }

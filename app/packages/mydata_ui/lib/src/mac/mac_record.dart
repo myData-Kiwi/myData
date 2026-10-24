@@ -39,48 +39,69 @@ class MacRecordHeader extends StatelessWidget {
   /// Between the round actions.
   static double actionGap(MyDataLook look) => look.space(4);
 
+  /// Whether the name fits beside the avatar in [width] without a word broken: its widest word does.
+  static bool nameFitsBeside(BuildContext context, String name, double width) {
+    final style = context.macLook.name;
+    final scaler = MediaQuery.textScalerOf(context);
+    var widest = 0.0;
+    for (final word in name.split(RegExp(r'\s+'))) {
+      final p = TextPainter(
+          text: TextSpan(text: word, style: style), textDirection: TextDirection.ltr, textScaler: scaler)
+        ..layout();
+      if (p.width > widest) widest = p.width;
+      p.dispose();
+    }
+    return width - MyDataMacSize.avatar - gap(context.look) >= widest;
+  }
+
   @override
   Widget build(BuildContext context) {
     final mac = context.mac;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // A drawn theme without avatars leaves out its place too.
-        if (Avatar.shown(context)) ...[avatar, SizedBox(width: gap(context.look))],
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(height: context.space(1)),
-              SelectionArea(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(mainAxisSize: MainAxisSize.min, children: [
-                      Flexible(
-                        child: Semantics(
-                          header: true,
-                          // In a drawn theme its `title`, in the display face where it sets titles in one.
-                          child: Text(name, style: context.macLook.name.copyWith(color: mac.label)),
-                        ),
-                      ),
-                      if (badge != null) ...[SizedBox(width: context.space(2)), badge!],
-                    ]),
-                    if (subtitle.isNotEmpty)
-                      Text(subtitle,
-                          style: context.macLook.secondary(context.macLook.body).copyWith(color: mac.secondaryLabel)),
-                  ],
-                ),
-              ),
-              if (actions.isNotEmpty) ...[
-                SizedBox(height: context.space(3)),
-                Wrap(spacing: actionGap(context.look), runSpacing: context.space(2), children: actions),
+    // The name beside the avatar; under it where its widest word would not fit beside it (a narrow window
+    // in a large type), so a name is never broken mid-word.
+    return LayoutBuilder(builder: (context, box) {
+      final text = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(height: context.space(1)),
+          SelectionArea(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // The badge goes under the name where the two do not fit side by side.
+                Wrap(crossAxisAlignment: WrapCrossAlignment.center, spacing: context.space(2), children: [
+                  Semantics(
+                    header: true,
+                    // In a drawn theme its `title`, in the display face where it sets titles in one.
+                    child: Text(name, style: context.macLook.name.copyWith(color: mac.label)),
+                  ),
+                  ?badge,
+                ]),
+                if (subtitle.isNotEmpty)
+                  Text(subtitle,
+                      style: context.macLook.secondary(context.macLook.body).copyWith(color: mac.secondaryLabel)),
               ],
-            ],
+            ),
           ),
-        ),
-      ],
-    );
+          if (actions.isNotEmpty) ...[
+            SizedBox(height: context.space(3)),
+            Wrap(spacing: actionGap(context.look), runSpacing: context.space(2), children: actions),
+          ],
+        ],
+      );
+      // A drawn theme without avatars leaves out its place too.
+      if (!Avatar.shown(context)) return text;
+      if (!nameFitsBeside(context, name, box.maxWidth)) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [avatar, SizedBox(height: gap(context.look)), text],
+        );
+      }
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [avatar, SizedBox(width: gap(context.look)), Expanded(child: text)],
+      );
+    });
   }
 }
 
@@ -221,6 +242,10 @@ class MacFieldTable extends StatelessWidget {
   /// Between the label column and the values.
   static double gap(MyDataLook look) => look.space(3);
 
+  /// The least width a line has for its label beside its value: the label column, the gap and room for a
+  /// short value; narrower, the label goes above the value.
+  static double besideMinWidth(MyDataLook look) => MyDataMacSize.labelColumn + gap(look) + look.space(24);
+
   @override
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -327,20 +352,29 @@ class _FieldLineState extends State<_FieldLine> {
         onTap: open ?? () => unawaited(_copy()),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: MyDataMacSize.tight),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                width: MyDataMacSize.labelColumn,
-                child: Padding(
-                  // The label sits on the value's first line.
-                  padding: const EdgeInsets.only(top: MyDataMacSize.tight),
-                  child: label,
-                ),
-              ),
-              SizedBox(width: MacFieldTable.gap(context.look) - context.space(1)),
-              Flexible(child: value),
-            ],
+          // The label beside its value; above it where the two do not fit side by side (a narrow window in a
+          // large type).
+          child: LayoutBuilder(
+            builder: (context, box) => box.maxWidth >= MacFieldTable.besideMinWidth(context.look)
+                ? Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        width: MyDataMacSize.labelColumn,
+                        child: Padding(
+                          // The label sits on the value's first line.
+                          padding: const EdgeInsets.only(top: MyDataMacSize.tight),
+                          child: label,
+                        ),
+                      ),
+                      SizedBox(width: MacFieldTable.gap(context.look) - context.space(1)),
+                      Flexible(child: value),
+                    ],
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [Padding(padding: EdgeInsetsDirectional.only(start: context.space(1)), child: label), value],
+                  ),
           ),
         ),
       ),

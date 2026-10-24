@@ -19,6 +19,9 @@ void main() {
   // Large's 52 px targets reach the Mac window's own controls.
   themeTargets(approval);
 
+  // The smallest window, in the largest type and the heaviest edges.
+  themeNarrow(approval);
+
   // The pictures above differ by more than colour between every two themes.
   themesDistinct('approval');
 }
