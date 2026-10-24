@@ -110,7 +110,12 @@ class SwitchTrack extends StatelessWidget {
             curve: context.motion.standard,
             width: thumbSize,
             height: thumbSize,
-            decoration: BoxDecoration(color: value ? c.onAccent : c.lineStrong, shape: BoxShape.circle),
+            // The thumb takes the track's corner style: a circle in a round track, an octagon in a cut one,
+            // a square in a square one.
+            decoration: context.radius.corners == CornerStyle.round
+                ? BoxDecoration(color: value ? c.onAccent : c.lineStrong, shape: BoxShape.circle)
+                : context.radius.decorate(BoxDecoration(
+                    color: value ? c.onAccent : c.lineStrong, borderRadius: MyDataRadii.pill(context.look))),
           ),
         ),
       ),
