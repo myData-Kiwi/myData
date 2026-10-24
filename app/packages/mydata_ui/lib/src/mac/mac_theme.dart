@@ -4,7 +4,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../generated/tokens.g.dart';
+import '../theme/checks.dart' show accessibilityFirst;
 import '../theme/choice.dart';
+import '../theme/colour.dart';
 import '../theme/library.dart';
 import '../theme/theme.dart';
 import 'mac_window.dart';
@@ -169,7 +171,11 @@ abstract final class MacTheme {
       // which TextStyle.merge would otherwise put before `.AppleSystemUIFont` (a font that does not exist).
       textTheme: _unpackaged(base.textTheme),
       primaryTextTheme: _unpackaged(base.primaryTextTheme),
-      extensions: [...base.extensions.values, colorsFor(look.colors, look.brightness)],
+      extensions: [
+        ...base.extensions.values,
+        colorsFor(look.colors, look.brightness,
+            strongText: look.increasedContrast || accessibilityFirst.contains(look.themeId)),
+      ],
     );
   }
 
@@ -226,15 +232,21 @@ abstract final class MacTheme {
 
   /// The Mac widgets' colours from a drawn theme's palette: the window is `bg`, the content `surface`, the
   /// sidebar `sidebar`, labels `ink` and `ink-muted`, the accent, ring and selection the palette's. The
-  /// faint label shades keep the system's opacity over `ink`.
-  static MyDataMacColors colorsFor(MyDataColors c, Brightness brightness) {
+  /// faint label shades keep the system's opacity over `ink`; with [strongText] (increased contrast, and
+  /// the accessibility-first themes, High Contrast and E-ink) the tertiary label, which a disabled item and
+  /// another month's day are drawn in, is the grey of `ink` over `surface` that reads at 4.5:1 on `surface`
+  /// and `bg`: still fainter than `ink-muted`, so a disabled item reads as disabled.
+  static MyDataMacColors colorsFor(MyDataColors c, Brightness brightness, {bool strongText = false}) {
     final base = brightness == Brightness.dark ? MyDataMacColors.dark : MyDataMacColors.light;
+    Rgb rgb(Color x) => Rgb.argb(x.toARGB32());
     return MyDataMacColors(
       accent: c.accent,
       onAccent: c.onAccent,
       label: c.ink,
       secondaryLabel: c.inkMuted,
-      tertiaryLabel: c.ink.withValues(alpha: base.tertiaryLabel.a),
+      tertiaryLabel: strongText
+          ? Color(mixUntil(rgb(c.surface), rgb(c.ink), 4.5, [rgb(c.surface), rgb(c.bg)]).argb)
+          : c.ink.withValues(alpha: base.tertiaryLabel.a),
       quaternaryLabel: c.ink.withValues(alpha: base.quaternaryLabel.a),
       separator: c.line,
       contentBackground: c.surface,
