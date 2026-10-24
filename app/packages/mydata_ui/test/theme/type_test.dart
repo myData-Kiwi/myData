@@ -65,6 +65,17 @@ class TypeSpecimen extends StatelessWidget {
 }
 
 void main() {
+  test('a tracking of 0 sets no letter spacing, so the font keeps its own kerning; any other is in em', () {
+    TypeRoleSpec body(double? tracking) =>
+        TypeRoleSpec(size: 15, lineHeight: 1.4667, weight: 400, tracking: tracking, stack: TypeRole.body.defaultStack);
+    MyDataTypeScale scale(double? tracking) =>
+        MyDataTypeScale.of(_spec(roles: {TypeRole.body: body(tracking)}), platform: TargetPlatform.macOS);
+    expect(scale(0).body.letterSpacing, isNull);
+    expect(scale(null).body.letterSpacing, isNull);
+    expect(scale(0).body, scale(null).body);
+    expect(scale(-0.02).body.letterSpacing, -0.3);
+  });
+
   test('a role is set in the first bundled font of its stack, the later ones as fallbacks', () {
     final scale = MyDataTypeScale.of(_spec(), platform: TargetPlatform.macOS);
     // Fredoka is display-only: at 40 px it is used, at 13 px the next font is.

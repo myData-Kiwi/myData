@@ -188,7 +188,11 @@ class MyDataTypeScale {
         leadingDistribution: TextLeadingDistribution.even,
         fontWeight: weight,
         fontStyle: italic ? FontStyle.italic : null,
-        letterSpacing: r.tracking == null ? null : double.parse((r.tracking! * r.size).toStringAsFixed(3)),
+        // No tracking and a tracking of 0 are the same style: the engine lays out a set letter spacing, even 0,
+        // apart from the font's own kerning, so 0 would draw text a pixel off where none draws it.
+        letterSpacing: r.tracking == null || r.tracking == 0
+            ? null
+            : double.parse((r.tracking! * r.size).toStringAsFixed(3)),
         fontFeatures: spec.tabular ? const [FontFeature.tabularFigures()] : null,
         fontVariations: variable
             ? [
