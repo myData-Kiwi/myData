@@ -44,7 +44,7 @@ class KiwiTile extends StatelessWidget {
 
 /// Loading of unknown length. The design calls for "the kiwi slice", which has not been drawn; until it is,
 /// this is the kiwi mark on a round `paper` badge that turns (as on the website), and stays still with
-/// reduced motion. A placeholder: replace the drawing, keep the widget.
+/// reduced motion and in a theme without motion (E-ink). A placeholder: replace the drawing, keep the widget.
 class KiwiLoader extends StatefulWidget {
   const KiwiLoader({super.key, this.size = 40, this.semanticLabel = 'Loading'});
   final double size;
@@ -57,10 +57,14 @@ class KiwiLoader extends StatefulWidget {
 class _KiwiLoaderState extends State<KiwiLoader> with SingleTickerProviderStateMixin {
   late final AnimationController _spin = AnimationController(vsync: this, duration: const Duration(milliseconds: 1400));
 
+  /// Whether it stays still: reduced motion, or a theme whose motion is none.
+  bool _still(BuildContext context) =>
+      MyDataAccessibility.of(context).reduceMotion || context.motion.personality == MotionPersonality.none;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (MyDataAccessibility.of(context).reduceMotion || TickerMode.valuesOf(context).enabled == false) {
+    if (_still(context) || TickerMode.valuesOf(context).enabled == false) {
       _spin.stop();
     } else if (!_spin.isAnimating) {
       _spin.repeat();
@@ -87,7 +91,7 @@ class _KiwiLoaderState extends State<KiwiLoader> with SingleTickerProviderStateM
     return Semantics(
       label: widget.semanticLabel,
       liveRegion: true,
-      child: MyDataAccessibility.of(context).reduceMotion
+      child: _still(context)
           ? badge
           : AnimatedBuilder(
               animation: _spin,

@@ -201,4 +201,16 @@ void main() {
       expect(node.hasFocus, isFalse);
     });
   });
+
+  testWidgets('the loader turns', (tester) async {
+    await tester.pumpWidget(themedFrame(ThemeCase('kiwi', Brightness.light), const KiwiLoader()));
+    expect(find.descendant(of: find.byType(KiwiLoader), matching: find.byType(Transform)), findsOneWidget);
+  });
+
+  testWidgets('the loader stays still in a theme without motion (E-ink)', (tester) async {
+    await tester.pumpWidget(themedFrame(ThemeCase('e-ink', Brightness.light), const KiwiLoader()));
+    expect(find.descendant(of: find.byType(KiwiLoader), matching: find.byType(Transform)), findsNothing);
+    await tester.pump(const Duration(seconds: 1));
+    expect(tester.hasRunningAnimations, isFalse);
+  });
 }
