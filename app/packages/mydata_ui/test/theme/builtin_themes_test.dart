@@ -113,6 +113,13 @@ void main() {
       expect(ThemeLibrary.kiwi.defaultPaletteId, MyDataThemes.fallback.id);
     });
 
+    test('its borders are the designed Kiwi\'s, so the full look changes none of them', () {
+      final today = (readStrictJson(kiwiThemeJson) as Map<String, Object?>)['borders'];
+      final design = (readStrictJson(designed()['mydata.kiwi']!) as Map<String, Object?>)['borders'];
+      expect(today, design);
+      expect((today as Map)['separators'], 'full', reason: 'GroupedList: a full-width divider between rows');
+    });
+
     test('it passes every check except the gap the contrast audit found in today\'s look, which phase 3 fixes', () {
       final r = validateThemeText(kiwiThemeJson, ThemeLibrary.format(), builtIn: true, todaysKiwi: true);
       // Known, decided 2026-10-23 (themes decision 6): a red focus ring is lost on a rose or amber selection

@@ -60,7 +60,7 @@ Lucide (regular, about 1.75 stroke) at 20 px, on 34 px tinted tiles (`accent-sof
 | Part | Variant |
 |---|---|
 | Buttons | filled pill primary, tonal secondary |
-| Lists | inset grouped cards with inset separators |
+| Lists | inset grouped cards with full-width separators (GroupedList, as drawn today) |
 | Sidebar | flush column with a hairline rule |
 | Toolbar | flat band, glass |
 | Inputs | outlined, `line-strong` edge |

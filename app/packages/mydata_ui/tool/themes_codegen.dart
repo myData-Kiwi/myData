@@ -139,8 +139,7 @@ Map<String, Object?> kiwiTodayTheme(String tokensJson, String themesJson, String
       'controls': radius['control']! >= 999 ? 'pill' : 'match',
     },
     'density': {'desktop': density, 'phone': density},
-    // Today's lists separate their rows across the full width.
-    'borders': {...(design['borders'] as Map<String, Object?>), 'separators': 'full'},
+    'borders': design['borders'],
     'elevation': design['elevation'],
     'materials': {...(design['materials'] as Map<String, Object?>), 'blur': blur},
     'icons': design['icons'],
