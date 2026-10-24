@@ -101,6 +101,6 @@ Phosphor Light, 18 px, bare, few.
 
 - **Manrope, not Zen Kaku Gothic New, for the text.** Cut to Latin, the latter keeps none of the Japanese it was chosen for (about 2.3 MB a weight with it) and has no Latin Extended-A, so names in lists and records would fall back mid-word; Manrope is bundled already and draws them all.
 - Shippori Mincho is bundled at its one display weight, 600 (42 KB), Latin only; Japanese names fall back to the system's font, as the prototype said.
-- Its colours are the Indigo palette; Moss and Ochre are new.
+- Its colours are the Indigo palette; Moss and Ochre are new. Indigo's selection tint is a pale indigo (`#E3E7EF`, `#29303F` in dark), not the prototype's neutral grey, so the tint carries the colour, as Moss's and Ochre's do.
 - The toolbar is a flat band with a hairline, as its rules always said ("hairlines under the toolbar"), not the native band, under which a scrolled chat ran up to the title's subtitle with nothing between them.
 - The approval card keeps its 1 px `line-strong` edge and its fixed structure, as in every theme.
