@@ -139,6 +139,32 @@ void main() {
       expect(style.materials.bars, BarMaterial.solid);
       expect(style.elevation.style, ElevationStyle.none);
     });
+
+    testWidgets("edges the Mac window's sidebar panel in a full point of ink, never a half-point grey",
+        (tester) async {
+      for (final b in Brightness.values) {
+        final look = designedLook(theme.id, b, platform: TargetPlatform.macOS);
+        await tester.pumpWidget(MaterialApp(
+          theme: MacTheme.drawn(look),
+          home: const Material(
+            child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              MacSidebar(connection: AppConnection.connected(), child: SizedBox()),
+            ]),
+          ),
+        ));
+        await tester.pumpAndSettle();
+        final panel = tester.widgetList<DecoratedBox>(
+            find.descendant(of: find.byType(MacSidebar), matching: find.byType(DecoratedBox)));
+        final sides = [
+          for (final d in panel)
+            if (d.position == DecorationPosition.foreground && d.decoration is BoxDecoration)
+              (d.decoration as BoxDecoration).border?.top,
+        ].nonNulls.toList();
+        expect(sides, isNotEmpty);
+        expect(sides.first.color, look.colors.ink, reason: b.name);
+        expect(sides.first.width, greaterThanOrEqualTo(1), reason: b.name);
+      }
+    });
   });
 
   group('Large', () {

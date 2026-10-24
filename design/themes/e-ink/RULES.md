@@ -48,7 +48,7 @@ The palettes' accents are all ink, so the validator notes they are hard to tell 
 
 ## Depth and materials
 
-None. No shadows, blur, texture or translucency. Pages are ruled, not boxed (`cards: false`, `list: ruled`): rules between rows, and in the Mac window the Settings groups are ruled too. A rule under page titles.
+None. No shadows, blur, texture or translucency. Pages are ruled, not boxed (`cards: false`, `list: ruled`): rules between rows, and in the Mac window the Settings groups are ruled too. A rule under page titles. The Mac window's sidebar panel keeps its floating shape, edged in a full point of ink (the Mac's half-point hairline read as a 2.6:1 grey on a 1x screen).
 
 ## Icons
 

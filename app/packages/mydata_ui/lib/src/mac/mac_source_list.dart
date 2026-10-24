@@ -282,8 +282,15 @@ class MacSidebar extends StatelessWidget {
     final radius = drawn ? BorderRadius.all(Radius.circular(context.look.shape.lg)) : m.groupRadius;
     // System's look in the Mac shell has round corners (MyDataLook.asSystem).
     final shape = context.look.shape;
-    final edge = drawn ? (context.look.edges.card ?? BorderSide(color: mac.separator, width: MyDataMacSize.hairline))
-        : BorderSide(color: mac.separator, width: MyDataMacSize.hairline);
+    // A drawn theme's panel edge is its card outline, else its `line`: a faint divider in the Mac's
+    // half-point hairline, but a line that is an edge (3:1 or more on the sidebar: E-ink's ink) in the
+    // theme's own width, since half a point of ink reads as a 2.6:1 grey on a 1x screen.
+    final edges = context.look.edges;
+    final hairline = BorderSide(color: mac.separator, width: MyDataMacSize.hairline);
+    final lineIsEdge = SelectionPaint.contrastOf(mac.separator, mac.sidebarBackground) >= 3;
+    final edge = !drawn
+        ? hairline
+        : edges.card ?? (lineIsEdge ? hairline.copyWith(width: math.max(edges.width, 1)) : hairline);
     final panel = Padding(
       padding: const EdgeInsets.fromLTRB(margin, margin, 0, margin),
       child: DecoratedBox(
