@@ -41,4 +41,41 @@ void main() {
       }
     });
   }
+
+  // A value never breaks inside a word beside its label: where one would (Terminal's wide face in the record
+  // at the smallest window: "ava@example.c / om"), every label goes above its value, and each value keeps
+  // its line; with room, labels stay beside their values.
+  for (final (width, stacked) in [(200.0, true), (600.0, false)]) {
+    // 200 px is wider than the label column, the gap and a short value: the old rule kept the labels beside.
+    testWidgets('a record ${stacked ? 'stacks its labels' : 'keeps its labels beside'} at $width px in terminal',
+        (tester) async {
+      tester.view.physicalSize = const Size(800, 600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(MaterialApp(
+        theme: MacTheme.forChoice(ThemeChoice('mydata.terminal'), Brightness.light, MyDataMacColors.light),
+        themeAnimationDuration: Duration.zero,
+        home: Scaffold(
+          body: Align(
+            alignment: Alignment.topLeft,
+            child: SizedBox(
+              width: width,
+              child: MacFieldTable(groups: [
+                [const MacField(label: 'mobile', value: '+44 7700 900123')],
+                [const MacField(label: 'work', value: 'ava@example.com')],
+              ]),
+            ),
+          ),
+        ),
+      ));
+      await tester.pumpAndSettle();
+      for (final (label, value) in [('mobile', '+44 7700 900123'), ('work', 'ava@example.com')]) {
+        final l = tester.getRect(find.text(label)), v = tester.getRect(find.text(value));
+        expect(l.bottom <= v.top, stacked, reason: '$label above its value');
+        final p = tester.renderObject<RenderParagraph>(find.text(value));
+        expect(p.size.height, lessThan(1.5 * p.text.style!.fontSize! * (p.text.style!.height ?? 1.2)),
+            reason: '$value on one line');
+      }
+    });
+  }
 }

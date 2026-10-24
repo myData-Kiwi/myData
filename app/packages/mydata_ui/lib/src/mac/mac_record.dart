@@ -251,22 +251,61 @@ class MacFieldTable extends StatelessWidget {
   /// short value; narrower, the label goes above the value.
   static double besideMinWidth(MyDataLook look) => MyDataMacSize.labelColumn + gap(look) + look.space(24);
 
+  /// Whether every label goes above its value at [width]: the label column, the gap and a short value do
+  /// not fit, or a value would break inside a word beside its label (a phone number, an address, a web
+  /// address in a wide face at the smallest window: Terminal's "ava@example.c / om"). One value that needs
+  /// the room stacks the whole table, so its lines stay alike. A value of several lines (a note) wraps at
+  /// its words; only its longest word must fit.
+  static bool stacked(BuildContext context, double width, List<List<MacField>> groups) {
+    final look = context.look;
+    if (width < besideMinWidth(look)) return true;
+    // The value's room beside its label: the line less the label column, the gap and the value's padding.
+    final room = width - MyDataMacSize.labelColumn - gap(look) - look.space(1);
+    final scaler = MediaQuery.textScalerOf(context);
+    final direction = Directionality.of(context);
+    double widthOf(String text, TextStyle style) {
+      final painter = TextPainter(text: TextSpan(text: text, style: style), textDirection: direction, textScaler: scaler)
+        ..layout();
+      final w = painter.width;
+      painter.dispose();
+      return w;
+    }
+
+    for (final group in groups) {
+      for (final f in group) {
+        final style = _FieldLineState._valueStyle(context, link: f.onOpen != null);
+        final lines = f.value.split('\n');
+        final pieces = lines.length > 1 ? [for (final l in lines) ...l.split(RegExp(r'\s+'))] : lines;
+        if (pieces.any((p) => widthOf(p, style) > room)) return true;
+      }
+    }
+    return false;
+  }
+
   @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      for (final (i, group) in groups.where((g) => g.isNotEmpty).indexed) ...[
-        if (i > 0) SizedBox(height: context.space(4)),
-        for (final field in group) _FieldLine(field: field),
-      ],
-    ],
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, box) {
+      final stack = stacked(context, box.maxWidth, groups);
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (final (i, group) in groups.where((g) => g.isNotEmpty).indexed) ...[
+            if (i > 0) SizedBox(height: context.space(4)),
+            for (final field in group) _FieldLine(field: field, stacked: stack),
+          ],
+        ],
+      );
+    },
   );
 }
 
 class _FieldLine extends StatefulWidget {
-  const _FieldLine({required this.field});
+  const _FieldLine({required this.field, required this.stacked});
 
   final MacField field;
+
+  /// The label above the value ([MacFieldTable.stacked]).
+  final bool stacked;
 
   @override
   State<_FieldLine> createState() => _FieldLineState();
@@ -358,9 +397,9 @@ class _FieldLineState extends State<_FieldLine> {
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: MyDataMacSize.tight),
           // The label beside its value; above it where the two do not fit side by side (a narrow window in a
-          // large type).
-          child: LayoutBuilder(
-            builder: (context, box) => box.maxWidth >= MacFieldTable.besideMinWidth(context.look)
+          // large type or a wide face).
+          child: Builder(
+            builder: (context) => !widget.stacked
                 ? Row(
                     // The label sits on the value's first line: on its baseline, whatever the two roles'
                     // sizes and line heights (Notebook's 14 px labels on a 20 px line beside 16 px values
