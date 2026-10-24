@@ -106,7 +106,7 @@ class MacRecordHeader extends StatelessWidget {
 }
 
 /// A round quick action under a record's name (message, call, video, mail, map): an `action-button` circle
-/// on `quaternary-label` with the icon in the accent, its word under it in `action` and `secondary-label`. Disabled
+/// on `quaternary-label` (no ground in a drawn theme whose icons have no tiles) with the icon in the accent, its word under it in `action` and `secondary-label`. Disabled
 /// (no number, no address): both in `tertiary-label`, the [disabledReason] in its tooltip and hint.
 class MacQuickAction extends StatefulWidget {
   const MacQuickAction({
@@ -144,6 +144,11 @@ class _MacQuickActionState extends State<MacQuickAction> {
     final tint = enabled ? mac.accent : mac.tertiaryLabel;
     // A circle in System and where the theme's controls are capsules; the theme's control corners else.
     final round = m.system || context.look.variants.buttonShape == ButtonShapeStyle.pill;
+    // A theme that draws its icons with no tile (`icons.tiles: none`: Notebook, Journal, Terminal) gives the
+    // action no grey ground: the icon and its word, in the theme's control outline where it outlines its
+    // controls (Terminal), bare where it does not (Notebook); a press shows the theme's hover.
+    final bare = !m.system && context.look.icons.tiles == 'none';
+    final ground = _pressed ? (bare ? mac.hover : mac.tertiaryLabel) : (bare ? null : mac.quaternaryLabel);
     final name = widget.tooltip ?? widget.label;
     return Semantics(
       button: true,
@@ -175,12 +180,12 @@ class _MacQuickActionState extends State<MacQuickAction> {
                     decoration: round
                         ? BoxDecoration(
                             shape: BoxShape.circle,
-                            color: _pressed ? mac.tertiaryLabel : mac.quaternaryLabel,
+                            color: ground,
                             border: _focused ? Border.all(color: mac.focusRing, width: MyDataMacSize.focusRingWidth) : null,
                           )
                         : m.decorate(BoxDecoration(
                             borderRadius: m.controlRadius,
-                            color: _pressed ? mac.tertiaryLabel : mac.quaternaryLabel,
+                            color: ground,
                             border: _focused
                                 ? Border.all(color: mac.focusRing, width: MyDataMacSize.focusRingWidth)
                                 : (m.itemSide == null ? null : Border.fromBorderSide(m.itemSide!)),

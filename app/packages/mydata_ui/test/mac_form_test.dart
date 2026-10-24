@@ -181,4 +181,24 @@ void main() {
       }
     });
   }
+
+  // A record's quick actions in a theme whose icons have no tiles (Notebook, Terminal) have no grey ground:
+  // the icon and its word (in the control outline where the theme outlines controls); a tinted theme
+  // (Sticker) keeps the ground.
+  for (final (slug, bare) in [('notebook', true), ('terminal', true), ('sticker', false)]) {
+    testWidgets('a quick action in $slug ${bare ? 'has no ground' : 'keeps its ground'}', (tester) async {
+      await tester.pumpWidget(MaterialApp(
+        theme: MacTheme.forChoice(ThemeChoice('mydata.$slug'), Brightness.light, MyDataMacColors.light),
+        themeAnimationDuration: Duration.zero,
+        home: Scaffold(
+            body: Center(child: MacQuickAction(icon: MyDataIcon.call, label: 'call', onPressed: () {}))),
+      ));
+      await tester.pumpAndSettle();
+      final d = tester
+          .widgetList<Container>(find.descendant(of: find.byType(MacQuickAction), matching: find.byType(Container)))
+          .map((c) => c.decoration)
+          .firstWhere((d) => d != null);
+      expect(d.box.color, bare ? isNull : isNotNull);
+    });
+  }
 }
