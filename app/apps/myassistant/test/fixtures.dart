@@ -167,7 +167,7 @@ List<AssistantEvent> emailRishita() => [
     kind: 'contacts',
     header: 'Rishita Shah',
     items: [
-      {'name': 'Rishita Shah', 'email': 'rishita@example.com', 'phone': '+64 21 555 0199'},
+      {'name': 'Rishita Shah', 'email': 'rishita@example.com', 'phone': '+44 7700 900199'},
     ],
   ),
   PendingApprovalEvent(

@@ -99,10 +99,10 @@ void main() {
 
   testWidgets('contacts: the name, and the address and phone in mono', (tester) async {
     await showCard(tester, 'contacts', 'Priya Nair', [
-      {'name': 'Priya Nair', 'email': 'priya@example.com', 'phone': '+64 21 555 0101'},
+      {'name': 'Priya Nair', 'email': 'priya@example.com', 'phone': '+44 7700 900101'},
     ]);
     expect(find.text('Priya Nair'), findsNWidgets(2)); // the header and the row
-    for (final t in ['priya@example.com', '+64 21 555 0101']) {
+    for (final t in ['priya@example.com', '+44 7700 900101']) {
       expect(tester.widget<Text>(find.text(t)).style?.fontFamily, MyDataType.mono.fontFamily);
     }
   });
