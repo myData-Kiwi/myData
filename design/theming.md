@@ -47,7 +47,7 @@ Each folder holds the theme file and its `RULES.md` (its design language, its pa
 
 ## What a theme can change
 
-Colours, through its palettes (43 roles in light and dark, six required, the rest derived; increase-contrast overrides), type (fonts from a catalogue of OFL fonts, sizes, weights, case on labels and captions, figures, italic secondary text), shape (round, continuous, cut or square corners; radii; pill or matching controls), density (above the platform floors), borders, elevation, materials (window ground, sidebar, bars; images not before phase 6), icon set and weight, motion, and the variant of each component (buttons, lists, selection, sidebar, toolbar, inputs, avatar, tabs, chat, month, today). Bounds are in the schema; `themes/ARCHITECTURE.md` section 1 has the table.
+Colours, through its palettes (43 roles in light and dark, six required, the rest derived; increase-contrast overrides), type (fonts from a catalogue of OFL fonts, sizes, weights, case on labels and captions, figures, italic secondary text), shape (round, continuous, cut or square corners; radii; pill or matching controls), density (above the platform floors), borders, elevation, materials (window ground, sidebar, bars; images not before phase 6), icon set and weight, motion, and the variant of each component (buttons, lists, selection, sidebar, toolbar, inputs, avatar, tabs, chat, month, today), and what it promises beyond the rules every theme keeps (`accessibility`: text at 7:1, readable faint text), which its file says, not its id. Bounds are in the schema; `themes/ARCHITECTURE.md` section 1 has the table.
 
 ## What a theme never changes
 

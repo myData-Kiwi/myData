@@ -386,5 +386,9 @@
     "data-colours": "pattern"
   },
   "illustration": "line",
+  "accessibility": {
+    "text-contrast": "7:1",
+    "faint-text": "readable"
+  },
   "sound": "none"
 }

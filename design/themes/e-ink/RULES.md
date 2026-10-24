@@ -44,7 +44,7 @@ Every palette is a paper and an ink; nothing else changes.
 | Cream | `cream` | `#F6F0E0` / `#1C1A16`; `#1B1915` / `#F3EDDE` | A warm paper, as an e-reader's sepia | light 15.3 / 10.0, ring 4.6 / 3.3; dark 15.0 / 10.5, ring 4.6 / 3.3 |
 | Grey | `grey` | `#E4E4E0` / `#0F0F0F`; `#232323` / `#ECECEC` | The grey of an e-paper screen | light 15.0 / 10.7, ring 4.6 / 3.3; dark 13.3 / 10.4, ring 4.3 / 3.1 |
 
-The palettes' accents are all ink, so the validator notes they are hard to tell apart: on purpose, since a palette here changes the paper. Each palette gives every role the style does not fix (all 43 once resolved) and passes every pair of `ARCHITECTURE.md` 2.2 at 7:1 in both modes (E-ink is accessibility-first). No increase-contrast set: the derived values change nothing that matters.
+The palettes' accents are all ink, so the validator notes they are hard to tell apart: on purpose, since a palette here changes the paper. Each palette gives every role the style does not fix (all 43 once resolved) and passes every pair of `ARCHITECTURE.md` 2.2 at 7:1 in both modes (E-ink is accessibility-first: `accessibility.text-contrast: 7:1` in its file). No increase-contrast set: the derived values change nothing that matters.
 
 ## Depth and materials
 

@@ -886,6 +886,7 @@ class MyDataLook extends ThemeExtension<MyDataLook> {
     required this.icons,
     required this.motion,
     required this.variants,
+    this.access = AccessSpec.standard,
   });
 
   final String themeId;
@@ -907,6 +908,9 @@ class MyDataLook extends ThemeExtension<MyDataLook> {
   final MyDataIconTheme icons;
   final MyDataMotionSpec motion;
   final MyDataVariants variants;
+
+  /// What the style promises beyond the rules every theme keeps (`accessibility`).
+  final AccessSpec access;
 
   static final _nearDanger = Expando<bool>('accent near danger');
 
@@ -980,6 +984,7 @@ class MyDataLook extends ThemeExtension<MyDataLook> {
       icons: MyDataIconTheme(s.icons),
       motion: MyDataMotionSpec.of(s.motion),
       variants: MyDataVariants(s.components.values),
+      access: system ? AccessSpec.standard : s.access,
     );
   }
 
@@ -1063,6 +1068,7 @@ class MyDataLook extends ThemeExtension<MyDataLook> {
     MyDataIconTheme? icons,
     MyDataMotionSpec? motion,
     MyDataVariants? variants,
+    AccessSpec? access,
   }) =>
       MyDataLook(
         themeId: themeId ?? this.themeId,
@@ -1080,6 +1086,7 @@ class MyDataLook extends ThemeExtension<MyDataLook> {
         icons: icons ?? this.icons,
         motion: motion ?? this.motion,
         variants: variants ?? this.variants,
+        access: access ?? this.access,
       );
 
   /// This look as System draws it in the Mac shell: [colors] are the system's, and System has no palette
@@ -1139,6 +1146,7 @@ class MyDataLook extends ThemeExtension<MyDataLook> {
       icons: o.icons,
       motion: o.motion,
       variants: o.variants,
+      access: o.access,
     );
   }
 }

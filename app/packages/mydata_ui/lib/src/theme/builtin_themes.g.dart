@@ -144,6 +144,27 @@ const themeSchemaJson = r'''{
       ],
       "description": "The kiwi's drawing style on empty and loading screens. Falls back to flat while a style is not drawn."
     },
+    "accessibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "What this style promises beyond the rules every theme keeps (High Contrast, E-ink, Large). A file that leaves it out promises nothing more; one based on another theme keeps that theme's promises unless it says otherwise.",
+      "properties": {
+        "text-contrast": {
+          "enum": [
+            "4.5:1",
+            "7:1"
+          ],
+          "description": "The least contrast every text pair of every palette is checked at, at normal contrast too (7:1: accessibility-first, WCAG 1.4.6). Increased contrast always asks 7:1. Default 4.5:1."
+        },
+        "faint-text": {
+          "enum": [
+            "system",
+            "readable"
+          ],
+          "description": "Faint text in the Mac window (a disabled item, another month's day): the system's faint shade over ink, or readable, a grey at 4.5:1, as at increased contrast. Default system."
+        }
+      }
+    },
     "sound": {
       "const": "none",
       "description": "Reserved. Themes make no sound."
@@ -4865,6 +4886,10 @@ const builtInThemeJson = {
     "data-colours": "colour"
   },
   "illustration": "line",
+  "accessibility": {
+    "text-contrast": "7:1",
+    "faint-text": "readable"
+  },
   "sound": "none"
 }
 ''',
@@ -5256,6 +5281,10 @@ const builtInThemeJson = {
     "data-colours": "pattern"
   },
   "illustration": "line",
+  "accessibility": {
+    "text-contrast": "7:1",
+    "faint-text": "readable"
+  },
   "sound": "none"
 }
 ''',
@@ -5716,6 +5745,10 @@ const builtInThemeJson = {
     "data-colours": "colour"
   },
   "illustration": "flat",
+  "accessibility": {
+    "text-contrast": "4.5:1",
+    "faint-text": "readable"
+  },
   "sound": "none"
 }
 ''',

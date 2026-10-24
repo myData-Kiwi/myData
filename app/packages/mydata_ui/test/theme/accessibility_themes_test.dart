@@ -2,10 +2,12 @@
 // beyond the rules every theme keeps (ARCHITECTURE.md 2.2 and 2.3): High Contrast's text at 7:1 in every
 // palette, its 2 px edges and double ring; E-ink's text at 7:1, no colour and nothing that moves; Large's
 // bigger text and targets, with the same layout.
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mydata_ui/mydata_ui.dart';
-import 'package:mydata_ui/src/theme/checks.dart';
+import 'package:mydata_ui/src/theme/builtin_themes.g.dart';
 import 'package:mydata_ui/src/theme/colour.dart';
 import 'package:mydata_ui/src/theme/resolve.dart';
 import 'package:mydata_ui/src/theme/roles.dart';
@@ -45,7 +47,7 @@ void main() {
     final style = theme.style;
 
     test('is checked at 7:1 at normal contrast, and every text pair of every palette reaches it', () {
-      expect(accessibilityFirst, contains(theme.id));
+      expect(style.access.textContrast, 7);
       for (final palette in theme.palettes) {
         for (final mode in LookMode.values) {
           final p = resolvePalette(theme, palette, mode, defaults: ThemeLibrary.defaults);
@@ -94,7 +96,7 @@ void main() {
     final style = theme.style;
 
     test('is checked at 7:1 at normal contrast, and every text pair of every palette reaches it', () {
-      expect(accessibilityFirst, contains(theme.id));
+      expect(style.access.textContrast, 7);
       for (final palette in theme.palettes) {
         for (final mode in LookMode.values) {
           final p = resolvePalette(theme, palette, mode, defaults: ThemeLibrary.defaults);
@@ -225,13 +227,48 @@ void main() {
     });
 
     test('is one of the accessibility themes, whose faint text in the Mac window reads at 4.5:1', () {
-      expect(accessibilityThemes, contains(theme.id));
+      expect(style.access.readableFaintText, isTrue);
       for (final b in Brightness.values) {
         final look = designedLook(theme.id, b);
         final mac = MacTheme.drawn(look).extension<MyDataMacColors>()!;
         Rgb rgb(Color c) => Rgb.argb(c.toARGB32());
         expect(contrast(rgb(mac.tertiaryLabel), rgb(look.colors.surface)), greaterThanOrEqualTo(4.5), reason: b.name);
       }
+    });
+  });
+
+  // The promises are the theme file's, not its id's: a theme of another id that makes them is held to them.
+  group('a custom theme making the same promises', () {
+    Map<String, dynamic> kiwi() => jsonDecode(builtInThemeJson[ThemeLibrary.kiwiId]!) as Map<String, dynamic>;
+    String custom(Map<String, dynamic> access) => jsonEncode(kiwi()
+      ..['id'] = '0b6f0c7e-3d2a-4f51-9a6e-2c1d5b7e8f90'
+      ..['name'] = 'Kiwi, promised'
+      ..['accessibility'] = access);
+
+    test('is checked at 7:1 when it says text-contrast 7:1, and at 4.5:1 when it says nothing', () {
+      final strict = validateThemeText(custom({'text-contrast': '7:1'}), ThemeLibrary.format());
+      final plain = validateThemeText(custom({}), ThemeLibrary.format());
+      bool asks7(ThemeCheck c) => [
+            ...c.errors,
+            for (final p in c.palettes) ...p.failures,
+            ...c.notices,
+          ].any((m) => m.contains('it needs 7:1') && !m.contains('increased contrast'));
+      expect(asks7(strict), isTrue, reason: 'Kiwi\'s secondary text is under 7:1');
+      expect(asks7(plain), isFalse);
+    });
+
+    test('draws faint Mac text at 4.5:1 when it says faint-text readable', () {
+      final json = jsonDecode(custom({'faint-text': 'readable'})) as Map<String, dynamic>;
+      final theme = ThemeFile.fromJson(json, base: kiwi());
+      for (final b in Brightness.values) {
+        final look = ThemeLibrary.look(theme, brightness: b);
+        expect(look.access.readableFaintText, isTrue);
+        final mac = MacTheme.drawn(look).extension<MyDataMacColors>()!;
+        Rgb rgb(Color c) => Rgb.argb(c.toARGB32());
+        expect(contrast(rgb(mac.tertiaryLabel), rgb(look.colors.surface)), greaterThanOrEqualTo(4.5), reason: b.name);
+      }
+      final kiwiLook = ThemeLibrary.look(ThemeFile.fromJson(kiwi(), base: kiwi()), brightness: Brightness.light);
+      expect(kiwiLook.access.readableFaintText, isFalse);
     });
   });
 }

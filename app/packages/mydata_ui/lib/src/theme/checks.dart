@@ -3,6 +3,8 @@
 /// asked. Pure Dart.
 library;
 
+import 'dart:math' as math;
+
 import 'catalogue.dart';
 import 'colour.dart';
 import 'resolve.dart';
@@ -31,13 +33,6 @@ String roleWords(ColourRole r) => switch (r) {
 String _ratio(double v) => v.toStringAsFixed(2);
 String _need(double v) => v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toString();
 
-/// Themes whose text is checked at 7:1 at normal contrast too (ARCHITECTURE.md 2.2: accessibility-first).
-const accessibilityFirst = {'mydata.high-contrast', 'mydata.e-ink'};
-
-/// The accessibility themes: the accessibility-first two and Large. Their faint text (a disabled item,
-/// another month's day) is drawn at 4.5:1 in the Mac window, as at increased contrast (MacTheme.colorsFor).
-const accessibilityThemes = {...accessibilityFirst, 'mydata.large'};
-
 /// The 2.2 checks of one resolved palette. [defaults] gives the reference hues of `danger` and the calendar
 /// colours. At increased contrast, text needs 7:1 and materials count as solid (2.3).
 List<ThemeFinding> checkColours(ThemeFile theme, ResolvedPalette p, RoleDefaults defaults, {String? palette}) {
@@ -48,7 +43,9 @@ List<ThemeFinding> checkColours(ThemeFile theme, ResolvedPalette p, RoleDefaults
     '$mode mode',
     if (p.increasedContrast) 'increased contrast',
   ].join(', ');
-  final textNeed = p.increasedContrast || accessibilityFirst.contains(theme.id) ? 7.0 : 4.5;
+  // Text needs 4.5:1, or what the style promises (`accessibility.text-contrast`: 7:1 in High Contrast and
+  // E-ink, accessibility-first, ARCHITECTURE.md 2.2); 7:1 at increased contrast.
+  final textNeed = p.increasedContrast ? 7.0 : math.max(4.5, theme.style.access.textContrast);
   final style = theme.style;
   Rgb v(ColourRole r) => p[r];
 

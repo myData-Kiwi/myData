@@ -372,6 +372,30 @@ class ComponentsSpec {
   String operator [](String key) => values[key]!;
 }
 
+/// What a style promises beyond the rules every theme keeps (`accessibility`: High Contrast, E-ink, Large),
+/// read from its file, so a theme based on one of them, or a custom theme, can make the same promises.
+class AccessSpec {
+  const AccessSpec({this.textContrast = 4.5, this.readableFaintText = false});
+
+  /// The least contrast every text pair is checked at, at normal contrast too: 4.5, or 7 for an
+  /// accessibility-first theme (WCAG 1.4.6). Increased contrast always asks 7.
+  final double textContrast;
+
+  /// Faint text in the Mac window (a disabled item, another month's day) is a grey at 4.5:1, as at
+  /// increased contrast, rather than the system's faint shade (`faint-text: readable`).
+  final bool readableFaintText;
+
+  /// No promise beyond the rules every theme keeps.
+  static const standard = AccessSpec();
+
+  @override
+  bool operator ==(Object other) =>
+      other is AccessSpec && other.textContrast == textContrast && other.readableFaintText == readableFaintText;
+
+  @override
+  int get hashCode => Object.hash(textContrast, readableFaintText);
+}
+
 /// Everything in a theme but colour (ARCHITECTURE.md 1.6).
 class ThemeStyle {
   const ThemeStyle({
@@ -385,6 +409,7 @@ class ThemeStyle {
     required this.motion,
     required this.components,
     required this.illustration,
+    this.access = AccessSpec.standard,
   });
 
   final TypeSpec type;
@@ -397,6 +422,7 @@ class ThemeStyle {
   final MotionSpec motion;
   final ComponentsSpec components;
   final String illustration;
+  final AccessSpec access;
 }
 
 /// One palette: the colours a palette gives in each mode (its seeds and overrides together), its own
@@ -508,6 +534,7 @@ class ThemeFile {
 /// The style groups of a theme file.
 const styleGroups = [
   'type', 'shape', 'density', 'borders', 'elevation', 'materials', 'icons', 'motion', 'components', 'illustration',
+  'accessibility',
 ];
 
 /// [file]'s style over [base]'s: a group the file leaves out is [base]'s; a field a group leaves out is
@@ -639,6 +666,7 @@ ThemeStyle styleFromJson(Map<String, Object?> s) {
   final motion = s['motion'] as Map<String, Object?>;
   final components = s['components'] as Map<String, Object?>;
   final button = (components['button'] as Map<String, Object?>?) ?? const {};
+  final access = (s['accessibility'] as Map<String, Object?>?) ?? const {};
 
   return ThemeStyle(
     type: TypeSpec(
@@ -713,6 +741,10 @@ ThemeStyle styleFromJson(Map<String, Object?> s) {
       for (final e in button.entries) 'button.${e.key}': e.value as String,
     }),
     illustration: s['illustration'] as String? ?? 'flat',
+    access: AccessSpec(
+      textContrast: access['text-contrast'] == '7:1' ? 7 : 4.5,
+      readableFaintText: access['faint-text'] == 'readable',
+    ),
   );
 }
 

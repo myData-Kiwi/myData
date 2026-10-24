@@ -44,7 +44,7 @@ Colour is chosen inside the theme (`ARCHITECTURE.md` 1.6). Every palette keeps t
 | Yellow | `yellow` | `#000000` with yellow text / `#FFD60A` with black text | Signage: black and yellow. In light the primary is black with a yellow label, links a dark amber (#5C4300) | light 14.2 / 9.3 / 16.1; dark 15.9 / 14.9 / 14.9 |
 | Cyan | `cyan` | `#00525C` / `#5CE1E6` | A deep teal; cyan with black text in dark | light 14.2 / 8.9 / 8.9; dark 15.9 / 13.4 / 13.4 |
 
-Each palette gives every role the style does not fix (39 of the 43, all 43 once resolved) in both modes, and passes every pair of `ARCHITECTURE.md` 2.2 at 7:1 in both modes (the Dart validator: High Contrast is accessibility-first, so its text is checked at 7:1 at normal contrast too). It has no increase-contrast set: the derived 7:1 values change nothing, since it is there already.
+Each palette gives every role the style does not fix (39 of the 43, all 43 once resolved) in both modes, and passes every pair of `ARCHITECTURE.md` 2.2 at 7:1 in both modes (High Contrast is accessibility-first, `accessibility.text-contrast: 7:1` in its file, so the validator checks its text at 7:1 at normal contrast too). It has no increase-contrast set: the derived 7:1 values change nothing, since it is there already.
 
 ## Depth and materials
 

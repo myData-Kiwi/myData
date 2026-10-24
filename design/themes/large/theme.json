@@ -455,5 +455,9 @@
     "data-colours": "colour"
   },
   "illustration": "flat",
+  "accessibility": {
+    "text-contrast": "4.5:1",
+    "faint-text": "readable"
+  },
   "sound": "none"
 }
