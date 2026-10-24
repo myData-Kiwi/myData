@@ -16,6 +16,8 @@ A family of separate apps built from shared code. There is no combined app.
 
 **Passwords are never printed.** `packages/mydata_ui/test/no_password_logging_test.dart` scans every app's and package's `lib/` (not the generated client) and fails on an `AccountIn` interpolated, turned into a string or logged (its generated `toString()` includes the password), and on anything named `*password*` passed to `print`, `debugPrint`, `log` or a logger. `apps/mydata/test/password_not_printed_test.dart` submits the iCloud form and checks that the password appears in nothing printed.
 
+**Theme previews.** `tool/preview_themes.sh` validates any theme file and draws the same four screens (myContacts' people, myCalendar's month, myAssistant's approval card, myData's Settings, Sources) in each palette, light and dark, at 1280 × 900, into PNGs and one sheet per theme, outside the checkout (`--help`; design/themes/ARCHITECTURE.md 5, phase 3½). Nothing opens a window.
+
 **Goldens and screenshots.** Widget goldens are in `packages/mydata_ui/test/widgets/goldens`; whole-screen screenshots of each app are in `apps/<app>/test/screenshots` (`<screen>.<theme>-<mode>.png`). Both are checked by `flutter test`; after an intended visual change, run `flutter test --update-goldens` in that package or app and look at every changed image before keeping it.
 
 ```sh
@@ -25,6 +27,7 @@ cd apps/mydata && flutter run -d macos              # or apps/myassistant
 flutter analyze && (cd packages/mydata_assistant && flutter test)    # and in each app and package
 tool/integration_test.sh                             # both apps on macOS, each with a fresh host; myAssistant needs Ollama and qwen3:14b
 tool/generate_client.sh                              # after changing the host API (regenerate host/openapi.json first)
+tool/preview_themes.sh [all|<slug>|<theme.json>]      # a theme file in the real apps, off-screen: check, four screens, a sheet
 ```
 
 **Starting the host.** The apps start it with the command in `app_config.json` in the host's folder. An installed host (`host/packaging/macos/install.sh`) writes its own `mydata start` and `mydata stop` there (start asks launchd); `mydata dev-setup` writes a development checkout's instead, and refuses a folder an installed host serves.

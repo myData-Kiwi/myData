@@ -58,7 +58,7 @@ Colours, through its palettes (43 roles in light and dark, six required, the res
 
 ## Rules every theme keeps
 
-The validator checks these for built-ins, imports and the editor alike; a built-in that fails breaks the build, an imported one is never applied (`themes/ARCHITECTURE.md` section 2).
+The validator checks these for built-ins, imports and the editor alike; a built-in that fails breaks the build, an imported one is never applied (`themes/ARCHITECTURE.md` section 2). To see a theme file in the real apps before it ships, run `app/tool/preview_themes.sh <slug or path>`: it validates the file, then draws myContacts, myCalendar, myAssistant and myData's Settings in each palette, light and dark, off-screen, onto one sheet (`themes/ARCHITECTURE.md` 5, phase 3½).
 
 - **Contrast,** in both modes: text 4.5:1 on every ground it is drawn on (`ink`, `ink-muted`, `link`, `on-accent` on `accent`, status words on their fills); control edges, the selection marker and the focus ring 3:1; 7:1 for every text pair when the system asks for more contrast (derived when the file does not give it). Gradients, patterns and glass are checked against what shows through.
 - **Never colour alone:** status always carries a word; a tint selection that is under 3:1 also draws a bar or outline; links are underlined.
