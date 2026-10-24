@@ -135,6 +135,7 @@ void main() {
       'mydata.sticker': ('phosphor', 'bold'),
       'mydata.paperback': ('lucide', 'regular'),
       'mydata.high-contrast': ('material-outlined', 'bold'),
+      'mydata.e-ink': ('phosphor', 'regular'),
     });
   });
 

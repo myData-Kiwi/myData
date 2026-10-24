@@ -1436,7 +1436,7 @@ const themeSchemaJson = r'''{
 ''';
 
 /// The built-in themes, each `design/themes/<slug>/theme.json` byte for byte, by id, in the gallery's order:
-/// System, then Kiwi, Hairline, Frosted, Journal, Sticker, Paperback, High Contrast.
+/// System, then Kiwi, Hairline, Frosted, Journal, Sticker, Paperback, High Contrast, E Ink.
 const builtInThemeJson = {
   'mydata.system': r'''{
   "format": 1,
@@ -4849,6 +4849,396 @@ const builtInThemeJson = {
     "month": "boxed",
     "today": "inverse",
     "data-colours": "colour"
+  },
+  "illustration": "line",
+  "sound": "none"
+}
+''',
+  'mydata.e-ink': r'''{
+  "format": 1,
+  "id": "mydata.e-ink",
+  "name": "E-ink",
+  "version": "1.0.0",
+  "author": "myData",
+  "licence": "CC0-1.0",
+  "description": "E-paper: ink on paper and nothing else, a reading serif, ruled pages instead of boxes, patterns instead of calendar colours, and nothing that moves. Text at 7:1 or more.",
+  "frame": "drawn",
+  "preview": {
+    "blurb": "Ink on paper, nothing moves.",
+    "scene": "calendar"
+  },
+  "palettes": [
+    {
+      "id": "white",
+      "name": "White",
+      "light": {
+        "bg": "#FFFFFF",
+        "surface": "#FFFFFF",
+        "ink": "#000000",
+        "ink-muted": "#333333",
+        "accent": "#000000",
+        "on-accent": "#FFFFFF"
+      },
+      "dark": {
+        "bg": "#000000",
+        "surface": "#000000",
+        "ink": "#FFFFFF",
+        "ink-muted": "#CCCCCC",
+        "accent": "#FFFFFF",
+        "on-accent": "#000000"
+      },
+      "overrides": {
+        "light": {
+          "surface-sunken": "#F0F0F0",
+          "surface-hover": "#DADADA",
+          "accent-soft": "#E6E6E6",
+          "surface-raised": "#FFFFFF",
+          "sidebar": "#FFFFFF",
+          "toolbar": "#FFFFFF",
+          "selection-inactive": "#E6E6E6",
+          "focus": "#6A6A6A",
+          "data-red": "#D34730",
+          "data-orange": "#EA700F",
+          "data-yellow": "#E7BD1B",
+          "data-green": "#36A462",
+          "data-blue": "#159CE2",
+          "data-purple": "#8B51E1",
+          "data-brown": "#8A6859",
+          "data-grey": "#939393",
+          "scrim": "#00000080",
+          "glass-fill": "#FFFFFF",
+          "glass-stroke": "#000000",
+          "shadow": "#000000"
+        },
+        "dark": {
+          "surface-raised": "#0A0A0A",
+          "surface-sunken": "#141414",
+          "surface-hover": "#333333",
+          "accent-soft": "#262626",
+          "sidebar": "#000000",
+          "toolbar": "#000000",
+          "selection-inactive": "#262626",
+          "focus": "#888888",
+          "data-red": "#D34730",
+          "data-orange": "#EA700F",
+          "data-yellow": "#E7BD1B",
+          "data-green": "#36A462",
+          "data-blue": "#159CE2",
+          "data-purple": "#8B51E1",
+          "data-brown": "#8A6859",
+          "data-grey": "#939393",
+          "scrim": "#000000B3",
+          "glass-fill": "#000000",
+          "glass-stroke": "#FFFFFF",
+          "shadow": "#000000"
+        }
+      }
+    },
+    {
+      "id": "cream",
+      "name": "Cream",
+      "light": {
+        "bg": "#F6F0E0",
+        "surface": "#F6F0E0",
+        "ink": "#1C1A16",
+        "ink-muted": "#3D3A33",
+        "accent": "#1C1A16",
+        "on-accent": "#F6F0E0"
+      },
+      "dark": {
+        "bg": "#1B1915",
+        "surface": "#1B1915",
+        "ink": "#F3EDDE",
+        "ink-muted": "#CFC8B7",
+        "accent": "#F3EDDE",
+        "on-accent": "#1B1915"
+      },
+      "overrides": {
+        "light": {
+          "surface-sunken": "#ECE5D2",
+          "surface-hover": "#D6CEB8",
+          "accent-soft": "#E4DCC6",
+          "surface-raised": "#F6F0E0",
+          "sidebar": "#F6F0E0",
+          "toolbar": "#F6F0E0",
+          "selection-inactive": "#E4DCC6",
+          "focus": "#6F6C66",
+          "data-red": "#D34730",
+          "data-orange": "#EA700F",
+          "data-yellow": "#E7BD1B",
+          "data-green": "#36A462",
+          "data-blue": "#159CE2",
+          "data-purple": "#8B51E1",
+          "data-brown": "#8A6859",
+          "data-grey": "#939393",
+          "scrim": "#00000080",
+          "glass-fill": "#F6F0E0",
+          "glass-stroke": "#1C1A16",
+          "shadow": "#000000"
+        },
+        "dark": {
+          "surface-raised": "#211F1A",
+          "surface-sunken": "#23211C",
+          "surface-hover": "#36332C",
+          "accent-soft": "#302D26",
+          "sidebar": "#1B1915",
+          "toolbar": "#1B1915",
+          "selection-inactive": "#302D26",
+          "focus": "#84827D",
+          "data-red": "#D34730",
+          "data-orange": "#EA700F",
+          "data-yellow": "#E7BD1B",
+          "data-green": "#36A462",
+          "data-blue": "#159CE2",
+          "data-purple": "#8B51E1",
+          "data-brown": "#8A6859",
+          "data-grey": "#939393",
+          "scrim": "#000000B3",
+          "glass-fill": "#1B1915",
+          "glass-stroke": "#F3EDDE",
+          "shadow": "#000000"
+        }
+      }
+    },
+    {
+      "id": "grey",
+      "name": "Grey",
+      "light": {
+        "bg": "#E4E4E0",
+        "surface": "#E4E4E0",
+        "ink": "#0F0F0F",
+        "ink-muted": "#2E2E2E",
+        "accent": "#0F0F0F",
+        "on-accent": "#E4E4E0"
+      },
+      "dark": {
+        "bg": "#232323",
+        "surface": "#232323",
+        "ink": "#ECECEC",
+        "ink-muted": "#D2D2D2",
+        "accent": "#ECECEC",
+        "on-accent": "#232323"
+      },
+      "overrides": {
+        "light": {
+          "surface-sunken": "#D9D9D4",
+          "surface-hover": "#C2C2BD",
+          "accent-soft": "#CFCFCA",
+          "surface-raised": "#E4E4E0",
+          "sidebar": "#E4E4E0",
+          "toolbar": "#E4E4E0",
+          "selection-inactive": "#CFCFCA",
+          "focus": "#656561",
+          "data-red": "#D34730",
+          "data-orange": "#EA700F",
+          "data-yellow": "#E7BD1B",
+          "data-green": "#36A462",
+          "data-blue": "#159CE2",
+          "data-purple": "#8B51E1",
+          "data-brown": "#8A6859",
+          "data-grey": "#939393",
+          "scrim": "#00000080",
+          "glass-fill": "#E4E4E0",
+          "glass-stroke": "#0F0F0F",
+          "shadow": "#000000"
+        },
+        "dark": {
+          "surface-raised": "#272727",
+          "surface-sunken": "#1D1D1D",
+          "surface-hover": "#3B3B3B",
+          "accent-soft": "#323232",
+          "sidebar": "#232323",
+          "toolbar": "#232323",
+          "selection-inactive": "#323232",
+          "focus": "#868686",
+          "data-red": "#D34730",
+          "data-orange": "#EA700F",
+          "data-yellow": "#E7BD1B",
+          "data-green": "#36A462",
+          "data-blue": "#159CE2",
+          "data-purple": "#8B51E1",
+          "data-brown": "#8A6859",
+          "data-grey": "#939393",
+          "scrim": "#000000B3",
+          "glass-fill": "#232323",
+          "glass-stroke": "#ECECEC",
+          "shadow": "#000000"
+        }
+      }
+    }
+  ],
+  "default-palette": "white",
+  "colour-use": {
+    "same-as": {
+      "selection": "ink",
+      "on-selection": "bg",
+      "edge": "ink",
+      "line-strong": "ink",
+      "line": "ink",
+      "link": "ink",
+      "success": "ink",
+      "warning": "ink",
+      "danger": "ink",
+      "info": "ink",
+      "focus-on-danger": "ink",
+      "on-danger": "bg",
+      "success-soft": "surface-sunken",
+      "warning-soft": "surface-sunken",
+      "danger-soft": "surface-sunken",
+      "info-soft": "surface-sunken",
+      "avatar-fill": "accent-soft"
+    }
+  },
+  "type": {
+    "display": [
+      "literata",
+      "serif"
+    ],
+    "body": [
+      "literata",
+      "serif"
+    ],
+    "mono": [
+      "jetbrains-mono",
+      "mono"
+    ],
+    "base": 16,
+    "ratio": 1.2,
+    "numerals": "proportional",
+    "secondary-italic": false,
+    "roles": {
+      "display-xl": {
+        "size": 34,
+        "line-height": 1.2,
+        "weight": 700,
+        "tracking": -0.01
+      },
+      "display-lg": {
+        "size": 28,
+        "line-height": 1.25,
+        "weight": 700,
+        "tracking": -0.01
+      },
+      "title": {
+        "size": 22,
+        "line-height": 1.3,
+        "weight": 700,
+        "tracking": 0
+      },
+      "heading": {
+        "size": 18,
+        "line-height": 1.35,
+        "weight": 700,
+        "tracking": 0,
+        "stack": "display"
+      },
+      "body": {
+        "size": 16,
+        "line-height": 1.55,
+        "weight": 400,
+        "tracking": 0
+      },
+      "body-strong": {
+        "size": 16,
+        "line-height": 1.55,
+        "weight": 700,
+        "tracking": 0
+      },
+      "label": {
+        "size": 14,
+        "line-height": 1.35,
+        "weight": 600,
+        "tracking": 0
+      },
+      "caption": {
+        "size": 13,
+        "line-height": 1.4,
+        "weight": 400,
+        "tracking": 0
+      },
+      "mono": {
+        "size": 14,
+        "line-height": 1.45,
+        "weight": 400,
+        "tracking": 0
+      }
+    }
+  },
+  "shape": {
+    "corners": "round",
+    "radius": {
+      "xs": 2,
+      "sm": 4,
+      "md": 4,
+      "lg": 4,
+      "xl": 6
+    },
+    "controls": "match"
+  },
+  "density": {
+    "desktop": {
+      "control": 44,
+      "row": 56,
+      "icon": 20,
+      "space": 1.1
+    },
+    "phone": {
+      "control": 48,
+      "row": 60,
+      "icon": 22,
+      "space": 1.1
+    }
+  },
+  "borders": {
+    "width": 1,
+    "style": "solid",
+    "colour": "edge",
+    "cards": false,
+    "controls": true,
+    "separators": "full",
+    "title-rule": "single"
+  },
+  "elevation": {
+    "style": "none",
+    "strength": 0,
+    "press": "none"
+  },
+  "materials": {
+    "window": {
+      "kind": "solid"
+    },
+    "sidebar": "solid",
+    "bars": "solid"
+  },
+  "icons": {
+    "set": "phosphor",
+    "weight": "regular",
+    "selected": "fill",
+    "tiles": "none"
+  },
+  "motion": {
+    "personality": "none",
+    "scale": 1,
+    "press": "invert",
+    "enter": "none"
+  },
+  "components": {
+    "button": {
+      "primary": "filled",
+      "secondary": "outline",
+      "shape": "rounded"
+    },
+    "list": "ruled",
+    "sidebar": "column",
+    "toolbar": "flat",
+    "inputs": "outlined",
+    "selection": "inverse",
+    "avatar": "circle",
+    "tabs": "underline",
+    "chat": "bubbles",
+    "month": "open",
+    "today": "inverse",
+    "data-colours": "pattern"
   },
   "illustration": "line",
   "sound": "none"

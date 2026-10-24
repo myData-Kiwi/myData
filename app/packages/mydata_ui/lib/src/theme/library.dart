@@ -20,8 +20,8 @@ import 'validate.dart';
 ///
 /// System (on macOS, the Mac shell) and the drawn looks of design/themes, each with its palettes: Kiwi
 /// (Kiwi, Sky, Violet), Hairline (Graphite, Slate, Cobalt), Frosted (Dusk, Aurora, Sand), Journal (Plum, Ink
-/// blue, Forest), Sticker (Rose, Mint, Mustard), Paperback (Amber, Sepia, Linen) and High Contrast (Blue,
-/// Yellow, Cyan).
+/// blue, Forest), Sticker (Rose, Mint, Mustard), Paperback (Amber, Sepia, Linen), High Contrast (Blue,
+/// Yellow, Cyan) and E-ink (White, Cream, Grey).
 ///
 /// **Today's old colours** (`graphite`, `dusk`, `plum`, `rose`, `amber`: the host's old `/appearance` ids,
 /// and Kiwi's palettes in phases 1 and 2) are hidden aliases on Kiwi: a choice of Kiwi in one of them is
