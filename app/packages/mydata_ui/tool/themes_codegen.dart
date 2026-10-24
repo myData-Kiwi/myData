@@ -159,6 +159,15 @@ Map<String, Object?> kiwiTodayTheme(String tokensJson, String themesJson, String
           for (final e in (t['tokens'] as Map<String, dynamic>).entries) e.key: cssToHex((e.value as Map)[mode] as String),
         },
     };
+    // The contrast audit's fixes to Kiwi's own colour (decided 2026-10-23, themes decision 6): its link as
+    // design/themes/kiwi gives it (4.5:1 on every ground a link is drawn on). Its glass is tokens.json's.
+    final designed = (design['palettes'] as List).cast<Map<String, dynamic>>().where((p) => p['id'] == t['id']);
+    for (final p in designed) {
+      for (final mode in ['light', 'dark']) {
+        final link = ((p['overrides'] as Map?)?[mode] as Map?)?['link'] as String?;
+        if (link != null) colours[mode]!['link'] = link;
+      }
+    }
     palettes.add({'id': t['id'], 'name': t['name'], 'light': colours['light'], 'dark': colours['dark']});
   }
   theme['palettes'] = palettes;

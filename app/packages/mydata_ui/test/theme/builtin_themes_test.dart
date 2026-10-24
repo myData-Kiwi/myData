@@ -113,13 +113,12 @@ void main() {
       expect(ThemeLibrary.kiwi.defaultPaletteId, MyDataThemes.fallback.id);
     });
 
-    test('it passes every check except the gaps the contrast audit found in today\'s look, which phase 3 fixes', () {
+    test('it passes every check except the gap the contrast audit found in today\'s look, which phase 3 fixes', () {
       final r = validateThemeText(kiwiThemeJson, ThemeLibrary.format(), builtIn: true, todaysKiwi: true);
-      // Known, decided 2026-10-23 (themes decision 6): glass at 72% is too thin for secondary text over
-      // dark or coloured content (Kiwi moves to 80-84% in phase 3), and a red focus ring is lost on a rose or
-      // amber selection (those colours move to Sticker and Paperback, where Paperback's Amber has a blue ring).
-      final known = RegExp(r'secondary text \(ink-muted\) on glass over (ink|accent|selection)'
-          r'|^(Rose|Amber), .*: the focus ring and the selection differ');
+      // Known, decided 2026-10-23 (themes decision 6): a red focus ring is lost on a rose or amber selection
+      // (those colours move to Sticker and Paperback, where Paperback's Amber has a blue ring). The glass gap
+      // is fixed: glass is 82% and 84% now, as the audit asked.
+      final known = RegExp(r'^(Rose|Amber), .*: the focus ring and the selection differ');
       final unexpected = r.errors.where((e) => !known.hasMatch(e)).toList();
       expect(unexpected, isEmpty, reason: unexpected.join('\n'));
       expect(r.errors, isNotEmpty, reason: 'the gaps are fixed: drop this exception');
@@ -247,7 +246,7 @@ void main() {
       expect(moved.toSet(), {'dusk light', 'dusk dark', 'rose light', 'rose dark', 'amber light'});
     });
 
-    test('Kiwi\'s designed palette keeps today\'s colours but for its glass, thickened by the audit', () {
+    test('Kiwi\'s designed palette is Kiwi as drawn today: the audit\'s glass and link are drawn from phase 3', () {
       final theme = validateThemeText(designed()['mydata.kiwi']!, designedFormat(), builtIn: true).theme!;
       final today = ThemeLibrary.kiwi.defaultPalette!;
       for (final mode in LookMode.values) {
@@ -255,10 +254,10 @@ void main() {
           for (final r in today.given(mode).keys)
             if (theme.defaultPalette!.given(mode)[r] != today.given(mode)[r] && !theme.sameAs.containsKey(r)) r.key,
         ];
-        // link and the other roles tokens.json never had are not compared: today they were never drawn.
-        differ.removeWhere((k) => const {'link', 'edge', 'selection', 'on-selection', 'selection-inactive',
+        // The roles tokens.json never had are not compared: today they were never drawn.
+        differ.removeWhere((k) => const {'edge', 'selection', 'on-selection', 'selection-inactive',
               'focus-on-danger'}.contains(k));
-        expect(differ, ['glass-fill'], reason: mode.name);
+        expect(differ, isEmpty, reason: mode.name);
       }
     });
   });

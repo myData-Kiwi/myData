@@ -34,7 +34,7 @@ enum ApprovalState {
 /// - Every argument in full, exactly as it will run, in a `surface-sunken` well with `radius-md`. Nothing is
 ///   summarised or shortened. Names are `caption` in `ink-muted`; values are `body`, or `mono` when they
 ///   look like an address or a path ([looksLikeAddress]).
-/// - A `caption` line names the source of the facts, with an underlined `accent` link ([onSourceTap]).
+/// - A `caption` line names the source of the facts, with an underlined `link` ([onSourceTap]).
 /// - Actions in order, `space-2` apart: the filled [approveLabel] ("Approve and send"), a tonal Edit (only
 ///   when [onEdit] is given) and a plain Reject. They are removed after a decision.
 /// - The chip and shadow change over `fast`; with reduced motion only fades remain and the card's height
@@ -456,7 +456,7 @@ class _ApprovalCardState extends State<ApprovalCard> {
   }
 }
 
-/// The source link: `accent`, underlined (design/README.md "Links"), with a control-height target.
+/// The source link: `link`, underlined (design/README.md "Links"), with a control-height target.
 class _SourceLink extends StatelessWidget {
   const _SourceLink({required this.label, required this.onTap});
   final String label;
@@ -483,9 +483,9 @@ class _SourceLink extends StatelessWidget {
               child: Text(
                 label,
                 style: context.typeScale.caption.copyWith(
-                  color: c.accent,
+                  color: c.link,
                   decoration: TextDecoration.underline,
-                  decorationColor: c.accent,
+                  decorationColor: c.link,
                 ),
               ),
             ),

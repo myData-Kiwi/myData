@@ -1653,7 +1653,7 @@ const kiwiThemeJson = r'''{
           "line-strong": "#83837E",
           "edge": "#1A1A19",
           "accent-soft": "#EBF3DA",
-          "link": "#4B7713",
+          "link": "#4B7611",
           "selection": "#4C7814",
           "on-selection": "#FFFFFF",
           "selection-inactive": "#EDEDEB",
@@ -1678,7 +1678,7 @@ const kiwiThemeJson = r'''{
           "data-brown": "#8A6859",
           "data-grey": "#939393",
           "scrim": "#14141459",
-          "glass-fill": "#FFFFFFB8",
+          "glass-fill": "#FFFFFFD0",
           "glass-stroke": "#FFFFFFCC",
           "shadow": "#141414"
         },
@@ -1715,7 +1715,7 @@ const kiwiThemeJson = r'''{
           "data-brown": "#8A6859",
           "data-grey": "#939393",
           "scrim": "#00000099",
-          "glass-fill": "#1A1A1AB8",
+          "glass-fill": "#1A1A1AD5",
           "glass-stroke": "#FFFFFF1F",
           "shadow": "#000000"
         }
@@ -1774,7 +1774,7 @@ const kiwiThemeJson = r'''{
           "data-brown": "#8A6859",
           "data-grey": "#939393",
           "scrim": "#14141459",
-          "glass-fill": "#FFFFFFB8",
+          "glass-fill": "#FFFFFFD0",
           "glass-stroke": "#FFFFFFCC",
           "shadow": "#141414"
         },
@@ -1811,7 +1811,7 @@ const kiwiThemeJson = r'''{
           "data-brown": "#8A6859",
           "data-grey": "#939393",
           "scrim": "#00000099",
-          "glass-fill": "#1A1A1AB8",
+          "glass-fill": "#1A1A1AD5",
           "glass-stroke": "#FFFFFF1F",
           "shadow": "#000000"
         }
@@ -1870,7 +1870,7 @@ const kiwiThemeJson = r'''{
           "data-brown": "#8A6859",
           "data-grey": "#939393",
           "scrim": "#14141459",
-          "glass-fill": "#FFFFFFB8",
+          "glass-fill": "#FFFFFFD0",
           "glass-stroke": "#FFFFFFCC",
           "shadow": "#141414"
         },
@@ -1907,7 +1907,7 @@ const kiwiThemeJson = r'''{
           "data-brown": "#8A6859",
           "data-grey": "#939393",
           "scrim": "#00000099",
-          "glass-fill": "#1A1A1AB8",
+          "glass-fill": "#1A1A1AD5",
           "glass-stroke": "#FFFFFF1F",
           "shadow": "#000000"
         }
@@ -1966,7 +1966,7 @@ const kiwiThemeJson = r'''{
           "data-brown": "#8A6859",
           "data-grey": "#939393",
           "scrim": "#14141459",
-          "glass-fill": "#FFFFFFB8",
+          "glass-fill": "#FFFFFFD0",
           "glass-stroke": "#FFFFFFCC",
           "shadow": "#141414"
         },
@@ -2003,7 +2003,7 @@ const kiwiThemeJson = r'''{
           "data-brown": "#8A6859",
           "data-grey": "#939393",
           "scrim": "#00000099",
-          "glass-fill": "#1A1A1AB8",
+          "glass-fill": "#1A1A1AD5",
           "glass-stroke": "#FFFFFF1F",
           "shadow": "#000000"
         }
@@ -2062,7 +2062,7 @@ const kiwiThemeJson = r'''{
           "data-brown": "#8A6859",
           "data-grey": "#939393",
           "scrim": "#14141459",
-          "glass-fill": "#FFFFFFB8",
+          "glass-fill": "#FFFFFFD0",
           "glass-stroke": "#FFFFFFCC",
           "shadow": "#141414"
         },
@@ -2099,7 +2099,7 @@ const kiwiThemeJson = r'''{
           "data-brown": "#8A6859",
           "data-grey": "#939393",
           "scrim": "#00000099",
-          "glass-fill": "#1A1A1AB8",
+          "glass-fill": "#1A1A1AD5",
           "glass-stroke": "#FFFFFF1F",
           "shadow": "#000000"
         }
@@ -2158,7 +2158,7 @@ const kiwiThemeJson = r'''{
           "data-brown": "#8A6859",
           "data-grey": "#939393",
           "scrim": "#14141459",
-          "glass-fill": "#FFFFFFB8",
+          "glass-fill": "#FFFFFFD0",
           "glass-stroke": "#FFFFFFCC",
           "shadow": "#141414"
         },
@@ -2195,7 +2195,7 @@ const kiwiThemeJson = r'''{
           "data-brown": "#8A6859",
           "data-grey": "#939393",
           "scrim": "#00000099",
-          "glass-fill": "#1A1A1AB8",
+          "glass-fill": "#1A1A1AD5",
           "glass-stroke": "#FFFFFF1F",
           "shadow": "#000000"
         }

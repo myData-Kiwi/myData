@@ -293,7 +293,7 @@ void main() {
       final p = resolvePalette(theme, theme.palettes.single, LookMode.dark, defaults: ThemeLibrary.defaults);
       final glass = p[ColourRole.glassFill];
       expect(glass.withAlpha(255), p[ColourRole.surface]);
-      expect(glass.a, greaterThan(ThemeLibrary.defaults.dark[ColourRole.glassFill]!.a));
+      expect(glass.a, greaterThanOrEqualTo(ThemeLibrary.defaults.dark[ColourRole.glassFill]!.a));
       for (final under in [ColourRole.bg, ColourRole.ink, ColourRole.accent]) {
         expect(contrast(p[ColourRole.inkMuted], glass.over(p[under])), greaterThanOrEqualTo(4.5));
       }

@@ -117,7 +117,7 @@ class MyDataColors extends ThemeExtension<MyDataColors> {
   final Color infoSoft;
   /// Keyboard focus ring, 2px with a 2px offset. A warm colour so it stays visible beside every theme's accent.
   final Color focus;
-  /// Fill of floating bars over a blur-glass backdrop blur.
+  /// Fill of floating bars over a blur-glass backdrop blur: 82% (light) and 84% (dark), so secondary text on a bar stays 4.5:1 over anything scrolled beneath (the contrast audit, 2026-10-23; it was 72%).
   final Color glassFill;
   /// 1px edge highlight on floating bars.
   final Color glassStroke;
@@ -191,7 +191,7 @@ class MyDataColors extends ThemeExtension<MyDataColors> {
     info: Color(0xFF1F5FA8),
     infoSoft: Color(0xFFDCE9F8),
     focus: Color(0xFFB3261E),
-    glassFill: Color(0xB8FFFFFF),
+    glassFill: Color(0xD0FFFFFF),
     glassStroke: Color(0xCCFFFFFF),
     scrim: Color(0x59141414),
     dataRed: Color(0xFFD34730),
@@ -205,7 +205,7 @@ class MyDataColors extends ThemeExtension<MyDataColors> {
     sidebar: Color(0xFFF6F6F5),
     toolbar: Color(0xFFF6F6F5),
     edge: Color(0xFF1A1A19),
-    link: Color(0xFF4B7713),
+    link: Color(0xFF4B7611),
     selection: Color(0xFF4C7814),
     onSelection: Color(0xFFFFFFFF),
     selectionInactive: Color(0xFFEDEDEB),
@@ -244,7 +244,7 @@ class MyDataColors extends ThemeExtension<MyDataColors> {
     info: Color(0xFF8AB8EA),
     infoSoft: Color(0xFF17304D),
     focus: Color(0xFFF2867E),
-    glassFill: Color(0xB81A1A1A),
+    glassFill: Color(0xD51A1A1A),
     glassStroke: Color(0x1FFFFFFF),
     scrim: Color(0x99000000),
     dataRed: Color(0xFFD34730),

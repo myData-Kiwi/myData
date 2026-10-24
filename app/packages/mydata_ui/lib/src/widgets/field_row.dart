@@ -59,7 +59,7 @@ typedef LinkOpener = void Function(Uri url);
 ///   address keeps its lines and a note its paragraphs. A word longer than the line breaks anywhere.
 /// - **Links.** Only a [FieldKind.link] value can be a link, and only when [safeWebLink] accepts it (an
 ///   `http` or `https` address, or a bare host name with a dot, which opens with `https://` added). It is
-///   then `accent` and underlined, shown exactly as written, and opens through [onOpenLink]. Any other
+///   then `link` and underlined, shown exactly as written, and opens through [onOpenLink]. Any other
 ///   value, and any link when [onOpenLink] is null, is plain text: still readable, selectable and copyable.
 ///   The link's target is the label and the value together, at least `control-height` tall, so it meets the
 ///   44px rule without making the row taller; it is a Tab stop with the focus ring, and Enter opens it.
@@ -338,7 +338,7 @@ class _FieldRowState extends State<FieldRow> {
 }
 
 /// The label and the link together: one target, at least `control-height` square, so it meets the 44px
-/// rule inside the row's own height. `accent` and underlined (design/README.md "Links").
+/// rule inside the row's own height. `link` and underlined (design/README.md "Links").
 class _Link extends StatelessWidget {
   const _Link({required this.uri, required this.label, required this.value, required this.onOpen, this.labelText});
 
@@ -376,9 +376,9 @@ class _Link extends StatelessWidget {
                   Text(
                     value,
                     style: context.typeScale.body.copyWith(
-                      color: c.accent,
+                      color: c.link,
                       decoration: TextDecoration.underline,
-                      decorationColor: c.accent,
+                      decorationColor: c.link,
                     ),
                   ),
                 ],

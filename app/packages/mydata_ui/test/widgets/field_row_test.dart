@@ -470,7 +470,7 @@ void main() {
       expect(_clipboard, '+44 7700 900123');
     });
 
-    testWidgets('a safe web address is an accent, underlined link, shown as written, opened through the opener', (
+    testWidgets('a safe web address is a link in `link`, underlined, shown as written, opened through the opener', (
       tester,
     ) async {
       _opened.clear();
@@ -479,7 +479,7 @@ void main() {
         const FieldRow(kind: FieldKind.link, label: 'Website', value: 'example.com/ava', onOpenLink: _open),
       );
       final text = tester.widget<Text>(find.text('example.com/ava'));
-      expect(text.style!.color, _kiwi.accent);
+      expect(text.style!.color, _kiwi.link);
       expect(text.style!.decoration, TextDecoration.underline);
       expect(text.style!.fontSize, MyDataType.body.fontSize);
       expect(find.byType(SelectableText), findsNothing);

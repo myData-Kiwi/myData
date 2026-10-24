@@ -368,7 +368,7 @@ class _SampleScreen extends StatelessWidget {
                         TextSpan(
                           text: 'See details',
                           style: context.typeScale.label.copyWith(
-                              color: c.accent, decoration: TextDecoration.underline, decorationColor: c.accent),
+                              color: c.link, decoration: TextDecoration.underline, decorationColor: c.link),
                         ),
                       ])),
                       SizedBox(height: context.space(2)),

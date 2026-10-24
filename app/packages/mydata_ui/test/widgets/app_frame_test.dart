@@ -381,7 +381,7 @@ void main() {
   });
 
   group('connection', () {
-    testWidgets('connected: the brand dot and the Open myData link, accent and underlined', (tester) async {
+    testWidgets('connected: the brand dot and the Open myData link, in `link` and underlined', (tester) async {
       var opened = 0;
       await _pumpFrame(tester, _frame(1100, 600, connection: AppConnection.connected(onOpenMyData: () => opened++)));
       final c = tester.element(find.byType(AppFrame)).colors;
@@ -389,7 +389,7 @@ void main() {
           w is Container && w.decoration is BoxDecoration && (w.decoration! as BoxDecoration).color == c.brand);
       expect(dots, findsOneWidget);
       final link = tester.widget<Text>(find.text(AppConnection.openMyDataText));
-      expect(link.style!.color, c.accent);
+      expect(link.style!.color, c.link);
       expect(link.style!.decoration, TextDecoration.underline);
       expect(tester.getSize(find.ancestor(of: find.text(AppConnection.openMyDataText), matching: find.byType(Pressable)))
           .height, greaterThanOrEqualTo(MyDataSize.controlHeight));

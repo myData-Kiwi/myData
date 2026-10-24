@@ -255,11 +255,11 @@ void main() {
     }
   });
 
-  testWidgets('the source is an underlined accent link; without onSourceTap it is plain caption text', (tester) async {
+  testWidgets('the source is an underlined link in `link`; without onSourceTap it is plain caption text', (tester) async {
     await tester.pumpWidget(themedFrame(themeMatrix.first, SizedBox(width: _cardWidth, child: _card())));
     final c = tester.element(find.byType(ApprovalCard)).colors;
     final link = tester.widget<Text>(find.text('Train booking confirmation'));
-    expect(link.style!.color, c.accent);
+    expect(link.style!.color, c.link);
     expect(link.style!.decoration, TextDecoration.underline);
     expect(find.text('Every fact in this message came from your data. Source: '), findsOneWidget);
 

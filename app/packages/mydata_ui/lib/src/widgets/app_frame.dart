@@ -730,7 +730,7 @@ class _HostDot extends StatelessWidget {
       );
 }
 
-/// A link: `accent`, underlined (design/README.md "Links"), with a control-height target.
+/// A link: `link`, underlined (design/README.md "Links"), with a control-height target.
 class _Link extends StatelessWidget {
   const _Link({required this.label, required this.onTap, this.center = false});
   final String label;
@@ -760,9 +760,9 @@ class _Link extends StatelessWidget {
                 label,
                 textAlign: center ? TextAlign.center : TextAlign.start,
                 style: context.typeScale.caption.copyWith(
-                  color: c.accent,
+                  color: c.link,
                   decoration: TextDecoration.underline,
-                  decorationColor: c.accent,
+                  decorationColor: c.link,
                 ),
               ),
             ),
