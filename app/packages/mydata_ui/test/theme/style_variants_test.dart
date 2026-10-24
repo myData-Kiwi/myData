@@ -48,6 +48,14 @@ final List<StyleVariant> styleVariants = [
   // Depth: each elevation style at full strength, its drop 4px.
   for (final style in ['none', 'soft', 'hard', 'offset', 'bevel', 'glow'])
     (name: 'elevation-$style', edit: _set('elevation', {'style': style, 'strength': 1, 'offset': 4})),
+  // The bevel follows a pill's ends and a cut corner's chamfer.
+  (
+    name: 'elevation-bevel-cut',
+    edit: (json) {
+      _set('elevation', {'style': 'bevel', 'strength': 1, 'offset': 4})(json);
+      _set('shape', {'corners': 'cut', 'cut-size': 8, 'controls': 'match'})(json);
+    },
+  ),
   // Density: the three presets, on a desktop.
   for (final preset in ['compact', 'regular', 'roomy'])
     (name: 'density-$preset', edit: (json) => json['density'] = {'preset': preset}),

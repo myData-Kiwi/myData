@@ -125,7 +125,11 @@ class CardEdge extends StatelessWidget {
     final edge = MyDataEdgesPaint.cardEdge(look, radius);
     var out = child;
     final bevel = look.elevation.bevel;
-    if (bevel != null) out = CustomPaint(foregroundPainter: BevelPainter(bevel, shape: look.shape, radius: radius), child: out);
+    if (bevel != null) {
+      out = CustomPaint(
+          foregroundPainter: BevelPainter(bevel, shape: look.shape, radius: radius, fill: context.colors.surface),
+          child: out);
+    }
     if (edge == null) return out;
     return DecoratedBox(decoration: edge, position: DecorationPosition.foreground, child: out);
   }
@@ -133,27 +137,75 @@ class CardEdge extends StatelessWidget {
 
 /// A bevel (`elevation.style: bevel`): one line of [Bevel.light] along the top and left edges and one of
 /// [Bevel.dark] along the bottom and right, inside the shape; [pressed] swaps them, so the control reads as
-/// pushed in. The lines are [width] wide, clipped to the shape so they follow its corners.
+/// pushed in. Each line is the shape's own outline, [width] wide and drawn just inside it, so it follows a
+/// pill's ends and a cut corner's chamfer. The two meet on 45° lines through the top-right and bottom-left
+/// corners (a mitre), as a window frame's bevel does.
+///
+/// Given the [fill] it is drawn on, the light line is made more opaque until it is at least [lightContrast]
+/// against it (a light line at 0.9 alpha on a mid accent was nearly invisible), where its own colour,
+/// opaque, can reach that.
 class BevelPainter extends CustomPainter {
-  BevelPainter(this.bevel, {required this.shape, required this.radius, this.pressed = false, this.width = 1});
+  BevelPainter(this.bevel, {required this.shape, required this.radius, this.pressed = false, this.width = 1, this.fill});
   final Bevel bevel;
   final MyDataShape shape;
   final BorderRadius radius;
   final bool pressed;
   final double width;
+  final Color? fill;
+
+  /// The least contrast of the light line against [fill].
+  static const lightContrast = 1.5;
+
+  static double _contrast(Color a, Color b) {
+    final la = a.computeLuminance(), lb = b.computeLuminance();
+    return (math.max(la, lb) + 0.05) / (math.min(la, lb) + 0.05);
+  }
+
+  /// [light] as it shows on [fill], made more opaque until it is [lightContrast] from [fill], or opaque.
+  static Color liftedLight(Color light, Color fill) {
+    final opaque = light.withValues(alpha: 1);
+    final shown = Color.alphaBlend(light, fill);
+    for (var step = 0; step <= 20; step++) {
+      final c = Color.lerp(shown, opaque, step / 20)!;
+      if (_contrast(c, fill) >= lightContrast) return c;
+    }
+    return opaque;
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
     final rect = Offset.zero & size;
-    final lit = Paint()..color = pressed ? bevel.dark : bevel.light;
-    final shade = Paint()..color = pressed ? bevel.light : bevel.dark;
+    final w = size.width, h = size.height, m = math.min(w, h) / 2;
+    final light = fill == null ? bevel.light : liftedLight(bevel.light, fill!);
+    final line = shape.ringPath(rect, radius, -width / 2);
+    // The top-left half and the bottom-right half, split on 45° lines through the two corners.
+    final topLeft = Path()
+      ..moveTo(0, 0)
+      ..lineTo(w, 0)
+      ..lineTo(w - m, m)
+      ..lineTo(m, h - m)
+      ..lineTo(0, h)
+      ..close();
+    final bottomRight = Path()
+      ..moveTo(w, 0)
+      ..lineTo(w, h)
+      ..lineTo(0, h)
+      ..lineTo(m, h - m)
+      ..lineTo(w - m, m)
+      ..close();
+    Paint stroke(Color c) => Paint()
+      ..color = c
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = width;
     canvas
       ..save()
       ..clipPath(shape.path(rect, radius))
-      ..drawRect(Rect.fromLTWH(0, 0, size.width, width), lit)
-      ..drawRect(Rect.fromLTWH(0, 0, width, size.height), lit)
-      ..drawRect(Rect.fromLTWH(0, size.height - width, size.width, width), shade)
-      ..drawRect(Rect.fromLTWH(size.width - width, 0, width, size.height), shade)
+      ..save()
+      ..clipPath(topLeft)
+      ..drawPath(line, stroke(pressed ? bevel.dark : light))
+      ..restore()
+      ..clipPath(bottomRight)
+      ..drawPath(line, stroke(pressed ? light : bevel.dark))
       ..restore();
   }
 
@@ -161,9 +213,11 @@ class BevelPainter extends CustomPainter {
   bool shouldRepaint(BevelPainter old) =>
       old.bevel != bevel ||
       old.shape.corners != shape.corners ||
+      old.shape.cutSize != shape.cutSize ||
       old.radius != radius ||
       old.pressed != pressed ||
-      old.width != width;
+      old.width != width ||
+      old.fill != fill;
 }
 
 /// The rule between two rows, in the theme's separator style: nothing for `none`, from [inset] for `inset`

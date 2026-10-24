@@ -1,6 +1,7 @@
 // The run-time look (design/themes/ARCHITECTURE.md 3.1 and 3.3): MyDataTheme carries it, widgets read it
 // through their context, and the Mac shell's theme is the System look in the Mac window.
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -299,6 +300,31 @@ void main() {
       expect(of(ElevationStyle.hard, collapse: true).controlShadows(pressed: true), isEmpty);
       expect(of(ElevationStyle.hard).controlShadows(pressed: true), isNotEmpty);
       expect(of(ElevationStyle.hard, collapse: true).sink, const Offset(0, 4));
+    });
+
+    test('a bevel\'s light line is lifted to 1.5:1 against its fill where it can reach it', () {
+      double contrast(Color a, Color b) {
+        final la = a.computeLuminance(), lb = b.computeLuminance();
+        return (math.max(la, lb) + 0.05) / (math.min(la, lb) + 0.05);
+      }
+
+      for (final b in Brightness.values) {
+        final look = ThemeLibrary.kiwiLook(null, b);
+        final bevel = MyDataElevation.of(
+          const ElevationSpec(style: ElevationStyle.bevel, strength: 1, offset: 4, collapse: false),
+          shadow: look.colors.shadow,
+          accent: look.colors.accent,
+          surface: look.colors.surface,
+          ink: look.colors.ink,
+          dark: b == Brightness.dark,
+        ).bevel!;
+        for (final fill in [look.colors.accent, look.colors.danger]) {
+          final lifted = BevelPainter.liftedLight(bevel.light, fill);
+          if (contrast(bevel.light.withValues(alpha: 1), fill) >= BevelPainter.lightContrast) {
+            expect(contrast(lifted, fill), greaterThanOrEqualTo(BevelPainter.lightContrast), reason: '$b $fill');
+          }
+        }
+      }
     });
 
     test('Kiwi as drawn today: soft, nothing under controls', () {

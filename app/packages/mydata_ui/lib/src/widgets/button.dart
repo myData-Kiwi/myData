@@ -176,10 +176,12 @@ class Button extends StatelessWidget {
               ],
             ),
           );
+          // A disabled button has no depth: no drop and no bevel.
           final bevel = elevation.bevel;
-          if (filled && bevel != null) {
+          if (filled && bevel != null && !disabled) {
             box = CustomPaint(
-                foregroundPainter: BevelPainter(bevel, shape: context.radius, radius: radius, pressed: pressed),
+                foregroundPainter: BevelPainter(bevel,
+                    shape: context.radius, radius: radius, pressed: pressed, fill: variant.fill(c)),
                 child: box);
           }
           return box;
