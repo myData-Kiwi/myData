@@ -158,6 +158,11 @@ class MyDataCheckbox extends StatelessWidget {
     final line = labelStyle.fontSize! * labelStyle.height!;
     // The target is at least `control-height`: the label's line centred in it (the preview's 11px padding).
     final vertical = math.max(0.0, (context.density.controlHeight - line) / 2);
+    // The box is centred on the label's first line; where the box is the taller (a theme with a large icon
+    // size and small text), the label moves down to it instead.
+    final box = CheckboxBox.size(context.look);
+    final boxTop = math.max(0.0, (line - box) / 2);
+    final labelTop = math.max(0.0, (box - line) / 2);
     return MergeSemantics(
       child: Semantics(
         checked: value,
@@ -179,7 +184,7 @@ class MyDataCheckbox extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Padding(
-                      padding: EdgeInsets.only(top: (line - CheckboxBox.size(context.look)) / 2),
+                      padding: EdgeInsets.only(top: boxTop),
                       child: faded(FocusRing(
                         visible: s.focused,
                         borderRadius: MyDataRadii.xs(context.look),
@@ -192,6 +197,7 @@ class MyDataCheckbox extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          if (labelTop > 0) SizedBox(height: labelTop),
                           faded(Text(label, style: labelStyle)),
                           if (note != null) Text(note, style: context.typeScale.caption.copyWith(color: c.inkMuted)),
                         ],

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:ui' show Tristate;
 
 import 'package:flutter/gestures.dart';
@@ -42,6 +43,16 @@ class _ListHostState extends State<_ListHost> {
           },
         ),
       );
+}
+
+/// Kiwi with [icon]-sized icons, so the box is taller than a line of the label.
+ThemeData _bigIcons(double icon) {
+  final json = jsonDecode(jsonEncode(ThemeLibrary.kiwi.json)) as Map<String, dynamic>;
+  for (final c in ['desktop', 'phone']) {
+    ((json['density'] as Map)[c] as Map)['icon'] = icon;
+  }
+  final file = ThemeFile.fromJson(json, base: json);
+  return MyDataTheme.fromLook(ThemeLibrary.look(file, brightness: Brightness.light));
 }
 
 void main() {
@@ -499,5 +510,21 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.space);
     await tester.pump();
     expect(got, [false, true, false, false]);
+  });
+  testWidgets('a box taller than a line of its label moves the label down to it, never the box up', (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      theme: _bigIcons(32),
+      home: const Material(
+        child: Align(
+          alignment: Alignment.topLeft,
+          child: MyDataCheckbox(label: 'Unchecked', value: false, onChanged: _noop),
+        ),
+      ),
+    ));
+    expect(tester.takeException(), isNull);
+    final box = tester.getRect(find.byType(CheckboxBox));
+    final label = tester.getRect(find.text('Unchecked'));
+    expect(box.top, greaterThanOrEqualTo(0));
+    expect(label.center.dy, closeTo(box.center.dy, 0.5), reason: 'the label is centred on the box');
   });
 }
