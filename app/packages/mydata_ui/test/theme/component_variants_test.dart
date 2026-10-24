@@ -484,15 +484,37 @@ void main() {
     // The selected day in each selection style, focused by keyboard.
     variantGoldens('selection', (focus) => MonthSpecimen(focus: focus), size: size, name: 'month');
 
-    test('a pattern tells eight hues apart by grey and hatch', () {
-      final seen = {
-        for (final hex in ['#FF2968', '#FF9500', '#FFCC00', '#63DA38', '#1BADF8', '#5856D6', '#CC73E1', '#A2845E'])
-          () {
-            final p = DataPattern.of(parseDataColour(hex)!);
-            return (p.level, p.hatched);
-          }(),
+    test('a pattern gives every default calendar colour its own mark', () {
+      // The schema's data-* roles in Kiwi's palette, and the usual calendar colours.
+      const kiwi = {
+        'red': '#D34730', 'orange': '#EA700F', 'yellow': '#E7BD1B', 'green': '#36A462',
+        'blue': '#159CE2', 'purple': '#8B51E1', 'brown': '#8A6859', 'grey': '#939393',
       };
-      expect(seen.length, greaterThanOrEqualTo(6));
+      const calendars = {
+        'red': '#FF2968', 'orange': '#FF9500', 'yellow': '#FFCC00', 'green': '#63DA38',
+        'blue': '#1BADF8', 'purple': '#CC73E1', 'brown': '#A2845E',
+      };
+      for (final set in [kiwi, calendars]) {
+        final marks = <DataPattern, String>{};
+        for (final e in set.entries) {
+          final colour = parseDataColour(e.value)!;
+          expect(DataPattern.familyOf(colour), e.key, reason: e.value);
+          final mark = DataPattern.of(colour);
+          expect(marks[mark], isNull, reason: '${e.key} has the same mark as ${marks[mark]}');
+          marks[mark] = e.key;
+        }
+      }
+    });
+
+    testWidgets("a month cell shows each event's calendar initial when calendars are patterns", (tester) async {
+      await pumpVariant(tester, kiwiWith(component('data-colours', 'pattern')), Brightness.light, const MonthSpecimen(),
+          size: const Size(900, 840));
+      for (final initial in ['P', 'C', 'W', 'F', 'H']) {
+        expect(find.text(initial), findsWidgets, reason: initial);
+      }
+      await pumpVariant(tester, kiwiWith(component('data-colours', 'colour')), Brightness.light, const MonthSpecimen(),
+          size: const Size(900, 840));
+      expect(find.text('P'), findsNothing);
     });
   });
 

@@ -69,63 +69,106 @@ enum DataGround {
 
 /// How a data colour is drawn on [ground] and the [alsoOn] grounds: the colour as the source gives it
 /// (opaque, never tinted), or `line-strong` when there is none, with a 1px `line-strong` inner edge when it
-/// has less than 3:1 contrast with any of those grounds.
-({Color fill, bool edge, bool hatch}) _swatch(
+/// has less than 3:1 contrast with any of those grounds. In a pattern theme, its [DataPattern]: a grey
+/// (or none) with the edge, and dots ([dots]: their colour) over it.
+({Color fill, bool edge, Color? dots}) _swatch(
     MyDataLook look, MyDataColors c, Color? colour, DataGround ground, List<DataGround> alsoOn) {
-  if (colour == null) return (fill: c.lineStrong, edge: false, hatch: false);
+  if (colour == null) return (fill: c.lineStrong, edge: false, dots: null);
   if (look.variants.dataColours == DataColourStyle.pattern) {
     final p = DataPattern.of(colour);
-    return (fill: Color.lerp(c.surface, c.ink, p.level)!, edge: true, hatch: p.hatched);
+    final fill = p.level == 0 ? c.surface : Color.lerp(c.surface, c.ink, p.level)!;
+    return (fill: fill, edge: true, dots: p.dotted ? (p.level >= 0.5 ? c.surface : c.ink) : null);
   }
   final fill = colour.withValues(alpha: 1);
   final edge = dataColourNeedsEdge(fill, ground.of(c)) || alsoOn.any((g) => dataColourNeedsEdge(fill, g.of(c)));
-  return (fill: fill, edge: edge, hatch: false);
+  return (fill: fill, edge: edge, dots: null);
 }
 
-/// A data colour drawn as a pattern (`data-colours: pattern`, E-ink): calendars told apart by a grey and
-/// a hatch instead of their colour, with the name always beside or in the accessible name. Eight colours
-/// by hue (45° each): four greys, each plain or hatched. Every swatch carries the `line-strong` edge.
+/// A data colour drawn as a pattern (`data-colours: pattern`, E-ink): calendars told apart by a mark instead
+/// of their colour, with the calendar's name beside it or, in a month cell, its initial before each title
+/// ([DataPattern.initialOf]). Every swatch carries the `line-strong` edge.
+///
+/// The marks are four fills (none, light, mid and dark grey) each plain or dotted (a column of dots down a
+/// bar, a centre dot in a dot), so they stay apart at a 4px bar's width, where a hatch did not. The colour
+/// is sorted into the families calendars use (the `data-*` roles and the usual calendar colours): red, orange,
+/// yellow, green, blue, purple, brown and grey, each with its own mark.
 @immutable
 class DataPattern {
-  const DataPattern({required this.level, required this.hatched});
+  const DataPattern({required this.level, required this.dotted});
 
-  /// How far from `surface` towards `ink` the grey is.
+  /// How far from `surface` towards `ink` the fill is; 0 is no fill (the edge alone).
   final double level;
 
-  /// Diagonal `surface` lines over the grey.
-  final bool hatched;
+  /// Dots over the fill, in `ink` on a light fill and `surface` on a dark one.
+  final bool dotted;
 
-  static const levels = [0.18, 0.4, 0.62, 0.85];
+  static const none = 0.0, light = 0.3, mid = 0.55, dark = 0.85;
 
-  /// The pattern for [colour]; a colour with almost no hue (a grey calendar) is the plain lightest grey.
-  factory DataPattern.of(Color colour) {
+  /// The family of [colour] (`red`, `orange`, `yellow`, `green`, `blue`, `purple`, `brown`, `grey`).
+  static String familyOf(Color colour) {
     final hsv = HSVColor.fromColor(colour.withValues(alpha: 1));
-    if (hsv.saturation < 0.12) return const DataPattern(level: 0.18, hatched: false);
-    final bucket = ((hsv.hue + 22.5) % 360 ~/ 45).toInt();
-    return DataPattern(level: levels[bucket % 4], hatched: bucket >= 4);
+    final h = hsv.hue;
+    if (hsv.saturation < 0.12) return 'grey';
+    if (h >= 10 && h < 50 && (hsv.saturation < 0.6 || hsv.value < 0.6)) return 'brown';
+    if (h < 15 || h >= 330) return 'red';
+    if (h < 42) return 'orange';
+    if (h < 70) return 'yellow';
+    if (h < 170) return 'green';
+    if (h < 250) return 'blue';
+    return 'purple';
   }
+
+  static const _marks = <String, DataPattern>{
+    'red': DataPattern(level: dark, dotted: false),
+    'orange': DataPattern(level: mid, dotted: true),
+    'yellow': DataPattern(level: none, dotted: false),
+    'green': DataPattern(level: mid, dotted: false),
+    'blue': DataPattern(level: dark, dotted: true),
+    'purple': DataPattern(level: none, dotted: true),
+    'brown': DataPattern(level: light, dotted: true),
+    'grey': DataPattern(level: light, dotted: false),
+  };
+
+  /// The mark for [colour].
+  factory DataPattern.of(Color colour) => _marks[familyOf(colour)]!;
+
+  /// The calendar's initial, shown before an event's title in a month cell when calendars are patterns.
+  static String initialOf(String calendarName) {
+    final t = calendarName.trim();
+    return t.isEmpty ? '' : t.characters.first.toUpperCase();
+  }
+
+  @override
+  bool operator ==(Object other) => other is DataPattern && other.level == level && other.dotted == dotted;
+
+  @override
+  int get hashCode => Object.hash(level, dotted);
 }
 
-/// Diagonal lines in [colour], 3px apart, across the swatch they are painted over.
-class _Hatch extends CustomPainter {
-  _Hatch(this.colour);
+/// A [DataPattern]'s dots in [colour]: down the middle of a bar, 2px across and 4px apart, or one 3px dot
+/// in the centre of a dot.
+class _Dots extends CustomPainter {
+  _Dots(this.colour, {required this.round});
   final Color colour;
+  final bool round;
 
   @override
   void paint(Canvas canvas, Size size) {
-    canvas.save();
-    canvas.clipRect(Offset.zero & size);
-    final paint = Paint()
-      ..color = colour
-      ..strokeWidth = 1;
-    for (var x = -size.height; x < size.width; x += 3) {
-      canvas.drawLine(Offset(x, size.height), Offset(x + size.height, 0), paint);
+    final paint = Paint()..color = colour;
+    if (round) {
+      canvas.drawCircle(size.center(Offset.zero), 1.5, paint);
+      return;
     }
-    canvas.restore();
+    final x = size.width / 2;
+    final n = (size.height / 4).floor();
+    final top = (size.height - n * 4) / 2 + 2;
+    for (var i = 0; i < n; i++) {
+      canvas.drawCircle(Offset(x, top + i * 4), 1, paint);
+    }
   }
 
   @override
-  bool shouldRepaint(_Hatch old) => old.colour != colour;
+  bool shouldRepaint(_Dots old) => old.colour != colour || old.round != round;
 }
 
 /// Spec: "a 1px inner edge in `line-strong`".
@@ -189,7 +232,7 @@ class DataDot extends StatelessWidget {
         width: diameter(context.look),
         height: diameter(context.look),
         decoration: BoxDecoration(color: s.fill, shape: BoxShape.circle, border: _edge(context, c, s.edge)));
-    if (s.hatch) dot = ClipOval(child: CustomPaint(foregroundPainter: _Hatch(c.surface), child: dot));
+    if (s.dots != null) dot = CustomPaint(foregroundPainter: _Dots(s.dots!, round: true), child: dot);
     dot = ExcludeSemantics(child: dot);
     if (slot) {
       dot = SizedBox.square(dimension: context.density.iconTile, child: Center(child: dot));
@@ -241,9 +284,7 @@ class DataBar extends StatelessWidget {
         decoration: context.radius.decorate(BoxDecoration(
             color: s.fill, borderRadius: MyDataRadii.pill(context.look), border: _edge(context, c, s.edge))),
         child: _BarBox(height: height));
-    if (s.hatch) {
-      bar = context.radius.clip(MyDataRadii.pill(context.look), child: CustomPaint(foregroundPainter: _Hatch(c.surface), child: bar));
-    }
+    if (s.dots != null) bar = CustomPaint(foregroundPainter: _Dots(s.dots!, round: false), child: bar);
     return ExcludeSemantics(child: bar);
   }
 }

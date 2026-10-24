@@ -873,11 +873,21 @@ class _CellState extends State<_Cell> {
       ];
     } else {
       final textColour = muted ? inkMuted : ink;
+      // Calendars drawn as patterns (E-ink) also show each calendar's initial, so the calendar is told by
+      // more than a grey (the schema's "the name always shows").
+      final initials = context.variants.dataColours == DataColourStyle.pattern;
       marks = [
         for (final e in visible)
           Row(children: [
             DataBar(colour: e.colour, ground: ground, height: captionLine),
             SizedBox(width: MonthGrid.markGap(context.look)),
+            if (initials && DataPattern.initialOf(e.calendarName).isNotEmpty) ...[
+              Text(DataPattern.initialOf(e.calendarName),
+                  maxLines: 1,
+                  softWrap: false,
+                  style: context.typeScale.caption.copyWith(color: textColour, fontWeight: FontWeight.w700)),
+              SizedBox(width: MonthGrid.markGap(context.look)),
+            ],
             Expanded(
                 child: Text(e.title.isEmpty ? MonthGrid.noTitle : e.title,
                     maxLines: 1,
