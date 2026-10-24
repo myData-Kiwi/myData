@@ -79,7 +79,11 @@ class GroupedControl extends StatelessWidget {
     mainAxisSize: MainAxisSize.min,
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      ExcludeSemantics(child: Text(label, style: context.typeScale.label.copyWith(color: context.colors.ink))),
+      // A control's name, never a person's: upper case where the theme sets labels so.
+      ExcludeSemantics(
+        child: Text(context.typeScale.cased(MyDataTypeRole.label, label),
+            style: context.typeScale.label.copyWith(color: context.colors.ink)),
+      ),
       SizedBox(height: labelGap(context.look)),
       child,
     ],

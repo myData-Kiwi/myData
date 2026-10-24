@@ -47,7 +47,8 @@ class MyDataBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     final text = Text(
-      label,
+      // A status word, never a name: upper case where the theme sets labels so (semantics keep [label]).
+      context.typeScale.cased(MyDataTypeRole.label, label),
       maxLines: 1,
       softWrap: false,
       overflow: TextOverflow.ellipsis,

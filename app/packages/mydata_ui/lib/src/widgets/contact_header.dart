@@ -137,7 +137,10 @@ class _ContactHeaderState extends State<ContactHeader> {
             header: true,
             child: Text(widget.name, textAlign: align, style: context.typeScale.displayLg.copyWith(color: c.ink)),
           ),
-          if (role != null) Text(role, textAlign: align, style: context.typeScale.body.copyWith(color: c.inkMuted)),
+          if (role != null)
+            Text(role,
+                textAlign: align,
+                style: context.typeScale.secondary(context.typeScale.body).copyWith(color: c.inkMuted)),
           if (source.isNotEmpty)
             Padding(
               padding: EdgeInsets.only(top: ContactHeader.captionGap(context.look)),

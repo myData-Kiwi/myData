@@ -42,9 +42,17 @@ class MyDataTypeScale {
     required this.label,
     required this.caption,
     required this.mono,
+    this.upper = const {},
+    this.secondaryItalic = false,
   });
 
   final TextStyle displayXl, displayLg, title, heading, body, bodyStrong, label, caption, mono;
+
+  /// The roles set in upper case (only `label` and `caption`, which the validator enforces).
+  final Set<MyDataTypeRole> upper;
+
+  /// Secondary text is italic (`type.secondary-italic`): `caption` is, and [secondary] makes any style so.
+  final bool secondaryItalic;
 
   /// The style of [role].
   TextStyle call(MyDataTypeRole role) => switch (role) {
@@ -67,6 +75,16 @@ class MyDataTypeScale {
     return null;
   }
 
+  /// [style] as secondary text (an email under a name, a placeholder, a note): italic when the theme sets
+  /// secondary text in italic, else unchanged.
+  TextStyle secondary(TextStyle style) => secondaryItalic ? style.copyWith(fontStyle: FontStyle.italic) : style;
+
+  /// [text] as [role] shows it: in upper case when the theme sets that role so, unless it [holdsName] (a
+  /// person, an app such as myAssistant, a calendar, a file), which always keeps its own case
+  /// (design/themes/ARCHITECTURE.md 2.3). Widgets call this for their own labels, never for user text.
+  String cased(MyDataTypeRole role, String text, {bool holdsName = false}) =>
+      !holdsName && upper.contains(role) ? text.toUpperCase() : text;
+
   /// Today's Kiwi type (design/tokens.json), the fallback.
   static const kiwi = MyDataTypeScale(
     displayXl: MyDataType.displayXl,
@@ -80,31 +98,57 @@ class MyDataTypeScale {
     mono: MyDataType.mono,
   );
 
-  /// The styles a theme's `type` group gives. A stack's first font that this build bundles is used; a
-  /// generic family is the platform's default (phase 3 maps each generic to the platform's own font).
-  factory MyDataTypeScale.of(TypeSpec spec) {
+  /// The styles a theme's `type` group gives, on [platform] (this device's when null):
+  /// - each role is set in the first font of its stack that this build bundles (a display-only font only at
+  ///   16 px or more), with the stack's later bundled fonts as fallbacks for glyphs it lacks; a generic
+  ///   family is the platform's own font (a generic `mono` the platform's monospace, `genericMonoFamilies`);
+  /// - a variable font is drawn at the role's exact weight (`wght`), a core font at the nearest weight it has;
+  /// - tracking in em becomes letter spacing, `numerals: tabular` tabular figures, `secondary-italic` an
+  ///   italic `caption`, and `case: upper` is carried in [upper] for [cased].
+  ///
+  /// Fonts loaded on demand must be loaded (`ThemeFonts.ensure`) before this look is drawn, or the text
+  /// shows in a fallback font until they are.
+  factory MyDataTypeScale.of(TypeSpec spec, {TargetPlatform? platform}) {
+    final target = platform ?? defaultTargetPlatform;
+
     TextStyle style(TypeRole role) {
       final r = spec.roles[role]!;
+      // The first usable entry is the role's font; the stack's later bundled fonts are fallbacks. A generic
+      // ends the stack: after it, the engine falls back to the platform's own fonts.
       CatalogueFont? font;
+      String? primary;
+      var chosen = false;
+      final fallback = <String>[];
       for (final id in spec.stack(r.stack)) {
         final f = fontCatalogue[id];
-        if (f != null && f.bundled) {
-          font = f;
+        if (f != null && f.bundled && !(f.displayOnly && r.size < 16)) {
+          if (!chosen) {
+            font = f;
+            chosen = true;
+          } else {
+            fallback.add(f.family!);
+          }
+        } else if (genericFonts.contains(id)) {
+          if (!chosen && (id == 'mono' || id == 'system-mono')) primary = genericMonoFamilies[target.name];
           break;
         }
-        if (genericFonts.contains(id)) break;
       }
       final weight = FontWeight.values[((r.weight / 100).round() - 1).clamp(0, FontWeight.values.length - 1)];
+      final variable = font?.variable ?? false;
+      final italic = spec.secondaryItalic && role == TypeRole.caption;
       return TextStyle(
-        fontFamily: font?.family,
+        fontFamily: font?.family ?? primary,
         package: font == null ? null : fontPackage,
+        fontFamilyFallback: fallback.isEmpty ? null : fallback,
         fontSize: r.size,
         // Rounded as tokens.g.dart rounds them, so Kiwi's styles are today's exactly.
         height: double.parse(r.lineHeight.toStringAsFixed(4)),
         leadingDistribution: TextLeadingDistribution.even,
         fontWeight: weight,
+        fontStyle: italic ? FontStyle.italic : null,
         letterSpacing: r.tracking == null ? null : double.parse((r.tracking! * r.size).toStringAsFixed(3)),
         fontFeatures: spec.tabular ? const [FontFeature.tabularFigures()] : null,
+        fontVariations: variable ? [FontVariation.weight(r.weight.toDouble())] : null,
       );
     }
 
@@ -118,6 +162,8 @@ class MyDataTypeScale {
       label: style(TypeRole.label),
       caption: style(TypeRole.caption),
       mono: style(TypeRole.mono),
+      upper: {for (final e in spec.roles.entries) if (e.value.upper) e.key},
+      secondaryItalic: spec.secondaryItalic,
     );
   }
 
@@ -131,6 +177,8 @@ class MyDataTypeScale {
         label: TextStyle.lerp(a.label, b.label, t)!,
         caption: TextStyle.lerp(a.caption, b.caption, t)!,
         mono: TextStyle.lerp(a.mono, b.mono, t)!,
+        upper: t < 0.5 ? a.upper : b.upper,
+        secondaryItalic: t < 0.5 ? a.secondaryItalic : b.secondaryItalic,
       );
 }
 
@@ -566,7 +614,7 @@ class MyDataLook extends ThemeExtension<MyDataLook> {
       brightness: brightness,
       increasedContrast: increasedContrast,
       colors: colors,
-      typeScale: MyDataTypeScale.of(s.type),
+      typeScale: MyDataTypeScale.of(s.type, platform: target),
       shape: MyDataShape.of(s.shape),
       density: MyDataDensity.of(phone ? s.density.phone : s.density.desktop),
       edges: MyDataEdges(s.borders),

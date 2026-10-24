@@ -382,7 +382,7 @@ class _Field extends StatelessWidget {
     final vertical = multiline
         ? MyDataTextField.multilineVerticalPadding(context.look) - verticalInset
         : (context.density.controlHeight - lineHeight) / 2 - verticalInset;
-    final hintStyle = style.copyWith(color: c.inkMuted);
+    final hintStyle = context.typeScale.secondary(style).copyWith(color: c.inkMuted);
     final text = TextField(
       controller: controller,
       focusNode: focusNode,
