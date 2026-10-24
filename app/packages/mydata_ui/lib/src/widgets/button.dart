@@ -141,27 +141,46 @@ class Button extends StatelessWidget {
       disabledReason: disabledReason,
       fadeWhenDisabled: !variant.isSolid,
       child: ExcludeSemantics(
-        child: Container(
-          height: context.density.controlHeight,
-          constraints: BoxConstraints(minWidth: context.density.controlHeight),
-          padding: EdgeInsets.symmetric(horizontal: horizontalPadding(context.look)),
-          decoration: context.radius.decorate(BoxDecoration(
-              color: disabled ? variant.disabledFill(c) : variant.fill(c),
-              borderRadius: MyDataRadii.control(context.look),
-              // A theme that outlines controls outlines every button with a fill; a plain one stays bare.
-              border: variant.fill(c) == null ? null : MyDataEdgesPaint.control(context.look))),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (icon != null) ...[
-                Icon(context.icon(icon!), size: context.density.icon, color: fg),
-                SizedBox(width: iconGap(context.look)),
+        child: Builder(builder: (context) {
+          // The theme's depth under a button with a fill: a hard, offset or bevel drop that collapses while
+          // pressed (`elevation.press: collapse`), and the glow under the primary button (`glow`).
+          final filled = variant.fill(c) != null;
+          final elevation = context.look.elevation;
+          final pressed = PressedScope.of(context);
+          final shadows = filled && !disabled
+              ? elevation.controlShadows(pressed: pressed, primary: variant == ButtonVariant.filled)
+              : const <BoxShadow>[];
+          final radius = MyDataRadii.control(context.look);
+          Widget box = Container(
+            height: context.density.controlHeight,
+            constraints: BoxConstraints(minWidth: context.density.controlHeight),
+            padding: EdgeInsets.symmetric(horizontal: horizontalPadding(context.look)),
+            decoration: context.radius.decorate(BoxDecoration(
+                color: disabled ? variant.disabledFill(c) : variant.fill(c),
+                borderRadius: radius,
+                boxShadow: shadows.isEmpty ? null : shadows,
+                // A theme that outlines controls outlines every button with a fill; a plain one stays bare.
+                border: filled ? MyDataEdgesPaint.control(context.look) : null)),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (icon != null) ...[
+                  Icon(context.icon(icon!), size: context.density.icon, color: fg),
+                  SizedBox(width: iconGap(context.look)),
+                ],
+                Flexible(child: text),
               ],
-              Flexible(child: text),
-            ],
-          ),
-        ),
+            ),
+          );
+          final bevel = elevation.bevel;
+          if (filled && bevel != null) {
+            box = CustomPaint(
+                foregroundPainter: BevelPainter(bevel, shape: context.radius, radius: radius, pressed: pressed),
+                child: box);
+          }
+          return box;
+        }),
       ),
     );
   }

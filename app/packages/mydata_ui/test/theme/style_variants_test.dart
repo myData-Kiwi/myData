@@ -43,6 +43,15 @@ final List<StyleVariant> styleVariants = [
     (name: 'separators-$separators', edit: _set('borders', {'separators': separators})),
   for (final rule in ['none', 'single', 'double'])
     (name: 'title-rule-$rule', edit: _set('borders', {'title-rule': rule, 'colour': 'edge'})),
+  // Depth: each elevation style at full strength, its drop 4px.
+  for (final style in ['none', 'soft', 'hard', 'offset', 'bevel', 'glow'])
+    (name: 'elevation-$style', edit: _set('elevation', {'style': style, 'strength': 1, 'offset': 4})),
+];
+
+/// Drawn with the filled button held down: the press styles of elevation and motion.
+final List<StyleVariant> pressedVariants = [
+  for (final press in ['none', 'collapse'])
+    (name: 'elevation-press-$press', edit: _set('elevation', {'style': 'hard', 'strength': 1, 'offset': 4, 'press': press})),
 ];
 
 /// Real components: buttons (the first focused by keyboard), an icon button, a segmented control and a
@@ -117,15 +126,21 @@ Future<void> pumpSpecimen(WidgetTester tester, ThemeFile theme, Brightness brigh
 }
 
 void main() {
-  for (final v in styleVariants) {
+  for (final (v, pressed) in [for (final v in styleVariants) (v, false), for (final v in pressedVariants) (v, true)]) {
     for (final b in Brightness.values) {
       testWidgets('style golden: ${v.name}, ${b.name}', (tester) async {
         debugDisableShadows = false;
+        TestGesture? hold;
         try {
           await pumpSpecimen(tester, variantTheme(v.edit), b);
+          if (pressed) {
+            hold = await tester.startGesture(tester.getCenter(find.text('Approve and send')));
+            await tester.pump();
+          }
           expect(tester.takeException(), isNull);
           await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/style.${v.name}.${b.name}.png'));
         } finally {
+          await hold?.up();
           debugDisableShadows = true;
         }
       });

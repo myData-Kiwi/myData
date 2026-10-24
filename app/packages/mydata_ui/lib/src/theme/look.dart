@@ -497,25 +497,62 @@ class MyDataEdges {
       };
 }
 
-/// Shadows and how a press changes them.
+/// Shadows and how a press changes them (theme.schema.json `elevation`):
+/// - soft: today's blurred lift under cards, groups and overlays, and nothing under controls (Kiwi);
+/// - hard: a solid shadow straight down by `offset` (a sticker), under cards and controls;
+/// - offset: the same shadow down and to the right (brutalist);
+/// - bevel: a light top-left and dark bottom-right line on cards and controls, over an `offset` drop;
+/// - glow: the accent, blurred, under the primary button and the selection marker only; overlays keep a
+///   soft lift;
+/// - none: flat.
+/// With `press: collapse` a pressed control's hard, offset or bevel shadow drops to nothing ([pressed]), and
+/// a `sink` press moves it by [sink], into where its shadow was.
 @immutable
 class MyDataElevation {
-  const MyDataElevation({required this.style, required this.shadows, required this.collapse});
+  const MyDataElevation({
+    required this.style,
+    required this.shadows,
+    required this.collapse,
+    this.control = const [],
+    this.glow = const [],
+    this.sink = Offset.zero,
+    this.bevel,
+  });
 
   final ElevationStyle style;
 
   /// The resting, raised and floating shadows (`shadow-1`, `shadow-2`, `shadow-glass`).
   final MyDataShadows shadows;
 
-  /// A pressed hard or offset shadow drops to 0.
+  /// A pressed hard, offset or bevel shadow drops to 0.
   final bool collapse;
+
+  /// Under a control with a fill (a button): the hard, offset or bevel drop; nothing for soft or none.
+  final List<BoxShadow> control;
+
+  /// The glow of the primary button and the selection marker (style glow only).
+  final List<BoxShadow> glow;
+
+  /// How far a pressed control moves when it sinks into its shadow: the shadow's own offset.
+  final Offset sink;
+
+  /// The bevel's two lines (style bevel only): [Bevel.light] along the top and left edges, [Bevel.dark] along
+  /// the bottom and right; swapped while pressed.
+  final Bevel? bevel;
+
+  /// The shadows under a control with a fill, resting or [pressed]; the primary button adds [glow].
+  List<BoxShadow> controlShadows({bool pressed = false, bool primary = false}) => [
+        if (!(pressed && collapse)) ...control,
+        if (primary) ...glow,
+      ];
 
   /// The CSS-to-Flutter blur conversion tokens.g.dart uses: CSS draws a blur radius r as a Gaussian with
   /// sigma r/2; Flutter's sigma is blurRadius × 0.57735 + 0.5. Rounded to 0.01 as the generated file is.
   static double blurRadiusOf(double cssBlur) =>
       cssBlur <= 1 ? 0.0 : double.parse(((cssBlur / 2 - 0.5) / 0.57735).toStringAsFixed(2));
 
-  factory MyDataElevation.of(ElevationSpec e, {required Color shadow, required Color accent, required bool dark}) {
+  factory MyDataElevation.of(ElevationSpec e,
+      {required Color shadow, required Color accent, required Color surface, required Color ink, required bool dark}) {
     List<BoxShadow> level(int i, {double? strength}) {
       final l = softElevationLevels[i];
       final base = dark ? l.alphaDark : l.alphaLight;
@@ -529,21 +566,53 @@ class MyDataElevation {
       ];
     }
 
-    List<BoxShadow> hard(double alpha) => [
-          BoxShadow(color: shadow.withValues(alpha: alpha), offset: Offset(e.offset, e.offset)),
-        ];
+    final drop = switch (e.style) {
+      ElevationStyle.hard => Offset(0, e.offset),
+      ElevationStyle.offset || ElevationStyle.bevel => Offset(e.offset, e.offset),
+      _ => Offset.zero,
+    };
+    // A solid shadow with no blur, in the palette's `shadow` at the theme's strength.
+    final hard = drop == Offset.zero ? const <BoxShadow>[] : [BoxShadow(color: shadow.withValues(alpha: e.strength), offset: drop)];
+    final glow = e.style == ElevationStyle.glow
+        ? [BoxShadow(color: accent.withValues(alpha: 0.6 * e.strength), blurRadius: 12 * e.strength)]
+        : const <BoxShadow>[];
 
     final shadows = switch (e.style) {
-      ElevationStyle.none || ElevationStyle.bevel =>
-        const MyDataShadows(shadow1: [], shadow2: [], shadowGlass: []),
+      ElevationStyle.none => const MyDataShadows(shadow1: [], shadow2: [], shadowGlass: []),
       ElevationStyle.soft => MyDataShadows(shadow1: level(0), shadow2: level(1), shadowGlass: level(2)),
-      ElevationStyle.hard || ElevationStyle.offset =>
-        MyDataShadows(shadow1: hard(e.strength), shadow2: hard(e.strength), shadowGlass: hard(e.strength)),
-      // Glow lights the primary button and the selection marker only (phase 3); overlays keep a soft lift.
+      ElevationStyle.hard || ElevationStyle.offset || ElevationStyle.bevel =>
+        MyDataShadows(shadow1: hard, shadow2: hard, shadowGlass: hard),
+      // Glow lights the primary button and the selection marker only; overlays keep a soft lift.
       ElevationStyle.glow => MyDataShadows(shadow1: const [], shadow2: level(1, strength: 0.5), shadowGlass: level(2, strength: 0.5)),
     };
-    return MyDataElevation(style: e.style, shadows: shadows, collapse: e.collapse);
+    return MyDataElevation(
+      style: e.style,
+      shadows: shadows,
+      collapse: e.collapse,
+      control: hard,
+      glow: glow,
+      sink: drop,
+      bevel: e.style == ElevationStyle.bevel
+          ? Bevel(
+              light: (dark ? ink : surface).withValues(alpha: (dark ? 0.25 : 0.9) * e.strength),
+              dark: shadow.withValues(alpha: (dark ? 0.8 : 0.45) * e.strength),
+            )
+          : null,
+    );
   }
+}
+
+/// The two lines of a bevel: [light] on the top and left edges, [dark] on the bottom and right.
+@immutable
+class Bevel {
+  const Bevel({required this.light, required this.dark});
+  final Color light, dark;
+
+  @override
+  bool operator ==(Object other) => other is Bevel && other.light == light && other.dark == dark;
+
+  @override
+  int get hashCode => Object.hash(light, dark);
 }
 
 /// Window ground, sidebar and bars (theme.schema.json `materials`).
@@ -767,7 +836,11 @@ class MyDataLook extends ThemeExtension<MyDataLook> {
       density: MyDataDensity.of(phone ? s.density.phone : s.density.desktop),
       edges: MyDataEdges(s.borders, colour: MyDataEdges.colourOf(s.borders, colors), allControls: increasedContrast),
       elevation: MyDataElevation.of(s.elevation,
-          shadow: colors.shadow, accent: colors.accent, dark: brightness == Brightness.dark),
+          shadow: colors.shadow,
+          accent: colors.accent,
+          surface: colors.surface,
+          ink: colors.ink,
+          dark: brightness == Brightness.dark),
       materials: MyDataMaterials(spec: s.materials, blur: s.materials.blur),
       icons: MyDataIconTheme(s.icons),
       motion: MyDataMotionSpec.of(s.motion),
@@ -889,7 +962,11 @@ class MyDataLook extends ThemeExtension<MyDataLook> {
       elevation: MyDataElevation(
           style: o.elevation.style,
           shadows: elevation.shadows.lerp(other.elevation.shadows, t),
-          collapse: o.elevation.collapse),
+          collapse: o.elevation.collapse,
+          control: BoxShadow.lerpList(elevation.control, other.elevation.control, t)!,
+          glow: BoxShadow.lerpList(elevation.glow, other.elevation.glow, t)!,
+          sink: Offset.lerp(elevation.sink, other.elevation.sink, t)!,
+          bevel: o.elevation.bevel),
       materials: MyDataMaterials(spec: o.materials.spec, blur: lerpDouble(materials.blur, other.materials.blur, t)),
       icons: o.icons,
       motion: o.motion,

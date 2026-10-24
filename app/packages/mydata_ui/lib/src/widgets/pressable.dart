@@ -127,7 +127,8 @@ class _PressableState extends State<Pressable> {
     final c = context.colors;
     final reduced = MyDataAccessibility.of(context).reduceMotion;
     final down = _pressed && _enabled;
-    Widget body = widget.child;
+    // The child can draw its own pressed state (a shadow that collapses, a bevel that flips).
+    Widget body = PressedScope(pressed: down, child: widget.child);
     if (widget.hoverFill != null) {
       body = AnimatedContainer(
         duration: context.motion.fast,
@@ -207,6 +208,19 @@ class _PressableState extends State<Pressable> {
     }
     return body;
   }
+}
+
+/// Whether the [Pressable] around a widget is pressed right now, for a control that draws its pressed state
+/// itself: a hard, offset or bevel shadow that collapses (`elevation.press: collapse`), a bevel that flips.
+class PressedScope extends InheritedWidget {
+  const PressedScope({super.key, required this.pressed, required super.child});
+  final bool pressed;
+
+  /// False outside a [Pressable].
+  static bool of(BuildContext context) => context.dependOnInheritedWidgetOfExactType<PressedScope>()?.pressed ?? false;
+
+  @override
+  bool updateShouldNotify(PressedScope old) => old.pressed != pressed;
 }
 
 /// The keyboard focus ring: 2px of `focus`, 2px outside the control (tokens.json "focus"); in the Mac frame

@@ -6,7 +6,9 @@ import 'library.dart';
 import 'icons.dart';
 import 'look.dart';
 
-export 'look.dart' show MyDataLook, MyDataTypeRole, MyDataTypeScale, MyDataShape, MyDataDensity, MyDataMotionSpec, LookFrame;
+export 'look.dart'
+    show MyDataLook, MyDataTypeRole, MyDataTypeScale, MyDataShape, MyDataDensity, MyDataMotionSpec, MyDataEdges,
+        MyDataElevation, Bevel, LookFrame;
 export 'icons.dart' show MyDataIcon;
 export 'theme_file.dart'
     show CornerStyle, BorderWidth, BorderStyleKind, BorderColour, Separators, TitleRule, ElevationStyle, PressStyle,

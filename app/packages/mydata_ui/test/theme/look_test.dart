@@ -263,6 +263,47 @@ void main() {
       }
     });
   });
+
+  group('elevation (phase 3)', () {
+    MyDataElevation of(ElevationStyle style, {bool collapse = false}) => MyDataElevation.of(
+          ElevationSpec(style: style, strength: 1, offset: 4, collapse: collapse),
+          shadow: const Color(0xFF000000),
+          accent: const Color(0xFF00AA00),
+          surface: const Color(0xFFFFFFFF),
+          ink: const Color(0xFF111111),
+          dark: false,
+        );
+
+    test('hard drops straight down, offset and bevel down and to the right, with no blur', () {
+      expect(of(ElevationStyle.hard).control.single.offset, const Offset(0, 4));
+      expect(of(ElevationStyle.hard).control.single.blurRadius, 0);
+      expect(of(ElevationStyle.offset).control.single.offset, const Offset(4, 4));
+      expect(of(ElevationStyle.bevel).control.single.offset, const Offset(4, 4));
+      expect(of(ElevationStyle.bevel).bevel, isNotNull);
+      expect(of(ElevationStyle.hard).shadows.shadow1, of(ElevationStyle.hard).control);
+    });
+
+    test('soft and none put nothing under controls; glow only under the primary', () {
+      expect(of(ElevationStyle.soft).controlShadows(primary: true), isEmpty);
+      expect(of(ElevationStyle.none).controlShadows(primary: true), isEmpty);
+      expect(of(ElevationStyle.glow).controlShadows(), isEmpty);
+      expect(of(ElevationStyle.glow).controlShadows(primary: true), isNotEmpty);
+      expect(of(ElevationStyle.glow).shadows.shadow1, isEmpty, reason: 'never on cards');
+    });
+
+    test('collapse drops a pressed control\'s shadow; without it the shadow stays', () {
+      expect(of(ElevationStyle.hard, collapse: true).controlShadows(pressed: true), isEmpty);
+      expect(of(ElevationStyle.hard).controlShadows(pressed: true), isNotEmpty);
+      expect(of(ElevationStyle.hard, collapse: true).sink, const Offset(0, 4));
+    });
+
+    test('Kiwi as drawn today: soft, nothing under controls', () {
+      final e = ThemeLibrary.kiwiLook(null, Brightness.light).elevation;
+      expect(e.style, ElevationStyle.soft);
+      expect(e.controlShadows(primary: true), isEmpty);
+      expect(e.bevel, isNull);
+    });
+  });
 }
 
 class _ReadsInInitState extends StatefulWidget {

@@ -2,7 +2,6 @@ import 'dart:math' as math;
 
 import 'package:flutter/widgets.dart';
 
-import '../theme/look.dart';
 import '../theme/theme.dart';
 
 /// The theme's borders where they are drawn (design/themes/ARCHITECTURE.md 1.2, `borders`): the outline of
@@ -122,10 +121,49 @@ class CardEdge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final edge = MyDataEdgesPaint.cardEdge(context.look, radius);
-    if (edge == null) return child;
-    return DecoratedBox(decoration: edge, position: DecorationPosition.foreground, child: child);
+    final look = context.look;
+    final edge = MyDataEdgesPaint.cardEdge(look, radius);
+    var out = child;
+    final bevel = look.elevation.bevel;
+    if (bevel != null) out = CustomPaint(foregroundPainter: BevelPainter(bevel, shape: look.shape, radius: radius), child: out);
+    if (edge == null) return out;
+    return DecoratedBox(decoration: edge, position: DecorationPosition.foreground, child: out);
   }
+}
+
+/// A bevel (`elevation.style: bevel`): one line of [Bevel.light] along the top and left edges and one of
+/// [Bevel.dark] along the bottom and right, inside the shape; [pressed] swaps them, so the control reads as
+/// pushed in. The lines are [width] wide, clipped to the shape so they follow its corners.
+class BevelPainter extends CustomPainter {
+  BevelPainter(this.bevel, {required this.shape, required this.radius, this.pressed = false, this.width = 1});
+  final Bevel bevel;
+  final MyDataShape shape;
+  final BorderRadius radius;
+  final bool pressed;
+  final double width;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    final lit = Paint()..color = pressed ? bevel.dark : bevel.light;
+    final shade = Paint()..color = pressed ? bevel.light : bevel.dark;
+    canvas
+      ..save()
+      ..clipPath(shape.path(rect, radius))
+      ..drawRect(Rect.fromLTWH(0, 0, size.width, width), lit)
+      ..drawRect(Rect.fromLTWH(0, 0, width, size.height), lit)
+      ..drawRect(Rect.fromLTWH(0, size.height - width, size.width, width), shade)
+      ..drawRect(Rect.fromLTWH(size.width - width, 0, width, size.height), shade)
+      ..restore();
+  }
+
+  @override
+  bool shouldRepaint(BevelPainter old) =>
+      old.bevel != bevel ||
+      old.shape.corners != shape.corners ||
+      old.radius != radius ||
+      old.pressed != pressed ||
+      old.width != width;
 }
 
 /// The rule between two rows, in the theme's separator style: nothing for `none`, from [inset] for `inset`
