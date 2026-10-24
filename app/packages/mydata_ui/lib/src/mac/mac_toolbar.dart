@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../generated/tokens.g.dart';
 import '../theme/theme.dart';
+import '../widgets/pressable.dart' show MyDataRadii;
 import 'mac_chrome.dart';
 import 'mac_overlays.dart' show MacMenuLook;
 import 'mac_theme.dart';
@@ -46,16 +47,31 @@ class MacToolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final mac = context.mac;
-    return Container(
-      height: MyDataMacSize.toolbarHeight,
+    // A drawn theme's toolbar style: `native` is the band as the Mac draws it, `flat` a solid `toolbar`
+    // band with a rule under it, `floating` a detached capsule with the theme's lift and outline.
+    final style = context.isSystemLook || background != null ? ToolbarStyle.native : context.variants.toolbar;
+    final c = context.colors;
+    final Decoration decoration = switch (style) {
+      ToolbarStyle.native => BoxDecoration(
+          color: background ?? mac.contentBackground,
+          border: separator ? Border(bottom: BorderSide(color: mac.separator)) : null,
+        ),
+      ToolbarStyle.flat => BoxDecoration(color: c.toolbar, border: Border(bottom: context.look.edges.side)),
+      ToolbarStyle.floating => context.radius.decorate(BoxDecoration(
+          color: c.surface,
+          borderRadius: MyDataRadii.pill(context.look),
+          boxShadow: context.shadows.shadow2,
+          border: context.look.edges.card == null ? null : Border.fromBorderSide(context.look.edges.card!),
+        )),
+    };
+    final floating = style == ToolbarStyle.floating;
+    Widget band = Container(
+      height: floating ? MyDataMacSize.toolbarHeight - 2 * context.space(1) : MyDataMacSize.toolbarHeight,
       padding: EdgeInsetsDirectional.only(
         start: MyDataMacSize.toolbarInset + (windowControls ? MyDataMacSize.windowControlsWidth : 0),
         end: MyDataMacSize.toolbarInset,
       ),
-      decoration: BoxDecoration(
-        color: background ?? mac.contentBackground,
-        border: separator ? Border(bottom: BorderSide(color: mac.separator)) : null,
-      ),
+      decoration: decoration,
       child: Row(
         children: [
           for (final (i, w) in leading.indexed) ...[if (i > 0) SizedBox(width: itemGap(context.look)), w],
@@ -70,11 +86,14 @@ class MacToolbar extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // A drawn theme's title in its own type.
                     Text(title!, maxLines: 1, overflow: TextOverflow.ellipsis,
-                        style: MyDataMacType.title.copyWith(color: mac.label)),
+                        style: (context.isSystemLook ? MyDataMacType.title : context.typeScale.heading)
+                            .copyWith(color: mac.label)),
                     if (subtitle != null)
                       Text(subtitle!, maxLines: 1, overflow: TextOverflow.ellipsis,
-                          style: MyDataMacType.caption.copyWith(color: mac.secondaryLabel)),
+                          style: (context.isSystemLook ? MyDataMacType.caption : context.typeScale.caption)
+                              .copyWith(color: mac.secondaryLabel)),
                   ],
                 ),
               ),
@@ -85,6 +104,13 @@ class MacToolbar extends StatelessWidget {
         ],
       ),
     );
+    if (floating) {
+      band = ColoredBox(
+        color: mac.contentBackground,
+        child: Padding(padding: EdgeInsets.symmetric(horizontal: context.space(2), vertical: context.space(1)), child: band),
+      );
+    }
+    return band;
   }
 }
 

@@ -8,6 +8,7 @@ import 'package:flutter/widgets.dart';
 import '../accessibility.dart';
 import '../theme/motion.dart';
 import '../theme/theme.dart';
+import 'edges.dart' show CardEdge;
 import 'pressable.dart';
 
 /// One item in a [FloatingBar]: a tab of the phone tab bar or an action of a toolbar.
@@ -224,10 +225,26 @@ class FloatingBarSurface extends StatelessWidget {
     final inner = Padding(
         padding: (padding ?? EdgeInsets.all(FloatingBar.padding(context.look))).add(const EdgeInsets.all(strokeWidth)),
         child: child);
-    if (forceSolid || solid(context)) {
+    final bars = context.look.materials.spec.bars;
+    if (forceSolid || solid(context) || bars == BarMaterial.solid) {
+      // A theme's solid bar keeps the theme's card outline (Sticker's floating capsule).
       return DecoratedBox(
         decoration: context.radius.decorate(BoxDecoration(color: c.surface, borderRadius: MyDataRadii.xl(context.look), boxShadow: shadows.shadow2)),
-        child: inner,
+        child: CardEdge(radius: MyDataRadii.xl(context.look), child: inner),
+      );
+    }
+    // Translucent: the glass without the blur behind it.
+    if (bars == BarMaterial.translucent) {
+      return CustomPaint(
+        painter: _OutsideShadowPainter(shadows.shadowGlass, MyDataRadii.xl(context.look)),
+        child: DecoratedBox(
+          decoration: context.radius.decorate(BoxDecoration(
+            color: c.glassFill,
+            borderRadius: MyDataRadii.xl(context.look),
+            border: Border.all(color: c.glassStroke, width: strokeWidth),
+          )),
+          child: inner,
+        ),
       );
     }
     return CustomPaint(

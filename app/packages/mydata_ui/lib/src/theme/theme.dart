@@ -15,7 +15,7 @@ export 'look.dart'
 export 'icons.dart' show MyDataIcon;
 export 'theme_file.dart'
     show CornerStyle, BorderWidth, BorderStyleKind, BorderColour, Separators, TitleRule, ElevationStyle, PressStyle,
-        EnterStyle, MotionPersonality;
+        EnterStyle, MotionPersonality, BarMaterial, SidebarMaterial, WindowKind;
 
 /// Light, dark, or whatever the device uses. Stored per device.
 enum MyDataMode {

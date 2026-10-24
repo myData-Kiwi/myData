@@ -690,11 +690,14 @@ class Bevel {
 /// Window ground, sidebar and bars (theme.schema.json `materials`).
 @immutable
 class MyDataMaterials {
-  const MyDataMaterials({required this.spec, required this.blur});
+  const MyDataMaterials({required this.spec, required this.blur, this.gradient});
   final MaterialsSpec spec;
 
   /// The backdrop blur behind glass, as a sigma.
   final double blur;
+
+  /// The window gradient's stops in this palette and mode (`window: gradient`); null otherwise.
+  final List<Color>? gradient;
 }
 
 /// Durations, curves, press and entrance (theme.schema.json `motion`). `standard` at scale 1 is
@@ -963,7 +966,8 @@ class MyDataLook extends ThemeExtension<MyDataLook> {
           surface: colors.surface,
           ink: colors.ink,
           dark: brightness == Brightness.dark),
-      materials: MyDataMaterials(spec: s.materials, blur: s.materials.blur),
+      materials: MyDataMaterials(
+          spec: s.materials, blur: s.materials.blur, gradient: p.gradient?.map(_color).toList(growable: false)),
       icons: MyDataIconTheme(s.icons),
       motion: MyDataMotionSpec.of(s.motion),
       variants: MyDataVariants(s.components.values),
@@ -1117,7 +1121,10 @@ class MyDataLook extends ThemeExtension<MyDataLook> {
           glow: BoxShadow.lerpList(elevation.glow, other.elevation.glow, t)!,
           sink: Offset.lerp(elevation.sink, other.elevation.sink, t)!,
           bevel: o.elevation.bevel),
-      materials: MyDataMaterials(spec: o.materials.spec, blur: lerpDouble(materials.blur, other.materials.blur, t)),
+      materials: MyDataMaterials(
+          spec: o.materials.spec,
+          blur: lerpDouble(materials.blur, other.materials.blur, t),
+          gradient: o.materials.gradient),
       icons: o.icons,
       motion: o.motion,
       variants: o.variants,

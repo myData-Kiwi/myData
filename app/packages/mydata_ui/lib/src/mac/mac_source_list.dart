@@ -7,6 +7,8 @@ import '../accessibility.dart';
 import '../generated/tokens.g.dart';
 import '../theme/theme.dart';
 import '../widgets/app_frame.dart' show AppConnection, AppConnectionState, AppSection;
+import '../widgets/pressable.dart' show MyDataRadii;
+import '../widgets/selection.dart';
 import 'mac_chrome.dart';
 import 'mac_theme.dart';
 
@@ -125,6 +127,7 @@ class _Row extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!context.isSystemLook) return _drawn(context);
     final mac = context.mac;
     final ink = emphasised ? mac.onAccent : mac.label;
     // In the label colour, as macOS 26's sidebars draw an SF Symbol label (the SwiftUI prototype's live window).
@@ -166,6 +169,62 @@ class _Row extends StatelessWidget {
       ),
     );
   }
+
+  /// A drawn theme in the Mac window: the same rows, the current one marked in the theme's selection style
+  /// ([SelectionMark]) and its corners, its text in the theme's type.
+  Widget _drawn(BuildContext context) {
+    final c = context.colors;
+    final paint = current ? SelectionPaint.of(context.look) : null;
+    final ink = paint?.foreground ?? c.ink;
+    final radius = MyDataRadii.sm(context.look);
+    final count = section.count;
+    return Semantics(
+      button: true,
+      selected: current,
+      label: count == null || count == 0 ? section.label : '${section.label}, $count${section.countMore ? '+' : ''}',
+      child: ExcludeSemantics(
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onPressed,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: MyDataMacSize.rowInset),
+            child: SelectionMark(
+              selected: current,
+              borderRadius: radius,
+              child: Container(
+                height: MyDataMacSize.sidebarRowHeight,
+                padding: const EdgeInsets.symmetric(horizontal: MyDataMacSize.rowPadding),
+                child: Row(
+                  children: [
+                    Icon(context.icon(section.icon, selected: current),
+                        size: MyDataMacSize.icon, color: current ? (paint?.foreground ?? c.accent) : c.inkMuted),
+                    SizedBox(width: context.space(2)),
+                    Expanded(
+                      child: Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: SelectionHighlight(
+                          child: Builder(
+                            builder: (context) => Text(section.label,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: context.typeScale.body.copyWith(
+                                    color: SelectionMark.of(context)?.highlight != null ? context.colors.ink : ink)),
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (count != null && count > 0)
+                      Text('$count${section.countMore ? '+' : ''}',
+                          style: context.typeScale.caption.copyWith(color: paint?.foreground ?? c.inkMuted)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 /// The Mac frame's sidebar panel around content of the app's own, for an app whose sidebar is not a list of
@@ -189,8 +248,13 @@ class MacSidebar extends StatelessWidget {
   Widget build(BuildContext context) {
     final mac = context.mac;
     final chrome = MacChrome.of(context);
-    // A drawn theme paints its own `sidebar`: the window's material is System's.
-    final solid = chrome.sidebar == null || MyDataAccessibility.of(context).reduceTransparency || !context.isSystemLook;
+    // A drawn theme keeps the window's material where its sidebar is `native` or `translucent`, under a tint
+    // of its own `sidebar`; a `solid` one paints its `sidebar`. Reduced transparency is always solid.
+    final drawn = !context.isSystemLook;
+    final solid = chrome.sidebar == null ||
+        MyDataAccessibility.of(context).reduceTransparency ||
+        (drawn && context.look.materials.spec.sidebar == SidebarMaterial.solid);
+    final tint = drawn && !solid ? mac.sidebarBackground.withValues(alpha: context.colors.glassFill.a) : null;
     final list = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -208,8 +272,8 @@ class MacSidebar extends StatelessWidget {
         decoration: BoxDecoration(borderRadius: radius, border: Border.all(color: mac.separator, width: MyDataMacSize.hairline)),
         child: ClipRRect(
           borderRadius: radius,
-          child: solid
-              ? DecoratedBox(decoration: BoxDecoration(color: mac.sidebarBackground, borderRadius: radius), child: list)
+          child: solid || tint != null
+              ? DecoratedBox(decoration: BoxDecoration(color: tint ?? mac.sidebarBackground, borderRadius: radius), child: list)
               : list,
         ),
       ),

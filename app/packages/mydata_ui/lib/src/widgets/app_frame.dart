@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../accessibility.dart';
 import '../generated/tokens.g.dart';
 import '../theme/theme.dart';
 import 'button.dart';
@@ -9,6 +10,8 @@ import 'kiwi.dart';
 import 'pressable.dart';
 import 'role_label.dart';
 import 'selection.dart';
+import 'tabs.dart';
+import 'window_ground.dart';
 
 /// Which of the three window layouts a width gets (design/platforms.md "Window layouts").
 enum AppLayout {
@@ -205,38 +208,52 @@ class AppFrame extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     assert(sections.isEmpty || (current >= 0 && current < sections.length), 'current must index sections');
-    final c = context.colors;
+    // The theme's sidebar style decides how the sections are drawn from 600px: a column or a source list
+    // over 1024px, the rail at every width, or tabs along the top. Under 600px they are always the phone's
+    // tab bar.
+    final style = context.variants.sidebar;
     return Material(
-      color: c.bg,
-      child: LayoutBuilder(builder: (context, constraints) {
-        final layout = AppLayout.forWidth(constraints.maxWidth);
-        return switch (layout) {
-          AppLayout.sidebar => Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              _Sidebar(frame: this),
-              Expanded(child: child),
-            ]),
-          AppLayout.rail => Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              _Rail(frame: this),
-              Expanded(child: child),
-            ]),
-          AppLayout.phone => _Phone(frame: this),
-        };
-      }),
+      type: MaterialType.transparency,
+      child: WindowGround(
+        child: LayoutBuilder(builder: (context, constraints) {
+          final layout = AppLayout.forWidth(constraints.maxWidth);
+          if (layout == AppLayout.phone) return _Phone(frame: this);
+          if (style == SidebarStyle.tabs) return _Tabbed(frame: this);
+          return Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            layout == AppLayout.rail || style == SidebarStyle.rail
+                ? _Rail(frame: this)
+                : _Sidebar(frame: this, sourceList: style == SidebarStyle.sourceList),
+            Expanded(child: child),
+          ]);
+        }),
+      ),
     );
   }
 }
 
-/// The desktop sidebar.
+/// The sidebar's or rail's ground: `surface` for a column (Kiwi) or the rail, `sidebar` for a source list;
+/// in the theme's sidebar material, see-through over the window ground where it is `translucent` (solid with
+/// reduced transparency; `native` is the Mac window's own material, solid here).
+Color _sidebarGround(BuildContext context, {bool sourceList = false}) {
+  final c = context.colors;
+  final base = sourceList ? c.sidebar : c.surface;
+  final translucent = context.look.materials.spec.sidebar == SidebarMaterial.translucent &&
+      !MyDataAccessibility.of(context).reduceTransparency;
+  return translucent ? base.withValues(alpha: c.glassFill.a) : base;
+}
+
+/// The desktop sidebar: a flush column (Kiwi), or a source list with smaller, inset rows ([sourceList]).
 class _Sidebar extends StatelessWidget {
-  const _Sidebar({required this.frame});
+  const _Sidebar({required this.frame, this.sourceList = false});
   final AppFrame frame;
+  final bool sourceList;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
     return Container(
       width: MyDataSize.sidebarWidth,
-      color: c.surface,
+      color: _sidebarGround(context, sourceList: sourceList),
       padding: EdgeInsets.symmetric(vertical: context.space(4)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Padding(
@@ -269,7 +286,7 @@ class _Rail extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
         width: AppFrame.railWidth,
-        color: context.colors.surface,
+        color: _sidebarGround(context),
         padding: EdgeInsets.symmetric(vertical: context.space(4)),
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Expanded(child: _SectionNav(frame: frame, rail: true)),
@@ -391,7 +408,9 @@ class _SidebarRow extends StatelessWidget {
     final c = context.colors;
     final paint = current ? SelectionPaint.of(context.look) : null;
     final fg = paint == null ? c.inkMuted : (paint.foreground ?? c.accent);
-    final radius = MyDataRadii.pill(context.look);
+    // A source list's rows are smaller and rounded like a list's selection; a column's are pills.
+    final sourceList = context.variants.sidebar == SidebarStyle.sourceList;
+    final radius = sourceList ? MyDataRadii.sm(context.look) : MyDataRadii.pill(context.look);
     return AnimatedContainer(
       duration: context.motion.fast,
       curve: context.motion.standard,
@@ -412,7 +431,7 @@ class _SidebarRow extends StatelessWidget {
           semanticLabel: section.spoken,
           child: ExcludeSemantics(
             child: Container(
-              height: context.density.controlHeight,
+              height: sourceList ? context.density.controlHeightCompact : context.density.controlHeight,
               padding: EdgeInsets.symmetric(horizontal: context.space(3)),
               child: Row(children: [
                 Icon(context.icon(section.icon, selected: current), size: context.density.icon, color: fg),
@@ -509,6 +528,46 @@ class _RailItem extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// The sections as tabs along the top of the content (`sidebar: tabs`), from 600px: the app name in
+/// `title`, the tabs beside it, and the host's state under them while it needs attention.
+class _Tabbed extends StatelessWidget {
+  const _Tabbed({required this.frame});
+  final AppFrame frame;
+
+  @override
+  Widget build(BuildContext context) {
+    final f = frame;
+    final c = context.colors;
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      Container(
+        color: _sidebarGround(context),
+        padding: EdgeInsets.symmetric(horizontal: context.space(6), vertical: context.space(3)),
+        child: Row(children: [
+          Semantics(
+            header: true,
+            child: Text(f.appName, maxLines: 1, style: context.typeScale.title.copyWith(color: c.ink)),
+          ),
+          SizedBox(width: context.space(6)),
+          Expanded(
+            child: MyDataTabs(
+              tabs: [for (final s in f.sections) (s.count ?? 0) > 0 ? '${s.label} ${s.countText}' : s.label],
+              current: f.current,
+              onChanged: f.onSelect,
+              semanticLabel: f.appName,
+            ),
+          ),
+        ]),
+      ),
+      if (f.connection.state != AppConnectionState.connected || f.connection.lastUpdated != null)
+        Padding(
+          padding: EdgeInsets.fromLTRB(context.space(6), context.space(2), context.space(6), 0),
+          child: _ConnectionLine(connection: f.connection),
+        ),
+      Expanded(child: f.child),
+    ]);
   }
 }
 

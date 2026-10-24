@@ -395,4 +395,81 @@ void main() {
       expect(seen.length, greaterThanOrEqualTo(6));
     });
   });
+
+  group('the frame', () {
+    Widget frame(FocusNode focus) => AppFrame(
+          appName: 'myContacts',
+          sections: const [
+            AppSection(icon: MyDataIcon.people, label: 'Contacts'),
+            AppSection(icon: MyDataIcon.trash, label: 'Deleted'),
+            AppSection(icon: MyDataIcon.review, label: 'Review', count: 4),
+          ],
+          current: 0,
+          onSelect: (_) {},
+          child: const PageScaffold(title: 'Contacts', children: [Text('Ava Fictional')]),
+        );
+    // The branded frame over 1024px, in each sidebar style, on Frosted's gradient where it is translucent.
+    variantGoldens('sidebar', frame, size: const Size(1100, 360), focused: false);
+    variantGoldens('sidebar', frame,
+        size: const Size(1100, 360),
+        focused: false,
+        values: ['column'],
+        name: 'translucent-pattern',
+        also: styleGroup('materials', {
+          'window': {
+            'kind': 'pattern',
+            'pattern': {'kind': 'margin-rule', 'spacing': 24, 'opacity': 0.12, 'colour': 'accent'},
+          },
+          'sidebar': 'translucent',
+        }));
+
+    // A drawn theme in the Mac window: its source list and toolbar band in each toolbar style.
+    for (final toolbar in componentValues['toolbar']!) {
+      for (final b in Brightness.values) {
+        testWidgets('variant golden: toolbar $toolbar in the Mac window, ${b.name}', (tester) async {
+          debugDisableShadows = false;
+          tester.view.physicalSize = const Size(900, 260);
+          tester.view.devicePixelRatio = 1;
+          addTearDown(tester.view.reset);
+          final look = ThemeLibrary.look(kiwiWith(component('toolbar', toolbar)), brightness: b, platform: TargetPlatform.macOS);
+          await tester.pumpWidget(MaterialApp(
+            debugShowCheckedModeBanner: false,
+            theme: MacTheme.drawn(look),
+            home: Builder(
+              builder: (context) => Material(
+                color: context.mac.contentBackground,
+                child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                  MacSourceList(
+                    sections: const [
+                      AppSection(icon: MyDataIcon.people, label: 'Contacts'),
+                      AppSection(icon: MyDataIcon.review, label: 'Review', count: 4),
+                    ],
+                    current: 0,
+                    onSelect: (_) {},
+                    connection: const AppConnection.connected(),
+                  ),
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                      MacToolbar(
+                        title: 'Contacts',
+                        trailing: [MacToolbarButton(icon: MyDataIcon.add, label: 'New contact', onPressed: noop)],
+                      ),
+                      const Expanded(child: SizedBox()),
+                    ]),
+                  ),
+                ]),
+              ),
+            ),
+          ));
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull);
+          try {
+            await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/variant.toolbar-$toolbar.${b.name}.png'));
+          } finally {
+            debugDisableShadows = true;
+          }
+        });
+      }
+    }
+  });
 }
