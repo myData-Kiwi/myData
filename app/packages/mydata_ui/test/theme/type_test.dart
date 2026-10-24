@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mydata_ui/mydata_ui.dart';
 import 'package:mydata_ui/src/theme/catalogue.dart';
+import 'package:mydata_ui/src/theme/strict_json.dart';
 import 'package:mydata_ui/src/theme/theme_file.dart';
 
 import 'designed_themes.dart';
@@ -137,6 +138,19 @@ void main() {
     expect(frosted.title.fontFamily, 'packages/mydata_ui/Sora');
     expect(frosted.body.fontFamily, 'packages/mydata_ui/Manrope');
     expect(designedLook('mydata.kiwi', Brightness.light).typeScale.body.fontFamily, MyDataType.body.fontFamily);
+    // The sizes the rules' typography tables give for the small roles (frosted and paperback RULES.md).
+    expect([frosted.label.fontSize, frosted.caption.fontSize, frosted.mono.fontSize], [13, 13, 13]);
+    expect(frosted.label.fontVariations, [const FontVariation('wght', 600)]);
+    expect([paperback.label.fontSize, paperback.caption.fontSize, paperback.mono.fontSize], [14, 13, 14]);
+  });
+
+  test('every designed built-in sets every type role itself: none is left to the base and ratio', () {
+    for (final e in designedThemeTexts().entries) {
+      final type = (readStrictJson(e.value) as Map<String, Object?>)['type'] as Map<String, Object?>?;
+      if (type == null) continue; // System: the platform's own type.
+      final roles = (type['roles'] as Map<String, Object?>).keys.toSet();
+      expect(roles, {for (final r in TypeRole.values) r.key}, reason: e.key);
+    }
   });
 
   testWidgets('a theme with upper-case labels sets a control\'s label and a status in capitals, never a name',

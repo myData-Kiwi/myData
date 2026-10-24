@@ -400,6 +400,21 @@
         "size": 15,
         "line-height": 1.5,
         "weight": 700
+      },
+      "label": {
+        "size": 13,
+        "line-height": 1.38,
+        "weight": 600
+      },
+      "caption": {
+        "size": 13,
+        "line-height": 1.38,
+        "weight": 400
+      },
+      "mono": {
+        "size": 13,
+        "line-height": 1.54,
+        "weight": 400
       }
     }
   },

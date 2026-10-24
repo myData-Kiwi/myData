@@ -368,6 +368,11 @@
         "size": 13,
         "line-height": 1.4,
         "weight": 400
+      },
+      "mono": {
+        "size": 14,
+        "line-height": 1.5,
+        "weight": 400
       }
     }
   },

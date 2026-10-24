@@ -11,7 +11,7 @@ Twilight glass. A still evening sky (a static gradient, periwinkle to blush by d
 | Role | Font | Size / line height / weight |
 |---|---|---|
 | Display, titles, headings | Sora | 40 / 30 / 22 / 17 px, weight 600, tracking −0.02 to 0 em |
-| Body, labels, captions | Manrope | 15 px / 1.5, 400; strong 700; label 13, caption 13 |
+| Body, labels, captions | Manrope | 15 px / 1.5, 400; strong 700; label 13 (600), caption 13 |
 | Mono (times, numbers you copy) | JetBrains Mono | 13 px |
 
 Proportional numerals. No upper-case labels.
