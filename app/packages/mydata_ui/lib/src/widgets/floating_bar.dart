@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/foundation.dart';
@@ -9,6 +10,7 @@ import '../accessibility.dart';
 import '../theme/motion.dart';
 import '../theme/theme.dart';
 import 'edges.dart' show CardEdge;
+import 'input_box.dart';
 import 'pressable.dart';
 
 /// One item in a [FloatingBar]: a tab of the phone tab bar or an action of a toolbar.
@@ -196,9 +198,24 @@ class FloatingBarSurface extends StatelessWidget {
     required this.child,
     this.padding,
     this.forceSolid = false,
+    this.field = false,
   });
 
   final Widget child;
+
+  /// The bar is a place to type (the assistant's composer). Drawn solid in a theme that outlines its fields
+  /// but not its cards (E-ink), it takes a field's outline, so it never sits on the page as bare text.
+  final bool field;
+
+  /// A field's outline at rest in [look], as a text field draws it: the theme's edge colour and width where
+  /// it outlines its controls in a line that is not `line`, else `line-strong`, at least 1px.
+  static BorderSide fieldSide(MyDataLook look) {
+    final edges = look.edges;
+    final themed = edges.controls && edges.spec.colour != BorderColour.line;
+    return BorderSide(
+        color: themed ? edges.colour : look.colors.lineStrong,
+        width: edges.controls ? math.max(InputBox.borderWidth, edges.width) : InputBox.borderWidth);
+  }
 
   /// Draws the solid fallback even where glass is allowed. Spec: "Reduced transparency, the web build and
   /// slow devices: the fill is surface with shadow-2 and no blur." Pass true on a slow device (one where the
@@ -227,10 +244,18 @@ class FloatingBarSurface extends StatelessWidget {
         child: child);
     final bars = context.look.materials.spec.bars;
     if (forceSolid || solid(context) || bars == BarMaterial.solid) {
-      // A theme's solid bar keeps the theme's card outline (Sticker's floating capsule).
+      // A theme's solid bar keeps the theme's card outline (Sticker's floating capsule); a composer in a
+      // theme that outlines fields but not cards takes a field's outline instead.
+      final look = context.look;
+      final radius = MyDataRadii.xl(look);
+      final fieldEdge = field && look.edges.card == null && look.variants.inputs == InputStyle.outlined;
       return DecoratedBox(
-        decoration: context.radius.decorate(BoxDecoration(color: c.surface, borderRadius: MyDataRadii.xl(context.look), boxShadow: shadows.shadow2)),
-        child: CardEdge(radius: MyDataRadii.xl(context.look), child: inner),
+        decoration: context.radius.decorate(BoxDecoration(
+            color: c.surface,
+            borderRadius: radius,
+            boxShadow: shadows.shadow2,
+            border: fieldEdge ? Border.fromBorderSide(fieldSide(look)) : null)),
+        child: CardEdge(radius: radius, child: inner),
       );
     }
     // Translucent: the glass without the blur behind it.

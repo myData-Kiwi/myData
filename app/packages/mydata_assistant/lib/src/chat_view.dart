@@ -601,8 +601,9 @@ class _ErrorRow extends StatelessWidget {
   }
 }
 
-/// The input bar: a borderless field and the send button on the floating glass pill. The pill draws the
-/// focus ring when the field was reached with the keyboard.
+/// The input bar: a borderless field and the send button on the floating glass pill, which takes a field's
+/// outline where a solid one would otherwise be bare (E-ink). The pill draws the focus ring when the field
+/// was reached with the keyboard.
 class _Composer extends StatelessWidget {
   const _Composer({
     required this.input,
@@ -627,6 +628,7 @@ class _Composer extends StatelessWidget {
       visible: ring,
       borderRadius: MyDataRadii.xl(context.look),
       child: FloatingBarSurface(
+        field: true,
         padding: EdgeInsetsDirectional.fromSTEB(
           context.space(4),
           FloatingBar.padding(context.look),

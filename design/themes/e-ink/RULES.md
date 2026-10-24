@@ -68,7 +68,7 @@ Phosphor Regular, bare (no tiles), never coloured. The current section's icon sw
 | List | Ruled: full-width rules between rows, no box |
 | Selection | Inverse (the row in ink, its text in paper) |
 | Sidebar, toolbar | A column and a flat band, each with a rule |
-| Inputs | Outlined |
+| Inputs | Outlined, 1 px ink; the assistant's composer too, which would otherwise sit on the page as bare text |
 | Avatar | A grey circle (`accent-soft`), initials in ink |
 | Tabs | Underline, 2 px ink |
 | Chat | Bubbles, outlined |

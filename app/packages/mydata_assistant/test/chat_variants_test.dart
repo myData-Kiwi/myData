@@ -92,4 +92,32 @@ void main() {
       await expectLater(find.byKey(ChatView.sendKey), matchesGoldenFile('goldens/send.$slug.light.png'));
     });
   }
+
+  // The composer is a place to type: on E-ink's solid, unboxed page it takes a field's 1px ink outline, as
+  // every field there has (its rules: inputs outlined); High Contrast and Large keep their card outline.
+  for (final (slug, b) in [('e-ink', Brightness.light), ('e-ink', Brightness.dark)]) {
+    testWidgets('the composer is outlined as a field in $slug, ${b.name}', (tester) async {
+      tester.view.physicalSize = const Size(640, 200);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final look = ThemeLibrary.lookFor(ThemeChoice('mydata.$slug'), b, platform: TargetPlatform.linux);
+      await tester.pumpWidget(MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: MyDataTheme.fromLook(look).copyWith(platform: TargetPlatform.linux),
+        home: Material(color: look.colors.bg, child: ChatView(controller: ChatController(ScriptedBackend()))),
+      ));
+      await tester.pumpAndSettle();
+      final bar = find.ancestor(of: find.byKey(ChatView.inputKey), matching: find.byType(FloatingBarSurface));
+      final edges = [
+        for (final d in tester.widgetList<DecoratedBox>(find.descendant(of: bar, matching: find.byType(DecoratedBox))))
+          switch (d.decoration) {
+            BoxDecoration(:final Border border) => border.top,
+            ShapeDecoration(:final OutlinedBorder shape) => shape.side,
+            _ => BorderSide.none,
+          },
+      ].where((s) => s != BorderSide.none);
+      expect(edges, contains(BorderSide(color: look.colors.ink)));
+      await expectLater(bar, matchesGoldenFile('goldens/composer.$slug.${b.name}.png'));
+    });
+  }
 }
