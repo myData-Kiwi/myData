@@ -156,6 +156,8 @@ void main() {
       await pumpApp(tester, host, store: store);
       expect(await storedThemes(store), {
         'everywhere': {'theme': 'mydata.journal', 'palette': 'plum'},
+        // Kiwi in Plum was drawn before: Appearance says it moved
+        'moved': ['plum'],
       });
       expect(windowAccent(tester), accentOf('plum'));
       expect(host.requests.where((r) => r.contains('/appearance')), isEmpty);
@@ -163,6 +165,37 @@ void main() {
   });
 
   group('Settings', () {
+    testWidgets('a stored Kiwi in Plum is Journal in Plum now, and Appearance says so once', (tester) async {
+      final store = MemoryDeviceStore({
+        'themes': {
+          'everywhere': {'theme': 'mydata.kiwi', 'palette': 'plum'},
+          'apps': {
+            'mycalendar': {'theme': 'mydata.kiwi', 'palette': 'amber'},
+          },
+        },
+      });
+      await pumpApp(tester, FakeHost(), store: store);
+      // never Kiwi in Kiwi, the generic fallback for a palette Kiwi does not have
+      expect(windowAccent(tester), accentOf('plum'));
+      expect(windowAccent(tester), isNot(accentOf('kiwi')));
+      expect((await storedThemes(store))!['everywhere'], {'theme': 'mydata.journal', 'palette': 'plum'});
+      await openSettings(tester);
+      expect(find.text('Plum is now a palette of Journal.'), findsOneWidget);
+      expect(find.text('Amber is now a palette of Paperback.'), findsOneWidget);
+      expect(find.text('Journal, Plum'), findsOneWidget);
+      expect(find.text('Paperback, Amber'), findsOneWidget);
+      // told: the file no longer lists them, though this visit still shows them
+      expect((await storedThemes(store))!.containsKey('moved'), isFalse);
+      await settle(tester);
+      expect(find.text('Plum is now a palette of Journal.'), findsOneWidget);
+      // the next visit has none
+      await tester.tap(find.text('Status'));
+      await settle(tester);
+      await openSettings(tester);
+      expect(find.text('Plum is now a palette of Journal.'), findsNothing);
+      expect(find.text('Amber is now a palette of Paperback.'), findsNothing);
+    });
+
     testWidgets("Appearance lists every app with its theme on this device; Reset follows everywhere", (tester) async {
       final store = MemoryDeviceStore({
         'themes': {

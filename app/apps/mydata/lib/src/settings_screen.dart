@@ -61,7 +61,10 @@ class SettingsScreen extends StatelessWidget {
 /// - **Themes:** the themes on this device and their palettes. Duplicate, Edit, Export and Import come with
 ///   custom themes (phase 5).
 /// - A stored choice this build does not have (a theme removed, a palette renamed) says what it draws instead.
-class AppearanceSection extends StatelessWidget {
+/// - **Once,** after a choice of Kiwi in one of today's old colours moved to that colour's theme (phase 3,
+///   ARCHITECTURE.md 4.2): "Plum is now a palette of Journal." It stays while the section is shown and is
+///   then told ([ThemeController.acknowledgeMoved]), so the next visit has none.
+class AppearanceSection extends StatefulWidget {
   const AppearanceSection({super.key, required this.themes});
 
   final ThemeController themes;
@@ -83,6 +86,13 @@ class AppearanceSection extends StatelessWidget {
   /// "myCalendar's theme is not on this device: it draws System." (ARCHITECTURE.md 4.1)
   static String missing(String who, ThemeChoice drawn) =>
       "$who's theme is not on this device: it draws ${ThemeLibrary.describe(drawn)}.";
+
+  /// "Plum is now a palette of Journal." for the old colour [colour] (`plum`).
+  static String moved(String colour) {
+    final to = ThemeLibrary.movedColours[colour]!;
+    final theme = ThemeLibrary.byId(to.theme)!;
+    return '${theme.palette(to.palette)!.name} is now a palette of ${theme.name}.';
+  }
 
   /// The apps in Settings' order: myData first, then the others.
   static const apps = MyDataAppId.values;
@@ -107,12 +117,36 @@ class AppearanceSection extends StatelessWidget {
   static String aboutTheme(ThemeFile theme) =>
       [theme.blurb ?? '', palettesOf(theme)].where((x) => x.isNotEmpty).join(' ');
 
+  @override
+  State<AppearanceSection> createState() => _AppearanceSectionState();
+}
+
+class _AppearanceSectionState extends State<AppearanceSection> {
+  ThemeController get themes => widget.themes;
+
+  /// The old colours moved that this visit shows, kept while the section is (the file loses them once told).
+  final _moved = <String>[];
+
+  /// Shows the colours newly listed as moved, and tells the controller they have been said.
+  void _takeMoved() {
+    final fresh = themes.settings.moved.where((c) => !_moved.contains(c)).toList();
+    if (fresh.isEmpty) return;
+    _moved.addAll(fresh);
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      try {
+        await themes.acknowledgeMoved(fresh);
+      } on Object {
+        // Not stored: said again on the next visit.
+      }
+    });
+  }
+
   /// The gallery for [app], or for everywhere when null.
   Future<void> _change(BuildContext context, {MyDataAppId? app}) => showThemeGalleryFor(
     context,
     themes,
     app: MyDataAppId.mydata,
-    choosingFor: apps,
+    choosingFor: AppearanceSection.apps,
     initialApp: app ?? MyDataAppId.mydata,
     everywhere: app == null,
   );
@@ -122,7 +156,7 @@ class AppearanceSection extends StatelessWidget {
     try {
       await themes.setMode(mode);
     } on Object {
-      messenger?.showSnackBar(const SnackBar(content: Text(failed)));
+      messenger?.showSnackBar(const SnackBar(content: Text(AppearanceSection.failed)));
     }
   }
 
@@ -131,7 +165,7 @@ class AppearanceSection extends StatelessWidget {
     try {
       await themes.reset(app.name);
     } on Object {
-      messenger?.showSnackBar(const SnackBar(content: Text(failed)));
+      messenger?.showSnackBar(const SnackBar(content: Text(AppearanceSection.failed)));
     }
   }
 
@@ -140,9 +174,9 @@ class AppearanceSection extends StatelessWidget {
     final s = themes.settings;
     return [
       if (s.everywhere != null && !ThemeLibrary.knows(s.everywhere!))
-        missing(everywhereLabel, ThemeLibrary.normalise(s.everywhere)),
-      for (final a in apps)
-        if (s.apps[a.name] case final c? when !ThemeLibrary.knows(c)) missing(a.displayName, ThemeLibrary.normalise(c)),
+        AppearanceSection.missing(AppearanceSection.everywhereLabel, ThemeLibrary.normalise(s.everywhere)),
+      for (final a in AppearanceSection.apps)
+        if (s.apps[a.name] case final c? when !ThemeLibrary.knows(c)) AppearanceSection.missing(a.displayName, ThemeLibrary.normalise(c)),
     ];
   }
 
@@ -150,24 +184,30 @@ class AppearanceSection extends StatelessWidget {
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: themes,
     builder: (context, _) {
+      _takeMoved();
       final missingNow = _missing();
+      final movedNow = [for (final c in _moved) AppearanceSection.moved(c)];
       Widget change(MyDataAppId? app, String who) => Button(
-        label: changeLabel,
+        label: AppearanceSection.changeLabel,
         variant: ButtonVariant.tonal,
         semanticLabel: 'Change $who',
         onPressed: () => _change(context, app: app),
       );
       Widget reset(MyDataAppId app) => Button(
-        label: resetLabel,
+        label: AppearanceSection.resetLabel,
         variant: ButtonVariant.plain,
         semanticLabel: 'Reset ${app.displayName}',
-        disabledReason: resetReason,
+        disabledReason: AppearanceSection.resetReason,
         onPressed: themes.settings.followsEverywhere(app.name) ? null : () => _reset(context, app),
       );
       if (MacWindow.of(context)) {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            for (final m in movedNow) ...[
+              Notice(message: m),
+              SizedBox(height: context.space(3)),
+            ],
             for (final m in missingNow) ...[
               Notice(message: m, tone: NoticeTone.warning),
               SizedBox(height: context.space(3)),
@@ -175,41 +215,41 @@ class AppearanceSection extends StatelessWidget {
             MacFormSection(
               rows: [
                 MacFormRow(
-                  title: heading,
+                  title: AppearanceSection.heading,
                   trailing: [
                     MacSegmented<MyDataMode>(
-                      segments: modes,
+                      segments: AppearanceSection.modes,
                       selected: themes.mode,
                       onChanged: (m) => _setMode(context, m),
-                      semanticLabel: heading,
+                      semanticLabel: AppearanceSection.heading,
                     ),
                   ],
                 ),
                 MacFormRow(
-                  title: everywhereLabel,
-                  subtitle: describeEverywhere(themes),
-                  trailing: [if (canUseEverywhere) change(null, everywhereLabel)],
+                  title: AppearanceSection.everywhereLabel,
+                  subtitle: AppearanceSection.describeEverywhere(themes),
+                  trailing: [if (canUseEverywhere) change(null, AppearanceSection.everywhereLabel)],
                 ),
               ],
-              footer: everywhereNote,
+              footer: AppearanceSection.everywhereNote,
             ),
             SizedBox(height: MacForm.gap(context.look)),
             MacFormSection(
-              heading: appsHeading,
+              heading: AppearanceSection.appsHeading,
               rows: [
-                for (final a in apps)
+                for (final a in AppearanceSection.apps)
                   MacFormRow(
                     title: a.displayName,
-                    subtitle: describe(themes, a),
+                    subtitle: AppearanceSection.describe(themes, a),
                     trailing: [reset(a), change(a, a.displayName)],
                   ),
               ],
             ),
             SizedBox(height: MacForm.gap(context.look)),
             MacFormSection(
-              heading: libraryHeading,
-              footer: libraryFooter,
-              rows: [for (final t in ThemeLibrary.offered) MacFormRow(title: t.name, subtitle: aboutTheme(t))],
+              heading: AppearanceSection.libraryHeading,
+              footer: AppearanceSection.libraryFooter,
+              rows: [for (final t in ThemeLibrary.offered) MacFormRow(title: t.name, subtitle: AppearanceSection.aboutTheme(t))],
             ),
           ],
         );
@@ -227,24 +267,25 @@ class AppearanceSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           GroupedSection(
-            heading: heading,
+            heading: AppearanceSection.heading,
             parts: [
               GroupedContentPart(
                 child: GroupedStack(
                   children: [
+                    for (final m in movedNow) Notice(message: m),
                     for (final m in missingNow) Notice(message: m, tone: NoticeTone.warning),
                     GroupedControl(
-                      label: modeLabel,
+                      label: AppearanceSection.modeLabel,
                       child: SegmentedControl<MyDataMode>(
-                        segments: modes,
+                        segments: AppearanceSection.modes,
                         selected: themes.mode,
                         onChanged: (m) => _setMode(context, m),
-                        semanticLabel: modeLabel,
+                        semanticLabel: AppearanceSection.modeLabel,
                       ),
                     ),
                     GroupedControl(
-                      label: everywhereLabel,
-                      child: line(describeEverywhere(themes), [if (canUseEverywhere) change(null, everywhereLabel)]),
+                      label: AppearanceSection.everywhereLabel,
+                      child: line(AppearanceSection.describeEverywhere(themes), [if (canUseEverywhere) change(null, AppearanceSection.everywhereLabel)]),
                     ),
                   ],
                 ),
@@ -253,16 +294,16 @@ class AppearanceSection extends StatelessWidget {
           ),
           SizedBox(height: context.space(6)),
           GroupedSection(
-            heading: appsHeading,
+            heading: AppearanceSection.appsHeading,
             parts: [
               GroupedContentPart(
                 child: GroupedStack(
                   children: [
-                    for (final a in apps)
+                    for (final a in AppearanceSection.apps)
                       GroupedControl(
                         label: a.displayName,
                         holdsName: true,
-                        child: line(describe(themes, a), [change(a, a.displayName), reset(a)]),
+                        child: line(AppearanceSection.describe(themes, a), [change(a, a.displayName), reset(a)]),
                       ),
                   ],
                 ),
@@ -271,8 +312,8 @@ class AppearanceSection extends StatelessWidget {
           ),
           SizedBox(height: context.space(6)),
           GroupedList(
-            heading: libraryHeading,
-            rows: [for (final t in ThemeLibrary.offered) GroupedRow(title: t.name, subtitle: aboutTheme(t))],
+            heading: AppearanceSection.libraryHeading,
+            rows: [for (final t in ThemeLibrary.offered) GroupedRow(title: t.name, subtitle: AppearanceSection.aboutTheme(t))],
           ),
         ],
       );

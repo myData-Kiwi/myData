@@ -17,17 +17,26 @@ import 'platform.dart';
 /// ```
 ///
 /// An app draws its own choice ([apps]), else [everywhere], else System ([choiceFor]).
+///
+/// `moved` lists the old colours whose choices were moved to the theme each now belongs to
+/// ([ThemeSettings.movedOver]), until myData's Appearance has said so ([ThemeController.acknowledgeMoved]).
 @immutable
 class ThemeSettings {
-  const ThemeSettings({this.everywhere, this.apps = const {}});
+  const ThemeSettings({this.everywhere, this.apps = const {}, this.moved = const []});
 
   /// The settings key.
   static const key = 'themes';
+
+  /// The key under [key] that lists the old colours moved and not yet told.
+  static const movedKey = 'moved';
 
   final ThemeChoice? everywhere;
 
   /// Each app's own choice, by its id ([MyDataAppId.name]: `mycontacts`).
   final Map<String, ThemeChoice> apps;
+
+  /// The old colours (`plum`) whose choices were moved to their new theme, not yet told in myData.
+  final List<String> moved;
 
   /// What [app] draws: its own choice, else the everywhere one, else System.
   ThemeChoice choiceFor(String app) => apps[app] ?? everywhere ?? ThemeChoice.system;
@@ -40,6 +49,7 @@ class ThemeSettings {
   static ThemeSettings? fromJson(Object? value) {
     if (value is! Map) return null;
     final apps = value['apps'];
+    final moved = value[movedKey];
     return ThemeSettings(
       everywhere: ThemeChoice.fromJson(value['everywhere']),
       apps: {
@@ -47,7 +57,44 @@ class ThemeSettings {
           for (final e in apps.entries)
             if (e.key is String) e.key as String: ?ThemeChoice.fromJson(e.value),
       },
+      moved: [
+        if (moved is List)
+          for (final c in moved)
+            if (c is String && ThemeLibrary.movedColours.containsKey(c)) c,
+      ],
     );
+  }
+
+  /// The `themes` value [raw] with every choice of Kiwi in one of today's old colours (`{"theme":
+  /// "mydata.kiwi", "palette": "plum"}`) moved to the theme that colour now belongs to, in that palette
+  /// (Journal in Plum, [ThemeLibrary.movedColours]; ARCHITECTURE.md 4.2), and those colours added to
+  /// [movedKey] so myData's Appearance says so once. Everything else is kept as written. Null when there is
+  /// nothing to move.
+  static Map<String, Object?>? movedOver(Object? raw) {
+    if (raw is! Map) return null;
+    final colours = <String>[];
+    Object? move(Object? choice) {
+      final to = ThemeLibrary.moved(ThemeChoice.fromJson(choice));
+      if (to == null) return choice;
+      colours.add(ThemeChoice.fromJson(choice)!.palette!);
+      return to.toJson();
+    }
+
+    final out = <String, Object?>{
+      for (final e in raw.entries)
+        if (e.key is String) e.key as String: e.value,
+    };
+    if (out.containsKey('everywhere')) out['everywhere'] = move(out['everywhere']);
+    if (out['apps'] case final Map apps) {
+      out['apps'] = {
+        for (final e in apps.entries)
+          if (e.key is String) e.key as String: move(e.value),
+      };
+    }
+    if (colours.isEmpty) return null;
+    final before = out[movedKey] is List ? (out[movedKey] as List).whereType<String>() : const <String>[];
+    out[movedKey] = {...before, ...colours}.toList();
+    return out;
   }
 
   /// As written. A palette on a theme without palettes (System) is never written ([stored]).
@@ -105,14 +152,21 @@ class ThemeSettings {
   }
 
   ThemeSettings copyWith({ThemeChoice? everywhere, Map<String, ThemeChoice>? apps}) =>
-      ThemeSettings(everywhere: everywhere ?? this.everywhere, apps: apps ?? this.apps);
+      ThemeSettings(everywhere: everywhere ?? this.everywhere, apps: apps ?? this.apps, moved: moved);
 
   @override
   bool operator ==(Object other) =>
-      other is ThemeSettings && other.everywhere == everywhere && mapEquals(other.apps, apps);
+      other is ThemeSettings &&
+      other.everywhere == everywhere &&
+      mapEquals(other.apps, apps) &&
+      listEquals(other.moved, moved);
 
   @override
-  int get hashCode => Object.hash(everywhere, Object.hashAllUnordered(apps.entries.map((e) => (e.key, e.value))));
+  int get hashCode => Object.hash(
+    everywhere,
+    Object.hashAllUnordered(apps.entries.map((e) => (e.key, e.value))),
+    Object.hashAll(moved),
+  );
 }
 
 /// What a Use everywhere changed, for its Undo ([ThemeController.restore]).
@@ -144,10 +198,15 @@ class EverywhereUndo {
 ///   that fails is ignored, and a change fails with that error, writing nothing.
 /// - **Migration**, once per device, when the file has no `themes` key (ARCHITECTURE.md 4.2): on macOS every
 ///   app starts on System (the Mac shell already ignored the host's theme, so nothing on screen changes);
-///   elsewhere "everywhere" is seeded with the colour someone chose on the host, as Kiwi in that palette
-///   ([ThemeLibrary.fromColour]: `plum` is Kiwi, Plum), which is exactly what was drawn. The host's default
-///   colour (`kiwi`, what a host where nobody chose reports) seeds System, the default, which draws Kiwi in
-///   Kiwi until each platform's own pass, so nothing on screen changes and the device follows that pass.
+///   elsewhere "everywhere" is seeded with the colour someone chose on the host, in the theme that colour
+///   belongs to now (`plum` is Journal, Plum; moved as below). The host's default colour (`kiwi`, what a host
+///   where nobody chose reports) seeds System, the default, which draws Kiwi in Kiwi until each platform's
+///   own pass, so nothing on screen changes and the device follows that pass.
+/// - **The old colours move** (phase 3, ARCHITECTURE.md 4.2): a stored choice of Kiwi in `graphite`, `dusk`,
+///   `plum`, `rose` or `amber` (phase 2's gallery offered them; an older build may write one again) is
+///   written as the theme that colour belongs to, in that palette, whenever it is read
+///   ([ThemeSettings.movedOver]), and the colour is listed for myData's Appearance to say so once
+///   ([acknowledgeMoved]). It is drawn that way before the write lands ([ThemeLibrary.normalise]).
 ///   The device's `lastTheme` is read first: the old controller wrote the host's theme there at every poll,
 ///   so it is the host's theme without waiting for the host (an app opened while the host starts draws it
 ///   at once, as before). Without it, the host's deprecated status `theme` is read once it answers; until
@@ -251,13 +310,19 @@ class ThemeController extends ChangeNotifier {
       if (v[ThemeSettings.key] == null) {
         final seed = _seed(v);
         if (seed != null) {
-          v = await store.update(
-            (now) => now[ThemeSettings.key] == null
-                ? {...now, ThemeSettings.key: ThemeSettings(everywhere: seed).toJson()}
-                : now,
-          );
+          v = await store.update((now) {
+            if (now[ThemeSettings.key] != null) return now;
+            final seeded = ThemeSettings(everywhere: seed).toJson();
+            return {...now, ThemeSettings.key: ThemeSettings.movedOver(seeded) ?? seeded};
+          });
           if (_disposed || generation != _generation) return;
         }
+      } else if (ThemeSettings.movedOver(v[ThemeSettings.key]) != null) {
+        v = await store.update((now) {
+          final moved = ThemeSettings.movedOver(now[ThemeSettings.key]);
+          return moved == null ? now : {...now, ThemeSettings.key: moved};
+        });
+        if (_disposed || generation != _generation) return;
       }
     } on DeviceStoreUnreadable {
       // Keep drawing what was read last; the next poll tries again.
@@ -285,10 +350,14 @@ class ThemeController extends ChangeNotifier {
     return _chosenOnHost(_hostTheme()) ?? ThemeChoice.system;
   }
 
-  /// Kiwi in [colour], one of the host's old colours; System for the host's default, which a host where
-  /// nobody chose reports too; null for none or one this build does not know.
+  /// Kiwi in [colour], one of the host's old colours, as phase 2 drew it (the write moves it to its theme
+  /// now, [ThemeSettings.movedOver]); System for the host's default, which a host where nobody chose reports
+  /// too; null for none or one this build does not know.
   static ThemeChoice? _chosenOnHost(String? colour) {
     if (colour == defaultHostColour) return ThemeChoice.system;
+    if (colour != null && ThemeLibrary.movedColours.containsKey(colour)) {
+      return ThemeChoice(ThemeLibrary.kiwiId, colour);
+    }
     return ThemeLibrary.fromColour(colour);
   }
 
@@ -425,6 +494,26 @@ class ThemeController extends ChangeNotifier {
   /// Reset: [app] (this app when null) follows the everywhere choice again.
   Future<void> reset([String? app]) async {
     await _change((s) => s.copyWith(apps: {...s.apps}..remove(app ?? appId)));
+  }
+
+  /// myData's Appearance has said that [colours] moved to their new themes: they are taken off the list, so
+  /// it is said once. Another app's write meanwhile is kept.
+  Future<void> acknowledgeMoved(Iterable<String> colours) async {
+    if (_disposed) return;
+    final told = colours.toSet();
+    ++_generation;
+    final v = await store.update((now) {
+      final raw = now[ThemeSettings.key];
+      if (raw is! Map || raw[ThemeSettings.movedKey] is! List) return now;
+      final left = (raw[ThemeSettings.movedKey] as List).where((c) => !told.contains(c)).toList();
+      final out = <String, Object?>{
+        for (final e in raw.entries)
+          if (e.key is String && e.key != ThemeSettings.movedKey) e.key as String: e.value,
+        if (left.isNotEmpty) ThemeSettings.movedKey: left,
+      };
+      return {...now, ThemeSettings.key: out};
+    });
+    if (!_disposed) _apply(v);
   }
 
   /// Light, dark or match system, for this device (every myData app on it follows). Drawn at once; when it

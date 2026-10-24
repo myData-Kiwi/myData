@@ -154,7 +154,12 @@ void main() {
         await c.start();
         final want = ThemeLibrary.movedColours[colour]!;
         expect(c.choice, want);
-        expect(await _themes(store), {'everywhere': want.toJson()});
+        // the device drew Kiwi in that colour before, so myData's Appearance says it moved, once
+        expect(await _themes(store), {
+          'everywhere': want.toJson(),
+          'moved': [colour],
+        });
+        expect(c.settings.moved, [colour]);
         for (final b in Brightness.values) {
           final before = MyDataTheme.data(colour, b).extension<MyDataColors>()!;
           final now = (b == Brightness.dark ? c.theme.dark : c.theme.light).extension<MyDataColors>()!;
@@ -209,7 +214,10 @@ void main() {
       host.answer('dusk');
       await _until(() => c.migrated);
       expect(c.choice, frostedDusk);
-      expect(await _themes(store), {'everywhere': frostedDusk.toJson()});
+      expect(await _themes(store), {
+        'everywhere': frostedDusk.toJson(),
+        'moved': ['dusk'],
+      });
       c.dispose();
     });
 
@@ -249,6 +257,100 @@ void main() {
       expect(b.choice, const ThemeChoice('mydata.paperback', 'amber'));
       a.dispose();
       b.dispose();
+    });
+  });
+
+  group('the old colours move to their themes (phase 3)', () {
+    test('Kiwi in an old colour, everywhere or for an app, is written as that colour\'s theme, and listed', () {
+      final raw = {
+        'everywhere': {'theme': 'mydata.kiwi', 'palette': 'plum', 'contrast': 'more'},
+        'apps': {
+          'mycontacts': {'theme': 'mydata.kiwi', 'palette': 'rose'},
+          'mycalendar': {'theme': 'mydata.kiwi', 'palette': 'sky'},
+          'myassistant': {'theme': 'mydata.system'},
+          'mynotes': {'custom': 'later-format'},
+        },
+        'library': ['someone.neon'],
+        'moved': ['amber'],
+      };
+      expect(ThemeSettings.movedOver(raw), {
+        // a choice of another theme starts afresh, as its palette does
+        'everywhere': {'theme': 'mydata.journal', 'palette': 'plum'},
+        'apps': {
+          'mycontacts': {'theme': 'mydata.sticker', 'palette': 'rose'},
+          'mycalendar': {'theme': 'mydata.kiwi', 'palette': 'sky'},
+          'myassistant': {'theme': 'mydata.system'},
+          'mynotes': {'custom': 'later-format'},
+        },
+        'library': ['someone.neon'],
+        'moved': ['amber', 'plum', 'rose'],
+      });
+      expect(ThemeSettings.movedOver({'everywhere': {'theme': 'mydata.kiwi', 'palette': 'kiwi'}}), isNull);
+      expect(ThemeSettings.movedOver({'everywhere': journalPlum.toJson()}), isNull);
+      expect(ThemeSettings.movedOver(null), isNull);
+      expect(ThemeSettings.fromJson({'moved': ['plum', 'teal', 3]})!.moved, ['plum']);
+    });
+
+    test('a stored Kiwi in Plum is drawn as Journal in Plum at once, never Kiwi in Kiwi, and written so', () async {
+      final store = MemoryDeviceStore({
+        'mode': 'dark',
+        'themes': {
+          'everywhere': {'theme': 'mydata.kiwi', 'palette': 'plum'},
+          'apps': {'mycalendar': {'theme': 'mydata.kiwi', 'palette': 'graphite'}},
+        },
+      });
+      // on a Mac too: phase 2's gallery offered Kiwi in the old colours there
+      final c = _controller(store, mac: true);
+      final calendar = _controller(store, app: 'mycalendar', mac: true);
+      await Future.wait([c.start(), calendar.start()]);
+      expect(ThemeLibrary.normalise(c.choice), journalPlum);
+      expect(c.theme.choice, journalPlum);
+      expect(calendar.theme.choice, const ThemeChoice('mydata.hairline', 'graphite'));
+      expect(await _themes(store), {
+        'everywhere': journalPlum.toJson(),
+        'apps': {'mycalendar': {'theme': 'mydata.hairline', 'palette': 'graphite'}},
+        'moved': ['plum', 'graphite'],
+      });
+      expect((await store.read())['mode'], 'dark');
+      c.dispose();
+      calendar.dispose();
+    });
+
+    test('an older build writing Kiwi in an old colour again is moved again when read', () async {
+      final store = MemoryDeviceStore({'themes': {'everywhere': journalPlum.toJson()}});
+      final c = _controller(store, mac: true);
+      await c.start();
+      expect(c.settings.moved, isEmpty);
+      await store.write({
+        'themes': {'everywhere': {'theme': 'mydata.kiwi', 'palette': 'dusk'}},
+      });
+      await _until(() => c.choice == frostedDusk);
+      expect(c.settings.moved, ['dusk']);
+      c.dispose();
+    });
+
+    test('once told, the moved colours are taken off the list; what else is there is kept', () async {
+      final store = MemoryDeviceStore({
+        'themes': {
+          'everywhere': {'theme': 'mydata.kiwi', 'palette': 'plum'},
+          'apps': {'mycalendar': {'theme': 'mydata.kiwi', 'palette': 'rose'}},
+          'library': ['someone.neon'],
+        },
+      });
+      final c = _controller(store, mac: true);
+      await c.start();
+      expect(c.settings.moved, ['plum', 'rose']);
+      await c.acknowledgeMoved(['plum']);
+      expect(c.settings.moved, ['rose']);
+      expect((await _themes(store))!['moved'], ['rose']);
+      await c.acknowledgeMoved(['rose']);
+      expect(c.settings.moved, isEmpty);
+      expect(await _themes(store), {
+        'everywhere': journalPlum.toJson(),
+        'apps': {'mycalendar': {'theme': 'mydata.sticker', 'palette': 'rose'}},
+        'library': ['someone.neon'],
+      });
+      c.dispose();
     });
   });
 
