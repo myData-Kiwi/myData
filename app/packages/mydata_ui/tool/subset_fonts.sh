@@ -45,6 +45,8 @@ newsreader|newsreader|Newsreader-Italic[opsz,wght].ttf|796668611f80b64d5adf182fd
 archivo-black|archivoblack|ArchivoBlack-Regular.ttf|dd9a89a019b4849f66ab75455fe7bdf931311042cbb0f0f97acc061539703180||
 space-grotesk|spacegrotesk|SpaceGrotesk[wght].ttf|acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72||
 pixelify-sans|pixelifysans|PixelifySans[wght].ttf|9ba86cd010a4de309d263ceff8e8044092c9db7efda869620cb9ff1c4389e8a5||
+chakra-petch|chakrapetch|ChakraPetch-SemiBold.ttf|45264de3204ddbd5fb3e14a2402acd5c630d16650ae5fc221d2c52da46a6734b||
+outfit|outfit|Outfit[wght].ttf|fc7287273e66929776e2ba54f144fe699080bec29f61bf649d70d871468aeade||
 EOF
 )
 # The core fonts' extra static weights (declared in the pubspec and registered when the app starts): the
