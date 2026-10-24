@@ -117,7 +117,7 @@ final class GroupedValueChevron extends GroupedTrailing {
 /// - [enabled] false, on a row that does something, shows it at 45% opacity, not focusable, announced as
 ///   disabled. A switch row is disabled when its `onChanged` is null.
 /// - Assistive technology reads the row as one node: title, subtitle, then the value or chip.
-class GroupedRow extends StatelessWidget {
+class GroupedRow extends StatelessWidget implements LeadingTile {
   const GroupedRow({
     super.key,
     this.icon,
@@ -196,6 +196,9 @@ class GroupedRow extends StatelessWidget {
 
   /// Whether this is a switch row ([GroupedRow.toggle]).
   bool get isSwitch => switchValue != null;
+
+  @override
+  bool get hasLeadingTile => icon != null;
 
   /// Row geometry: `space-4` across, `space-2` down (preview: `padding:8px 16px`).
   static EdgeInsets padding(MyDataLook look) => EdgeInsets.symmetric(horizontal: look.space(4), vertical: look.space(2));

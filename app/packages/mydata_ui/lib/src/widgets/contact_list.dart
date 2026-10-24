@@ -1488,7 +1488,7 @@ class _ContactRowState extends State<_ContactRow> {
             if (!widget.first)
               EdgeRule(
                   extent: GroupFrame.dividerWidth,
-                  inset: GroupFrame.separatorInset(context.look),
+                  inset: GroupFrame.textStart(context.look, lead: true),
                   colour: widget.joinsUp ? c.accentSoft : null),
             Expanded(child: content),
           ],

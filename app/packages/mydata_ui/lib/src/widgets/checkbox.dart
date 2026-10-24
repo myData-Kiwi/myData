@@ -466,7 +466,8 @@ class _CheckboxListState extends State<CheckboxList> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             for (var i = 0; i < drawn; i++) ...[
-              if (i > 0) EdgeRule(extent: GroupFrame.dividerWidth, inset: GroupFrame.separatorInset(context.look)),
+              if (i > 0)
+                EdgeRule(extent: GroupFrame.dividerWidth, inCard: true, inset: GroupFrame.textStart(context.look, lead: true)),
               GroupPartShape(
                 borderRadius: shapeOf(i),
                 child: _CheckboxListRow(
@@ -503,12 +504,15 @@ class _CheckboxListState extends State<CheckboxList> {
 }
 
 /// The select-all row: its own Tab stop, with a mixed state.
-class _SelectAllRow extends StatelessWidget {
+class _SelectAllRow extends StatelessWidget implements LeadingTile {
   const _SelectAllRow({required this.title, required this.caption, required this.value, required this.onToggle});
   final String title;
   final String caption;
   final bool? value;
   final VoidCallback? onToggle;
+
+  @override
+  bool get hasLeadingTile => true;
 
   @override
   Widget build(BuildContext context) {

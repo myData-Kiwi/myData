@@ -170,12 +170,22 @@ class BevelPainter extends CustomPainter {
 /// (where the row's text starts), across the whole width for `full`. It is [MyDataEdges.separatorExtent]
 /// tall, unless [extent] fixes it (a list whose row heights are counted ahead draws it in its slot).
 /// [colour] stands in for the theme's (a run of selected rows hides it in its own fill).
+///
+/// [inCard]: the rule is inside a group with the theme's card outline. A double outline's inner line runs
+/// two widths in from the edge; the rule then stops at that inner line instead of crossing it to the outer
+/// one ([innerOutlineInset]).
 class EdgeRule extends StatelessWidget {
-  const EdgeRule({super.key, this.inset = 0, this.colour, this.extent});
+  const EdgeRule({super.key, this.inset = 0, this.colour, this.extent, this.inCard = false});
 
   final double inset;
   final Color? colour;
   final double? extent;
+  final bool inCard;
+
+  /// How far in from a card's sides its rules start and end: to the inner line of a double outline (which
+  /// lies from two to three widths in), else nothing.
+  static double innerOutlineInset(MyDataEdges edges) =>
+      edges.card != null && edges.style == BorderStyleKind.doubleLine ? edges.width * 2 : 0;
 
   @override
   Widget build(BuildContext context) {
@@ -183,31 +193,35 @@ class EdgeRule extends StatelessWidget {
     final height = extent ?? edges.separatorExtent;
     if (height <= 0) return const SizedBox.shrink();
     if (edges.separators == Separators.none) return SizedBox(height: height);
+    final side = inCard ? innerOutlineInset(edges) : 0.0;
     return CustomPaint(
       size: Size.fromHeight(height),
       painter: _RulePainter(
         side: BorderSide(color: colour ?? edges.colour, width: math.min(edges.width, height)),
         style: edges.style,
-        start: edges.separators == Separators.inset ? inset : 0,
+        start: math.max(side, edges.separators == Separators.inset ? inset : 0),
+        end: side,
         textDirection: Directionality.of(context),
       ),
     );
   }
 }
 
-/// A horizontal rule in [style], [start] in from the leading edge.
+/// A horizontal rule in [style], [start] in from the leading edge and [end] in from the trailing one.
 class _RulePainter extends CustomPainter {
-  _RulePainter({required this.side, required this.style, required this.start, required this.textDirection});
+  _RulePainter({required this.side, required this.style, required this.start, this.end = 0, required this.textDirection});
   final BorderSide side;
   final BorderStyleKind style;
   final double start;
+  final double end;
   final TextDirection textDirection;
 
   @override
   void paint(Canvas canvas, Size size) {
     final w = side.width;
-    final from = textDirection == TextDirection.rtl ? 0.0 : start;
-    final to = textDirection == TextDirection.rtl ? size.width - start : size.width;
+    final rtl = textDirection == TextDirection.rtl;
+    final from = rtl ? end : start;
+    final to = size.width - (rtl ? start : end);
     if (to <= from) return;
     Path line(double y) => Path()
       ..moveTo(from, y)
@@ -223,7 +237,11 @@ class _RulePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_RulePainter old) =>
-      old.side != side || old.style != style || old.start != start || old.textDirection != textDirection;
+      old.side != side ||
+      old.style != style ||
+      old.start != start ||
+      old.end != end ||
+      old.textDirection != textDirection;
 }
 
 /// The rule under a page's title (`borders.title-rule`): one or two lines in the theme's edge colour and

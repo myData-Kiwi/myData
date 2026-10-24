@@ -6,6 +6,7 @@ import 'package:flutter/widgets.dart';
 import '../theme/theme.dart';
 import 'badge.dart';
 import 'button.dart';
+import 'group_frame.dart' show LeadingTile;
 import 'grouped_list.dart';
 import 'icon_tile.dart';
 import 'status.dart';
@@ -30,7 +31,7 @@ import 'status.dart';
 ///   if they still do not fit. A caption is never squeezed into a narrow, tall column.
 /// - An item that cannot be acted on any more (a revoked token) keeps its row and chip and loses its
 ///   buttons; its chip is the inactive one, [MyDataTone.neutral]: red is for errors.
-class ActionRow extends StatelessWidget {
+class ActionRow extends StatelessWidget implements LeadingTile {
   ActionRow({
     super.key,
     this.icon,
@@ -76,6 +77,9 @@ class ActionRow extends StatelessWidget {
   /// The least width the text keeps beside the chip and buttons before they move under it, unless the
   /// text is narrower than this anyway (preview: `.narrow .r .txt{flex:1 1 200px}`).
   static double minTextWidth(MyDataLook look) => look.space(10) * 5;
+
+  @override
+  bool get hasLeadingTile => icon != null;
 
   @override
   Widget build(BuildContext context) {

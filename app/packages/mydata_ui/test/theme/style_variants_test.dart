@@ -250,6 +250,17 @@ void main() {
     });
   }
 
+  testWidgets('an inset separator starts where the row above it starts its text', (tester) async {
+    await pumpSpecimen(tester, variantTheme(_set('borders', {'separators': 'inset'})), Brightness.light);
+    final list = find.byType(GroupedList);
+    final rules = tester.widgetList<EdgeRule>(find.descendant(of: list, matching: find.byType(EdgeRule))).toList();
+    final left = tester.getTopLeft(list).dx;
+    // Under Mobile and iCloud, which have icon tiles: from their titles' start.
+    expect(rules, hasLength(2));
+    expect(rules[0].inset, tester.getTopLeft(find.text('Mobile')).dx - left);
+    expect(rules[1].inset, tester.getTopLeft(find.text('iCloud')).dx - left);
+  });
+
   group('the platform floor', () {
     // The harness holds every golden at the desktop's 24; this one shows Android's real 48.
     setUp(() => MyDataDensity.debugFloor = null);

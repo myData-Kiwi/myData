@@ -31,8 +31,10 @@ class GroupFrame extends StatelessWidget {
   /// [MyDataEdges.separatorExtent] tall ([EdgeRule]), and lists that count their rows ahead keep this slot.
   static const dividerWidth = 1.0;
 
-  /// Where an `inset` separator starts: at the rows' own padding.
-  static double separatorInset(MyDataLook look) => look.space(4);
+  /// Where a row's text starts, and so an `inset` separator below it: the row's padding, then, when it
+  /// [lead]s with an icon tile, an avatar or a checkbox (all `icon-tile` wide), the tile and the gap.
+  static double textStart(MyDataLook look, {bool lead = false}) =>
+      look.space(4) + (lead ? look.density.iconTile + look.space(3) : 0);
 
   /// Preview: `.lbl{margin:0 0 8px 6px}`: `space-2` below; 6px in, snapped to `space-2`.
   static EdgeInsets headingPadding(MyDataLook look) => EdgeInsets.only(left: look.space(2), bottom: look.space(2));
@@ -88,7 +90,12 @@ class GroupFrame extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             for (var i = 0; i < parts.length; i++) ...[
-              if (i > 0) EdgeRule(inset: separatorInset(context.look)),
+              // Under each row, from where that row's text starts (as iOS lists do).
+              if (i > 0)
+                EdgeRule(
+                  inCard: true,
+                  inset: textStart(context.look, lead: parts[i - 1] is LeadingTile && (parts[i - 1] as LeadingTile).hasLeadingTile),
+                ),
               GroupPartShape(borderRadius: shapeOf(i), child: parts[i]),
             ],
           ],
@@ -111,6 +118,12 @@ class GroupFrame extends StatelessWidget {
       ],
     );
   }
+}
+
+/// A part of a group that may start with a tile (an icon tile, an avatar, a checkbox): an `inset` separator
+/// below it then starts where its text does ([GroupFrame.textStart]).
+abstract interface class LeadingTile {
+  bool get hasLeadingTile;
 }
 
 /// Passes a part its corner shape within the group (square in the middle, rounded at the ends).
