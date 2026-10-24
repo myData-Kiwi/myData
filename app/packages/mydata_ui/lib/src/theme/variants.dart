@@ -214,13 +214,14 @@ enum ChatStyle with KeyedEnum {
 
 /// How the month grid's day cells are drawn.
 enum MonthStyle with KeyedEnum {
-  /// Separate rounded cells with a gap between them (Kiwi).
+  /// The month in a card on `surface` with `radius-lg` and a lift, each day boxed by `line` rules (Kiwi, as
+  /// drawn today; its RULES.md's "cells with a gap" is not built: open for the owner).
   boxed('boxed'),
 
   /// No cells: the days on the ground, a rule between the weeks (Hairline, Journal).
   open('open'),
 
-  /// One ruled grid, a line between every day, in an outline (Ledger, Swiss).
+  /// One ruled grid in the control outline's colour, `radius-sm`, no lift (Ledger, Swiss).
   table('table');
 
   const MonthStyle(this.key);

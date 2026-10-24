@@ -192,6 +192,42 @@ class AvatarSpecimen extends StatelessWidget {
       ]);
 }
 
+/// October 2026 with today (the 13th) apart from the selected day (the 16th), events in four calendars.
+class MonthSpecimen extends StatelessWidget {
+  const MonthSpecimen({super.key, this.focus});
+  final FocusNode? focus;
+
+  static final events = <DateTime, List<MonthGridEvent>>{
+    DateTime(2026, 10, 13): [
+      MonthGridEvent(title: 'Dentist', calendarName: 'Personal', colour: parseDataColour('#1BADF8')),
+      MonthGridEvent(title: 'Choir', calendarName: 'Choir', colour: parseDataColour('#CC73E1')),
+    ],
+    DateTime(2026, 10, 16): [
+      MonthGridEvent(title: 'Train to Leeds', calendarName: 'Work', colour: parseDataColour('#FF2968'), allDay: true),
+      MonthGridEvent(title: 'Dinner', calendarName: 'Family', colour: parseDataColour('#63DA38')),
+    ],
+    DateTime(2026, 10, 21): [
+      MonthGridEvent(title: 'Quarter review', calendarName: 'Work', colour: parseDataColour('#FF2968')),
+    ],
+    DateTime(2026, 10, 24): [
+      MonthGridEvent(title: 'Market', calendarName: 'Family', colour: parseDataColour('#63DA38')),
+      MonthGridEvent(title: 'Bins', calendarName: 'Home', colour: parseDataColour('#FFCC00')),
+    ],
+  };
+
+  @override
+  Widget build(BuildContext context) => MonthGrid(
+        month: DateTime(2026, 10),
+        today: DateTime(2026, 10, 13),
+        selected: DateTime(2026, 10, 16),
+        firstDayOfWeek: DateTime.monday,
+        events: events,
+        focusNode: focus,
+        onSelected: (_) {},
+        onMonthChanged: (_) {},
+      );
+}
+
 void main() {
   group('buttons', () {
     for (final key in ['button.primary', 'button.secondary', 'button.shape']) {
@@ -338,5 +374,13 @@ void main() {
           await tester.sendKeyEvent(LogicalKeyboardKey.tab);
           await tester.pumpAndSettle();
         });
+  });
+
+  group('the month', () {
+    const size = Size(900, 840);
+    variantGoldens('month', (focus) => MonthSpecimen(focus: focus), size: size);
+    variantGoldens('today', (focus) => MonthSpecimen(focus: focus), size: size, focused: false);
+    // The selected day in each selection style, focused by keyboard.
+    variantGoldens('selection', (focus) => MonthSpecimen(focus: focus), size: size, name: 'month');
   });
 }

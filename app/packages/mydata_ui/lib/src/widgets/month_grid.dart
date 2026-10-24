@@ -9,6 +9,7 @@ import 'button.dart';
 import 'data_colour.dart';
 import 'icon_button.dart';
 import 'pressable.dart';
+import 'selection.dart' show SelectionMark, inkAs;
 
 /// One event on one day of a [MonthGrid]: what the cell needs to draw it and to name its calendar.
 ///
@@ -50,8 +51,12 @@ class MonthGridEvent {
 ///   wraps between words beside the buttons; when one of its words would not fit there (a large text size
 ///   on a phone), it takes its own line above them. The optional [notice] (a [Notice] giving the range
 ///   myData reads) sits between them and the grid.
-/// - **The grid** is one `surface` group with `radius-lg` and `shadow-1`, as wide as it is given, cells
-///   separated by `line` dividers. Short weekday names in `caption` and `ink-muted` head the columns. It
+/// - **The grid**, in the theme's month style (`components.month`): Kiwi's `boxed` is one `surface` group
+///   with `radius-lg` and `shadow-1`, as wide as it is given, cells separated by `line` dividers; `open`
+///   leaves the days on the ground with a rule between the weeks only; `table` rules every day in the
+///   control outline's colour inside an outline with `radius-sm` and no lift. Today is the theme's `today`
+///   mark (Kiwi's disc below; a ring; or the whole cell in `ink`), and the selected day the theme's
+///   selection ([DaySelection]). Short weekday names in `caption` and `ink-muted` head the columns. It
 ///   always shows six weeks, starting on [firstDayOfWeek] (the locale's when null), filled from the months
 ///   before and after.
 /// - **A cell:** `space-2` padding, the day number at its top start in `body`, then up to three event lines:
@@ -163,6 +168,17 @@ class MonthGrid extends StatefulWidget {
 
   /// The selection ring: "2px `ink` inside the cell's edge".
   static const selectionRingWidth = 2.0;
+
+  /// Today's ring (`today: ring`) around the number.
+  static const todayRingWidth = 2.0;
+
+  /// The grid's corners in [look]'s month style: `radius-lg` for the boxed card, `radius-sm` for a table,
+  /// none for open cells.
+  static BorderRadius gridRadius(MyDataLook look) => switch (look.variants.month) {
+        MonthStyle.boxed => MyDataRadii.lg(look),
+        MonthStyle.table => MyDataRadii.sm(look),
+        MonthStyle.open => BorderRadius.zero,
+      };
 
   /// The hover edge: "a 1px `line-strong` edge inside the cell".
   static const hoverEdgeWidth = 1.0;
@@ -662,13 +678,18 @@ class _Grid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final look = context.look;
+    final style = look.variants.month;
     final days = MonthGrid.visibleDays(month, firstDay);
-    final divider = Container(height: MonthGrid.dividerWidth, color: c.line);
+    // A table rules its grid in the control outline's colour; the others in `line`.
+    final rule = style == MonthStyle.table ? look.edges.controlColour : c.line;
+    final divider = Container(height: MonthGrid.dividerWidth, color: rule);
     final weekdayStyle = context.typeScale.caption.copyWith(color: c.inkMuted);
 
     Widget columns(List<Widget> children) => Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           for (var i = 0; i < children.length; i++) ...[
-            if (i > 0) Container(width: MonthGrid.dividerWidth, color: c.line),
+            // Open cells have no rule between the days, only between the weeks.
+            if (i > 0) Container(width: MonthGrid.dividerWidth, color: style == MonthStyle.open ? null : rule),
             Expanded(child: children[i]),
           ],
         ]);
@@ -689,7 +710,8 @@ class _Grid extends StatelessWidget {
                     style: weekdayStyle))),
     ]);
 
-    final corner = Radius.circular(context.radius.lg);
+    final radius = MonthGrid.gridRadius(look);
+    final corner = radius.bottomLeft;
     final weeksBody = Column(
       key: ValueKey(_key(month)),
       mainAxisSize: MainAxisSize.min,
@@ -724,8 +746,20 @@ class _Grid extends StatelessWidget {
     );
 
     return DecoratedBox(
-      decoration: context.radius.decorate(BoxDecoration(color: c.surface, borderRadius: MyDataRadii.lg(context.look), boxShadow: context.shadows.shadow1)),
-      child: Column(
+      decoration: switch (style) {
+        MonthStyle.boxed =>
+          context.radius.decorate(BoxDecoration(color: c.surface, borderRadius: radius, boxShadow: context.shadows.shadow1)),
+        MonthStyle.open => const BoxDecoration(),
+        MonthStyle.table => context.radius.decorate(BoxDecoration(color: c.surface, borderRadius: radius)),
+      },
+      position: DecorationPosition.background,
+      child: DecoratedBox(
+       position: DecorationPosition.foreground,
+       decoration: style == MonthStyle.table
+           ? context.radius.decorate(BoxDecoration(
+               borderRadius: radius, border: Border.all(color: rule, width: MonthGrid.dividerWidth)))
+           : const BoxDecoration(),
+       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -739,6 +773,7 @@ class _Grid extends StatelessWidget {
             child: weeksBody,
           ),
         ],
+      ),
       ),
     );
   }
@@ -788,18 +823,31 @@ class _CellState extends State<_Cell> {
     final ground = widget.notRead
         ? DataGround.surfaceSunken
         : (widget.selected ? DataGround.accentSoft : DataGround.surface);
-    final fill = widget.notRead ? c.surfaceSunken : (widget.selected ? c.accentSoft : null);
+    // The selected day in the theme's selection style, or today's whole cell when today is `inverse`.
+    final day = DaySelection.of(context);
+    final inverseToday = widget.today && !widget.selected && context.variants.today == TodayStyle.inverse;
+    final fill = widget.notRead
+        ? c.surfaceSunken
+        : (widget.selected ? day.fill : (inverseToday ? c.ink : null));
+    final foreground = widget.notRead ? null : (widget.selected ? day.foreground : (inverseToday ? c.bg : null));
     final muted = !widget.inMonth;
+    // Text on a solid, inverse or highlighted fill takes the fill's own colour.
+    final ink = foreground ?? c.ink, inkMuted = foreground ?? c.inkMuted;
 
     final scaler = MediaQuery.textScalerOf(context);
     final number = _DayNumber(
-        day: widget.day, today: widget.today, selected: widget.selected, notRead: widget.notRead, outside: muted);
+        day: widget.day,
+        today: widget.today,
+        selected: widget.selected,
+        notRead: widget.notRead,
+        outside: muted,
+        onFill: foreground == null ? null : fill);
 
     final overflow = shown.length > MonthGrid.maxLines;
     final visible = overflow ? shown.sublist(0, MonthGrid.maxLines - 1) : shown;
     final more = overflow
         ? Text('+${shown.length - visible.length}',
-            maxLines: 1, softWrap: false, style: context.typeScale.caption.copyWith(color: c.inkMuted))
+            maxLines: 1, softWrap: false, style: context.typeScale.caption.copyWith(color: inkMuted))
         : null;
     final captionLine = MonthGrid.captionLineHeight(context.look, scaler);
 
@@ -824,7 +872,7 @@ class _CellState extends State<_Cell> {
           ),
       ];
     } else {
-      final textColour = muted ? c.inkMuted : c.ink;
+      final textColour = muted ? inkMuted : ink;
       marks = [
         for (final e in visible)
           Row(children: [
@@ -835,13 +883,13 @@ class _CellState extends State<_Cell> {
                     maxLines: 1,
                     softWrap: false,
                     overflow: TextOverflow.ellipsis,
-                    style: context.typeScale.caption.copyWith(color: e.title.isEmpty ? c.inkMuted : textColour))),
+                    style: context.typeScale.caption.copyWith(color: e.title.isEmpty ? inkMuted : textColour))),
           ]),
         ?more,
       ];
     }
 
-    final content = Padding(
+    Widget content = Padding(
       padding: EdgeInsets.all(widget.compact ? MonthGrid.compactCellPadding(context.look) : MonthGrid.cellPadding(context.look)),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -869,7 +917,7 @@ class _CellState extends State<_Cell> {
               hover: hover,
               hoverColour: c.lineStrong,
               selected: widget.selected,
-              ringColour: c.ink,
+              ringColour: day.ring,
               focused: widget.selected && widget.showFocus,
               focusColour: FocusRing.colourFor(context),
               corners: context.radius,
@@ -877,7 +925,11 @@ class _CellState extends State<_Cell> {
             ),
             child: child,
           ),
-          child: Align(alignment: AlignmentDirectional.topStart, widthFactor: 1, heightFactor: 1, child: content),
+          child: Align(
+              alignment: AlignmentDirectional.topStart,
+              widthFactor: 1,
+              heightFactor: 1,
+              child: foreground == null ? content : inkAs(context, foreground, child: content)),
         ),
       ),
     );
@@ -912,22 +964,41 @@ class _CellState extends State<_Cell> {
 /// `on-accent`; else in `body`, `ink-muted` for a day not read, `ink` when selected, `ink-muted` outside the
 /// month. Shared by the grid's cells and [MonthGridDay], so the two cannot drift apart.
 class _DayNumber extends StatelessWidget {
-  const _DayNumber(
-      {required this.day, required this.today, required this.selected, required this.notRead, required this.outside});
+  const _DayNumber({
+    required this.day,
+    required this.today,
+    required this.selected,
+    required this.notRead,
+    required this.outside,
+    this.onFill,
+    this.inverseDisc = false,
+  });
   final DateTime day;
   final bool today;
   final bool selected;
   final bool notRead;
   final bool outside;
 
+  /// The fill under the number when it is a solid one (`ink` and `ink-muted` are then its text colour): a
+  /// disc for today is drawn in that text colour, with the number in the fill's.
+  final Color? onFill;
+
+  /// Today `inverse` without a cell to fill (a date picker's day): an `ink` disc with the number in `bg`.
+  final bool inverseDisc;
+
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final Color colour = today
-        ? c.onAccent
+    final style = context.variants.today;
+    // Today: a disc (Kiwi), a ring, or (inverse) the whole cell, which the cell fills.
+    final disc = today && (style == TodayStyle.disc || inverseDisc);
+    final ring = today && style == TodayStyle.ring;
+    final discColour = onFill != null ? c.ink : (inverseDisc ? c.ink : c.accent);
+    final Color colour = disc
+        ? (onFill ?? (inverseDisc ? c.bg : c.onAccent))
         : notRead
             ? c.inkMuted
-            : selected
+            : (selected || today)
                 ? c.ink
                 : (outside ? c.inkMuted : c.ink);
     final box = MonthGrid.numberBoxSize(context.look, MediaQuery.textScalerOf(context));
@@ -935,12 +1006,41 @@ class _DayNumber extends StatelessWidget {
       width: box,
       height: box,
       alignment: Alignment.center,
-      decoration: today ? BoxDecoration(color: c.accent, shape: BoxShape.circle) : null,
+      decoration: disc
+          ? BoxDecoration(color: discColour, shape: BoxShape.circle)
+          : ring
+              ? BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: onFill != null ? c.ink : c.accent, width: MonthGrid.todayRingWidth))
+              : null,
       child: Text('${day.day}',
           maxLines: 1,
           softWrap: false,
           style: (today ? context.typeScale.bodyStrong : context.typeScale.body).copyWith(color: colour)),
     );
+  }
+}
+
+/// How the selected day is marked in a look's selection style: a fill, the text colour on it, and the ring
+/// inside the cell's edge. A tint or bar is today's `accent-soft` fill and `ink` ring; an outline the ring in
+/// `selection` with no fill; solid, inverse and highlighter fill the day (`selection`, `ink`, `selection`)
+/// with its text in `on-selection` or `bg`, and need no ring.
+@immutable
+class DaySelection {
+  const DaySelection({this.fill, this.foreground, this.ring});
+  final Color? fill;
+  final Color? foreground;
+  final Color? ring;
+
+  factory DaySelection.of(BuildContext context) {
+    final c = context.colors;
+    final style = SelectionMark.isMacSystem(context) ? SelectionStyle.tint : context.variants.selection;
+    return switch (style) {
+      SelectionStyle.tint || SelectionStyle.bar => DaySelection(fill: c.accentSoft, ring: c.ink),
+      SelectionStyle.outline => DaySelection(ring: c.selection),
+      SelectionStyle.solid || SelectionStyle.highlighter => DaySelection(fill: c.selection, foreground: c.onSelection),
+      SelectionStyle.inverse => DaySelection(fill: c.ink, foreground: c.bg),
+    };
   }
 }
 
@@ -996,14 +1096,25 @@ class _MonthGridDayState extends State<MonthGridDay> {
     final c = context.colors;
     final w = widget;
     final pressable = !w.unavailable && w.onPressed != null;
-    Widget number = _DayNumber(day: w.day, today: w.today, selected: w.selected, notRead: false, outside: !w.inMonth);
+    final day = DaySelection.of(context);
+    final foreground = w.selected ? day.foreground : null;
+    Widget number = _DayNumber(
+        day: w.day,
+        today: w.today,
+        selected: w.selected,
+        notRead: false,
+        outside: !w.inMonth,
+        onFill: foreground == null ? null : day.fill,
+        inverseDisc: context.variants.today == TodayStyle.inverse);
+    if (foreground != null) number = inkAs(context, foreground, child: number);
     if (w.unavailable) number = Opacity(opacity: Pressable.disabledOpacity, child: number);
     final cell = SizedBox.square(
       dimension: w.size ?? context.density.controlHeight,
       child: AnimatedContainer(
         duration: context.motion.fast,
         curve: context.motion.standard,
-        decoration: BoxDecoration(color: w.selected ? c.accentSoft : c.accentSoft.withValues(alpha: 0), shape: BoxShape.circle),
+        decoration: BoxDecoration(
+            color: w.selected && day.fill != null ? day.fill : c.accentSoft.withValues(alpha: 0), shape: BoxShape.circle),
         child: TweenAnimationBuilder<double>(
           tween: Tween(end: _hovered && !w.selected && !w.unavailable ? 1 : 0),
           duration: context.motion.fast,
@@ -1014,7 +1125,7 @@ class _MonthGridDayState extends State<MonthGridDay> {
               hover: hover,
               hoverColour: c.lineStrong,
               selected: w.selected,
-              ringColour: c.ink,
+              ringColour: day.ring,
               focused: w.focused,
               focusColour: FocusRing.colourFor(context),
               corners: context.radius,
@@ -1061,7 +1172,9 @@ class _MarksPainter extends CustomPainter {
   final double hover;
   final Color hoverColour;
   final bool selected;
-  final Color ringColour;
+
+  /// The selection ring; null where the fill marks the day (a solid or inverse selection).
+  final Color? ringColour;
   final bool focused;
   final Color focusColour;
 
@@ -1093,8 +1206,9 @@ class _MarksPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    final ring = ringColour;
     if (selected) {
-      _ring(canvas, size, 0, MonthGrid.selectionRingWidth, ringColour);
+      if (ring != null) _ring(canvas, size, 0, MonthGrid.selectionRingWidth, ring);
     } else if (hover > 0) {
       _ring(canvas, size, 0, MonthGrid.hoverEdgeWidth, hoverColour.withValues(alpha: hoverColour.a * hover));
     }
