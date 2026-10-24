@@ -63,12 +63,12 @@ Phosphor Regular, the current section filled, on outlined tiles (cut, like every
 | Part | Variant |
 |---|---|
 | Buttons | Primary filled with cut corners and its glow; secondary outline; plain text |
-| Lists | Cards: each row a cut-corner panel |
+| Lists | Cards: each row a cut-corner panel with its bright edge |
 | Selection | Bar: a 3 px accent bar with a faint tint |
 | Sidebar, toolbar | A column; a flat band |
 | Inputs | Outlined in the edge colour |
-| Avatars | Cut-corner squares |
-| Tabs | Underline in the accent, upper-case labels |
+| Avatars | Cut-corner squares (a square avatar takes the theme's cut, at a rounded tile's radius) |
+| Tabs | Underline in the accent; labels in sentence case (format 1 sets case on the label and caption roles only, and a tab's label is neither) |
 | Chat | Cut-corner bubbles |
 | Month, today | Boxed cells; today an accent ring |
 

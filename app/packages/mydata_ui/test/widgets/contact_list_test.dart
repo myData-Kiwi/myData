@@ -504,6 +504,22 @@ void main() {
           isFalse);
     });
 
+    // A card list draws each row as the theme's card, with its card edge (Arcade's bright 1 px edge).
+    testWidgets('a card list\'s rows carry the card edge (arcade)', (tester) async {
+      tester.view.physicalSize = const Size(900, 700);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+          themedFrame(const ThemeCase('arcade', Brightness.light), _Harness(contacts: _people(), selected: 'a2')));
+      await tester.pump();
+      final look = MyDataLook.of(tester.element(find.text('Eli Sample')));
+      expect(look.variants.list, ListStyle.cards);
+      expect(look.edges.card, isNotNull);
+      for (final name in ['Eli Sample', 'Ava Fictional']) {
+        expect(find.ancestor(of: find.text(name), matching: find.byType(CardEdge)), findsOneWidget, reason: name);
+      }
+    });
+
     testWidgets('hover fills an unselected row with surface-sunken; the selected row keeps accent-soft', (
       tester,
     ) async {

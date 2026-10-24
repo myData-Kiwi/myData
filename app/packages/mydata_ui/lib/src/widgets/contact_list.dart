@@ -1709,6 +1709,8 @@ class _ContactRowState extends State<_ContactRow> {
         child: piece,
       );
     }
+    // A card list's card carries the theme's card edge (Arcade's bright 1 px edge), as its other cards do.
+    if (cards) piece = CardEdge(radius: shape, child: piece);
     if (card) {
       piece = CustomPaint(
           painter: _CardPieceShadow(context.shadows.shadow1, radius: listRadius.topLeft.x, first: first, last: last),

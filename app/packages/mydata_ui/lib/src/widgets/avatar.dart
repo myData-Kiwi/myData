@@ -47,7 +47,7 @@ enum AvatarSize {
 
 /// A picture of a person: their photo when the host has one, otherwise their initials
 /// (design/components/Avatar), in the theme's avatar style (`components.avatar`): a circle (Kiwi), a rounded
-/// tile (`radius-sm`, `radius-lg` at 96px), a square, a `shape` (a red circle, a blue square or a yellow
+/// tile (`radius-sm`, `radius-lg` at 96px), a square (cut at those radii where the theme's corners are cut), a `shape` (a red circle, a blue square or a yellow
 /// triangle, the same for the same name; Geometric) or `none`, where nothing is drawn and the row or header
 /// leaves out the avatar's place too ([shown]).
 ///
@@ -129,6 +129,10 @@ class Avatar extends StatelessWidget {
 
     final (MyDataShape shape, BorderRadius radius) = switch (style) {
       AvatarStyle.rounded => (look.shape, BorderRadius.circular(size == AvatarSize.small ? look.shape.sm : look.shape.lg)),
+      // A square, but cut in a theme whose corners are cut (Arcade's cut-corner squares), at the radius a
+      // rounded tile would take.
+      AvatarStyle.square when look.shape.corners == CornerStyle.cut =>
+        (look.shape, BorderRadius.circular(size == AvatarSize.small ? look.shape.sm : look.shape.lg)),
       AvatarStyle.square => (look.shape.withCorners(CornerStyle.square), BorderRadius.zero),
       AvatarStyle.shape when geometric == AvatarShape.square => (look.shape.withCorners(CornerStyle.square), BorderRadius.zero),
       // A circle: round whatever the theme's corners or its controls' radius.

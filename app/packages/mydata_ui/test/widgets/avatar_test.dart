@@ -256,6 +256,27 @@ void main() {
     }
   });
 
+  // A square avatar follows a cut-corner theme's chamfer (Arcade's cut-corner squares, its RULES); in a
+  // theme with square corners (Swiss) it stays a plain square.
+  for (final (slug, cut) in [('arcade', true), ('swiss', false)]) {
+    testWidgets('a square avatar in $slug is ${cut ? 'cut at its corners' : 'a plain square'}', (tester) async {
+      await tester.pumpWidget(themedFrame(ThemeCase(slug, Brightness.light), const Avatar(name: 'Ava Fictional')));
+      final look = MyDataLook.of(tester.element(find.byType(Avatar)));
+      expect(look.variants.avatar, AvatarStyle.square);
+      final decoration = tester
+          .widgetList<DecoratedBox>(find.descendant(of: find.byType(Avatar), matching: find.byType(DecoratedBox)))
+          .first
+          .decoration;
+      if (cut) {
+        expect(decoration, isA<ShapeDecoration>());
+        expect((decoration as ShapeDecoration).shape, look.shape.outline(BorderRadius.circular(look.shape.sm)));
+      } else {
+        expect(decoration, isA<BoxDecoration>());
+        expect((decoration as BoxDecoration).borderRadius, BorderRadius.zero);
+      }
+    });
+  }
+
   testWidgets('every contact gets the same fill: no colour per person', (tester) async {
     await tester.pumpWidget(themedFrame(themeMatrix.first, const Column(children: [
       Avatar(name: 'Sam Sample', givenName: 'Sam', familyName: 'Sample'),
