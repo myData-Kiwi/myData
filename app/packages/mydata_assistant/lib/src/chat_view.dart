@@ -83,6 +83,9 @@ class ChatView extends StatefulWidget {
   /// A transcript turn's rule at its leading edge.
   static const turnRuleWidth = 2.0;
 
+  /// The outline of the user's block in the `blocks` chat style, in `line-strong`.
+  static const blockEdgeWidth = 1.0;
+
   /// Around a block's text (`chat: blocks`), the user's on its fill and the assistant's lined up with it.
   static EdgeInsets blockPadding(MyDataLook look) =>
       EdgeInsets.symmetric(horizontal: look.space(4), vertical: look.space(3));
@@ -378,8 +381,9 @@ class _MacItemView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => switch (item) {
-    UserMessage(:final text) => MacUserMessage(text, maxShare: ChatView.bubbleMaxShare),
-    final AssistantReply reply => MacAssistantText(reply.text.isEmpty && !reply.streaming ? 'No answer.' : reply.text),
+    UserMessage(:final text) => _spokenTurn(ChatView.youLabel, MacUserMessage(text, maxShare: ChatView.bubbleMaxShare)),
+    final AssistantReply reply => _spokenTurn(
+        ChatView.assistantLabel, MacAssistantText(reply.text.isEmpty && !reply.streaming ? 'No answer.' : reply.text)),
     final ProgressLine line => MacProgressRow(line),
     // ResultCard and the approval card draw their Mac look themselves.
     ResultItem() || ApprovalItem() => _ItemView(item: item, chat: chat, links: links),
@@ -393,17 +397,26 @@ class _MacItemView extends StatelessWidget {
   };
 }
 
+/// [child], one turn, read as "[speaker]:" and then its text in every chat style, so a screen reader says who
+/// said what whether or not the speaker's name shows.
+Widget _spokenTurn(String speaker, Widget child) =>
+    MergeSemantics(child: Semantics(label: '$speaker:', child: child));
+
 /// The user's message in the theme's chat style (`components.chat`): a bubble, right-aligned on `accent-soft`
-/// with `ink` text and `radius-lg` (Kiwi); a full-width block on `surface-sunken`; or a transcript turn,
-/// under "You", with a `line-strong` rule at its leading edge.
+/// with `ink` text and `radius-lg` (Kiwi); a full-width block on `surface-sunken` (`surface` in dark, where
+/// `surface-sunken` is darker than the ground) in a 1px `line-strong` outline, so it never rests on a fill
+/// alone; or a transcript turn, under "You", with a `line-strong` rule at its leading edge.
 class _UserMessage extends StatelessWidget {
   const _UserMessage(this.text);
   final String text;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => _spokenTurn(ChatView.youLabel, _drawn(context));
+
+  Widget _drawn(BuildContext context) {
     final c = context.colors;
     final body = Text(text, style: context.typeScale.body.copyWith(color: c.ink));
+    final dark = context.look.brightness == Brightness.dark;
     return switch (context.variants.chat) {
       ChatStyle.bubbles => LayoutBuilder(
         builder: (context, constraints) => Align(
@@ -424,7 +437,11 @@ class _UserMessage extends StatelessWidget {
       ),
       ChatStyle.blocks => DecoratedBox(
         decoration: context.radius.decorate(
-          BoxDecoration(color: c.surfaceSunken, borderRadius: MyDataRadii.md(context.look)),
+          BoxDecoration(
+            color: dark ? c.surface : c.surfaceSunken,
+            borderRadius: MyDataRadii.md(context.look),
+            border: Border.all(color: c.lineStrong, width: ChatView.blockEdgeWidth),
+          ),
         ),
         child: Padding(padding: ChatView.blockPadding(context.look), child: Align(alignment: AlignmentDirectional.centerStart, child: body)),
       ),
@@ -440,7 +457,9 @@ class _AssistantText extends StatelessWidget {
   final String text;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => _spokenTurn(ChatView.assistantLabel, _drawn(context));
+
+  Widget _drawn(BuildContext context) {
     final body = Text(text, style: context.typeScale.body.copyWith(color: context.colors.ink));
     return switch (context.variants.chat) {
       ChatStyle.bubbles => Align(alignment: AlignmentDirectional.centerStart, child: body),
@@ -474,11 +493,14 @@ class _Turn extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          RoleLabel(
-            speaker,
-            role: MyDataTypeRole.caption,
-            color: context.colors.inkMuted,
-            holdsName: speakerIsName,
+          // Read once, as the turn's "You:" or "myAssistant:" (_spokenTurn).
+          ExcludeSemantics(
+            child: RoleLabel(
+              speaker,
+              role: MyDataTypeRole.caption,
+              color: context.colors.inkMuted,
+              holdsName: speakerIsName,
+            ),
           ),
           SizedBox(height: context.space(1)),
           child,

@@ -131,6 +131,17 @@ void main() {
       expect(find.text('No, you have personal training from 06:30 to 07:30 at the gym.'), findsOneWidget);
     });
 
+    macTestWidgets('each turn is read with its speaker, "You:" or "myAssistant:"', (tester) async {
+      window(tester);
+      final semantics = tester.ensureSemantics();
+      final backend = ScriptedBackend([freeAtSixThirty()]);
+      await tester.pumpWidget(app(macMatrix.first, HostPhase.running, status: hostStatus(), backend: backend));
+      await ask(tester, 'Am I free at 6:30 tomorrow?');
+      expect(find.bySemanticsLabel(RegExp(r'^You:\nAm I free at 6:30 tomorrow\?$')), findsOneWidget);
+      expect(find.bySemanticsLabel(RegExp(r'^myAssistant:\nNo, you have personal training')), findsOneWidget);
+      semantics.dispose();
+    });
+
     macTestWidgets('in real mode the toolbar has no demo line', (tester) async {
       window(tester);
       await tester.pumpWidget(app(macMatrix.first, HostPhase.running, status: hostStatus(real: true)));

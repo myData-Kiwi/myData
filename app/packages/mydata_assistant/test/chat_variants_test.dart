@@ -40,6 +40,11 @@ void main() {
           ..add(const DoneEvent());
         await backend.replies.last.close();
         await tester.pumpAndSettle();
+        // Every style tells a screen reader who said what.
+        final semantics = tester.ensureSemantics();
+        expect(find.bySemanticsLabel(RegExp(r'^You:\nWhen is the dentist\?$')), findsOneWidget);
+        expect(find.bySemanticsLabel(RegExp(r'^myAssistant:\nYour dentist appointment')), findsOneWidget);
+        semantics.dispose();
         if (chat == 'transcript') {
           expect(find.text(ChatView.youLabel), findsOneWidget);
           expect(find.text(ChatView.assistantLabel), findsOneWidget);
