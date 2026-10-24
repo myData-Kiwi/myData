@@ -65,4 +65,26 @@ void main() {
       expect(bar, look.colors.selection, reason: 'the bar shows at the leading edge');
     });
   }
+
+  // Where the accent is near danger (Swiss Red, the default) the record's quick actions are in ink, as its
+  // primary is; in Blue they keep the accent.
+  for (final (palette, nearRed) in [('red', true), ('blue', false)]) {
+    macTestWidgets('the record\'s quick actions in swiss $palette are ${nearRed ? 'ink' : 'the accent'}', (tester) async {
+      tester.view.physicalSize = const Size(1280, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final before = MacLook.debugOverride;
+      MacLook.debugOverride = true;
+      addTearDown(() => MacLook.debugOverride = before);
+      await tester.pumpWidget(people.build(ThemeCase('swiss', Brightness.light, palette: palette, drawnOnMac: true)));
+      await people.before!(tester);
+      final actions = find.byType(MacQuickAction);
+      expect(actions, findsNWidgets(3));
+      final look = MyDataLook.of(tester.element(actions.first));
+      expect(look.accentNearDanger, nearRed);
+      for (final icon in tester.widgetList<Icon>(find.descendant(of: actions, matching: find.byType(Icon)))) {
+        expect(icon.color, nearRed ? look.colors.ink : look.colors.accent);
+      }
+    });
+  }
 }

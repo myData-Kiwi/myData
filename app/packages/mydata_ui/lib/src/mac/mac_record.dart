@@ -106,7 +106,8 @@ class MacRecordHeader extends StatelessWidget {
 }
 
 /// A round quick action under a record's name (message, call, video, mail, map): an `action-button` circle
-/// on `quaternary-label` (no ground in a drawn theme whose icons have no tiles) with the icon in the accent, its word under it in `action` and `secondary-label`. Disabled
+/// on `quaternary-label` (no ground in a drawn theme whose icons have no tiles) with the icon in the accent (in
+/// `label` where a drawn theme's accent is near danger), its word under it in `action` and `secondary-label`. Disabled
 /// (no number, no address): both in `tertiary-label`, the [disabledReason] in its tooltip and hint.
 class MacQuickAction extends StatefulWidget {
   const MacQuickAction({
@@ -141,7 +142,9 @@ class _MacQuickActionState extends State<MacQuickAction> {
     final mac = context.mac;
     final m = context.macLook;
     final enabled = widget.onPressed != null;
-    final tint = enabled ? mac.accent : mac.tertiaryLabel;
+    // In the accent, or in `label` where a drawn theme's accent is near danger (Swiss Red, Geometric Red), as
+    // its primary button is: a red phone reads as a failed call.
+    final tint = !enabled ? mac.tertiaryLabel : (context.look.accentNearDanger ? mac.label : mac.accent);
     // A circle in System and where the theme's controls are capsules; the theme's control corners else.
     final round = m.system || context.look.variants.buttonShape == ButtonShapeStyle.pill;
     // A theme that draws its icons with no tile (`icons.tiles: none`: Notebook, Journal, Terminal) gives the

@@ -7,6 +7,22 @@ import 'package:mydata_testing/mydata_testing.dart';
 import 'package:mydata_ui/mydata_ui.dart';
 
 void main() {
+  // An accent tile where the accent is near danger (Swiss and Geometric in Red) is neutral, its icon in `ink`,
+  // as the primary is: a red phone or cloud on a source row reads as an error. Blue keeps the accent.
+  for (final (palette, nearRed) in [('red', true), ('blue', false)]) {
+    for (final slug in ['swiss', 'geometric']) {
+      testWidgets('an accent icon tile in $slug $palette is ${nearRed ? 'ink' : 'the accent'}', (tester) async {
+        await tester.pumpWidget(themedFrame(ThemeCase(slug, Brightness.light, palette: palette),
+            const IconTile(icon: MyDataIcon.call, tone: MyDataTone.accent)));
+        final look = MyDataLook.of(tester.element(find.byType(IconTile)));
+        expect(look.accentNearDanger, nearRed);
+        final icon = tester.widget<Icon>(find.descendant(of: find.byType(IconTile), matching: find.byType(Icon)));
+        expect(icon.color, nearRed ? look.colors.ink : look.colors.accent);
+        expect(IconTile.shownTone(look, MyDataTone.accent), nearRed ? MyDataTone.neutral : MyDataTone.accent);
+      });
+    }
+  }
+
   goldenMatrix(
     'primitives',
     () => Builder(

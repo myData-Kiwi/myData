@@ -41,7 +41,7 @@ Circle, square, triangle; red, yellow, blue. Confident and structural: square bo
 | Green | `green` | `#007A4D` / `#4FD08F` | light 16.5 / 7.7 / 5.6 / 5.4; dark 16.3 / 8.3 / 9.6 / 8.8 |
 
 - A palette moves the colour that acts; the yellow selection, grounds, ink, status and calendar colours stay.
-- **Red is near danger:** in the Red palette the primary and Approve are drawn in ink and only a destructive act is red (ARCHITECTURE.md 2.2); its ring is blue, never the red of its links and today.
+- **Red is near danger:** in the Red palette the primary, Approve and the icons that would take the accent are drawn in ink and only a destructive act is red (ARCHITECTURE.md 2.2); its ring is blue, never the red of its links and today.
 - Every palette gives every role the style does not fix and passes `ARCHITECTURE.md` 2.2 in both modes and at increased contrast (the derived 7:1 values).
 
 ## Depth and materials

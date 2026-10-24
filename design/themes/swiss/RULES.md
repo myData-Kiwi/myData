@@ -31,7 +31,7 @@ A Swiss poster (the International Typographic Style): black and white and one co
 - White grounds, ink `#111111` (`#F2F2F2` on `#0E0E0E` in dark), grey `line`, and **every structural rule in ink** (`borders.colour: edge`): under the toolbar, between list rows, round the month's days, the title rule.
 - One colour per palette: the selection bar and its pale tint, the current section, links, the underline of the current tab, switches that are on.
 - The style fixes `edge` and `avatar-fill` to `ink` (`colour-use.same-as`): avatars are ink squares with their initials in white (inverted in dark), so the colour stays rare.
-- **Red is near danger.** `danger` keeps today's red (a theme moves its accent, never danger's meaning), so in the Red palette the accent sits within 25° of it: the filled primary and Approve are drawn in **ink**, and only a destructive act is red (`ARCHITECTURE.md` 2.2, "Kept apart"). That is also the poster's own rule: black type, one red.
+- **Red is near danger.** `danger` keeps today's red (a theme moves its accent, never danger's meaning), so in the Red palette the accent sits within 25° of it: the filled primary and Approve are drawn in **ink**, and only a destructive act is red (`ARCHITECTURE.md` 2.2, "Kept apart"); so are the icons that would take the accent (a field's or a source's icon, a record's quick actions), since a red cloud beside a source reads as a failed sync. That is also the poster's own rule: black type, one red.
 - The focus ring is blue in Red and Green (`#0B50D0`, `#7FA8FF` in dark) and red in Blue, so it never looks like the selection bar.
 
 ## Palettes

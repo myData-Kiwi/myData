@@ -418,7 +418,10 @@ class _MacRow extends StatelessWidget {
             child: Icon(
               context.icon(ResultCard.macIconFor(row.kind)),
               size: MyDataMacSize.icon,
-              color: row.tone == MyDataTone.accent ? mac.accent : mac.secondaryLabel,
+              // The accent, but `label` where a drawn theme's accent is near danger (IconTile.shownTone).
+              color: IconTile.shownTone(context.look, row.tone) == MyDataTone.accent
+                  ? mac.accent
+                  : (row.tone == MyDataTone.accent ? mac.label : mac.secondaryLabel),
             ),
           ),
           SizedBox(width: context.space(2)),
