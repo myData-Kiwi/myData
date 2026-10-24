@@ -51,6 +51,7 @@ flutter:
     - assets/fonts/OFL-newsreader.txt
     - assets/fonts/OFL-archivo-black.txt
     - assets/fonts/OFL-space-grotesk.txt
+    - assets/fonts/OFL-pixelify-sans.txt
     - assets/fonts/ISC-lucide.txt
     - assets/fonts/MIT-tabler.txt
     - assets/fonts/MIT-phosphor.txt
