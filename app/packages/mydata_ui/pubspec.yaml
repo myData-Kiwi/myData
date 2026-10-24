@@ -67,6 +67,9 @@ flutter:
       fonts:
         - asset: assets/fonts/JetBrainsMono-400.ttf
           weight: 400
+        # Cut by tool/subset_fonts.sh (CORE), for Terminal's titles.
+        - asset: assets/fonts/JetBrainsMono-700.ttf
+          weight: 700
     # The icon sets, one font per weight, cut to the semantic ids by tool/subset_icons.sh
     # (lib/src/theme/icon_sets.g.dart): Lucide (ISC; also System's icons on macOS), Tabler Icons (MIT),
     # Phosphor (MIT) and Material Symbols Outlined and Rounded (Apache-2.0). Licences: assets/fonts/ISC-lucide.txt,

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Rebuilds assets/fonts/catalogue/: the theme fonts that are not among the three core fonts of the pubspec,
-# loaded on demand when a theme needs one (lib/src/theme/fonts.dart; design/themes/ARCHITECTURE.md 1.5 and 3.6).
+# loaded on demand when a theme needs one (lib/src/theme/fonts.dart; design/themes/ARCHITECTURE.md 1.5 and 3.6),
+# and the core fonts' extra weights cut from google/fonts (JetBrains Mono Bold, for Terminal).
 #   tool/subset_fonts.sh            (from app/packages/mydata_ui; needs curl, python3 and uv)
 #
 # Each font is a variable font from google/fonts at one pinned commit, checked against its SHA-256, then:
@@ -39,6 +40,14 @@ atkinson-hyperlegible-next|atkinsonhyperlegiblenext|AtkinsonHyperlegibleNext-Ita
 atkinson-hyperlegible-mono|atkinsonhyperlegiblemono|AtkinsonHyperlegibleMono[wght].ttf|5ce8b1698d1ded7dff2178c1a3ad159470085a58ea239e8b2cb88f4fb4a6f646||
 EOF
 )
+# The core fonts' extra static weights (declared in the pubspec and registered when the app starts): the
+# variable font pinned at one weight and cut to the same Latin, as assets/fonts/<file>. Its licence is the
+# core font's own (assets/fonts/OFL-*.txt), already bundled.
+# file | google/fonts folder | source | sha256 | axis pins
+CORE=$(cat <<'EOF'
+JetBrainsMono-700.ttf|jetbrainsmono|JetBrainsMono[wght].ttf|48715a42ec242c21e9f02692891e147d022299a52e48d5e413e1a942193ffeda|wght=700
+EOF
+)
 UNICODES='U+0000-024F,U+0259,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0300-036F,U+1E00-1EFF,U+2000-206F,U+20A0-20C0,U+2113,U+2122,U+2190-21FF,U+2212,U+2215,U+2303,U+2318,U+2325,U+232B,U+25A0-25FF,U+2713,U+FEFF,U+FFFD'
 FEATURES='ccmp,locl,mark,mkmk,kern,liga,clig,calt,rlig,rvrn,tnum,pnum,lnum,case,frac,numr,dnom'
 
@@ -70,9 +79,10 @@ if limits:
     font = instancer.instantiateVariableFont(font, limits)
 # The default instance at regular (400) where the axis reaches it, so text that ever loses its `wght`
 # variation (a style built from the family alone) is drawn regular, not the source's default (Fraunces
-# Black, Manrope and Nunito ExtraLight, Fredoka Light). The whole weight range stays.
-wght = next(a for a in font['fvar'].axes if a.axisTag == 'wght')
-if wght.defaultValue != 400 and wght.minValue <= 400 <= wght.maxValue:
+# Black, Manrope and Nunito ExtraLight, Fredoka Light). The whole weight range stays. A static font (Kalam
+# Bold, Archivo Black) and a core font's static instance keep their one weight.
+wght = next((a for a in font['fvar'].axes if a.axisTag == 'wght'), None) if 'fvar' in font else None
+if wght and wght.defaultValue != 400 and wght.minValue <= 400 <= wght.maxValue:
     font = instancer.instantiateVariableFont(font, {'wght': (wght.minValue, 400, wght.maxValue)})
     font['OS/2'].usWeightClass = 400
 # Keep the source's timestamp, so a rerun writes the same bytes.
@@ -101,3 +111,12 @@ while IFS='|' read -r id dir file sha pins italic; do
   curl -sSfLo "$HERE/assets/fonts/OFL-$id.txt" "https://raw.githubusercontent.com/google/fonts/$FONTS_COMMIT/ofl/$dir/OFL.txt"
   echo "Wrote assets/fonts/catalogue/$name ($(wc -c < "$OUT/$name" | tr -d ' ') bytes)"
 done <<< "$FONTS"
+
+while IFS='|' read -r name dir file sha pins; do
+  [ -n "$name" ] || continue
+  src="$WORK/core-$name"
+  curl -sSfLo "$src" "https://raw.githubusercontent.com/google/fonts/$FONTS_COMMIT/ofl/$dir/$(url "$file")"
+  check "$src" "$sha"
+  uvx --from "$FONTTOOLS" python -I "$WORK/script/cut.py" "$src" "$HERE/assets/fonts/$name" "$pins" "$UNICODES" "$FEATURES"
+  echo "Wrote assets/fonts/$name ($(wc -c < "$HERE/assets/fonts/$name" | tr -d ' ') bytes)"
+done <<< "$CORE"
