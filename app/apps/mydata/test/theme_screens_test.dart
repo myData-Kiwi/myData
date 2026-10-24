@@ -32,10 +32,15 @@ void main() {
     // apart here (its ruled paper, 12% lines a step under the metric's, the handwritten titles, unboxed
     // groups and the highlighter) mostly falls inside the same blocks. They score 0.3 or more elsewhere.
     'notebook and paperback': (0.26, 'ruled paper under the edge step'),
-    // 0.28: both rule every row in ink and draw Inter-like grotesk titles; Brutalist's boxes, 3 px edges and
-    // offset shadows on a grey ground against Swiss's open white page are set apart by more than the metric's
-    // 16 px blocks see, since the rules fall in the same rows. They score 0.3 or more elsewhere.
-    'brutalist and swiss': (0.28, 'ink rules in the same rows'),
+    // 0.22: both rule every row in ink, edge the sidebar panel in ink and draw Inter-like grotesk titles;
+    // Brutalist's boxes, 3 px edges and offset shadows on a grey ground against Swiss's open white page are set
+    // apart by more than the metric's 16 px blocks see, since the rules fall in the same rows. They score 0.3
+    // or more elsewhere.
+    'brutalist and swiss': (0.22, 'ink rules in the same rows'),
+    // 0.27: both edge the sidebar panel and box this screen's groups in a line of their edge colour, on white;
+    // Blueprint's dashes and drawn grid against Swiss's solid ink rules are finer than the metric's blocks.
+    // They clear the bar on the other three screens.
+    'blueprint and swiss': (0.27, 'edged panel and groups on white'),
     // 0.24: both box each group in a bright or black edge in the same place, on the white panel of their
     // cards; Arcade's cut corners, glow and grid floor against Brutalist's square slabs and offset shadows fall
     // inside the same 16 px blocks.

@@ -288,9 +288,15 @@ class MacSidebar extends StatelessWidget {
     final edges = context.look.edges;
     final hairline = BorderSide(color: mac.separator, width: MyDataMacSize.hairline);
     final lineIsEdge = SelectionPaint.contrastOf(mac.separator, mac.sidebarBackground) >= 3;
+    // A theme whose borders are its `edge` (Swiss's ink) edges the panel in it, as it divides the columns.
     final edge = !drawn
         ? hairline
-        : edges.card ?? (lineIsEdge ? hairline.copyWith(width: math.max(edges.width, 1)) : hairline);
+        : edges.card ??
+            (edges.spec.colour == BorderColour.edge
+                ? BorderSide(color: edges.colour, width: math.max(edges.width, 1))
+                : lineIsEdge
+                ? hairline.copyWith(width: math.max(edges.width, 1))
+                : hairline);
     final panel = Padding(
       padding: const EdgeInsets.fromLTRB(margin, margin, 0, margin),
       child: DecoratedBox(

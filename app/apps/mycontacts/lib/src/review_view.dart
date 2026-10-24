@@ -177,7 +177,7 @@ class _ReviewViewState extends State<ReviewView> {
                 width: MyDataMacSize.listWidth,
                 child: _list(EdgeInsets.symmetric(vertical: context.space(2))),
               ),
-              VerticalDivider(width: 1, thickness: 1, color: context.mac.separator),
+              MacPanel.dividerLine(context),
               Expanded(
                 child: SingleChildScrollView(
                   controller: _paneScroll,

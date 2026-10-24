@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../accessibility.dart';
@@ -269,6 +271,29 @@ class MacPanel extends StatelessWidget {
   /// The resting shadow under a Mac form's group in a theme whose panes are panels; none elsewhere.
   static List<BoxShadow> groupShadows(BuildContext context) =>
       shown(context) && _slab(context.look) ? context.shadows.shadow1 : const [];
+
+  /// The line between two of the window's columns (a list and its record, a month and its day list) where
+  /// they are not panels: the Mac's `separator` hairline, or, in a drawn theme whose borders are its `edge`
+  /// (Swiss's and Geometric's ink, Arcade's bright edge), that edge in the borders' width, so the columns are
+  /// divided by the same rule as the toolbar's and the rows'.
+  static BorderSide divider(BuildContext context) {
+    final look = context.look;
+    if (!context.isSystemLook && look.edges.spec.colour == BorderColour.edge) {
+      return BorderSide(color: look.edges.colour, width: math.max(dividerWidth, look.edges.width));
+    }
+    return BorderSide(color: context.mac.separator, width: dividerWidth);
+  }
+
+  /// The Mac's column divider's width (a 1 pt line, as AppKit's split views draw it).
+  static const dividerWidth = 1.0;
+
+  /// [divider] as a widget across the window's columns ([vertical]) or between two stacked panes.
+  static Widget dividerLine(BuildContext context, {bool vertical = true}) {
+    final side = divider(context);
+    return vertical
+        ? VerticalDivider(width: side.width, thickness: side.width, color: side.color)
+        : Divider(height: side.width, thickness: side.width, color: side.color);
+  }
 
   /// Between a panel and its pane's edges: the sidebar panel's margin, more than the deepest offset shadow.
   static const gutter = MyDataMacSize.sidebarMargin;

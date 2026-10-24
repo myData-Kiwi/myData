@@ -29,13 +29,14 @@ void main() {
   // The month's grid is the same in every theme (layout stays out of themes), so its pictures differ less
   // than a list's; before the drawn looks reached it the closest two (Frosted and Paperback) scored 0.06.
   themesDistinct('month', least: 0.18, size: const Size(1280, 900), alike: {
-    // 0.17: both rule every day in a thin dark line, square, with today an ink block; here they differ in type
-    // (Inter against JetBrains Mono) and colour. They score 0.3 or more on the other three screens.
+    // 0.13: both rule every day in a thin dark line, square, with today an ink block, and edge the sidebar
+    // panel and the day list's divider in that line; here they differ in type (Inter against JetBrains Mono)
+    // and colour. They score 0.3 or more on the other three screens.
     // 0.13: both draw the month as a panel on a patterned ground, every day ruled in a thin mid line; Blueprint's
     // dashed panel edge and Retro Desktop's bevel and dotted desk are finer than the metric's step, so here
     // they differ in type, colour and the today mark. They score 0.3 or more on the other three screens.
     'blueprint and retro-desktop': (0.13, 'two panels of thin grid on a pattern'),
-    'swiss and terminal': (0.17, 'the same square grid, other type'),
+    'swiss and terminal': (0.13, 'the same square grid, other type'),
     // 0.17: both draw the month as one boxed card with thin rules; Arcade's cut cells of the prototype are not
     // the Mac month's, so here they differ in type, colour, the grid floor in the gutters and the today ring.
     'arcade and kiwi': (0.17, 'one boxed month, other type'),

@@ -13,6 +13,25 @@ Widget frame(Widget child) => MaterialApp(
 );
 
 void main() {
+  // The window's columns are divided by the theme's edge where its borders are its edge (Swiss's ink, Geometric's
+  // 2 px of ink), as its toolbar and rows are ruled; elsewhere (Zen) by the Mac's separator.
+  for (final (id, edge) in [('mydata.swiss', true), ('mydata.geometric', true), ('mydata.zen', false)]) {
+    testWidgets('the Mac column divider in $id is ${edge ? 'its edge' : 'the separator'}', (tester) async {
+      final look = designedLook(id, Brightness.light, platform: TargetPlatform.macOS);
+      await tester.pumpWidget(MaterialApp(theme: MacTheme.drawn(look), home: const Material(child: SizedBox())));
+      await tester.pumpAndSettle();
+      final context = tester.element(find.byType(SizedBox).last);
+      final side = MacPanel.divider(context);
+      if (edge) {
+        expect(side.color, look.colors.edge);
+        expect(side.width, look.edges.width < 1 ? 1 : look.edges.width);
+      } else {
+        expect(side.color, context.mac.separator);
+        expect(side.width, MacPanel.dividerWidth);
+      }
+    });
+  }
+
   // A drawn theme that outlines its cards fills a form's group as one of its cards, in its own panel colour
   // (`surface-raised`: Arcade's and Geometric's white panels), never a neutral shade of ink that sat grey on a
   // tinted ground; one without card edges (Zen) keeps the Mac's shade, which the group needs to show at all.

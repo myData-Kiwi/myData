@@ -287,7 +287,6 @@ class _TrashViewState extends State<TrashView> {
   /// The Mac frame: the list column (`list-width`) of plain two-line rows (the name, and when it was deleted
   /// in `caption`), a hairline, then the pane for the selection on `content-background`.
   Widget _macLayout() {
-    final mac = context.mac;
     return Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       SizedBox(
         width: MyDataMacSize.listWidth,
@@ -305,7 +304,7 @@ class _TrashViewState extends State<TrashView> {
           ),
         ),
       ),
-      VerticalDivider(width: 1, thickness: 1, color: mac.separator),
+      MacPanel.dividerLine(context),
       Expanded(
         child: SingleChildScrollView(
           controller: _paneScroll,

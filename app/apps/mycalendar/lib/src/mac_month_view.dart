@@ -203,10 +203,12 @@ class MacMonthView extends StatelessWidget {
         : MacDayList(day: selected, today: today, events: content.shown, sources: content.ranges);
 
     // The line between the month and the day list: the Mac's separator, or the theme's own line (its colour
-    // and width) in a drawn theme that rules its month so (MacMonthGrid.ruled).
+    // and width) in a drawn theme that rules its month so (MacMonthGrid.ruled), else the window's column
+    // divider (MacPanel.divider: the theme's edge where its borders are its edge).
     final ruled = !context.isSystemLook && MacMonthGrid.ruled(context.look);
-    final line = ruled ? context.look.edges.colour : mac.separator;
-    final lineWidth = ruled ? MacMonthGrid.ruleWidth(context.look) : 1.0;
+    final columns = MacPanel.divider(context);
+    final line = ruled ? context.look.edges.colour : columns.color;
+    final lineWidth = ruled ? MacMonthGrid.ruleWidth(context.look) : columns.width;
     // Where the month and the day are panels on the window's ground (MacPanel), the ground divides them.
     final panels = MacPanel.shown(context);
     Widget divider({required bool vertical}) => vertical

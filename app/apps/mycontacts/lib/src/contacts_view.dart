@@ -173,7 +173,6 @@ class _ContactsViewState extends State<ContactsView> {
 
   /// The Mac frame: the list column, a hairline, the contact column; each with its part of the toolbar band.
   Widget _macLayout({required bool missing}) {
-    final mac = context.mac;
     final selection = _controller.selection;
     final several = selection.count > 1;
     final selected = several ? null : _controller.selectedId;
@@ -305,7 +304,7 @@ class _ContactsViewState extends State<ContactsView> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           SizedBox(width: listWidth, child: list),
-          if (!MacPanel.shown(context)) VerticalDivider(width: 1, thickness: 1, color: mac.separator),
+          if (!MacPanel.shown(context)) MacPanel.dividerLine(context),
           Expanded(child: contact),
         ],
       );
