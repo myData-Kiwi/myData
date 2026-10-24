@@ -10,10 +10,8 @@ Map<String, String> designedThemeTexts() => builtInThemeJson;
 /// The validator's format, every built-in's style known to be based on.
 ThemeFormat designedThemeFormat() => ThemeLibrary.format();
 
-/// The six drawn built-ins, in the gallery's order.
-const drawnBuiltIns = [
-  'mydata.kiwi', 'mydata.hairline', 'mydata.frosted', 'mydata.journal', 'mydata.sticker', 'mydata.paperback',
-];
+/// The drawn built-ins (every built-in but System), in the gallery's order.
+final drawnBuiltIns = [for (final id in builtInThemeJson.keys) if (id != 'mydata.system') id];
 
 final _files = <String, ThemeFile>{};
 

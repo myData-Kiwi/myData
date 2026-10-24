@@ -85,6 +85,9 @@ const acceptedGaps = {
   'instrument-sans': 'ʼ$vietnamese',
   // Frosted's titles and body.
   'sora': 'ʼ$vietnamese',
+  // High Contrast's and Large's: no Vietnamese and no modifier apostrophe.
+  'atkinson-hyperlegible-next': 'ʼ$vietnamese',
+  'atkinson-hyperlegible-mono': 'ʼ$vietnamese',
   'manrope': 'ʼ',
 };
 

@@ -39,14 +39,14 @@ Map<String, Color> fields(MyDataColors c) => {
 
 void main() {
   group('the built-ins', () {
-    test('are System and the six drawn looks, in the gallery\'s order', () {
+    test('are System and the drawn looks, in the gallery\'s order', () {
       expect(ThemeLibrary.builtIns.map((t) => t.id), [
         'mydata.system', 'mydata.kiwi', 'mydata.hairline', 'mydata.frosted', 'mydata.journal', 'mydata.sticker',
-        'mydata.paperback',
+        'mydata.paperback', 'mydata.high-contrast',
       ]);
       expect(ThemeLibrary.offered, ThemeLibrary.builtIns);
       expect(ThemeLibrary.builtIns.map((t) => t.name),
-          ['System', 'Kiwi', 'Hairline', 'Frosted', 'Journal', 'Sticker', 'Paperback']);
+          ['System', 'Kiwi', 'Hairline', 'Frosted', 'Journal', 'Sticker', 'Paperback', 'High Contrast']);
     });
 
     test('have the palettes decided on 2026-10-23, default first', () {
@@ -58,6 +58,7 @@ void main() {
         'Journal': ['Plum', 'Ink blue', 'Forest'],
         'Sticker': ['Rose', 'Mint', 'Mustard'],
         'Paperback': ['Amber', 'Sepia', 'Linen'],
+        'High Contrast': ['Blue', 'Yellow', 'Cyan'],
       });
       for (final t in ThemeLibrary.builtIns.skip(1)) {
         expect(t.defaultPalette, t.palettes.first, reason: t.name);
@@ -96,7 +97,7 @@ void main() {
       });
     }
 
-    test('all 18 palettes, resolved at increased contrast (their own set, else the derived 7:1 values), pass', () {
+    test('every built-in palette, resolved at increased contrast (their own set, else the derived 7:1 values), pass', () {
       var palettes = 0;
       final failures = <String>[];
       for (final theme in ThemeLibrary.builtIns) {
@@ -115,7 +116,8 @@ void main() {
           }
         }
       }
-      expect(palettes, 18);
+      // The six of phase 3 have three each; High Contrast three.
+      expect(palettes, 21);
       expect(failures, isEmpty, reason: failures.join('\n'));
     });
 

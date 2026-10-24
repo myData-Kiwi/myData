@@ -217,8 +217,8 @@ const themeMatrix = [
   ThemeCase('hairline', Brightness.dark),
 ];
 
-/// The six drawn built-ins, by slug, in the gallery's order.
-const drawnThemes = ['kiwi', 'hairline', 'frosted', 'journal', 'sticker', 'paperback'];
+/// The drawn built-ins (every built-in but System), by slug, in the gallery's order.
+final drawnThemes = [for (final t in ThemeLibrary.builtIns.skip(1)) t.id.replaceFirst('mydata.', '')];
 
 /// Each drawn built-in in its default palette, light and dark, drawn in the Mac window.
 final drawnMacMatrix = [

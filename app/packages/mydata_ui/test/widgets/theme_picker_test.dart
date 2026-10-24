@@ -31,8 +31,8 @@ class _HostState extends State<_Host> {
       );
 }
 
-/// Six palettes, one per drawn theme (their defaults): Kiwi, Graphite, Dusk, Plum, Rose and Amber.
-final _all = [for (final t in ThemeLibrary.builtIns.skip(1)) ThemeLibrary.paletteSwatches(t).first];
+/// Six palettes, one per drawn theme of phase 3 (their defaults): Kiwi, Graphite, Dusk, Plum, Rose and Amber.
+final _all = [for (final t in ThemeLibrary.builtIns.skip(1).take(6)) ThemeLibrary.paletteSwatches(t).first];
 
 
 Finder _swatch(String name) => find.ancestor(of: find.text(name), matching: find.byType(Pressable));

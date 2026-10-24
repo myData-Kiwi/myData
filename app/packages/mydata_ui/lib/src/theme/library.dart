@@ -18,9 +18,10 @@ import 'validate.dart';
 
 /// The built-in themes and their resolved looks.
 ///
-/// System (on macOS, the Mac shell) and the six drawn looks of design/themes, each with its palettes: Kiwi
+/// System (on macOS, the Mac shell) and the drawn looks of design/themes, each with its palettes: Kiwi
 /// (Kiwi, Sky, Violet), Hairline (Graphite, Slate, Cobalt), Frosted (Dusk, Aurora, Sand), Journal (Plum, Ink
-/// blue, Forest), Sticker (Rose, Mint, Mustard) and Paperback (Amber, Sepia, Linen).
+/// blue, Forest), Sticker (Rose, Mint, Mustard), Paperback (Amber, Sepia, Linen) and High Contrast (Blue,
+/// Yellow, Cyan).
 ///
 /// **Today's old colours** (`graphite`, `dusk`, `plum`, `rose`, `amber`: the host's old `/appearance` ids,
 /// and Kiwi's palettes in phases 1 and 2) are hidden aliases on Kiwi: a choice of Kiwi in one of them is
@@ -50,7 +51,7 @@ abstract final class ThemeLibrary {
   /// System: the platform's own look. Its style is Kiwi's wherever the platform has no pass yet.
   static ThemeFile get system => _builtIn[systemId]!;
 
-  /// System, then the six drawn looks, in the gallery's order.
+  /// System, then the drawn looks, in the gallery's order.
   static List<ThemeFile> get builtIns => _builtIn.values.toList(growable: false);
 
   /// The themes the gallery offers, in its order (ARCHITECTURE.md 4.4): System, then the built-ins.

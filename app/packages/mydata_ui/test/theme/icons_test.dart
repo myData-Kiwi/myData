@@ -134,6 +134,7 @@ void main() {
       'mydata.journal': ('phosphor', 'light'),
       'mydata.sticker': ('phosphor', 'bold'),
       'mydata.paperback': ('lucide', 'regular'),
+      'mydata.high-contrast': ('material-outlined', 'bold'),
     });
   });
 

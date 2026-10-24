@@ -1,7 +1,7 @@
 /// The built-in themes, generated (design/themes/ARCHITECTURE.md 3.1):
 ///
 /// - **`lib/src/theme/builtin_themes.g.dart`**: the schema and every theme file of design/themes as JSON text,
-///   byte for byte (System, then the six drawn looks in the gallery's order, [builtInOrder]), read without
+///   byte for byte (System, then the drawn looks in the gallery's order, [builtInOrder]), read without
 ///   waiting for an asset, and the soft elevation's levels (tokens.json "shadow").
 /// - The colour roles MyDataColors carries besides tokens.json's colours, from Kiwi's default palette
 ///   ([extraColourValues]).
@@ -20,9 +20,11 @@ import 'package:mydata_ui/src/theme/theme_file.dart';
 const themesDir = '../../../design/themes';
 const builtinThemesPath = 'lib/src/theme/builtin_themes.g.dart';
 
-/// The built-ins by folder, in the gallery's order (ARCHITECTURE.md 4.4): System, then Kiwi (the house style)
-/// and the five that were today's other colours.
-const builtInOrder = ['system', 'kiwi', 'hairline', 'frosted', 'journal', 'sticker', 'paperback'];
+/// The built-ins by folder, in the gallery's order (ARCHITECTURE.md 4.4): System, then Kiwi (the house style),
+/// the five that were today's other colours, then the new built-ins of phase 4 as each is built.
+const builtInOrder = [
+  'system', 'kiwi', 'hairline', 'frosted', 'journal', 'sticker', 'paperback', 'high-contrast',
+];
 
 /// The folders of design/themes that hold a theme, in the gallery's order. A folder [builtInOrder] does not
 /// list is refused, so a new built-in is placed in the gallery on purpose.
@@ -162,7 +164,9 @@ String generateBuiltinThemes({
   return out.toString();
 }
 
-String _title(String slug) => '${slug[0].toUpperCase()}${slug.substring(1)}';
+/// A theme's name from its folder, for the generated comment: each word capitalised (`high-contrast` is
+/// High Contrast).
+String _title(String slug) => [for (final w in slug.split('-')) '${w[0].toUpperCase()}${w.substring(1)}'].join(' ');
 
 /// Every built-in's theme file as text, by folder, in the gallery's order.
 Map<String, String> builtInThemeTexts() => {for (final s in designThemeSlugs()) s: designThemeText(s)};
