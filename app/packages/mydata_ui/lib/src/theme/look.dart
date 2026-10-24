@@ -1162,6 +1162,7 @@ MyDataColors colorsOf(ResolvedPalette p, {required MyDataColors fixed}) {
     surfaceRaised: v(ColourRole.surfaceRaised),
     surfaceSunken: v(ColourRole.surfaceSunken),
     surfaceHover: v(ColourRole.surfaceHover),
+    stripe: v(ColourRole.stripe),
     line: v(ColourRole.line),
     lineStrong: v(ColourRole.lineStrong),
     ink: v(ColourRole.ink),

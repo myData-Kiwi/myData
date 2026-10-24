@@ -60,6 +60,7 @@ class MyDataColors extends ThemeExtension<MyDataColors> {
     required this.selectionInactive,
     required this.focusOnDanger,
     required this.avatarFill,
+    required this.stripe,
     required this.shadow,
     required this.onAvatar,
   });
@@ -158,6 +159,8 @@ class MyDataColors extends ThemeExtension<MyDataColors> {
   final Color focusOnDanger;
   /// An avatar's ground behind initials (was kiwi-wash).
   final Color avatarFill;
+  /// A table's zebra stripe: every second row of a `table` list, lighter than its header band (surface-sunken).
+  final Color stripe;
   /// The colour shadows are drawn in, at the elevation's strength.
   final Color shadow;
   /// Initials on avatar-fill: ink or surface, whichever reads better.
@@ -212,6 +215,7 @@ class MyDataColors extends ThemeExtension<MyDataColors> {
     selectionInactive: Color(0xFFEDEDEB),
     focusOnDanger: Color(0xFF1A1A19),
     avatarFill: Color(0xFFE0E0DD),
+    stripe: Color(0xFFF6F6F5),
     shadow: Color(0xFF141414),
     onAvatar: Color(0xFF1A1A19),
   );
@@ -265,6 +269,7 @@ class MyDataColors extends ThemeExtension<MyDataColors> {
     selectionInactive: Color(0xFF0B0B0B),
     focusOnDanger: Color(0xFFEDEDEB),
     avatarFill: Color(0xFF333333),
+    stripe: Color(0xFF121212),
     shadow: Color(0xFF000000),
     onAvatar: Color(0xFFEDEDEB),
   );
@@ -318,6 +323,7 @@ class MyDataColors extends ThemeExtension<MyDataColors> {
     Color? selectionInactive,
     Color? focusOnDanger,
     Color? avatarFill,
+    Color? stripe,
     Color? shadow,
     Color? onAvatar,
   }) =>
@@ -369,6 +375,7 @@ class MyDataColors extends ThemeExtension<MyDataColors> {
         selectionInactive: selectionInactive ?? this.selectionInactive,
         focusOnDanger: focusOnDanger ?? this.focusOnDanger,
         avatarFill: avatarFill ?? this.avatarFill,
+        stripe: stripe ?? this.stripe,
         shadow: shadow ?? this.shadow,
         onAvatar: onAvatar ?? this.onAvatar,
       );
@@ -424,6 +431,7 @@ class MyDataColors extends ThemeExtension<MyDataColors> {
       selectionInactive: Color.lerp(selectionInactive, other.selectionInactive, t)!,
       focusOnDanger: Color.lerp(focusOnDanger, other.focusOnDanger, t)!,
       avatarFill: Color.lerp(avatarFill, other.avatarFill, t)!,
+      stripe: Color.lerp(stripe, other.stripe, t)!,
       shadow: Color.lerp(shadow, other.shadow, t)!,
       onAvatar: Color.lerp(onAvatar, other.onAvatar, t)!,
     );

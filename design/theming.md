@@ -48,7 +48,7 @@ Each folder holds the theme file and its `RULES.md` (its design language, its pa
 
 ## Palettes
 
-- **A palette is colour only:** the six seeds (`bg`, `surface`, `ink`, `ink-muted`, `accent`, `on-accent`) in light and dark, any other of the 43 roles, an increase-contrast set and, for a gradient window, the gradient's stops. Built-in palettes give every role their style does not fix through `colour-use.same-as` (all 43 once resolved); what a custom palette leaves out is derived.
+- **A palette is colour only:** the six seeds (`bg`, `surface`, `ink`, `ink-muted`, `accent`, `on-accent`) in light and dark, any other of the 44 roles (`stripe` only matters to a table list), an increase-contrast set and, for a gradient window, the gradient's stops. Built-in palettes give every role their style does not fix through `colour-use.same-as` (all 44 once resolved; `stripe` only where its lists are tables); what a custom palette leaves out is derived.
 - **The style stays:** fonts, shapes, density, borders, depth, materials, icons, motion and variants never change with the palette. A theme can also fix a role for every palette (`colour-use.same-as`: Hairline's selection bar is always `ink`).
 - **Every palette must pass the contrast rules on its own**, in both modes and at increased contrast. All 18 built-in palettes pass at both levels (phase 1's validator): Hairline's and Sticker's with their own sets, the others with the derived 7:1 values.
 - **Across a theme's palettes** the accent and the tint of the grounds move; status, `danger` and calendar colours keep their meaning.
@@ -57,7 +57,7 @@ Each folder holds the theme file and its `RULES.md` (its design language, its pa
 
 ## What a theme can change
 
-Colours, through its palettes (43 roles in light and dark, six required, the rest derived; increase-contrast overrides), type (fonts from a catalogue of OFL fonts, sizes, weights, case on labels and captions, figures, italic secondary text), shape (round, continuous, cut or square corners; radii; pill or matching controls), density (above the platform floors), borders, elevation, materials (window ground, sidebar, bars; images not before phase 6), icon set and weight, motion, and the variant of each component (buttons, lists, selection, sidebar, toolbar, inputs, avatar, tabs, chat, month, today), and what it promises beyond the rules every theme keeps (`accessibility`: text at 7:1, readable faint text), which its file says, not its id. Bounds are in the schema; `themes/ARCHITECTURE.md` section 1 has the table.
+Colours, through its palettes (44 roles in light and dark, six required, the rest derived; increase-contrast overrides), type (fonts from a catalogue of OFL fonts, sizes, weights, case on labels and captions, figures, italic secondary text), shape (round, continuous, cut or square corners; radii; pill or matching controls), density (above the platform floors), borders, elevation, materials (window ground, sidebar, bars; images not before phase 6), icon set and weight, motion, and the variant of each component (buttons, lists, selection, sidebar, toolbar, inputs, avatar, tabs, chat, month, today), and what it promises beyond the rules every theme keeps (`accessibility`: text at 7:1, readable faint text), which its file says, not its id. Bounds are in the schema; `themes/ARCHITECTURE.md` section 1 has the table.
 
 ## What a theme never changes
 

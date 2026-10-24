@@ -55,7 +55,7 @@ Warm and plain.
 | Artwork | `kiwi-wash`, `skin`, `cream`, `paper` |
 | Data | `data-red`, `data-orange`, `data-yellow`, `data-green`, `data-blue`, `data-purple`, `data-brown`, `data-grey`: the palette for calendars myData owns (ColourPicker). Data colours, never control colours (DataColour) |
 
-Each theme gives these roles their values (`themes/<slug>/theme.json`; 43 roles, the rest derived: `themes/ARCHITECTURE.md` 1.3).
+Each theme gives these roles their values (`themes/<slug>/theme.json`; 44 roles, the rest derived: `themes/ARCHITECTURE.md` 1.3).
 
 Rules in every theme:
 

@@ -335,7 +335,7 @@ const themeSchemaJson = r'''{
         "light",
         "dark"
       ],
-      "description": "One palette of a drawn theme: the six seeds per mode, and optionally any other role, an increased-contrast set and the window gradient's stops. Roles left out are derived from the seeds (ARCHITECTURE.md 1.3); roles the theme fixes in colour-use.same-as may not be given (checked by the validator). Built-in palettes give every role the theme does not fix in colour-use.same-as (all 43 once resolved), so they never depend on the resolver's derivation.",
+      "description": "One palette of a drawn theme: the six seeds per mode, and optionally any other role, an increased-contrast set and the window gradient's stops. Roles left out are derived from the seeds (ARCHITECTURE.md 1.3); roles the theme fixes in colour-use.same-as may not be given (checked by the validator). Built-in palettes give every role the theme reads and does not fix in colour-use.same-as (stripe only where its lists are tables), so they never depend on the resolver's derivation.",
       "properties": {
         "id": {
           "$ref": "#/$defs/paletteId"
@@ -517,6 +517,7 @@ const themeSchemaJson = r'''{
               "surface-raised",
               "surface-sunken",
               "surface-hover",
+              "stripe",
               "sidebar",
               "toolbar",
               "line",
@@ -560,6 +561,7 @@ const themeSchemaJson = r'''{
               "surface-raised",
               "surface-sunken",
               "surface-hover",
+              "stripe",
               "sidebar",
               "toolbar",
               "line",
@@ -622,6 +624,10 @@ const themeSchemaJson = r'''{
         },
         "surface-hover": {
           "$ref": "#/$defs/opaque"
+        },
+        "stripe": {
+          "$ref": "#/$defs/opaque",
+          "description": "A table's zebra stripe: every second row of a list whose variant is 'table'. Only a table reads it; left out, it is halfway between surface and surface-sunken, so a table's header band (surface-sunken) stays the stronger."
         },
         "sidebar": {
           "$ref": "#/$defs/opaque",
@@ -747,7 +753,7 @@ const themeSchemaJson = r'''{
           "description": "Shadow colour; strength comes from elevation."
         }
       },
-      "description": "Any subset of the 43 colour roles of one mode (ARCHITECTURE.md 1.3)."
+      "description": "Any subset of the 44 colour roles of one mode (ARCHITECTURE.md 1.3)."
     },
     "fontStack": {
       "type": "array",
@@ -9968,6 +9974,7 @@ const builtInThemeJson = {
           "surface-raised": "#FFFFFF",
           "surface-sunken": "#F0F2F5",
           "surface-hover": "#D2D7DD",
+          "stripe": "#F0F2F5",
           "sidebar": "#EEF0F3",
           "toolbar": "#F5F6F8",
           "line": "#E1E4E8",
@@ -10006,6 +10013,7 @@ const builtInThemeJson = {
           "surface-raised": "#1A2128",
           "surface-sunken": "#1A2228",
           "surface-hover": "#323A42",
+          "stripe": "#1A2228",
           "sidebar": "#101519",
           "toolbar": "#0D1114",
           "line": "#262F37",
@@ -10066,6 +10074,7 @@ const builtInThemeJson = {
           "surface-raised": "#FFFFFF",
           "surface-sunken": "#E9F2E3",
           "surface-hover": "#D1D9CB",
+          "stripe": "#E9F2E3",
           "sidebar": "#EDF0EA",
           "toolbar": "#F4F6F2",
           "line": "#DCE3D7",
@@ -10104,6 +10113,7 @@ const builtInThemeJson = {
           "surface-raised": "#1B2219",
           "surface-sunken": "#1B2618",
           "surface-hover": "#333C30",
+          "stripe": "#1B2618",
           "sidebar": "#111610",
           "toolbar": "#0E120D",
           "line": "#283126",
@@ -10164,6 +10174,7 @@ const builtInThemeJson = {
           "surface-raised": "#FFFFFF",
           "surface-sunken": "#EDF1F8",
           "surface-hover": "#D1D7E1",
+          "stripe": "#EDF1F8",
           "sidebar": "#EEF0F5",
           "toolbar": "#F5F6F9",
           "line": "#E0E4EC",
@@ -10202,6 +10213,7 @@ const builtInThemeJson = {
           "surface-raised": "#1A202B",
           "surface-sunken": "#1A2130",
           "surface-hover": "#323A48",
+          "stripe": "#1A2130",
           "sidebar": "#10141B",
           "toolbar": "#0D1017",
           "line": "#262E3B",

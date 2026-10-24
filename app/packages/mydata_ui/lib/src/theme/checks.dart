@@ -66,10 +66,7 @@ List<ThemeFinding> checkColours(ThemeFile theme, ResolvedPalette p, RoleDefaults
   for (final soft in ColourRole.status.values) {
     roles(ColourRole.ink, soft, textNeed);
   }
-  for (final g in const [
-    ColourRole.bg, ColourRole.surface, ColourRole.surfaceRaised, ColourRole.surfaceSunken, ColourRole.sidebar,
-    ColourRole.accentSoft,
-  ]) {
+  for (final g in linkGrounds) {
     roles(ColourRole.link, g, textNeed);
   }
   roles(ColourRole.onAccent, ColourRole.accent, textNeed);

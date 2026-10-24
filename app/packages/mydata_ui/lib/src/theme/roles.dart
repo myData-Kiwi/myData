@@ -1,13 +1,15 @@
 /// The colour roles a palette gives (design/themes/theme.schema.json, `colourSetPartial`; ARCHITECTURE.md 1.3).
 library;
 
-/// One of the 43 colour roles of a palette, by its key in a theme file.
+/// One of the 44 colour roles of a palette, by its key in a theme file: the 43 every look reads, and `stripe`,
+/// which only a table list reads.
 enum ColourRole {
   bg('bg'),
   surface('surface'),
   surfaceRaised('surface-raised'),
   surfaceSunken('surface-sunken'),
   surfaceHover('surface-hover'),
+  stripe('stripe'),
   sidebar('sidebar'),
   toolbar('toolbar'),
   line('line'),

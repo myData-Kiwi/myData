@@ -97,6 +97,8 @@ abstract final class MacTheme {
       // mode (as the system's secondary surfaces are), never a hole darker than the window.
       surfaceSunken: Color.alphaBlend(mac.quaternaryLabel, mac.contentBackground),
       surfaceHover: Color.alphaBlend(mac.hover, mac.contentBackground),
+      // System never stripes a list; halfway to that shade, as the resolver derives it.
+      stripe: Color.lerp(mac.contentBackground, Color.alphaBlend(mac.quaternaryLabel, mac.contentBackground), 0.5),
       ink: mac.label,
       inkMuted: mac.secondaryLabel,
       line: mac.separator,

@@ -588,7 +588,7 @@ class _MultiSelectListState<K> extends State<MultiSelectList<K>> {
                 child: CardEdge(radius: outer, child: row)),
             // A table's zebra stripes.
             ListStyle.table when i.isOdd => DecoratedBox(
-                decoration: context.radius.decorate(BoxDecoration(color: c.surfaceSunken, borderRadius: shapeOf(i))),
+                decoration: context.radius.decorate(BoxDecoration(color: c.stripe, borderRadius: shapeOf(i))),
                 child: row),
             _ => row,
           };

@@ -1179,8 +1179,8 @@ class _PlainContactRow extends StatefulWidget {
   final ContactListEntry entry;
   final bool selected;
 
-  /// A second row of its letter group: on `surface-sunken` where a drawn theme's lists are tables (zebra
-  /// stripes, started again under each letter).
+  /// A second row of its letter group: on `stripe` where a drawn theme's lists are tables (zebra stripes,
+  /// started again under each letter).
   final bool stripe;
 
   /// The list has focus in the active window: the selection is the accent.
@@ -1266,7 +1266,7 @@ class _PlainContactRowState extends State<_PlainContactRow> {
   /// A drawn theme in the Mac window (design/themes/ARCHITECTURE.md 3.4): the theme's rows, type and
   /// selection ([SelectionMark]: Kiwi's tint and bar, Hairline's grey and ink bar, Journal's bar), its
   /// corners, a rule under each row where its lists are ruled, tables or plain with separators (Journal,
-  /// Hairline, Ledger), every second row on `surface-sunken` where they are tables, and each row a card on the pane, the card gap under it, where its lists are cards (Arcade). The theme's own focus ring shows where the keyboard is, on a selected row too; the row a
+  /// Hairline, Ledger), every second row on `stripe` where they are tables, and each row a card on the pane, the card gap under it, where its lists are cards (Arcade). The theme's own focus ring shows where the keyboard is, on a selected row too; the row a
   /// context menu was opened on keeps the accent outline.
   Widget _drawn(BuildContext context) {
     final e = widget.entry;
@@ -1302,7 +1302,7 @@ class _PlainContactRowState extends State<_PlainContactRow> {
     content = SelectionMark(selected: widget.selected, borderRadius: radius, child: content);
     // A table's zebra stripes, under the selection's mark.
     if (look.variants.list == ListStyle.table && widget.stripe) {
-      content = ColoredBox(color: context.colors.surfaceSunken, child: content);
+      content = ColoredBox(color: context.colors.stripe, child: content);
     }
     if (_menuOpen && !widget.selected) {
       content = DecoratedBox(
@@ -1476,7 +1476,7 @@ class _ContactRow extends StatefulWidget {
   final bool joinsUp;
   final bool joinsDown;
 
-  /// A second row: on `surface-sunken` in a table (zebra stripes).
+  /// A second row: on `stripe` in a table (zebra stripes).
   final bool stripe;
 
   /// The row's Menu entries; null for none.
@@ -1686,8 +1686,8 @@ class _ContactRowState extends State<_ContactRow> {
       child: ExcludeSemantics(child: content),
     );
 
-    // A table's zebra stripes: every second row on `surface-sunken`.
-    final ground = card ? (list == ListStyle.table && widget.stripe ? c.surfaceSunken : c.surface) : null;
+    // A table's zebra stripes: every second row on `stripe`.
+    final ground = card ? (list == ListStyle.table && widget.stripe ? c.stripe : c.surface) : null;
     // A bordered list's or a table's outline, piece by piece, open where the next row joins; a ruled list's
     // rules above its first row and below its last.
     final outline = list == ListStyle.bordered || list == ListStyle.table ? GroupFrame.listOutline(look) : null;

@@ -23,7 +23,7 @@ import 'role_label.dart';
 /// - `plain`: the parts on the ground, no card;
 /// - `ruled`: the parts on the ground between full-width rules, above, between and below;
 /// - `table`: an outlined `radius-sm` box, the heading as a header band on `surface-sunken` inside it, full
-///   rules between the rows and every second row on `surface-sunken` (zebra stripes).
+///   rules between the rows and every second row on `stripe` (zebra stripes, lighter than the band).
 ///
 /// [plain] (a GroupedList in the Mac frame, plan section 5 "Lists are lists"): no card, no dividers; the
 /// heading in `caption-emphasized` and `secondary-label`, lined up with the rows' text; each part's shape is
@@ -127,10 +127,10 @@ class GroupFrame extends StatelessWidget {
     Widget part(int i) {
       final at = i + (band ? 1 : 0);
       Widget p = GroupPartShape(borderRadius: shapeOf(at), child: parts[i]);
-      // A table's zebra stripes: every second row on `surface-sunken`.
+      // A table's zebra stripes: every second row on `stripe`.
       if (style == ListStyle.table && i.isOdd) {
         p = DecoratedBox(
-            decoration: context.radius.decorate(BoxDecoration(color: c.surfaceSunken, borderRadius: shapeOf(at))),
+            decoration: context.radius.decorate(BoxDecoration(color: c.stripe, borderRadius: shapeOf(at))),
             child: p);
       }
       return p;

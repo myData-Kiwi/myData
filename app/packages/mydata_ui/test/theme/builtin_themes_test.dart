@@ -25,7 +25,7 @@ const homes = {
 /// Every field of [c], by name (MyDataColors has no ==).
 Map<String, Color> fields(MyDataColors c) => {
       'bg': c.bg, 'surface': c.surface, 'surfaceRaised': c.surfaceRaised, 'surfaceSunken': c.surfaceSunken,
-      'surfaceHover': c.surfaceHover, 'line': c.line, 'lineStrong': c.lineStrong, 'ink': c.ink, 'inkMuted': c.inkMuted,
+      'surfaceHover': c.surfaceHover, 'stripe': c.stripe, 'line': c.line, 'lineStrong': c.lineStrong, 'ink': c.ink, 'inkMuted': c.inkMuted,
       'accent': c.accent, 'onAccent': c.onAccent, 'accentSoft': c.accentSoft, 'brand': c.brand, 'kiwiWash': c.kiwiWash,
       'skin': c.skin, 'cream': c.cream, 'paper': c.paper, 'success': c.success, 'successSoft': c.successSoft,
       'warning': c.warning, 'warningSoft': c.warningSoft, 'danger': c.danger, 'dangerSoft': c.dangerSoft,

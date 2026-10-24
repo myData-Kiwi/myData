@@ -33,7 +33,7 @@ class ResolvedPalette {
 
   final LookMode mode;
 
-  /// All 43 roles.
+  /// All 44 roles.
   final Map<ColourRole, Rgb> roles;
 
   /// The roles the palette did not give, which the resolver derived.
@@ -168,6 +168,8 @@ void _derive(
   put(ColourRole.surfaceRaised, () => dark ? shiftLightness(v(ColourRole.surface), 0.04) : v(ColourRole.surface),
       textGround);
   put(ColourRole.surfaceSunken, () => mix(v(ColourRole.bg), v(ColourRole.ink), 0.06), textGround);
+  // A table's stripe: halfway to `surface-sunken`, so its header band (on `surface-sunken`) stays the stronger.
+  put(ColourRole.stripe, () => mix(v(ColourRole.surface), v(ColourRole.surfaceSunken), 0.5), textGround);
   put(
     ColourRole.surfaceHover,
     () => mixUntil(v(ColourRole.surface), v(ColourRole.ink), 1.3,
@@ -255,16 +257,16 @@ bool focusKeptApart(Rgb focus, Rgb marker) {
 
 /// The grounds a link may be drawn on (2.2).
 const linkGrounds = [
-  ColourRole.bg, ColourRole.surface, ColourRole.surfaceRaised, ColourRole.surfaceSunken, ColourRole.sidebar,
-  ColourRole.accentSoft,
+  ColourRole.bg, ColourRole.surface, ColourRole.surfaceRaised, ColourRole.surfaceSunken, ColourRole.stripe,
+  ColourRole.sidebar, ColourRole.accentSoft,
 ];
 
 const _ink7 = 7.0;
 
 /// The grounds text is drawn on (2.2's text rows), for the 7:1 derivation.
 const textGrounds = [
-  ColourRole.bg, ColourRole.surface, ColourRole.surfaceRaised, ColourRole.surfaceSunken, ColourRole.surfaceHover,
-  ColourRole.sidebar, ColourRole.toolbar, ColourRole.accentSoft, ColourRole.selectionInactive,
+  ColourRole.bg, ColourRole.surface, ColourRole.surfaceRaised, ColourRole.surfaceSunken, ColourRole.stripe,
+  ColourRole.surfaceHover, ColourRole.sidebar, ColourRole.toolbar, ColourRole.accentSoft, ColourRole.selectionInactive,
 ];
 
 /// The 7:1 values when the palette has no `contrast` set (2.2, the 7:1 row; 2.3, "increase contrast"):
@@ -335,8 +337,8 @@ void _deriveIncreased(Map<ColourRole, Rgb> c, ThemeFile theme) {
 
 /// The grounds a focus ring may sit on (2.2, 3:1 non-text).
 const focusGrounds = [
-  ColourRole.bg, ColourRole.surface, ColourRole.surfaceRaised, ColourRole.surfaceSunken, ColourRole.sidebar,
-  ColourRole.toolbar, ColourRole.accentSoft, ColourRole.surfaceHover, ColourRole.selectionInactive,
+  ColourRole.bg, ColourRole.surface, ColourRole.surfaceRaised, ColourRole.surfaceSunken, ColourRole.stripe,
+  ColourRole.sidebar, ColourRole.toolbar, ColourRole.accentSoft, ColourRole.surfaceHover, ColourRole.selectionInactive,
 ];
 
 /// Whether this style draws `accent` as text (an outline primary, a text or outline secondary, underlined tabs).

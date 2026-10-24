@@ -548,12 +548,15 @@ void main() {
     await pumpVariant(tester, kiwiWith(component('list', 'table')), Brightness.light,
         ContactList(contacts: people, selectedId: null, onOpen: (_) {}, showSearch: false),
         size: const Size(400, 500));
-    final sunken = tester.element(find.byType(ContactList)).colors.surfaceSunken;
+    final colors = tester.element(find.byType(ContactList)).colors;
+    // A palette that gives no stripe gets one halfway to `surface-sunken`, so the header band stays the
+    // stronger.
+    expect(colors.stripe, isNot(colors.surfaceSunken));
     bool striped(String name) => find
         .ancestor(
             of: find.text(name),
             matching: find.byWidgetPredicate(
-                (w) => w is DecoratedBox && w.decoration.isBox && (w.decoration.box).color == sunken))
+                (w) => w is DecoratedBox && w.decoration.isBox && (w.decoration.box).color == colors.stripe))
         .evaluate()
         .isNotEmpty;
     expect([for (final p in people) striped(p.name)], [false, true, false, false]);

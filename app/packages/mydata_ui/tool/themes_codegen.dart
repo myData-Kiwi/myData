@@ -117,6 +117,7 @@ const extraColourRoles = {
   'selection-inactive': 'A selection in a list that does not have focus.',
   'focus-on-danger': 'The focus ring on anything already red.',
   'avatar-fill': 'An avatar\'s ground behind initials (was kiwi-wash).',
+  'stripe': 'A table\'s zebra stripe: every second row of a `table` list, lighter than its header band (surface-sunken).',
   'shadow': 'The colour shadows are drawn in, at the elevation\'s strength.',
 };
 

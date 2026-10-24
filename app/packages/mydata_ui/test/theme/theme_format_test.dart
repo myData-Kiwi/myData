@@ -271,7 +271,7 @@ void main() {
   });
 
   group('the resolver', () {
-    test('six seeds give all 43 roles, derived in the order of 1.3 and tuned to their pairs', () {
+    test('six seeds give all 44 roles, derived in the order of 1.3 and tuned to their pairs', () {
       final r = check(drawn());
       expect(r.ok, isTrue, reason: r.errors.join('\n'));
       final theme = r.theme!;

@@ -201,10 +201,13 @@ ThemeCheck validateThemeJson(Map<String, Object?> json, ThemeFormat format, {boo
     final p = system ? systemPalette(format.defaults, given) : given;
     final failures = <String>[], pNotices = <String>[];
     if (builtIn && !system) {
+      // Every role the style reads: `stripe` only where its lists are tables.
+      final tables = theme.style.components.values['list'] == 'table';
       for (final mode in LookMode.values) {
         final missing = [
           for (final r in ColourRole.values)
-            if (!p.given(mode).containsKey(r) && !theme.sameAs.containsKey(r)) r.key,
+            if (!p.given(mode).containsKey(r) && !theme.sameAs.containsKey(r) && (tables || r != ColourRole.stripe))
+              r.key,
         ];
         if (missing.isNotEmpty) {
           failures.add('${p.name}, ${mode.name} mode: a built-in palette gives every role; it leaves out '
