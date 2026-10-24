@@ -152,6 +152,70 @@ void main() {
     }
   });
 
+  // Where the theme's lists are tables (Ledger), the plain list is a table across the pane: each letter a
+  // header band on `surface-sunken` with a `line-strong` rule under it, and every second row of a letter group
+  // on `surface-sunken` (zebra stripes, started again under each letter). Elsewhere neither is drawn.
+  testWidgets("the Mac's plain list draws a table theme's header bands and zebra stripes", (tester) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final people = [
+      ContactListEntry(id: 'a', name: 'Ava Fictional', givenName: 'Ava', familyName: 'Fictional'),
+      ContactListEntry(id: 'b', name: 'Abe Dummy', givenName: 'Abe', familyName: 'Dummy'),
+      ContactListEntry(id: 'c', name: 'Aaron Example', givenName: 'Aaron', familyName: 'Example'),
+      ContactListEntry(id: 'd', name: 'Ben Sample', givenName: 'Ben', familyName: 'Sample'),
+      ContactListEntry(id: 'e', name: 'Bea Testa', givenName: 'Bea', familyName: 'Testa'),
+    ];
+    for (final (slug, table) in [('ledger', true), ('hairline', false)]) {
+      final theme = MacTheme.forChoice(ThemeChoice('mydata.$slug'), Brightness.light, MyDataMacColors.light);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: theme,
+          themeAnimationDuration: Duration.zero,
+          home: Scaffold(
+            body: SizedBox(
+              width: 280,
+              height: 400,
+              child: ContactList(
+                style: ContactListStyle.plain,
+                showSearch: false,
+                contacts: people,
+                selectedId: 'a',
+                onOpen: (_) {},
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final look = theme.extension<MyDataLook>()!;
+      expect(look.variants.list == ListStyle.table, table, reason: slug);
+      final sunken = look.colors.surfaceSunken;
+      bool striped(String name) => tester
+          .widgetList<ColoredBox>(
+            find.ancestor(of: find.text(name, findRichText: true), matching: find.byType(ColoredBox)),
+          )
+          .any((b) => b.color == sunken);
+      // The rows in the order given: A is Ava, Abe, Aaron; B is Ben, Bea.
+      expect(striped('Ava Fictional'), isFalse, reason: '$slug: the first row of A');
+      expect(striped('Abe Dummy'), table, reason: '$slug: the second row of A');
+      expect(striped('Aaron Example'), isFalse, reason: '$slug: the third row of A');
+      expect(striped('Ben Sample'), isFalse, reason: '$slug: the first row of B starts again');
+      expect(striped('Bea Testa'), table, reason: '$slug: the second row of B');
+      final bands = tester
+          .widgetList<DecoratedBox>(find.ancestor(of: find.text('B'), matching: find.byType(DecoratedBox)))
+          .map((d) => d.decoration)
+          .whereType<BoxDecoration>()
+          .where((d) => d.color == sunken);
+      expect(bands, table ? hasLength(1) : isEmpty, reason: slug);
+      if (table) {
+        expect((bands.single.border! as Border).bottom.color, look.colors.lineStrong);
+        // The letter lines up with the names under it.
+        expect(tester.getTopLeft(find.text('B')).dx, tester.getTopLeft(find.text('Ben Sample', findRichText: true)).dx);
+      }
+    }
+  });
+
   testWidgets('a web address on a record is underlined in a drawn theme, in the accent in System', (tester) async {
     tester.view.physicalSize = const Size(1280, 800);
     tester.view.devicePixelRatio = 1;

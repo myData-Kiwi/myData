@@ -1041,12 +1041,13 @@ class _ContactListState extends State<ContactList> {
         semanticChildCount: model.rows.length,
         itemBuilder: (context, i) => switch (model.items[i]) {
           _HeadingItem(:final letter) => _PlainHeading(letter: letter),
-          _RowItem(:final entry, :final row, :final first, :final last) => IndexedSemantics(
+          _RowItem(:final entry, :final row, :final first, :final last, :final inGroup) => IndexedSemantics(
             index: row,
             child: _PlainContactRow(
               key: ValueKey(entry.id),
               entry: entry,
               selected: _isSelected(entry.id),
+              stripe: inGroup.isOdd,
               emphasised: emphasised,
               joinsUp: !first && _isSelected(entry.id) && _isSelected(model.rows[row - 1].id),
               joinsDown: !last && _isSelected(entry.id) && _isSelected(model.rows[row + 1].id),
@@ -1120,25 +1121,41 @@ class _ContactListState extends State<ContactList> {
 }
 
 /// A letter heading in the plain list: `caption-emphasized` in `secondary-label`, lined up with the names.
+/// Where a drawn theme's lists are tables (Ledger), the letter is the table's header row, as GroupFrame
+/// draws a table's heading: a band on `surface-sunken` across the pane, the letter lined up with the names
+/// in the rows under it, and the `line-strong` rule of a header row under it.
 class _PlainHeading extends StatelessWidget {
   const _PlainHeading({required this.letter});
 
   final String letter;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: MyDataMacSize.rowInset + MyDataMacSize.rowPadding),
-    child: Align(
-      alignment: AlignmentDirectional.bottomStart,
-      child: Padding(
-        padding: EdgeInsets.only(bottom: context.space(1)),
-        child: Semantics(
-          header: true,
-          child: Text(letter, maxLines: 1, style: context.macLook.captionEmphasized.copyWith(color: context.mac.secondaryLabel)),
+  Widget build(BuildContext context) {
+    final text = Semantics(
+      header: true,
+      child: Text(letter, maxLines: 1, style: context.macLook.captionEmphasized.copyWith(color: context.mac.secondaryLabel)),
+    );
+    if (!context.isSystemLook && context.look.variants.list == ListStyle.table) {
+      final c = context.colors;
+      return DecoratedBox(
+        decoration: BoxDecoration(
+          color: c.surfaceSunken,
+          border: Border(bottom: BorderSide(color: c.lineStrong, width: context.look.edges.side.width)),
         ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: MyDataMacSize.rowPadding),
+          child: Align(alignment: AlignmentDirectional.centerStart, child: text),
+        ),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: MyDataMacSize.rowInset + MyDataMacSize.rowPadding),
+      child: Align(
+        alignment: AlignmentDirectional.bottomStart,
+        child: Padding(padding: EdgeInsets.only(bottom: context.space(1)), child: text),
       ),
-    ),
-  );
+    );
+  }
 }
 
 /// One row of the plain list (ContactListStyle.plain).
@@ -1147,6 +1164,7 @@ class _PlainContactRow extends StatefulWidget {
     super.key,
     required this.entry,
     required this.selected,
+    this.stripe = false,
     required this.emphasised,
     required this.joinsUp,
     required this.joinsDown,
@@ -1160,6 +1178,10 @@ class _PlainContactRow extends StatefulWidget {
 
   final ContactListEntry entry;
   final bool selected;
+
+  /// A second row of its letter group: on `surface-sunken` where a drawn theme's lists are tables (zebra
+  /// stripes, started again under each letter).
+  final bool stripe;
 
   /// The list has focus in the active window: the selection is the accent.
   final bool emphasised;
@@ -1243,8 +1265,8 @@ class _PlainContactRowState extends State<_PlainContactRow> {
 
   /// A drawn theme in the Mac window (design/themes/ARCHITECTURE.md 3.4): the theme's rows, type and
   /// selection ([SelectionMark]: Kiwi's tint and bar, Hairline's grey and ink bar, Journal's bar), its
-  /// corners, a rule under each row where its lists are ruled or plain with separators (Journal,
-  /// Hairline), and each row a card on the pane, the card gap under it, where its lists are cards (Arcade). The theme's own focus ring shows where the keyboard is, on a selected row too; the row a
+  /// corners, a rule under each row where its lists are ruled, tables or plain with separators (Journal,
+  /// Hairline, Ledger), every second row on `surface-sunken` where they are tables, and each row a card on the pane, the card gap under it, where its lists are cards (Arcade). The theme's own focus ring shows where the keyboard is, on a selected row too; the row a
   /// context menu was opened on keeps the accent outline.
   Widget _drawn(BuildContext context) {
     final e = widget.entry;
@@ -1278,6 +1300,10 @@ class _PlainContactRowState extends State<_PlainContactRow> {
       );
     });
     content = SelectionMark(selected: widget.selected, borderRadius: radius, child: content);
+    // A table's zebra stripes, under the selection's mark.
+    if (look.variants.list == ListStyle.table && widget.stripe) {
+      content = ColoredBox(color: context.colors.surfaceSunken, child: content);
+    }
     if (_menuOpen && !widget.selected) {
       content = DecoratedBox(
         position: DecorationPosition.foreground,
