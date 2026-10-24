@@ -23,7 +23,7 @@ export 'src/theme_preview.dart';
 const _fonts = {
   MyDataFontFamily.display: ['PlusJakartaSans-700.ttf'],
   MyDataFontFamily.body: ['Figtree-400.ttf', 'Figtree-600.ttf'],
-  MyDataFontFamily.mono: ['JetBrainsMono-400.ttf'],
+  MyDataFontFamily.mono: ['JetBrainsMono-400.ttf', 'JetBrainsMono-700.ttf'],
 };
 
 /// Loads the bundled fonts under the names Flutter gives package fonts (the core three, every theme font the
