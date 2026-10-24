@@ -20,15 +20,21 @@ import 'platform.dart';
 ///
 /// `moved` lists the old colours whose choices were moved to the theme each now belongs to
 /// ([ThemeSettings.movedOver]), until myData's Appearance has said so ([ThemeController.acknowledgeMoved]).
+/// `told` lists, for each old colour whose move has been said, the apps that said it (each app says it once,
+/// in its own window, [ThemeController.movedNotice]; myData's Appearance counts for myData). A colour once
+/// told is never listed as moved again, though an older build may write Kiwi in it again.
 @immutable
 class ThemeSettings {
-  const ThemeSettings({this.everywhere, this.apps = const {}, this.moved = const []});
+  const ThemeSettings({this.everywhere, this.apps = const {}, this.moved = const [], this.told = const {}});
 
   /// The settings key.
   static const key = 'themes';
 
   /// The key under [key] that lists the old colours moved and not yet told.
   static const movedKey = 'moved';
+
+  /// The key under [key] that lists, per old colour told, the apps that told it.
+  static const toldKey = 'told';
 
   final ThemeChoice? everywhere;
 
@@ -37,6 +43,20 @@ class ThemeSettings {
 
   /// The old colours (`plum`) whose choices were moved to their new theme, not yet told in myData.
   final List<String> moved;
+
+  /// The apps that have said each old colour's move (`{"plum": ["mycontacts"]}`).
+  final Map<String, List<String>> told;
+
+  /// The old colour whose move [app] has still to say: one moved (or told by another app) to exactly the
+  /// theme and palette [app] draws, which [app] has not said yet. Null when there is none.
+  String? movedNoticeFor(String app) {
+    final drawn = ThemeLibrary.normalise(choiceFor(app));
+    for (final c in {...moved, ...told.keys}) {
+      if (told[c]?.contains(app) ?? false) continue;
+      if (ThemeLibrary.movedColours[c] == drawn) return c;
+    }
+    return null;
+  }
 
   /// What [app] draws: its own choice, else the everywhere one, else System.
   ThemeChoice choiceFor(String app) => apps[app] ?? everywhere ?? ThemeChoice.system;
@@ -50,6 +70,7 @@ class ThemeSettings {
     if (value is! Map) return null;
     final apps = value['apps'];
     final moved = value[movedKey];
+    final told = value[toldKey];
     return ThemeSettings(
       everywhere: ThemeChoice.fromJson(value['everywhere']),
       apps: {
@@ -62,6 +83,15 @@ class ThemeSettings {
           for (final c in moved)
             if (c is String && ThemeLibrary.movedColours.containsKey(c)) c,
       ],
+      told: {
+        if (told is Map)
+          for (final e in told.entries)
+            if (e.key is String && ThemeLibrary.movedColours.containsKey(e.key) && e.value is List)
+              e.key as String: [
+                for (final a in e.value as List)
+                  if (a is String) a,
+              ],
+      },
     );
   }
 
@@ -92,8 +122,16 @@ class ThemeSettings {
       };
     }
     if (colours.isEmpty) return null;
+    // A colour already told is not listed again: an older build that writes Kiwi in Plum again is moved
+    // quietly.
+    final told = out[toldKey] is Map ? (out[toldKey] as Map).keys.toSet() : const <Object?>{};
     final before = out[movedKey] is List ? (out[movedKey] as List).whereType<String>() : const <String>[];
-    out[movedKey] = {...before, ...colours}.toList();
+    final moved = {...before, ...colours.where((c) => !told.contains(c))}.toList();
+    if (moved.isEmpty) {
+      out.remove(movedKey);
+    } else {
+      out[movedKey] = moved;
+    }
     return out;
   }
 
@@ -152,20 +190,23 @@ class ThemeSettings {
   }
 
   ThemeSettings copyWith({ThemeChoice? everywhere, Map<String, ThemeChoice>? apps}) =>
-      ThemeSettings(everywhere: everywhere ?? this.everywhere, apps: apps ?? this.apps, moved: moved);
+      ThemeSettings(everywhere: everywhere ?? this.everywhere, apps: apps ?? this.apps, moved: moved, told: told);
 
   @override
   bool operator ==(Object other) =>
       other is ThemeSettings &&
       other.everywhere == everywhere &&
       mapEquals(other.apps, apps) &&
-      listEquals(other.moved, moved);
+      listEquals(other.moved, moved) &&
+      other.told.length == told.length &&
+      told.entries.every((e) => listEquals(other.told[e.key], e.value));
 
   @override
   int get hashCode => Object.hash(
     everywhere,
     Object.hashAllUnordered(apps.entries.map((e) => (e.key, e.value))),
     Object.hashAll(moved),
+    Object.hashAllUnordered(told.entries.map((e) => (e.key, Object.hashAll(e.value)))),
   );
 }
 
@@ -417,12 +458,14 @@ class ThemeController extends ChangeNotifier {
     if (choice == _preview) return;
     final theme = choice == null ? null : ThemeLibrary.byId(ThemeLibrary.normalise(choice).theme);
     if (theme != null && !ThemeFonts.readyFor(theme)) {
-      unawaited(ThemeFonts.ensureFor(theme).then((_) {
-        if (!_disposed && _previewWanted == choice && _preview != choice) {
-          _preview = choice;
-          notifyListeners();
-        }
-      }));
+      unawaited(
+        ThemeFonts.ensureFor(theme).then((_) {
+          if (!_disposed && _previewWanted == choice && _preview != choice) {
+            _preview = choice;
+            notifyListeners();
+          }
+        }),
+      );
       return;
     }
     _preview = choice;
@@ -497,7 +540,8 @@ class ThemeController extends ChangeNotifier {
   }
 
   /// myData's Appearance has said that [colours] moved to their new themes: they are taken off the list, so
-  /// it is said once. Another app's write meanwhile is kept.
+  /// it is said once, and recorded as told by this app (myData), so they are never listed again and myData's
+  /// own window does not say them a second time. Another app's write meanwhile is kept.
   Future<void> acknowledgeMoved(Iterable<String> colours) async {
     if (_disposed) return;
     final told = colours.toSet();
@@ -511,9 +555,52 @@ class ThemeController extends ChangeNotifier {
           if (e.key is String && e.key != ThemeSettings.movedKey) e.key as String: e.value,
         if (left.isNotEmpty) ThemeSettings.movedKey: left,
       };
-      return {...now, ThemeSettings.key: out};
+      return {...now, ThemeSettings.key: _toldBy(out, told, appId)};
     });
     if (!_disposed) _apply(v);
+  }
+
+  /// The old colour whose move this app's window should say now ([ThemeSettings.movedNoticeFor]): its look
+  /// changed from Kiwi in that colour to that colour's theme, and it has not said so yet. Null while the
+  /// gallery previews, and when there is nothing to say.
+  String? get movedNotice => _preview == null ? _settings.movedNoticeFor(appId) : null;
+
+  /// This app's window has said that [colour] moved ([movedNotice]); it is not said here again. Kept on the
+  /// list for myData's Appearance, which is the record.
+  Future<void> acknowledgeMovedHere(String colour) async {
+    if (_disposed) return;
+    ++_generation;
+    final v = await store.update((now) {
+      final raw = now[ThemeSettings.key];
+      if (raw is! Map) return now;
+      return {
+        ...now,
+        ThemeSettings.key: _toldBy(
+          {
+            for (final e in raw.entries)
+              if (e.key is String) e.key as String: e.value,
+          },
+          {colour},
+          appId,
+        ),
+      };
+    });
+    if (!_disposed) _apply(v);
+  }
+
+  /// [themes] (a `themes` value) with [app] added to the apps that told each of [colours].
+  static Map<String, Object?> _toldBy(Map<String, Object?> themes, Set<String> colours, String app) {
+    final raw = themes[ThemeSettings.toldKey];
+    final told = <String, Object?>{
+      if (raw is Map)
+        for (final e in raw.entries)
+          if (e.key is String) e.key as String: e.value,
+    };
+    for (final c in colours) {
+      final was = told[c] is List ? (told[c] as List).whereType<String>() : const <String>[];
+      told[c] = {...was, app}.toList();
+    }
+    return {...themes, ThemeSettings.toldKey: told};
   }
 
   /// Light, dark or match system, for this device (every myData app on it follows). Drawn at once; when it

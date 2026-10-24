@@ -349,7 +349,74 @@ void main() {
         'everywhere': journalPlum.toJson(),
         'apps': {'mycalendar': {'theme': 'mydata.sticker', 'palette': 'rose'}},
         'library': ['someone.neon'],
+        // said in myData (this controller's app): never listed again, and not said in its window again
+        'told': {
+          'plum': ['mycontacts'],
+          'rose': ['mycontacts'],
+        },
       });
+      c.dispose();
+    });
+
+    test('each app whose look moved says so once in its own window; the others say nothing', () async {
+      final store = MemoryDeviceStore({
+        'themes': {
+          'everywhere': {'theme': 'mydata.kiwi', 'palette': 'plum'},
+          'apps': {'mycalendar': {'theme': 'mydata.hairline', 'palette': 'slate'}},
+        },
+      });
+      final contacts = _controller(store, mac: true);
+      final calendar = _controller(store, app: 'mycalendar', mac: true);
+      await Future.wait([contacts.start(), calendar.start()]);
+      // myContacts follows everywhere, which moved from Kiwi in Plum; myCalendar has its own Hairline
+      expect(contacts.movedNotice, 'plum');
+      expect(calendar.movedNotice, isNull);
+      // the gallery's preview never says it
+      contacts.preview(const ThemeChoice('mydata.kiwi', 'sky'));
+      expect(contacts.movedNotice, isNull);
+      contacts.preview(null);
+      await contacts.acknowledgeMovedHere('plum');
+      expect(contacts.movedNotice, isNull);
+      // still listed for myData's Appearance, which is the record
+      expect(contacts.settings.moved, ['plum']);
+      expect((await _themes(store))!['told'], {'plum': ['mycontacts']});
+      // another app on the moved choice still says it, once
+      final assistant = _controller(store, app: 'myassistant', mac: true);
+      await assistant.start();
+      expect(assistant.movedNotice, 'plum');
+      await assistant.acknowledgeMovedHere('plum');
+      expect((await _themes(store))!['told'], {'plum': ['mycontacts', 'myassistant']});
+      // a later choice of something else is not a move
+      await contacts.use(const ThemeChoice('mydata.kiwi', 'sky'));
+      expect(contacts.movedNotice, isNull);
+      contacts.dispose();
+      calendar.dispose();
+      assistant.dispose();
+    });
+
+    test('an older build writing Kiwi in a colour already told moves it quietly: no notice, not listed', () async {
+      final store = MemoryDeviceStore({
+        'themes': {
+          'everywhere': {'theme': 'mydata.kiwi', 'palette': 'plum'},
+        },
+      });
+      final c = _controller(store, mac: true);
+      await c.start();
+      expect(c.movedNotice, 'plum');
+      await c.acknowledgeMovedHere('plum');
+      await c.acknowledgeMoved(['plum']);
+      expect(c.settings.moved, isEmpty);
+      await store.write({
+        'themes': {
+          'everywhere': {'theme': 'mydata.kiwi', 'palette': 'plum'},
+          'told': {'plum': ['mycontacts']},
+        },
+      });
+      await _until(() => c.settings.everywhere == journalPlum);
+      expect(c.settings.moved, isEmpty);
+      expect(c.movedNotice, isNull);
+      expect((await _themes(store))!.containsKey('moved'), isFalse);
+      expect(ThemeSettings.fromJson({'told': {'plum': ['a', 3], 'teal': ['b'], 'rose': 'x'}})!.told, {'plum': ['a']});
       c.dispose();
     });
   });

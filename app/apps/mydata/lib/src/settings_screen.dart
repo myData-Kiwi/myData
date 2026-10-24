@@ -63,7 +63,8 @@ class SettingsScreen extends StatelessWidget {
 /// - A stored choice this build does not have (a theme removed, a palette renamed) says what it draws instead.
 /// - **Once,** after a choice of Kiwi in one of today's old colours moved to that colour's theme (phase 3,
 ///   ARCHITECTURE.md 4.2): "Plum is now a palette of Journal." It stays while the section is shown and is
-///   then told ([ThemeController.acknowledgeMoved]), so the next visit has none.
+///   then told ([ThemeController.acknowledgeMoved]), so the next visit has none. This is the record: each
+///   app whose look moved also says it once in its own window ([ThemeMovedNotice]).
 class AppearanceSection extends StatefulWidget {
   const AppearanceSection({super.key, required this.themes});
 

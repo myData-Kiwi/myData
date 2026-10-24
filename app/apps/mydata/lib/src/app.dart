@@ -105,7 +105,11 @@ class _MyDataAppState extends State<MyDataApp> {
             // fonts (design/themes/ARCHITECTURE.md 3.5).
             themeAnimationDuration: MyDataTheme.switchDuration,
             debugShowCheckedModeBanner: false,
-            builder: MacShell.content,
+            // Says once that the look changed when Kiwi in an old colour moved to its theme.
+            builder: (context, child) => MacShell.content(
+              context,
+              ThemeMovedNotice(themes: _themes, app: MyDataAppId.mydata, child: child ?? const SizedBox.shrink()),
+            ),
             home: _Home(
               controller: widget.controller,
               themes: _themes,
