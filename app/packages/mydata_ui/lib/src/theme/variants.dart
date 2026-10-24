@@ -47,6 +47,19 @@ enum SecondaryStyle with KeyedEnum {
   final String key;
 }
 
+/// How a plain action (a plain [Button]: Cancel, Reject) is drawn.
+enum PlainStyle with KeyedEnum {
+  /// The label alone, in the accent (Kiwi).
+  text('text'),
+
+  /// The label underlined, so it reads as an action beside outlined controls (High Contrast, E-ink, Large).
+  underline('underline');
+
+  const PlainStyle(this.key);
+  @override
+  final String key;
+}
+
 /// The corners of a button, whatever the theme's other controls take.
 enum ButtonShapeStyle with KeyedEnum {
   pill('pill'),
@@ -273,6 +286,7 @@ class MyDataVariants {
     this.values, {
     required this.primary,
     required this.secondary,
+    required this.plain,
     required this.buttonShape,
     required this.list,
     required this.sidebar,
@@ -292,6 +306,7 @@ class MyDataVariants {
         values,
         primary: _of(PrimaryStyle.values, values['button.primary'], PrimaryStyle.filled),
         secondary: _of(SecondaryStyle.values, values['button.secondary'], SecondaryStyle.tonal),
+        plain: _of(PlainStyle.values, values['button.plain'], PlainStyle.text),
         buttonShape: _of(ButtonShapeStyle.values, values['button.shape'], ButtonShapeStyle.pill),
         list: _of(ListStyle.values, values['list'], ListStyle.inset),
         sidebar: _of(SidebarStyle.values, values['sidebar'], SidebarStyle.column),
@@ -310,6 +325,7 @@ class MyDataVariants {
   static final kiwi = MyDataVariants(const {
     'button.primary': 'filled',
     'button.secondary': 'tonal',
+    'button.plain': 'text',
     'button.shape': 'pill',
     'list': 'inset',
     'sidebar': 'column',
@@ -329,6 +345,7 @@ class MyDataVariants {
 
   final PrimaryStyle primary;
   final SecondaryStyle secondary;
+  final PlainStyle plain;
   final ButtonShapeStyle buttonShape;
   final ListStyle list;
   final SidebarStyle sidebar;

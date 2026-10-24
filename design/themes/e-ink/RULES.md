@@ -64,6 +64,7 @@ Phosphor Regular, bare (no tiles), never coloured. The current section's icon sw
 |---|---|
 | Primary button | Filled ink |
 | Secondary button | 1 px ink outline |
+| Plain button (Cancel, Reject) | Underlined, so it reads as an action beside the outlined ones |
 | List | Ruled: full-width rules between rows, no box |
 | Selection | Inverse (the row in ink, its text in paper) |
 | Sidebar, toolbar | A column and a flat band, each with a rule |

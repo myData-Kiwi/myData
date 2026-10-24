@@ -20,6 +20,7 @@ void main() {
   final typed = <String, (List<String>, List<Object> Function(MyDataVariants))>{
     'button.primary': (enumOf(button, 'primary'), (v) => [v.primary]),
     'button.secondary': (enumOf(button, 'secondary'), (v) => [v.secondary]),
+    'button.plain': (enumOf(button, 'plain'), (v) => [v.plain]),
     'button.shape': (enumOf(button, 'shape'), (v) => [v.buttonShape]),
     for (final k in ['list', 'sidebar', 'toolbar', 'inputs', 'selection', 'avatar', 'tabs', 'chat', 'month', 'today', 'data-colours'])
       k: (enumOf(components, k), (MyDataVariants v) => [switch (k) {

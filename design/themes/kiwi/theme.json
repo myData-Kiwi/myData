@@ -446,6 +446,7 @@
     "button": {
       "primary": "filled",
       "secondary": "tonal",
+      "plain": "text",
       "shape": "pill"
     },
     "list": "inset",

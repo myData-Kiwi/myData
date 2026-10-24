@@ -66,7 +66,7 @@ Material Symbols Outlined at weight 600 (`bold`), filled when selected, on outli
 
 | Part | Variant |
 |---|---|
-| Buttons | Filled primary; 2 px outlined secondary; rounded |
+| Buttons | Filled primary; 2 px outlined secondary; plain ones (Cancel, Reject) underlined; rounded |
 | Lists | Bordered |
 | Selection | Inverse |
 | Avatars | Circles |

@@ -59,6 +59,7 @@ void nearRedAccent(Map<String, dynamic> json) {
 const componentValues = <String, List<String>>{
   'button.primary': ['filled', 'outline', 'brutal', 'bevel', 'push'],
   'button.secondary': ['tonal', 'outline', 'text'],
+  'button.plain': ['text', 'underline'],
   'button.shape': ['pill', 'rounded', 'square', 'cut'],
   'list': ['plain', 'inset', 'cards', 'bordered', 'ruled', 'table'],
   'sidebar': ['source-list', 'column', 'rail', 'tabs'],

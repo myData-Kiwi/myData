@@ -64,7 +64,7 @@ Material Symbols Rounded, regular, 24 px, filled when selected, on tinted tiles.
 
 | Part | Variant |
 |---|---|
-| Buttons | Filled rounded primary, 52 px; outlined secondary |
+| Buttons | Filled rounded primary, 52 px; outlined secondary; plain ones (Cancel, Reject) underlined |
 | Lists | Bordered panels, full separators |
 | Selection | Outline |
 | Avatars | Circles |

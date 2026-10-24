@@ -1333,6 +1333,13 @@ const themeSchemaJson = r'''{
                 "text"
               ]
             },
+            "plain": {
+              "enum": [
+                "text",
+                "underline"
+              ],
+              "description": "A plain button (Cancel, Reject): its label alone, or its label underlined so it reads as an action where every other control is outlined (the accessibility themes). Default text."
+            },
             "shape": {
               "enum": [
                 "pill",
@@ -1902,6 +1909,7 @@ const builtInThemeJson = {
     "button": {
       "primary": "filled",
       "secondary": "tonal",
+      "plain": "text",
       "shape": "pill"
     },
     "list": "inset",
@@ -2422,6 +2430,7 @@ const builtInThemeJson = {
     "button": {
       "primary": "filled",
       "secondary": "outline",
+      "plain": "text",
       "shape": "rounded"
     },
     "list": "plain",
@@ -2921,6 +2930,7 @@ const builtInThemeJson = {
     "button": {
       "primary": "filled",
       "secondary": "tonal",
+      "plain": "text",
       "shape": "pill"
     },
     "list": "inset",
@@ -3386,6 +3396,7 @@ const builtInThemeJson = {
     "button": {
       "primary": "outline",
       "secondary": "text",
+      "plain": "text",
       "shape": "square"
     },
     "list": "ruled",
@@ -3923,6 +3934,7 @@ const builtInThemeJson = {
     "button": {
       "primary": "brutal",
       "secondary": "outline",
+      "plain": "text",
       "shape": "pill"
     },
     "list": "bordered",
@@ -4381,6 +4393,7 @@ const builtInThemeJson = {
     "button": {
       "primary": "filled",
       "secondary": "tonal",
+      "plain": "text",
       "shape": "rounded"
     },
     "list": "inset",
@@ -4836,6 +4849,7 @@ const builtInThemeJson = {
     "button": {
       "primary": "filled",
       "secondary": "outline",
+      "plain": "underline",
       "shape": "rounded"
     },
     "list": "bordered",
@@ -5226,6 +5240,7 @@ const builtInThemeJson = {
     "button": {
       "primary": "filled",
       "secondary": "outline",
+      "plain": "underline",
       "shape": "rounded"
     },
     "list": "ruled",
@@ -5685,6 +5700,7 @@ const builtInThemeJson = {
     "button": {
       "primary": "filled",
       "secondary": "outline",
+      "plain": "underline",
       "shape": "rounded"
     },
     "list": "bordered",

@@ -500,6 +500,7 @@
     "button": {
       "primary": "filled",
       "secondary": "outline",
+      "plain": "text",
       "shape": "rounded"
     },
     "list": "plain",

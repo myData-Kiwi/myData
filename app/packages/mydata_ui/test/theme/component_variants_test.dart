@@ -304,9 +304,20 @@ class PhoneTabsSpecimen extends StatelessWidget {
 
 void main() {
   group('buttons', () {
-    for (final key in ['button.primary', 'button.secondary', 'button.shape']) {
+    for (final key in ['button.primary', 'button.secondary', 'button.plain', 'button.shape']) {
       variantGoldens(key, (focus) => ButtonSpecimen(focus: focus), size: const Size(560, 150));
     }
+
+    test('an underlined plain button underlines Cancel and Revoke alike; a text one neither', () {
+      for (final (plain, underlined) in [('text', false), ('underline', true)]) {
+        final look = ThemeLibrary.look(kiwiWith(component('button.plain', plain)), brightness: Brightness.light);
+        expect(ButtonPaint.of(look, ButtonVariant.plain).underline, underlined, reason: plain);
+        expect(ButtonPaint.of(look, ButtonVariant.plainDanger).underline, underlined, reason: plain);
+      }
+      for (final id in ['mydata.high-contrast', 'mydata.e-ink', 'mydata.large']) {
+        expect(designedLook(id, Brightness.light).variants.plain, PlainStyle.underline, reason: id);
+      }
+    });
 
     // An accent near `danger`'s red: the primary is drawn in `ink`, so Approve never looks like Delete.
     variantGoldens('button.primary', (focus) => ButtonSpecimen(focus: focus),

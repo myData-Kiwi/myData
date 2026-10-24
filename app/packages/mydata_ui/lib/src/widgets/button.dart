@@ -47,7 +47,9 @@ enum ButtonVariant {
 ///   with its label in `bg`, so Approve never looks like Delete;
 /// - **secondary** ([ButtonVariant.tonal]): `tonal` (`accent-soft`, accent text), `outline` (no fill, the
 ///   control outline, `ink` text) or `text` (the accent label alone, underlined so it reads as an action);
-/// - [ButtonVariant.plain] and [ButtonVariant.plainDanger] stay text in every theme;
+/// - **plain** ([ButtonVariant.plain] and [ButtonVariant.plainDanger]) stay text in every theme: the label
+///   alone (`text`), or underlined (`underline`) where every other control is outlined, so Cancel and Reject
+///   still read as actions (High Contrast, E-ink, Large);
 /// - near red, every label that would be in the accent (plain, tonal, a text secondary) is `ink` too, so only
 ///   a destructive action is red (Reject beside Approve, Cancel beside Revoke);
 /// - the approval card's Approve ([Button.approval]) is the same in every theme: filled, or outlined where the
@@ -82,7 +84,7 @@ class ButtonPaint {
   /// The bevel's two lines.
   final Bevel? bevel;
 
-  /// The label is underlined (a text secondary).
+  /// The label is underlined (a text secondary, an underlined plain button).
   final bool underline;
 
   /// A solid fill: disabled, it is drawn on `surface-sunken` with an `ink-muted` label (about 4.5:1) and a
@@ -118,9 +120,9 @@ class ButtonPaint {
     final accentText = nearRed ? c.ink : c.accent;
     switch (variant) {
       case ButtonVariant.plain:
-        return ButtonPaint(fill: null, foreground: accentText);
+        return ButtonPaint(fill: null, foreground: accentText, underline: v.plain == PlainStyle.underline);
       case ButtonVariant.plainDanger:
-        return ButtonPaint(fill: null, foreground: c.danger);
+        return ButtonPaint(fill: null, foreground: c.danger, underline: v.plain == PlainStyle.underline);
       case ButtonVariant.tonal:
         return switch (v.secondary) {
           SecondaryStyle.tonal => ButtonPaint(

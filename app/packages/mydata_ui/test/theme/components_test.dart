@@ -1,6 +1,6 @@
-// The drawn built-ins on real components at a larger text size (1.3x): rows, a form row, a badge and the
-// contact header in each look's type, density and colours, so overflow from a bigger body or label shows up
-// before phase 3 draws their own variants. One golden per look and mode.
+// The drawn built-ins on real components at a larger text size (1.3x): rows, a form row, a badge, the
+// contact header and every button role in each look's type, density and colours, so overflow from a bigger
+// body or label shows up. One golden per look and mode.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mydata_ui/mydata_ui.dart';
@@ -37,6 +37,14 @@ class ComponentSpecimen extends StatelessWidget {
           ]),
           SizedBox(height: context.space(4)),
           MyDataTextField(label: 'Device name', controller: controller, help: 'Shown to your other devices.'),
+          SizedBox(height: context.space(4)),
+          // Every button role, the plain ones last: underlined where a theme outlines every control.
+          const ButtonRow(children: [
+            Button(label: 'Save', variant: ButtonVariant.filled, onPressed: _noop),
+            Button(label: 'Edit', onPressed: _noop),
+            Button(label: 'Cancel', variant: ButtonVariant.plain, onPressed: _noop),
+            Button(label: 'Revoke', variant: ButtonVariant.plainDanger, onPressed: _noop),
+          ]),
         ],
       );
 }
@@ -47,7 +55,7 @@ void main() {
       final slug = id.substring('mydata.'.length);
       testWidgets('component golden at 1.3x text ($slug-${b.name})', (tester) async {
         // Large's 19 px text at 1.3x needs a taller page; its rows themselves fit.
-        final size = Size(560, id == 'mydata.large' ? 900 : 760);
+        final size = Size(560, id == 'mydata.large' ? 1000 : 840);
         tester.view.physicalSize = size;
         tester.view.devicePixelRatio = 1;
         addTearDown(tester.view.reset);

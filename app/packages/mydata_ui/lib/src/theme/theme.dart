@@ -9,7 +9,7 @@ import 'look.dart';
 
 export 'look.dart'
     show MyDataLook, MyDataTypeRole, MyDataTypeScale, MyDataShape, MyDataDensity, MyDataMotionSpec, MyDataEdges,
-        MyDataElevation, Bevel, LookFrame, MyDataVariants, PrimaryStyle, SecondaryStyle, ButtonShapeStyle, ListStyle,
+        MyDataElevation, Bevel, LookFrame, MyDataVariants, PrimaryStyle, SecondaryStyle, PlainStyle, ButtonShapeStyle, ListStyle,
         SidebarStyle, ToolbarStyle, InputStyle, SelectionStyle, AvatarStyle, TabsStyle, ChatStyle, MonthStyle,
         TodayStyle, DataColourStyle;
 export 'icons.dart' show MyDataIcon;

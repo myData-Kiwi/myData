@@ -1327,6 +1327,13 @@
                 "text"
               ]
             },
+            "plain": {
+              "enum": [
+                "text",
+                "underline"
+              ],
+              "description": "A plain button (Cancel, Reject): its label alone, or its label underlined so it reads as an action where every other control is outlined (the accessibility themes). Default text."
+            },
             "shape": {
               "enum": [
                 "pill",

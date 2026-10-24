@@ -438,6 +438,7 @@
     "button": {
       "primary": "filled",
       "secondary": "tonal",
+      "plain": "text",
       "shape": "rounded"
     },
     "list": "inset",

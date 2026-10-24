@@ -370,6 +370,7 @@
     "button": {
       "primary": "filled",
       "secondary": "outline",
+      "plain": "underline",
       "shape": "rounded"
     },
     "list": "ruled",

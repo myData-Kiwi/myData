@@ -517,6 +517,7 @@
     "button": {
       "primary": "brutal",
       "secondary": "outline",
+      "plain": "text",
       "shape": "pill"
     },
     "list": "bordered",

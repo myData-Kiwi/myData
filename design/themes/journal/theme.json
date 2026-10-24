@@ -445,6 +445,7 @@
     "button": {
       "primary": "outline",
       "secondary": "text",
+      "plain": "text",
       "shape": "square"
     },
     "list": "ruled",
