@@ -237,7 +237,8 @@ class MacPane extends StatelessWidget {
 /// dotted desk ("Lists: bordered panels on the desk"; the dots never under a panel) and Brutalist's boxes on
 /// its poster ground, each with its hard offset shadow. The panel is the theme's card: `surface`, its corners,
 /// its card edge (and bevel) and its resting shadow, [gutter] in from the pane's edges, so the ground shows
-/// between panes. The window's skeleton (its columns and their widths) stays the Mac's. Anywhere else, and
+/// between panes. Blueprint's dashed sheets on its drawn grid are panels too, flat, so no text sits on the grid
+/// alone. The window's skeleton (its columns and their widths) stays the Mac's. Anywhere else, and
 /// in System, [child] as it is.
 class MacPanel extends StatelessWidget {
   const MacPanel({super.key, required this.child});
@@ -245,11 +246,16 @@ class MacPanel extends StatelessWidget {
   final Widget child;
 
   /// Whether [look] draws its panes as panels: a drawn look whose lists are bordered and whose depth is a
-  /// slab's (an offset shadow or a bevel).
+  /// slab's (an offset shadow or a bevel), or whose boxed lists (bordered or cards) stand on a patterned window
+  /// (Blueprint's drawn grid, Arcade's grid floor), which text never sits on alone.
   static bool drawn(MyDataLook look) =>
       look.frame != LookFrame.system &&
-      look.variants.list == ListStyle.bordered &&
-      (look.elevation.style == ElevationStyle.offset || look.elevation.style == ElevationStyle.bevel);
+      ((look.variants.list == ListStyle.bordered && _slab(look)) ||
+          ((look.variants.list == ListStyle.bordered || look.variants.list == ListStyle.cards) &&
+              look.materials.spec.window == WindowKind.pattern));
+
+  static bool _slab(MyDataLook look) =>
+      look.elevation.style == ElevationStyle.offset || look.elevation.style == ElevationStyle.bevel;
 
   /// Whether the panes are panels here: [drawn] in the Mac window, never in System. A column's divider is
   /// then left out, since the ground between the panels divides them.
@@ -258,10 +264,11 @@ class MacPanel extends StatelessWidget {
   /// The drop under a Mac control in a theme whose panes are panels (Brutalist's offset shadow, Retro
   /// Desktop's 2 px drop), gone while it is [pressed] where the theme collapses it; none elsewhere.
   static List<BoxShadow> controlShadows(BuildContext context, {bool pressed = false}) =>
-      shown(context) ? context.look.elevation.controlShadows(pressed: pressed) : const [];
+      shown(context) && _slab(context.look) ? context.look.elevation.controlShadows(pressed: pressed) : const [];
 
   /// The resting shadow under a Mac form's group in a theme whose panes are panels; none elsewhere.
-  static List<BoxShadow> groupShadows(BuildContext context) => shown(context) ? context.shadows.shadow1 : const [];
+  static List<BoxShadow> groupShadows(BuildContext context) =>
+      shown(context) && _slab(context.look) ? context.shadows.shadow1 : const [];
 
   /// Between a panel and its pane's edges: the sidebar panel's margin, more than the deepest offset shadow.
   static const gutter = MyDataMacSize.sidebarMargin;
@@ -274,9 +281,17 @@ class MacPanel extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.all(gutter),
       child: DecoratedBox(
-        decoration: context.radius
-            .decorate(BoxDecoration(color: context.colors.surface, borderRadius: radius, boxShadow: context.shadows.shadow1)),
-        child: CardEdge(radius: radius, child: look.shape.clip(radius, child: child)),
+        decoration: context.radius.decorate(
+          BoxDecoration(
+            color: context.colors.surface,
+            borderRadius: radius,
+            boxShadow: _slab(look) ? context.shadows.shadow1 : null,
+          ),
+        ),
+        child: CardEdge(
+          radius: radius,
+          child: look.shape.clip(radius, child: child),
+        ),
       ),
     );
   }

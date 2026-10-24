@@ -31,6 +31,10 @@ void main() {
   themesDistinct('month', least: 0.18, size: const Size(1280, 900), alike: {
     // 0.17: both rule every day in a thin dark line, square, with today an ink block; here they differ in type
     // (Inter against JetBrains Mono) and colour. They score 0.3 or more on the other three screens.
+    // 0.13: both draw the month as a panel on a patterned ground, every day ruled in a thin mid line; Blueprint's
+    // dashed panel edge and Retro Desktop's bevel and dotted desk are finer than the metric's step, so here
+    // they differ in type, colour and the today mark. They score 0.3 or more on the other three screens.
+    'blueprint and retro-desktop': (0.13, 'two panels of thin grid on a pattern'),
     'swiss and terminal': (0.17, 'the same square grid, other type'),
   });
 

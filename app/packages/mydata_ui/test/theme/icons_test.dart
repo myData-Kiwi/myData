@@ -142,6 +142,7 @@ void main() {
       'mydata.brutalist': ('phosphor', 'bold'),
       'mydata.retro-desktop': ('pixelarticons', 'regular'),
       'mydata.swiss': ('material-sharp', 'regular'),
+      'mydata.blueprint': ('tabler', 'thin'),
     });
   });
 
