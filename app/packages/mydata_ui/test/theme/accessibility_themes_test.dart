@@ -1,6 +1,7 @@
 // The accessibility themes keep their own, stricter promises (design/themes/<slug>/RULES.md, "Accessibility"),
 // beyond the rules every theme keeps (ARCHITECTURE.md 2.2 and 2.3): High Contrast's text at 7:1 in every
-// palette, its 2 px edges and double ring; E-ink's text at 7:1, no colour and nothing that moves.
+// palette, its 2 px edges and double ring; E-ink's text at 7:1, no colour and nothing that moves; Large's
+// bigger text and targets, with the same layout.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mydata_ui/mydata_ui.dart';
@@ -137,6 +138,55 @@ void main() {
       expect(style.materials.window, WindowKind.solid);
       expect(style.materials.bars, BarMaterial.solid);
       expect(style.elevation.style, ElevationStyle.none);
+    });
+  });
+
+  group('Large', () {
+    final theme = designedTheme('mydata.large');
+    final style = theme.style;
+
+    test('sets nothing under 16 px, body at 19', () {
+      for (final e in style.type.roles.entries) {
+        expect(e.value.size, greaterThanOrEqualTo(16), reason: e.key.key);
+      }
+      expect(style.type.roles[TypeRole.body]!.size, 19);
+      expect(style.type.roles[TypeRole.bodyStrong]!.size, 19);
+    });
+
+    test('makes every target at least 52 px on the desktop and 56 on phones, with 24 px icons', () {
+      final d = style.density;
+      expect(d.desktop.control, greaterThanOrEqualTo(52));
+      expect(d.desktop.row, greaterThanOrEqualTo(52));
+      expect(d.phone.control, greaterThanOrEqualTo(56));
+      expect(d.phone.row, greaterThanOrEqualTo(56));
+      expect(d.desktop.icon, greaterThanOrEqualTo(24));
+      final look = designedLook(theme.id, Brightness.light, platform: TargetPlatform.macOS);
+      expect(look.density.controlHeight, greaterThanOrEqualTo(52));
+      expect(look.density.rowHeight, greaterThanOrEqualTo(52));
+    });
+
+    test('outlines controls 2 px and never marks a selection by its tint alone', () {
+      expect(style.borders.width, BorderWidth.two);
+      expect(style.borders.controls, isTrue);
+      expect(style.components.values['selection'], 'outline');
+    });
+
+    test('keeps the Mac window\'s skeleton: only the sidebar widens, in proportion, so a section name fits', () {
+      MacLookMetrics m(String id) => MacLookMetrics.forLook(designedLook(id, Brightness.light), system: false);
+      for (final id in drawnBuiltIns.where((id) => id != theme.id)) {
+        expect(MacSidebar.width(m(id)), MyDataMacSize.sidebarWidth, reason: id);
+      }
+      expect(MacSidebar.width(m(theme.id)), MyDataMacSize.sidebarWidth * 19 / 16);
+    });
+
+    test('is one of the accessibility themes, whose faint text in the Mac window reads at 4.5:1', () {
+      expect(accessibilityThemes, contains(theme.id));
+      for (final b in Brightness.values) {
+        final look = designedLook(theme.id, b);
+        final mac = MacTheme.drawn(look).extension<MyDataMacColors>()!;
+        Rgb rgb(Color c) => Rgb.argb(c.toARGB32());
+        expect(contrast(rgb(mac.tertiaryLabel), rgb(look.colors.surface)), greaterThanOrEqualTo(4.5), reason: b.name);
+      }
     });
   });
 }

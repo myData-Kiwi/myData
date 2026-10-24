@@ -1,4 +1,4 @@
-// The six drawn built-ins on real components at a larger text size (1.3x): rows, a form row, a badge and the
+// The drawn built-ins on real components at a larger text size (1.3x): rows, a form row, a badge and the
 // contact header in each look's type, density and colours, so overflow from a bigger body or label shows up
 // before phase 3 draws their own variants. One golden per look and mode.
 import 'package:flutter/material.dart';
@@ -46,7 +46,9 @@ void main() {
     for (final b in Brightness.values) {
       final slug = id.substring('mydata.'.length);
       testWidgets('component golden at 1.3x text ($slug-${b.name})', (tester) async {
-        tester.view.physicalSize = const Size(560, 760);
+        // Large's 19 px text at 1.3x needs a taller page; its rows themselves fit.
+        final size = Size(560, id == 'mydata.large' ? 900 : 760);
+        tester.view.physicalSize = size;
         tester.view.devicePixelRatio = 1;
         addTearDown(tester.view.reset);
         debugDisableShadows = false;
@@ -56,7 +58,7 @@ void main() {
           debugShowCheckedModeBanner: false,
           theme: MyDataTheme.fromLook(designedLook(id, b)),
           home: MediaQuery(
-            data: const MediaQueryData(size: Size(560, 760), textScaler: TextScaler.linear(1.3)),
+            data: MediaQueryData(size: size, textScaler: const TextScaler.linear(1.3)),
             child: Builder(
               builder: (context) => Material(
                 color: context.colors.bg,

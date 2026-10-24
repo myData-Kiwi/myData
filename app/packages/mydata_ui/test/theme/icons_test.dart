@@ -136,6 +136,7 @@ void main() {
       'mydata.paperback': ('lucide', 'regular'),
       'mydata.high-contrast': ('material-outlined', 'bold'),
       'mydata.e-ink': ('phosphor', 'regular'),
+      'mydata.large': ('material-rounded', 'regular'),
     });
   });
 

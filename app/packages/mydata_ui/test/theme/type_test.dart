@@ -231,7 +231,8 @@ void main() {
     for (final b in Brightness.values) {
       final slug = id.substring('mydata.'.length);
       testWidgets('type golden ($slug-${b.name})', (tester) async {
-        tester.view.physicalSize = const Size(640, 400);
+        // Large's 19 px text needs a taller specimen.
+        tester.view.physicalSize = Size(640, id == 'mydata.large' ? 480 : 400);
         tester.view.devicePixelRatio = 1;
         addTearDown(tester.view.reset);
         final look = designedLook(id, b);

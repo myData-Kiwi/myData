@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../generated/tokens.g.dart';
-import '../theme/checks.dart' show accessibilityFirst;
+import '../theme/checks.dart' show accessibilityThemes;
 import '../theme/choice.dart';
 import '../theme/colour.dart';
 import '../theme/library.dart';
@@ -174,7 +174,7 @@ abstract final class MacTheme {
       extensions: [
         ...base.extensions.values,
         colorsFor(look.colors, look.brightness,
-            strongText: look.increasedContrast || accessibilityFirst.contains(look.themeId)),
+            strongText: look.increasedContrast || accessibilityThemes.contains(look.themeId)),
       ],
     );
   }
@@ -233,7 +233,7 @@ abstract final class MacTheme {
   /// The Mac widgets' colours from a drawn theme's palette: the window is `bg`, the content `surface`, the
   /// sidebar `sidebar`, labels `ink` and `ink-muted`, the accent, ring and selection the palette's. The
   /// faint label shades keep the system's opacity over `ink`; with [strongText] (increased contrast, and
-  /// the accessibility-first themes, High Contrast and E-ink) the tertiary label, which a disabled item and
+  /// the accessibility themes, High Contrast, E-ink and Large) the tertiary label, which a disabled item and
   /// another month's day are drawn in, is the grey of `ink` over `surface` that reads at 4.5:1 on `surface`
   /// and `bg`: still fainter than `ink-muted`, so a disabled item reads as disabled.
   static MyDataMacColors colorsFor(MyDataColors c, Brightness brightness, {bool strongText = false}) {

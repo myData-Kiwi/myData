@@ -32,6 +32,7 @@ A theme changes how the whole app looks: type, shape, density, borders, depth, i
 | Paperback (was Amber) | Paper under a reading lamp: a book serif, italic secondary text | Amber, Sepia, Linen | `themes/paperback/` |
 | High Contrast | The most contrast there is: black and white, every word at 7:1, 2 px edges, inverse selection, a double focus ring | Blue, Yellow, Cyan | `themes/high-contrast/` |
 | E-ink | E-paper: ink on paper only, a reading serif, ruled pages, calendars as patterns, nothing that moves | White, Cream, Grey | `themes/e-ink/` |
+| Large | Large and simple: 19 px text, 52 px targets, 2 px outlines, the same layout | Blue, Green, Purple | `themes/large/` |
 
 Each folder holds the theme file and its `RULES.md` (its design language, its palettes, do and don't, accessibility, font and icon licences). The six drawn themes are the phase 3 targets; until then the apps draw Kiwi, and the old colours are Kiwi's palettes. All twenty prototypes ship as built-ins (the owner, 2026-10-23): the 13 new ones are added in phase 4, each ported to palettes and the validator. "System, tinted" (System with another accent) never exists on macOS; other platforms may allow a tint later (phase 5).
 

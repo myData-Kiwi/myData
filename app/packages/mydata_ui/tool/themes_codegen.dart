@@ -23,7 +23,7 @@ const builtinThemesPath = 'lib/src/theme/builtin_themes.g.dart';
 /// The built-ins by folder, in the gallery's order (ARCHITECTURE.md 4.4): System, then Kiwi (the house style),
 /// the five that were today's other colours, then the new built-ins of phase 4 as each is built.
 const builtInOrder = [
-  'system', 'kiwi', 'hairline', 'frosted', 'journal', 'sticker', 'paperback', 'high-contrast', 'e-ink',
+  'system', 'kiwi', 'hairline', 'frosted', 'journal', 'sticker', 'paperback', 'high-contrast', 'e-ink', 'large',
 ];
 
 /// The folders of design/themes that hold a theme, in the gallery's order. A folder [builtInOrder] does not

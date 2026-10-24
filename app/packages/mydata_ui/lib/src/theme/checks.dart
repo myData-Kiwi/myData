@@ -34,6 +34,10 @@ String _need(double v) => v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toSt
 /// Themes whose text is checked at 7:1 at normal contrast too (ARCHITECTURE.md 2.2: accessibility-first).
 const accessibilityFirst = {'mydata.high-contrast', 'mydata.e-ink'};
 
+/// The accessibility themes: the accessibility-first two and Large. Their faint text (a disabled item,
+/// another month's day) is drawn at 4.5:1 in the Mac window, as at increased contrast (MacTheme.colorsFor).
+const accessibilityThemes = {...accessibilityFirst, 'mydata.large'};
+
 /// The 2.2 checks of one resolved palette. [defaults] gives the reference hues of `danger` and the calendar
 /// colours. At increased contrast, text needs 7:1 and materials count as solid (2.3).
 List<ThemeFinding> checkColours(ThemeFile theme, ResolvedPalette p, RoleDefaults defaults, {String? palette}) {
