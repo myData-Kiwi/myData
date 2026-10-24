@@ -12,8 +12,8 @@ Playful and chunky, like a sticker sheet or a toy. Big rounds, ink outlines, a h
 |---|---|---|---|
 | Display, title, heading | Fredoka | 40, 30, 24, 18 / 1.1 to 1.3 / 600 | **Display-only**: never under 16 px |
 | Body | Nunito | 15 / 1.5 / 500 | Body-strong 800 |
-| Label | Nunito | 13 / 1.3 / 800 | |
-| Caption | Nunito | 12.5 / 1.4 / 600 | |
+| Label | Nunito | 13 / 1.3 / 700 | Was 800: with the caption at 600 the small text was heavier than the 500 body (review, 2026-10-23) |
+| Caption | Nunito | 12.5 / 1.4 / 500 | Was 600, as the body's weight |
 | Mono | JetBrains Mono | 13 / 1.4 | |
 
 - Fredoka's rounded terminals carry the personality; Nunito keeps body text readable at 13–15 px.

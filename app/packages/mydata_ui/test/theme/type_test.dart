@@ -135,7 +135,8 @@ void main() {
     expect(journal.caption.fontStyle, FontStyle.italic);
     final sticker = designedLook('mydata.sticker', Brightness.light).typeScale;
     expect(sticker.heading.fontFamily, 'packages/mydata_ui/Fredoka');
-    expect(sticker.label.fontVariations, [const FontVariation('wght', 800)]);
+    expect(sticker.label.fontVariations, [const FontVariation('wght', 700)]);
+    expect(sticker.caption.fontVariations, [const FontVariation('wght', 500)]);
     final paperback = designedLook('mydata.paperback', Brightness.dark).typeScale;
     expect(paperback.body.fontFamily, 'packages/mydata_ui/Literata');
     expect(paperback.secondaryItalic, isTrue);
