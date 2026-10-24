@@ -128,7 +128,9 @@ List<ThemeFinding> checkColours(ThemeFile theme, ResolvedPalette p, RoleDefaults
   } else {
     pair('the $sel selection marker (${markerRole.key})', marker, roleWords(ColourRole.surface), v(ColourRole.surface), 3);
   }
-  if (sel == 'solid' || sel == 'inverse') {
+  // A double ring always has its `surface` keyline between it and what it surrounds (2.3), so it is checked
+  // against the grounds only.
+  if ((sel == 'solid' || sel == 'inverse') && style.borders.focus != FocusRingStyle.doubleRing) {
     pair('focus', v(ColourRole.focus), 'the $sel selection fill', marker, 3);
   }
   final other = sel == 'inverse' ? v(ColourRole.ink) : v(ColourRole.selection);

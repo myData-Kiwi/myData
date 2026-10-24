@@ -241,6 +241,47 @@ void main() {
     }
   }
 
+  // A double ring (`borders.focus: double`, High Contrast): 3px at 1px, with its `surface` keyline on the
+  // plain ground too, in the same 4px as the single ring.
+  for (final corners in ['round', 'cut']) {
+    for (final b in Brightness.values) {
+      testWidgets('focus ring golden: double, $corners, ${b.name}', (tester) async {
+        tester.view.physicalSize = const Size(320, 120);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        final onFill = FocusNode(), plain = FocusNode();
+        addTearDown(onFill.dispose);
+        addTearDown(plain.dispose);
+        final theme = variantTheme((json) {
+          _set('shape', {'corners': corners, 'cut-size': 8})(json);
+          _set('borders', {'focus': 'double'})(json);
+        });
+        final look = ThemeLibrary.look(theme, brightness: b, platform: TargetPlatform.linux);
+        expect(look.edges.doubleFocus, isTrue);
+        await tester.pumpWidget(MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: MyDataTheme.fromLook(look),
+          home: Builder(
+            builder: (context) => Material(
+              color: context.colors.bg,
+              child: Padding(
+                padding: EdgeInsets.all(context.space(4)),
+                child: TwoToneSpecimen(onFill: onFill, plain: plain),
+              ),
+            ),
+          ),
+        ));
+        await tester.sendKeyEvent(LogicalKeyboardKey.shift);
+        onFill.requestFocus();
+        await tester.pumpAndSettle();
+        await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/focus.double-on-fill-$corners.${b.name}.png'));
+        plain.requestFocus();
+        await tester.pumpAndSettle();
+        await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/focus.double-$corners.${b.name}.png'));
+      });
+    }
+  }
+
   // A filled button over Sticker's hard drop: the drop fills the ring's band along the bottom, so the ring
   // is two-tone there (its `surface` keyline between ring and drop), never red straight on the ink shadow.
   for (final b in Brightness.values) {

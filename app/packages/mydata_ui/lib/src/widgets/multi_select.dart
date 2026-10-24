@@ -266,7 +266,7 @@ class MultiSelectRowFrame extends StatelessWidget {
     );
     return CustomPaint(
       foregroundPainter: focused
-          ? InsetRingPainter(shape: context.radius, color: FocusRing.colourFor(context), borderRadius: shape, inset: focusInset)
+          ? InsetRingPainter(shape: context.radius, color: FocusRing.colourFor(context), borderRadius: shape, inset: focusInset, width: FocusRing.widthFor(context), keyline: FocusRing.keylineFor(context))
           : null,
       child: TweenAnimationBuilder<Color?>(
         tween: ColorTween(end: selected ? c.ink : c.ink.withValues(alpha: 0)),

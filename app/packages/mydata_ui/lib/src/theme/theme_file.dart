@@ -196,6 +196,19 @@ enum TitleRule with KeyedEnum {
   final String key;
 }
 
+/// The keyboard focus ring (theme.schema.json `borders.focus`).
+enum FocusRingStyle with KeyedEnum {
+  /// 2 px at 2 px, two-tone only where it sits on a fill.
+  single('single'),
+
+  /// 3 px at 1 px, with its `surface` keyline on every control: a two-colour ring everywhere (WCAG C40).
+  doubleRing('double');
+
+  const FocusRingStyle(this.key);
+  @override
+  final String key;
+}
+
 class BordersSpec {
   const BordersSpec({
     required this.width,
@@ -205,6 +218,7 @@ class BordersSpec {
     required this.controls,
     required this.separators,
     required this.titleRule,
+    this.focus = FocusRingStyle.single,
   });
 
   final BorderWidth width;
@@ -213,6 +227,7 @@ class BordersSpec {
   final bool cards, controls;
   final Separators separators;
   final TitleRule titleRule;
+  final FocusRingStyle focus;
 }
 
 enum ElevationStyle with KeyedEnum {
@@ -655,6 +670,7 @@ ThemeStyle styleFromJson(Map<String, Object?> s) {
       controls: borders['controls'] == true,
       separators: _byKey(Separators.values, borders['separators'] ?? 'inset'),
       titleRule: _byKey(TitleRule.values, borders['title-rule'] ?? 'none'),
+      focus: _byKey(FocusRingStyle.values, borders['focus'] ?? 'single'),
     ),
     elevation: ElevationSpec(
       style: _byKey(ElevationStyle.values, elevation['style']),

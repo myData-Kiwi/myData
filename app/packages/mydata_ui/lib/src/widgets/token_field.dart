@@ -846,7 +846,7 @@ class _TokenFieldState extends State<TokenField> with PendingInputRegistration<T
             onTap: () => _take(o),
             child: CustomPaint(
               foregroundPainter: highlighted && _keyHighlight
-                  ? InsetRingPainter(shape: context.radius, color: FocusRing.colourFor(context), borderRadius: MyDataRadii.sm(context.look))
+                  ? InsetRingPainter(shape: context.radius, color: FocusRing.colourFor(context), borderRadius: MyDataRadii.sm(context.look), width: FocusRing.widthFor(context), keyline: FocusRing.keylineFor(context))
                   : null,
               child: Container(
                 height: phone ? context.density.rowHeight : _rowExtent(context.look, o),

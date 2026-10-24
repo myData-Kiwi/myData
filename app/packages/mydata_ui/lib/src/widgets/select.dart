@@ -1246,7 +1246,7 @@ class _ListRow<T> extends StatelessWidget {
             onTap: onTap,
             child: CustomPaint(
               foregroundPainter: ring
-                  ? InsetRingPainter(shape: context.radius, color: FocusRing.colourFor(context), borderRadius: MyDataRadii.sm(context.look))
+                  ? InsetRingPainter(shape: context.radius, color: FocusRing.colourFor(context), borderRadius: MyDataRadii.sm(context.look), width: FocusRing.widthFor(context), keyline: FocusRing.keylineFor(context))
                   : null,
               child: Container(
                 height: item.caption == null ? context.density.controlHeight : context.density.rowHeight,

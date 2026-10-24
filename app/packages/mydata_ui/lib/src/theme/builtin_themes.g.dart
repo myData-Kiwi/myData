@@ -999,6 +999,13 @@ const themeSchemaJson = r'''{
             "single",
             "double"
           ]
+        },
+        "focus": {
+          "enum": [
+            "single",
+            "double"
+          ],
+          "description": "The keyboard focus ring. single (the default): 2 px in focus, 2 px out, with a surface keyline in the gap only where the ring sits on a fill. double: 3 px in focus, 1 px out, with the surface keyline on every control (High Contrast). Both reach 4 px from the control."
         }
       }
     },

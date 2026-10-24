@@ -939,6 +939,7 @@ class _CellState extends State<_Cell> {
               focusColour: FocusRing.colourFor(context),
               corners: context.radius,
               keyline: FocusRing.keylineFor(context, onFill: true),
+              focusWidth: FocusRing.widthFor(context, MonthGrid.focusRingWidth),
             ),
             child: child,
           ),
@@ -1152,6 +1153,7 @@ class _MonthGridDayState extends State<MonthGridDay> {
               focusColour: FocusRing.colourFor(context),
               corners: context.radius,
               keyline: FocusRing.keylineFor(context, onFill: true),
+              focusWidth: FocusRing.widthFor(context, MonthGrid.focusRingWidth),
             ),
             child: child,
           ),
@@ -1188,6 +1190,7 @@ class _MarksPainter extends CustomPainter {
     required this.focusColour,
     required this.corners,
     this.keyline,
+    this.focusWidth = MonthGrid.focusRingWidth,
   });
 
   final BorderRadius shape;
@@ -1203,6 +1206,9 @@ class _MarksPainter extends CustomPainter {
   /// The look's corner style.
   final MyDataShape corners;
   final Color? keyline;
+
+  /// The focus ring's width: [MonthGrid.focusRingWidth], 3px where the theme's ring is double.
+  final double focusWidth;
 
   /// A stroke of [width] whose outer edge is [inset] inside the cell, following its corners.
   void _ring(Canvas canvas, Size size, double inset, double width, Color colour) {
@@ -1237,7 +1243,7 @@ class _MarksPainter extends CustomPainter {
     if (!focused) return;
     final k = selected ? keyline : null;
     if (k != null) _ring(canvas, size, MonthGrid.selectionRingWidth, 1, k);
-    _ring(canvas, size, MonthGrid.selectionRingWidth + (k == null ? 0 : 1), MonthGrid.focusRingWidth, focusColour);
+    _ring(canvas, size, MonthGrid.selectionRingWidth + (k == null ? 0 : 1), focusWidth, focusColour);
   }
 
   @override
@@ -1250,5 +1256,6 @@ class _MarksPainter extends CustomPainter {
       old.focused != focused ||
       old.focusColour != focusColour ||
       old.corners.corners != corners.corners ||
-      old.keyline != keyline;
+      old.keyline != keyline ||
+      old.focusWidth != focusWidth;
 }

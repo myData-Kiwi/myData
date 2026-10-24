@@ -1288,6 +1288,7 @@ class _PlainContactRowState extends State<_PlainContactRow> {
           shape: look.shape,
           color: FocusRing.colourFor(context),
           borderRadius: radius,
+          width: FocusRing.widthFor(context),
           keyline: FocusRing.keylineFor(context, onFill: paint?.fill != null),
         ),
         child: content,

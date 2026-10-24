@@ -399,20 +399,30 @@ class FocusRing extends StatelessWidget {
   static bool _macSystem(BuildContext context) =>
       Theme.of(context).extension<MyDataMacColors>() != null && context.look.frame == LookFrame.system;
 
-  /// The keyline of a ring that sits on a fill ([onFill]): `surface`; none in the Mac frame, whose ring is
-  /// the system's.
+  /// The keyline of a ring that sits on a fill ([onFill]), or of every ring in a theme whose ring is double
+  /// (`borders.focus`, High Contrast): `surface`; none in the Mac frame, whose ring is the system's.
   static Color? keylineFor(BuildContext context, {bool onFill = false}) =>
-      !onFill || _macSystem(context) ? null : context.colors.surface;
+      _macSystem(context) || !(onFill || context.look.edges.doubleFocus) ? null : context.colors.surface;
+
+  /// A ring's width where a widget draws it itself: [base] (the widget's own, 2 px in most), or 3 px where
+  /// the theme's ring is double; never changed in the Mac frame, whose ring is the system's.
+  static double widthFor(BuildContext context, [double base = 2]) =>
+      !_macSystem(context) && context.look.edges.doubleFocus ? 3 : base;
 
   /// The ring around a shape with [radius]: 2px of [colourFor] 2px outside it, following the look's corner
-  /// style; in the Mac frame `focus-ring-width` at `focus-ring-offset` (tokens.json "macos"), round.
-  /// [shape] is the corner style the control is drawn in, when it is not the look's.
+  /// style (a double ring: 3px 1px outside, over a `surface` keyline; the same 4px out); in the Mac frame
+  /// `focus-ring-width` at `focus-ring-offset` (tokens.json "macos"), round. [shape] is the corner style the
+  /// control is drawn in, when it is not the look's.
   static CustomPainter painter(BuildContext context, BorderRadius radius,
       {bool danger = false, bool onFill = false, MyDataShape? shape}) {
     final color = colourFor(context, danger: danger);
     if (!_macSystem(context)) {
+      final width = widthFor(context);
       return _FocusRingPainter(color, radius,
-          shape: shape ?? context.radius, keyline: keylineFor(context, onFill: onFill));
+          width: width,
+          offset: 4 - width,
+          shape: shape ?? context.radius,
+          keyline: keylineFor(context, onFill: onFill));
     }
     return _FocusRingPainter(color, radius,
         width: MyDataMacSize.focusRingWidth, offset: MyDataMacSize.focusRingOffset);

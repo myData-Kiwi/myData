@@ -540,6 +540,9 @@ class MyDataEdges {
   /// Under a page's title: none, one rule or two.
   TitleRule get titleRule => spec.titleRule;
 
+  /// The focus ring is double ([FocusRingStyle.doubleRing]): 3 px, with a `surface` keyline on every control.
+  bool get doubleFocus => spec.focus == FocusRingStyle.doubleRing;
+
   /// How tall a separator between rows is: nothing when there is none, three widths for a double rule.
   double get separatorExtent => switch (separators) {
         Separators.none => 0,

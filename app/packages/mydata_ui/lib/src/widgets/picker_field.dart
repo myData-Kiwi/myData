@@ -687,7 +687,8 @@ class _PickerListBoxState extends State<PickerListBox> {
                   onTap: () => widget.onPicked(i),
                   child: CustomPaint(
                     foregroundPainter: highlighted && _fromKeys && _node.hasFocus
-                        ? _RowRingPainter(FocusRing.colourFor(context), context.radius.sm)
+                        ? _RowRingPainter(FocusRing.colourFor(context), context.radius.sm,
+                            FocusRing.widthFor(context, PickerListBox.ringWidth))
                         : null,
                     child: Container(
                       key: ValueKey('picker-row-$i'),
@@ -739,17 +740,19 @@ class _PickerListBoxState extends State<PickerListBox> {
   }
 }
 
-/// The 2px `focus` ring inside a list row's `radius-sm` shape.
+/// The `focus` ring inside a list row's `radius-sm` shape: 2px, 3px where the theme's ring is double.
 class _RowRingPainter extends CustomPainter {
-  _RowRingPainter(this.colour, this.radius);
+  _RowRingPainter(this.colour, this.radius, this.w);
   final Color colour;
 
   /// The row's corner radius (`radius-sm`).
   final double radius;
 
+  /// The ring's width.
+  final double w;
+
   @override
   void paint(Canvas canvas, Size size) {
-    const w = PickerListBox.ringWidth;
     final rect = (Offset.zero & size).deflate(w / 2);
     canvas.drawRRect(
         RRect.fromRectAndRadius(rect, Radius.circular(radius - w / 2)),
@@ -760,5 +763,5 @@ class _RowRingPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_RowRingPainter old) => old.colour != colour || old.radius != radius;
+  bool shouldRepaint(_RowRingPainter old) => old.colour != colour || old.radius != radius || old.w != w;
 }
