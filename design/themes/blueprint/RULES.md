@@ -4,7 +4,7 @@
 
 ## Personality
 
-A technical drawing. Lines on drafting paper by day; white lines on a coloured board at night (Prussian blue in the default palette). A faint 16 px grid under everything, dashed outlines, small upper-case callouts, values in a mono face. Precise and quiet.
+A technical drawing. Lines on drafting paper by day; white lines on a coloured board at night (Prussian blue in the default palette). A faint 16 px grid under everything, dashed outlines, small upper-case callouts, copyable values in a mono face. Precise and quiet.
 
 ## Typography
 
@@ -14,7 +14,7 @@ A technical drawing. Lines on drafting paper by day; white lines on a coloured b
 | Body | Instrument Sans | 14 / 1.45 / 400 (body-strong 600) |
 | Label | Instrument Sans | 11 / 1.3 / 500, **upper case**, 0.08 em tracking (drawing callouts) |
 | Caption | Instrument Sans | 12 / 1.35 / 400 |
-| Mono | JetBrains Mono | 12 / 1.4: phone numbers, addresses, times you would copy or compare |
+| Mono | JetBrains Mono | 12 / 1.4: the values the apps set in mono (an approval card's addresses, codes); a record's phone numbers and email addresses stay in the body face, since format 1 gives no theme a face per value |
 
 - Tabular figures throughout.
 - Upper case on labels only, never on text that holds a name: a contact's field labels from the card, an account or a calendar keep their own case.
@@ -48,7 +48,7 @@ A technical drawing. Lines on drafting paper by day; white lines on a coloured b
 ## Depth and materials
 
 - Window: a **drawn grid** (`pattern: grid`, 16 px, the accent at 7%), painted once behind the content; reduced transparency turns it plain.
-- **In the Mac window the panes are sheets on the grid** (`MacPanel`): the contact list and record, the month and the day list are white (or board-coloured) panels with a dashed edge, so names never sit on the grid; form groups are boxes. Section headings and footnotes between groups do sit on the grid; they are checked against it composited.
+- **In the Mac window the panes are sheets on the grid** (`MacPanel`): the contact list and record, the month and the day list are white (or board-coloured) panels with a dashed edge, so names never sit on the grid; form groups are boxes. Section headings and footnotes between groups do sit on the grid; they are checked against it composited. On myContacts' people screen the two sheets fill the window, so the grid shows only in the 8 px gutters (`MacPanel.gutter`, the sidebar panel's margin); it shows in full where a pane has room round its content (myData's status). A wider margin would be layout, which stays out of themes.
 - No shadows (`elevation: none`). Separation comes from lines.
 - Borders: **1 px dashed** in `edge` on cards, lists, panels and separators. **Inputs, buttons, the month's days and the focus ring stay solid**: a dashed line can never be a control's only edge.
 - A single rule under a record's title.
@@ -79,7 +79,7 @@ Tabler at its thinnest stroke, 18 px, on outlined tiles.
 ## Do and don't
 
 - Do keep the grid faint and behind solid sheets.
-- Do use mono for anything you would copy or compare.
+- Do use mono where the apps set a value in mono (an address to approve, a code).
 - Don't use the dashed style for anything interactive.
 - Don't add colour beyond the palette's one hue and the calendar colours.
 

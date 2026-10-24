@@ -1682,9 +1682,14 @@ class _ContactRowState extends State<_ContactRow> {
       ),
     );
     if (outline != null) {
+      // In the theme's border style where the outline is its card edge (Blueprint's dashed box).
+      final styled = look.edges.style != BorderStyleKind.solid && outline == look.edges.card;
       piece = CustomPaint(
-        foregroundPainter: InsetRingPainter(
-            shape: context.radius, color: outline.color, width: outline.width, borderRadius: shape, top: first, bottom: last),
+        foregroundPainter: styled
+            ? StyledPieceEdgePainter(
+                shape: context.radius, side: outline, style: look.edges.style, radius: shape, top: first, bottom: last)
+            : InsetRingPainter(
+                shape: context.radius, color: outline.color, width: outline.width, borderRadius: shape, top: first, bottom: last),
         child: piece,
       );
     } else if (list == ListStyle.ruled && (widget.first || widget.last)) {

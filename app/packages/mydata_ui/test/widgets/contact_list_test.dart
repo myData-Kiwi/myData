@@ -520,6 +520,28 @@ void main() {
       }
     });
 
+    // A bordered list in a dashed theme (Blueprint: "a dashed box with dashed full separators") draws its box
+    // in dashes, piece by piece; a solid theme's stays the solid ring.
+    testWidgets('a bordered list\'s box is dashed in blueprint', (tester) async {
+      tester.view.physicalSize = const Size(900, 700);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+          themedFrame(const ThemeCase('blueprint', Brightness.light), _Harness(contacts: _people(), selected: 'a2')));
+      await tester.pump();
+      final look = MyDataLook.of(tester.element(find.text('Eli Sample')));
+      expect(look.variants.list, ListStyle.bordered);
+      expect(look.edges.style, BorderStyleKind.dashed);
+      final painters = tester
+          .widgetList<CustomPaint>(find.ancestor(of: find.text('Eli Sample'), matching: find.byType(CustomPaint)))
+          .map((p) => p.foregroundPainter)
+          .whereType<StyledPieceEdgePainter>()
+          .toList();
+      expect(painters, hasLength(1));
+      expect(painters.single.style, BorderStyleKind.dashed);
+      expect(painters.single.side, look.edges.card);
+    });
+
     testWidgets('hover fills an unselected row with surface-sunken; the selected row keeps accent-soft', (
       tester,
     ) async {

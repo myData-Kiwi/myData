@@ -190,8 +190,8 @@ class GroupFrame extends StatelessWidget {
           child: outlined
               ? DecoratedBox(
                   position: DecorationPosition.foreground,
-                  decoration: context.radius.decorate(
-                      BoxDecoration(borderRadius: radius, border: Border.fromBorderSide(listOutline(look)))),
+                  // In the theme's border style where the outline is its card edge (Blueprint's dashes).
+                  decoration: MyDataEdgesPaint.outline(look, radius, listOutline(look)),
                   child: column)
               : CardEdge(radius: radius, child: column),
         );

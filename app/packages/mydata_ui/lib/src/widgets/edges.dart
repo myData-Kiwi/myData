@@ -20,6 +20,17 @@ abstract final class MyDataEdgesPaint {
         base: const BoxDecoration(), shape: look.shape, radius: radius, side: edge, style: look.edges.style);
   }
 
+  /// [side] round a box with corners [radius], in the theme's border style where [side] is its card edge
+  /// (Blueprint's dashed list box), else solid: a list's outline, which falls back to the control outline
+  /// (always solid) in a theme that outlines no cards.
+  static Decoration outline(MyDataLook look, BorderRadius radius, BorderSide side) {
+    if (look.edges.style == BorderStyleKind.solid || side != look.edges.card) {
+      return look.shape.decorate(BoxDecoration(borderRadius: radius, border: Border.fromBorderSide(side)));
+    }
+    return _StyledEdgeDecoration(
+        base: const BoxDecoration(), shape: look.shape, radius: radius, side: side, style: look.edges.style);
+  }
+
   /// The outline of a control (a button with a fill, a field), or null when the theme draws none; never in
   /// the faint `line` ([MyDataEdges.controlColour]).
   static Border? control(MyDataLook look) => look.edges.controls ? Border.fromBorderSide(look.edges.controlSide) : null;
@@ -379,4 +390,56 @@ class TitleRuleLine extends StatelessWidget {
       ),
     );
   }
+}
+
+/// One piece of a list's outline drawn row by row (a contact list's bordered group), in a dashed or double
+/// border style: the outline of the whole group, open at the top or bottom where the next row joins
+/// ([top], [bottom] false), clipped to this row, so the pieces make one box. [radius] is this piece's corners.
+class StyledPieceEdgePainter extends CustomPainter {
+  StyledPieceEdgePainter({
+    required this.shape,
+    required this.side,
+    required this.style,
+    required this.radius,
+    this.top = true,
+    this.bottom = true,
+  });
+
+  final MyDataShape shape;
+  final BorderSide side;
+  final BorderStyleKind style;
+  final BorderRadius radius;
+  final bool top;
+  final bool bottom;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    // Past an open side the outline runs on out of sight, so that side has no line and no corner.
+    final reach = side.width * 4 + 4;
+    final run = Rect.fromLTRB(rect.left, top ? rect.top : rect.top - reach, rect.right, bottom ? rect.bottom : rect.bottom + reach);
+    final r = radius.resolve(TextDirection.ltr);
+    final corners = BorderRadius.only(
+      topLeft: top ? r.topLeft : Radius.zero,
+      topRight: top ? r.topRight : Radius.zero,
+      bottomLeft: bottom ? r.bottomLeft : Radius.zero,
+      bottomRight: bottom ? r.bottomRight : Radius.zero,
+    );
+    canvas
+      ..save()
+      ..clipRect(rect);
+    MyDataEdgesPaint.stroke(canvas, shape.ringPath(run, corners, -side.width / 2), side, style,
+        inner: style == BorderStyleKind.doubleLine ? shape.ringPath(run, corners, -side.width * 2.5) : null);
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(StyledPieceEdgePainter old) =>
+      old.shape.corners != shape.corners ||
+      old.shape.cutSize != shape.cutSize ||
+      old.side != side ||
+      old.style != style ||
+      old.radius != radius ||
+      old.top != top ||
+      old.bottom != bottom;
 }
