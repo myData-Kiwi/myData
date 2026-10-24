@@ -10,7 +10,6 @@ import 'package:mydata_ui/src/theme/checks.dart';
 import 'package:mydata_ui/src/theme/colour.dart';
 import 'package:mydata_ui/src/theme/resolve.dart';
 import 'package:mydata_ui/src/theme/roles.dart';
-import 'package:mydata_ui/src/theme/validate.dart';
 
 /// Today's old colours (design/themes.json until phase 3, frozen here) and the theme each became the default
 /// palette of, with the accent and on-accent it had: light, then dark.

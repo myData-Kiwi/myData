@@ -3,7 +3,6 @@
 import 'package:flutter/material.dart';
 import 'package:mydata_ui/mydata_ui.dart';
 import 'package:mydata_ui/src/theme/builtin_themes.g.dart';
-import 'package:mydata_ui/src/theme/validate.dart';
 
 /// The built-in theme files, by id.
 Map<String, String> designedThemeTexts() => builtInThemeJson;

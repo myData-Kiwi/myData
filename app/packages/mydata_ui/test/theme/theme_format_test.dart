@@ -11,7 +11,6 @@ import 'package:mydata_ui/src/theme/roles.dart';
 import 'package:mydata_ui/src/theme/schema.dart';
 import 'package:mydata_ui/src/theme/strict_json.dart';
 import 'package:mydata_ui/src/theme/theme_file.dart';
-import 'package:mydata_ui/src/theme/validate.dart';
 
 final format = ThemeLibrary.format();
 

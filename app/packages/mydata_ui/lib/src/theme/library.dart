@@ -56,17 +56,23 @@ abstract final class ThemeLibrary {
   /// The themes the gallery offers, in its order (ARCHITECTURE.md 4.4): System, then the built-ins.
   static List<ThemeFile> get offered => builtIns;
 
-  static ThemeFile? byId(String? id) => _builtIn[id] ?? _testing[id];
+  static ThemeFile? byId(String? id) => _testing[id] ?? _builtIn[id];
 
   static final _testing = <String?, ThemeFile>{};
 
   /// Makes [theme] known to [byId] until [clearForTesting], for tests of a theme the shipped library does
-  /// not have.
+  /// not have, or of a built-in's file as it is on disk now (the preview harness draws a `design/themes`
+  /// file before it is generated): a theme added here is drawn in place of the built-in with its id.
   @visibleForTesting
   static void addForTesting(ThemeFile theme) => _testing[theme.id] = theme;
 
   @visibleForTesting
   static void clearForTesting() => _testing.clear();
+
+  /// Draws every look at increased contrast ([lookFor]), as the preview harness's `--contrast` asks: the
+  /// apps do not follow the system's setting yet (ARCHITECTURE.md 2.3), so this is how a theme's
+  /// increased-contrast set is seen in the real app before they do.
+  static bool debugIncreasedContrast = false;
 
   /// Today's five other colours, and the theme and palette each moved to (ARCHITECTURE.md 4.2): a choice of
   /// Kiwi in one of them is that theme in that palette.
@@ -151,7 +157,10 @@ abstract final class ThemeLibrary {
       {bool increasedContrast = false, TargetPlatform? platform}) {
     final c = normalise(choice);
     return look(byId(c.theme)!,
-        paletteId: c.palette, brightness: brightness, increasedContrast: increasedContrast, platform: platform);
+        paletteId: c.palette,
+        brightness: brightness,
+        increasedContrast: increasedContrast || debugIncreasedContrast,
+        platform: platform);
   }
 
   /// Kiwi's default palette, the resolver's starting point for roles a palette leaves out.

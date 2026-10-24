@@ -29,6 +29,7 @@ export 'src/theme/look.dart';
 export 'src/theme/motion.dart';
 export 'src/theme/theme.dart';
 export 'src/theme/theme_file.dart' show ThemeFile, ThemeFrame, ThemePalette;
+export 'src/theme/validate.dart' show PaletteCheck, ThemeCheck, ThemeFormat, validateThemeText;
 export 'src/widgets/action_row.dart';
 export 'src/widgets/app_frame.dart';
 export 'src/widgets/app_menu_bar.dart';
