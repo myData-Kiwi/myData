@@ -7,6 +7,7 @@ import 'package:flutter/widgets.dart';
 import '../theme/theme.dart';
 import 'button.dart';
 import 'data_colour.dart';
+import 'edges.dart' show MyDataEdgesPaint;
 import 'icon_button.dart';
 import 'pressable.dart';
 import 'selection.dart' show SelectionMark, inkAs;
@@ -755,10 +756,13 @@ class _Grid extends StatelessWidget {
       position: DecorationPosition.background,
       child: DecoratedBox(
        position: DecorationPosition.foreground,
-       decoration: style == MonthStyle.table
-           ? context.radius.decorate(BoxDecoration(
-               borderRadius: radius, border: Border.all(color: rule, width: MonthGrid.dividerWidth)))
-           : const BoxDecoration(),
+       decoration: switch (style) {
+         MonthStyle.table => context.radius.decorate(BoxDecoration(
+             borderRadius: radius, border: Border.all(color: rule, width: MonthGrid.dividerWidth))),
+         // A boxed month is a card: the theme's card outline goes with its shadow.
+         MonthStyle.boxed => MyDataEdgesPaint.cardEdge(context.look, radius) ?? const BoxDecoration(),
+         MonthStyle.open => const BoxDecoration(),
+       },
        child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,

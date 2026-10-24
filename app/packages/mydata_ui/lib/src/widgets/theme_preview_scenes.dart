@@ -5,6 +5,7 @@ import '../theme/theme.dart';
 import 'avatar.dart';
 import 'badge.dart';
 import 'button.dart';
+import 'edges.dart' show MyDataEdgesPaint;
 import 'selection.dart';
 import 'icon_tile.dart';
 import 'status.dart';
@@ -419,6 +420,7 @@ class _StatusScene extends StatelessWidget {
       margin: EdgeInsets.only(bottom: context.space(3)),
       padding: EdgeInsets.all(context.space(4)),
       decoration: context.radius.decorate(BoxDecoration(color: c.surfaceRaised, borderRadius: r, boxShadow: context.shadows.shadow1)),
+      foregroundDecoration: MyDataEdgesPaint.cardEdge(context.look, r),
       child: Row(
         children: [
           IconTile(icon: icon),

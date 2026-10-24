@@ -10,6 +10,7 @@ import 'button.dart';
 import 'icon_button.dart';
 import 'pressable.dart';
 import 'role_label.dart';
+import 'edges.dart' show CardEdge;
 
 /// Where a form sits, which decides its ground and spacing (design/components/FormRow, "The form").
 enum FormGround {
@@ -179,7 +180,10 @@ class FormGroup extends StatelessWidget {
         child: DecoratedBox(
           decoration:
               context.radius.decorate(BoxDecoration(color: c.surface, borderRadius: MyDataRadii.lg(context.look), boxShadow: context.shadows.shadow1)),
-          child: Padding(padding: EdgeInsets.all(phone ? context.space(4) : context.space(5)), child: fields),
+          child: CardEdge(
+            radius: MyDataRadii.lg(context.look),
+            child: Padding(padding: EdgeInsets.all(phone ? context.space(4) : context.space(5)), child: fields),
+          ),
         ),
       );
     }

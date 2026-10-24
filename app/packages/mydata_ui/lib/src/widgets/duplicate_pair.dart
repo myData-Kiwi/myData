@@ -9,6 +9,7 @@ import 'pressable.dart' show MyDataRadii;
 import 'segmented_control.dart';
 import 'select.dart';
 import 'role_label.dart';
+import 'edges.dart' show CardEdge;
 
 /// The kinds of value a [DuplicatePair] compares, one row each, in the contact page's order
 /// (design/components/DuplicatePair, "Field rows").
@@ -341,7 +342,7 @@ class _DuplicatePairState extends State<DuplicatePair> {
       return Container(
         padding: EdgeInsets.all(context.space(5)),
         decoration: context.radius.decorate(BoxDecoration(color: c.surface, borderRadius: MyDataRadii.lg(context.look), boxShadow: context.shadows.shadow1)),
-        child: column,
+        child: CardEdge(radius: MyDataRadii.lg(context.look), child: column),
       );
     });
   }

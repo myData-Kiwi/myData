@@ -6,6 +6,7 @@ import '../theme/theme.dart';
 import 'button.dart';
 import 'kiwi.dart';
 import 'pressable.dart';
+import 'edges.dart' show CardEdge;
 
 /// What a screen shows when it has nothing to list yet (design/components/EmptyState).
 ///
@@ -92,11 +93,14 @@ class EmptyState extends StatelessWidget {
               child: Container(
                 width: tileSize,
                 height: tileSize,
-                alignment: Alignment.center,
                 // The preview's `.mark`: `border-radius:28px`, which is `radius-xl`.
                 decoration:
                     context.radius.decorate(BoxDecoration(color: c.paper, borderRadius: MyDataRadii.xl(context.look), boxShadow: context.shadows.shadow1)),
-                child: const KiwiMark(height: markWidth / KiwiMark.aspect, semanticLabel: null),
+                // The theme's card outline goes with its shadow (Sticker's hard shadow needs its edge).
+                child: CardEdge(
+                  radius: MyDataRadii.xl(context.look),
+                  child: const Center(child: KiwiMark(height: markWidth / KiwiMark.aspect, semanticLabel: null)),
+                ),
               ),
             ),
             SizedBox(height: wideGap(context.look)),

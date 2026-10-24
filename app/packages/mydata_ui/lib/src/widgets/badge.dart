@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import '../theme/theme.dart';
+import 'edges.dart' show MyDataEdgesPaint;
 import 'pressable.dart';
 import 'status.dart';
 
@@ -70,6 +71,8 @@ class MyDataBadge extends StatelessWidget {
           borderRadius: MyDataRadii.pill(context.look),
           boxShadow: host ? context.shadows.shadow1 : null,
         )),
+        // The theme's card outline goes with the host chip's shadow (Sticker's hard shadow needs its edge).
+        foregroundDecoration: host ? MyDataEdgesPaint.cardEdge(context.look, MyDataRadii.pill(context.look)) : null,
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [

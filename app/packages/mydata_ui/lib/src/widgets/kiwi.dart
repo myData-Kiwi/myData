@@ -7,6 +7,7 @@ import '../accessibility.dart';
 import '../generated/tokens.g.dart';
 import '../theme/theme.dart';
 import 'pressable.dart';
+import 'edges.dart' show CardEdge;
 
 /// The kiwi mark with its green wash (design/assets/Logos). Inside the apps it always sits on `paper`, which
 /// stays light in both modes, because the mark's ink is a fixed dark colour. Never recoloured or tinted.
@@ -33,8 +34,11 @@ class KiwiTile extends StatelessWidget {
         width: size,
         height: size,
         decoration: context.radius.decorate(BoxDecoration(color: context.colors.paper, borderRadius: MyDataRadii.lg(context.look), boxShadow: context.shadows.shadow1)),
-        alignment: Alignment.center,
-        child: KiwiMark(height: size * 0.5),
+        // The theme's card outline with its shadow: a hard shadow alone (Sticker's) reads as a broken shape.
+        child: CardEdge(
+          radius: MyDataRadii.lg(context.look),
+          child: Center(child: KiwiMark(height: size * 0.5)),
+        ),
       );
 }
 
@@ -75,8 +79,10 @@ class _KiwiLoaderState extends State<KiwiLoader> with SingleTickerProviderStateM
       width: widget.size,
       height: widget.size,
       decoration: BoxDecoration(color: context.colors.paper, shape: BoxShape.circle, boxShadow: context.shadows.shadow1),
-      alignment: Alignment.center,
-      child: KiwiMark(height: widget.size * 0.5, semanticLabel: null),
+      child: CardEdge(
+        radius: BorderRadius.circular(widget.size / 2),
+        child: Center(child: KiwiMark(height: widget.size * 0.5, semanticLabel: null)),
+      ),
     );
     return Semantics(
       label: widget.semanticLabel,

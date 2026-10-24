@@ -26,6 +26,39 @@ void main() {
     reduceMotion: true,
   );
 
+  // A theme with a hard shadow (Sticker's 0 4 0 ink) pairs it with its card outline on purpose: the kiwi tile,
+  // the loader and the host chip draw the theme's card edge with their shadow, never the shadow alone.
+  for (final b in Brightness.values) {
+    testWidgets('raised one-off surfaces draw the card edge with the shadow (sticker, ${b.name})', (tester) async {
+      tester.view.physicalSize = const Size(360, 160);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      debugDisableShadows = false;
+      try {
+        await tester.pumpWidget(themedFrame(
+            ThemeCase('sticker', b),
+            const Row(children: [
+              KiwiTile(size: 72),
+              SizedBox(width: 16),
+              KiwiLoader(),
+              SizedBox(width: 16),
+              MyDataBadge.host('Running'),
+            ]),
+            reduceMotion: true));
+        final look = MyDataLook.of(tester.element(find.byType(KiwiTile)));
+        expect(look.edges.card, isNotNull, reason: 'Sticker outlines its cards');
+        expect(find.descendant(of: find.byType(KiwiTile), matching: find.byType(CardEdge)), findsOneWidget);
+        expect(find.descendant(of: find.byType(KiwiLoader), matching: find.byType(CardEdge)), findsOneWidget);
+        final chip = tester.widget<Container>(
+            find.descendant(of: find.byType(MyDataBadge), matching: find.byType(Container)).first);
+        expect(chip.foregroundDecoration, isNotNull);
+        await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/raised_edges.sticker-${b.name}.png'));
+      } finally {
+        debugDisableShadows = true;
+      }
+    });
+  }
+
   testWidgets('Pressable: Enter activates it, Tab reaches it, disabled ignores everything', (tester) async {
     var taps = 0;
     await tester.pumpWidget(themedFrame(themeMatrix.first, Column(children: [
