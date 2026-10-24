@@ -270,8 +270,10 @@ class MacSwitch extends StatelessWidget {
   Widget build(BuildContext context) {
     final mac = context.mac;
     const thumb = height - 2 * inset;
-    return Pressable(
-      onPressed: onChanged == null ? null : () => onChanged!(!value),
+    final target = context.macLook.target;
+    final toggle = onChanged == null ? null : () => onChanged!(!value);
+    final Widget control = Pressable(
+      onPressed: toggle,
       borderRadius: _radius,
       scaleOnPress: false,
       button: false,
@@ -295,6 +297,17 @@ class MacSwitch extends StatelessWidget {
           ),
         ),
       ),
+    );
+    if (target <= 0) return control;
+    // A theme that promises its control height for every target (Large): the switch, drawn at the Mac's
+    // size, takes the press over that much around it, and its accessible node is that box.
+    return Semantics(
+      container: true,
+      toggled: value,
+      enabled: onChanged != null,
+      label: semanticLabel,
+      onTap: toggle,
+      child: ExcludeSemantics(child: MacTarget(min: Size.square(target), onTap: toggle, child: control)),
     );
   }
 }
@@ -355,17 +368,24 @@ class _MacSegmentedState<T> extends State<MacSegmented<T>> {
     // A drawn theme whose tabs are boxed marks the current segment as its shared tabs do, in `selection`
     // with `on-selection` (High Contrast's inverse), never with a faint tint alone.
     final boxed = !context.isSystemLook && context.variants.tabs == TabsStyle.boxed;
-    Widget control = Container(
-      height: height,
-      padding: const EdgeInsets.all(MyDataMacSize.tight),
-      decoration: m.decorate(BoxDecoration(
-        color: toolbar ? mac.toolbarItem : mac.quaternaryLabel,
-        borderRadius: shape,
-        border: _focused
-            ? Border.all(color: FocusRing.colourFor(context), width: MyDataMacSize.focusRingWidth)
-            : (toolbar || m.itemSide != null ? Border.fromBorderSide(rest) : null),
-      )),
-      child: Row(
+    // A theme that promises its control height for every target (Large): each segment takes the press over
+    // that much (the band's height in the toolbar), around the control drawn at its own height.
+    final target = toolbar ? m.toolbarTarget : m.target;
+    final tall = target > height;
+    final capsule = m.decorate(BoxDecoration(
+      color: toolbar ? mac.toolbarItem : mac.quaternaryLabel,
+      borderRadius: shape,
+      border: _focused
+          ? Border.all(color: FocusRing.colourFor(context), width: MyDataMacSize.focusRingWidth)
+          : (toolbar || m.itemSide != null ? Border.fromBorderSide(rest) : null),
+    ));
+    Widget segment(T value, Widget face) => tall
+        ? ConstrainedBox(
+            constraints: BoxConstraints(minWidth: target, minHeight: target, maxHeight: target),
+            child: Center(child: SizedBox(height: height - 2 * MyDataMacSize.tight, child: face)),
+          )
+        : face;
+    final row = Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           for (final (value, label) in widget.segments)
@@ -378,7 +398,7 @@ class _MacSegmentedState<T> extends State<MacSegmented<T>> {
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: enabled ? () => widget.onChanged!(value) : null,
-                child: AnimatedContainer(
+                child: segment(value, AnimatedContainer(
                   duration: MyDataMotion.reduced(context) ? Duration.zero : context.motion.fast,
                   padding: EdgeInsets.symmetric(horizontal: toolbar ? context.space(4) : context.space(3)),
                   alignment: Alignment.center,
@@ -399,12 +419,28 @@ class _MacSegmentedState<T> extends State<MacSegmented<T>> {
                                 ? mac.tertiaryLabel
                                 : (boxed && value == widget.selected ? context.colors.onSelection : mac.label)),
                   ),
-                ),
+                )),
               ),
             ),
         ],
-      ),
-    );
+      );
+    Widget control = tall
+        // The capsule at its own height behind segments as tall as the target.
+        ? SizedBox(
+            height: target,
+            child: Stack(alignment: Alignment.center, children: [
+              Positioned.fill(
+                child: Center(child: SizedBox(height: height, width: double.infinity, child: DecoratedBox(decoration: capsule))),
+              ),
+              Padding(padding: const EdgeInsets.symmetric(horizontal: MyDataMacSize.tight), child: row),
+            ]),
+          )
+        : Container(
+            height: height,
+            padding: const EdgeInsets.all(MyDataMacSize.tight),
+            decoration: capsule,
+            child: row,
+          );
     control = Semantics(
       container: true,
       label: widget.semanticLabel,

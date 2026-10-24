@@ -12,6 +12,8 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/painting.dart' as painting;
+import 'package:flutter/rendering.dart' show SemanticsNode;
+import 'package:flutter/semantics.dart' show SemanticsAction;
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mydata_ui/mydata_ui.dart';
@@ -366,6 +368,75 @@ void themeScreens(ThemeScreen key, {Size size = const Size(1280, 800)}) {
     macTestWidgets('theme screenshot: ${key.name} (${theme.label})',
         (tester) => shoot(tester, key, theme, 'screenshots/theme_${key.name}.${theme.label}.png'));
   }
+}
+
+/// Every control a pointer can press on [key] in the theme [slug] (inside the Mac window, light) is at least
+/// [least] by [least]: its accessible node's box, which is the area that takes the press (a search field's
+/// whole box). Large promises 52 px targets on the desktop (design/themes/large/RULES.md); the density tokens
+/// alone did not reach the Mac widgets. A link inside a line of text is exempt, as WCAG 2.5.5 exempts it.
+void themeTargets(ThemeScreen key, {String slug = 'large', double least = 52, Size size = const Size(1280, 800)}) {
+  macTestWidgets('every target on ${key.name} is $least px or more in $slug', (tester) async {
+    tester.view.physicalSize = size;
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final before = MacLook.debugOverride;
+    MacLook.debugOverride = true;
+    addTearDown(() => MacLook.debugOverride = before);
+    final semantics = tester.ensureSemantics();
+    try {
+      await _checkTargets(tester, key, slug: slug, least: least, size: size);
+    } finally {
+      semantics.dispose();
+    }
+  });
+}
+
+Future<void> _checkTargets(
+  WidgetTester tester,
+  ThemeScreen key, {
+  required String slug,
+  required double least,
+  required Size size,
+}) async {
+  await tester.pumpWidget(key.build(ThemeCase(slug, Brightness.light, drawnOnMac: true)));
+  if (key.before != null) await key.before!(tester);
+  await tester.pump(const Duration(seconds: 1));
+  final small = <String>[];
+  void visit(SemanticsNode node, Matrix4 transform) {
+    final t = node.transform == null ? transform : (transform.clone()..multiply(node.transform!));
+    final data = node.getSemanticsData();
+    final f = data.flagsCollection;
+    final pressable =
+        (data.hasAction(SemanticsAction.tap) ||
+            f.isButton ||
+            f.isToggled != ui.Tristate.none ||
+            f.isChecked != ui.CheckedState.none) &&
+        !f.isHidden;
+    // A text field is measured by its control's box below: its own node is its line of text.
+    if (pressable && !f.isLink && !f.isTextField && !node.isMergedIntoParent) {
+      final r = MatrixUtils.transformRect(t, node.rect);
+      // Only what is on screen: a list's rows below the window are not drawn.
+      final shown = r.intersect(Offset.zero & size);
+      if (!shown.isEmpty && shown == r && (r.width < least - 0.5 || r.height < least - 0.5)) {
+        small.add('"${data.label.isEmpty ? data.tooltip : data.label}" ${r.width.round()}x${r.height.round()}');
+      }
+    }
+    node.visitChildren((c) {
+      visit(c, t);
+      return true;
+    });
+  }
+
+  final roots = {for (final view in tester.binding.renderViews) ?view.owner?.semanticsOwner?.rootSemanticsNode};
+  expect(roots, isNotEmpty);
+  for (final root in roots) {
+    visit(root, Matrix4.identity());
+  }
+  for (final field in tester.widgetList<MacSearchField>(find.byType(MacSearchField))) {
+    final box = tester.getSize(find.byWidget(field));
+    if (box.height < least - 0.5) small.add('the search field ${box.width.round()}x${box.height.round()}');
+  }
+  expect(small, isEmpty, reason: 'targets under $least px in $slug');
 }
 
 /// How far apart two pictures of one screen are in their shapes, not their colours (a drawn theme against

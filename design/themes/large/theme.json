@@ -457,7 +457,8 @@
   "illustration": "flat",
   "accessibility": {
     "text-contrast": "4.5:1",
-    "faint-text": "readable"
+    "faint-text": "readable",
+    "targets": "control"
   },
   "sound": "none"
 }

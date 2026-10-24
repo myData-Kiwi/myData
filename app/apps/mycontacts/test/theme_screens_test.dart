@@ -10,7 +10,11 @@ import 'mac_frame_test.dart' as mac;
 void main() {
   setUpAll(() async => mac.portrait = await portraitPng());
 
-  themeScreens(ThemeScreen('people', (t) => mac.app(t, lastOpened: 'c-ava'), before: mac.settle));
+  final people = ThemeScreen('people', (t) => mac.app(t, lastOpened: 'c-ava'), before: mac.settle);
+  themeScreens(people);
+
+  // Large's 52 px targets reach the Mac window's own controls: the toolbar, the record's actions.
+  themeTargets(people);
 
   // The pictures above differ by more than colour between every two themes.
   themesDistinct('people');

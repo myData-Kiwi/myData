@@ -17,8 +17,11 @@ Widget _app(ThemeCase t, {String? day, FakeBackend? backend, List<String> hidden
 
 void main() {
   // October 2026, today (Tuesday 13) marked, Friday 16 selected with its events beside the month.
-  themeScreens(ThemeScreen('month', (t) => _app(t, day: '2026-10-16'), before: mac.settle),
-      size: const Size(1280, 900));
+  final month = ThemeScreen('month', (t) => _app(t, day: '2026-10-16'), before: mac.settle);
+  themeScreens(month, size: const Size(1280, 900));
+
+  // Large's 52 px targets reach the Mac window's own controls: "‹ Today ›", the calendar list, the days.
+  themeTargets(month, size: const Size(1280, 900));
 
   // The month's grid is the same in every theme (layout stays out of themes), so its pictures differ less
   // than a list's; before the drawn looks reached it the closest two (Frosted and Paperback) scored 0.06.

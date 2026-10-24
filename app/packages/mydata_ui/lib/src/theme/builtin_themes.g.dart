@@ -162,6 +162,13 @@ const themeSchemaJson = r'''{
             "readable"
           ],
           "description": "Faint text in the Mac window (a disabled item, another month's day): the system's faint shade over ink, or readable, a grey at 4.5:1, as at increased contrast. Default system."
+        },
+        "targets": {
+          "enum": [
+            "platform",
+            "control"
+          ],
+          "description": "How large a press target is: platform, at least the platform's floor (24 px on a desktop), the Mac window's own widgets at the Mac's sizes; or control, every target at least the theme's control height, the Mac window's toolbar items, record actions and values, segmented controls and switches included. Default platform."
         }
       }
     },
@@ -5747,7 +5754,8 @@ const builtInThemeJson = {
   "illustration": "flat",
   "accessibility": {
     "text-contrast": "4.5:1",
-    "faint-text": "readable"
+    "faint-text": "readable",
+    "targets": "control"
   },
   "sound": "none"
 }

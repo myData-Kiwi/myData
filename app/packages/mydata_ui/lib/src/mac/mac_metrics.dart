@@ -52,6 +52,7 @@ class MacLookMetrics {
     this.shape,
     required this.secondaryItalic,
     this.itemSide,
+    this.target = 0,
   });
 
   /// The System look: the Mac's own tokens.
@@ -101,6 +102,15 @@ class MacLookMetrics {
   /// A toolbar item's outline at rest in a drawn theme that outlines its controls; null: the Mac's
   /// `separator` hairline.
   final BorderSide? itemSide;
+
+  /// The least a press target is in a drawn theme that promises its control height for every target
+  /// (`accessibility.targets: control`, Large's 52 px): toolbar items, a record's actions and values,
+  /// segmented controls and switches take a press over at least this, around what they draw ([MacTarget]).
+  /// 0 everywhere else: the Mac's own sizes.
+  final double target;
+
+  /// [target] in the toolbar band, which it never outgrows.
+  double get toolbarTarget => math.min(target, MyDataMacSize.toolbarHeight);
 
   /// [style] as secondary text (a job title, a field's label, a row's line): italic where the theme sets
   /// secondary text in italic (Journal, Paperback), never in System.
@@ -176,6 +186,7 @@ class MacLookMetrics {
         shape: shape,
         secondaryItalic: s.secondaryItalic,
         itemSide: look.edges.controls ? look.edges.controlSide : null,
+        target: look.access.controlTargets ? d.controlHeight : 0,
       );
     }();
   }
@@ -184,4 +195,29 @@ class MacLookMetrics {
 /// `context.macLook`: the Mac widgets' type, sizes and corners here ([MacLookMetrics]).
 extension MacLookContext on BuildContext {
   MacLookMetrics get macLook => MacLookMetrics.forLook(look, system: isSystemLook);
+}
+
+/// [child], pressed over at least [min] around it: the transparent room takes the press as [child] does
+/// ([onTap]), so a widget drawn at the Mac's size meets a theme's larger targets ([MacLookMetrics.target])
+/// without being drawn larger. [child] is centred in it. With an empty [min] it is [child] itself.
+class MacTarget extends StatelessWidget {
+  const MacTarget({super.key, required this.min, required this.onTap, required this.child});
+
+  final Size min;
+  final VoidCallback? onTap;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (min.width <= 0 && min.height <= 0) return child;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      excludeFromSemantics: true,
+      onTap: onTap,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(minWidth: min.width, minHeight: min.height),
+        child: Align(widthFactor: 1, heightFactor: 1, child: child),
+      ),
+    );
+  }
 }

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:mydata_core/mydata_core.dart';
 import 'package:mydata_ui/mydata_ui.dart';
@@ -138,8 +140,9 @@ class _MacCalendarRowState extends State<MacCalendarRow> {
     final mac = context.mac;
     final caption = widget.caption?.trim();
     const radius = BorderRadius.all(Radius.circular(MyDataMacRadius.selection));
+    // As tall as a theme that promises its control height for every target asks (Large's 52 px).
     final row = Container(
-      height: MyDataMacSize.rowHeight,
+      height: math.max(MyDataMacSize.rowHeight, context.macLook.target),
       margin: const EdgeInsets.symmetric(horizontal: MyDataMacSize.rowInset),
       padding: const EdgeInsets.symmetric(horizontal: MyDataMacSize.rowPadding),
       decoration: BoxDecoration(

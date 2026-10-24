@@ -9,11 +9,15 @@ import 'mac_frame_test.dart' as mac;
 
 void main() {
   // The approval card's structure stays in every theme (decision 2026-10-23): the one screen to see first.
-  themeScreens(ThemeScreen(
+  final approval = ThemeScreen(
     'approval',
     (t) => mac.app(t, HostPhase.running, status: hostStatus(), backend: ScriptedBackend([emailRishita()])),
     before: (tester) => mac.ask(tester, 'Email Rishita the time of my dentist appointment'),
-  ));
+  );
+  themeScreens(approval);
+
+  // Large's 52 px targets reach the Mac window's own controls.
+  themeTargets(approval);
 
   // The pictures above differ by more than colour between every two themes.
   themesDistinct('approval');

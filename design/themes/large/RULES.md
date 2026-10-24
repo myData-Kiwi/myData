@@ -26,6 +26,8 @@ Rounded: xs 6, sm 12 (buttons and controls), md 14, lg 18 (panels), xl 24.
 
 Roomy: 52 px controls, 58 px rows, 24 px icons and spacing ×1.25 on the desktop; 56 / 64 / 24 on phones. Targets are twice WCAG 2.2's 24 px minimum (SC 2.5.8) and above SC 2.5.5's 44 px (AAA).
 
+**Every target is 52 px or more, the Mac window's own included** (`accessibility.targets: control`): its toolbar items, "‹ Today ›" and segmented controls take the press over the band's full 52 px and as wide, the record's actions over 52 px squares, each of its values and each calendar in myCalendar's list over a 52 px line, and a switch over a 52 px square, while each is drawn at the Mac's size; the flat toolbar's rule is drawn over the band's foot so the items keep its height.
+
 In the Mac window the skeleton stays the Mac's; the one thing that grows is the **sidebar's width**, in proportion to the rows' text past 16 px (`MacSidebar.width`: 208 × 19 / 16, 247 px), so "Recently Deleted" is never cut off. Every other built-in sets its rows at 16 px or less and keeps the Mac's 208.
 
 ## Colour use
@@ -82,6 +84,7 @@ Material Symbols Rounded, regular, 24 px, filled when selected, on tinted tiles.
 ## Accessibility
 
 - Text: ink 18.0:1 (light) and 17.2:1 (dark); secondary text 9.6 and 12.0:1.
+- Each app's `theme_screens_test.dart` measures every target on its key screen in Large (`themeTargets`, myData's Settings too): none is under 52 px but a link inside a line of text.
 - `accessibility_themes_test.dart` holds its promises: no role under 16 px, body 19, targets 52 / 56 and 24 px icons, 2 px outlines, an outline selection, faint Mac text at 4.5:1, and the Mac skeleton unchanged but for the sidebar's width.
 
 ## Fonts and licences

@@ -133,39 +133,43 @@ class _MacQuickActionState extends State<MacQuickAction> {
       child: Tooltip(
         message: enabled || widget.disabledReason == null ? name : '$name\n${widget.disabledReason}',
         waitDuration: const Duration(milliseconds: 700),
-        child: FocusableActionDetector(
-          enabled: enabled,
-          onShowFocusHighlight: (f) => setState(() => _focused = f),
-          actions: {ActivateIntent: CallbackAction<ActivateIntent>(onInvoke: (_) => widget.onPressed?.call())},
-          child: GestureDetector(
-            onTapDown: enabled ? (_) => setState(() => _pressed = true) : null,
-            onTapUp: enabled ? (_) => setState(() => _pressed = false) : null,
-            onTapCancel: () => setState(() => _pressed = false),
-            onTap: widget.onPressed,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: MyDataMacSize.actionButton,
-                  height: MyDataMacSize.actionButton,
-                  decoration: round
-                      ? BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: _pressed ? mac.tertiaryLabel : mac.quaternaryLabel,
-                          border: _focused ? Border.all(color: mac.focusRing, width: MyDataMacSize.focusRingWidth) : null,
-                        )
-                      : m.decorate(BoxDecoration(
-                          borderRadius: m.controlRadius,
-                          color: _pressed ? mac.tertiaryLabel : mac.quaternaryLabel,
-                          border: _focused
-                              ? Border.all(color: mac.focusRing, width: MyDataMacSize.focusRingWidth)
-                              : (m.itemSide == null ? null : Border.fromBorderSide(m.itemSide!)),
-                        )),
-                  child: Icon(context.icon(widget.icon), size: m.icon, color: tint),
-                ),
-                SizedBox(height: context.space(1)),
-                Text(widget.label, style: m.action.copyWith(color: enabled ? mac.secondaryLabel : tint)),
-              ],
+        child: MacTarget(
+          min: Size.square(m.target),
+          onTap: widget.onPressed,
+          child: FocusableActionDetector(
+            enabled: enabled,
+            onShowFocusHighlight: (f) => setState(() => _focused = f),
+            actions: {ActivateIntent: CallbackAction<ActivateIntent>(onInvoke: (_) => widget.onPressed?.call())},
+            child: GestureDetector(
+              onTapDown: enabled ? (_) => setState(() => _pressed = true) : null,
+              onTapUp: enabled ? (_) => setState(() => _pressed = false) : null,
+              onTapCancel: () => setState(() => _pressed = false),
+              onTap: widget.onPressed,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: MyDataMacSize.actionButton,
+                    height: MyDataMacSize.actionButton,
+                    decoration: round
+                        ? BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: _pressed ? mac.tertiaryLabel : mac.quaternaryLabel,
+                            border: _focused ? Border.all(color: mac.focusRing, width: MyDataMacSize.focusRingWidth) : null,
+                          )
+                        : m.decorate(BoxDecoration(
+                            borderRadius: m.controlRadius,
+                            color: _pressed ? mac.tertiaryLabel : mac.quaternaryLabel,
+                            border: _focused
+                                ? Border.all(color: mac.focusRing, width: MyDataMacSize.focusRingWidth)
+                                : (m.itemSide == null ? null : Border.fromBorderSide(m.itemSide!)),
+                          )),
+                    child: Icon(context.icon(widget.icon), size: m.icon, color: tint),
+                  ),
+                  SizedBox(height: context.space(1)),
+                  Text(widget.label, style: m.action.copyWith(color: enabled ? mac.secondaryLabel : tint)),
+                ],
+              ),
             ),
           ),
         ),
@@ -316,22 +320,28 @@ class _FieldLineState extends State<_FieldLine> {
       onTap: open ?? () => unawaited(_copy()),
       customSemanticsActions: open == null ? null : {CustomSemanticsAction(label: copyName): () => unawaited(_copy())},
       excludeSemantics: true,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: MyDataMacSize.tight),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              width: MyDataMacSize.labelColumn,
-              child: Padding(
-                // The label sits on the value's first line.
-                padding: const EdgeInsets.only(top: MyDataMacSize.tight),
-                child: label,
+      // In a theme that promises its control height for every target (Large) the whole line takes the
+      // press, at least that tall.
+      child: MacTarget(
+        min: Size(0, context.macLook.target),
+        onTap: open ?? () => unawaited(_copy()),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: MyDataMacSize.tight),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: MyDataMacSize.labelColumn,
+                child: Padding(
+                  // The label sits on the value's first line.
+                  padding: const EdgeInsets.only(top: MyDataMacSize.tight),
+                  child: label,
+                ),
               ),
-            ),
-            SizedBox(width: MacFieldTable.gap(context.look) - context.space(1)),
-            Flexible(child: value),
-          ],
+              SizedBox(width: MacFieldTable.gap(context.look) - context.space(1)),
+              Flexible(child: value),
+            ],
+          ),
         ),
       ),
     );

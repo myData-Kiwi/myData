@@ -53,12 +53,16 @@ class MacToolbar extends StatelessWidget {
     final style = context.isSystemLook || background != null ? ToolbarStyle.native : context.variants.toolbar;
     final c = context.colors;
     final floating = style == ToolbarStyle.floating;
+    final overlaidRule = context.macLook.toolbarTarget > MyDataMacSize.toolbarItemHeight;
     final Decoration? decoration = switch (style) {
       ToolbarStyle.native => BoxDecoration(
           color: background ?? mac.contentBackground,
           border: separator ? Border(bottom: BorderSide(color: mac.separator)) : null,
         ),
-      ToolbarStyle.flat => BoxDecoration(color: c.toolbar, border: Border(bottom: context.look.edges.side)),
+      // Under a theme that promises the band's height for every target (Large), the rule is drawn over the
+      // band's foot rather than taking its room, so the items keep the band's full height.
+      ToolbarStyle.flat => BoxDecoration(
+          color: c.toolbar, border: overlaidRule ? null : Border(bottom: context.look.edges.side)),
       // The capsule is a FloatingBarSurface (below), in the theme's bar material.
       ToolbarStyle.floating => null,
     };
@@ -83,6 +87,9 @@ class MacToolbar extends StatelessWidget {
         end: MyDataMacSize.toolbarInset,
       ),
       decoration: decoration,
+      foregroundDecoration: style == ToolbarStyle.flat && overlaidRule
+          ? BoxDecoration(border: Border(bottom: context.look.edges.side))
+          : null,
       child: Row(
         children: [
           for (final (i, w) in leading.indexed) ...[if (i > 0) SizedBox(width: itemGap(context.look)), w],
@@ -217,6 +224,9 @@ class _MacToolbarButtonState extends State<MacToolbarButton> {
         child: button,
       ),
     );
+    // A theme that promises its control height for every target (Large) takes the press over the band's
+    // height and as wide, around the item drawn at the band's size.
+    button = MacTarget(min: Size.square(m.toolbarTarget), onTap: widget.onPressed, child: button);
     button = Semantics(
       button: true,
       enabled: enabled,
@@ -359,6 +369,9 @@ class _MacSearchFieldState extends State<MacSearchField> {
         ],
       ),
     );
-    return MacChrome.of(context).toolbarItem(field);
+    // In a theme that promises its control height for every target (Large), a press anywhere in the band's
+    // height above or below the field puts the caret in it.
+    return MacChrome.of(context)
+        .toolbarItem(MacTarget(min: Size(0, m.toolbarTarget), onTap: _focus.requestFocus, child: field));
   }
 }

@@ -375,7 +375,7 @@ class ComponentsSpec {
 /// What a style promises beyond the rules every theme keeps (`accessibility`: High Contrast, E-ink, Large),
 /// read from its file, so a theme based on one of them, or a custom theme, can make the same promises.
 class AccessSpec {
-  const AccessSpec({this.textContrast = 4.5, this.readableFaintText = false});
+  const AccessSpec({this.textContrast = 4.5, this.readableFaintText = false, this.controlTargets = false});
 
   /// The least contrast every text pair is checked at, at normal contrast too: 4.5, or 7 for an
   /// accessibility-first theme (WCAG 1.4.6). Increased contrast always asks 7.
@@ -385,15 +385,22 @@ class AccessSpec {
   /// increased contrast, rather than the system's faint shade (`faint-text: readable`).
   final bool readableFaintText;
 
+  /// Every target is at least the theme's control height, the Mac window's own widgets included
+  /// (`targets: control`, Large's 52 px); otherwise the platform's floor, and the Mac's sizes in its window.
+  final bool controlTargets;
+
   /// No promise beyond the rules every theme keeps.
   static const standard = AccessSpec();
 
   @override
   bool operator ==(Object other) =>
-      other is AccessSpec && other.textContrast == textContrast && other.readableFaintText == readableFaintText;
+      other is AccessSpec &&
+      other.textContrast == textContrast &&
+      other.readableFaintText == readableFaintText &&
+      other.controlTargets == controlTargets;
 
   @override
-  int get hashCode => Object.hash(textContrast, readableFaintText);
+  int get hashCode => Object.hash(textContrast, readableFaintText, controlTargets);
 }
 
 /// Everything in a theme but colour (ARCHITECTURE.md 1.6).
@@ -744,6 +751,7 @@ ThemeStyle styleFromJson(Map<String, Object?> s) {
     access: AccessSpec(
       textContrast: access['text-contrast'] == '7:1' ? 7 : 4.5,
       readableFaintText: access['faint-text'] == 'readable',
+      controlTargets: access['targets'] == 'control',
     ),
   );
 }

@@ -55,16 +55,27 @@ class MacToolbarGroup extends StatelessWidget {
   Widget build(BuildContext context) {
     final mac = context.mac;
     final m = context.macLook;
-    final item = Container(
-      height: m.toolbarItemHeight,
-      padding: const EdgeInsets.all(inset),
-      decoration: m.decorate(BoxDecoration(
-        color: mac.toolbarItem,
-        borderRadius: m.controlRadius,
-        border: Border.fromBorderSide(m.itemSide ?? BorderSide(color: mac.separator, width: MyDataMacSize.hairline)),
-      )),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [for (final b in buttons) _Part(button: b)]),
-    );
+    final capsule = m.decorate(BoxDecoration(
+      color: mac.toolbarItem,
+      borderRadius: m.controlRadius,
+      border: Border.fromBorderSide(m.itemSide ?? BorderSide(color: mac.separator, width: MyDataMacSize.hairline)),
+    ));
+    final row = Row(mainAxisSize: MainAxisSize.min, children: [for (final b in buttons) _Part(button: b)]);
+    // A theme that promises its control height for every target (Large): the parts take the press over the
+    // band's height, in front of the capsule drawn at the toolbar item's height ([_Part]).
+    final Widget item = m.toolbarTarget > m.toolbarItemHeight
+        ? SizedBox(
+            height: m.toolbarTarget,
+            child: Stack(alignment: Alignment.center, children: [
+              Positioned.fill(
+                child: Center(
+                    child: SizedBox(
+                        height: m.toolbarItemHeight, width: double.infinity, child: DecoratedBox(decoration: capsule))),
+              ),
+              Padding(padding: const EdgeInsets.symmetric(horizontal: inset), child: row),
+            ]),
+          )
+        : Container(height: m.toolbarItemHeight, padding: const EdgeInsets.all(inset), decoration: capsule, child: row);
     return MacChrome.of(context).toolbarItem(
       Semantics(container: true, label: semanticsLabel, explicitChildNodes: true, child: item),
     );
@@ -127,6 +138,11 @@ class _PartState extends State<_Part> {
         child: part,
       ),
     );
+    // In a theme that promises its control height for every target, the part takes the press over the band's
+    // height and as wide ([MacToolbarGroup]).
+    if (m.toolbarTarget > m.toolbarItemHeight) {
+      part = MacTarget(min: Size.square(m.toolbarTarget), onTap: s.onPressed, child: part);
+    }
     final tip = [
       s.shortcut == null ? s.label : '${s.label}  ${s.shortcut}',
       if (!enabled && s.disabledReason != null) s.disabledReason!,
