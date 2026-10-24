@@ -204,7 +204,8 @@ class FloatingBarSurface extends StatelessWidget {
   final Widget child;
 
   /// The bar is a place to type (the assistant's composer). Drawn solid in a theme that outlines its fields
-  /// but not its cards (E-ink), it takes a field's outline, so it never sits on the page as bare text.
+  /// but not its cards (E-ink), it takes a field's outline, so it never sits on the page as bare text; in a
+  /// theme whose fields are underlined it is a field's line on the page's ground, no box.
   final bool field;
 
   /// A field's outline at rest in [look], as a text field draws it: the theme's edge colour and width where
@@ -247,6 +248,14 @@ class FloatingBarSurface extends StatelessWidget {
       // A theme's solid bar keeps the theme's card outline (Sticker's floating capsule); a composer in a
       // theme that outlines fields but not cards takes a field's outline instead.
       final look = context.look;
+      // A composer in a theme whose fields are underlined (Terminal's prompt line, Journal, Paperback,
+      // Notebook) is no box either: the page's ground with a field's line under it.
+      if (field && look.variants.inputs == InputStyle.underlined) {
+        return DecoratedBox(
+          decoration: BoxDecoration(color: c.bg, border: Border(bottom: fieldSide(look))),
+          child: inner,
+        );
+      }
       final radius = MyDataRadii.xl(look);
       final fieldEdge = field && look.edges.card == null && look.variants.inputs == InputStyle.outlined;
       return DecoratedBox(

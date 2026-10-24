@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mydata_assistant/mydata_assistant.dart';
+import 'package:mydata_testing/mydata_testing.dart';
 import 'package:mydata_ui/mydata_ui.dart';
 import 'package:mydata_ui/src/theme/builtin_themes.g.dart';
 
@@ -118,6 +119,42 @@ void main() {
       ].where((s) => s != BorderSide.none);
       expect(edges, contains(BorderSide(color: look.colors.ink)));
       await expectLater(bar, matchesGoldenFile('goldens/composer.$slug.${b.name}.png'));
+    });
+  }
+
+  // A theme whose fields are underlined (Terminal's "underlined, like a prompt line", Journal, Paperback,
+  // Notebook) draws the composer as a field there: the page's ground with a field's line under it, no box,
+  // no card edge; an outlined theme keeps its box.
+  for (final (slug, underlined) in [('terminal', true), ('journal', true), ('notebook', true), ('e-ink', false)]) {
+    testWidgets('the composer is ${underlined ? 'underlined' : 'boxed'} in $slug', (tester) async {
+      tester.view.physicalSize = const Size(640, 200);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final look = ThemeLibrary.lookFor(ThemeChoice('mydata.$slug'), Brightness.light, platform: TargetPlatform.linux);
+      await tester.pumpWidget(MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: MyDataTheme.fromLook(look).copyWith(platform: TargetPlatform.linux),
+        home: Material(color: look.colors.bg, child: ChatView(controller: ChatController(ScriptedBackend()))),
+      ));
+      await tester.pumpAndSettle();
+      final bar = find.ancestor(of: find.byKey(ChatView.inputKey), matching: find.byType(FloatingBarSurface));
+      final boxes = tester
+          .widgetList<DecoratedBox>(find.descendant(of: bar, matching: find.byType(DecoratedBox)))
+          .map((d) => d.decoration)
+          .toList();
+      final outer = boxes.first;
+      if (underlined) {
+        expect(outer, isA<BoxDecoration>());
+        final d = outer as BoxDecoration;
+        expect(d.color, look.colors.bg);
+        expect(d.borderRadius, isNull);
+        expect(d.boxShadow, isNull);
+        expect((d.border! as Border).bottom, FloatingBarSurface.fieldSide(look));
+        expect((d.border! as Border).top, BorderSide.none);
+        expect(find.descendant(of: bar, matching: find.byType(CardEdge)), findsNothing);
+      } else {
+        expect(outer.isBox && outer.box.borderRadius != null, isTrue);
+      }
     });
   }
 }

@@ -266,7 +266,7 @@ class _MacToolbarButtonState extends State<MacToolbarButton> {
 }
 
 /// The toolbar's search field: a `toolbar-item-height` capsule on `toolbar-item` (the glass stand-in, as the
-/// toolbar items), a magnifier, the
+/// toolbar items; only a line under it in a drawn theme whose fields are underlined), a magnifier, the
 /// [placeholder] in `tertiary-label` (also its accessible name), and a clear button once there is text.
 /// Escape clears it; Down calls [onDown] (the list takes the keyboard).
 class MacSearchField extends StatefulWidget {
@@ -338,18 +338,26 @@ class _MacSearchFieldState extends State<MacSearchField> {
     final mac = context.mac;
     final m = context.macLook;
     final hasText = widget.controller.text.isNotEmpty;
+    // A drawn theme whose fields are underlined (Terminal's prompt line, Journal, Paperback, Notebook) draws
+    // no box: a field's line under the text, as its other fields; the focus ring still goes all round.
+    final underlined = !m.system && context.variants.inputs == InputStyle.underlined;
     // Its [width] at most: in a narrow pane the toolbar gives it less ([MacToolbar]).
     final field = Container(
       constraints: BoxConstraints(maxWidth: widget.width),
       height: m.toolbarItemHeight,
-      padding: EdgeInsets.symmetric(horizontal: context.space(3)),
-      decoration: m.decorate(BoxDecoration(
-        color: mac.toolbarItem,
-        borderRadius: m.controlRadius,
-        border: _focused
-            ? Border.all(color: mac.focusRing, width: MyDataMacSize.focusRingWidth)
-            : Border.fromBorderSide(m.itemSide ?? BorderSide(color: mac.separator, width: MyDataMacSize.hairline)),
-      )),
+      padding: EdgeInsets.symmetric(horizontal: underlined && !_focused ? 0 : context.space(3)),
+      decoration: underlined
+          ? BoxDecoration(
+              border: _focused
+                  ? Border.all(color: mac.focusRing, width: MyDataMacSize.focusRingWidth)
+                  : Border(bottom: FloatingBarSurface.fieldSide(context.look)))
+          : m.decorate(BoxDecoration(
+              color: mac.toolbarItem,
+              borderRadius: m.controlRadius,
+              border: _focused
+                  ? Border.all(color: mac.focusRing, width: MyDataMacSize.focusRingWidth)
+                  : Border.fromBorderSide(m.itemSide ?? BorderSide(color: mac.separator, width: MyDataMacSize.hairline)),
+            )),
       child: Row(
         children: [
           Icon(context.icon(MyDataIcon.search), size: m.icon, color: mac.secondaryLabel),

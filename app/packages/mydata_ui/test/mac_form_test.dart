@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mydata_testing/mydata_testing.dart';
 import 'package:mydata_ui/mydata_ui.dart';
 
 Widget frame(Widget child) => MaterialApp(
@@ -151,4 +152,33 @@ void main() {
     expect(boxed.fontSize, look.typeScale.bodyStrong.fontSize);
     expect(boxed.fontWeight, look.typeScale.bodyStrong.fontWeight);
   });
+
+  // The toolbar's search field in a theme whose fields are underlined (Terminal, Notebook) is a line under
+  // the text, no box; an outlined theme (High Contrast) and System keep the box.
+  for (final (slug, underlined) in [('terminal', true), ('notebook', true), ('high-contrast', false)]) {
+    testWidgets('the Mac search field is ${underlined ? 'underlined' : 'boxed'} in $slug', (tester) async {
+      final controller = TextEditingController();
+      addTearDown(controller.dispose);
+      await tester.pumpWidget(MaterialApp(
+        theme: MacTheme.forChoice(ThemeChoice('mydata.$slug'), Brightness.light, MyDataMacColors.light),
+        themeAnimationDuration: Duration.zero,
+        home: Scaffold(body: Center(child: MacSearchField(controller: controller, placeholder: 'Search'))),
+      ));
+      await tester.pumpAndSettle();
+      final look = MyDataLook.of(tester.element(find.byType(MacSearchField)));
+      final d = tester
+          .widgetList<Container>(find.descendant(of: find.byType(MacSearchField), matching: find.byType(Container)))
+          .map((c) => c.decoration)
+          .firstWhere((d) => d != null);
+      if (underlined) {
+        final border = (d! as BoxDecoration).border! as Border;
+        expect(border.bottom, FloatingBarSurface.fieldSide(look));
+        expect(border.top, BorderSide.none);
+        expect((d as BoxDecoration).color, isNull);
+      } else {
+        expect(d.isBox, isTrue);
+        expect(d.box.color, isNotNull);
+      }
+    });
+  }
 }
