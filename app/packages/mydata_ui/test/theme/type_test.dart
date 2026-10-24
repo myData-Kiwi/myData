@@ -151,6 +151,17 @@ void main() {
     expect([paperback.label.fontSize, paperback.caption.fontSize, paperback.mono.fontSize], [14, 13, 14]);
   });
 
+  test("Material's text roles keep each role's own family, and a platform family is never prefixed", () {
+    final journal = MyDataTheme.fromLook(designedLook('mydata.journal', Brightness.light)).textTheme;
+    expect(journal.displayLarge!.fontFamily, 'packages/mydata_ui/Fraunces');
+    expect(journal.titleLarge!.fontFamily, 'packages/mydata_ui/Fraunces');
+    expect(journal.bodyMedium!.fontFamily, 'packages/mydata_ui/InstrumentSans');
+    final kiwi = designedLook('mydata.kiwi', Brightness.light);
+    final mono = kiwi.copyWith(typeScale: MyDataTypeScale.of(_spec(body: ['mono']), platform: TargetPlatform.macOS));
+    final text = MyDataTheme.fromLook(mono).textTheme;
+    expect(text.bodyMedium!.fontFamily, genericMonoFamilies['macOS']);
+  });
+
   testWidgets('Bold Text draws a variable font heavier: its wght moves, not only its fontWeight', (tester) async {
     final hairline = designedLook('mydata.hairline', Brightness.light);
     expect(hairline.typeScale.bold.body.fontVariations, [const FontVariation('wght', 700), const FontVariation('opsz', 14)]);

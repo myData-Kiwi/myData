@@ -139,8 +139,8 @@ class MyDataTheme {
       colorScheme: scheme,
       scaffoldBackgroundColor: c.bg,
       canvasColor: c.bg,
-      fontFamily: type.body.fontFamily == null ? null : _bareFamily(type.body),
-      package: type.body.fontFamily == null ? null : MyDataFontFamily.package,
+      // No ThemeData.fontFamily: it would set every Material role in the body's family (display roles too)
+      // and prefix even a platform family with this package. Each role of [text] carries its own family.
       textTheme: text,
       extensions: [c, shadows, look],
       // Presses dim and shrink (motion.md); no ink ripples.
@@ -183,13 +183,6 @@ class MyDataTheme {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(r.md)))),
       scrollbarTheme: ScrollbarThemeData(thumbColor: WidgetStatePropertyAll(c.inkMuted.withValues(alpha: 0.5))),
     );
-  }
-
-  /// A packaged style's family without its `packages/<name>/` prefix, for ThemeData, which adds it back.
-  static String _bareFamily(TextStyle style) {
-    final f = style.fontFamily!;
-    final prefix = 'packages/${MyDataFontFamily.package}/';
-    return f.startsWith(prefix) ? f.substring(prefix.length) : f;
   }
 }
 
