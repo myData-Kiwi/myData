@@ -507,8 +507,8 @@ class _CellState extends State<_Cell> {
 
 /// The day number at a cell's top end; today's in a capsule in the system red, as Calendar.app marks it.
 /// In a drawn theme today is the theme's (`components.today`): a disc in the accent with `on-accent`, a
-/// ring in the accent, or (inverse) an `ink` disc with `bg`; the system red is System's alone, and in a
-/// theme whose danger is close to it (Sticker) it would read as an error.
+/// ring in the accent, or (inverse) an `ink` disc with `bg`, in the theme's control corners; the system red
+/// is System's alone, and in a theme whose danger is close to it (Sticker) it would read as an error.
 class _Number extends StatelessWidget {
   const _Number({required this.day, required this.today, required this.muted});
 
@@ -534,11 +534,13 @@ class _Number extends StatelessWidget {
               TodayStyle.inverse => (c.ink, c.bg, null),
             };
       return DecoratedBox(
-        decoration: BoxDecoration(
+        // The system's capsule in System; a drawn theme's control corners in its corner style (a square in
+        // Terminal and Brutalist, a capsule where controls are pills).
+        decoration: context.macLook.decorate(BoxDecoration(
           color: fill,
           border: ring,
-          borderRadius: const BorderRadius.all(Radius.circular(MyDataMacRadius.field)),
-        ),
+          borderRadius: context.macLook.controlRadius,
+        )),
         child: ConstrainedBox(
           constraints: BoxConstraints(minWidth: height, minHeight: height, maxHeight: height),
           child: Padding(

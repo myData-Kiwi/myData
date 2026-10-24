@@ -35,7 +35,8 @@ void main() {
   BoxDecoration todayMark(WidgetTester tester) => tester
       .widgetList<DecoratedBox>(find.ancestor(of: find.text('13'), matching: find.byType(DecoratedBox)))
       .map((b) => b.decoration)
-      .whereType<BoxDecoration>()
+      .where((d) => d.isBox)
+      .map((d) => d.box)
       .firstWhere((d) => d.color != null || d.border != null);
   for (final (slug, drawn) in [('sticker', true), ('frosted', true), ('kiwi', false)]) {
     macTestWidgets('today in the Mac month: $slug${drawn ? '' : ' (System)'}', (tester) async {
