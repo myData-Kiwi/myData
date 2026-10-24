@@ -49,6 +49,8 @@ flutter:
     - assets/fonts/OFL-atkinson-hyperlegible-mono.txt
     - assets/fonts/OFL-kalam.txt
     - assets/fonts/OFL-newsreader.txt
+    - assets/fonts/OFL-archivo-black.txt
+    - assets/fonts/OFL-space-grotesk.txt
     - assets/fonts/ISC-lucide.txt
     - assets/fonts/MIT-tabler.txt
     - assets/fonts/MIT-phosphor.txt

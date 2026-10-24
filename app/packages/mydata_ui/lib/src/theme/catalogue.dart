@@ -73,7 +73,7 @@ const fontPackage = 'mydata_ui';
 /// ARCHITECTURE.md 1.5. All are OFL fonts with no Reserved Font Name. Three are core fonts, as before phase 3;
 /// phase 3 bundles the fonts the six built-ins name, as Latin subsets cut by tool/subset_fonts.sh; the fonts
 /// of the thirteen new themes come with them in phase 4 (Atkinson Hyperlegible Next and Mono with High
-/// Contrast and Large, Kalam and Newsreader with Notebook).
+/// Contrast and Large, Kalam and Newsreader with Notebook, Archivo Black and Space Grotesk with Brutalist).
 const fontCatalogue = <String, CatalogueFont>{
   'figtree': CatalogueFont('figtree', 'Figtree', family: 'Figtree', core: true),
   'plus-jakarta-sans': CatalogueFont('plus-jakarta-sans', 'Plus Jakarta Sans', family: 'PlusJakartaSans', core: true),
@@ -91,8 +91,9 @@ const fontCatalogue = <String, CatalogueFont>{
   'hanken-grotesk': CatalogueFont('hanken-grotesk', 'Hanken Grotesk'),
   'newsreader': CatalogueFont('newsreader', 'Newsreader', family: 'Newsreader', italic: true),
   'kalam': CatalogueFont('kalam', 'Kalam', family: 'Kalam', displayOnly: true, staticWeight: 700),
-  'archivo-black': CatalogueFont('archivo-black', 'Archivo Black', displayOnly: true),
-  'space-grotesk': CatalogueFont('space-grotesk', 'Space Grotesk'),
+  'archivo-black':
+      CatalogueFont('archivo-black', 'Archivo Black', family: 'ArchivoBlack', displayOnly: true, staticWeight: 400),
+  'space-grotesk': CatalogueFont('space-grotesk', 'Space Grotesk', family: 'SpaceGrotesk'),
   'space-mono': CatalogueFont('space-mono', 'Space Mono'),
   'pixelify-sans': CatalogueFont('pixelify-sans', 'Pixelify Sans', displayOnly: true),
   'atkinson-hyperlegible-next': CatalogueFont('atkinson-hyperlegible-next', 'Atkinson Hyperlegible Next',

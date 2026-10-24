@@ -42,6 +42,8 @@ atkinson-hyperlegible-mono|atkinsonhyperlegiblemono|AtkinsonHyperlegibleMono[wgh
 kalam|kalam|Kalam-Bold.ttf|2f6576601db015d4f6c08678120277fc8510b98c06e932ce7a6a9cbff4cbdded||
 newsreader|newsreader|Newsreader[opsz,wght].ttf|8a08d13f8a6c0d51be379a60af84f945f65369a67e509ee3c3bdcc421254d7c1|opsz=16|
 newsreader|newsreader|Newsreader-Italic[opsz,wght].ttf|796668611f80b64d5adf182fde3b6f29ed83b4e7cbec7b96937e84ac01364792|opsz=16|italic
+archivo-black|archivoblack|ArchivoBlack-Regular.ttf|dd9a89a019b4849f66ab75455fe7bdf931311042cbb0f0f97acc061539703180||
+space-grotesk|spacegrotesk|SpaceGrotesk[wght].ttf|acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72||
 EOF
 )
 # The core fonts' extra static weights (declared in the pubspec and registered when the app starts): the
