@@ -227,7 +227,12 @@ class PickerField extends StatelessWidget {
         value: semanticsValue,
         hint: _disabled ? disabledReason : (hint.isEmpty ? null : hint),
         validationResult: hasError ? SemanticsValidationResult.invalid : SemanticsValidationResult.none,
-        child: FocusRing(visible: showRing && !_disabled, borderRadius: radius, danger: hasError, child: box),
+        child: FocusRing(
+            visible: showRing && !_disabled,
+            borderRadius: radius,
+            danger: hasError,
+            clearance: mac ? 0 : InputBox.focusClearance(context),
+            child: box),
       ));
     }
 

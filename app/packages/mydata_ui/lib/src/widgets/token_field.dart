@@ -781,6 +781,7 @@ class _TokenFieldState extends State<TokenField> with PendingInputRegistration<T
       visible: focused && _selected == null && _flash == null,
       borderRadius: MyDataRadii.md(context.look),
       danger: hasError,
+      clearance: InputBox.focusClearance(context),
       child: field,
     );
     if (!_enabled) field = Opacity(opacity: Pressable.disabledOpacity, child: field);

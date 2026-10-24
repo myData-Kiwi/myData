@@ -427,6 +427,7 @@ class _Field extends StatelessWidget {
       visible: enabled && focusNode.hasFocus,
       borderRadius: borderRadius,
       danger: danger,
+      clearance: InputBox.focusClearance(context),
       child: Container(
         height: multiline ? null : context.density.controlHeight,
         decoration: decoration,

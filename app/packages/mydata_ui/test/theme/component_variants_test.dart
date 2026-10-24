@@ -439,6 +439,17 @@ void main() {
 
   group('inputs', () {
     variantGoldens('inputs', (focus) => InputSpecimen(focus: focus), size: const Size(640, 260));
+
+    testWidgets("an underlined field's ring clears its text; a boxed one's stays 2px out", (tester) async {
+      for (final (style, clear) in [('underlined', 8.0), ('outlined', 0.0), ('filled', 0.0)]) {
+        final focus = FocusNode();
+        addTearDown(focus.dispose);
+        await pumpVariant(tester, kiwiWith(component('inputs', style)), Brightness.light, InputSpecimen(focus: focus),
+            size: const Size(640, 260), focus: focus);
+        final ring = tester.widget<FocusRing>(find.ancestor(of: find.text('Kitchen Mac'), matching: find.byType(FocusRing)).first);
+        expect((ring.visible, ring.clearance), (true, clear), reason: style);
+      }
+    });
   });
 
   group('avatars', () {

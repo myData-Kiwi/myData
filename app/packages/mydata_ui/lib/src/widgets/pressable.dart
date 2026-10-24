@@ -363,10 +363,15 @@ class FocusRing extends StatelessWidget {
     required this.child,
     this.danger = false,
     this.onFill = false,
+    this.clearance = 0,
   });
   final bool visible;
   final BorderRadius borderRadius;
   final Widget child;
+
+  /// Extra room between the child's sides and the ring, left and right: an underlined field
+  /// (`InputBox.focusClearance`), whose text sits flush with its edge, so a ring 2px out would touch it.
+  final double clearance;
 
   /// The thing is in its red state (a field in error): the ring is `ink` ([colourOf]).
   final bool danger;
@@ -410,8 +415,30 @@ class FocusRing extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => CustomPaint(
-      foregroundPainter: visible ? painter(context, borderRadius, danger: danger, onFill: onFill) : null,
+      foregroundPainter: !visible
+          ? null
+          : (clearance > 0
+              ? _Widened(painter(context, borderRadius, danger: danger, onFill: onFill), clearance)
+              : painter(context, borderRadius, danger: danger, onFill: onFill)),
       child: child);
+}
+
+/// [ring] painted around a box [by] wider on each side than the child.
+class _Widened extends CustomPainter {
+  _Widened(this.ring, this.by);
+  final CustomPainter ring;
+  final double by;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.save();
+    canvas.translate(-by, 0);
+    ring.paint(canvas, Size(size.width + 2 * by, size.height));
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_Widened old) => old.by != by || ring.shouldRepaint(old.ring);
 }
 
 /// Radii as BorderRadius, for the shapes the tokens name.

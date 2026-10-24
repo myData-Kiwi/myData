@@ -1311,6 +1311,7 @@ class _CustomLabelField extends StatelessWidget {
     return FocusRing(
       visible: true,
       borderRadius: MyDataRadii.md(context.look),
+      clearance: InputBox.focusClearance(context),
       child: Container(
         height: context.density.controlHeight,
         decoration: InputBox.of(context.look, edge: c.lineStrong, width: MyDataTextField.borderWidth),

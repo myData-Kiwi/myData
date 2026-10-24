@@ -1,7 +1,8 @@
 import 'package:flutter/widgets.dart';
 
 import '../theme/theme.dart';
-import 'pressable.dart' show MyDataRadii;
+import '../mac/mac_theme.dart' show MacSystemLook;
+import 'pressable.dart' show FocusRing, MyDataRadii;
 
 /// The box of every field (a text field, a select, a picker, a token field) in the theme's input style
 /// (`components.inputs`, design/themes/ARCHITECTURE.md 3.2):
@@ -39,6 +40,12 @@ abstract final class InputBox {
 
   /// Whether [look]'s fields have a box with corners (outlined or filled), for a focus ring that follows it.
   static bool boxed(MyDataLook look) => look.variants.inputs != InputStyle.underlined;
+
+  /// The extra room left and right between a field and its focus ring ([FocusRing.clearance]): `space-2` for
+  /// an underlined field off the Mac shell, whose text sits flush with its edge (and its label), so the ring
+  /// clears the text instead of touching it; none for a box, whose text is inset.
+  static double focusClearance(BuildContext context) =>
+      context.isSystemLook || boxed(context.look) ? 0 : context.look.space(2);
 }
 
 /// A fill in the look's corner style with one line along its bottom edge, clipped to the shape.
