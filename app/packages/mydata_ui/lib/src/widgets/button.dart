@@ -47,6 +47,8 @@ enum ButtonVariant {
 /// - **secondary** ([ButtonVariant.tonal]): `tonal` (`accent-soft`, accent text), `outline` (no fill, the
 ///   control outline, `ink` text) or `text` (the accent label alone, underlined so it reads as an action);
 /// - [ButtonVariant.plain] and [ButtonVariant.plainDanger] stay text in every theme;
+/// - near red, every label that would be in the accent (plain, tonal, a text secondary) is `ink` too, so only
+///   a destructive action is red (Reject beside Approve, Cancel beside Revoke);
 /// - the approval card's Approve ([Button.approval]) is the same in every theme: filled, or outlined where the
 ///   primary is an outline, with no drop, no bevel and at most a 1px `line-strong` outline;
 /// - **shape** (`button.shape`): `pill`, `rounded` (the theme's small radius), `square` or `cut`, whatever the
@@ -110,24 +112,27 @@ class ButtonPaint {
     final v = look.variants;
     final control = MyDataEdgesPaint.control(look)?.top;
     final elevation = look.elevation;
+    // An accent near `danger`'s red: every accent-coloured label is `ink`, so only a destructive action is red.
+    final nearRed = look.accentNearDanger;
+    final accentText = nearRed ? c.ink : c.accent;
     switch (variant) {
       case ButtonVariant.plain:
-        return ButtonPaint(fill: null, foreground: c.accent);
+        return ButtonPaint(fill: null, foreground: accentText);
       case ButtonVariant.plainDanger:
         return ButtonPaint(fill: null, foreground: c.danger);
       case ButtonVariant.tonal:
         return switch (v.secondary) {
           SecondaryStyle.tonal => ButtonPaint(
-              fill: c.accentSoft, foreground: c.accent, side: control, shadows: elevation.control, bevel: elevation.bevel),
+              fill: c.accentSoft, foreground: accentText, side: control, shadows: elevation.control, bevel: elevation.bevel),
           SecondaryStyle.outline => ButtonPaint(
               fill: null,
               foreground: c.ink,
               side: BorderSide(color: look.edges.controlColour, width: math.max(1, look.edges.width))),
-          SecondaryStyle.text => ButtonPaint(fill: null, foreground: c.accent, underline: true),
+          SecondaryStyle.text => ButtonPaint(fill: null, foreground: accentText, underline: true),
         };
       case ButtonVariant.filled || ButtonVariant.danger:
         final danger = variant == ButtonVariant.danger;
-        final ink = !danger && look.accentNearDanger;
+        final ink = !danger && nearRed;
         final base = danger ? c.danger : (ink ? c.ink : c.accent);
         final on = danger ? c.onDanger : (ink ? c.bg : c.onAccent);
         final primary = variant == ButtonVariant.filled;

@@ -248,6 +248,46 @@ void main() {
       expect(primary.foreground, look.colors.bg);
       expect(ButtonPaint.of(look, ButtonVariant.danger).fill, look.colors.danger);
     });
+
+    test('near red, no label but a destructive one is in the accent', () {
+      for (final secondary in componentValues['button.secondary']!) {
+        for (final b in Brightness.values) {
+          final look =
+              ThemeLibrary.look(kiwiWith(all([nearRedAccent, component('button.secondary', secondary)])), brightness: b);
+          for (final v in [ButtonVariant.plain, ButtonVariant.tonal]) {
+            expect(ButtonPaint.of(look, v).foreground, look.colors.ink, reason: '$secondary ${b.name} $v');
+          }
+          expect(ButtonPaint.of(look, ButtonVariant.plainDanger).foreground, look.colors.danger);
+        }
+      }
+    });
+
+    // The full specimen in the designed Sticker (Rose, a pink accent beside danger's red; not within 25°).
+    for (final b in Brightness.values) {
+      testWidgets('variant golden: buttons in sticker rose, ${b.name}', (tester) async {
+        debugDisableShadows = false;
+        try {
+          final focus = FocusNode();
+          addTearDown(focus.dispose);
+          await pumpVariant(tester, designedTheme('mydata.sticker'), b, ButtonSpecimen(focus: focus),
+              size: const Size(620, 170), focus: focus);
+          expect(tester.takeException(), isNull);
+          await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/variant.buttons-sticker.${b.name}.png'));
+        } finally {
+          debugDisableShadows = true;
+        }
+      });
+    }
+
+    test('every primary looks like a button: a fill or an outline, never text alone', () {
+      for (final value in componentValues['button.primary']!) {
+        for (final b in Brightness.values) {
+          final look = ThemeLibrary.look(kiwiWith(component('button.primary', value)), brightness: b);
+          final p = ButtonPaint.of(look, ButtonVariant.filled);
+          expect(p.fill != null || (p.side?.width ?? 0) >= 2, isTrue, reason: value);
+        }
+      }
+    });
   });
 
   group('the approval card', () {
@@ -289,6 +329,9 @@ void main() {
           styleGroup('elevation', {'style': 'bevel', 'strength': 1, 'offset': 2, 'press': 'collapse'}),
           styleGroup('borders', {'controls': true, 'width': 2, 'colour': 'edge'}),
         ]));
+    // Near red: Approve in ink, and Edit and Reject in ink too, so only a destructive action is red.
+    variantGoldens('button.primary', (_) => card(),
+        size: const Size(520, 260), focused: false, values: ['filled'], name: 'approval-near-red', also: nearRedAccent);
 
     test('Approve is filled or outlined, never brutal, bevelled, a push button or on a drop', () {
       final elevations = <String, Map<String, Object?>>{
