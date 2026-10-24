@@ -557,6 +557,7 @@ class _Tabbed extends StatelessWidget {
               current: f.current,
               onChanged: f.onSelect,
               semanticLabel: f.appName,
+              spokenTabs: [for (final s in f.sections) s.spoken],
             ),
           ),
         ]),

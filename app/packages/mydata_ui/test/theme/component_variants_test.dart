@@ -507,6 +507,15 @@ void main() {
           'sidebar': 'translucent',
         }));
 
+    testWidgets('sidebar tabs read each section as the sidebar does: "Review, 4", not "Review 4"', (tester) async {
+      final semantics = tester.ensureSemantics();
+      await pumpVariant(tester, kiwiWith(component('sidebar', 'tabs')), Brightness.light, frame(FocusNode()),
+          size: const Size(1100, 360));
+      expect(find.bySemanticsLabel('Review, 4'), findsOneWidget);
+      expect(find.bySemanticsLabel('Review 4'), findsNothing);
+      semantics.dispose();
+    });
+
     // A drawn theme in the Mac window: its source list and toolbar band in each toolbar style.
     for (final toolbar in componentValues['toolbar']!) {
       for (final b in Brightness.values) {

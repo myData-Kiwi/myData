@@ -76,7 +76,8 @@ class MyDataTabs extends StatefulWidget {
     required this.current,
     required this.onChanged,
     this.semanticLabel,
-  }) : assert(current >= 0);
+    this.spokenTabs,
+  }) : assert(current >= 0), assert(spokenTabs == null || spokenTabs.length == tabs.length);
 
   /// The tab names, in sentence case.
   final List<String> tabs;
@@ -89,6 +90,10 @@ class MyDataTabs extends StatefulWidget {
 
   /// What the row is for, read by screen readers ("Settings").
   final String? semanticLabel;
+
+  /// What screen readers hear for each tab instead of its name, when the name alone reads badly: a section's
+  /// count, "Review, 4" rather than "Review 4". Null reads [tabs].
+  final List<String>? spokenTabs;
 
   /// Space between tabs, across and down: the preview's 6px gap snapped to a token (decision 2026-10-12);
   /// boxed tabs share their outlines.
@@ -271,6 +276,8 @@ class _MyDataTabsState extends State<MyDataTabs> with SingleTickerProviderStateM
         child: Text(widget.tabs[i], maxLines: 1, softWrap: false, overflow: TextOverflow.ellipsis),
       ),
     );
+    final spoken = widget.spokenTabs?[i];
+    if (spoken != null) body = ExcludeSemantics(child: body);
     if (selected && !_sliding) body = DecoratedBox(decoration: TabMark.mark(look), child: body);
     if (boxed) {
       body = DecoratedBox(
@@ -289,6 +296,7 @@ class _MyDataTabsState extends State<MyDataTabs> with SingleTickerProviderStateM
           button: false,
           selected: selected,
           focusOnFill: selected && boxed,
+          semanticLabel: spoken,
           child: body,
         ),
       ),
