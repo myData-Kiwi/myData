@@ -28,9 +28,11 @@ List<Map<String, Object?>> seeds() {
 /// The built-ins' styles, so a mutated `based-on` may name one.
 ThemeFormat designedFormat() => ThemeLibrary.format();
 
+/// Typed to hold anything, so a mutation may put null or junk anywhere (an inferred `Map<String, Object>`
+/// would throw on null).
 Object? deepCopy(Object? v) => switch (v) {
-      Map() => {for (final e in v.entries) e.key as String: deepCopy(e.value)},
-      List() => [for (final x in v) deepCopy(x)],
+      Map() => <String, Object?>{for (final e in v.entries) e.key as String: deepCopy(e.value)},
+      List() => <Object?>[for (final x in v) deepCopy(x)],
       _ => v,
     };
 
@@ -52,8 +54,8 @@ class Mutator {
         8 => null,
         9 => colour(),
         10 => 'a' * (1 + r.nextInt(400)),
-        11 => [colour(), 3, null],
-        12 => {'light': colour(), 'dark': 7},
+        11 => <Object?>[colour(), 3, null],
+        12 => <String, Object?>{'light': colour(), 'dark': 7},
         _ => r.nextBool() ? 'mydata.kiwi' : 'mydata.system',
       };
 
