@@ -1281,13 +1281,15 @@ class _PlainContactRowState extends State<_PlainContactRow> {
       );
     }
     // The keyboard's ring inside the row, as a list row's is, so the rows around it never cover it; two-tone
-    // on a fill.
+    // on a fill. Inside an outline selection (Large's) it stands clear of the outline, so both show.
     if (widget.keyboardRing) {
+      final outline = paint?.outline;
       content = CustomPaint(
         foregroundPainter: InsetRingPainter(
           shape: look.shape,
           color: FocusRing.colourFor(context),
           borderRadius: radius,
+          inset: outline == null ? 0 : outline.width + MyDataMacSize.tight,
           width: FocusRing.widthFor(context),
           keyline: FocusRing.keylineFor(context, onFill: paint?.fill != null),
         ),

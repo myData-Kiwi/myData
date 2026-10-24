@@ -35,6 +35,7 @@ In the Mac window the skeleton stays the Mac's; the one thing that grows is the 
 - **Selection is an outline** (`selection: outline`): a 2 px ring in the accent, never a tint alone.
 - 2 px `line-strong` outlines (#6B6B6B / #8A8A8A, 5.2:1 and 5.4:1 on the ground) on panels, fields and secondary buttons.
 - Status and calendar colours as everywhere; data-yellow gets its edge in light mode.
+- **Focus is amber** (#8A5300; #F2B544 in dark), not the house's red: a red box round the current item reads as an error, most of all to the people this theme is for. It is 4.7:1 or more on every ground it touches, 38° of hue from `danger` and 66° or more from every palette's accent, so it is never taken for the outline selection; on a selected row it stands inside the outline, so both show.
 - In the Mac window, a disabled item and another month's day are a 4.5:1 grey, not the Mac's faint shade (Large is one of the accessibility themes, with High Contrast and E-ink).
 
 ## Palettes

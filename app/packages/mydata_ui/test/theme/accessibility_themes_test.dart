@@ -171,6 +171,25 @@ void main() {
       expect(style.components.values['selection'], 'outline');
     });
 
+    test('rings focus in amber, never in danger\'s red: 3:1 on every ground, kept apart from the accent outline',
+        () {
+      for (final palette in theme.palettes) {
+        for (final mode in LookMode.values) {
+          for (final increased in [false, true]) {
+            final p = resolvePalette(theme, palette, mode, defaults: ThemeLibrary.defaults, increasedContrast: increased);
+            final where = '${palette.id} ${mode.key}${increased ? ' increased' : ''}';
+            final focus = Oklch.of(p[ColourRole.focus]), danger = Oklch.of(p[ColourRole.danger]);
+            expect(hueDistance(focus.h, danger.h), greaterThanOrEqualTo(25), reason: where);
+            expect(focus.c, greaterThan(0.08), reason: '$where: a colour, not a grey');
+            for (final g in focusGrounds) {
+              expect(contrast(p[ColourRole.focus], p[g]), greaterThanOrEqualTo(3), reason: '$where on ${g.key}');
+            }
+            expect(focusKeptApart(p[ColourRole.focus], p[ColourRole.selection]), isTrue, reason: where);
+          }
+        }
+      }
+    });
+
     test('keeps the Mac window\'s skeleton: only the sidebar widens, in proportion, so a section name fits', () {
       MacLookMetrics m(String id) => MacLookMetrics.forLook(designedLook(id, Brightness.light), system: false);
       for (final id in drawnBuiltIns.where((id) => id != theme.id)) {
