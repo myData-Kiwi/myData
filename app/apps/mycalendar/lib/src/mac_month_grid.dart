@@ -115,6 +115,14 @@ class MacMonthGrid extends StatefulWidget {
   /// A timed event's dot.
   static const dotSize = 6.0;
 
+  /// Whether a drawn theme rules the Mac month in its own line: one that draws its separators full width
+  /// (High Contrast, Large, Kiwi, Journal), so a boxed month's grid and the line beside the day list are its
+  /// borders' colour and width. Sticker's inset separators keep the faint grid.
+  static bool ruled(MyDataLook look) => look.edges.separators == Separators.full;
+
+  /// The width of a drawn theme's lines in the Mac window ([ruled]): its borders' width, never under a point.
+  static double ruleWidth(MyDataLook look) => math.max(1, look.edges.width);
+
   /// The chip's corners: half the push button's.
   static const chipRadius = BorderRadius.all(Radius.circular(MyDataMacRadius.control / 2));
 
@@ -381,18 +389,23 @@ class _CellState extends State<_Cell> {
     final ground = w.notRead ? mac.windowBackground : mac.contentBackground;
     final fill = _hovered && !w.selected ? Color.alphaBlend(mac.hover, ground) : ground;
     // A drawn theme's month (`components.month`): open has rules between the weeks only, in its border
-    // colour (Journal's ink, Hairline's line); boxed rules every day in `line`; table every day in its
-    // control outline's colour. System keeps the Mac's `separator` hairlines round every day.
+    // colour (Journal's ink, Hairline's line); boxed boxes every day in `line`, or, where the theme draws its
+    // separators full width, in its own line, colour and width (MacMonthGrid.ruled: High Contrast's 2 px of
+    // ink, Large's 2 px of `line-strong`); table rules every day in its control outline's colour. System
+    // keeps the Mac's `separator` hairlines round every day.
     final system = context.isSystemLook;
     final style = context.variants.month;
     final columns = system || style != MonthStyle.open;
+    final edges = context.look.edges;
     final rule = system
         ? mac.separator
         : switch (style) {
-            MonthStyle.open => context.look.edges.colour,
-            MonthStyle.boxed => context.colors.line,
-            MonthStyle.table => context.look.edges.controlColour,
+            MonthStyle.open => edges.colour,
+            MonthStyle.boxed => MacMonthGrid.ruled(context.look) ? edges.colour : context.colors.line,
+            MonthStyle.table => edges.controlColour,
           };
+    final ruleWidth =
+        !system && style == MonthStyle.boxed && MacMonthGrid.ruled(context.look) ? MacMonthGrid.ruleWidth(context.look) : 1.0;
     final scaler = MediaQuery.textScalerOf(context);
     final events = w.notRead ? <MacCellEvent>[] : w.events;
     final label = MonthGrid.dayLabel(
@@ -437,8 +450,8 @@ class _CellState extends State<_Cell> {
       decoration: BoxDecoration(
         color: fill,
         border: Border(
-          top: BorderSide(color: rule),
-          left: w.leadingEdge && columns ? BorderSide(color: rule) : BorderSide.none,
+          top: BorderSide(color: rule, width: ruleWidth),
+          left: w.leadingEdge && columns ? BorderSide(color: rule, width: ruleWidth) : BorderSide.none,
         ),
       ),
       position: DecorationPosition.background,

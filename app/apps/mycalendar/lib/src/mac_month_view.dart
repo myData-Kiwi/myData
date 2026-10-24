@@ -202,6 +202,14 @@ class MacMonthView extends StatelessWidget {
         ? const SizedBox.shrink()
         : MacDayList(day: selected, today: today, events: content.shown, sources: content.ranges);
 
+    // The line between the month and the day list: the Mac's separator, or the theme's own line (its colour
+    // and width) in a drawn theme that rules its month so (MacMonthGrid.ruled).
+    final ruled = !context.isSystemLook && MacMonthGrid.ruled(context.look);
+    final line = ruled ? context.look.edges.colour : mac.separator;
+    final lineWidth = ruled ? MacMonthGrid.ruleWidth(context.look) : 1.0;
+    Widget divider({required bool vertical}) => vertical
+        ? VerticalDivider(width: lineWidth, thickness: lineWidth, color: line)
+        : Divider(height: lineWidth, thickness: lineWidth, color: line);
     return CallbackShortcuts(
       bindings: {
         const SingleActivator(LogicalKeyboardKey.keyT, meta: true): _today,
@@ -220,7 +228,7 @@ class MacMonthView extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Expanded(child: monthColumn),
-                      VerticalDivider(width: 1, thickness: 1, color: mac.separator),
+                      divider(vertical: true),
                       SizedBox(width: dayListWidth, child: day),
                     ],
                   );
@@ -229,7 +237,7 @@ class MacMonthView extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Expanded(flex: 3, child: monthColumn),
-                    Divider(height: 1, thickness: 1, color: mac.separator),
+                    divider(vertical: false),
                     Expanded(flex: 2, child: day),
                   ],
                 );

@@ -73,7 +73,7 @@ Material Symbols Outlined at weight 600 (`bold`), filled when selected, on outli
 | Inputs | Outlined, 2 px |
 | Tabs | Boxed, the current one inverse (the Mac segmented control too) |
 | Chat | Blocks |
-| Month | Boxed; today inverse |
+| Month | Boxed (in the Mac window too: its grid and the line beside the day list are 2 px of ink); today inverse |
 | Links | Underlined |
 
 ## Do

@@ -71,7 +71,7 @@ Material Symbols Rounded, regular, 24 px, filled when selected, on tinted tiles.
 | Inputs | Outlined, 2 px |
 | Tabs | Boxed, the current one filled (the Mac segmented control too) |
 | Chat | Bubbles |
-| Month | Boxed; today a filled disc |
+| Month | Boxed (in the Mac window too: its grid and the line beside the day list are 2 px of `line-strong`); today a filled disc |
 
 ## Do and don't
 

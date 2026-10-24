@@ -84,4 +84,31 @@ void main() {
       expect(find.descendant(of: box, matching: find.byType(DataBar)), findsOneWidget, reason: chip);
     }
   });
+
+  // A boxed month in a theme with full separators boxes every day in the theme's own line, its colour and
+  // width (High Contrast's 2 px of ink, Large's 2 px of line-strong), and the line beside the day list is
+  // the same; Kiwi's stays `line`.
+  for (final slug in ['high-contrast', 'large', 'kiwi']) {
+    macTestWidgets('a boxed Mac month is ruled in $slug\'s own line', (tester) async {
+      tester.view.physicalSize = const Size(1280, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      MacLook.debugOverride = true;
+      addTearDown(() => MacLook.debugOverride = null);
+      await tester.pumpWidget(_app(ThemeCase(slug, Brightness.light, drawnOnMac: true), day: '2026-10-16'));
+      await mac.settle(tester);
+      final look = MyDataLook.of(tester.element(find.text('13')));
+      expect(look.variants.month, MonthStyle.boxed);
+      final width = look.edges.width < 1 ? 1.0 : look.edges.width;
+      final cell = tester
+          .widgetList<DecoratedBox>(find.ancestor(of: find.text('14'), matching: find.byType(DecoratedBox)))
+          .map((b) => b.decoration)
+          .whereType<BoxDecoration>()
+          .firstWhere((d) => d.border is Border && (d.border! as Border).top != BorderSide.none);
+      expect((cell.border! as Border).top, BorderSide(color: look.edges.colour, width: width));
+      final divider = tester.widget<VerticalDivider>(find.byType(VerticalDivider));
+      expect((divider.color, divider.thickness), (look.edges.colour, width));
+    });
+  }
 }
+
