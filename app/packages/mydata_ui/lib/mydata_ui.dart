@@ -65,6 +65,7 @@ export 'src/widgets/notice.dart';
 export 'src/widgets/page_scaffold.dart';
 export 'src/widgets/pressable.dart';
 export 'src/widgets/progress_bar.dart';
+export 'src/widgets/role_label.dart';
 export 'src/widgets/segmented_control.dart';
 export 'src/widgets/select.dart';
 export 'src/widgets/sheet.dart';

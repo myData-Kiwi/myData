@@ -20,6 +20,7 @@ import 'pressable.dart';
 import 'segmented_control.dart';
 import 'theme_picker.dart';
 import 'toast.dart';
+import 'role_label.dart';
 
 /// One app a [ThemeGallery] can choose for: its id in the device's settings (`mycontacts`), its name, its
 /// preview scene ([ThemePreviewScenes]) and what it draws now.
@@ -420,7 +421,7 @@ class _ThemeGalleryState extends State<ThemeGallery> {
       children: [
         Semantics(
           header: true,
-          child: Text(heading, style: context.type(MyDataTypeRole.label).copyWith(color: c.inkMuted)),
+          child: RoleLabel(heading, style: context.type(MyDataTypeRole.label), color: c.inkMuted),
         ),
         SizedBox(height: context.space(2)),
         Wrap(
@@ -493,7 +494,7 @@ class _ThemeGalleryState extends State<ThemeGallery> {
         ),
         if (theme.palettes.length > 1) ...[
           SizedBox(height: context.space(5)),
-          Text(ThemeGallery.paletteLabel, style: context.type(MyDataTypeRole.label).copyWith(color: c.inkMuted)),
+          RoleLabel(ThemeGallery.paletteLabel, style: context.type(MyDataTypeRole.label), color: c.inkMuted),
           SizedBox(height: context.space(2)),
           ThemePicker(
             key: ValueKey('palettes ${theme.id}'),

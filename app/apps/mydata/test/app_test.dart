@@ -187,6 +187,30 @@ void main() {
       expect(find.text(AppearanceSection.sameAsEverywhere), findsNWidgets(4));
     });
 
+    testWidgets('under a theme that sets labels in upper case, the apps keep their names: never MYASSISTANT', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(900, 1400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final themes = ThemeController(appId: 'mydata', store: MemoryDeviceStore(), macOS: false);
+      await themes.start();
+      await tester.pumpWidget(MaterialApp(
+        theme: MyDataTheme.fromLook(upperCaseLook(Brightness.light)),
+        home: Material(child: SingleChildScrollView(child: AppearanceSection(themes: themes))),
+      ));
+      await tester.pump();
+      for (final a in MyDataAppId.values) {
+        expect(find.text(a.displayName), findsOneWidget, reason: a.displayName);
+        expect(find.text(a.displayName.toUpperCase()), findsNothing, reason: a.displayName);
+      }
+      // Its own labels follow the theme.
+      expect(find.text(AppearanceSection.modeLabel.toUpperCase()), findsOneWidget);
+      expect(find.text(AppearanceSection.appsHeading.toUpperCase()), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+      themes.dispose();
+    });
+
     testWidgets("Change… opens the gallery on that app; Use stores it on this device, never on the host", (
       tester,
     ) async {

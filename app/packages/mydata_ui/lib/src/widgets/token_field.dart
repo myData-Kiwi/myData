@@ -15,6 +15,7 @@ import 'pressable.dart';
 import 'select.dart' show matchesWordStart;
 import 'text_field.dart';
 import 'toggle_target.dart';
+import 'role_label.dart';
 
 /// A value a [TokenField] can suggest: an existing group, a contact's address.
 @immutable
@@ -804,7 +805,7 @@ class _TokenFieldState extends State<TokenField> with PendingInputRegistration<T
         children: [
           if (widget.showLabel) ...[
             ExcludeSemantics(
-              child: Text(widget.label, style: context.typeScale.label.copyWith(color: c.ink)),
+              child: RoleLabel(widget.label, color: c.ink),
             ),
             SizedBox(height: context.space(2)),
           ],

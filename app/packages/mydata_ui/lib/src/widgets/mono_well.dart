@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import '../theme/theme.dart';
 import 'button.dart';
 import 'pressable.dart' show MyDataRadii;
+import 'role_label.dart';
 
 /// A well for a value the user reads exactly or copies: a token, an address, a path, an error from the host
 /// (design/components/MonoWell).
@@ -110,7 +111,7 @@ class _MonoWellState extends State<MonoWell> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(label, style: context.typeScale.label.copyWith(color: c.ink)),
+        RoleLabel(label, color: c.ink),
         SizedBox(height: MonoWell.gap(context.look)),
         well,
       ],

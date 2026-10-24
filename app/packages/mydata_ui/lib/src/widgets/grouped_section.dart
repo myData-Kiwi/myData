@@ -5,6 +5,7 @@ import 'action_row.dart';
 import 'group_frame.dart';
 import 'grouped_list.dart';
 import 'status.dart';
+import 'role_label.dart';
 
 /// A grouped list whose parts are not all rows: a picker, a short form or a note sits in the same group as
 /// the rows, with the same dividers (design/components/GroupedSection).
@@ -19,7 +20,7 @@ import 'status.dart';
 ///   use at most [GroupedList.maxTileTones] tones.
 /// - Use a [GroupedList] when every part is a row; use this when one part is not.
 class GroupedSection extends StatelessWidget {
-  GroupedSection({super.key, this.heading, required this.parts})
+  GroupedSection({super.key, this.heading, this.headingHoldsName = false, required this.parts})
     : assert(parts.isNotEmpty, 'a grouped section has at least one part'),
       assert(
         _tileTones(parts).length <= GroupedList.maxTileTones,
@@ -29,6 +30,9 @@ class GroupedSection extends StatelessWidget {
   /// The small heading above the group, in sentence case ("Appearance"). Null for none, as a [GroupedList]
   /// may have none (an import's Done list).
   final String? heading;
+
+  /// The [heading] is a name (an account, a calendar) and keeps its own case ([RoleLabel]).
+  final bool headingHoldsName;
 
   /// The parts, top to bottom.
   final List<Widget> parts;
@@ -41,7 +45,8 @@ class GroupedSection extends StatelessWidget {
   }..remove(MyDataTone.neutral);
 
   @override
-  Widget build(BuildContext context) => GroupFrame(heading: heading, parts: parts);
+  Widget build(BuildContext context) =>
+      GroupFrame(heading: heading, headingHoldsName: headingHoldsName, parts: parts);
 }
 
 /// A part of a [GroupedSection] that is not a row: `space-5` padding, like a card, around one thing: a
@@ -64,10 +69,14 @@ class GroupedContentPart extends StatelessWidget {
 /// SegmentedControl's `semanticLabel`); give it the same words. The visible label is hidden from screen
 /// readers, so the name is not read twice.
 class GroupedControl extends StatelessWidget {
-  const GroupedControl({super.key, required this.label, required this.child});
+  const GroupedControl({super.key, required this.label, this.holdsName = false, required this.child});
 
   /// The control's name, in sentence case ("Theme", "Mode").
   final String label;
+
+  /// The [label] is a name (an app such as myAssistant, a person, a calendar) and keeps its own case where
+  /// the theme sets labels in upper case ([RoleLabel]).
+  final bool holdsName;
 
   final Widget child;
 
@@ -79,11 +88,7 @@ class GroupedControl extends StatelessWidget {
     mainAxisSize: MainAxisSize.min,
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      // A control's name, never a person's: upper case where the theme sets labels so.
-      ExcludeSemantics(
-        child: Text(context.typeScale.cased(MyDataTypeRole.label, label),
-            style: context.typeScale.label.copyWith(color: context.colors.ink)),
-      ),
+      ExcludeSemantics(child: RoleLabel(label, color: context.colors.ink, holdsName: holdsName)),
       SizedBox(height: labelGap(context.look)),
       child,
     ],

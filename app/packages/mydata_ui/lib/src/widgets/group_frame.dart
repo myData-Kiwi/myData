@@ -4,6 +4,7 @@ import '../generated/tokens.g.dart';
 import '../mac/mac_theme.dart';
 import '../theme/theme.dart';
 import 'pressable.dart' show MyDataRadii;
+import 'role_label.dart';
 
 // Not exported from the package: the one implementation of the grouped-list look, shared by GroupedList
 // and GroupedSection.
@@ -16,9 +17,12 @@ import 'pressable.dart' show MyDataRadii;
 /// heading in `caption-emphasized` and `secondary-label`, lined up with the rows' text; each part's shape is
 /// the `selection` radius, inset `row-inset` from the sides.
 class GroupFrame extends StatelessWidget {
-  const GroupFrame({super.key, this.heading, required this.parts, this.plain = false});
+  const GroupFrame({super.key, this.heading, this.headingHoldsName = false, required this.parts, this.plain = false});
 
   final String? heading;
+
+  /// The [heading] is a name (an account, a calendar) and keeps its own case ([RoleLabel]).
+  final bool headingHoldsName;
   final List<Widget> parts;
   final bool plain;
 
@@ -92,7 +96,7 @@ class GroupFrame extends StatelessWidget {
           padding: headingPadding(context.look),
           child: Semantics(
             header: true,
-            child: Text(heading!, style: context.typeScale.label.copyWith(color: c.inkMuted)),
+            child: RoleLabel(heading!, color: c.inkMuted, holdsName: headingHoldsName),
           ),
         ),
         group,

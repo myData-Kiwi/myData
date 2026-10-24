@@ -28,7 +28,7 @@ import 'switch.dart';
 ///   "accent, info and warning; every other row is neutral"). A list can only check itself, so it asserts in
 ///   debug builds that its own rows use at most [maxTileTones].
 class GroupedList extends StatelessWidget {
-  GroupedList({super.key, this.heading, required this.rows})
+  GroupedList({super.key, this.heading, this.headingHoldsName = false, required this.rows})
     : assert(rows.isNotEmpty, 'a grouped list has at least one row'),
       assert(
         rows.where((r) => r.icon != null && r.tone != MyDataTone.neutral).map((r) => r.tone).toSet().length <=
@@ -38,6 +38,9 @@ class GroupedList extends StatelessWidget {
 
   /// The small heading above the group, in sentence case ("Sync"). Null for none.
   final String? heading;
+
+  /// The [heading] is a name (an account, a calendar) and keeps its own case ([RoleLabel]).
+  final bool headingHoldsName;
 
   /// The rows, top to bottom.
   final List<GroupedRow> rows;
@@ -52,7 +55,8 @@ class GroupedList extends StatelessWidget {
   static EdgeInsets headingPadding(MyDataLook look) => GroupFrame.headingPadding(look);
 
   @override
-  Widget build(BuildContext context) => GroupFrame(heading: heading, parts: rows, plain: context.isSystemLook);
+  Widget build(BuildContext context) =>
+      GroupFrame(heading: heading, headingHoldsName: headingHoldsName, parts: rows, plain: context.isSystemLook);
 }
 
 /// What sits at the right end of a [GroupedRow]: a status chip, a value, a chevron, or a value and a

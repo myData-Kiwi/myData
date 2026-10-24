@@ -87,6 +87,27 @@ Future<bool> loadMacFonts({bool systemFont = false}) async {
 /// the mode, so it serves goldens in every theme.
 final kiwiLook = MyDataLook.fallback(Brightness.light);
 
+/// Kiwi with its `label` and `caption` roles set in upper case (`case: upper`, as the Terminal port sets
+/// labels): for tests that a widget's own labels follow the theme's case and names keep theirs.
+MyDataLook upperCaseLook(Brightness brightness) {
+  final look = MyDataLook.fallback(brightness);
+  final t = look.typeScale;
+  return look.copyWith(
+    typeScale: MyDataTypeScale(
+      displayXl: t.displayXl,
+      displayLg: t.displayLg,
+      title: t.title,
+      heading: t.heading,
+      body: t.body,
+      bodyStrong: t.bodyStrong,
+      label: t.label,
+      caption: t.caption,
+      mono: t.mono,
+      upper: const {MyDataTypeRole.label, MyDataTypeRole.caption},
+    ),
+  );
+}
+
 /// [icon]'s glyph as Kiwi and System draw it (Lucide, in both the branded frame and the Mac frame): for a
 /// finder or a comparison with an [Icon]'s `icon`.
 IconData iconOf(MyDataIcon icon, {bool selected = false}) => kiwiLook.icons(icon, selected: selected);

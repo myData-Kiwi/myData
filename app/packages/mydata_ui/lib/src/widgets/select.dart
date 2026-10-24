@@ -17,6 +17,7 @@ import 'pressable.dart';
 import 'sheet.dart';
 import 'text_field.dart';
 import 'toggle_target.dart';
+import 'role_label.dart';
 
 /// Whether [query] matches the start of any word in [text], ignoring case and accents ([foldForSearch]): "auck"
 /// and "zealand" match "Auckland, New Zealand"; "land" does not. A query of several words matches where
@@ -945,7 +946,7 @@ class _MyDataSelectState<T> extends State<MyDataSelect<T>>
         Opacity(
           opacity: _enabled ? 1 : Pressable.disabledOpacity,
           child: ExcludeSemantics(
-            child: Text(widget.label, style: context.typeScale.label.copyWith(color: c.ink)),
+            child: RoleLabel(widget.label, color: c.ink),
           ),
         ),
         SizedBox(height: context.space(2)),
@@ -994,7 +995,7 @@ class _MyDataSelectState<T> extends State<MyDataSelect<T>>
               context.space(2) +
               context.density.icon,
         _NoneEntry<T>(:final text) => measure(text, context.typeScale.body),
-        _HeadingEntry<T>(:final text) => measure(text, context.typeScale.label),
+        _HeadingEntry<T>(:final text) => measure(context.typeScale.cased(MyDataTypeRole.label, text), context.typeScale.label),
         _DividerEntry<T>() => 0.0,
       };
       widest = math.max(widest, w);
@@ -1057,7 +1058,7 @@ class _MyDataSelectState<T> extends State<MyDataSelect<T>>
               padding: EdgeInsets.fromLTRB(context.space(3), context.space(2), context.space(3), context.space(1)),
               child: Semantics(
                 header: true,
-                child: Text(text, style: context.typeScale.label.copyWith(color: c.inkMuted)),
+                child: RoleLabel(text, color: c.inkMuted),
               ),
             ),
           );
@@ -1549,7 +1550,7 @@ class _PickerPageState<T> extends State<_PickerPage<T>> {
                       ),
                       child: Semantics(
                         header: true,
-                        child: Text(widget.suggestedHeading, style: context.typeScale.label.copyWith(color: c.inkMuted)),
+                        child: RoleLabel(widget.suggestedHeading, color: c.inkMuted),
                       ),
                     ),
                     for (final i in widget.suggested) row(i),

@@ -9,6 +9,7 @@ import 'app_frame.dart' show AppLayout;
 import 'button.dart';
 import 'icon_button.dart';
 import 'pressable.dart';
+import 'role_label.dart';
 
 /// Where a form sits, which decides its ground and spacing (design/components/FormRow, "The form").
 enum FormGround {
@@ -35,10 +36,13 @@ enum FormGround {
 /// - A group that holds one field shows no label of its own ([label] null): the group's heading names it.
 /// - Screen readers: the label names the control; the help or the error is its hint.
 class FormRow extends StatelessWidget {
-  const FormRow({super.key, required this.child, this.label, this.help, this.error});
+  const FormRow({super.key, required this.child, this.label, this.holdsName = false, this.help, this.error});
 
   /// A noun in sentence case with no full stop or colon ("First name", "Starts").
   final String? label;
+
+  /// The [label] is a name and keeps its own case where the theme sets labels in upper case ([RoleLabel]).
+  final bool holdsName;
 
   /// A full sentence with a full stop. Required fields say so here.
   final String? help;
@@ -61,7 +65,7 @@ class FormRow extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (label != null) ...[
-          ExcludeSemantics(child: Text(label!, style: context.typeScale.label.copyWith(color: c.ink))),
+          ExcludeSemantics(child: RoleLabel(label!, color: c.ink, holdsName: holdsName)),
           SizedBox(height: gap(context.look)),
         ],
         Semantics(label: label, hint: note, child: child),
@@ -216,7 +220,7 @@ class FormGroupHeading extends StatelessWidget {
     final inset = _FormGroundScope.of(context) == FormGround.page && !AppLayout.isPhone(context);
     return Padding(
       padding: EdgeInsetsDirectional.only(start: inset ? pageInset(context.look) : 0, bottom: gap(context.look)),
-      child: Text(text, style: context.typeScale.label.copyWith(color: context.colors.inkMuted)),
+      child: RoleLabel(text, color: context.colors.inkMuted),
     );
   }
 }

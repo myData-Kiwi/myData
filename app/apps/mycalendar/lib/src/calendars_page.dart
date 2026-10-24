@@ -52,6 +52,8 @@ class CalendarsPage extends StatelessWidget {
           for (final (heading, items) in groups(calendars))
             GroupedList(
               heading: heading,
+              // The source and its account: a name, so it keeps its case.
+              headingHoldsName: true,
               rows: [
                 for (final cal in items)
                   CalendarListRow(

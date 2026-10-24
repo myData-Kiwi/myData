@@ -6,6 +6,7 @@ import '../theme/theme.dart';
 import 'app_frame.dart' show AppLayout, PhoneType;
 import 'form_scope.dart';
 import 'pressable.dart';
+import 'role_label.dart';
 
 /// A single-line input with a label above and optional help below (design/components/TextField).
 ///
@@ -211,7 +212,7 @@ class _MyDataTextFieldState extends State<MyDataTextField> {
       children: [
         if (widget.showLabel) ...[
           // Read out through the field's own semantics.
-          faded(ExcludeSemantics(child: Text(widget.label, style: context.typeScale.label.copyWith(color: c.ink)))),
+          faded(ExcludeSemantics(child: RoleLabel(widget.label, color: c.ink))),
           SizedBox(height: context.space(2)),
         ],
         faded(field),

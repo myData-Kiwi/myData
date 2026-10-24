@@ -275,6 +275,7 @@ class _FieldRowState extends State<FieldRow> {
     final link = widget.kind == FieldKind.link && widget.onOpenLink != null ? safeWebLink(widget.value) : null;
     final copyName = widget.copyName ?? FieldRow.copyNameFor(widget.kind, widget.label);
 
+    // The source's own label, exactly as written: data, so it never changes case.
     final labelText = label == null ? null : Text(label, style: context.typeScale.caption.copyWith(color: c.inkMuted));
     final Widget text;
     if (link != null) {

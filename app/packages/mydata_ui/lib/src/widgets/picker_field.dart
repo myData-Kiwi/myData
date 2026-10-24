@@ -12,6 +12,7 @@ import '../theme/motion.dart';
 import '../theme/theme.dart';
 import 'app_frame.dart' show AppLayout, PhoneType;
 import 'pressable.dart';
+import 'role_label.dart';
 
 // The parts [DatePicker] and [TimePicker] share (design/components/DatePicker and TimePicker): the field
 // that looks like a TextField with an icon at its end, the popover anchored under it, and the list box with
@@ -238,7 +239,7 @@ class PickerField extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (label != null) ...[
-          ExcludeSemantics(child: Text(label!, style: context.typeScale.label.copyWith(color: c.ink))),
+          ExcludeSemantics(child: RoleLabel(label!, color: c.ink)),
           SizedBox(height: context.space(2)),
         ],
         box,

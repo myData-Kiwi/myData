@@ -160,7 +160,8 @@ class _FloatingBarButton extends StatelessWidget {
                 ? (isCurrent ? context.typeScale.label : context.typeScale.caption)
                 : (isCurrent ? context.typeScale.bodyStrong : context.typeScale.body);
             final text = Text(
-              item.label,
+              // A tab's name: upper case under an icon where the theme sets labels or captions so.
+              stacked ? context.typeScale.cased(isCurrent ? MyDataTypeRole.label : MyDataTypeRole.caption, item.label) : item.label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               softWrap: false,

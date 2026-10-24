@@ -9,6 +9,7 @@ import 'data_colour.dart';
 import 'form_scope.dart';
 import 'picker_field.dart' show pickerIsPhone;
 import 'pressable.dart';
+import 'role_label.dart';
 
 /// One colour of the calendar palette: its name and its data colour (the same value in both modes).
 @immutable
@@ -234,7 +235,7 @@ class _ColourPickerState extends State<ColourPicker> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ExcludeSemantics(child: Text(widget.label, style: context.typeScale.label.copyWith(color: c.ink))),
+          ExcludeSemantics(child: RoleLabel(widget.label, color: c.ink)),
           SizedBox(height: context.space(2)),
           Focus(
             canRequestFocus: false,
@@ -245,7 +246,7 @@ class _ColourPickerState extends State<ColourPicker> {
           if (name != null) ...[
             SizedBox(height: context.space(2)),
             // The chosen radio button already says it; not read twice.
-            ExcludeSemantics(child: Text(name, style: context.typeScale.caption.copyWith(color: c.inkMuted))),
+            ExcludeSemantics(child: RoleLabel(name, role: MyDataTypeRole.caption, color: c.inkMuted)),
           ],
         ],
       ),

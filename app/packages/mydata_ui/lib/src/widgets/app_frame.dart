@@ -8,6 +8,7 @@ import 'floating_bar.dart';
 import 'grouped_list.dart' show GroupedRow;
 import 'kiwi.dart';
 import 'pressable.dart';
+import 'role_label.dart';
 
 /// Which of the three window layouts a width gets (design/platforms.md "Window layouts").
 enum AppLayout {
@@ -468,13 +469,14 @@ class _RailItem extends StatelessWidget {
               child: Icon(context.icon(section.icon, selected: current), size: context.density.icon, color: fg),
             ),
             SizedBox(height: context.space(1)),
-            Text(
+            RoleLabel(
               section.label,
+              role: current ? MyDataTypeRole.label : MyDataTypeRole.caption,
               maxLines: 1,
               softWrap: false,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
-              style: (current ? context.typeScale.label : context.typeScale.caption).copyWith(color: fg),
+              color: fg,
             ),
           ]),
         ),

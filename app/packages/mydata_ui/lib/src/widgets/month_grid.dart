@@ -680,7 +680,7 @@ class _Grid extends StatelessWidget {
                 padding: compact
                     ? EdgeInsets.symmetric(vertical: MonthGrid.cellPadding(context.look), horizontal: MonthGrid.compactCellPadding(context.look))
                     : EdgeInsets.all(MonthGrid.cellPadding(context.look)),
-                child: Text(MonthGrid.weekdayShortName((firstDay - 1 + i) % 7 + 1),
+                child: Text(context.typeScale.cased(MyDataTypeRole.caption, MonthGrid.weekdayShortName((firstDay - 1 + i) % 7 + 1)),
                     semanticsLabel: MonthGrid.weekdayName((firstDay - 1 + i) % 7 + 1),
                     maxLines: 1,
                     overflow: TextOverflow.clip,

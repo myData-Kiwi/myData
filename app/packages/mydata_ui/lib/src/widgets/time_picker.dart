@@ -10,6 +10,7 @@ import 'form_row.dart' show FormGroupHeading;
 import 'form_scope.dart';
 import 'picker_field.dart';
 import 'sheet.dart';
+import 'role_label.dart';
 
 // ---------------------------------------------------------------------------------------------------------------
 // Times as the field writes and reads them
@@ -729,7 +730,7 @@ class EventWhenGroup extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ExcludeSemantics(child: Text(label, style: context.typeScale.label.copyWith(color: c.ink))),
+            ExcludeSemantics(child: RoleLabel(label, color: c.ink)),
             SizedBox(height: context.space(2)),
             // Side by side when both fit, else the time under the date; nothing is cut short.
             Wrap(

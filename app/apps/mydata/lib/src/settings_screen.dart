@@ -261,6 +261,7 @@ class AppearanceSection extends StatelessWidget {
                     for (final a in apps)
                       GroupedControl(
                         label: a.displayName,
+                        holdsName: true,
                         child: line(describe(themes, a), [change(a, a.displayName), reset(a)]),
                       ),
                   ],

@@ -8,6 +8,7 @@ import 'button.dart';
 import 'pressable.dart' show MyDataRadii;
 import 'segmented_control.dart';
 import 'select.dart';
+import 'role_label.dart';
 
 /// The kinds of value a [DuplicatePair] compares, one row each, in the contact page's order
 /// (design/components/DuplicatePair, "Field rows").
@@ -290,7 +291,7 @@ class _DuplicatePairState extends State<DuplicatePair> {
           children.add(SizedBox(height: context.space(4)));
           children.add(Semantics(
             header: true,
-            child: Text(widget.after!.title, style: context.type(MyDataTypeRole.label).copyWith(color: c.inkMuted)),
+            child: RoleLabel(widget.after!.title, style: context.type(MyDataTypeRole.label), color: c.inkMuted),
           ));
           children.add(Text(widget.after!.caption, style: context.type(MyDataTypeRole.caption).copyWith(color: c.inkMuted)));
           children.add(SizedBox(height: context.space(2)));
@@ -414,7 +415,7 @@ class _DuplicatePairState extends State<DuplicatePair> {
           SizedBox(
             width: DuplicatePair.labelWidth - context.space(2),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(f.label, style: context.type(MyDataTypeRole.label).copyWith(color: c.inkMuted)),
+              RoleLabel(f.label, style: context.type(MyDataTypeRole.label), color: c.inkMuted),
               if (differs) Text(DuplicatePair.differsLabel, style: context.type(MyDataTypeRole.caption).copyWith(color: c.ink)),
             ]),
           ),
