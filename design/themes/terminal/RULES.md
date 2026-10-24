@@ -100,3 +100,4 @@ Lucide at 16 px, no tiles.
 - `selection`, `on-selection` and `toolbar` are fixed by the style rather than given per palette.
 - The label is 700, not 500 (the bundled weights).
 - What the format cannot say yet, as the prototype noted: buttons in brackets (`[ New contact ]`), a prompt-style title (`~/contacts $`), a blinking block cursor in a focused field, and a `cal`-style text month (`month: table` is the nearest).
+- **In the Mac window** (after the batch 2 review): switches are square, the search field and the composer are a line under the text, each chat result is boxed in the card edge, and a bare form group's heading is the upper-case 700 label, so the groups still read as groups.
