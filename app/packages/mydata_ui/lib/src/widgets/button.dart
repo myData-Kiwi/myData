@@ -4,6 +4,7 @@ import '../generated/tokens.g.dart';
 import '../mac/mac_theme.dart';
 import '../theme/theme.dart';
 import 'pressable.dart';
+import 'edges.dart';
 
 /// The five kinds of [Button] (design/components/Button/README.md).
 enum ButtonVariant {
@@ -59,7 +60,8 @@ enum ButtonVariant {
 
 /// A pill-shaped control that states the result of pressing it (design/components/Button).
 ///
-/// - Shape `radius-control`, height `control-height`, label `body-strong`; no border on any variant.
+/// - Shape `radius-control`, height `control-height`, label `body-strong`; no border on any variant in
+///   Kiwi. A theme that outlines controls (`borders.controls`) outlines the variants with a fill.
 /// - Keyboard focus draws the 2px `focus` ring 2px outside the pill; on [ButtonVariant.danger] and
 ///   [ButtonVariant.plainDanger] it is `ink` (design/README.md "Focus and danger").
 /// - Pressing dims to 85% and scales to 97% at once and returns over `fast` ([Pressable]); with reduced
@@ -145,7 +147,9 @@ class Button extends StatelessWidget {
           padding: EdgeInsets.symmetric(horizontal: horizontalPadding(context.look)),
           decoration: context.radius.decorate(BoxDecoration(
               color: disabled ? variant.disabledFill(c) : variant.fill(c),
-              borderRadius: MyDataRadii.control(context.look))),
+              borderRadius: MyDataRadii.control(context.look),
+              // A theme that outlines controls outlines every button with a fill; a plain one stays bare.
+              border: variant.fill(c) == null ? null : MyDataEdgesPaint.control(context.look))),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,

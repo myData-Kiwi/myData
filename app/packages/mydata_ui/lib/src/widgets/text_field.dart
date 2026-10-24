@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui' show SemanticsValidationResult;
 
 import 'package:flutter/material.dart';
@@ -165,7 +166,13 @@ class _MyDataTextFieldState extends State<MyDataTextField> {
     final c = context.colors;
     final hasError = widget.error != null;
     final note = widget.error ?? widget.help;
-    final borderWidth = hasError ? MyDataTextField.errorBorderWidth : MyDataTextField.borderWidth;
+    // A theme that outlines controls draws the field's edge in its own width and colour; `line` is too faint
+    // for a field (3:1), so it stays `line-strong` then, as it is without the theme's outline.
+    final edges = context.look.edges;
+    final themed = edges.controls && edges.spec.colour != BorderColour.line;
+    final borderWidth = hasError
+        ? MyDataTextField.errorBorderWidth
+        : (edges.controls ? math.max(MyDataTextField.borderWidth, edges.width) : MyDataTextField.borderWidth);
     final phone = AppLayout.isPhone(context);
     final style =
         (widget.mono ? context.typeScale.mono : PhoneType.body(context.typeScale.body, phone: phone)).copyWith(color: c.ink);
@@ -190,7 +197,7 @@ class _MyDataTextFieldState extends State<MyDataTextField> {
       decoration: context.radius.decorate(BoxDecoration(
         color: c.surface,
         borderRadius: MyDataRadii.md(context.look),
-        border: Border.all(color: hasError ? c.danger : c.lineStrong, width: borderWidth),
+        border: Border.all(color: hasError ? c.danger : (themed ? edges.colour : c.lineStrong), width: borderWidth),
       )),
       borderRadius: MyDataRadii.md(context.look),
       danger: hasError,

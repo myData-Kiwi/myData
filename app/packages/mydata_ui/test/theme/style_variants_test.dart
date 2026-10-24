@@ -29,6 +29,20 @@ final List<StyleVariant> styleVariants = [
   for (final corners in ['round', 'continuous', 'cut', 'square'])
     (name: 'corners-$corners', edit: _set('shape', {'corners': corners, 'cut-size': 8})),
   for (final controls in ['pill', 'match']) (name: 'controls-$controls', edit: _set('shape', {'controls': controls})),
+  // Borders: width, style and colour shown on outlined cards and controls; then where they are drawn.
+  for (final width in ['hairline', 1, 2, 3])
+    (name: 'border-width-$width', edit: _set('borders', {'width': width, 'cards': true, 'controls': true})),
+  for (final style in ['solid', 'dashed', 'double'])
+    (name: 'border-style-$style', edit: _set('borders', {'style': style, 'width': 2, 'cards': true, 'colour': 'edge'})),
+  for (final colour in ['line', 'line-strong', 'edge', 'accent'])
+    (name: 'border-colour-$colour', edit: _set('borders', {'colour': colour, 'width': 2, 'cards': true, 'controls': true})),
+  for (final cards in [true, false]) (name: 'border-cards-$cards', edit: _set('borders', {'cards': cards})),
+  for (final controls in [true, false])
+    (name: 'border-controls-$controls', edit: _set('borders', {'controls': controls, 'colour': 'edge'})),
+  for (final separators in ['none', 'inset', 'full'])
+    (name: 'separators-$separators', edit: _set('borders', {'separators': separators})),
+  for (final rule in ['none', 'single', 'double'])
+    (name: 'title-rule-$rule', edit: _set('borders', {'title-rule': rule, 'colour': 'edge'})),
 ];
 
 /// Real components: buttons (the first focused by keyboard), an icon button, a segmented control and a
@@ -39,8 +53,8 @@ class StyleSpecimen extends StatelessWidget {
   final TextEditingController controller;
 
   @override
-  Widget build(BuildContext context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+  Widget build(BuildContext context) => PageScaffold(
+        title: 'Devices',
         children: [
           ButtonRow(children: [
             Button(label: 'Approve and send', variant: ButtonVariant.filled, focusNode: focus, onPressed: _noop),
@@ -49,7 +63,6 @@ class StyleSpecimen extends StatelessWidget {
             const Button(label: 'Delete', variant: ButtonVariant.danger, onPressed: _noop),
             const Button(label: 'Add a device', variant: ButtonVariant.filled, onPressed: null),
           ]),
-          SizedBox(height: context.space(4)),
           Row(children: [
             MyDataIconButton(icon: MyDataIcon.add, label: 'Add', onPressed: _noop),
             SizedBox(width: context.space(3)),
@@ -57,14 +70,12 @@ class StyleSpecimen extends StatelessWidget {
             SizedBox(width: context.space(3)),
             MyDataSwitch(value: true, onChanged: (_) {}, semanticLabel: 'Sync'),
           ]),
-          SizedBox(height: context.space(4)),
           MyDataCard(
             icon: MyDataIcon.cloud,
             name: 'Storage',
             action: const Button(label: 'Add a drive', onPressed: _noop),
             child: const Text('412 GB of 1 TB used on Home drive.'),
           ),
-          SizedBox(height: context.space(4)),
           GroupedList(heading: 'Phone', rows: const [
             GroupedRow(icon: MyDataIcon.call, title: 'Mobile', subtitle: '+44 7700 900123'),
             GroupedRow(
@@ -74,14 +85,13 @@ class StyleSpecimen extends StatelessWidget {
             ),
             GroupedRow(title: 'Open in myContacts', trailing: GroupedChevron(), onPressed: _noop),
           ]),
-          SizedBox(height: context.space(4)),
           MyDataTextField(label: 'Device name', controller: controller, help: 'Shown to your other devices.'),
         ],
       );
 }
 
 /// Pumps [theme] in [brightness] on the specimen, with the filled button focused by keyboard.
-Future<void> pumpSpecimen(WidgetTester tester, ThemeFile theme, Brightness brightness, {Size size = const Size(560, 720)}) async {
+Future<void> pumpSpecimen(WidgetTester tester, ThemeFile theme, Brightness brightness, {Size size = const Size(600, 860)}) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
@@ -96,10 +106,7 @@ Future<void> pumpSpecimen(WidgetTester tester, ThemeFile theme, Brightness brigh
     home: Builder(
       builder: (context) => Material(
         color: context.colors.bg,
-        child: Padding(
-          padding: EdgeInsets.all(context.space(4)),
-          child: StyleSpecimen(focus: focus, controller: controller),
-        ),
+        child: StyleSpecimen(focus: focus, controller: controller),
       ),
     ),
   ));

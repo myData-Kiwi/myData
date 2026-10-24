@@ -338,8 +338,9 @@ void main() {
       expect(chevron.left - tester.getRect(find.text('2')).right, GroupedRow.trailingGap(kiwiLook));
       // Dividers: between rows only, 1px of `line`, the full width of the group.
       expect(tester.getRect(rows.at(1)).top - first.bottom, GroupedList.dividerWidth);
-      final dividers = find.byWidgetPredicate((w) => w is Container && w.color == _kiwi.line);
+      final dividers = find.byType(EdgeRule);
       expect(dividers, findsNWidgets(2));
+      expect(tester.element(dividers.first).look.edges.colour, _kiwi.line);
       expect(tester.getSize(dividers.first), const Size(480, GroupedList.dividerWidth));
       // The heading: `space-2` in and `space-2` above the group.
       final heading = tester.getRect(find.text('Sync'));

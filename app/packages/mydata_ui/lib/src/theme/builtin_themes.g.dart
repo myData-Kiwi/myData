@@ -1575,7 +1575,7 @@ const kiwiThemeJson = r'''{
     "colour": "line",
     "cards": false,
     "controls": false,
-    "separators": "inset",
+    "separators": "full",
     "title-rule": "none"
   },
   "elevation": {

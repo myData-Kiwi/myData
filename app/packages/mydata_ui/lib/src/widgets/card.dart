@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 
 import '../theme/motion.dart';
 import '../theme/theme.dart';
+import 'edges.dart';
 import 'icon_tile.dart';
 import 'pressable.dart' show MyDataRadii;
 import 'status.dart';
@@ -74,34 +75,37 @@ class MyDataCard extends StatelessWidget {
       explicitChildNodes: true,
       child: DecoratedBox(
         decoration: context.radius.decorate(BoxDecoration(color: c.surface, borderRadius: MyDataRadii.lg(context.look), boxShadow: context.shadows.shadow1)),
-        child: Padding(
-          padding: padding(context.look),
-          child: _InsideCard(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(children: [
-                  IconTile(icon: icon, tone: iconTone),
-                  SizedBox(width: headerGap(context.look)),
-                  Expanded(
-                    child: Semantics(
-                      header: true,
-                      child: Text(name, style: context.typeScale.bodyStrong.copyWith(color: c.ink)),
+        child: CardEdge(
+          radius: MyDataRadii.lg(context.look),
+          child: Padding(
+            padding: padding(context.look),
+            child: _InsideCard(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(children: [
+                    IconTile(icon: icon, tone: iconTone),
+                    SizedBox(width: headerGap(context.look)),
+                    Expanded(
+                      child: Semantics(
+                        header: true,
+                        child: Text(name, style: context.typeScale.bodyStrong.copyWith(color: c.ink)),
+                      ),
                     ),
-                  ),
-                ]),
-                SizedBox(height: gap(context.look)),
-                DefaultTextStyle(style: context.typeScale.body.copyWith(color: c.ink), child: child),
-                if (action != null) ...[
+                  ]),
                   SizedBox(height: gap(context.look)),
-                  Align(alignment: AlignmentDirectional.centerStart, child: action),
+                  DefaultTextStyle(style: context.typeScale.body.copyWith(color: c.ink), child: child),
+                  if (action != null) ...[
+                    SizedBox(height: gap(context.look)),
+                    Align(alignment: AlignmentDirectional.centerStart, child: action),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ),
-      ),
+        ),
     );
   }
 }

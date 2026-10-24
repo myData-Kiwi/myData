@@ -433,11 +433,17 @@ class MyDataDensity {
       );
 }
 
-/// Borders (theme.schema.json `borders`), for the widgets' variants in phase 3.
+/// Borders (theme.schema.json `borders`): their width, style and colour, and where they are drawn.
 @immutable
 class MyDataEdges {
-  const MyDataEdges(this.spec);
+  const MyDataEdges(this.spec, {required this.colour, this.allControls = false});
   final BordersSpec spec;
+
+  /// The borders' colour, from the palette (`line`, `line-strong`, `edge` or `accent`).
+  final Color colour;
+
+  /// Increased contrast draws an edge on every control, whatever the theme says (ARCHITECTURE.md 2.3).
+  final bool allControls;
 
   /// The line width: a hairline is the Mac's half point.
   double get width => switch (spec.width) {
@@ -445,6 +451,49 @@ class MyDataEdges {
         BorderWidth.one => 1,
         BorderWidth.two => 2,
         BorderWidth.three => 3,
+      };
+
+  /// Solid, dashed or double: on cards and separators only. Controls, inputs and focus rings stay solid.
+  BorderStyleKind get style => spec.style;
+
+  /// A solid line of [width] in [colour].
+  BorderSide get side => BorderSide(color: colour, width: width);
+
+  /// The outline of a card or a group of rows, or null when the theme draws none.
+  BorderSide? get card => spec.cards ? side : null;
+
+  /// Whether buttons and fields carry an outline (solid, [side]).
+  bool get controls => spec.controls || allControls;
+
+  /// Between rows: none, from the text's start (inset) or the full width.
+  Separators get separators => spec.separators;
+
+  /// Under a page's title: none, one rule or two.
+  TitleRule get titleRule => spec.titleRule;
+
+  /// How tall a separator between rows is: nothing when there is none, three widths for a double rule.
+  double get separatorExtent => switch (separators) {
+        Separators.none => 0,
+        _ => style == BorderStyleKind.doubleLine ? width * 3 : width,
+      };
+
+  /// How tall the rule under a title is.
+  double get titleRuleExtent => switch (titleRule) {
+        TitleRule.none => 0,
+        TitleRule.single => width,
+        TitleRule.doubleLine => width * 3,
+      };
+
+  /// These borders in the colours [c] (a look whose colours are replaced, as the Mac shell replaces them with
+  /// the system's).
+  MyDataEdges withColours(MyDataColors c) => MyDataEdges(spec, colour: colourOf(spec, c), allControls: allControls);
+
+  /// [spec]'s colour in [c].
+  static Color colourOf(BordersSpec spec, MyDataColors c) => switch (spec.colour) {
+        BorderColour.line => c.line,
+        BorderColour.lineStrong => c.lineStrong,
+        BorderColour.edge => c.edge,
+        BorderColour.accent => c.accent,
       };
 }
 
@@ -716,7 +765,7 @@ class MyDataLook extends ThemeExtension<MyDataLook> {
       typeScale: MyDataTypeScale.of(s.type, platform: target),
       shape: MyDataShape.of(s.shape),
       density: MyDataDensity.of(phone ? s.density.phone : s.density.desktop),
-      edges: MyDataEdges(s.borders),
+      edges: MyDataEdges(s.borders, colour: MyDataEdges.colourOf(s.borders, colors), allControls: increasedContrast),
       elevation: MyDataElevation.of(s.elevation,
           shadow: colors.shadow, accent: colors.accent, dark: brightness == Brightness.dark),
       materials: MyDataMaterials(spec: s.materials, blur: s.materials.blur),
@@ -744,7 +793,7 @@ class MyDataLook extends ThemeExtension<MyDataLook> {
       typeScale: MyDataTypeScale.kiwi,
       shape: MyDataShape.kiwi,
       density: MyDataDensity.kiwi,
-      edges: const MyDataEdges(_kiwiBorders),
+      edges: MyDataEdges(_kiwiBorders, colour: (dark ? MyDataColors.dark : MyDataColors.light).line),
       elevation: MyDataElevation(
           style: ElevationStyle.soft, shadows: dark ? MyDataShadows.dark : MyDataShadows.light, collapse: false),
       materials: const MyDataMaterials(spec: _kiwiMaterials, blur: MyDataBlur.glass),
@@ -789,7 +838,7 @@ class MyDataLook extends ThemeExtension<MyDataLook> {
         typeScale: typeScale ?? this.typeScale,
         shape: shape ?? this.shape,
         density: density ?? this.density,
-        edges: edges ?? this.edges,
+        edges: edges ?? (colors == null ? this.edges : this.edges.withColours(colors)),
         elevation: elevation ?? this.elevation,
         materials: materials ?? this.materials,
         icons: icons ?? this.icons,
@@ -809,7 +858,7 @@ class MyDataLook extends ThemeExtension<MyDataLook> {
         typeScale: typeScale,
         shape: shape,
         density: density,
-        edges: edges,
+        edges: edges.withColours(colors),
         elevation: elevation,
         materials: materials,
         icons: icons,
@@ -912,7 +961,7 @@ const _kiwiBorders = BordersSpec(
   colour: BorderColour.line,
   cards: false,
   controls: false,
-  separators: Separators.inset,
+  separators: Separators.full,
   titleRule: TitleRule.none,
 );
 const _kiwiMaterials = MaterialsSpec(

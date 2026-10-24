@@ -110,11 +110,11 @@ void main() {
     final c = tester.element(find.byType(GroupedSection)).colors;
     final dividers = find.descendant(
       of: find.byType(GroupedSection),
-      matching: find.byWidgetPredicate(
-        (w) => w is Container && w.color == c.line && w.constraints?.maxHeight == GroupedList.dividerWidth,
-      ),
+      matching: find.byType(EdgeRule),
     );
     expect(dividers, findsNWidgets(2));
+    expect(tester.element(dividers.first).look.edges.colour, c.line);
+    expect(tester.getSize(dividers.first).height, GroupedList.dividerWidth);
     final group = tester.getRect(find.byType(GroupedContentPart));
     for (final e in dividers.evaluate()) {
       final r = tester.getRect(find.byWidget(e.widget));

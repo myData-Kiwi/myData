@@ -11,6 +11,7 @@ import 'form_scope.dart';
 import 'group_frame.dart';
 import 'pressable.dart';
 import 'toggle_target.dart';
+import 'edges.dart';
 
 /// The drawn box of a checkbox (design/components/Checkbox), with no behaviour of its own: for a row that is
 /// itself the target ([MyDataCheckbox], [CheckboxList], a MultiSelect row in select mode). It excludes itself
@@ -447,7 +448,6 @@ class _CheckboxListState extends State<CheckboxList> {
     // Tab stop) of its own before it.
     final rows = Builder(builder: (context) {
       final part = GroupPartShape.of(context);
-      final c = context.colors;
       BorderRadius shapeOf(int i) => BorderRadius.only(
             topLeft: i == 0 ? part.topLeft : Radius.zero,
             topRight: i == 0 ? part.topRight : Radius.zero,
@@ -466,7 +466,7 @@ class _CheckboxListState extends State<CheckboxList> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             for (var i = 0; i < drawn; i++) ...[
-              if (i > 0) Container(height: GroupFrame.dividerWidth, color: c.line),
+              if (i > 0) EdgeRule(extent: GroupFrame.dividerWidth, inset: GroupFrame.separatorInset(context.look)),
               GroupPartShape(
                 borderRadius: shapeOf(i),
                 child: _CheckboxListRow(

@@ -209,6 +209,60 @@ void main() {
     });
   });
 
+
+  group('borders (phase 3)', () {
+    const spec = BordersSpec(
+      width: BorderWidth.two,
+      style: BorderStyleKind.doubleLine,
+      colour: BorderColour.edge,
+      cards: true,
+      controls: false,
+      separators: Separators.inset,
+      titleRule: TitleRule.doubleLine,
+    );
+
+    test('a double rule is three widths tall; none takes no room', () {
+      final e = MyDataEdges(spec, colour: const Color(0xFF000000));
+      expect(e.width, 2);
+      expect(e.separatorExtent, 6);
+      expect(e.titleRuleExtent, 6);
+      expect(e.card, isNotNull);
+      expect(e.controls, isFalse);
+      const none = BordersSpec(
+        width: BorderWidth.one,
+        style: BorderStyleKind.solid,
+        colour: BorderColour.line,
+        cards: false,
+        controls: false,
+        separators: Separators.none,
+        titleRule: TitleRule.none,
+      );
+      final n = MyDataEdges(none, colour: const Color(0xFF000000));
+      expect(n.separatorExtent, 0);
+      expect(n.titleRuleExtent, 0);
+      expect(n.card, isNull);
+    });
+
+    test('the colour is the palette\'s, and follows a look whose colours are replaced (the Mac shell)', () {
+      final look = MyDataLook.fallback(Brightness.light);
+      expect(look.edges.colour, look.colors.line);
+      final system = look.asSystem(colors: look.colors.copyWith(line: const Color(0xFF123456)));
+      expect(system.edges.colour, const Color(0xFF123456));
+    });
+
+    test('Kiwi as drawn today: no card or control edges, full-width separators in line, no title rule', () {
+      for (final b in Brightness.values) {
+        final e = ThemeLibrary.kiwiLook(null, b).edges;
+        expect(e.card, isNull);
+        expect(e.controls, isFalse);
+        expect(e.separators, Separators.full);
+        expect(e.titleRule, TitleRule.none);
+        expect(e.colour, ThemeLibrary.kiwiLook(null, b).colors.line);
+        // Increased contrast outlines every control (ARCHITECTURE.md 2.3).
+        expect(ThemeLibrary.kiwiLook(null, b, increasedContrast: true).edges.controls, isTrue);
+      }
+    });
+  });
 }
 
 class _ReadsInInitState extends StatefulWidget {

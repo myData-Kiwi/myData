@@ -793,9 +793,12 @@ void main() {
       );
       final dividers = find.descendant(
         of: find.byType(FieldGroup),
-        matching: find.byWidgetPredicate((w) => w is Container && w.color == _kiwi.line),
+        matching: find.byType(EdgeRule),
       );
       expect(dividers, findsOneWidget);
+      // Kiwi's separators: full width, in `line`.
+      expect(tester.element(dividers).look.edges.colour, _kiwi.line);
+      expect(tester.element(dividers).look.edges.separators, Separators.full);
       expect(tester.getSize(dividers).width, tester.getSize(find.byType(FieldGroup)).width);
     });
   });

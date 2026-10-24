@@ -214,10 +214,8 @@ void main() {
       await _clickWith(tester, 'Ava Fictional', LogicalKeyboardKey.controlLeft);
       final c = themeMatrix.first.data.extension<MyDataColors>()!;
       // Ava's divider (between her and Aaron) takes the selection's fill, not the line.
-      final dividers = tester
-          .widgetList<Container>(find.descendant(of: find.byType(ContactList), matching: find.byType(Container)))
-          .where((x) => x.constraints?.maxHeight == 1);
-      expect(dividers.where((d) => d.color == c.accentSoft), hasLength(1));
+      final dividers = tester.widgetList<EdgeRule>(find.descendant(of: find.byType(ContactList), matching: find.byType(EdgeRule)));
+      expect(dividers.where((d) => d.colour == c.accentSoft), hasLength(1));
       search.text = 'Aaron';
       await tester.pump();
       await tester.pump();

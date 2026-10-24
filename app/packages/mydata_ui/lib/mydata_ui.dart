@@ -45,6 +45,7 @@ export 'src/widgets/date_picker.dart';
 export 'src/widgets/dialog.dart';
 export 'src/widgets/drop_zone.dart';
 export 'src/widgets/duplicate_pair.dart';
+export 'src/widgets/edges.dart';
 export 'src/widgets/empty_state.dart';
 export 'src/widgets/event_row.dart';
 export 'src/widgets/field_row.dart';

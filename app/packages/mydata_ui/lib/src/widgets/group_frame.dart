@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 import '../generated/tokens.g.dart';
 import '../mac/mac_theme.dart';
 import '../theme/theme.dart';
+import 'edges.dart';
 import 'pressable.dart' show MyDataRadii;
 import 'role_label.dart';
 
@@ -10,8 +11,8 @@ import 'role_label.dart';
 // and GroupedSection.
 
 /// Draws a group: the optional heading above it, outside, in `label` and `ink-muted`; then the parts on
-/// `surface` with `radius-lg` and `shadow-1`, no border, each separated from the next by a full-width 1px
-/// `line` divider. Each part gets its corner shape within the group through [GroupPartShape].
+/// `surface` with `radius-lg` and `shadow-1`, each separated from the next by the theme's separator (Kiwi: a
+/// full-width 1px `line` divider, and no border), with the theme's card outline over them ([CardEdge]). Each part gets its corner shape within the group through [GroupPartShape].
 ///
 /// [plain] (a GroupedList in the Mac frame, plan section 5 "Lists are lists"): no card, no dividers; the
 /// heading in `caption-emphasized` and `secondary-label`, lined up with the rows' text; each part's shape is
@@ -26,8 +27,12 @@ class GroupFrame extends StatelessWidget {
   final List<Widget> parts;
   final bool plain;
 
-  /// Preview: `.r{border-top:1px solid var(--line)}`.
+  /// Preview: `.r{border-top:1px solid var(--line)}`. Kiwi's; a theme's separators are
+  /// [MyDataEdges.separatorExtent] tall ([EdgeRule]), and lists that count their rows ahead keep this slot.
   static const dividerWidth = 1.0;
+
+  /// Where an `inset` separator starts: at the rows' own padding.
+  static double separatorInset(MyDataLook look) => look.space(4);
 
   /// Preview: `.lbl{margin:0 0 8px 6px}`: `space-2` below; 6px in, snapped to `space-2`.
   static EdgeInsets headingPadding(MyDataLook look) => EdgeInsets.only(left: look.space(2), bottom: look.space(2));
@@ -76,15 +81,18 @@ class GroupFrame extends StatelessWidget {
     // follow them and a focus ring, drawn 2px outside, is not cut off at the group's edge.
     final group = DecoratedBox(
       decoration: context.radius.decorate(BoxDecoration(color: c.surface, borderRadius: MyDataRadii.lg(context.look), boxShadow: context.shadows.shadow1)),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          for (var i = 0; i < parts.length; i++) ...[
-            if (i > 0) Container(height: dividerWidth, color: c.line),
-            GroupPartShape(borderRadius: shapeOf(i), child: parts[i]),
+      child: CardEdge(
+        radius: MyDataRadii.lg(context.look),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (var i = 0; i < parts.length; i++) ...[
+              if (i > 0) EdgeRule(inset: separatorInset(context.look)),
+              GroupPartShape(borderRadius: shapeOf(i), child: parts[i]),
+            ],
           ],
-        ],
+        ),
       ),
     );
     if (heading == null) return group;

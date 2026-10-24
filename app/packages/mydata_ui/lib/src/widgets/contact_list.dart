@@ -20,6 +20,7 @@ import 'multi_select.dart' show MultiSelectController;
 import 'pressable.dart' show FocusRing;
 import 'text_field.dart' show MyDataSearchField;
 import 'toggle_target.dart' show InsetRingPainter;
+import 'edges.dart';
 
 /// How a [ContactList] draws its rows.
 enum ContactListStyle {
@@ -1480,7 +1481,10 @@ class _ContactRowState extends State<_ContactRow> {
           children: [
             // No divider inside a run of selected rows: the run reads as one block.
             if (!widget.first)
-              Container(height: GroupFrame.dividerWidth, color: widget.joinsUp ? c.accentSoft : c.line),
+              EdgeRule(
+                  extent: GroupFrame.dividerWidth,
+                  inset: GroupFrame.separatorInset(context.look),
+                  colour: widget.joinsUp ? c.accentSoft : null),
             Expanded(child: content),
           ],
         ),

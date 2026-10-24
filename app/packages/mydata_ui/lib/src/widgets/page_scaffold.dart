@@ -4,6 +4,7 @@ import '../generated/tokens.g.dart';
 import '../theme/theme.dart';
 import 'app_frame.dart';
 import 'button.dart';
+import 'edges.dart';
 
 /// One screen of an app inside the [AppFrame]: a big title, its actions, and the screen's sections in a
 /// scrolling column (design/README.md "Shape, depth and space", design/platforms.md "Window layouts").
@@ -76,9 +77,17 @@ class PageScaffold extends StatelessWidget {
     } else {
       titleStyle = phone ? context.typeScale.displayXl : context.typeScale.displayLg;
     }
+    final titleText = Semantics(header: true, child: Text(title, style: titleStyle.copyWith(color: c.ink)));
+    // A theme's rule under the title (`borders.title-rule`), one line or two, across the title's width.
     final Widget? heading = frameName == title
         ? null
-        : Semantics(header: true, child: Text(title, style: titleStyle.copyWith(color: c.ink)));
+        : context.look.edges.titleRuleExtent == 0
+            ? titleText
+            : Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
+                titleText,
+                SizedBox(height: context.space(2)),
+                const TitleRuleLine(),
+              ]);
 
     final Widget? top;
     if (actions.isEmpty) {
