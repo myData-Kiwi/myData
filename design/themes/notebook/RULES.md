@@ -51,7 +51,7 @@ Every palette gives every role the style does not fix and passes `ARCHITECTURE.m
 - **Window ground: ruled paper** (`pattern: ruled`, 28 px apart, the accent at 12%). Under every column but the sidebar, never under a surface; a decoration, never a boundary (the lines are under 3:1 on purpose).
 - No cards: rows stand on the paper. Lists are plain with **no separators of their own** (`list: plain`, `separators: none`): the paper's rules separate them, and a list's own rules drawn beside them doubled every line. A Mac form group is bare for the same reason: no box, no fill, no rule (`MacFormSection`). Dialogs get a faint paper shadow (`soft`, 0.3).
 - The sidebar is a solid, slightly darker paper (`#F0E9DA`), like a notebook's cover flap.
-- Reduced transparency and increased contrast turn the ruled ground solid.
+- Reduced transparency turns the ruled ground solid. Increased contrast should too (ARCHITECTURE.md 2.3), once the apps follow the system's setting; today it changes the colours only.
 
 ## Icons
 

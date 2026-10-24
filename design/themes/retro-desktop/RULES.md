@@ -51,7 +51,7 @@ Square panels and windows (radius 0); 6 px on buttons and controls (`radius.sm`,
 ## Depth and materials
 
 - **Bevel:** a light top-left and dark bottom-right line on panels and buttons and a 2 px drop; a press collapses it and the control sinks.
-- The desk is a **dot pattern** (8 px, ink at 12%), painted once behind the panes, never per row and never under a panel. Reduced transparency and increased contrast turn it solid.
+- The desk is a **dot pattern** (8 px, ink at 12%), painted once behind the panes, never per row and never under a panel. Reduced transparency turns it solid; increased contrast should too (ARCHITECTURE.md 2.3), once the apps follow the system's setting.
 - Solid sidebar and bars.
 
 ## Icons
