@@ -141,6 +141,7 @@ class MyDataTypeScale {
   ///   16 px or more), with the stack's later bundled fonts as fallbacks for glyphs it lacks; a generic
   ///   family is the platform's own font (a generic `mono` the platform's monospace, `genericMonoFamilies`);
   /// - a variable font is drawn at the role's exact weight (`wght`), a core font at the nearest weight it has;
+  ///   a font that keeps its optical size axis (Inter, Literata) at the role's size (`opsz`);
   /// - tracking in em becomes letter spacing, `numerals: tabular` tabular figures, `secondary-italic` an
   ///   italic `caption`, and `case: upper` is carried in [upper] for [cased].
   ///
@@ -186,7 +187,12 @@ class MyDataTypeScale {
         fontStyle: italic ? FontStyle.italic : null,
         letterSpacing: r.tracking == null ? null : double.parse((r.tracking! * r.size).toStringAsFixed(3)),
         fontFeatures: spec.tabular ? const [FontFeature.tabularFigures()] : null,
-        fontVariations: variable ? [FontVariation.weight(r.weight.toDouble())] : null,
+        fontVariations: variable
+            ? [
+                FontVariation.weight(r.weight.toDouble()),
+                if (font!.opticalSizes case (final lo, final hi)) FontVariation('opsz', r.size.clamp(lo, hi).toDouble()),
+              ]
+            : null,
       );
     }
 

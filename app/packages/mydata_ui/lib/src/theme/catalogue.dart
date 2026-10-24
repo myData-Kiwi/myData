@@ -11,6 +11,7 @@ class CatalogueFont {
     this.core = false,
     this.italic = false,
     this.displayOnly = false,
+    this.opticalSizes,
   });
 
   /// The id a theme file uses (`plus-jakarta-sans`).
@@ -34,6 +35,10 @@ class CatalogueFont {
 
   /// Display-only fonts are allowed only in `display` and in roles of 16 px or more (Research B).
   final bool displayOnly;
+
+  /// The optical sizes its `opsz` axis covers (min, max), when it keeps that axis: a role is drawn at the
+  /// optical size of its own size, so display sizes get display optics. Null for a font cut at one size.
+  final (double, double)? opticalSizes;
 
   bool get bundled => family != null;
 
@@ -63,7 +68,7 @@ const fontCatalogue = <String, CatalogueFont>{
   'figtree': CatalogueFont('figtree', 'Figtree', family: 'Figtree', core: true),
   'plus-jakarta-sans': CatalogueFont('plus-jakarta-sans', 'Plus Jakarta Sans', family: 'PlusJakartaSans', core: true),
   'jetbrains-mono': CatalogueFont('jetbrains-mono', 'JetBrains Mono', family: 'JetBrainsMono', core: true),
-  'inter': CatalogueFont('inter', 'Inter', family: 'Inter'),
+  'inter': CatalogueFont('inter', 'Inter', family: 'Inter', opticalSizes: (14, 32)),
   'inter-tight': CatalogueFont('inter-tight', 'Inter Tight'),
   'sora': CatalogueFont('sora', 'Sora', family: 'Sora'),
   'manrope': CatalogueFont('manrope', 'Manrope', family: 'Manrope'),
@@ -72,7 +77,7 @@ const fontCatalogue = <String, CatalogueFont>{
   'instrument-serif': CatalogueFont('instrument-serif', 'Instrument Serif'),
   'fredoka': CatalogueFont('fredoka', 'Fredoka', family: 'Fredoka', displayOnly: true),
   'nunito': CatalogueFont('nunito', 'Nunito', family: 'Nunito'),
-  'literata': CatalogueFont('literata', 'Literata', family: 'Literata', italic: true),
+  'literata': CatalogueFont('literata', 'Literata', family: 'Literata', italic: true, opticalSizes: (7, 72)),
   'hanken-grotesk': CatalogueFont('hanken-grotesk', 'Hanken Grotesk'),
   'newsreader': CatalogueFont('newsreader', 'Newsreader'),
   'kalam': CatalogueFont('kalam', 'Kalam', displayOnly: true),

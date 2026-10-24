@@ -96,7 +96,8 @@ void main() {
       },
       mono: ['jetbrains-mono', 'mono'],
     ));
-    expect(scale.bodyStrong.fontVariations, [const FontVariation('wght', 550)]);
+    // Inter keeps its optical size axis: a 14 px role is drawn at optical size 14.
+    expect(scale.bodyStrong.fontVariations, [const FontVariation('wght', 550), const FontVariation('opsz', 14)]);
     expect(scale.bodyStrong.fontWeight, FontWeight.w600);
     expect(scale.mono.fontVariations, isNull);
     expect(scale.mono.fontFamily, 'packages/mydata_ui/JetBrainsMono');
@@ -123,7 +124,9 @@ void main() {
     final hairline = designedLook('mydata.hairline', Brightness.light).typeScale;
     expect(hairline.body.fontFamily, 'packages/mydata_ui/Inter');
     expect(hairline.body.fontFeatures, [const FontFeature.tabularFigures()]);
-    expect(hairline.bodyStrong.fontVariations, [const FontVariation('wght', 550)]);
+    expect(hairline.bodyStrong.fontVariations, [const FontVariation('wght', 550), const FontVariation('opsz', 14)]);
+    // Display sizes get display optics: Inter's axis ends at 32, Literata's at 72.
+    expect(hairline.displayXl.fontVariations!.last, const FontVariation('opsz', 32));
     final journal = designedLook('mydata.journal', Brightness.light).typeScale;
     expect(journal.displayXl.fontFamily, 'packages/mydata_ui/Fraunces');
     expect(journal.body.fontFamily, 'packages/mydata_ui/InstrumentSans');
@@ -134,6 +137,8 @@ void main() {
     final paperback = designedLook('mydata.paperback', Brightness.dark).typeScale;
     expect(paperback.body.fontFamily, 'packages/mydata_ui/Literata');
     expect(paperback.secondaryItalic, isTrue);
+    expect(paperback.displayXl.fontVariations!.last, const FontVariation('opsz', 40));
+    expect(paperback.body.fontVariations!.last, const FontVariation('opsz', 16));
     final frosted = designedLook('mydata.frosted', Brightness.light).typeScale;
     expect(frosted.title.fontFamily, 'packages/mydata_ui/Sora');
     expect(frosted.body.fontFamily, 'packages/mydata_ui/Manrope');
@@ -146,8 +151,8 @@ void main() {
 
   testWidgets('Bold Text draws a variable font heavier: its wght moves, not only its fontWeight', (tester) async {
     final hairline = designedLook('mydata.hairline', Brightness.light);
-    expect(hairline.typeScale.bold.body.fontVariations, [const FontVariation('wght', 700)]);
-    expect(hairline.typeScale.bold.label.fontVariations, [const FontVariation('wght', 800)]);
+    expect(hairline.typeScale.bold.body.fontVariations, [const FontVariation('wght', 700), const FontVariation('opsz', 14)]);
+    expect(hairline.typeScale.bold.label.fontVariations!.first, const FontVariation('wght', 800));
     expect(MyDataTypeScale.kiwi.bold.body, same(MyDataTypeScale.kiwi.body), reason: "a static font is Text's to bolden");
     Future<double> width({required bool bold}) async {
       await tester.pumpWidget(MaterialApp(

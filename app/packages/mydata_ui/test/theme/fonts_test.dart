@@ -63,11 +63,13 @@ void main() {
     expect(pubspec, contains('- assets/fonts/catalogue/'));
   });
 
-  test('each font loaded on demand keeps only its weight axis, with regular (400) as its default', () {
+  test('each font loaded on demand keeps its weight axis, with regular (400) as its default, and its optical '
+      'size axis where the catalogue says so', () {
     for (final f in onDemand) {
       for (final asset in f.assets) {
         final axes = fvarAxes(File(asset).readAsBytesSync());
-        expect(axes.keys, ['wght'], reason: asset);
+        expect(axes.keys.toSet(), {'wght', if (f.opticalSizes != null) 'opsz'}, reason: asset);
+        if (f.opticalSizes case (final lo, final hi)) expect((axes['opsz']!.$1, axes['opsz']!.$3), (lo, hi), reason: asset);
         expect(axes['wght']!.$2, 400, reason: '$asset: a style without its wght variation is drawn regular');
       }
     }
@@ -138,6 +140,9 @@ void main() {
     expect(width(inter(550)), lessThan(width(inter(700))));
     const literata = TextStyle(fontFamily: 'Literata', package: fontPackage, fontSize: 20);
     expect(width(literata.copyWith(fontStyle: FontStyle.italic)), isNot(width(literata)));
+    // The optical size axis is live: display optics set the same text tighter than caption optics.
+    TextStyle optical(double o) => literata.copyWith(fontVariations: [FontVariation('opsz', o)]);
+    expect(width(optical(72)), lessThan(width(optical(7))));
   });
 
   test('ensure skips fonts it does not bundle and the core fonts, which are always ready', () async {
