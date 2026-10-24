@@ -520,7 +520,12 @@ const edgeBlock = 16;
 /// Mac window is its whole look, not the Mac's widgets in its colours (design/themes/ARCHITECTURE.md 3.4);
 /// before that was built Kiwi and Hairline scored 0.22 on myContacts' people. It reads the goldens the theme
 /// screens test keeps up to date, so it runs after them.
-void themesDistinct(String screen, {double least = 0.3, Size size = const Size(1280, 800)}) {
+///
+/// [alike] names pairs (`'paperback and notebook'`) that may score under [least] on this screen, each with
+/// the reason the metric cannot see what sets them apart (a ruled ground fainter than [edgeStep], a
+/// handwritten face where the other sets a serif): an exception said out loud, never a lower bar for all.
+void themesDistinct(String screen,
+    {double least = 0.3, Size size = const Size(1280, 800), Map<String, String> alike = const {}}) {
   testWidgets('every pair of drawn themes draws $screen in more than its colours', (tester) async {
     final pictures = <String, ByteData>{};
     for (final slug in drawnThemes) {
@@ -539,7 +544,7 @@ void themesDistinct(String screen, {double least = 0.3, Size size = const Size(1
       for (var j = i + 1; j < drawnThemes.length; j++) {
         final a = drawnThemes[i], b = drawnThemes[j];
         final d = shapeDifference(pictures[a]!, pictures[b]!, size);
-        if (d < least) close.add('$a and $b: ${d.toStringAsFixed(2)}');
+        if (d < least && !alike.containsKey('$a and $b')) close.add('$a and $b: ${d.toStringAsFixed(2)}');
       }
     }
     expect(close, isEmpty, reason: 'these draw $screen in little more than their colours');

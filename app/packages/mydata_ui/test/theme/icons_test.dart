@@ -138,6 +138,7 @@ void main() {
       'mydata.e-ink': ('phosphor', 'regular'),
       'mydata.large': ('material-rounded', 'regular'),
       'mydata.terminal': ('lucide', 'regular'),
+      'mydata.notebook': ('phosphor', 'regular'),
     });
   });
 

@@ -33,8 +33,7 @@ void main() {
 
   test('the built-ins are every theme file of design/themes, byte for byte, System first', () {
     expect(designThemeSlugs(), [
-      'system', 'kiwi', 'hairline', 'frosted', 'journal', 'sticker', 'paperback', 'high-contrast', 'e-ink', 'large',
-      'terminal',
+      'system', 'kiwi', 'hairline', 'frosted', 'journal', 'sticker', 'paperback', 'high-contrast', 'e-ink', 'large', 'terminal', 'notebook',
     ]);
     expect(builtInThemeJson.keys, [for (final s in designThemeSlugs()) 'mydata.$s']);
     for (final slug in designThemeSlugs()) {
