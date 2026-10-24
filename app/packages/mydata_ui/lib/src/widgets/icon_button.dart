@@ -174,16 +174,22 @@ class _MyDataIconButtonState extends State<MyDataIconButton> {
         ? MyDataIcon.check
         : (on && widget.toggledIcon != null ? widget.toggledIcon! : widget.icon);
 
-    Widget body = AnimatedContainer(
-      duration: MyDataIconButton.fillDuration(context.look),
-      curve: context.motion.standard,
-      width: size,
-      height: size,
-      decoration: context.radius.decorate(BoxDecoration(
-          color: on ? c.accentSoft : c.accentSoft.withValues(alpha: 0), borderRadius: MyDataRadii.pill(context.look))),
-      alignment: Alignment.center,
-      child: Icon(context.icon(glyph, selected: on && !widget.done), size: context.density.icon, color: fg),
-    );
+    // An `invert` press swaps the roles: an `ink` circle with the icon in `bg`.
+    Widget body = Builder(builder: (context) {
+      final inverted = PressedScope.invertedOf(context);
+      return AnimatedContainer(
+        duration: inverted ? Duration.zero : MyDataIconButton.fillDuration(context.look),
+        curve: context.motion.standard,
+        width: size,
+        height: size,
+        decoration: context.radius.decorate(BoxDecoration(
+            color: inverted ? c.ink : (on ? c.accentSoft : c.accentSoft.withValues(alpha: 0)),
+            borderRadius: MyDataRadii.pill(context.look))),
+        alignment: Alignment.center,
+        child: Icon(context.icon(glyph, selected: on && !widget.done),
+            size: context.density.icon, color: inverted ? c.bg : fg),
+      );
+    });
 
     body = Pressable(
       onPressed: widget.onPressed,
@@ -195,6 +201,7 @@ class _MyDataIconButtonState extends State<MyDataIconButton> {
       toggled: widget.toggled,
       danger: widget.tone == IconButtonTone.danger,
       disabledReason: widget.disabledReason,
+      drawsInvert: true,
       child: ExcludeSemantics(child: body),
     );
     if (widget.expanded != null) body = Semantics(expanded: widget.expanded, child: body);

@@ -258,6 +258,55 @@ void main() {
     });
   }
 
+  group('an invert press', () {
+    Future<void> pump(WidgetTester tester, Widget child) async {
+      final look = ThemeLibrary.look(variantTheme(_set('motion', {'press': 'invert'})),
+          brightness: Brightness.light, platform: TargetPlatform.linux);
+      await tester.pumpWidget(MaterialApp(
+        theme: MyDataTheme.fromLook(look),
+        home: Material(child: Center(child: child)),
+      ));
+    }
+
+    testWidgets('reverses a button: ink fill, its label in bg, and no filter at rest or pressed', (tester) async {
+      await pump(tester, const Button(label: 'Approve and send', variant: ButtonVariant.filled, onPressed: _noop));
+      final c = tester.element(find.byType(Button)).colors;
+      final button = find.byType(Button);
+      Color? fill() => (tester
+              .widgetList<Container>(find.descendant(of: button, matching: find.byType(Container)))
+              .first
+              .decoration as BoxDecoration)
+          .color;
+      Color? label() => tester.widget<Text>(find.text('Approve and send')).style?.color;
+      expect(fill(), c.accent);
+      expect(find.descendant(of: button, matching: find.byType(ColorFiltered)), findsNothing);
+      final hold = await tester.startGesture(tester.getCenter(button));
+      await tester.pump();
+      expect(fill(), c.ink);
+      expect(label(), c.bg);
+      expect(find.descendant(of: button, matching: find.byType(ColorFiltered)), findsNothing);
+      await hold.up();
+      await tester.pumpAndSettle();
+      expect(fill(), c.accent);
+      expect(label(), c.onAccent);
+    });
+
+    testWidgets('filters another control only while pressed, keeping its state', (tester) async {
+      final key = GlobalKey<_CounterState>();
+      await pump(tester, Pressable(onPressed: _noop, borderRadius: BorderRadius.zero, child: _Counter(key: key)));
+      key.currentState!.count = 7;
+      expect(find.byType(ColorFiltered), findsNothing);
+      final hold = await tester.startGesture(tester.getCenter(find.byType(_Counter)));
+      await tester.pump();
+      expect(find.byType(ColorFiltered), findsOneWidget);
+      expect(key.currentState!.count, 7);
+      await hold.up();
+      await tester.pumpAndSettle();
+      expect(find.byType(ColorFiltered), findsNothing);
+      expect(key.currentState!.count, 7);
+    });
+  });
+
   testWidgets('an inset separator starts where the row above it starts its text', (tester) async {
     await pumpSpecimen(tester, variantTheme(_set('borders', {'separators': 'inset'})), Brightness.light);
     final list = find.byType(GroupedList);
@@ -313,4 +362,16 @@ void main() {
       });
     }
   }
+}
+
+class _Counter extends StatefulWidget {
+  const _Counter({super.key});
+  @override
+  State<_Counter> createState() => _CounterState();
+}
+
+class _CounterState extends State<_Counter> {
+  int count = 0;
+  @override
+  Widget build(BuildContext context) => const SizedBox(width: 80, height: 40);
 }

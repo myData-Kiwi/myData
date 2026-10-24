@@ -38,6 +38,7 @@ class Pressable extends StatefulWidget {
     this.disabledReason,
     this.fadeWhenDisabled = true,
     this.focusOnFill = false,
+    this.drawsInvert = false,
   });
 
   /// Null disables the control: out of the Tab order, or focusable but inert with a [disabledReason].
@@ -74,6 +75,10 @@ class Pressable extends StatefulWidget {
   /// ([FocusRing.onFill]).
   final bool focusOnFill;
 
+  /// The control draws an `invert` press itself (a button: an `ink` fill with its label in `bg`, read from
+  /// [PressedScope.invertedOf]). Others are inverted by a colour filter, put in only while pressed.
+  final bool drawsInvert;
+
   /// Whether a disabled control fades to [disabledOpacity]. False for a control that draws its own disabled
   /// colours: a filled button, whose label would fall to about 1.5:1 faded (design/themes/ARCHITECTURE.md 6a).
   final bool fadeWhenDisabled;
@@ -91,6 +96,9 @@ class _PressableState extends State<Pressable> {
   bool _focused = false;
 
   final _tooltipKey = GlobalKey<TooltipState>();
+
+  /// Keeps the child's state while an `invert` press puts a filter around it and takes it away.
+  final _bodyKey = GlobalKey();
 
   bool get _enabled => widget.onPressed != null;
 
@@ -127,8 +135,11 @@ class _PressableState extends State<Pressable> {
     final c = context.colors;
     final reduced = MyDataAccessibility.of(context).reduceMotion;
     final down = _pressed && _enabled;
-    // The child can draw its own pressed state (a shadow that collapses, a bevel that flips).
-    Widget body = PressedScope(pressed: down, child: widget.child);
+    final motion = context.motion;
+    final invert = widget.scaleOnPress && motion.press == PressStyle.invert;
+    // The child can draw its own pressed state (a shadow that collapses, a bevel that flips, an inverted
+    // button).
+    Widget body = PressedScope(pressed: down, inverted: down && invert, child: widget.child);
     if (widget.hoverFill != null) {
       body = AnimatedContainer(
         duration: context.motion.fast,
@@ -139,7 +150,6 @@ class _PressableState extends State<Pressable> {
         child: body,
       );
     }
-    final motion = context.motion;
     // Press, in the theme's style (`motion.press`): in at once (duration zero on the way down), out over
     // `fast`. dim and dim-scale dim (and shrink); sink moves the control into where its shadow was; invert
     // draws it in reverse on an `ink` ground; none does nothing. Rows ([scaleOnPress] false) only dim.
@@ -152,12 +162,15 @@ class _PressableState extends State<Pressable> {
         builder: (context, offset, child) => Transform.translate(offset: offset, child: child),
         child: body,
       );
-    } else if (widget.scaleOnPress && motion.press == PressStyle.invert) {
-      body = DecoratedBox(
-        decoration: context.radius.decorate(BoxDecoration(
-            color: down ? c.ink : c.ink.withValues(alpha: 0), borderRadius: widget.borderRadius)),
-        child: ColorFiltered(colorFilter: ColorFilter.matrix(down ? _invert : _identity), child: body),
-      );
+    } else if (invert && !widget.drawsInvert) {
+      // Only while pressed, so a control at rest has no extra layer; the key keeps the child's state.
+      body = KeyedSubtree(key: _bodyKey, child: body);
+      if (down) {
+        body = DecoratedBox(
+          decoration: context.radius.decorate(BoxDecoration(color: c.ink, borderRadius: widget.borderRadius)),
+          child: ColorFiltered(colorFilter: const ColorFilter.matrix(_invert), child: body),
+        );
+      }
     }
     body = AnimatedOpacity(
       opacity: !_enabled
@@ -237,19 +250,26 @@ const _invert = <double>[
   -0.2126, -0.7152, -0.0722, 0, 255, //
   0, 0, 0, 1, 0,
 ];
-const _identity = <double>[1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0];
 
 /// Whether the [Pressable] around a widget is pressed right now, for a control that draws its pressed state
 /// itself: a hard, offset or bevel shadow that collapses (`elevation.press: collapse`), a bevel that flips.
 class PressedScope extends InheritedWidget {
-  const PressedScope({super.key, required this.pressed, required super.child});
+  const PressedScope({super.key, required this.pressed, this.inverted = false, required super.child});
   final bool pressed;
+
+  /// Pressed in a theme whose press is `invert`: a control that draws it itself ([Pressable.drawsInvert])
+  /// swaps its roles, an `ink` fill with its label in `bg`.
+  final bool inverted;
 
   /// False outside a [Pressable].
   static bool of(BuildContext context) => context.dependOnInheritedWidgetOfExactType<PressedScope>()?.pressed ?? false;
 
+  /// False outside a [Pressable].
+  static bool invertedOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<PressedScope>()?.inverted ?? false;
+
   @override
-  bool updateShouldNotify(PressedScope old) => old.pressed != pressed;
+  bool updateShouldNotify(PressedScope old) => old.pressed != pressed || old.inverted != inverted;
 }
 
 /// The keyboard focus ring: 2px of `focus`, 2px outside the control (tokens.json "focus"); in the Mac frame

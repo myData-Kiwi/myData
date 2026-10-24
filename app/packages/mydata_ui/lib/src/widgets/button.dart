@@ -123,14 +123,6 @@ class Button extends StatelessWidget {
     if (context.isSystemLook) return _mac(context);
     final c = context.colors;
     final disabled = onPressed == null;
-    final fg = disabled ? variant.disabledForeground(c) : variant.foreground(c);
-    final text = Text(
-      label,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      softWrap: false,
-      style: context.typeScale.bodyStrong.copyWith(color: fg),
-    );
     return Pressable(
       onPressed: onPressed,
       borderRadius: MyDataRadii.control(context.look),
@@ -143,6 +135,7 @@ class Button extends StatelessWidget {
       // A hard, offset or bevel drop fills the band the ring is drawn in, along the bottom (and the right):
       // the ring is two-tone there, its `surface` keyline between it and the drop (WCAG C40).
       focusOnFill: !disabled && variant.fill(c) != null && context.look.elevation.control.isNotEmpty,
+      drawsInvert: true,
       child: ExcludeSemantics(
         child: Builder(builder: (context) {
           // The theme's depth under a button with a fill: a hard, offset or bevel drop that collapses while
@@ -150,6 +143,16 @@ class Button extends StatelessWidget {
           final filled = variant.fill(c) != null;
           final elevation = context.look.elevation;
           final pressed = PressedScope.of(context);
+          // An `invert` press: the roles swap, an `ink` fill with the label in `bg`, in every variant.
+          final inverted = PressedScope.invertedOf(context);
+          final fg = inverted ? c.bg : (disabled ? variant.disabledForeground(c) : variant.foreground(c));
+          final text = Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            softWrap: false,
+            style: context.typeScale.bodyStrong.copyWith(color: fg),
+          );
           final shadows = filled && !disabled
               ? elevation.controlShadows(pressed: pressed, primary: variant == ButtonVariant.filled)
               : const <BoxShadow>[];
@@ -159,7 +162,7 @@ class Button extends StatelessWidget {
             constraints: BoxConstraints(minWidth: context.density.controlHeight),
             padding: EdgeInsets.symmetric(horizontal: horizontalPadding(context.look)),
             decoration: context.radius.decorate(BoxDecoration(
-                color: disabled ? variant.disabledFill(c) : variant.fill(c),
+                color: inverted ? c.ink : (disabled ? variant.disabledFill(c) : variant.fill(c)),
                 borderRadius: radius,
                 boxShadow: shadows.isEmpty ? null : shadows,
                 // A theme that outlines controls outlines every button with a fill; a plain one stays bare.
