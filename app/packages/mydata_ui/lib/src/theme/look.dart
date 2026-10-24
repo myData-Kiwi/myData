@@ -479,11 +479,17 @@ class MyDataDensity {
 /// Borders (theme.schema.json `borders`): their width, style and colour, and where they are drawn.
 @immutable
 class MyDataEdges {
-  const MyDataEdges(this.spec, {required this.colour, this.allControls = false});
+  const MyDataEdges(this.spec, {required this.colour, this.allControls = false, Color? controlColour})
+      : controlColour = controlColour ?? colour;
   final BordersSpec spec;
 
   /// The borders' colour, from the palette (`line`, `line-strong`, `edge` or `accent`).
   final Color colour;
+
+  /// The colour of a control's outline ([controlSide]): [colour], or `line-strong` where that is `line`,
+  /// which is under 3:1 and would not outline anything (as the text field already does). Increased contrast
+  /// outlines every control in it.
+  final Color controlColour;
 
   /// Increased contrast draws an edge on every control, whatever the theme says (ARCHITECTURE.md 2.3).
   final bool allControls;
@@ -501,6 +507,9 @@ class MyDataEdges {
 
   /// A solid line of [width] in [colour].
   BorderSide get side => BorderSide(color: colour, width: width);
+
+  /// A control's outline: a solid line of [width] in [controlColour].
+  BorderSide get controlSide => BorderSide(color: controlColour, width: width);
 
   /// The outline of a card or a group of rows, or null when the theme draws none.
   BorderSide? get card => spec.cards ? side : null;
@@ -529,7 +538,12 @@ class MyDataEdges {
 
   /// These borders in the colours [c] (a look whose colours are replaced, as the Mac shell replaces them with
   /// the system's).
-  MyDataEdges withColours(MyDataColors c) => MyDataEdges(spec, colour: colourOf(spec, c), allControls: allControls);
+  MyDataEdges withColours(MyDataColors c) =>
+      MyDataEdges(spec, colour: colourOf(spec, c), controlColour: controlColourOf(spec, c), allControls: allControls);
+
+  /// [spec]'s colour for a control's outline in [c]: `line-strong` where the borders are `line`.
+  static Color controlColourOf(BordersSpec spec, MyDataColors c) =>
+      spec.colour == BorderColour.line ? c.lineStrong : colourOf(spec, c);
 
   /// [spec]'s colour in [c].
   static Color colourOf(BordersSpec spec, MyDataColors c) => switch (spec.colour) {
@@ -922,7 +936,10 @@ class MyDataLook extends ThemeExtension<MyDataLook> {
       typeScale: MyDataTypeScale.of(s.type, platform: target),
       shape: MyDataShape.of(s.shape),
       density: MyDataDensity.of(phone ? s.density.phone : s.density.desktop, floor: MyDataDensity.floorFor(target)),
-      edges: MyDataEdges(s.borders, colour: MyDataEdges.colourOf(s.borders, colors), allControls: increasedContrast),
+      edges: MyDataEdges(s.borders,
+          colour: MyDataEdges.colourOf(s.borders, colors),
+          controlColour: MyDataEdges.controlColourOf(s.borders, colors),
+          allControls: increasedContrast),
       elevation: MyDataElevation.of(s.elevation,
           shadow: colors.shadow,
           accent: colors.accent,
@@ -958,7 +975,9 @@ class MyDataLook extends ThemeExtension<MyDataLook> {
       typeScale: MyDataTypeScale.kiwi,
       shape: MyDataShape.kiwi,
       density: MyDataDensity.kiwi.atLeast(floor),
-      edges: MyDataEdges(_kiwiBorders, colour: (dark ? MyDataColors.dark : MyDataColors.light).line),
+      edges: MyDataEdges(_kiwiBorders,
+          colour: (dark ? MyDataColors.dark : MyDataColors.light).line,
+          controlColour: (dark ? MyDataColors.dark : MyDataColors.light).lineStrong),
       elevation: MyDataElevation(
           style: ElevationStyle.soft, shadows: dark ? MyDataShadows.dark : MyDataShadows.light, collapse: false),
       materials: const MyDataMaterials(spec: _kiwiMaterials, blur: MyDataBlur.glass),

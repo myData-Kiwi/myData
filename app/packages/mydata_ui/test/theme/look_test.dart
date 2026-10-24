@@ -10,6 +10,8 @@ import 'package:mydata_ui/mydata_ui.dart';
 import 'package:mydata_ui/src/theme/builtin_themes.g.dart';
 import 'package:mydata_ui/src/theme/theme_file.dart';
 
+import 'designed_themes.dart';
+
 void main() {
   test('MyDataTheme carries the look: Kiwi in the chosen colour, its colours and shadows as their own extensions', () {
     for (final b in Brightness.values) {
@@ -253,6 +255,45 @@ void main() {
       expect(look.edges.colour, look.colors.line);
       final system = look.asSystem(colors: look.colors.copyWith(line: const Color(0xFF123456)));
       expect(system.edges.colour, const Color(0xFF123456));
+    });
+
+    test('increased contrast outlines every control at 3:1 or more against surface and bg, in every palette', () {
+      double contrast(Color a, Color b) {
+        final la = a.computeLuminance(), lb = b.computeLuminance();
+        return (math.max(la, lb) + 0.05) / (math.min(la, lb) + 0.05);
+      }
+
+      final failures = <String>[];
+      for (final id in drawnBuiltIns) {
+        final theme = designedTheme(id);
+        for (final palette in theme.palettes) {
+          for (final b in Brightness.values) {
+            final look = ThemeLibrary.look(theme,
+                paletteId: palette.id, brightness: b, increasedContrast: true, platform: TargetPlatform.linux);
+            final border = MyDataEdgesPaint.control(look)!;
+            for (final (name, ground) in [('surface', look.colors.surface), ('bg', look.colors.bg)]) {
+              final r = contrast(border.top.color, ground);
+              if (r < 3) failures.add('$id ${palette.id} ${b.name} on $name: ${r.toStringAsFixed(2)}');
+            }
+          }
+        }
+      }
+      expect(failures, isEmpty, reason: failures.join('\n'));
+    });
+
+    test('a control is never outlined in the faint line: line-strong stands in', () {
+      // A theme (a custom one, say) that outlines controls in `line`.
+      final json = jsonDecode(kiwiThemeJson) as Map<String, dynamic>;
+      (json['borders'] as Map<String, dynamic>).addAll({'controls': true, 'colour': 'line'});
+      for (final b in Brightness.values) {
+        final outlined = ThemeLibrary.look(ThemeFile.fromJson(json, base: json), brightness: b, platform: TargetPlatform.linux);
+        expect(MyDataEdgesPaint.control(outlined)!.top.color, outlined.colors.lineStrong, reason: b.name);
+      }
+      final look = MyDataLook.fallback(Brightness.light);
+      expect(look.edges.colour, look.colors.line);
+      expect(look.edges.controlColour, look.colors.lineStrong);
+      final system = look.asSystem(colors: look.colors.copyWith(lineStrong: const Color(0xFF123456)));
+      expect(system.edges.controlColour, const Color(0xFF123456));
     });
 
     test('Kiwi as drawn today: no card or control edges, full-width separators in line, no title rule', () {

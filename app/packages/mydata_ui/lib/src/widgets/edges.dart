@@ -20,8 +20,9 @@ abstract final class MyDataEdgesPaint {
         base: const BoxDecoration(), shape: look.shape, radius: radius, side: edge, style: look.edges.style);
   }
 
-  /// The outline of a control (a button with a fill, a field), or null when the theme draws none.
-  static Border? control(MyDataLook look) => look.edges.controls ? Border.fromBorderSide(look.edges.side) : null;
+  /// The outline of a control (a button with a fill, a field), or null when the theme draws none; never in
+  /// the faint `line` ([MyDataEdges.controlColour]).
+  static Border? control(MyDataLook look) => look.edges.controls ? Border.fromBorderSide(look.edges.controlSide) : null;
 
   /// Strokes [path] as [style]: solid, dashed (dashes three widths long, two apart), or a double line drawn
   /// as [path] and [inner] (the same outline two widths further in).
