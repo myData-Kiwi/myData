@@ -111,8 +111,8 @@ class SelectionPaint {
 /// below it by [SelectionPaint.foreground] where the fill needs it, and a [SelectionHighlight] draws the
 /// highlighter's swipe.
 ///
-/// The bar sits at the leading edge, [SelectionPaint.barWidth] wide and as tall as the item but for a
-/// rounded corner's room, rounded at its ends, so it reads on a pill as well as on a row.
+/// The bar sits flush at the leading edge, [SelectionPaint.barWidth] wide and clipped to the item's outline:
+/// the start of a row, the curved end of a pill, never a separate stroke beside the icon.
 class SelectionMark extends StatelessWidget {
   const SelectionMark({
     super.key,
@@ -216,18 +216,15 @@ class _MarkPainter extends BoxPainter {
     }
     final bar = d.paint.bar;
     if (bar != null) {
+      // Flush with the leading edge and clipped to the item's outline, so on a pill or a rounded row it is
+      // the coloured start of the shape itself, never a stroke standing loose beside the icon.
       final rtl = configuration.textDirection == TextDirection.rtl;
-      final r = d.radius.resolve(configuration.textDirection);
-      // Clear of the leading corners, so the bar stays inside a pill's round end or a row's rounded corner.
-      final corner = rtl ? r.topRight.x : r.topLeft.x;
-      final inset = corner.clamp(0.0, size.height / 2) / 2;
       final w = SelectionPaint.barWidth;
-      final top = rect.top + (inset > 0 ? inset : 0);
-      final bottom = rect.bottom - (inset > 0 ? inset : 0);
-      final x = rtl ? rect.right - w - inset / 2 : rect.left + inset / 2;
-      canvas.drawRRect(
-          RRect.fromRectAndRadius(Rect.fromLTRB(x, top, x + w, bottom), Radius.circular(inset > 0 ? w / 2 : 0)),
-          Paint()..color = bar);
+      final x = rtl ? rect.right - w : rect.left;
+      canvas.save();
+      canvas.clipPath(d.shape.ringPath(rect, d.radius, 0));
+      canvas.drawRect(Rect.fromLTRB(x, rect.top, x + w, rect.bottom), Paint()..color = bar);
+      canvas.restore();
     }
   }
 }
