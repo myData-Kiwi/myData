@@ -308,6 +308,20 @@ void main() {
     });
   });
 
+  test('a disabled filled button keeps an outline: line-strong, or the theme\'s control outline', () {
+    for (final b in Brightness.values) {
+      final kiwi = ThemeLibrary.look(variantTheme((_) {}), brightness: b, platform: TargetPlatform.linux);
+      for (final v in [ButtonVariant.filled, ButtonVariant.danger]) {
+        expect(Button.edgeOf(kiwi, v, disabled: true)!.top.color, kiwi.colors.lineStrong);
+        expect(Button.edgeOf(kiwi, v, disabled: false), isNull);
+      }
+      expect(Button.edgeOf(kiwi, ButtonVariant.tonal, disabled: true), isNull, reason: 'it fades instead');
+      final outlined = ThemeLibrary.look(variantTheme(_set('borders', {'controls': true, 'colour': 'edge', 'width': 2})),
+          brightness: b, platform: TargetPlatform.linux);
+      expect(Button.edgeOf(outlined, ButtonVariant.filled, disabled: true)!.top, outlined.edges.controlSide);
+    }
+  });
+
   testWidgets('an inset separator starts where the row above it starts its text', (tester) async {
     await pumpSpecimen(tester, variantTheme(_set('borders', {'separators': 'inset'})), Brightness.light);
     final list = find.byType(GroupedList);

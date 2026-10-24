@@ -90,6 +90,10 @@ List<ThemeFinding> checkColours(ThemeFile theme, ResolvedPalette p, RoleDefaults
   for (final g in const [ColourRole.bg, ColourRole.surface, ColourRole.surfaceRaised, ColourRole.sidebar]) {
     roles(ColourRole.lineStrong, g, 3);
   }
+  // A disabled filled button's outline on a sunken ground (a well, a footer): disabled controls are exempt
+  // from SC 1.4.11, but the button should still read as a button.
+  pair('the disabled button outline (line-strong)', v(ColourRole.lineStrong), roleWords(ColourRole.surfaceSunken),
+      v(ColourRole.surfaceSunken), 3, notice: true);
   if (style.borders.colour == BorderColour.edge) {
     roles(ColourRole.edge, ColourRole.bg, 3);
     roles(ColourRole.edge, ColourRole.surface, 3);

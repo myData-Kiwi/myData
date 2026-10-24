@@ -68,7 +68,8 @@ enum ButtonVariant {
 ///   motion it only dims.
 /// - [onPressed] null disables it: not focusable (unless [disabledReason] is given), announced as disabled. A
 ///   [ButtonVariant.filled] or [ButtonVariant.danger] button is then drawn on `surface-sunken` with an
-///   `ink-muted` label, in every drawn theme; the others fade to 45%.
+///   `ink-muted` label and a 1px `line-strong` outline ([edgeOf]), in every drawn theme; the others fade
+///   to 45%.
 /// - The label is a verb and its object ("Approve and send", "Delete 12 photos"), in sentence case. Never
 ///   "OK" or "Submit".
 /// - Use one [ButtonVariant.filled] per screen or card; other actions are [ButtonVariant.tonal] or
@@ -117,6 +118,16 @@ class Button extends StatelessWidget {
 
   /// Space between the leading icon and the label.
   static double iconGap(MyDataLook look) => look.space(2);
+
+  /// A disabled [ButtonVariant.isSolid] button's outline, in `line-strong`: `surface-sunken` is about 1.05:1
+  /// on `bg`, so without it the button read as loose grey text, and vanished on a sunken ground. A theme
+  /// that outlines controls keeps its own outline instead.
+  static const disabledEdgeWidth = 1.0;
+
+  /// The outline of a button with a fill: the theme's control outline, else a disabled solid button's own.
+  static Border? edgeOf(MyDataLook look, ButtonVariant variant, {required bool disabled}) =>
+      MyDataEdgesPaint.control(look) ??
+      (disabled && variant.isSolid ? Border.all(color: look.colors.lineStrong, width: disabledEdgeWidth) : null);
 
   @override
   Widget build(BuildContext context) {
@@ -169,7 +180,7 @@ class Button extends StatelessWidget {
                 borderRadius: radius,
                 boxShadow: shadows.isEmpty ? null : shadows,
                 // A theme that outlines controls outlines every button with a fill; a plain one stays bare.
-                border: filled ? MyDataEdgesPaint.control(context.look) : null)),
+                border: filled ? edgeOf(context.look, variant, disabled: disabled) : null)),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
