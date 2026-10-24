@@ -223,7 +223,7 @@ void main() {
     expect(tester.widget<Text>(find.text('Revoke')).style!.color, c.danger);
     final fill = (tester.widget<Container>(
       find.ancestor(of: find.text('Revoke'), matching: find.byType(Container)).first,
-    ).decoration! as BoxDecoration).color;
+    ).decoration!.box).color;
     expect(fill, isNull);
   });
 

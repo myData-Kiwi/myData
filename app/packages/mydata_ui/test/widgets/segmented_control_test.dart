@@ -96,7 +96,7 @@ void main() {
         ),
       ],
     ),
-    size: const Size(520, 272),
+    size: const Size(520, 292),
     before: (tester) async {
       // Tab through the enabled controls to the last one: one stop per control (the selected segment).
       for (var i = 0; i < 5; i++) {

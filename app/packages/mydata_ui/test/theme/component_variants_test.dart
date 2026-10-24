@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mydata_testing/mydata_testing.dart';
 import 'package:mydata_ui/mydata_ui.dart';
 
 import 'designed_themes.dart';
@@ -483,7 +484,7 @@ void main() {
         .ancestor(
             of: find.text(name),
             matching: find.byWidgetPredicate(
-                (w) => w is DecoratedBox && w.decoration is BoxDecoration && (w.decoration as BoxDecoration).color == sunken))
+                (w) => w is DecoratedBox && w.decoration.isBox && (w.decoration.box).color == sunken))
         .evaluate()
         .isNotEmpty;
     expect([for (final p in people) striped(p.name)], [false, true, false, false]);

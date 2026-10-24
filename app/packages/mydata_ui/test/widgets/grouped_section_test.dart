@@ -14,10 +14,15 @@ enum _Mode { light, dark, system }
 GroupedSection _appearance() => GroupedSection(
   heading: 'Appearance',
   parts: [
-    const GroupedContentPart(
+    GroupedContentPart(
       child: GroupedStack(
         children: [
-          GroupedControl(label: 'Theme', child: ThemePicker(selected: 'kiwi', onChanged: _noopString)),
+          GroupedControl(
+            label: 'Palette',
+            child: ThemePicker(
+                themes: ThemeLibrary.paletteSwatches(ThemeLibrary.kiwi), selected: 'kiwi', onChanged: _noopString),
+          ),
+          const 
           GroupedControl(
             label: 'Mode',
             child: SegmentedControl<_Mode>(
@@ -27,7 +32,7 @@ GroupedSection _appearance() => GroupedSection(
               semanticLabel: 'Mode',
             ),
           ),
-          ThemeSample(themeId: 'kiwi'),
+          const _Sample(),
         ],
       ),
     ),
@@ -40,6 +45,18 @@ GroupedSection _appearance() => GroupedSection(
     ),
   ],
 );
+
+/// A block below the controls, at its own width.
+class _Sample extends StatelessWidget {
+  const _Sample();
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        width: 240,
+        height: 96,
+        child: DecoratedBox(decoration: BoxDecoration(color: context.colors.surfaceSunken)),
+      );
+}
 
 final _name = TextEditingController();
 
@@ -134,7 +151,7 @@ void main() {
     final c = tester.element(find.byType(GroupedSection)).colors;
     final box = tester
         .widget<DecoratedBox>(find.descendant(of: find.byType(GroupedSection), matching: find.byType(DecoratedBox)).first)
-        .decoration as BoxDecoration;
+        .decoration.box;
     expect(box.color, c.surface);
     expect(box.borderRadius, MyDataRadii.lg(kiwiLook));
     expect(box.boxShadow, tester.element(find.byType(GroupedSection)).shadows.shadow1);
@@ -169,9 +186,9 @@ void main() {
     expect(stack.top - part.top, MyDataSpace.s5);
     expect(part.bottom - stack.bottom, MyDataSpace.s5);
 
-    final theme = tester.getRect(find.widgetWithText(GroupedControl, 'Theme'));
+    final theme = tester.getRect(find.widgetWithText(GroupedControl, 'Palette'));
     final mode = tester.getRect(find.widgetWithText(GroupedControl, 'Mode'));
-    final sample = tester.getRect(find.byType(ThemeSample));
+    final sample = tester.getRect(find.byType(_Sample));
     expect(mode.top - theme.bottom, GroupedStack.gap(kiwiLook));
     expect(sample.top - mode.bottom, GroupedStack.gap(kiwiLook));
     // Start-aligned, each at its own width: the mode control is narrower than the part.

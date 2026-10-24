@@ -116,7 +116,7 @@ void main() {
     await tester.pump();
     final border = ((tester.widget<Container>(
                 find.ancestor(of: find.byType(TextField), matching: find.byType(Container)).first))
-            .decoration! as BoxDecoration)
+            .decoration!.box)
         .border! as Border;
     expect(border.top.width, MyDataTextField.errorBorderWidth);
     expect(find.text('Help.'), findsNothing);

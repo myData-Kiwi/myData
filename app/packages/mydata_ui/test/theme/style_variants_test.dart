@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mydata_testing/mydata_testing.dart';
 import 'package:mydata_ui/mydata_ui.dart';
 import 'package:mydata_ui/src/theme/builtin_themes.g.dart';
 
@@ -15,7 +16,7 @@ void _noop() {}
 
 /// Kiwi as drawn today, with [edit] applied to its JSON.
 ThemeFile variantTheme(void Function(Map<String, dynamic> json) edit) {
-  final json = jsonDecode(kiwiThemeJson) as Map<String, dynamic>;
+  final json = jsonDecode(builtInThemeJson[ThemeLibrary.kiwiId]!) as Map<String, dynamic>;
   edit(json);
   return ThemeFile.fromJson(json, base: json);
 }
@@ -295,7 +296,7 @@ void main() {
       Color? fill() => (tester
               .widgetList<Container>(find.descendant(of: button, matching: find.byType(Container)))
               .first
-              .decoration as BoxDecoration)
+              .decoration.box)
           .color;
       Color? label() => tester.widget<Text>(find.text('Approve and send')).style?.color;
       expect(fill(), c.accent);
@@ -360,7 +361,7 @@ void main() {
     testWidgets('style golden: Android holds every target at 48', (tester) async {
       debugDisableShadows = false;
       try {
-        final json = jsonDecode(kiwiThemeJson) as Map<String, dynamic>;
+        final json = jsonDecode(builtInThemeJson[ThemeLibrary.kiwiId]!) as Map<String, dynamic>;
         // A fresh file: the library keeps looks it resolved under the held floor.
         await pumpSpecimen(tester, ThemeFile.fromJson(json, base: json), Brightness.light,
             platform: TargetPlatform.android, size: const Size(600, 1000));

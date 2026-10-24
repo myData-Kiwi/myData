@@ -9,7 +9,7 @@ import 'package:mydata_testing/mydata_testing.dart';
 import 'package:mydata_ui/mydata_ui.dart';
 
 const _kiwi = ThemeChoice(ThemeLibrary.kiwiId, 'kiwi');
-const _plum = ThemeChoice(ThemeLibrary.kiwiId, 'plum');
+const _plum = ThemeChoice('mydata.journal', 'plum');
 
 /// An app window with a stored choice and the gallery's preview over it, as ThemeController draws them.
 class _Window extends StatefulWidget {
@@ -134,9 +134,10 @@ void main() {
     expect(find.text(ThemeGallery.builtInGroup), findsOneWidget);
     // the group's heading and the card's name
     expect(find.text('System'), findsNWidgets(2));
-    // Kiwi's card is focused and selected; its palette row shows Plum chosen
+    // Journal's card (System, Kiwi, Hairline, Frosted, Journal) is focused and selected; its palette row
+    // shows Plum chosen
     final focused = FocusManager.instance.primaryFocus!;
-    expect(focused.debugLabel, 'ThemeGallery card 1');
+    expect(focused.debugLabel, 'ThemeGallery card 4');
     expect(find.text(ThemeGallery.paletteLabel), findsOneWidget);
     expect(find.text('Plum'), findsOneWidget);
     expect(find.text(ThemeGallery.useLabel('myContacts')), findsOneWidget);
@@ -147,17 +148,18 @@ void main() {
     final plumAccent = _windowAccent(tester);
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
     await tester.pumpAndSettle();
-    expect(w.preview, ThemeChoice.system);
+    // another theme starts on its default palette
+    expect(w.preview, const ThemeChoice('mydata.frosted', 'dusk'));
     expect(_windowAccent(tester), isNot(plumAccent));
-    // System has no palettes: no palette row
-    expect(find.text(ThemeGallery.paletteLabel), findsNothing);
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     await tester.pumpAndSettle();
-    // back on the theme in use: its palette in use, not the default
+    // back on the theme in use: its palette in use
     expect(w.preview, _plum);
     await tester.sendKeyEvent(LogicalKeyboardKey.home);
     await tester.pumpAndSettle();
     expect(w.preview, ThemeChoice.system);
+    // System has no palettes: no palette row
+    expect(find.text(ThemeGallery.paletteLabel), findsNothing);
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pumpAndSettle();
     expect(find.text(ThemeGallery.title), findsNothing);
@@ -197,24 +199,24 @@ void main() {
     await tester.pumpAndSettle();
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     await tester.pumpAndSettle();
-    expect(w.preview, const ThemeChoice(ThemeLibrary.kiwiId, 'graphite'));
+    expect(w.preview, const ThemeChoice(ThemeLibrary.kiwiId, 'sky'));
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     await tester.pumpAndSettle();
-    expect(w.preview, const ThemeChoice(ThemeLibrary.kiwiId, 'dusk'));
+    expect(w.preview, const ThemeChoice(ThemeLibrary.kiwiId, 'violet'));
     expect(w.stored, _kiwi, reason: 'a preview stores nothing');
     await tester.tap(find.text(ThemeGallery.useLabel('myContacts')));
     await tester.pumpAndSettle();
-    expect(w.uses, [('mycontacts', const ThemeChoice(ThemeLibrary.kiwiId, 'dusk'))]);
+    expect(w.uses, [('mycontacts', const ThemeChoice(ThemeLibrary.kiwiId, 'violet'))]);
   });
 
   testWidgets('Use everywhere applies theme and palette to every app and offers Undo', (tester) async {
     final w = await _open(tester, const _Window(stored: _kiwi));
-    await tester.tap(find.text('Plum'));
+    await tester.tap(find.text('Violet'));
     await tester.pumpAndSettle();
     await tester.tap(find.text(ThemeGallery.everywhereLabel));
     await tester.pumpAndSettle();
-    expect(w.everywhere, [_plum]);
-    expect(find.text(ThemeGallery.everywhereDone('Kiwi, Plum')), findsOneWidget);
+    expect(w.everywhere, [const ThemeChoice(ThemeLibrary.kiwiId, 'violet')]);
+    expect(find.text(ThemeGallery.everywhereDone('Kiwi, Violet')), findsOneWidget);
     // the gallery stays open
     expect(find.text(ThemeGallery.title), findsOneWidget);
     await tester.tap(find.text('Undo'));
@@ -243,12 +245,12 @@ void main() {
     expect(find.text(ThemeGallery.useLabel('myContacts')), findsNothing);
     final everywhere = tester.widget<Button>(find.widgetWithText(Button, ThemeGallery.everywhereLabel));
     expect(everywhere.variant, ButtonVariant.filled);
-    // the selection starts on the everywhere choice, Kiwi in Plum, not on myContacts' Kiwi in Kiwi
+    // the selection starts on the everywhere choice, Journal in Plum, not on myContacts' Kiwi in Kiwi
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await tester.pumpAndSettle();
     expect(w.everywhere, [_plum]);
     expect(w.uses, isEmpty);
-    expect(find.text(ThemeGallery.everywhereDone('Kiwi, Plum')), findsOneWidget);
+    expect(find.text(ThemeGallery.everywhereDone('Journal, Plum')), findsOneWidget);
   });
 
   testWidgets('while a choice is being stored, Escape and the cards wait for it', (tester) async {
@@ -355,12 +357,12 @@ void main() {
       isSemantics(isInMutuallyExclusiveGroup: true, hasCheckedState: true, isChecked: false, isFocusable: true),
     );
     expect(
-      tester.getSemantics(find.bySemanticsLabel('Kiwi, theme')),
+      tester.getSemantics(find.bySemanticsLabel('Journal, theme')),
       isSemantics(hasCheckedState: true, isChecked: true, isFocused: true),
     );
-    final palettes = find.bySemanticsLabel('${ThemeGallery.paletteLabel} of Kiwi');
+    final palettes = find.bySemanticsLabel('${ThemeGallery.paletteLabel} of Journal');
     expect(tester.getSemantics(palettes).role, SemanticsRole.radioGroup);
-    for (final name in ['Kiwi', 'Graphite', 'Dusk', 'Plum', 'Rose', 'Amber']) {
+    for (final name in ['Plum', 'Ink blue', 'Forest']) {
       expect(find.bySemanticsLabel(RegExp('^$name\$')), findsWidgets, reason: name);
     }
     // the previews are pictures, never read: no contact name from a scene reaches the tree
@@ -392,20 +394,18 @@ void main() {
   group('screenshots', () {
     setUpAll(loadMacFonts);
 
-    for (final (colour, mode) in [
-      ('kiwi', MyDataMode.light),
-      ('kiwi', MyDataMode.dark),
-      ('plum', MyDataMode.light),
-      ('plum', MyDataMode.dark),
+    for (final (choice, mode) in [
+      (_kiwi, MyDataMode.light),
+      (_kiwi, MyDataMode.dark),
+      (_plum, MyDataMode.light),
+      (_plum, MyDataMode.dark),
     ]) {
-      testWidgets('the gallery over myContacts (kiwi-$colour-${mode.name})', (tester) async {
+      final name = '${choice.theme.replaceFirst('mydata.', '')}-${choice.palette}-${mode.name}';
+      testWidgets('the gallery over myContacts ($name)', (tester) async {
         painting.debugDisableShadows = false;
         try {
-          await _open(tester, _Window(stored: ThemeChoice(ThemeLibrary.kiwiId, colour), mode: mode));
-          await expectLater(
-            find.byType(MaterialApp),
-            matchesGoldenFile('goldens/theme_gallery.kiwi-$colour-${mode.name}.png'),
-          );
+          await _open(tester, _Window(stored: choice, mode: mode));
+          await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/theme_gallery.$name.png'));
         } finally {
           painting.debugDisableShadows = true;
         }

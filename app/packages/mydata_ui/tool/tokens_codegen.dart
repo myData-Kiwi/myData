@@ -1,4 +1,4 @@
-/// Turns design/tokens.json and design/themes.json into Dart (lib/src/generated/tokens.g.dart).
+/// Turns design/tokens.json and Kiwi's theme file into Dart (lib/src/generated/tokens.g.dart).
 ///
 /// Used by tool/generate_tokens.dart, which writes the file, and by test/generated_tokens_test.dart,
 /// which fails when the committed file no longer matches the JSON.
@@ -15,23 +15,21 @@ const generatedPath = 'lib/src/generated/tokens.g.dart';
 /// Logo files copied from design/assets/Logos into this package's assets, unchanged.
 const logoFiles = ['mydata-kiwi-mark.svg', 'mydata-kiwi-mark-mono.svg', 'mydata-kiwi-app-icon.svg'];
 
-String generateTokens(String tokensJson, String themesJson, String designKiwiJson) {
+String generateTokens(String tokensJson, String designKiwiJson) {
   final tokens = jsonDecode(tokensJson) as Map<String, dynamic>;
-  final themes = jsonDecode(themesJson) as Map<String, dynamic>;
-  final extras = extraColourValues(kiwiTodayTheme(tokensJson, themesJson, designKiwiJson));
+  final extras = extraColourValues(tokensJson, designKiwiJson);
   final out = StringBuffer()
-    ..writeln('// GENERATED from design/tokens.json (version ${tokens['version']}), design/themes.json and')
-    ..writeln('// design/themes/kiwi/theme.json (the colour roles tokens.json has no token for)')
+    ..writeln('// GENERATED from design/tokens.json (version ${tokens['version']}) and design/themes/kiwi/theme.json')
+    ..writeln('// (the colour roles tokens.json has no token for; its colours are checked against Kiwi\'s)')
     ..writeln('// by tool/generate_tokens.dart. Do not edit: change the JSON and run')
     ..writeln('//   (cd app/packages/mydata_ui && dart run tool/generate_tokens.dart)')
     ..writeln('// This is the only file in the apps that may contain literal colours, radii and font names.')
     ..writeln('// ignore_for_file: public_member_api_docs')
     ..writeln()
     ..writeln("import 'package:flutter/painting.dart';")
-    ..writeln("import 'package:flutter/material.dart' show Brightness, ThemeExtension;")
+    ..writeln("import 'package:flutter/material.dart' show ThemeExtension;")
     ..writeln();
   _colors(out, tokens['color'] as Map<String, dynamic>, extras);
-  _themes(out, themes);
   _shadows(out, tokens['shadow'] as Map<String, dynamic>);
   _scale(out, 'MyDataSpace', 'Spacing (tokens.json "spacing").', tokens['spacing'] as Map<String, dynamic>,
       (n) => 's${n.substring('space-'.length)}');
@@ -165,7 +163,8 @@ void _colors(StringBuffer out, Map<String, dynamic> color, Map<String, Map<Strin
   final names = [for (final t in list) _camel(t['name'] as String)];
   out
     ..writeln('/// Every colour token for one theme and mode. `accent` in tokens.json is `MyDataColors.accent` here.')
-    ..writeln('/// The base values are the Kiwi theme; [withTheme] swaps in another theme\'s three colours.')
+    ..writeln('/// [light] and [dark] are Kiwi\'s default palette, the first frame\'s and the fallback\'s; every theme\'s')
+    ..writeln('/// colours are resolved at run time (MyDataLook).')
     ..writeln('class MyDataColors extends ThemeExtension<MyDataColors> {')
     ..writeln('  const MyDataColors({');
   for (final n in names) {
@@ -189,16 +188,6 @@ void _colors(StringBuffer out, Map<String, dynamic> color, Map<String, Map<Strin
     out.writeln('  );');
   }
   out
-    ..writeln()
-    ..writeln('  /// These colours with [theme]\'s accent, on-accent and accent-soft for [brightness].')
-    ..writeln('  MyDataColors withTheme(MyDataThemeSpec theme, Brightness brightness) {')
-    ..writeln('    final dark = brightness == Brightness.dark;')
-    ..writeln('    return copyWith(')
-    ..writeln('      accent: dark ? theme.accentDark : theme.accentLight,')
-    ..writeln('      onAccent: dark ? theme.onAccentDark : theme.onAccentLight,')
-    ..writeln('      accentSoft: dark ? theme.accentSoftDark : theme.accentSoftLight,')
-    ..writeln('    );')
-    ..writeln('  }')
     ..writeln()
     ..writeln('  @override')
     ..writeln('  MyDataColors copyWith({');
@@ -224,68 +213,6 @@ void _colors(StringBuffer out, Map<String, dynamic> color, Map<String, Map<Strin
   out
     ..writeln('    );')
     ..writeln('  }')
-    ..writeln('}')
-    ..writeln();
-}
-
-// ---------------------------------------------------------------- themes
-
-void _themes(StringBuffer out, Map<String, dynamic> themes) {
-  final list = (themes['themes'] as List).cast<Map<String, dynamic>>();
-  final defaults = list.where((t) => t['default'] == true).toList();
-  if (defaults.length != 1) throw FormatException('themes.json must mark exactly one theme as default');
-  const keys = {'accent': 'accent', 'on-accent': 'onAccent', 'accent-soft': 'accentSoft'};
-  out
-    ..writeln('/// A theme the user can pick: it replaces accent, on-accent and accent-soft only (themes.json).')
-    ..writeln('class MyDataThemeSpec {')
-    ..writeln('  const MyDataThemeSpec({')
-    ..writeln('    required this.id,')
-    ..writeln('    required this.name,');
-  for (final k in keys.values) {
-    out
-      ..writeln('    required this.${k}Light,')
-      ..writeln('    required this.${k}Dark,');
-  }
-  out
-    ..writeln('  });')
-    ..writeln()
-    ..writeln('  final String id;')
-    ..writeln('  final String name;');
-  for (final k in keys.values) {
-    out
-      ..writeln('  final Color ${k}Light;')
-      ..writeln('  final Color ${k}Dark;');
-  }
-  out
-    ..writeln('}')
-    ..writeln()
-    ..writeln('/// The themes in the order the ThemePicker shows them.')
-    ..writeln('abstract final class MyDataThemes {');
-  for (final t in list) {
-    final tk = t['tokens'] as Map<String, dynamic>;
-    if (!const {'accent', 'on-accent', 'accent-soft'}.containsAll(tk.keys) || tk.length != 3) {
-      throw FormatException('theme ${t['id']} must set exactly accent, on-accent and accent-soft');
-    }
-    out
-      ..writeln('  static const ${_camel(t['id'] as String)} = MyDataThemeSpec(')
-      ..writeln("    id: '${t['id']}',")
-      ..writeln("    name: '${t['name']}',");
-    for (final e in keys.entries) {
-      final v = tk[e.key] as Map<String, dynamic>;
-      out
-        ..writeln('    ${e.value}Light: ${_color(v['light'] as String)},')
-        ..writeln('    ${e.value}Dark: ${_color(v['dark'] as String)},');
-    }
-    out.writeln('  );');
-  }
-  out
-    ..writeln()
-    ..writeln('  static const all = [${list.map((t) => _camel(t['id'] as String)).join(', ')}];')
-    ..writeln('  static const fallback = ${_camel(defaults.single['id'] as String)};')
-    ..writeln()
-    ..writeln('  /// The theme with [id], or the default when the id is unknown or null.')
-    ..writeln('  static MyDataThemeSpec byId(String? id) =>')
-    ..writeln('      all.firstWhere((t) => t.id == id, orElse: () => fallback);')
     ..writeln('}')
     ..writeln();
 }

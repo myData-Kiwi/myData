@@ -32,13 +32,16 @@ const macAccents = [
 /// The Runner's answer on `mydata/system_colors`: the system defaults with [themeId]'s accent as the
 /// accent the person picked in System Settings.
 Map<String, Object?> palette(String themeId) {
-  final t = MyDataThemes.byId(themeId);
-  Map<String, int> side(Color accent, Color onAccent) => {
-    'accent': accent.toARGB32(),
-    'on-accent': onAccent.toARGB32(),
-    'focus-ring': accent.withValues(alpha: 0.5).toARGB32(),
-  };
-  return {'light': side(t.accentLight, t.onAccentLight), 'dark': side(t.accentDark, t.onAccentDark)};
+  Map<String, int> side(Brightness b) {
+    final c = MyDataTheme.data(themeId, b).extension<MyDataColors>()!;
+    return {
+      'accent': c.accent.toARGB32(),
+      'on-accent': c.onAccent.toARGB32(),
+      'focus-ring': c.accent.withValues(alpha: 0.5).toARGB32(),
+    };
+  }
+
+  return {'light': side(Brightness.light), 'dark': side(Brightness.dark)};
 }
 
 void useAccent(String themeId) => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger

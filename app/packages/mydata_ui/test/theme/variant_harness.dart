@@ -12,7 +12,7 @@ void noop() {}
 
 /// Kiwi as drawn today, with [edit] applied to its JSON.
 ThemeFile kiwiWith(void Function(Map<String, dynamic> json) edit) {
-  final json = jsonDecode(kiwiThemeJson) as Map<String, dynamic>;
+  final json = jsonDecode(builtInThemeJson[ThemeLibrary.kiwiId]!) as Map<String, dynamic>;
   edit(json);
   return ThemeFile.fromJson(json, base: json);
 }

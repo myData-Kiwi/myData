@@ -3,8 +3,8 @@
 /// (`context.space(4)`, `context.typeScale.body`, `context.radius.lg`, `context.density.controlHeight`,
 /// `context.motion.fast`).
 ///
-/// Phase 1 draws exactly what the apps drew before: Kiwi from design/tokens.json, in one of today's six
-/// colours; phase 3 brings each theme's rules and component variants to the widgets.
+/// Every built-in is resolved from its theme file in design/themes (System and the six drawn looks, each in
+/// its palettes); the fallback is Kiwi's default palette from the generated constants.
 library;
 
 
@@ -247,7 +247,7 @@ class MyDataShape {
   final double cutSize;
 
   static const kiwi = MyDataShape(
-    corners: CornerStyle.round,
+    corners: CornerStyle.continuous,
     xs: MyDataRadius.xs,
     sm: MyDataRadius.sm,
     md: MyDataRadius.md,
@@ -993,7 +993,7 @@ class MyDataLook extends ThemeExtension<MyDataLook> {
     final dark = b == Brightness.dark;
     return MyDataLook(
       themeId: 'mydata.kiwi',
-      paletteId: MyDataThemes.fallback.id,
+      paletteId: 'kiwi',
       frame: LookFrame.drawn,
       brightness: b,
       colors: dark ? MyDataColors.dark : MyDataColors.light,
@@ -1078,7 +1078,9 @@ class MyDataLook extends ThemeExtension<MyDataLook> {
       );
 
   /// This look as System draws it in the Mac shell: [colors] are the system's, and System has no palette
-  /// ([copyWith] cannot clear [paletteId]).
+  /// ([copyWith] cannot clear [paletteId]). Its corners stay round, as the Mac shell was drawn when it was
+  /// chosen (decision 8), though Kiwi, whose style System takes, has continuous corners since phase 3: the
+  /// Mac's own pass decides, not Kiwi's.
   MyDataLook asSystem({required MyDataColors colors}) => MyDataLook(
         themeId: systemThemeId,
         paletteId: null,
@@ -1087,7 +1089,7 @@ class MyDataLook extends ThemeExtension<MyDataLook> {
         increasedContrast: increasedContrast,
         colors: colors,
         typeScale: typeScale,
-        shape: shape,
+        shape: shape.withCorners(CornerStyle.round),
         density: density,
         edges: edges.withColours(colors),
         elevation: elevation,

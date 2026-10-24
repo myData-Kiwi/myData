@@ -98,7 +98,7 @@ void main() {
     final tileFinder = find.ancestor(of: mark, matching: find.byType(Container)).first;
     final tile = tester.getRect(tileFinder);
     expect(tile.size, const Size.square(EmptyState.tileSize));
-    final tileBox = tester.widget<Container>(tileFinder).decoration! as BoxDecoration;
+    final tileBox = tester.widget<Container>(tileFinder).decoration!.box;
     expect(tileBox.borderRadius, MyDataRadii.xl(kiwiLook));
     expect(tileBox.color, tester.element(find.byType(EmptyState)).colors.paper);
     expect(tileBox.boxShadow, tester.element(find.byType(EmptyState)).shadows.shadow1);

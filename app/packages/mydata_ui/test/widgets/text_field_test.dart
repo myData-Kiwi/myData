@@ -168,7 +168,7 @@ void main() {
     final colors = MyDataColors.light;
     final box = tester.widget<Container>(
         find.ancestor(of: find.byType(TextField), matching: find.byType(Container)).first);
-    final border = (box.decoration! as BoxDecoration).border! as Border;
+    final border = (box.decoration!.box).border! as Border;
     expect(border.top.width, 2);
     expect(border.top.color, colors.danger);
     expect(find.text('The address of your host.'), findsNothing);
@@ -266,7 +266,7 @@ void main() {
 
     final box = tester.widget<Container>(
         find.ancestor(of: find.byType(TextField), matching: find.byType(Container)).first);
-    final deco = box.decoration! as BoxDecoration;
+    final deco = box.decoration!.box;
     expect(deco.color, MyDataColors.light.surfaceSunken);
     expect(deco.border, isNull);
     expect(deco.borderRadius, MyDataRadii.pill(kiwiLook));

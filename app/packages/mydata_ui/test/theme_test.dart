@@ -16,27 +16,27 @@ double contrast(Color a, Color b) {
 
 void main() {
   test('a theme is built from a choice and a mode; unknown themes are System, unknown palettes the default', () {
-    final t = MyDataTheme(choice: const ThemeChoice('mydata.kiwi', 'dusk'), mode: MyDataMode.dark);
-    expect(t.choice, const ThemeChoice('mydata.kiwi', 'dusk'));
+    final t = MyDataTheme(choice: const ThemeChoice('mydata.journal', 'forest'), mode: MyDataMode.dark);
+    expect(t.choice, const ThemeChoice('mydata.journal', 'forest'));
     expect(t.themeMode, ThemeMode.dark);
     expect(MyDataTheme(choice: const ThemeChoice('nonsense', 'plum')).choice, ThemeChoice.system);
     expect(MyDataTheme(choice: const ThemeChoice('mydata.kiwi', 'nonsense')).choice,
         const ThemeChoice('mydata.kiwi', 'kiwi'));
+    expect(MyDataTheme(choice: const ThemeChoice('mydata.hairline')).choice,
+        const ThemeChoice('mydata.hairline', 'graphite'));
     expect(MyDataTheme().choice, ThemeChoice.system);
-    expect(MyDataTheme.kiwi('plum'), MyDataTheme(choice: const ThemeChoice('mydata.kiwi', 'plum')));
     expect(MyDataMode.parse('light'), MyDataMode.light);
     expect(MyDataMode.parse(null), MyDataMode.system);
-    expect(MyDataThemes.all.map((t) => t.id), ['kiwi', 'graphite', 'dusk', 'plum', 'rose', 'amber']);
   });
 
-  test("Kiwi in one of today's colours draws exactly what that colour drew before", () {
-    for (final spec in MyDataThemes.all) {
+  test("Kiwi in one of today's old colours draws the theme that colour moved to, in that palette", () {
+    for (final e in ThemeLibrary.movedColours.entries) {
+      expect(MyDataTheme(choice: ThemeChoice(ThemeLibrary.kiwiId, e.key)).choice, e.value);
       for (final b in Brightness.values) {
-        final before = MyDataTheme.data(spec.id, b);
-        final now = MyDataTheme.dataFor(ThemeChoice(ThemeLibrary.kiwiId, spec.id), b);
-        expect(roles(now.extension<MyDataColors>()!), roles(before.extension<MyDataColors>()!),
-            reason: '${spec.id} ${b.name}');
-                expect(now.colorScheme, before.colorScheme, reason: '${spec.id} ${b.name}');
+        final old = MyDataTheme.dataFor(ThemeChoice(ThemeLibrary.kiwiId, e.key), b);
+        final now = MyDataTheme.dataFor(e.value, b);
+        expect(roles(old.extension<MyDataColors>()!), roles(now.extension<MyDataColors>()!), reason: '${e.key} ${b.name}');
+        expect(old.extension<MyDataLook>()!.themeId, e.value.theme);
       }
     }
   });
@@ -48,45 +48,26 @@ void main() {
     }
   });
 
-  test('a theme replaces accent, on-accent and accent-soft and nothing else', () {
-    for (final b in Brightness.values) {
-      final base = b == Brightness.dark ? MyDataColors.dark : MyDataColors.light;
-      final kiwi = MyDataTheme.data('kiwi', b).extension<MyDataColors>()!;
-      final plum = MyDataTheme.data('plum', b).extension<MyDataColors>()!;
-      // Kiwi is what tokens.json holds.
-      expect(kiwi.accent, base.accent);
-      expect(plum.accent, b == Brightness.dark ? MyDataThemes.plum.accentDark : MyDataThemes.plum.accentLight);
-      expect(plum.onAccent, b == Brightness.dark ? MyDataThemes.plum.onAccentDark : MyDataThemes.plum.onAccentLight);
-      expect(plum.accentSoft,
-          b == Brightness.dark ? MyDataThemes.plum.accentSoftDark : MyDataThemes.plum.accentSoftLight);
-      expect(plum.copyWith(accent: base.accent, onAccent: base.onAccent, accentSoft: base.accentSoft), isA<MyDataColors>());
-      for (final pair in [
-        (plum.bg, base.bg), (plum.surface, base.surface), (plum.ink, base.ink), (plum.brand, base.brand),
-        (plum.success, base.success), (plum.focus, base.focus), (plum.glassFill, base.glassFill),
-      ]) {
-        expect(pair.$1, pair.$2);
-      }
-    }
-  });
-
-  test('the theming.md rules hold for every theme in both modes', () {
+  test('every palette of every built-in keeps its accent readable (theming.md), in both modes', () {
     final failures = <String>[];
-    for (final spec in MyDataThemes.all) {
-      for (final b in Brightness.values) {
-        final c = MyDataTheme.data(spec.id, b).extension<MyDataColors>()!;
-        void rule(String what, Color fg, Color bg) {
-          final r = contrast(fg, bg);
-          if (r < 4.5) failures.add('${spec.id} ${b.name}: $what ${r.toStringAsFixed(2)}');
-        }
+    for (final theme in ThemeLibrary.builtIns) {
+      for (final p in theme.palettes) {
+        for (final b in Brightness.values) {
+          final c = MyDataTheme.dataFor(ThemeChoice(theme.id, p.id), b).extension<MyDataColors>()!;
+          void rule(String what, Color fg, Color bg, double min) {
+            final r = contrast(fg, bg);
+            if (r < min) failures.add('${theme.name} ${p.name} ${b.name}: $what ${r.toStringAsFixed(2)}');
+          }
 
-        rule('on-accent on accent', c.onAccent, c.accent);
-        rule('accent on bg', c.accent, c.bg);
-        rule('accent on surface', c.accent, c.surface);
-        rule('accent on accent-soft', c.accent, c.accentSoft);
-        rule('ink on accent-soft', c.ink, c.accentSoft);
+          rule('on-accent on accent', c.onAccent, c.accent, 4.5);
+          rule('link on bg', c.link, c.bg, 4.5);
+          rule('link on surface', c.link, c.surface, 4.5);
+          rule('ink on accent-soft', c.ink, c.accentSoft, 4.5);
+          rule('accent on surface', c.accent, c.surface, 3);
+        }
       }
     }
-    expect(failures, isEmpty);
+    expect(failures, isEmpty, reason: failures.join('\n'));
   });
 
   test('text and status colours meet the README contrast rules in both modes', () {

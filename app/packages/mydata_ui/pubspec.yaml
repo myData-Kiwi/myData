@@ -29,8 +29,6 @@ flutter:
   uses-material-design: true
   assets:
     - assets/logo/
-    # The theme files of design/themes (the phase 3 looks), copied by tool/generate_tokens.dart.
-    - assets/themes/
     # The four apps' icons, for an alert's icon (MyDataAppIcons); rendered by design/assets/Logos/app-icons.
     - assets/app_icons/
     # The theme fonts loaded on demand (lib/src/theme/fonts.dart): Latin subsets cut by tool/subset_fonts.sh.

@@ -11,7 +11,7 @@ import 'package:mydata_ui/src/theme/builtin_themes.g.dart';
 
 /// Kiwi with compact controls and rows (28), so the coarse floor changes them.
 ThemeFile _compact() {
-  final json = jsonDecode(kiwiThemeJson) as Map<String, dynamic>;
+  final json = jsonDecode(builtInThemeJson[ThemeLibrary.kiwiId]!) as Map<String, dynamic>;
   json['density'] = {
     'desktop': {'control': 28, 'row': 28, 'icon': 16, 'space': 1},
     'phone': {'control': 44, 'row': 44, 'icon': 16, 'space': 1},

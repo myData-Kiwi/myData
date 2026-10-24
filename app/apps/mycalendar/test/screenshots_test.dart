@@ -15,7 +15,7 @@ Widget app(ThemeCase t, CalendarBackend backend,
         FakeHost? host}) =>
     MyCalendarApp(
       host: host ?? FakeHost(phaseOnConnect: phase, statusOnConnect: hostStatus(theme: t.themeId)),
-      store: MemoryDeviceStore({'mode': t.brightness.name, 'lastTheme': t.themeId, 'hiddenCalendars': hidden}),
+      store: MemoryDeviceStore({...t.deviceSettings, 'hiddenCalendars': hidden}),
       backend: backend,
       zones: const FakeZones(),
       links: links,

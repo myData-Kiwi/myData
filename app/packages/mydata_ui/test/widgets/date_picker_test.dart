@@ -170,7 +170,7 @@ void main() {
     goldenMatrix(
       'date_picker_popover',
       () => _mac(_Host(initial: DateTime(2026, 10, 16), earliest: DateTime(2026, 10, 13))),
-      size: const Size(600, 500),
+      size: const Size(600, 512),
       before: (tester) async {
         await tester.sendKeyEvent(LogicalKeyboardKey.tab);
         await tester.pump();
@@ -187,7 +187,7 @@ void main() {
     goldenMatrix(
       'date_picker_birthday_popover',
       () => _mac(const _BirthdayHost(initial: Birthday(month: 2, day: 29))),
-      size: const Size(600, 500),
+      size: const Size(600, 512),
       before: (tester) async {
         await tester.sendKeyEvent(LogicalKeyboardKey.tab);
         await tester.pump();

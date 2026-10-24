@@ -143,7 +143,7 @@ void main() {
     await tester.pumpAndSettle();
     // This device's first start: the host's default colour (nobody chose one) seeds System, which draws
     // Kiwi in Kiwi until this platform's own pass, so nothing changes on screen.
-    final kiwi = MyDataColors.light.withTheme(MyDataThemes.kiwi, Brightness.light);
+    final kiwi = MyDataColors.light;
     expect(colorsOf(tester).accent, kiwi.accent);
     expect((await store.read())['themes'], {
       'everywhere': {'theme': 'mydata.system'},
@@ -157,10 +157,10 @@ void main() {
     // A theme chosen for myAssistant in myData's Appearance arrives through the device's settings.
     final mydata = ThemeController(appId: 'mydata', store: store, macOS: false);
     await mydata.start();
-    await mydata.use(const ThemeChoice('mydata.kiwi', 'graphite'), app: 'myassistant');
+    await mydata.use(const ThemeChoice('mydata.hairline', 'graphite'), app: 'myassistant');
     mydata.dispose();
     await tester.pumpAndSettle();
-    final graphite = MyDataColors.light.withTheme(MyDataThemes.graphite, Brightness.light);
+    final graphite = MyDataTheme.data('hairline', Brightness.light).extension<MyDataColors>()!;
     expect(colorsOf(tester).accent, graphite.accent);
 
     // Dark mode set in another app on this device is read within one interval.
@@ -168,7 +168,7 @@ void main() {
     await tester.pump(const Duration(seconds: 2));
     await tester.pumpAndSettle();
     expect(Theme.of(tester.element(find.byType(AppFrame))).brightness, Brightness.dark);
-    expect(colorsOf(tester).bg, MyDataColors.dark.bg);
+    expect(colorsOf(tester).bg, MyDataTheme.data('hairline', Brightness.dark).extension<MyDataColors>()!.bg);
   });
 
   testWidgets('a switch between demo and real mode ends the conversation, with one line each time', (tester) async {

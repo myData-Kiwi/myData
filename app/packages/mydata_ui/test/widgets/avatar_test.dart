@@ -248,7 +248,7 @@ void main() {
     expect(tester.getSize(find.byType(Avatar).last), const Size.square(96));
     for (final name in ['Sam Sample', 'Example Labs']) {
       final box = tester.widget<DecoratedBox>(_in(name, find.byType(DecoratedBox)).first);
-      final d = box.decoration as BoxDecoration;
+      final d = box.decoration.box;
       expect(d.color, c.kiwiWash, reason: name);
       expect(d.borderRadius, MyDataRadii.pill(kiwiLook), reason: name);
       expect(d.border, isNull, reason: name);
@@ -265,7 +265,7 @@ void main() {
     ])));
     final fills = tester
         .widgetList<DecoratedBox>(find.descendant(of: find.byType(Avatar), matching: find.byType(DecoratedBox)))
-        .map((b) => (b.decoration as BoxDecoration).color)
+        .map((b) => (b.decoration.box).color)
         .toSet();
     expect(fills, hasLength(1));
   });
@@ -510,7 +510,7 @@ void main() {
     await tester.pumpWidget(themedFrame(themeMatrix.first,
         const Avatar(name: 'Sam Sample', givenName: 'Sam', familyName: 'Sample'), reduceTransparency: true));
     final c = tester.element(find.byType(Avatar)).colors;
-    expect((tester.widget<DecoratedBox>(_in('Sam Sample', find.byType(DecoratedBox))).decoration as BoxDecoration).color,
+    expect((tester.widget<DecoratedBox>(_in('Sam Sample', find.byType(DecoratedBox))).decoration.box).color,
         c.kiwiWash);
     expect(find.descendant(of: find.byType(Avatar), matching: find.byType(BackdropFilter)), findsNothing);
   });

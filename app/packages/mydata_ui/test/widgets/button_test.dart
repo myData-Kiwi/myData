@@ -58,7 +58,7 @@ Color? _ringColour(WidgetTester tester, Finder of) {
 }
 
 void main() {
-  goldenMatrix('button', _allStates, size: const Size(840, 272), before: (tester) async {
+  goldenMatrix('button', _allStates, size: const Size(840, 292), before: (tester) async {
     // A Tab press puts focus highlighting in keyboard mode; then focus the fourth row's filled button and
     // hold a press on its tonal one.
     await tester.sendKeyEvent(LogicalKeyboardKey.tab);
@@ -190,7 +190,7 @@ void main() {
     final c = tester.element(find.byType(ButtonRow)).colors;
     Color? fillOf(String label) => ((tester.widget<Container>(
                 find.ancestor(of: find.text(label), matching: find.byType(Container)).first))
-            .decoration as BoxDecoration)
+            .decoration.box)
         .color;
     Color? labelOf(String label) => tester.widget<Text>(find.text(label)).style!.color;
     expect(fillOf('filled'), c.accent);
@@ -213,7 +213,7 @@ void main() {
     final c = tester.element(find.byType(ButtonRow)).colors;
     Color? fillOf(String label) => ((tester.widget<Container>(
                 find.ancestor(of: find.text(label), matching: find.byType(Container)).first))
-            .decoration as BoxDecoration)
+            .decoration.box)
         .color;
     Color? labelOf(String label) => tester.widget<Text>(find.text(label)).style!.color;
     double opacityOf(String label) => tester

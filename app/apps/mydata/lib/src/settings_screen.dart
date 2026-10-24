@@ -94,7 +94,7 @@ class AppearanceSection extends StatelessWidget {
   static String describeEverywhere(ThemeController themes) =>
       ThemeLibrary.describe(themes.settings.everywhere ?? ThemeChoice.system);
 
-  /// "Palettes: Kiwi, Graphite, Dusk, Plum, Rose and Amber."; a theme without palettes says where its colour
+  /// "Palettes: Plum, Ink blue and Forest."; a theme without palettes says where its colour
   /// comes from on a Mac.
   static String palettesOf(ThemeFile theme) {
     if (theme.palettes.isEmpty) return MacLook.forThisPlatform ? 'Its colour is the accent in System Settings.' : '';

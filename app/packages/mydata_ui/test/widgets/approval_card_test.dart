@@ -97,7 +97,7 @@ class _HarnessState extends State<_Harness> {
 }
 
 BoxDecoration _cardDecoration(WidgetTester tester) =>
-    tester.widget<AnimatedContainer>(find.byType(AnimatedContainer).first).decoration! as BoxDecoration;
+    tester.widget<AnimatedContainer>(find.byType(AnimatedContainer).first).decoration!.box;
 
 void main() {
   goldenMatrix('approval_card', _allStates, size: const Size(1184, 640));
@@ -160,8 +160,8 @@ void main() {
     final well = tester.widget<Container>(
       find.ancestor(of: find.byType(Table), matching: find.byType(Container)).first,
     );
-    expect((well.decoration! as BoxDecoration).color, c.surfaceSunken);
-    expect((well.decoration! as BoxDecoration).borderRadius, MyDataRadii.md(kiwiLook));
+    expect((well.decoration!.box).color, c.surfaceSunken);
+    expect((well.decoration!.box).borderRadius, MyDataRadii.md(kiwiLook));
     expect(tester.takeException(), isNull);
   });
 

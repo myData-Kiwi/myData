@@ -458,7 +458,7 @@ void main() {
       await tester.pumpAndSettle();
       final bar = tester.widget<Container>(_bar);
       final c = tester.element(_bar).colors;
-      final decoration = bar.decoration! as BoxDecoration;
+      final decoration = bar.decoration!.box;
       expect(decoration.color, c.surfaceRaised);
       expect(decoration.borderRadius, MyDataRadii.xl(kiwiLook));
       expect(tester.getSize(_bar).height, greaterThanOrEqualTo(MyDataSize.controlHeight + 2 * MyDataSpace.s2));

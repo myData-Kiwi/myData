@@ -1,15 +1,16 @@
-// GENERATED from design/tokens.json (version 6), design/themes.json and
-// design/themes/kiwi/theme.json (the colour roles tokens.json has no token for)
+// GENERATED from design/tokens.json (version 6) and design/themes/kiwi/theme.json
+// (the colour roles tokens.json has no token for; its colours are checked against Kiwi's)
 // by tool/generate_tokens.dart. Do not edit: change the JSON and run
 //   (cd app/packages/mydata_ui && dart run tool/generate_tokens.dart)
 // This is the only file in the apps that may contain literal colours, radii and font names.
 // ignore_for_file: public_member_api_docs
 
 import 'package:flutter/painting.dart';
-import 'package:flutter/material.dart' show Brightness, ThemeExtension;
+import 'package:flutter/material.dart' show ThemeExtension;
 
 /// Every colour token for one theme and mode. `accent` in tokens.json is `MyDataColors.accent` here.
-/// The base values are the Kiwi theme; [withTheme] swaps in another theme's three colours.
+/// [light] and [dark] are Kiwi's default palette, the first frame's and the fallback's; every theme's
+/// colours are resolved at run time (MyDataLook).
 class MyDataColors extends ThemeExtension<MyDataColors> {
   const MyDataColors({
     required this.bg,
@@ -268,16 +269,6 @@ class MyDataColors extends ThemeExtension<MyDataColors> {
     onAvatar: Color(0xFFEDEDEB),
   );
 
-  /// These colours with [theme]'s accent, on-accent and accent-soft for [brightness].
-  MyDataColors withTheme(MyDataThemeSpec theme, Brightness brightness) {
-    final dark = brightness == Brightness.dark;
-    return copyWith(
-      accent: dark ? theme.accentDark : theme.accentLight,
-      onAccent: dark ? theme.onAccentDark : theme.onAccentLight,
-      accentSoft: dark ? theme.accentSoftDark : theme.accentSoftLight,
-    );
-  }
-
   @override
   MyDataColors copyWith({
     Color? bg,
@@ -437,100 +428,6 @@ class MyDataColors extends ThemeExtension<MyDataColors> {
       onAvatar: Color.lerp(onAvatar, other.onAvatar, t)!,
     );
   }
-}
-
-/// A theme the user can pick: it replaces accent, on-accent and accent-soft only (themes.json).
-class MyDataThemeSpec {
-  const MyDataThemeSpec({
-    required this.id,
-    required this.name,
-    required this.accentLight,
-    required this.accentDark,
-    required this.onAccentLight,
-    required this.onAccentDark,
-    required this.accentSoftLight,
-    required this.accentSoftDark,
-  });
-
-  final String id;
-  final String name;
-  final Color accentLight;
-  final Color accentDark;
-  final Color onAccentLight;
-  final Color onAccentDark;
-  final Color accentSoftLight;
-  final Color accentSoftDark;
-}
-
-/// The themes in the order the ThemePicker shows them.
-abstract final class MyDataThemes {
-  static const kiwi = MyDataThemeSpec(
-    id: 'kiwi',
-    name: 'Kiwi',
-    accentLight: Color(0xFF4C7814),
-    accentDark: Color(0xFFA9CC4E),
-    onAccentLight: Color(0xFFFFFFFF),
-    onAccentDark: Color(0xFF1A2408),
-    accentSoftLight: Color(0xFFEBF3DA),
-    accentSoftDark: Color(0xFF28331A),
-  );
-  static const graphite = MyDataThemeSpec(
-    id: 'graphite',
-    name: 'Graphite',
-    accentLight: Color(0xFF232323),
-    accentDark: Color(0xFFE6E6E4),
-    onAccentLight: Color(0xFFFFFFFF),
-    onAccentDark: Color(0xFF161616),
-    accentSoftLight: Color(0xFFE7E7E4),
-    accentSoftDark: Color(0xFF2C2C2C),
-  );
-  static const dusk = MyDataThemeSpec(
-    id: 'dusk',
-    name: 'Dusk',
-    accentLight: Color(0xFF3D5AA9),
-    accentDark: Color(0xFF9DB4F2),
-    onAccentLight: Color(0xFFFFFFFF),
-    onAccentDark: Color(0xFF0E1A3A),
-    accentSoftLight: Color(0xFFE5EAF8),
-    accentSoftDark: Color(0xFF232C47),
-  );
-  static const plum = MyDataThemeSpec(
-    id: 'plum',
-    name: 'Plum',
-    accentLight: Color(0xFF7A3E8E),
-    accentDark: Color(0xFFD2A6E0),
-    onAccentLight: Color(0xFFFFFFFF),
-    onAccentDark: Color(0xFF2A0F33),
-    accentSoftLight: Color(0xFFF1E4F5),
-    accentSoftDark: Color(0xFF3B2145),
-  );
-  static const rose = MyDataThemeSpec(
-    id: 'rose',
-    name: 'Rose',
-    accentLight: Color(0xFFA63A5B),
-    accentDark: Color(0xFFEFA3B8),
-    onAccentLight: Color(0xFFFFFFFF),
-    onAccentDark: Color(0xFF33101C),
-    accentSoftLight: Color(0xFFF8E3E9),
-    accentSoftDark: Color(0xFF40222B),
-  );
-  static const amber = MyDataThemeSpec(
-    id: 'amber',
-    name: 'Amber',
-    accentLight: Color(0xFF8A5100),
-    accentDark: Color(0xFFF0B45A),
-    onAccentLight: Color(0xFFFFFFFF),
-    onAccentDark: Color(0xFF2E1B00),
-    accentSoftLight: Color(0xFFFBEBCF),
-    accentSoftDark: Color(0xFF3D2C0C),
-  );
-
-  static const all = [kiwi, graphite, dusk, plum, rose, amber];
-  static const fallback = kiwi;
-
-  /// The theme with [id], or the default when the id is unknown or null.
-  static MyDataThemeSpec byId(String? id) =>
-      all.firstWhere((t) => t.id == id, orElse: () => fallback);
 }
 
 /// Shadows for one mode (tokens.json "shadow"). CSS blur radii are converted to Flutter's

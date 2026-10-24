@@ -25,7 +25,7 @@ Widget _all() => const Column(
 BoxDecoration _decoration(WidgetTester tester, String label) {
   final box = tester.widget<Container>(
       find.ancestor(of: find.text(label), matching: find.byType(Container)).last);
-  return box.decoration! as BoxDecoration;
+  return box.decoration!.box;
 }
 
 void main() {
@@ -69,7 +69,7 @@ void main() {
     expect(tester.widget<Text>(find.text('Host running')).style!.color, c.ink);
 
     final dots = find.byWidgetPredicate((w) =>
-        w is Container && w.decoration is BoxDecoration && (w.decoration! as BoxDecoration).color == c.brand);
+        w is Container && w.decoration.isBox && (w.decoration!.box).color == c.brand);
     expect(dots, findsOneWidget);
     expect(find.descendant(of: find.byType(MyDataBadge).first, matching: dots), findsOneWidget);
     expect(tester.getSize(dots), const Size(MyDataBadge.dotSize, MyDataBadge.dotSize));

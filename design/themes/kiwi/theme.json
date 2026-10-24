@@ -340,43 +340,43 @@
       },
       "title": {
         "size": 22,
-        "line-height": 1.27,
+        "line-height": 1.2727,
         "weight": 700,
         "tracking": -0.01
       },
       "heading": {
         "size": 17,
-        "line-height": 1.41,
+        "line-height": 1.4118,
         "weight": 600,
         "tracking": 0
       },
       "body": {
         "size": 15,
-        "line-height": 1.47,
+        "line-height": 1.4667,
         "weight": 400,
         "tracking": 0
       },
       "body-strong": {
         "size": 15,
-        "line-height": 1.47,
+        "line-height": 1.4667,
         "weight": 600,
         "tracking": 0
       },
       "label": {
         "size": 13,
-        "line-height": 1.38,
+        "line-height": 1.3846,
         "weight": 600,
         "tracking": 0
       },
       "caption": {
         "size": 13,
-        "line-height": 1.38,
+        "line-height": 1.3846,
         "weight": 400,
         "tracking": 0
       },
       "mono": {
         "size": 13,
-        "line-height": 1.54,
+        "line-height": 1.5385,
         "weight": 400,
         "tracking": 0
       }

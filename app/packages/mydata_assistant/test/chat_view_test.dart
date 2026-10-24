@@ -145,7 +145,7 @@ void main() {
     await tester.pumpAndSettle();
     final c = tester.element(find.byType(ChatView)).colors;
     final bubble = find.ancestor(of: find.text('Hello there'), matching: find.byType(DecoratedBox)).first;
-    final decoration = tester.widget<DecoratedBox>(bubble).decoration as BoxDecoration;
+    final decoration = tester.widget<DecoratedBox>(bubble).decoration.box;
     expect(decoration.color, c.accentSoft);
     expect(decoration.borderRadius, MyDataRadii.lg(kiwiLook));
     expect(tester.widget<Text>(find.text('Hello there')).style?.color, c.ink);

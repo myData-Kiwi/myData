@@ -65,6 +65,9 @@ Finder resetButton(String app) => find.byWidgetPredicate((w) => w is Button && w
 Future<Map<String, Object?>?> storedThemes(DeviceStore store) async =>
     (await store.read())[ThemeSettings.key] as Map<String, Object?>?;
 
+/// The light accent of the built-in or old colour [name] ([MyDataTheme.data]).
+Color accentOf(String name) => MyDataTheme.data(name, Brightness.light).extension<MyDataColors>()!.accent;
+
 Color windowAccent(WidgetTester tester) =>
     tester.widget<MaterialApp>(find.byType(MaterialApp)).theme!.extension<MyDataColors>()!.accent;
 
@@ -152,9 +155,9 @@ void main() {
       final store = MemoryDeviceStore();
       await pumpApp(tester, host, store: store);
       expect(await storedThemes(store), {
-        'everywhere': {'theme': 'mydata.kiwi', 'palette': 'plum'},
+        'everywhere': {'theme': 'mydata.journal', 'palette': 'plum'},
       });
-      expect(windowAccent(tester), MyDataThemes.plum.accentLight);
+      expect(windowAccent(tester), accentOf('plum'));
       expect(host.requests.where((r) => r.contains('/appearance')), isEmpty);
     });
   });
@@ -165,7 +168,7 @@ void main() {
         'themes': {
           'everywhere': {'theme': 'mydata.system'},
           'apps': {
-            'mycalendar': {'theme': 'mydata.kiwi', 'palette': 'dusk'},
+            'mycalendar': {'theme': 'mydata.frosted', 'palette': 'dusk'},
           },
         },
       });
@@ -176,7 +179,7 @@ void main() {
       for (final a in MyDataAppId.values) {
         expect(find.text(a.displayName), findsWidgets, reason: a.displayName);
       }
-      expect(find.text('Kiwi, Dusk'), findsOneWidget);
+      expect(find.text('Frosted, Dusk'), findsOneWidget);
       expect(find.text(AppearanceSection.sameAsEverywhere), findsNWidgets(3));
       expect(tester.widget<Button>(resetButton('myContacts')).onPressed, isNull);
       expect(tester.widget<Button>(resetButton('myContacts')).disabledReason, AppearanceSection.resetReason);
@@ -256,7 +259,7 @@ void main() {
       final mine = {
         'everywhere': {'theme': 'mydata.system'},
         'apps': {
-          'mycontacts': {'theme': 'mydata.kiwi', 'palette': 'rose'},
+          'mycontacts': {'theme': 'mydata.sticker', 'palette': 'rose'},
         },
       };
       final store = MemoryDeviceStore({'themes': mine});
@@ -268,18 +271,19 @@ void main() {
       // myData's own window previews as the selection moves
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
       await settle(tester);
-      expect(windowAccent(tester), MyDataThemes.kiwi.accentLight);
+      expect(windowAccent(tester), accentOf('kiwi'));
       await tester.sendKeyEvent(LogicalKeyboardKey.tab);
       await settle(tester);
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
       await settle(tester);
-      expect(windowAccent(tester), MyDataThemes.graphite.accentLight);
+      expect(windowAccent(tester), MyDataTheme.dataFor(const ThemeChoice('mydata.kiwi', 'sky'), Brightness.light)
+          .extension<MyDataColors>()!.accent);
       await tester.tap(find.text(ThemeGallery.everywhereLabel));
       await settle(tester);
       expect(await storedThemes(store), {
-        'everywhere': {'theme': 'mydata.kiwi', 'palette': 'graphite'},
+        'everywhere': {'theme': 'mydata.kiwi', 'palette': 'sky'},
       });
-      expect(find.text(ThemeGallery.everywhereDone('Kiwi, Graphite')), findsOneWidget);
+      expect(find.text(ThemeGallery.everywhereDone('Kiwi, Sky')), findsOneWidget);
       await tester.tap(find.text('Undo'));
       await settle(tester);
       expect(await storedThemes(store), mine);
@@ -295,9 +299,9 @@ void main() {
       addTearDown(tester.view.reset);
       final store = MemoryDeviceStore({
         'themes': {
-          'everywhere': {'theme': 'mydata.kiwi', 'palette': 'dusk'},
+          'everywhere': {'theme': 'mydata.frosted', 'palette': 'dusk'},
           'apps': {
-            'mydata': {'theme': 'mydata.kiwi', 'palette': 'rose'},
+            'mydata': {'theme': 'mydata.sticker', 'palette': 'rose'},
           },
         },
       });
@@ -312,9 +316,9 @@ void main() {
       await tester.sendKeyEvent(LogicalKeyboardKey.enter);
       await settle(tester);
       expect(await storedThemes(store), {
-        'everywhere': {'theme': 'mydata.kiwi', 'palette': 'dusk'},
+        'everywhere': {'theme': 'mydata.frosted', 'palette': 'dusk'},
       });
-      expect(find.text(ThemeGallery.everywhereDone('Kiwi, Dusk')), findsOneWidget);
+      expect(find.text(ThemeGallery.everywhereDone('Frosted, Dusk')), findsOneWidget);
     }, variant: TargetPlatformVariant.only(TargetPlatform.windows));
 
     testWidgets('on a phone, Everywhere has no Change…: phones have one theme per app', (tester) async {
@@ -358,10 +362,10 @@ void main() {
       // myContacts' gallery, Use everywhere
       final other = ThemeController(appId: 'mycontacts', store: store, macOS: false);
       await other.start();
-      await other.useEverywhere(const ThemeChoice('mydata.kiwi', 'plum'));
+      await other.useEverywhere(const ThemeChoice('mydata.journal', 'plum'));
       other.dispose();
       await settle(tester);
-      expect(windowAccent(tester), MyDataThemes.plum.accentLight);
+      expect(windowAccent(tester), accentOf('plum'));
     });
 
     testWidgets('the assistant switch turns the assistant off and on', (tester) async {

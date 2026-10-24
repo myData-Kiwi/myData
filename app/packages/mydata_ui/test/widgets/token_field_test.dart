@@ -81,7 +81,7 @@ void main() {
       SizedBox(height: MyDataSpace.s5),
       _Host(initial: ['ava@example.org', 'ben@example'], rule: true),
     ]),
-    size: const Size(448, 470),
+    size: const Size(448, 480),
   );
 
   goldenMatrix(
@@ -202,11 +202,11 @@ void main() {
       expect(tester.takeAnnouncements().map((a) => a.message), contains('Family is already added'));
       final pill = tester.widget<Container>(
           find.descendant(of: find.byKey(const ValueKey('token:Family')), matching: find.byType(Container)).first);
-      expect((pill.decoration! as BoxDecoration).color, _kiwi.accentSoft);
+      expect((pill.decoration!.box).color, _kiwi.accentSoft);
       await tester.pump(TokenField.duplicateFlash);
       final after = tester.widget<Container>(
           find.descendant(of: find.byKey(const ValueKey('token:Family')), matching: find.byType(Container)).first);
-      expect((after.decoration! as BoxDecoration).color, _kiwi.surfaceSunken);
+      expect((after.decoration!.box).color, _kiwi.surfaceSunken);
     });
 
     testWidgets('with nothing typed no list opens; Down opens the full list', (tester) async {
@@ -247,7 +247,7 @@ void main() {
       expect(changes, isEmpty);
       final pill = tester.widget<Container>(
           find.descendant(of: find.byKey(const ValueKey('token:Work')), matching: find.byType(Container)).first);
-      expect((pill.decoration! as BoxDecoration).color, _kiwi.accentSoft);
+      expect((pill.decoration!.box).color, _kiwi.accentSoft);
       await _key(tester, LogicalKeyboardKey.backspace);
       expect(changes.last, ['Family']);
       expect(tester.takeAnnouncements().map((a) => a.message), contains('Removed Work'));
@@ -335,7 +335,7 @@ void main() {
     await tester.pump();
     final pill = tester.widget<Container>(
         find.descendant(of: find.byKey(const ValueKey('token:Family')), matching: find.byType(Container)).first);
-    expect((pill.decoration! as BoxDecoration).color, _kiwi.accentSoft);
+    expect((pill.decoration!.box).color, _kiwi.accentSoft);
     expect(changes, isEmpty);
     await tester.tap(find.text('Family'));
     await tester.pump();
@@ -354,7 +354,7 @@ void main() {
       expect(b.left - a.right, MyDataSpace.s1);
       final pill = tester.widget<Container>(
           find.descendant(of: find.byKey(const ValueKey('token:Family')), matching: find.byType(Container)).first);
-      final deco = pill.decoration! as BoxDecoration;
+      final deco = pill.decoration!.box;
       expect(deco.color, _kiwi.surfaceSunken);
       expect(deco.borderRadius, MyDataRadii.pill(kiwiLook));
       final field = tester.getRect(find.ancestor(of: find.byKey(const ValueKey('token:Family')), matching: find.byType(Container)).last);
@@ -376,7 +376,7 @@ void main() {
           themedFrame(themeMatrix.first, const _Host(initial: ['ava@example.org', 'ben@example'], rule: true)));
       final bad = tester.widget<Container>(
           find.descendant(of: find.byKey(const ValueKey('token:ben@example')), matching: find.byType(Container)).first);
-      expect((bad.decoration! as BoxDecoration).color, _kiwi.dangerSoft);
+      expect((bad.decoration!.box).color, _kiwi.dangerSoft);
       expect(find.descendant(of: find.byKey(const ValueKey('token:ben@example')), matching: findIcon(MyDataIcon.error)),
           findsOneWidget);
       expect(find.text('ben@example is not a complete address. It looks like name@example.org.'), findsOneWidget);
@@ -428,7 +428,7 @@ void main() {
       await tester.pump();
       final circle = tester.widget<Container>(
           find.ancestor(of: findIcon(MyDataIcon.close), matching: find.byType(Container)).first);
-      expect((circle.decoration! as BoxDecoration).color, _kiwi.surface);
+      expect((circle.decoration!.box).color, _kiwi.surface);
       expect(tester.getSize(find.ancestor(of: findIcon(MyDataIcon.close), matching: find.byType(Container)).first),
           const Size.square(MyDataSize.iconTile));
     });

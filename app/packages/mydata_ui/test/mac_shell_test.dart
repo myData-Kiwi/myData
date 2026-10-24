@@ -49,7 +49,7 @@ void main() {
     MacLook.debugOverride = false;
     late ThemeData light;
     late ThemeMode mode;
-    final theme = MyDataTheme.kiwi('graphite', mode: MyDataMode.dark);
+    final theme = MyDataTheme(choice: const ThemeChoice('mydata.hairline'), mode: MyDataMode.dark);
     await tester.pumpWidget(shell(theme, (l, _, m) => (light, mode) = (l, m)));
     expect(light.extension<MyDataMacColors>(), isNull);
     expect(light.extension<MyDataColors>()!.accent, theme.light.extension<MyDataColors>()!.accent);
@@ -74,7 +74,7 @@ void main() {
   testWidgets('on a Mac, a drawn theme keeps the Mac window and draws its palette inside it', (tester) async {
     MacLook.debugOverride = true;
     late ThemeData light, dark;
-    await tester.pumpWidget(shell(MyDataTheme.kiwi('plum'), (l, d, _) => (light, dark) = (l, d)));
+    await tester.pumpWidget(shell(MyDataTheme(choice: const ThemeChoice('mydata.journal', 'plum')), (l, d, _) => (light, dark) = (l, d)));
     for (final (data, b) in [(light, Brightness.light), (dark, Brightness.dark)]) {
       final drawn = MyDataTheme.data('plum', b).extension<MyDataColors>()!;
       expect(roles(data.extension<MyDataColors>()!), roles(drawn));

@@ -471,13 +471,13 @@ void main() {
       final c = MyDataTheme.data('kiwi', Brightness.light).extension<MyDataColors>()!;
       final rings = tester
           .widgetList<DecoratedBox>(find.descendant(of: _row('Ava Fictional'), matching: find.byType(DecoratedBox)))
-          .map((d) => d.decoration as BoxDecoration)
+          .map((d) => d.decoration.box)
           .toList();
       expect(rings.any((d) => d.color == c.accentSoft), isTrue);
       expect(rings.any((d) => d.border == Border.all(color: c.ink, width: ContactList.selectionRingWidth)), isTrue);
       final other = tester
           .widgetList<DecoratedBox>(find.descendant(of: _row('Eli Sample'), matching: find.byType(DecoratedBox)))
-          .map((d) => d.decoration as BoxDecoration);
+          .map((d) => d.decoration.box);
       expect(other.any((d) => d.border != null || d.color == c.accentSoft), isFalse);
     });
 
@@ -491,8 +491,7 @@ void main() {
                       .widget<AnimatedContainer>(
                         find.descendant(of: _row(name), matching: find.byType(AnimatedContainer)),
                       )
-                      .decoration!
-                  as BoxDecoration)
+                      .decoration!.box)
               .color;
       final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
       await mouse.addPointer(location: tester.getCenter(find.text('Eli Sample')));

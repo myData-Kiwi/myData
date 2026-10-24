@@ -19,13 +19,12 @@ import 'fixtures.dart';
 /// The case being rendered, for the `before` steps.
 late ThemeCase current;
 
-/// The app on [host], in [t]'s theme (stored on the host) and mode (stored on this device).
+/// The app on [host], in [t]'s theme and mode (stored on this device).
 Widget app(FakeHost host, ThemeCase t, {Set<MyDataAppId> installed = const {}, Stream<MyDataLink>? links}) {
   current = t;
-  host.theme = t.themeId;
   return MyDataApp(
     controller: host.controller(),
-    store: MemoryDeviceStore({'mode': t.brightness.name, 'lastTheme': t.themeId}),
+    store: MemoryDeviceStore(t.deviceSettings),
     macSystem: FakeMacSystem(),
     installedApps: FakeLaunchServices(installed).apps(),
     openApp: (_) async => true,

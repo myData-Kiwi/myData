@@ -205,7 +205,7 @@ void main() {
       expect(find.text('Notes'), findsOneWidget);
       expect(find.byType(DecoratedBox).evaluate().where((e) {
         final d = (e.widget as DecoratedBox).decoration;
-        return d is BoxDecoration && d.boxShadow != null && d.boxShadow!.isNotEmpty;
+        return d.isBox && d.box.boxShadow != null && d.box.boxShadow!.isNotEmpty;
       }), isEmpty, reason: 'no cards on a panel');
     });
 
@@ -223,7 +223,7 @@ void main() {
             ]),
           )));
       final part = find.ancestor(of: find.byType(MyDataTextField).first, matching: find.byType(DecoratedBox)).first;
-      final deco = tester.widget<DecoratedBox>(part).decoration as BoxDecoration;
+      final deco = tester.widget<DecoratedBox>(part).decoration.box;
       expect(deco.color, _kiwi.surface);
       expect(deco.borderRadius, MyDataRadii.lg(kiwiLook));
       expect(tester.getRect(find.byType(MyDataTextField).first).left - tester.getRect(part).left, MyDataSpace.s5);

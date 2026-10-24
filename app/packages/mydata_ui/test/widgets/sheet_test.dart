@@ -222,7 +222,7 @@ void main() {
       expect(tester.getTopLeft(editor).dy, Sheet.topGap(kiwiLook));
       expect(tester.getBottomLeft(editor).dy, 667);
       final c = tester.element(editor).colors;
-      expect((tester.widget<Container>(editor).decoration! as BoxDecoration).color, c.surface);
+      expect((tester.widget<Container>(editor).decoration!.box).color, c.surface);
       await tester.tap(find.text(Sheet.cancelLabel));
       await tester.pumpAndSettle();
 
@@ -230,7 +230,7 @@ void main() {
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
       final picker = find.ancestor(of: find.text('Label for phone 1'), matching: find.byType(Container)).last;
-      expect((tester.widget<Container>(picker).decoration! as BoxDecoration).color, c.surfaceRaised);
+      expect((tester.widget<Container>(picker).decoration!.box).color, c.surfaceRaised);
       expect(tester.getSize(picker).height, lessThan(667 / 2 + _labels.length * MyDataSize.rowHeight));
       expect(tester.getSize(find.ancestor(of: find.text('Work'), matching: find.byType(Container)).first).height,
           MyDataSize.rowHeight);

@@ -88,10 +88,7 @@ String _strip(String s) => String.fromCharCodes(
 
 /// Validates [text] as a theme file. [builtIn] for the files that ship with myData: their `mydata.` ids are
 /// allowed, every palette must pass and must give every role the style does not fix (1.6).
-///
-/// [todaysKiwi] for the one built-in that may break the schema's 2 to 4 palettes: Kiwi as the apps draw it in
-/// phases 1 and 2, whose palettes are today's six colours (ARCHITECTURE.md 3.1). Phase 3 removes it.
-ThemeCheck validateThemeText(String text, ThemeFormat format, {bool builtIn = false, bool todaysKiwi = false}) {
+ThemeCheck validateThemeText(String text, ThemeFormat format, {bool builtIn = false}) {
   final Object? json;
   try {
     json = readStrictJson(text);
@@ -101,12 +98,11 @@ ThemeCheck validateThemeText(String text, ThemeFormat format, {bool builtIn = fa
   if (json is! Map<String, Object?>) {
     return const ThemeCheck(errors: ['A theme file is one JSON object.'], notices: []);
   }
-  return validateThemeJson(json, format, builtIn: builtIn, todaysKiwi: todaysKiwi);
+  return validateThemeJson(json, format, builtIn: builtIn);
 }
 
 /// As [validateThemeText], for JSON already read by [readStrictJson] (it is changed: unknown keys are dropped).
-ThemeCheck validateThemeJson(Map<String, Object?> json, ThemeFormat format,
-    {bool builtIn = false, bool todaysKiwi = false}) {
+ThemeCheck validateThemeJson(Map<String, Object?> json, ThemeFormat format, {bool builtIn = false}) {
   final errors = <String>[], notices = <String>[];
 
   // 3. The format.
@@ -137,9 +133,6 @@ ThemeCheck validateThemeJson(Map<String, Object?> json, ThemeFormat format,
     notices.add('"$k" is not part of the theme format and was left out.');
   }
   for (final issue in checkSchema(json, format.schema)) {
-    if (todaysKiwi && json['id'] == 'mydata.kiwi' && issue.path == 'palettes' && issue.message == 'must list at most 4') {
-      continue;
-    }
     (issue.notice ? notices : errors).add('$issue.');
   }
   if (errors.isNotEmpty) return ThemeCheck(errors: errors, notices: notices);

@@ -112,7 +112,7 @@ void main() {
       await tester.pumpAndSettle();
       final fill = tester.widget<AnimatedContainer>(
           find.descendant(of: find.byKey(const Key('inert')), matching: find.byType(AnimatedContainer)));
-      expect(((fill.decoration! as BoxDecoration).color!).a, 0);
+      expect(((fill.decoration!.box).color!).a, 0);
       expect(RendererBinding.instance.mouseTracker.debugDeviceActiveCursor(1), isNot(SystemMouseCursors.click));
     });
 

@@ -36,7 +36,7 @@ class _HostState extends State<_Host> {
 
 /// The pill: the only box filled with `accent-soft`.
 Finder _pill(BuildContext context) => find.byWidgetPredicate((w) =>
-    w is DecoratedBox && w.decoration is BoxDecoration && (w.decoration as BoxDecoration).color == context.colors.accentSoft);
+    w is DecoratedBox && w.decoration.isBox && (w.decoration.box).color == context.colors.accentSoft);
 
 Finder _tab(String name) => find.ancestor(of: find.text(name), matching: find.byType(Pressable));
 

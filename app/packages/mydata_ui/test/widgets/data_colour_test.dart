@@ -23,7 +23,7 @@ BoxDecoration _decorationOf(WidgetTester tester, Finder widget) {
   final box = find.descendant(of: widget, matching: find.byType(Container)).evaluate().isNotEmpty
       ? tester.widget<Container>(find.descendant(of: widget, matching: find.byType(Container)).first).decoration
       : tester.widget<DecoratedBox>(find.descendant(of: widget, matching: find.byType(DecoratedBox)).first).decoration;
-  return box! as BoxDecoration;
+  return box!.box;
 }
 
 /// The two calendar lists of the preview, one GroupedList per source, plus a subscribed calendar.
@@ -503,7 +503,7 @@ void main() {
       expect(find.byType(AnimatedScale), findsNothing);
       final fill = tester.widget<AnimatedContainer>(
           find.descendant(of: find.byType(CalendarListRow), matching: find.byType(AnimatedContainer)).first);
-      expect((fill.decoration! as BoxDecoration).color, _colors('kiwi', Brightness.light).surfaceHover);
+      expect((fill.decoration!.box).color, _colors('kiwi', Brightness.light).surfaceHover);
       expect(tester.getSize(find.byType(CalendarListRow)), before);
       await g.up();
     });

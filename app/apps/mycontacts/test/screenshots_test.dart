@@ -30,8 +30,7 @@ Widget app(
     statusOnConnect: hostStatus(theme: t.themeId, real: anyOn),
   ),
   store: MemoryDeviceStore({
-    'mode': t.brightness.name,
-    'lastTheme': t.themeId,
+    ...t.deviceSettings,
     ContactsController.lastOpenedKey: ?lastOpened,
   }),
   backend: backend ?? FakeBackend(anyOn: anyOn, photos: {'c-ava': portrait}),

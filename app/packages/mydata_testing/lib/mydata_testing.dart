@@ -2,7 +2,7 @@
 ///
 /// - [loadMyDataFonts]: render the bundled fonts (and Material icons) in widget and golden tests instead of
 ///   Flutter's test font. Call it from each package's test/flutter_test_config.dart.
-/// - [themeMatrix] and [goldenMatrix]: one golden per theme and mode (Kiwi and Graphite, light and dark).
+/// - [themeMatrix] and [goldenMatrix]: one golden per theme and mode (Kiwi and Hairline, light and dark).
 /// - [loadMacFonts] and [macMatrix]: the Mac frame's fonts (the system font, Lucide) and its two appearances.
 library;
 
@@ -128,22 +128,82 @@ Future<void> myDataTestExecutable(FutureOr<void> Function() testMain) async {
   await testMain();
 }
 
-/// One theme and mode to render a golden in.
-class ThemeCase {
-  const ThemeCase(this.themeId, this.brightness);
-  final String themeId;
-  final Brightness brightness;
-  String get label => '$themeId-${brightness.name}';
-  ThemeData get data => MyDataTheme.data(themeId, brightness);
+/// A decoration read back as the BoxDecoration a widget built it from: `context.radius.decorate` turns a box
+/// into a ShapeDecoration where the look's corners are continuous or cut (Kiwi's are continuous), so tests
+/// that check a fill, radius, border or shadow read it through [box].
+extension DecorationAsBox on Decoration? {
+  /// Whether this is a box, or the ShapeDecoration `decorate` made of one.
+  bool get isBox {
+    final d = this;
+    return d is BoxDecoration ||
+        d is ShapeDecoration &&
+            (d.shape is RoundedSuperellipseBorder ||
+                d.shape is RoundedRectangleBorder ||
+                d.shape is BeveledRectangleBorder);
+  }
+
+  BoxDecoration get box {
+    final d = this;
+    if (d is BoxDecoration) return d;
+    if (d is ShapeDecoration) {
+      final (radius, side) = switch (d.shape) {
+        RoundedSuperellipseBorder(:final borderRadius, :final side) => (borderRadius, side),
+        RoundedRectangleBorder(:final borderRadius, :final side) => (borderRadius, side),
+        BeveledRectangleBorder(:final borderRadius, :final side) => (borderRadius, side),
+        final other => throw StateError('$other is not a rounded box'),
+      };
+      return BoxDecoration(
+        color: d.color,
+        gradient: d.gradient,
+        image: d.image,
+        boxShadow: d.shadows,
+        borderRadius: radius,
+        border: side == BorderSide.none ? null : Border.fromBorderSide(side),
+      );
+    }
+    throw StateError('$d is not a box');
+  }
 }
 
-/// The four combinations every widget golden and screenshot is made in.
+/// One theme and mode to render a golden in.
+///
+/// [themeId] names it in file names and says which theme it draws ([MyDataTheme.choiceNamed]): a built-in's
+/// slug (`hairline`, in its default palette unless [palette] says), or one of today's old colours, which the
+/// Mac frame's tests use as the accent set in System Settings (`graphite` draws Hairline in Graphite off the
+/// Mac shell).
+class ThemeCase {
+  const ThemeCase(this.themeId, this.brightness, {this.palette});
+  final String themeId;
+  final Brightness brightness;
+  final String? palette;
+  String get label => palette == null ? '$themeId-${brightness.name}' : '$themeId-$palette-${brightness.name}';
+
+  /// The theme and palette this case draws.
+  ThemeChoice get choice {
+    final c = MyDataTheme.choiceNamed(themeId);
+    return palette == null ? c : ThemeChoice(c.theme, palette);
+  }
+
+  ThemeData get data => MyDataTheme.dataFor(choice, brightness);
+
+  /// A device's settings that draw this case in every app: its mode, and its theme everywhere.
+  Map<String, Object?> get deviceSettings => {
+        'mode': brightness.name,
+        'themes': {'everywhere': choice.toJson()},
+      };
+}
+
+/// The four combinations every widget golden and screenshot is made in: Kiwi, the house style, and
+/// Hairline, the quietest of the drawn looks, in light and dark.
 const themeMatrix = [
   ThemeCase('kiwi', Brightness.light),
   ThemeCase('kiwi', Brightness.dark),
-  ThemeCase('graphite', Brightness.light),
-  ThemeCase('graphite', Brightness.dark),
+  ThemeCase('hairline', Brightness.light),
+  ThemeCase('hairline', Brightness.dark),
 ];
+
+/// The six drawn built-ins, by slug, in the gallery's order.
+const drawnThemes = ['kiwi', 'hairline', 'frosted', 'journal', 'sticker', 'paperback'];
 
 /// The Mac frame's two appearances. Its accent is the system's, not the host's theme, so one theme is enough.
 const macMatrix = [
@@ -157,6 +217,8 @@ Widget themedFrame(ThemeCase theme, Widget child,
     MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: theme.data,
+      // As every app: a theme change is one rebuild, never a lerp through in-between looks.
+      themeAnimationDuration: MyDataTheme.switchDuration,
       home: MyDataAccessibility(
         reduceMotion: reduceMotion,
         reduceTransparency: reduceTransparency,

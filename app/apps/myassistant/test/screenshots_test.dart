@@ -15,8 +15,8 @@ import 'fixtures.dart';
 Widget app(ThemeCase t, HostPhase phase, {StatusOut? status, AssistantBackend? backend, InstalledApps? apps}) =>
     MyAssistantApp(
       host: FakeHost(phaseOnConnect: phase, statusOnConnect: status),
-      // The device remembers the last theme seen, so the app draws in it before the host answers.
-      store: MemoryDeviceStore({'mode': t.brightness.name, 'lastTheme': t.themeId}),
+      // This device's mode, and the theme every app on it draws.
+      store: MemoryDeviceStore(t.deviceSettings),
       backend: backend,
       apps: apps,
       openLink: (_) async => true,

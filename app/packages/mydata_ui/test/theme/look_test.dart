@@ -13,23 +13,25 @@ import 'package:mydata_ui/src/theme/theme_file.dart';
 import 'designed_themes.dart';
 
 void main() {
-  test('MyDataTheme carries the look: Kiwi in the chosen colour, its colours and shadows as their own extensions', () {
+  test('MyDataTheme carries the look: the named theme, its colours and shadows as their own extensions', () {
     for (final b in Brightness.values) {
       final data = MyDataTheme.data('plum', b);
       final look = data.extension<MyDataLook>()!;
-      expect(look.themeId, 'mydata.kiwi');
+      expect(look.themeId, 'mydata.journal', reason: 'plum is a palette of Journal now');
       expect(look.paletteId, 'plum');
       expect(look.frame, LookFrame.drawn);
       expect(look.brightness, b);
       expect(identical(data.extension<MyDataColors>(), look.colors), isTrue);
       expect(identical(data.extension<MyDataShadows>(), look.elevation.shadows), isTrue);
       expect(MyDataTheme.data('nonsense', b).extension<MyDataLook>()!.paletteId, 'kiwi');
+      expect(MyDataTheme.data('hairline', b).extension<MyDataLook>()!.paletteId, 'graphite');
+      expect(MyDataTheme.data('mydata.sticker', b).extension<MyDataLook>()!.themeId, 'mydata.sticker');
     }
   });
 
   test('looks are resolved once and kept', () {
-    expect(identical(ThemeLibrary.kiwiLook('dusk', Brightness.dark), ThemeLibrary.kiwiLook('dusk', Brightness.dark)),
-        isTrue);
+    ThemeData frosted() => MyDataTheme.dataFor(const ThemeChoice('mydata.frosted', 'aurora'), Brightness.dark);
+    expect(identical(frosted().extension<MyDataLook>(), frosted().extension<MyDataLook>()), isTrue);
   });
 
   test('the Mac shell\'s theme is the System look, with the system\'s colours and no palette', () {
@@ -68,7 +70,7 @@ void main() {
             expect(look.frame, LookFrame.system);
             expect(look.paletteId, isNull);
             // Off the Mac, System is Kiwi in its own colour until each platform's pass.
-            expect(look.colors.accent, ThemeLibrary.kiwiLook(null, b).colors.accent);
+            expect(look.colors.accent, ThemeLibrary.look(ThemeLibrary.kiwi, brightness: b).colors.accent);
           } else {
             expect(look.paletteId, theme.defaultPaletteId);
           }
@@ -83,14 +85,14 @@ void main() {
     ThemeFile read() => ThemeFile.fromJson(
         {...ThemeLibrary.kiwi.json, 'id': '0b6e2f3a-1c4d-4e5f-8a9b-0c1d2e3f4a5b'}, base: ThemeLibrary.kiwi.json);
     final theme = read();
-    final a = ThemeLibrary.look(theme, paletteId: 'rose', brightness: Brightness.dark);
-    expect(identical(a, ThemeLibrary.look(theme, paletteId: 'rose', brightness: Brightness.dark)), isTrue);
-    expect(identical(a, ThemeLibrary.look(theme, paletteId: 'rose', brightness: Brightness.light)), isFalse);
-    expect(identical(a, ThemeLibrary.look(read(), paletteId: 'rose', brightness: Brightness.dark)), isFalse);
+    final a = ThemeLibrary.look(theme, paletteId: 'sky', brightness: Brightness.dark);
+    expect(identical(a, ThemeLibrary.look(theme, paletteId: 'sky', brightness: Brightness.dark)), isTrue);
+    expect(identical(a, ThemeLibrary.look(theme, paletteId: 'sky', brightness: Brightness.light)), isFalse);
+    expect(identical(a, ThemeLibrary.look(read(), paletteId: 'sky', brightness: Brightness.dark)), isFalse);
   });
 
   test('a theme change cross-fades colours and sizes and switches the rest half way', () {
-    final a = ThemeLibrary.kiwiLook('kiwi', Brightness.light);
+    final a = ThemeLibrary.look(ThemeLibrary.kiwi, brightness: Brightness.light);
     final b = MyDataLook.fallback(Brightness.dark).copyWith(frame: LookFrame.system, themeId: 'mydata.system');
     final mid = a.lerp(b, 0.4);
     expect(mid.frame, LookFrame.drawn);
@@ -101,8 +103,9 @@ void main() {
 
   test('the shape gives each corner style its border', () {
     final kiwi = MyDataLook.fallback(Brightness.light).shape;
-    expect(kiwi.border(kiwi.lg), RoundedRectangleBorder(borderRadius: BorderRadius.circular(kiwi.lg)));
+    expect(kiwi.border(kiwi.lg), RoundedSuperellipseBorder(borderRadius: BorderRadius.circular(kiwi.lg)));
     for (final (corners, type) in [
+      (CornerStyle.round, RoundedRectangleBorder),
       (CornerStyle.continuous, RoundedSuperellipseBorder),
       (CornerStyle.cut, BeveledRectangleBorder),
       (CornerStyle.square, RoundedRectangleBorder),
@@ -122,7 +125,7 @@ void main() {
     late Duration fast;
     late MyDataLook inInit;
     await tester.pumpWidget(MaterialApp(
-      theme: MyDataTheme.data('graphite', Brightness.light),
+      theme: MyDataTheme.dataFor(const ThemeChoice('mydata.kiwi', 'sky'), Brightness.light),
       home: Builder(builder: (context) {
         space = context.space(4);
         body = context.typeScale.body;
@@ -135,7 +138,7 @@ void main() {
     expect(body, MyDataType.body);
     expect(radius, MyDataRadius.lg);
     expect(fast, MyDataMotion.fast);
-    expect(inInit.paletteId, 'graphite');
+    expect(inInit.paletteId, 'sky');
   });
 
   testWidgets('outside any MyDataTheme the look is Kiwi\'s fallback, never missing', (tester) async {
@@ -294,7 +297,7 @@ void main() {
 
     test('a control is never outlined in the faint line: line-strong stands in', () {
       // A theme (a custom one, say) that outlines controls in `line`.
-      final json = jsonDecode(kiwiThemeJson) as Map<String, dynamic>;
+      final json = jsonDecode(builtInThemeJson[ThemeLibrary.kiwiId]!) as Map<String, dynamic>;
       (json['borders'] as Map<String, dynamic>).addAll({'controls': true, 'colour': 'line'});
       for (final b in Brightness.values) {
         final outlined = ThemeLibrary.look(ThemeFile.fromJson(json, base: json), brightness: b, platform: TargetPlatform.linux);
@@ -309,14 +312,14 @@ void main() {
 
     test('Kiwi as drawn today: no card or control edges, full-width separators in line, no title rule', () {
       for (final b in Brightness.values) {
-        final e = ThemeLibrary.kiwiLook(null, b).edges;
+        final e = ThemeLibrary.look(ThemeLibrary.kiwi, brightness: b).edges;
         expect(e.card, isNull);
         expect(e.controls, isFalse);
         expect(e.separators, Separators.full);
         expect(e.titleRule, TitleRule.none);
-        expect(e.colour, ThemeLibrary.kiwiLook(null, b).colors.line);
+        expect(e.colour, ThemeLibrary.look(ThemeLibrary.kiwi, brightness: b).colors.line);
         // Increased contrast outlines every control (ARCHITECTURE.md 2.3).
-        expect(ThemeLibrary.kiwiLook(null, b, increasedContrast: true).edges.controls, isTrue);
+        expect(ThemeLibrary.look(ThemeLibrary.kiwi, brightness: b, increasedContrast: true).edges.controls, isTrue);
       }
     });
   });
@@ -364,7 +367,7 @@ void main() {
       }
 
       for (final b in Brightness.values) {
-        final look = ThemeLibrary.kiwiLook(null, b);
+        final look = ThemeLibrary.look(ThemeLibrary.kiwi, brightness: b);
         final bevel = MyDataElevation.of(
           const ElevationSpec(style: ElevationStyle.bevel, strength: 1, offset: 4, collapse: false),
           shadow: look.colors.shadow,
@@ -383,7 +386,7 @@ void main() {
     });
 
     test('Kiwi as drawn today: soft, nothing under controls', () {
-      final e = ThemeLibrary.kiwiLook(null, Brightness.light).elevation;
+      final e = ThemeLibrary.look(ThemeLibrary.kiwi, brightness: Brightness.light).elevation;
       expect(e.style, ElevationStyle.soft);
       expect(e.controlShadows(primary: true), isEmpty);
       expect(e.bevel, isNull);
@@ -395,7 +398,7 @@ void main() {
     tearDown(() => MyDataDensity.debugFloor = MyDataDensity.desktopFloor);
 
     ThemeFile small() {
-      final json = jsonDecode(kiwiThemeJson) as Map<String, dynamic>;
+      final json = jsonDecode(builtInThemeJson[ThemeLibrary.kiwiId]!) as Map<String, dynamic>;
       json['density'] = {
         'desktop': {'control': 24, 'row': 24, 'icon': 14, 'space': 0.75},
         'phone': {'control': 24, 'row': 24, 'icon': 14, 'space': 0.75},
@@ -421,7 +424,7 @@ void main() {
 
     test('Kiwi keeps its 44 on a desktop and iOS, and rises to 48 on Android', () {
       // A fresh file: the library keeps looks it resolved under the tests' held floor.
-      final json = jsonDecode(kiwiThemeJson) as Map<String, dynamic>;
+      final json = jsonDecode(builtInThemeJson[ThemeLibrary.kiwiId]!) as Map<String, dynamic>;
       final kiwi = ThemeFile.fromJson(json, base: json);
       expect(ThemeLibrary.look(kiwi, brightness: Brightness.light, platform: TargetPlatform.macOS)
           .density.controlHeight, 44);

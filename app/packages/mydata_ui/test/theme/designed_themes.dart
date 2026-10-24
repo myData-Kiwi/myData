@@ -1,24 +1,15 @@
-// The designed built-ins of design/themes (the phase 3 looks), as the tests read them: bundled in
-// assets/themes, validated as built-ins, resolved like any theme.
-import 'dart:io';
-
+// The designed built-ins of design/themes, as the tests read them: generated into builtin_themes.g.dart,
+// validated as built-ins, resolved like any theme.
 import 'package:flutter/material.dart';
 import 'package:mydata_ui/mydata_ui.dart';
-import 'package:mydata_ui/src/theme/strict_json.dart';
+import 'package:mydata_ui/src/theme/builtin_themes.g.dart';
 import 'package:mydata_ui/src/theme/validate.dart';
 
-/// The designed theme files as bundled, by id.
-Map<String, String> designedThemeTexts() => {
-      for (final f in Directory('assets/themes').listSync().whereType<File>())
-        'mydata.${f.uri.pathSegments.last.replaceAll('.json', '')}': f.readAsStringSync(),
-    };
+/// The built-in theme files, by id.
+Map<String, String> designedThemeTexts() => builtInThemeJson;
 
-/// The validator's format, with the designed styles as built-ins to be based on.
-ThemeFormat designedThemeFormat() => ThemeLibrary.format(extraStyles: {
-      for (final e in designedThemeTexts().entries)
-        if (e.key != ThemeLibrary.kiwiId && e.key != ThemeLibrary.systemId)
-          e.key: readStrictJson(e.value) as Map<String, Object?>,
-    });
+/// The validator's format, every built-in's style known to be based on.
+ThemeFormat designedThemeFormat() => ThemeLibrary.format();
 
 /// The six drawn built-ins, in the gallery's order.
 const drawnBuiltIns = [

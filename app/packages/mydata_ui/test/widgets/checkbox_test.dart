@@ -83,7 +83,7 @@ void main() {
         ]),
       ]),
     ),
-    size: const Size(508, 340),
+    size: const Size(508, 360),
     before: (tester) async {
       tester.binding.focusManager.highlightStrategy = FocusHighlightStrategy.alwaysTraditional;
       addTearDown(() => tester.binding.focusManager.highlightStrategy = FocusHighlightStrategy.automatic);
@@ -116,7 +116,7 @@ void main() {
         await tester.pumpWidget(themedFrame(themeMatrix.first, CheckboxBox(value: v, hovered: hovered)));
         await tester.pumpAndSettle();
         expect(tester.getSize(find.byType(CheckboxBox)), const Size.square(MyDataSize.icon));
-        return tester.widget<AnimatedContainer>(find.byType(AnimatedContainer)).decoration! as BoxDecoration;
+        return tester.widget<AnimatedContainer>(find.byType(AnimatedContainer)).decoration!.box;
       }
 
       final off = await deco(false);
@@ -322,7 +322,7 @@ void main() {
           of: find.ancestor(of: find.text('Ava Fictional'), matching: find.byType(MergeSemantics)).first,
           matching: find.byType(AnimatedContainer)));
       for (final f in fills) {
-        final color = (f.decoration! as BoxDecoration).color;
+        final color = (f.decoration!.box).color;
         expect(color == _kiwi.accentSoft, isFalse);
       }
     });
@@ -511,6 +511,7 @@ void main() {
     await tester.pump();
     expect(got, [false, true, false, false]);
   });
+
   testWidgets('a box taller than a line of its label moves the label down to it, never the box up', (tester) async {
     await tester.pumpWidget(MaterialApp(
       theme: _bigIcons(32),

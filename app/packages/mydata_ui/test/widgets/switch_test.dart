@@ -338,7 +338,7 @@ void main() {
           .descendant(of: find.byType(SwitchRow), matching: find.byType(AnimatedContainer))
           .first);
       final colors = MyDataTheme.data('kiwi', Brightness.light).extension<MyDataColors>()!;
-      expect((fill.decoration! as BoxDecoration).color, colors.surfaceHover);
+      expect((fill.decoration!.box).color, colors.surfaceHover);
       expect(tester.getSize(find.byType(SwitchRow)), before);
       await g.up();
     });

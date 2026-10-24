@@ -14,7 +14,11 @@ from mydata.service.state import HostState
 
 from service_helpers import ASSISTANT_TOKEN, TOKEN, ReadyModels, spied_registry
 
-DESIGN_THEMES = Path(__file__).resolve().parents[2] / "design" / "themes.json"
+DESIGN_THEMES = Path(__file__).resolve().parents[2] / "design" / "themes"
+
+# Each old colour id and the built-in whose default palette it is now (design/themes/ARCHITECTURE.md 4.2).
+HOMES = {"kiwi": "kiwi", "graphite": "hairline", "dusk": "frosted", "plum": "journal", "rose": "sticker",
+         "amber": "paperback"}
 
 
 def _app(tmp_path):
@@ -29,10 +33,15 @@ def _h(t):
     return {"Authorization": f"Bearer {t}"}
 
 
-def test_themes_match_the_design_files():
-    design = json.loads(DESIGN_THEMES.read_text())["themes"]
-    assert [(t["id"], t["name"]) for t in design] == list(THEMES)
-    assert [t["id"] for t in design if t.get("default")] == [DEFAULT_THEME]
+def test_the_old_colours_are_palettes_of_the_design_files():
+    # The host's list is frozen (devices read it once to seed their own choice); each colour lives on as the
+    # default palette of the theme it moved to, under the same id and name.
+    assert [t for t, _ in THEMES] == list(HOMES)
+    assert DEFAULT_THEME == "kiwi"
+    for colour, name in THEMES:
+        theme = json.loads((DESIGN_THEMES / HOMES[colour] / "theme.json").read_text())
+        assert theme["default-palette"] == colour
+        assert [p["name"] for p in theme["palettes"] if p["id"] == colour] == [name]
 
 
 def test_default_theme_is_kiwi_in_status_and_get(tmp_path):

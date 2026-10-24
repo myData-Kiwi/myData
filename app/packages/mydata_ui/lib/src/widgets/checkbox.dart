@@ -20,7 +20,7 @@ import 'edges.dart';
 /// - `icon` (20px) across, a rounded square with `radius-xs` corners, everywhere.
 /// - [value] false: `surface` with a 1px `line-strong` edge (`surface-hover` while [hovered]); true: `accent`
 ///   with a check mark in `on-accent`; null (mixed, only on a select-all box): `accent` with a short dash.
-/// - The mark, not the fill, carries the state, so Graphite (whose `accent` is close to `ink`) and a reader
+/// - The mark, not the fill, carries the state, so Hairline in Graphite (whose `accent` is close to `ink`) and a reader
 ///   who cannot see the colour lose nothing.
 /// - The fill and the mark fade over `fast` with the `standard` curve; nothing moves.
 class CheckboxBox extends StatelessWidget {

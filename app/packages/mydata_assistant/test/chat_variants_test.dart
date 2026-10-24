@@ -12,7 +12,7 @@ import 'package:mydata_ui/src/theme/builtin_themes.g.dart';
 import 'chat_view_test.dart' show ScriptedBackend;
 
 ThemeFile _kiwiWithChat(String chat) {
-  final json = jsonDecode(kiwiThemeJson) as Map<String, dynamic>;
+  final json = jsonDecode(builtInThemeJson[ThemeLibrary.kiwiId]!) as Map<String, dynamic>;
   (json['components'] as Map<String, dynamic>)['chat'] = chat;
   return ThemeFile.fromJson(json, base: json);
 }

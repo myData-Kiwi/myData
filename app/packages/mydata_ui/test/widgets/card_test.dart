@@ -107,7 +107,7 @@ void main() {
     final context = tester.element(find.byType(MyDataCard));
     final box = tester.widget<DecoratedBox>(
         find.descendant(of: find.byType(MyDataCard), matching: find.byType(DecoratedBox)).first);
-    final d = box.decoration as BoxDecoration;
+    final d = box.decoration.box;
     expect(d.color, context.colors.surface);
     expect(d.borderRadius, MyDataRadii.lg(kiwiLook));
     expect(d.boxShadow, context.shadows.shadow1);
@@ -343,7 +343,7 @@ void main() {
     for (final (enter, rises, plays) in [('none', false, false), ('fade', false, true), ('fade-rise', true, true)]) {
       testWidgets('a theme whose entrance is $enter: ${plays ? 'the cards fade${rises ? ' and rise' : ''}' : 'cards show at once'}',
           (tester) async {
-        final json = jsonDecode(kiwiThemeJson) as Map<String, dynamic>;
+        final json = jsonDecode(builtInThemeJson[ThemeLibrary.kiwiId]!) as Map<String, dynamic>;
         (json['motion'] as Map<String, dynamic>)['enter'] = enter;
         final look = ThemeLibrary.look(ThemeFile.fromJson(json, base: json), brightness: Brightness.light);
         await tester.pumpWidget(MaterialApp(theme: MyDataTheme.fromLook(look), home: Material(child: _grid(3))));

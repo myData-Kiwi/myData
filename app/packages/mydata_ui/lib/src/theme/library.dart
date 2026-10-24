@@ -5,9 +5,8 @@ library;
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter/painting.dart' show Color;
 
-import '../generated/tokens.g.dart';
 import 'builtin_themes.g.dart';
 import 'choice.dart';
 import 'look.dart';
@@ -19,51 +18,74 @@ import 'validate.dart';
 
 /// The built-in themes and their resolved looks.
 ///
-/// Phases 1 and 2 draw System (on macOS, the Mac shell) and Kiwi in one of today's six colours: Kiwi's
-/// palettes are `kiwi`, `graphite`, `dusk`, `plum`, `rose` and `amber`, the ids the host's `/appearance` and
-/// the device settings already hold. Phase 3 switches Kiwi to design/themes/kiwi and moves the other five to
-/// the themes they now belong to (ARCHITECTURE.md 4.2).
+/// System (on macOS, the Mac shell) and the six drawn looks of design/themes, each with its palettes: Kiwi
+/// (Kiwi, Sky, Violet), Hairline (Graphite, Slate, Cobalt), Frosted (Dusk, Aurora, Sand), Journal (Plum, Ink
+/// blue, Forest), Sticker (Rose, Mint, Mustard) and Paperback (Amber, Sepia, Linen).
+///
+/// **Today's old colours** (`graphite`, `dusk`, `plum`, `rose`, `amber`: the host's old `/appearance` ids,
+/// and Kiwi's palettes in phases 1 and 2) are hidden aliases on Kiwi: a choice of Kiwi in one of them is
+/// drawn as the theme that colour now belongs to, in that palette ([movedColours], ARCHITECTURE.md 4.2),
+/// never as Kiwi's default.
 abstract final class ThemeLibrary {
   static const systemId = MyDataLook.systemThemeId;
   static const kiwiId = 'mydata.kiwi';
 
   static Map<String, Object?> _read(String text) => readStrictJson(text) as Map<String, Object?>;
 
-  static final Map<String, Object?> _kiwiJson = _read(kiwiThemeJson);
-  static final Map<String, Object?> _systemJson = _read(systemThemeJson);
+  static final Map<String, Map<String, Object?>> _json = {
+    for (final e in builtInThemeJson.entries) e.key: _read(e.value),
+  };
 
-  /// Kiwi as the apps draw it today, with today's six colours as its palettes.
-  static final ThemeFile kiwi = ThemeFile.fromJson(_kiwiJson, base: _kiwiJson);
+  static Map<String, Object?> get _kiwiJson => _json[kiwiId]!;
+
+  /// Every built-in, by id, in the gallery's order. A theme that says no `based-on` is based on Kiwi.
+  static final Map<String, ThemeFile> _builtIn = {
+    for (final e in _json.entries)
+      e.key: ThemeFile.fromJson(e.value, base: _json[e.value['based-on']] ?? _kiwiJson),
+  };
+
+  /// Kiwi, the house style.
+  static ThemeFile get kiwi => _builtIn[kiwiId]!;
 
   /// System: the platform's own look. Its style is Kiwi's wherever the platform has no pass yet.
-  static final ThemeFile system = ThemeFile.fromJson(_systemJson, base: _kiwiJson);
+  static ThemeFile get system => _builtIn[systemId]!;
 
-  static List<ThemeFile> get builtIns => [system, kiwi];
+  /// System, then the six drawn looks, in the gallery's order.
+  static List<ThemeFile> get builtIns => _builtIn.values.toList(growable: false);
 
-  /// The themes the gallery offers, in its order (ARCHITECTURE.md 4.4): System, then the built-ins. Until
-  /// phase 3 that is Kiwi alone, in today's six colours: the other five styles are drawn from phase 3, so
-  /// offering them now would only be Kiwi in another colour under another name.
+  /// The themes the gallery offers, in its order (ARCHITECTURE.md 4.4): System, then the built-ins.
   static List<ThemeFile> get offered => builtIns;
 
-  static ThemeFile? byId(String? id) => switch (id) {
-        systemId => system,
-        kiwiId => kiwi,
-        _ => _testing[id],
-      };
+  static ThemeFile? byId(String? id) => _builtIn[id] ?? _testing[id];
 
   static final _testing = <String?, ThemeFile>{};
 
   /// Makes [theme] known to [byId] until [clearForTesting], for tests of a theme the shipped library does
-  /// not offer yet (one that needs fonts loaded on demand, until phase 3 offers the designed six).
+  /// not have.
   @visibleForTesting
   static void addForTesting(ThemeFile theme) => _testing[theme.id] = theme;
 
   @visibleForTesting
   static void clearForTesting() => _testing.clear();
 
+  /// Today's five other colours, and the theme and palette each moved to (ARCHITECTURE.md 4.2): a choice of
+  /// Kiwi in one of them is that theme in that palette.
+  static const movedColours = {
+    'graphite': ThemeChoice('mydata.hairline', 'graphite'),
+    'dusk': ThemeChoice('mydata.frosted', 'dusk'),
+    'plum': ThemeChoice('mydata.journal', 'plum'),
+    'rose': ThemeChoice('mydata.sticker', 'rose'),
+    'amber': ThemeChoice('mydata.paperback', 'amber'),
+  };
+
+  /// Where [choice] moved, when it is Kiwi in one of today's old colours ([movedColours]); else null.
+  static ThemeChoice? moved(ThemeChoice? choice) =>
+      choice != null && choice.theme == kiwiId ? movedColours[choice.palette] : null;
+
   /// [choice] as it is drawn: a theme this build has (else System) and, for a theme with palettes, one it
   /// has (else its default); never a palette for System (ARCHITECTURE.md 4.1). Null is System.
   static ThemeChoice normalise(ThemeChoice? choice) {
+    choice = moved(choice) ?? choice;
     final theme = byId(choice?.theme);
     if (theme == null || theme.palettes.isEmpty) return ThemeChoice.system;
     return ThemeChoice(theme.id, theme.palette(choice!.palette)!.id);
@@ -72,6 +94,7 @@ abstract final class ThemeLibrary {
   /// Whether [choice] names a theme this build has, in a palette that theme has (or none): a choice that
   /// is not falls back ([normalise]), which myData's Appearance says once.
   static bool knows(ThemeChoice choice) {
+    if (moved(choice) != null) return true;
     final theme = byId(choice.theme);
     if (theme == null) return false;
     final p = choice.palette;
@@ -84,10 +107,13 @@ abstract final class ThemeLibrary {
       theme.palettes.isEmpty ? ThemeChoice(theme.id) : ThemeChoice(theme.id, theme.defaultPalette!.id);
 
   /// One of today's colour ids (the host's old `/appearance` theme, `lastTheme` in the device's settings) as
-  /// a choice: Kiwi in that palette, which is what phases 1 and 2 draw for it (ARCHITECTURE.md 4.2). Null
-  /// for anything else.
-  static ThemeChoice? fromColour(String? colour) =>
-      kiwi.palettes.any((p) => p.id == colour) ? ThemeChoice(kiwiId, colour) : null;
+  /// the choice it is drawn as now: Kiwi for `kiwi`, else the theme the colour moved to, in that palette
+  /// ([movedColours]: `plum` is Journal, Plum). Null for anything else.
+  static ThemeChoice? fromColour(String? colour) {
+    if (colour == null) return null;
+    if (movedColours[colour] case final c?) return c;
+    return kiwi.palettes.any((p) => p.id == colour) ? ThemeChoice(kiwiId, colour) : null;
+  }
 
   /// How people see a choice: "System", or the theme and its palette ("Kiwi, Plum"; "Kiwi, Kiwi" too, so the
   /// palette is always named when the theme has more than one).
@@ -100,12 +126,12 @@ abstract final class ThemeLibrary {
 
   /// [theme]'s palettes as the swatches a palette row shows: each one's name, and its accent, on-accent and
   /// accent-soft in light and dark as resolved.
-  static List<MyDataThemeSpec> paletteSwatches(ThemeFile theme) => _swatches[theme] ??= [
+  static List<PaletteSwatch> paletteSwatches(ThemeFile theme) => _swatches[theme] ??= [
         for (final p in theme.palettes)
           () {
             final l = look(theme, paletteId: p.id, brightness: Brightness.light).colors;
             final d = look(theme, paletteId: p.id, brightness: Brightness.dark).colors;
-            return MyDataThemeSpec(
+            return PaletteSwatch(
               id: p.id,
               name: p.name,
               accentLight: l.accent,
@@ -118,7 +144,7 @@ abstract final class ThemeLibrary {
           }(),
       ];
 
-  static final _swatches = Expando<List<MyDataThemeSpec>>('swatches');
+  static final _swatches = Expando<List<PaletteSwatch>>('swatches');
 
   /// [choice]'s look for [brightness] (after [normalise]).
   static MyDataLook lookFor(ThemeChoice? choice, Brightness brightness,
@@ -128,7 +154,7 @@ abstract final class ThemeLibrary {
         paletteId: c.palette, brightness: brightness, increasedContrast: increasedContrast, platform: platform);
   }
 
-  /// Today's colours, the resolver's starting point for roles a palette leaves out (Kiwi's own palette).
+  /// Kiwi's default palette, the resolver's starting point for roles a palette leaves out.
   static final RoleDefaults defaults = RoleDefaults(
     light: kiwi.defaultPalette!.given(LookMode.light),
     dark: kiwi.defaultPalette!.given(LookMode.dark),
@@ -137,7 +163,7 @@ abstract final class ThemeLibrary {
   /// What the validator needs: the schema, the built-ins' styles and today's colours.
   static ThemeFormat format({Map<String, Map<String, Object?>> extraStyles = const {}}) => ThemeFormat(
         schema: _schema,
-        builtInStyles: {systemId: _systemJson, kiwiId: _kiwiJson, ...extraStyles},
+        builtInStyles: {..._json, ...extraStyles},
         defaults: defaults,
       );
 
@@ -167,16 +193,28 @@ abstract final class ThemeLibrary {
         increasedContrast: increasedContrast,
         platform: p);
   }
+}
 
-  /// Kiwi in one of today's colours, by the id the host and the device settings use (`plum`); an unknown or
-  /// missing id is Kiwi's own colour.
-  static MyDataLook kiwiLook(String? colour, Brightness brightness, {bool increasedContrast = false}) =>
-      look(kiwi, paletteId: colour, brightness: brightness, increasedContrast: increasedContrast);
+/// One palette as a palette row's swatch shows it ([ThemeLibrary.paletteSwatches]): its id and name, and its
+/// accent, on-accent and accent-soft in light and dark as resolved.
+@immutable
+class PaletteSwatch {
+  const PaletteSwatch({
+    required this.id,
+    required this.name,
+    required this.accentLight,
+    required this.accentDark,
+    required this.onAccentLight,
+    required this.onAccentDark,
+    required this.accentSoftLight,
+    required this.accentSoftDark,
+  });
 
-  /// The theme files of design/themes as bundled (the phase 3 looks: System, Kiwi, Hairline, Frosted,
-  /// Journal, Sticker and Paperback), by id, as text.
-  static Future<Map<String, String>> loadDesignedThemes([AssetBundle? bundle]) async {
-    final b = bundle ?? rootBundle;
-    return {for (final e in designedThemeAssets.entries) e.key: await b.loadString(e.value, cache: false)};
-  }
+  final String id;
+  final String name;
+  final Color accentLight, accentDark, onAccentLight, onAccentDark, accentSoftLight, accentSoftDark;
+
+  Color accent(Brightness b) => b == Brightness.dark ? accentDark : accentLight;
+  Color onAccent(Brightness b) => b == Brightness.dark ? onAccentDark : onAccentLight;
+  Color accentSoft(Brightness b) => b == Brightness.dark ? accentSoftDark : accentSoftLight;
 }

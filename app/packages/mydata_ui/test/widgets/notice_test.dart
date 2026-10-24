@@ -70,7 +70,7 @@ void main() {
     final c = tester.element(find.byType(Notice)).colors;
     final box = tester.widget<DecoratedBox>(
         find.descendant(of: find.byType(Notice), matching: find.byType(DecoratedBox)).first);
-    final decoration = box.decoration as BoxDecoration;
+    final decoration = box.decoration.box;
     expect(decoration.color, c.surfaceSunken);
     expect(decoration.borderRadius, MyDataRadii.md(kiwiLook));
     expect(decoration.border, isNull);

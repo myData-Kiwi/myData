@@ -8,9 +8,9 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mydata_ui/mydata_ui.dart';
+import 'package:mydata_ui/src/theme/builtin_themes.g.dart';
 import 'package:mydata_ui/src/theme/resolve.dart';
 import 'package:mydata_ui/src/theme/roles.dart';
-import 'package:mydata_ui/src/theme/strict_json.dart';
 import 'package:mydata_ui/src/theme/validate.dart';
 
 /// The files mutated: the good imported example and the designed themes, as an import would see them (ids
@@ -20,18 +20,14 @@ List<Map<String, Object?>> seeds() {
   String uuid() => '00000000-0000-4000-8000-${(++n).toString().padLeft(12, '0')}';
   return [
     jsonDecode(File('test/theme/fixtures/good-imported.json').readAsStringSync()) as Map<String, Object?>,
-    for (final f in Directory('assets/themes').listSync().whereType<File>().toList()..sort((a, b) => a.path.compareTo(b.path)))
-      {...jsonDecode(f.readAsStringSync()) as Map<String, Object?>, 'id': uuid()},
+    // The built-ins in name order, as their files were listed before they were generated into Dart.
+    for (final id in builtInThemeJson.keys.toList()..sort())
+      {...jsonDecode(builtInThemeJson[id]!) as Map<String, Object?>, 'id': uuid()},
   ];
 }
 
-/// The designed themes' styles, so a mutated `based-on` may name one.
-ThemeFormat designedFormat() => ThemeLibrary.format(extraStyles: {
-      for (final f in Directory('assets/themes').listSync().whereType<File>())
-        if (!f.path.endsWith('kiwi.json') && !f.path.endsWith('system.json'))
-          'mydata.${f.uri.pathSegments.last.replaceAll('.json', '')}':
-              readStrictJson(f.readAsStringSync()) as Map<String, Object?>,
-    });
+/// The built-ins' styles, so a mutated `based-on` may name one.
+ThemeFormat designedFormat() => ThemeLibrary.format();
 
 Object? deepCopy(Object? v) => switch (v) {
       Map() => {for (final e in v.entries) e.key as String: deepCopy(e.value)},

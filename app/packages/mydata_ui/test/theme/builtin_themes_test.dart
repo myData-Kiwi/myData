@@ -1,8 +1,7 @@
-// The built-in themes (design/themes/ARCHITECTURE.md 3.1, phase 1): the designed looks of design/themes pass
-// every check, every palette at normal and increased contrast; Kiwi as the apps draw it today resolves to
-// today's tokens exactly, in each of today's six colours; and today's colours are where the renames put them.
-import 'dart:io';
-
+// The built-in themes (design/themes/ARCHITECTURE.md 3.1): System and the six drawn looks of design/themes,
+// generated into builtin_themes.g.dart. Every one passes every check, every palette at normal and increased
+// contrast; the library reads them as the validator does; Kiwi's default palette is the generated constants
+// (the first frame); and today's old colours are where the renames put them, with the accent they had.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mydata_ui/mydata_ui.dart';
@@ -11,32 +10,18 @@ import 'package:mydata_ui/src/theme/checks.dart';
 import 'package:mydata_ui/src/theme/colour.dart';
 import 'package:mydata_ui/src/theme/resolve.dart';
 import 'package:mydata_ui/src/theme/roles.dart';
-import 'package:mydata_ui/src/theme/strict_json.dart';
 import 'package:mydata_ui/src/theme/validate.dart';
 
-/// The designed theme files as bundled, by id.
-Map<String, String> designed() => {
-      for (final f in Directory('assets/themes').listSync().whereType<File>())
-        'mydata.${f.uri.pathSegments.last.replaceAll('.json', '')}': f.readAsStringSync(),
-    };
-
-ThemeFormat designedFormat() => ThemeLibrary.format(extraStyles: {
-      for (final e in designed().entries)
-        if (e.key != ThemeLibrary.kiwiId && e.key != ThemeLibrary.systemId)
-          e.key: readStrictJson(e.value) as Map<String, Object?>,
-    });
-
-/// Today's colour themes (design/themes.json) and the theme each became the default palette of.
+/// Today's old colours (design/themes.json until phase 3, frozen here) and the theme each became the default
+/// palette of, with the accent and on-accent it had: light, then dark.
 const homes = {
-  'kiwi': 'mydata.kiwi',
-  'graphite': 'mydata.hairline',
-  'dusk': 'mydata.frosted',
-  'plum': 'mydata.journal',
-  'rose': 'mydata.sticker',
-  'amber': 'mydata.paperback',
+  'kiwi': ('mydata.kiwi', [0xFF4C7814, 0xFFFFFFFF, 0xFFA9CC4E, 0xFF1A2408]),
+  'graphite': ('mydata.hairline', [0xFF232323, 0xFFFFFFFF, 0xFFE6E6E4, 0xFF161616]),
+  'dusk': ('mydata.frosted', [0xFF3D5AA9, 0xFFFFFFFF, 0xFF9DB4F2, 0xFF0E1A3A]),
+  'plum': ('mydata.journal', [0xFF7A3E8E, 0xFFFFFFFF, 0xFFD2A6E0, 0xFF2A0F33]),
+  'rose': ('mydata.sticker', [0xFFA63A5B, 0xFFFFFFFF, 0xFFEFA3B8, 0xFF33101C]),
+  'amber': ('mydata.paperback', [0xFF8A5100, 0xFFFFFFFF, 0xFFF0B45A, 0xFF2E1B00]),
 };
-
-Color _c(Rgb c) => Color(c.argb);
 
 /// Every field of [c], by name (MyDataColors has no ==).
 Map<String, Color> fields(MyDataColors c) => {
@@ -54,17 +39,35 @@ Map<String, Color> fields(MyDataColors c) => {
     };
 
 void main() {
-  group('the designed themes (design/themes, the phase 3 looks)', () {
-    test('System and the six drawn themes are bundled', () {
-      expect(designed().keys.toSet(), {
+  group('the built-ins', () {
+    test('are System and the six drawn looks, in the gallery\'s order', () {
+      expect(ThemeLibrary.builtIns.map((t) => t.id), [
         'mydata.system', 'mydata.kiwi', 'mydata.hairline', 'mydata.frosted', 'mydata.journal', 'mydata.sticker',
         'mydata.paperback',
-      });
+      ]);
+      expect(ThemeLibrary.offered, ThemeLibrary.builtIns);
+      expect(ThemeLibrary.builtIns.map((t) => t.name),
+          ['System', 'Kiwi', 'Hairline', 'Frosted', 'Journal', 'Sticker', 'Paperback']);
     });
 
-    for (final e in designed().entries) {
+    test('have the palettes decided on 2026-10-23, default first', () {
+      expect({for (final t in ThemeLibrary.builtIns) t.name: [for (final p in t.palettes) p.name]}, {
+        'System': <String>[],
+        'Kiwi': ['Kiwi', 'Sky', 'Violet'],
+        'Hairline': ['Graphite', 'Slate', 'Cobalt'],
+        'Frosted': ['Dusk', 'Aurora', 'Sand'],
+        'Journal': ['Plum', 'Ink blue', 'Forest'],
+        'Sticker': ['Rose', 'Mint', 'Mustard'],
+        'Paperback': ['Amber', 'Sepia', 'Linen'],
+      });
+      for (final t in ThemeLibrary.builtIns.skip(1)) {
+        expect(t.defaultPalette, t.palettes.first, reason: t.name);
+      }
+    });
+
+    for (final e in builtInThemeJson.entries) {
       test('${e.key} passes every check as a built-in, every palette in both modes at both contrast levels', () {
-        final r = validateThemeText(e.value, designedFormat(), builtIn: true);
+        final r = validateThemeText(e.value, ThemeLibrary.format(), builtIn: true);
         expect(r.errors, isEmpty, reason: r.errors.join('\n'));
         expect(r.ok, isTrue);
         if (r.theme!.frame == ThemeFrame.drawn) {
@@ -74,13 +77,30 @@ void main() {
           expect(r.theme!.palettes, isEmpty, reason: 'System has no palettes: its colour is the system accent');
         }
       });
+
+      test('${e.key} is read by the library as the validator reads it: every palette resolves the same', () {
+        final validated = validateThemeText(e.value, ThemeLibrary.format(), builtIn: true).theme!;
+        final library = ThemeLibrary.byId(e.key)!;
+        expect(library.style.type.roles.keys, validated.style.type.roles.keys);
+        for (final b in Brightness.values) {
+          for (final p in [null, ...validated.palettes.map((p) => p.id)]) {
+            final a = ThemeLibrary.look(library, paletteId: p, brightness: b);
+            final v = MyDataLook.resolve(validated, paletteId: p, brightness: b, defaults: ThemeLibrary.defaults);
+            expect(fields(a.colors), fields(v.colors), reason: '$p ${b.name}');
+            for (final role in MyDataTypeRole.values) {
+              expect(a.typeScale(role), v.typeScale(role), reason: '$p ${role.key}');
+            }
+            expect(a.variants.values, v.variants.values);
+            expect(a.shape.corners, v.shape.corners);
+          }
+        }
+      });
     }
 
     test('all 18 palettes, resolved at increased contrast (their own set, else the derived 7:1 values), pass', () {
       var palettes = 0;
       final failures = <String>[];
-      for (final text in designed().values) {
-        final theme = validateThemeText(text, designedFormat(), builtIn: true).theme!;
+      for (final theme in ThemeLibrary.builtIns) {
         for (final p in theme.palettes) {
           palettes++;
           for (final mode in LookMode.values) {
@@ -100,78 +120,29 @@ void main() {
       expect(failures, isEmpty, reason: failures.join('\n'));
     });
 
-    test('the bundle loads them by id from the app\'s assets', () async {
-      final loaded = await ThemeLibrary.loadDesignedThemes();
-      expect(loaded, designed());
+    test('the six drawn looks are told apart by more than colour: no two share their components and shape', () {
+      final drawn = ThemeLibrary.builtIns.where((t) => t.frame == ThemeFrame.drawn).toList();
+      final keys = {for (final t in drawn) t.name: '${t.style.shape.corners} ${t.style.components.values}'};
+      expect(keys.values.toSet(), hasLength(drawn.length), reason: '$keys');
     });
   });
 
-  group('Kiwi as drawn today (phases 1 and 2)', () {
-    test('its palettes are today\'s six colours, in the picker\'s order, Kiwi first', () {
-      expect(ThemeLibrary.kiwi.palettes.map((p) => p.id), MyDataThemes.all.map((t) => t.id));
-      expect(ThemeLibrary.kiwi.palettes.map((p) => p.name), MyDataThemes.all.map((t) => t.name));
-      expect(ThemeLibrary.kiwi.defaultPaletteId, MyDataThemes.fallback.id);
-    });
-
-    test('its borders are the designed Kiwi\'s, so the full look changes none of them', () {
-      final today = (readStrictJson(kiwiThemeJson) as Map<String, Object?>)['borders'];
-      final design = (readStrictJson(designed()['mydata.kiwi']!) as Map<String, Object?>)['borders'];
-      expect(today, design);
-      expect((today as Map)['separators'], 'full', reason: 'GroupedList: a full-width divider between rows');
-    });
-
-    test('it passes every check except the gap the contrast audit found in today\'s look, which phase 3 fixes', () {
-      final r = validateThemeText(kiwiThemeJson, ThemeLibrary.format(), builtIn: true, todaysKiwi: true);
-      // Known, decided 2026-10-23 (themes decision 6): a red focus ring is lost on a rose or amber selection
-      // (those colours move to Sticker and Paperback, where Paperback's Amber has a blue ring). The glass gap
-      // is fixed: glass is 82% and 84% now, as the audit asked.
-      final known = RegExp(r'^(Rose|Amber), .*: the focus ring and the selection differ');
-      final unexpected = r.errors.where((e) => !known.hasMatch(e)).toList();
-      expect(unexpected, isEmpty, reason: unexpected.join('\n'));
-      expect(r.errors, isNotEmpty, reason: 'the gaps are fixed: drop this exception');
-    });
-
-    for (final spec in MyDataThemes.all) {
+  group('Kiwi, the house style', () {
+    test('its default palette is the generated constants, the roles tokens.json has no token for included', () {
       for (final b in Brightness.values) {
-        test('Kiwi in ${spec.id}, ${b.name}: the resolved look is today\'s tokens', () {
-          final look = ThemeLibrary.kiwiLook(spec.id, b);
-          final today = (b == Brightness.dark ? MyDataColors.dark : MyDataColors.light).withTheme(spec, b);
-          final c = look.colors;
-          final pairs = <String, (Color, Color)>{
-            'bg': (c.bg, today.bg), 'surface': (c.surface, today.surface),
-            'surface-raised': (c.surfaceRaised, today.surfaceRaised),
-            'surface-sunken': (c.surfaceSunken, today.surfaceSunken),
-            'surface-hover': (c.surfaceHover, today.surfaceHover), 'line': (c.line, today.line),
-            'line-strong': (c.lineStrong, today.lineStrong), 'ink': (c.ink, today.ink),
-            'ink-muted': (c.inkMuted, today.inkMuted), 'accent': (c.accent, today.accent),
-            'on-accent': (c.onAccent, today.onAccent), 'accent-soft': (c.accentSoft, today.accentSoft),
-            'brand': (c.brand, today.brand), 'kiwi-wash': (c.kiwiWash, today.kiwiWash), 'skin': (c.skin, today.skin),
-            'cream': (c.cream, today.cream), 'paper': (c.paper, today.paper), 'success': (c.success, today.success),
-            'success-soft': (c.successSoft, today.successSoft), 'warning': (c.warning, today.warning),
-            'warning-soft': (c.warningSoft, today.warningSoft), 'danger': (c.danger, today.danger),
-            'danger-soft': (c.dangerSoft, today.dangerSoft), 'on-danger': (c.onDanger, today.onDanger),
-            'info': (c.info, today.info), 'info-soft': (c.infoSoft, today.infoSoft), 'focus': (c.focus, today.focus),
-            'glass-fill': (c.glassFill, today.glassFill), 'glass-stroke': (c.glassStroke, today.glassStroke),
-            'scrim': (c.scrim, today.scrim), 'data-red': (c.dataRed, today.dataRed),
-            'data-orange': (c.dataOrange, today.dataOrange), 'data-yellow': (c.dataYellow, today.dataYellow),
-            'data-green': (c.dataGreen, today.dataGreen), 'data-blue': (c.dataBlue, today.dataBlue),
-            'data-purple': (c.dataPurple, today.dataPurple), 'data-brown': (c.dataBrown, today.dataBrown),
-            'data-grey': (c.dataGrey, today.dataGrey),
-          };
-          for (final e in pairs.entries) {
-            expect(e.value.$1, e.value.$2, reason: e.key);
-          }
-          if (spec.id == MyDataThemes.fallback.id) {
-            // Kiwi's own colour is the generated constants, the roles tokens.json has no token for included.
-            expect(fields(c), fields(b == Brightness.dark ? MyDataColors.dark : MyDataColors.light));
-          }
-          expect(look.elevation.shadows.shadow1, (b == Brightness.dark ? MyDataShadows.dark : MyDataShadows.light).shadow1);
-          expect(look.elevation.shadows.shadow2, (b == Brightness.dark ? MyDataShadows.dark : MyDataShadows.light).shadow2);
-          expect(look.elevation.shadows.shadowGlass,
-              (b == Brightness.dark ? MyDataShadows.dark : MyDataShadows.light).shadowGlass);
-        });
+        final look = ThemeLibrary.look(ThemeLibrary.kiwi, brightness: b);
+        expect(look.paletteId, 'kiwi');
+        expect(fields(look.colors), fields(b == Brightness.dark ? MyDataColors.dark : MyDataColors.light));
+        expect(look.elevation.shadows.shadow1, (b == Brightness.dark ? MyDataShadows.dark : MyDataShadows.light).shadow1);
+        expect(look.elevation.shadows.shadow2, (b == Brightness.dark ? MyDataShadows.dark : MyDataShadows.light).shadow2);
+        expect(look.elevation.shadows.shadowGlass,
+            (b == Brightness.dark ? MyDataShadows.dark : MyDataShadows.light).shadowGlass);
       }
-    }
+    });
+
+    test('its corners are continuous, the system\'s corner, as its rules say', () {
+      expect(ThemeLibrary.kiwi.style.shape.corners, CornerStyle.continuous);
+    });
 
     test('its type, radii, sizes, spacing, motion and blur are today\'s tokens', () {
       for (final b in Brightness.values) {
@@ -207,7 +178,7 @@ void main() {
 
     test('the generated fallback look is Kiwi in its own colour, resolved', () {
       for (final b in Brightness.values) {
-        final resolved = ThemeLibrary.kiwiLook(null, b);
+        final resolved = ThemeLibrary.look(ThemeLibrary.kiwi, brightness: b);
         final fallback = MyDataLook.fallback(b);
         expect(fields(resolved.colors), fields(fallback.colors));
         for (final role in MyDataTypeRole.values) {
@@ -217,55 +188,41 @@ void main() {
         expect(resolved.density.controlHeight, fallback.density.controlHeight);
         expect(resolved.variants.values, fallback.variants.values);
         expect(resolved.paletteId, fallback.paletteId);
+        expect(resolved.shape.corners, fallback.shape.corners);
       }
     });
   });
 
-  group('today\'s colours in their new themes', () {
+  group('today\'s old colours in their new themes', () {
     for (final e in homes.entries) {
-      test('${e.key} is the default palette of ${e.value}, with today\'s accent and on-accent', () {
-        final theme = validateThemeText(designed()[e.value]!, designedFormat(), builtIn: true).theme!;
+      test('${e.key} is the default palette of ${e.value.$1}, with the accent and on-accent it had', () {
+        final theme = ThemeLibrary.byId(e.value.$1)!;
         expect(theme.defaultPaletteId, e.key);
-        final spec = MyDataThemes.byId(e.key);
+        final v = e.value.$2;
         for (final b in Brightness.values) {
+          final c = ThemeLibrary.look(theme, brightness: b).colors;
           final dark = b == Brightness.dark;
-          final p = resolvePalette(theme, theme.defaultPalette!, dark ? LookMode.dark : LookMode.light,
-              defaults: ThemeLibrary.defaults);
-          expect(_c(p[ColourRole.accent]), dark ? spec.accentDark : spec.accentLight);
-          expect(_c(p[ColourRole.onAccent]), dark ? spec.onAccentDark : spec.onAccentLight);
+          expect(c.accent, Color(dark ? v[2] : v[0]), reason: b.name);
+          expect(c.onAccent, Color(dark ? v[3] : v[1]), reason: b.name);
         }
       });
     }
 
-    test('accent-soft is today\'s, except where the contrast audit moved it (Frosted, Sticker, Paperback light)', () {
-      final moved = <String>[];
-      for (final e in homes.entries) {
-        final theme = validateThemeText(designed()[e.value]!, designedFormat(), builtIn: true).theme!;
-        final spec = MyDataThemes.byId(e.key);
-        for (final b in Brightness.values) {
-          final dark = b == Brightness.dark;
-          final p = theme.defaultPalette!.given(dark ? LookMode.dark : LookMode.light);
-          if (_c(p[ColourRole.accentSoft]!) != (dark ? spec.accentSoftDark : spec.accentSoftLight)) {
-            moved.add('${e.key} ${b.name}');
-          }
-        }
+    test('Kiwi in an old colour is a hidden alias: it is drawn as that colour\'s theme, never Kiwi\'s default', () {
+      for (final e in homes.entries.skip(1)) {
+        final kiwiIn = ThemeChoice(ThemeLibrary.kiwiId, e.key);
+        expect(ThemeLibrary.moved(kiwiIn), ThemeChoice(e.value.$1, e.key));
+        expect(ThemeLibrary.normalise(kiwiIn), ThemeChoice(e.value.$1, e.key));
+        expect(ThemeLibrary.knows(kiwiIn), isTrue, reason: 'drawn as meant, so no "not on this device" notice');
+        expect(ThemeLibrary.fromColour(e.key), ThemeChoice(e.value.$1, e.key));
+        expect(ThemeLibrary.kiwi.palettes.map((p) => p.id), isNot(contains(e.key)), reason: 'hidden from the gallery');
       }
-      expect(moved.toSet(), {'dusk light', 'dusk dark', 'rose light', 'rose dark', 'amber light'});
-    });
-
-    test('Kiwi\'s designed palette is Kiwi as drawn today: the audit\'s glass and link are drawn from phase 3', () {
-      final theme = validateThemeText(designed()['mydata.kiwi']!, designedFormat(), builtIn: true).theme!;
-      final today = ThemeLibrary.kiwi.defaultPalette!;
-      for (final mode in LookMode.values) {
-        final differ = [
-          for (final r in today.given(mode).keys)
-            if (theme.defaultPalette!.given(mode)[r] != today.given(mode)[r] && !theme.sameAs.containsKey(r)) r.key,
-        ];
-        // The roles tokens.json never had are not compared: today they were never drawn.
-        differ.removeWhere((k) => const {'edge', 'selection', 'on-selection', 'selection-inactive',
-              'focus-on-danger'}.contains(k));
-        expect(differ, isEmpty, reason: mode.name);
-      }
+      expect(ThemeLibrary.moved(const ThemeChoice(ThemeLibrary.kiwiId, 'kiwi')), isNull);
+      expect(ThemeLibrary.moved(const ThemeChoice('mydata.journal', 'plum')), isNull);
+      expect(ThemeLibrary.fromColour('kiwi'), const ThemeChoice(ThemeLibrary.kiwiId, 'kiwi'));
+      expect(ThemeLibrary.fromColour('sky'), const ThemeChoice(ThemeLibrary.kiwiId, 'sky'));
+      expect(ThemeLibrary.fromColour('nonsense'), isNull);
+      expect(ThemeLibrary.describe(const ThemeChoice(ThemeLibrary.kiwiId, 'plum')), 'Journal, Plum');
     });
   });
 }

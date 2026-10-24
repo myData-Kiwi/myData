@@ -106,8 +106,14 @@ void withSystemAccent(String themeId) {
   );
 }
 
-/// The screenshots' four cases: the Kiwi and the Graphite accents, light and dark.
-const accentMatrix = themeMatrix;
+/// The screenshots' four cases: the Kiwi and the Graphite accents set in System Settings, light and dark
+/// (System draws the system's accent; Graphite's is Hairline's default palette's).
+const accentMatrix = [
+  ThemeCase('kiwi', Brightness.light),
+  ThemeCase('kiwi', Brightness.dark),
+  ThemeCase('graphite', Brightness.light),
+  ThemeCase('graphite', Brightness.dark),
+];
 
 /// Lets the app read the device's mode, the host's theme and the contacts, and decode the photos.
 Future<void> settle(WidgetTester tester) async {

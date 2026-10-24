@@ -39,7 +39,7 @@ enum MyDataMode {
 /// literal.
 ///
 /// ```dart
-/// final theme = MyDataTheme(choice: const ThemeChoice('mydata.kiwi', 'plum'), mode: mode);
+/// final theme = MyDataTheme(choice: const ThemeChoice('mydata.journal', 'plum'), mode: mode);
 /// MaterialApp(theme: theme.light, darkTheme: theme.dark, themeMode: theme.themeMode, ...);
 /// ```
 ///
@@ -49,10 +49,6 @@ class MyDataTheme {
   /// [choice] is drawn as [ThemeLibrary.normalise] says: an unknown theme is System, an unknown palette the
   /// theme's default.
   MyDataTheme({ThemeChoice? choice, this.mode = MyDataMode.system}) : choice = ThemeLibrary.normalise(choice);
-
-  /// Kiwi in one of today's colours (`plum`): the colour ids of the host's old `/appearance`, and tests.
-  factory MyDataTheme.kiwi(String? colour, {MyDataMode mode = MyDataMode.system}) =>
-      MyDataTheme(choice: ThemeChoice(ThemeLibrary.kiwiId, colour), mode: mode);
 
   final ThemeChoice choice;
   final MyDataMode mode;
@@ -67,9 +63,18 @@ class MyDataTheme {
   @override
   int get hashCode => Object.hash(choice, mode);
 
-  /// ThemeData for Kiwi in today's colour [themeId] and [brightness].
-  static ThemeData data(String? themeId, Brightness brightness) =>
-      fromLook(ThemeLibrary.kiwiLook(MyDataThemes.byId(themeId).id, brightness));
+  /// ThemeData for the built-in [name] in its default palette and [brightness], off the Mac shell: [name] is
+  /// a built-in's slug (`hairline`) or id (`mydata.hairline`), or one of today's old colours (`plum` is
+  /// Journal in Plum, [ThemeLibrary.fromColour]); anything else is Kiwi. For tests and the Mac shell's base.
+  static ThemeData data(String? name, Brightness brightness) => dataFor(choiceNamed(name), brightness);
+
+  /// The choice [data] draws for [name].
+  static ThemeChoice choiceNamed(String? name) {
+    if (name == null) return const ThemeChoice(ThemeLibrary.kiwiId);
+    if (ThemeLibrary.byId(name) case final t?) return ThemeLibrary.defaultChoice(t);
+    if (ThemeLibrary.byId('mydata.$name') case final t?) return ThemeLibrary.defaultChoice(t);
+    return ThemeLibrary.fromColour(name) ?? const ThemeChoice(ThemeLibrary.kiwiId);
+  }
 
   /// ThemeData for [choice] in [brightness], off the Mac shell (System is Kiwi's style in Kiwi's colour there
   /// until each platform's pass).

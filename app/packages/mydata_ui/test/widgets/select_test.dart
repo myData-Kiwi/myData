@@ -210,7 +210,7 @@ void main() {
       await _desktop(tester);
       await tester.pumpWidget(themedFrame(themeMatrix.first, const _Host<String>(items: _calendars, initial: 'book')));
       final box = tester.widget<AnimatedContainer>(find.byType(AnimatedContainer).first);
-      final deco = box.decoration! as BoxDecoration;
+      final deco = box.decoration!.box;
       expect(deco.color, _kiwi.surface);
       expect((deco.border! as Border).top.color, _kiwi.lineStrong);
       expect(deco.borderRadius, MyDataRadii.md(kiwiLook));
@@ -291,7 +291,7 @@ void main() {
       await mouse.addPointer(location: tester.getCenter(_field));
       addTearDown(mouse.removePointer);
       await tester.pumpAndSettle();
-      final deco = tester.widget<AnimatedContainer>(find.byType(AnimatedContainer).first).decoration! as BoxDecoration;
+      final deco = tester.widget<AnimatedContainer>(find.byType(AnimatedContainer).first).decoration!.box;
       expect(deco.color, _kiwi.surfaceHover);
       expect((deco.border! as Border).top.color, _kiwi.lineStrong);
       final pressable = tester.widget<Pressable>(_field);
@@ -341,7 +341,7 @@ void main() {
                 error: 'That calendar was deleted. Choose another.',
                 onChanged: (_) {}),
           )));
-      final deco = tester.widget<AnimatedContainer>(find.byType(AnimatedContainer).first).decoration! as BoxDecoration;
+      final deco = tester.widget<AnimatedContainer>(find.byType(AnimatedContainer).first).decoration!.box;
       expect((deco.border! as Border).top.width, MyDataSelect.errorBorderWidth);
       expect((deco.border! as Border).top.color, _kiwi.danger);
       expect(find.text('Help.'), findsNothing);
@@ -427,7 +427,7 @@ void main() {
       await tester.tap(_field);
       await tester.pumpAndSettle();
       final panel = find.ancestor(of: find.text('Work'), matching: find.byType(Container)).last;
-      final deco = tester.widget<Container>(panel).decoration! as BoxDecoration;
+      final deco = tester.widget<Container>(panel).decoration!.box;
       expect(deco.color, _kiwi.surfaceRaised);
       expect(deco.borderRadius, MyDataRadii.md(kiwiLook));
       final fieldRect = tester.getRect(_field);
@@ -601,7 +601,7 @@ void main() {
       expect(ringOf('Home').foregroundPainter, isNotNull);
       final fill = tester
           .widget<Container>(find.ancestor(of: find.text('Home').last, matching: find.byType(Container)).first)
-          .decoration! as BoxDecoration;
+          .decoration!.box;
       expect(fill.color, _kiwi.surfaceHover);
       final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
       await mouse.addPointer(location: tester.getCenter(find.text('Work')));

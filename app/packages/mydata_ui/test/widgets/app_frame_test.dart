@@ -175,7 +175,7 @@ void main() {
       expect(tester.widget<Text>(find.text('Library')).style!.color, c.inkMuted);
       // The outer one; the inner one is Pressable's hover fill.
       final pill = find.ancestor(of: find.text('Albums'), matching: find.byType(AnimatedContainer)).last;
-      final box = tester.widget<AnimatedContainer>(pill).decoration! as BoxDecoration;
+      final box = tester.widget<AnimatedContainer>(pill).decoration!.box;
       expect(box.color, c.accentSoft);
       expect(box.borderRadius, MyDataRadii.pill(kiwiLook));
       expect(tester.getSize(pill).height, greaterThanOrEqualTo(MyDataSize.controlHeight));
@@ -386,7 +386,7 @@ void main() {
       await _pumpFrame(tester, _frame(1100, 600, connection: AppConnection.connected(onOpenMyData: () => opened++)));
       final c = tester.element(find.byType(AppFrame)).colors;
       final dots = find.byWidgetPredicate((w) =>
-          w is Container && w.decoration is BoxDecoration && (w.decoration! as BoxDecoration).color == c.brand);
+          w is Container && w.decoration.isBox && (w.decoration!.box).color == c.brand);
       expect(dots, findsOneWidget);
       final link = tester.widget<Text>(find.text(AppConnection.openMyDataText));
       expect(link.style!.color, c.link);

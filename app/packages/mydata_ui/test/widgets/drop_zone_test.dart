@@ -61,7 +61,7 @@ void main() {
     await _pump(tester, DropZone(instruction: _instruction, caption: _caption, onChoose: () => chosen++));
     final box = tester.widget<AnimatedContainer>(find.byType(AnimatedContainer).first);
     final c = tester.element(find.byType(DropZone)).colors;
-    final decoration = box.decoration! as BoxDecoration;
+    final decoration = box.decoration!.box;
     expect(decoration.color, c.surfaceSunken);
     expect(decoration.borderRadius, MyDataRadii.lg(kiwiLook));
     expect(find.text(_instruction), findsOneWidget);
@@ -78,8 +78,8 @@ void main() {
     expect(find.text('Drop to import $_file'), findsOneWidget);
     final c = tester.element(find.byType(DropZone)).colors;
     final box = tester.widget<AnimatedContainer>(find.byType(AnimatedContainer).first);
-    expect((box.decoration! as BoxDecoration).color, c.accentSoft);
-    final line = (box.foregroundDecoration! as BoxDecoration).border! as Border;
+    expect((box.decoration!.box).color, c.accentSoft);
+    final line = (box.foregroundDecoration!.box).border! as Border;
     expect(line.top.color, c.accent);
     expect(line.top.width, DropZone.dragLineWidth);
     await _pump(tester, _zone(DropZoneState.dragging));

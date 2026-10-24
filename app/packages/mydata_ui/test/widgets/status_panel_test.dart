@@ -106,7 +106,7 @@ void main() {
     expect(text.style!.fontFamily, MyDataType.mono.fontFamily);
     final box = tester
         .widget<DecoratedBox>(find.descendant(of: find.byType(MonoWell), matching: find.byType(DecoratedBox)).first)
-        .decoration as BoxDecoration;
+        .decoration.box;
     expect(box.color, c.surfaceSunken);
     expect(box.border, isNull);
   });

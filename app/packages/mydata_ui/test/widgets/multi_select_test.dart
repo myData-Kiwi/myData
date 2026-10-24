@@ -327,7 +327,7 @@ void main() {
       final between = tester.getRect(find.byType(MultiSelectRowFrame).at(1)).bottom;
       final divider = tester.widgetList<Container>(find.byType(Container)).where((c) {
         final deco = c.decoration;
-        return deco is BoxDecoration && deco.color == _kiwi.accentSoft && deco.border != null;
+        return deco.isBox && deco.box.color == _kiwi.accentSoft && deco.box.border != null;
       });
       expect(divider, hasLength(1));
       expect(tester.getRect(find.byWidget(divider.first)).top, between);
@@ -377,7 +377,7 @@ void main() {
       expect(frame.focused, isTrue);
       final fill = tester.widget<AnimatedContainer>(
           find.descendant(of: find.byType(MultiSelectRowFrame).at(1), matching: find.byType(AnimatedContainer)).first);
-      expect((fill.decoration! as BoxDecoration).color, _kiwi.accentSoft);
+      expect((fill.decoration!.box).color, _kiwi.accentSoft);
     });
   });
 }

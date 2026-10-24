@@ -2,7 +2,6 @@
 // beforehand: a stored theme is drawn only once its fonts are, a preview that is overtaken is never drawn,
 // and a font that cannot be loaded is reported while the theme is still drawn (in its fallback fonts).
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -37,10 +36,7 @@ class _GatedBundle extends AssetBundle {
       throw UnimplementedError();
 }
 
-ThemeFile _designed(String slug) {
-  final json = jsonDecode(File('../mydata_ui/assets/themes/$slug.json').readAsStringSync()) as Map<String, Object?>;
-  return ThemeFile.fromJson(json, base: json);
-}
+ThemeFile _designed(String slug) => ThemeLibrary.byId('mydata.$slug')!;
 
 ThemeController _controller(DeviceStore store) =>
     ThemeController(appId: 'mycontacts', store: store, pollInterval: const Duration(milliseconds: 20), macOS: false);
@@ -60,12 +56,9 @@ void main() {
     ThemeFonts.resetForTesting();
     bundle = _GatedBundle();
     ThemeFonts.testBundle = bundle;
-    ThemeLibrary.addForTesting(journal);
-    ThemeLibrary.addForTesting(paperback);
   });
   tearDown(() {
     ThemeFonts.resetForTesting();
-    ThemeLibrary.clearForTesting();
   });
 
   test('the designed themes need fonts that are not loaded yet', () {

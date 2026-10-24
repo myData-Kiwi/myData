@@ -223,8 +223,8 @@ void main() {
     await _pump(tester, const SizedBox(width: 640, child: DuplicatePair(versions: [_ava, _avaM], framed: false)));
     final cards = find.descendant(
       of: find.byType(DuplicatePair),
-      matching: find.byWidgetPredicate((w) => w is Container && w.decoration is BoxDecoration &&
-          (w.decoration! as BoxDecoration).boxShadow != null),
+      matching: find.byWidgetPredicate((w) => w is Container && w.decoration.isBox &&
+          (w.decoration!.box).boxShadow != null),
     );
     expect(cards, findsNothing);
   });

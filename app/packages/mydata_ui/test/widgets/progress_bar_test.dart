@@ -99,7 +99,7 @@ void main() {
     final decorations = tester
         .widgetList<DecoratedBox>(
             find.descendant(of: find.byType(MyDataProgressBar), matching: find.byType(DecoratedBox)))
-        .map((d) => d.decoration as BoxDecoration)
+        .map((d) => d.decoration.box)
         .toList();
     expect(decorations.map((d) => d.color), [context.colors.surfaceSunken, context.colors.accent]);
     for (final d in decorations) {

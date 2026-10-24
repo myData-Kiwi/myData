@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:mydata_ui/mydata_ui.dart';
+import 'package:mydata_ui/src/theme/builtin_themes.g.dart';
 
 import '../tool/themes_codegen.dart';
 import '../tool/tokens_codegen.dart';
@@ -13,36 +14,39 @@ const _rerun = 'run `dart run tool/generate_tokens.dart` in app/packages/mydata_
 
 void main() {
   final tokens = File('$designDir/tokens.json').readAsStringSync();
-  final themes = File('$designDir/themes.json').readAsStringSync();
-  final designKiwi = File('$themesDir/kiwi/theme.json').readAsStringSync();
+  final themes = builtInThemeTexts();
 
-  test('tokens.g.dart is generated from design/tokens.json, design/themes.json and the Kiwi theme', () {
-    expect(File(generatedPath).readAsStringSync() == generateTokens(tokens, themes, designKiwi), isTrue,
+  test('tokens.g.dart is generated from design/tokens.json and the Kiwi theme', () {
+    expect(File(generatedPath).readAsStringSync() == generateTokens(tokens, themes['kiwi']!), isTrue,
         reason: '$generatedPath is stale: $_rerun');
   });
 
-  test('builtin_themes.g.dart is generated from design/themes, design/tokens.json and design/themes.json', () {
+  test('builtin_themes.g.dart is generated from design/themes and design/tokens.json', () {
     final expected = generateBuiltinThemes(
       schemaText: File('$themesDir/theme.schema.json').readAsStringSync(),
-      systemText: File('$themesDir/system/theme.json').readAsStringSync(),
-      kiwiText: kiwiTodayThemeText(tokens, themes, designKiwi),
+      themeTexts: themes,
       tokensJson: tokens,
-      assetSlugs: designThemeSlugs(),
     );
     expect(File(builtinThemesPath).readAsStringSync() == expected, isTrue,
         reason: '$builtinThemesPath is stale: $_rerun');
   });
 
-  test('the bundled theme files are the ones in design/themes, and only those', () {
-    final slugs = designThemeSlugs();
-    expect(slugs, containsAll(['system', 'kiwi', 'hairline', 'frosted', 'journal', 'sticker', 'paperback']));
-    final bundled = Directory(themeAssetsDir).listSync().whereType<File>().map((f) => f.uri.pathSegments.last).toList()
-      ..sort();
-    expect(bundled, [for (final s in slugs) '$s.json']..sort(), reason: '$themeAssetsDir is stale: $_rerun');
-    for (final slug in slugs) {
-      expect(File('$themeAssetsDir/$slug.json').readAsBytesSync(), File('$themesDir/$slug/theme.json').readAsBytesSync(),
-          reason: '$themeAssetsDir/$slug.json is stale: $_rerun');
+  test('the built-ins are every theme file of design/themes, byte for byte, System first', () {
+    expect(designThemeSlugs(), ['system', 'kiwi', 'hairline', 'frosted', 'journal', 'sticker', 'paperback']);
+    expect(builtInThemeJson.keys, [for (final s in designThemeSlugs()) 'mydata.$s']);
+    for (final slug in designThemeSlugs()) {
+      expect(builtInThemeJson['mydata.$slug'], File('$themesDir/$slug/theme.json').readAsStringSync(),
+          reason: '$builtinThemesPath is stale for $slug: $_rerun');
     }
+  });
+
+  test('design/themes.json is gone: the theme files are the only source of a theme\'s colours', () {
+    expect(File('$designDir/themes.json').existsSync(), isFalse);
+  });
+
+  test('tokens.json\'s colours are Kiwi\'s default palette, so the first frame is Kiwi', () {
+    // extraColourValues refuses a tokens.json colour Kiwi's file does not give.
+    expect(() => extraColourValues(tokens, themes['kiwi']!), returnsNormally);
   });
 
   test('the bundled logo files are the ones in design/assets/Logos', () {

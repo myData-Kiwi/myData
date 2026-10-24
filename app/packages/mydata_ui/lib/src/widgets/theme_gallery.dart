@@ -148,8 +148,8 @@ class _GalleryRoute extends PopupRoute<void> {
 ///   and its licence, its blurb, and its palettes as swatches.
 /// - **Keys:** focus starts on the selected card. The cards are a radio group: the arrow keys (Home, End)
 ///   move the selection, and the window previews it. Tab goes on to the palette row (the selected theme's
-///   palettes as named swatches, also previewed as they change; none for System or a theme with one), then
-///   the buttons. Return uses the selection in the app; Escape or Cancel puts the window back as it was.
+///   palettes as named swatches, also previewed as they change; none for System or a theme with one), kept
+///   in view above the buttons while the cards scroll, then the buttons. Return uses the selection in the app; Escape or Cancel puts the window back as it was.
 /// - **Use everywhere** stores the theme and palette for every app and clears each app's own, so its toast
 ///   offers Undo; the gallery stays open, and Cancel becomes Done. With [everywhere] it is the default
 ///   action and "Use in" is left out.
@@ -492,20 +492,27 @@ class _ThemeGalleryState extends State<ThemeGallery> {
             ],
           ),
         ),
-        if (theme.palettes.length > 1) ...[
-          SizedBox(height: context.space(5)),
-          RoleLabel(ThemeGallery.paletteLabel, style: context.type(MyDataTypeRole.label), color: c.inkMuted),
-          SizedBox(height: context.space(2)),
-          ThemePicker(
-            key: ValueKey('palettes ${theme.id}'),
-            themes: ThemeLibrary.paletteSwatches(theme),
-            selected: _choice.palette,
-            semanticLabel: '${ThemeGallery.paletteLabel} of ${theme.name}',
-            onChanged: _working ? null : _selectPalette,
-          ),
-        ],
       ],
     );
+
+    // The selected theme's palettes, kept in view under the cards however many themes there are.
+    final palettes = theme.palettes.length < 2
+        ? null
+        : Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              RoleLabel(ThemeGallery.paletteLabel, style: context.type(MyDataTypeRole.label), color: c.inkMuted),
+              SizedBox(height: context.space(2)),
+              ThemePicker(
+                key: ValueKey('palettes ${theme.id}'),
+                themes: ThemeLibrary.paletteSwatches(theme),
+                selected: _choice.palette,
+                semanticLabel: '${ThemeGallery.paletteLabel} of ${theme.name}',
+                onChanged: _working ? null : _selectPalette,
+              ),
+            ],
+          );
 
     final buttons = ButtonRow(
       alignment: WrapAlignment.end,
@@ -550,6 +557,11 @@ class _ThemeGalleryState extends State<ThemeGallery> {
               child: body,
             ),
           ),
+          if (palettes != null)
+            Padding(
+              padding: EdgeInsets.fromLTRB(context.space(6), context.space(2), context.space(6), context.space(2)),
+              child: palettes,
+            ),
           Padding(
             padding: EdgeInsets.fromLTRB(context.space(6), context.space(2), context.space(6), context.space(6)),
             child: _error == null

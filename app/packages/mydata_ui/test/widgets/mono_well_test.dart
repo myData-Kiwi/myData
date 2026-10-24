@@ -68,7 +68,7 @@ void main() {
     final c = tester.element(find.byType(MonoWell)).colors;
     final box = tester
         .widget<DecoratedBox>(find.descendant(of: find.byType(MonoWell), matching: find.byType(DecoratedBox)).first)
-        .decoration as BoxDecoration;
+        .decoration.box;
     expect(box.color, c.surfaceSunken);
     expect(box.borderRadius, MyDataRadii.md(kiwiLook));
     expect(box.border, isNull);

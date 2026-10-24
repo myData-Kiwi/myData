@@ -24,7 +24,8 @@ Color? _rowFill(WidgetTester tester, Finder row) => _fillBox(tester, row)?.color
 BoxDecoration? _fillBox(WidgetTester tester, Finder row) => tester
     .widgetList<DecoratedBox>(find.descendant(of: row, matching: find.byType(DecoratedBox)))
     .map((b) => b.decoration)
-    .whereType<BoxDecoration>()
+    .where((d) => d.isBox)
+    .map((d) => d.box)
     // Not the hover fill, which is there, clear, at rest.
     .where((d) => (d.color?.a ?? 0) > 0)
     .firstOrNull;
@@ -32,8 +33,7 @@ BoxDecoration? _fillBox(WidgetTester tester, Finder row) => tester
 Color? _hoverFill(WidgetTester tester, Finder row) =>
     (tester
                 .widget<AnimatedContainer>(find.descendant(of: row, matching: find.byType(AnimatedContainer)).first)
-                .decoration!
-            as BoxDecoration)
+                .decoration!.box)
         .color;
 
 void main() {
@@ -356,7 +356,7 @@ void main() {
       final group = tester.widget<DecoratedBox>(
         find.descendant(of: find.byType(GroupedList), matching: find.byType(DecoratedBox)).first,
       );
-      final d = group.decoration as BoxDecoration;
+      final d = group.decoration.box;
       expect(d.color, _kiwi.surface);
       expect(d.borderRadius, MyDataRadii.lg(kiwiLook));
       expect(d.border, isNull);

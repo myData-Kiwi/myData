@@ -196,8 +196,8 @@ void main() {
     await tester.pumpAndSettle();
     final c = tester.element(find.byType(FloatingBar)).colors;
     final pill = tester.widget<DecoratedBox>(find.descendant(of: _thumb, matching: find.byType(DecoratedBox)));
-    expect((pill.decoration as BoxDecoration).color, c.accentSoft);
-    expect((pill.decoration as BoxDecoration).borderRadius, MyDataRadii.pill(kiwiLook));
+    expect((pill.decoration.box).color, c.accentSoft);
+    expect((pill.decoration.box).borderRadius, MyDataRadii.pill(kiwiLook));
     expect(tester.getRect(find.descendant(of: _thumb, matching: find.byType(DecoratedBox))),
         tester.getRect(find.ancestor(of: find.text('Albums'), matching: find.byType(Pressable))));
     final albums = tester.widget<Text>(find.text('Albums')).style!;
@@ -245,7 +245,7 @@ void main() {
     final box = tester.widget<DecoratedBox>(find
         .descendant(of: find.byType(BackdropFilter), matching: find.byType(DecoratedBox))
         .first);
-    final d = box.decoration as BoxDecoration;
+    final d = box.decoration.box;
     expect(d.color, c.glassFill);
     expect(d.borderRadius, MyDataRadii.xl(kiwiLook));
     expect((d.border! as Border).top, BorderSide(color: c.glassStroke, width: FloatingBarSurface.strokeWidth));
@@ -257,7 +257,7 @@ void main() {
     expect(find.byType(BackdropFilter), findsNothing);
     final box = tester.widget<DecoratedBox>(
         find.descendant(of: find.byType(FloatingBarSurface), matching: find.byType(DecoratedBox)).first);
-    final d = box.decoration as BoxDecoration;
+    final d = box.decoration.box;
     expect(d.color, ctx.colors.surface);
     expect(d.boxShadow, ctx.shadows.shadow2);
     expect(d.border, isNull);
@@ -317,7 +317,7 @@ void main() {
     expect(find.byType(BackdropFilter), findsNothing);
     final d = tester
         .widget<DecoratedBox>(find.descendant(of: find.byType(FloatingBarSurface), matching: find.byType(DecoratedBox)).first)
-        .decoration as BoxDecoration;
+        .decoration.box;
     expect(d.color, ctx.colors.surface);
     expect(d.boxShadow, ctx.shadows.shadow2);
     expect(d.border, isNull);

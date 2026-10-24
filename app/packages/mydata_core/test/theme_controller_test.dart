@@ -35,8 +35,12 @@ ThemeController _controller(
   macOS: mac,
 );
 
-const kiwiPlum = ThemeChoice(ThemeLibrary.kiwiId, 'plum');
-const kiwiDusk = ThemeChoice(ThemeLibrary.kiwiId, 'dusk');
+const journalPlum = ThemeChoice('mydata.journal', 'plum');
+const frostedDusk = ThemeChoice('mydata.frosted', 'dusk');
+
+/// Kiwi's other palettes: Kiwi's fonts are always loaded, so these are drawn at once.
+const kiwiSky = ThemeChoice(ThemeLibrary.kiwiId, 'sky');
+const kiwiViolet = ThemeChoice(ThemeLibrary.kiwiId, 'violet');
 
 Future<Map<String, Object?>?> _themes(DeviceStore store) async =>
     (await store.read())[ThemeSettings.key] as Map<String, Object?>?;
@@ -68,9 +72,9 @@ class _SlowStore extends MemoryDeviceStore {
 void main() {
   group('resolution', () {
     test("an app draws its own choice, else everywhere's, else System", () {
-      const s = ThemeSettings(everywhere: kiwiDusk, apps: {'mycontacts': kiwiPlum});
-      expect(s.choiceFor('mycontacts'), kiwiPlum);
-      expect(s.choiceFor('mycalendar'), kiwiDusk);
+      const s = ThemeSettings(everywhere: frostedDusk, apps: {'mycontacts': journalPlum});
+      expect(s.choiceFor('mycontacts'), journalPlum);
+      expect(s.choiceFor('mycalendar'), frostedDusk);
       expect(s.followsEverywhere('mycalendar'), isTrue);
       expect(s.followsEverywhere('mycontacts'), isFalse);
       expect(const ThemeSettings().choiceFor('mycalendar'), ThemeChoice.system);
@@ -80,13 +84,13 @@ void main() {
       final s = ThemeSettings.fromJson({
         'everywhere': {'theme': 42},
         'apps': {
-          'mycontacts': {'theme': 'mydata.kiwi', 'palette': 'rose'},
+          'mycontacts': {'theme': 'mydata.kiwi', 'palette': 'sky'},
           'mycalendar': 'kiwi',
           'myassistant': {'palette': 'rose'},
         },
       })!;
       expect(s.everywhere, isNull);
-      expect(s.apps, {'mycontacts': const ThemeChoice('mydata.kiwi', 'rose')});
+      expect(s.apps, {'mycontacts': const ThemeChoice('mydata.kiwi', 'sky')});
       expect(ThemeSettings.fromJson(null), isNull);
       expect(ThemeSettings.fromJson('System'), isNull);
     });
@@ -101,7 +105,7 @@ void main() {
       await c.start();
       expect(c.theme.choice, ThemeChoice.system);
       expect(ThemeLibrary.lookFor(c.choice, Brightness.light).paletteId, isNull);
-      await c.use(kiwiPlum, app: 'mycalendar');
+      await c.use(journalPlum, app: 'mycalendar');
       expect((await _themes(store))!['everywhere'], {'theme': 'mydata.system'});
       c.dispose();
     });
@@ -122,7 +126,7 @@ void main() {
       expect(contacts.theme.choice, const ThemeChoice(ThemeLibrary.kiwiId, 'kiwi'));
       expect(calendar.theme.choice, ThemeChoice.system);
       // a choice this build does not know is kept as it was written (a later version's theme)
-      await contacts.use(kiwiPlum, app: 'myassistant');
+      await contacts.use(journalPlum, app: 'myassistant');
       expect((await _themes(store))!['everywhere'], {'theme': 'someone.neon'});
       contacts.dispose();
       calendar.dispose();
@@ -144,11 +148,11 @@ void main() {
     });
 
     for (final colour in ['graphite', 'dusk', 'plum', 'rose', 'amber']) {
-      test('elsewhere $colour becomes Kiwi in $colour everywhere, which draws exactly what $colour drew', () async {
+      test('elsewhere $colour becomes the theme it moved to, in $colour, everywhere, with its colours', () async {
         final store = MemoryDeviceStore({'lastTheme': colour});
         final c = _controller(store);
         await c.start();
-        final want = ThemeChoice(ThemeLibrary.kiwiId, colour);
+        final want = ThemeLibrary.movedColours[colour]!;
         expect(c.choice, want);
         expect(await _themes(store), {'everywhere': want.toJson()});
         for (final b in Brightness.values) {
@@ -204,8 +208,8 @@ void main() {
       expect(await _themes(store), isNull);
       host.answer('dusk');
       await _until(() => c.migrated);
-      expect(c.choice, kiwiDusk);
-      expect(await _themes(store), {'everywhere': kiwiDusk.toJson()});
+      expect(c.choice, frostedDusk);
+      expect(await _themes(store), {'everywhere': frostedDusk.toJson()});
       c.dispose();
     });
 
@@ -223,7 +227,7 @@ void main() {
       final store = MemoryDeviceStore({
         'lastTheme': 'plum',
         'themes': {
-          'apps': {'mycalendar': kiwiDusk.toJson()},
+          'apps': {'mycalendar': frostedDusk.toJson()},
         },
       });
       final host = _Host()..answer('rose');
@@ -231,7 +235,7 @@ void main() {
       await c.start();
       expect(c.choice, ThemeChoice.system);
       expect(await _themes(store), {
-        'apps': {'mycalendar': kiwiDusk.toJson()},
+        'apps': {'mycalendar': frostedDusk.toJson()},
       });
       c.dispose();
     });
@@ -241,8 +245,8 @@ void main() {
       final a = _controller(store);
       final b = _controller(store, app: 'mycalendar');
       await Future.wait([a.start(), b.start()]);
-      expect(a.choice, const ThemeChoice(ThemeLibrary.kiwiId, 'amber'));
-      expect(b.choice, const ThemeChoice(ThemeLibrary.kiwiId, 'amber'));
+      expect(a.choice, const ThemeChoice('mydata.paperback', 'amber'));
+      expect(b.choice, const ThemeChoice('mydata.paperback', 'amber'));
       a.dispose();
       b.dispose();
     });
@@ -253,11 +257,11 @@ void main() {
       final store = MemoryDeviceStore({'mode': 'dark', 'lastTheme': 'dusk'});
       final c = _controller(store);
       await c.start();
-      await c.use(kiwiPlum);
-      expect(c.choice, kiwiPlum);
+      await c.use(journalPlum);
+      expect(c.choice, journalPlum);
       final themes = await _themes(store);
-      expect(themes!['apps'], {'mycontacts': kiwiPlum.toJson()});
-      expect(themes['everywhere'], kiwiDusk.toJson());
+      expect(themes!['apps'], {'mycontacts': journalPlum.toJson()});
+      expect(themes['everywhere'], frostedDusk.toJson());
       expect((await store.read())['mode'], 'dark');
       c.dispose();
     });
@@ -281,19 +285,19 @@ void main() {
       final store = MemoryDeviceStore();
       final c = _controller(store, mac: true);
       await c.start();
-      await c.use(kiwiPlum);
-      await c.use(kiwiDusk, app: 'mycalendar');
+      await c.use(journalPlum);
+      await c.use(frostedDusk, app: 'mycalendar');
       final before = c.settings;
-      final undo = await c.useEverywhere(const ThemeChoice(ThemeLibrary.kiwiId, 'rose'));
+      final undo = await c.useEverywhere(const ThemeChoice(ThemeLibrary.kiwiId, 'sky'));
       expect(undo.before, before);
       expect(await _themes(store), {
-        'everywhere': {'theme': 'mydata.kiwi', 'palette': 'rose'},
+        'everywhere': {'theme': 'mydata.kiwi', 'palette': 'sky'},
       });
-      expect(c.settings.choiceFor('mycalendar'), const ThemeChoice(ThemeLibrary.kiwiId, 'rose'));
-      expect(c.settings.choiceFor('a-later-app'), const ThemeChoice(ThemeLibrary.kiwiId, 'rose'));
+      expect(c.settings.choiceFor('mycalendar'), const ThemeChoice(ThemeLibrary.kiwiId, 'sky'));
+      expect(c.settings.choiceFor('a-later-app'), const ThemeChoice(ThemeLibrary.kiwiId, 'sky'));
       expect(await c.restore(undo), isTrue);
       expect(c.settings, before);
-      expect(c.choice, kiwiPlum);
+      expect(c.choice, journalPlum);
       c.dispose();
     });
 
@@ -303,19 +307,19 @@ void main() {
       final mydata = _controller(store, app: 'mydata', mac: true);
       await contacts.start();
       await mydata.start();
-      await contacts.use(kiwiPlum);
-      await contacts.use(kiwiDusk, app: 'mycalendar');
-      await contacts.use(kiwiDusk, app: 'myassistant');
-      final undo = await contacts.useEverywhere(const ThemeChoice(ThemeLibrary.kiwiId, 'rose'));
+      await contacts.use(journalPlum);
+      await contacts.use(frostedDusk, app: 'mycalendar');
+      await contacts.use(frostedDusk, app: 'myassistant');
+      final undo = await contacts.useEverywhere(const ThemeChoice(ThemeLibrary.kiwiId, 'sky'));
       // then, in myData's Appearance: myAssistant gets its own theme
-      await mydata.use(const ThemeChoice(ThemeLibrary.kiwiId, 'amber'), app: 'myassistant');
+      await mydata.use(const ThemeChoice(ThemeLibrary.kiwiId, 'violet'), app: 'myassistant');
       expect(await contacts.restore(undo), isTrue);
       expect(await _themes(store), {
         'everywhere': {'theme': 'mydata.system'},
         'apps': {
-          'mycontacts': kiwiPlum.toJson(),
-          'mycalendar': kiwiDusk.toJson(),
-          'myassistant': {'theme': 'mydata.kiwi', 'palette': 'amber'},
+          'mycontacts': journalPlum.toJson(),
+          'mycalendar': frostedDusk.toJson(),
+          'myassistant': {'theme': 'mydata.kiwi', 'palette': 'violet'},
         },
       });
       contacts.dispose();
@@ -326,9 +330,9 @@ void main() {
       final store = MemoryDeviceStore();
       final c = _controller(store, mac: true);
       await c.start();
-      await c.use(kiwiPlum);
-      final undo = await c.useEverywhere(kiwiDusk);
-      await c.useEverywhere(const ThemeChoice(ThemeLibrary.kiwiId, 'amber'));
+      await c.use(journalPlum);
+      final undo = await c.useEverywhere(frostedDusk);
+      await c.useEverywhere(const ThemeChoice(ThemeLibrary.kiwiId, 'violet'));
       final now = await _themes(store);
       expect(await c.restore(undo), isFalse);
       expect(await _themes(store), now);
@@ -339,21 +343,21 @@ void main() {
       final store = MemoryDeviceStore();
       final c = _controller(store, mac: true);
       await c.start();
-      c.preview(kiwiPlum);
-      final undo = await c.useEverywhere(kiwiPlum);
-      c.preview(kiwiDusk);
+      c.preview(journalPlum);
+      final undo = await c.useEverywhere(journalPlum);
+      c.preview(frostedDusk);
       await c.restore(undo);
-      expect(c.previewing, kiwiDusk);
-      expect(c.choice, kiwiDusk);
+      expect(c.previewing, frostedDusk);
+      expect(c.choice, frostedDusk);
       c.dispose();
     });
 
     test("a write keeps what this build does not know under themes: later builds' keys and fields", () async {
       final store = MemoryDeviceStore({
         'themes': {
-          'everywhere': {'theme': 'mydata.kiwi', 'palette': 'plum', 'contrast': 'more'},
+          'everywhere': {'theme': 'mydata.kiwi', 'palette': 'sky', 'contrast': 'more'},
           'apps': {
-            'mycalendar': {'theme': 'mydata.kiwi', 'palette': 'dusk', 'density': 'compact'},
+            'mycalendar': {'theme': 'mydata.kiwi', 'palette': 'violet', 'density': 'compact'},
             'mynotes': {'custom': 'later-format'},
           },
           'library': ['someone.neon'],
@@ -362,12 +366,12 @@ void main() {
       final c = _controller(store, mac: true);
       await c.start();
       // a palette change keeps a choice's other fields; a new theme starts afresh
-      await c.use(const ThemeChoice(ThemeLibrary.kiwiId, 'rose'), app: 'mycalendar');
+      await c.use(const ThemeChoice(ThemeLibrary.kiwiId, 'kiwi'), app: 'mycalendar');
       await c.use(ThemeChoice.system);
       expect(await _themes(store), {
-        'everywhere': {'theme': 'mydata.kiwi', 'palette': 'plum', 'contrast': 'more'},
+        'everywhere': {'theme': 'mydata.kiwi', 'palette': 'sky', 'contrast': 'more'},
         'apps': {
-          'mycalendar': {'theme': 'mydata.kiwi', 'palette': 'rose', 'density': 'compact'},
+          'mycalendar': {'theme': 'mydata.kiwi', 'palette': 'kiwi', 'density': 'compact'},
           'mynotes': {'custom': 'later-format'},
           'mycontacts': {'theme': 'mydata.system'},
         },
@@ -376,14 +380,14 @@ void main() {
       await c.use(ThemeChoice.system, app: 'mycalendar');
       expect((await _themes(store))!['apps'], containsPair('mycalendar', {'theme': 'mydata.system'}));
       // Use everywhere clears every app's own, the ones this build cannot read too; Undo brings them back
-      final undo = await c.useEverywhere(kiwiDusk);
+      final undo = await c.useEverywhere(const ThemeChoice(ThemeLibrary.kiwiId, 'violet'));
       expect(await _themes(store), {
-        'everywhere': {'theme': 'mydata.kiwi', 'palette': 'dusk', 'contrast': 'more'},
+        'everywhere': {'theme': 'mydata.kiwi', 'palette': 'violet', 'contrast': 'more'},
         'library': ['someone.neon'],
       });
       await c.restore(undo);
       expect(await _themes(store), {
-        'everywhere': {'theme': 'mydata.kiwi', 'palette': 'plum', 'contrast': 'more'},
+        'everywhere': {'theme': 'mydata.kiwi', 'palette': 'sky', 'contrast': 'more'},
         'apps': {
           'mycalendar': {'theme': 'mydata.system'},
           'mynotes': {'custom': 'later-format'},
@@ -398,7 +402,7 @@ void main() {
       final store = MemoryDeviceStore();
       final c = _controller(store, mac: true);
       await c.start();
-      await c.use(kiwiPlum, app: 'mycalendar');
+      await c.use(journalPlum, app: 'mycalendar');
       await c.reset('mycalendar');
       expect(c.settings.followsEverywhere('mycalendar'), isTrue);
       expect(c.settings.choiceFor('mycalendar'), ThemeChoice.system);
@@ -410,18 +414,18 @@ void main() {
       final c = _controller(store, mac: true);
       await c.start();
       final stored = await store.read();
-      c.preview(kiwiPlum);
-      expect(c.choice, kiwiPlum);
-      expect(c.theme.choice, kiwiPlum);
+      c.preview(kiwiSky);
+      expect(c.choice, kiwiSky);
+      expect(c.theme.choice, kiwiSky);
       expect(c.stored, ThemeChoice.system);
       expect(await store.read(), stored);
       c.preview(null);
       expect(c.choice, ThemeChoice.system);
-      c.preview(kiwiDusk);
-      await c.use(kiwiDusk);
+      c.preview(kiwiViolet);
+      await c.use(kiwiViolet);
       // Use closes the gallery, so it ends the preview
       expect(c.previewing, isNull);
-      expect(c.choice, kiwiDusk);
+      expect(c.choice, kiwiViolet);
       c.dispose();
     });
   });
@@ -441,12 +445,12 @@ void main() {
     });
     await Future<void>.delayed(Duration.zero);
     store.gate = null;
-    await c.use(kiwiPlum);
-    expect(c.choice, kiwiPlum);
+    await c.use(journalPlum);
+    expect(c.choice, journalPlum);
     // the held read finishes with the file as it was before this app's write
     gate.complete();
     await Future<void>.delayed(const Duration(milliseconds: 10));
-    expect(c.choice, kiwiPlum);
+    expect(c.choice, journalPlum);
     c.dispose();
   });
 
@@ -455,20 +459,20 @@ void main() {
       final dir = Directory.systemTemp.createTempSync('mydata-themes-');
       addTearDown(() => dir.deleteSync(recursive: true));
       final file = File('${dir.path}/device/settings.json')..createSync(recursive: true);
-      file.writeAsStringSync('{"mode": "dark", "themes": {"everywhere": {"theme": "mydata.kiwi", "palette": "plum"}}}');
+      file.writeAsStringSync('{"mode": "dark", "themes": {"everywhere": {"theme": "mydata.kiwi", "palette": "sky"}}}');
       final c = _controller(FileDeviceStore(() => file.path), mac: true, poll: const Duration(milliseconds: 20));
       await c.start();
-      expect(c.choice, kiwiPlum);
+      expect(c.choice, kiwiSky);
       expect(c.mode, MyDataMode.dark);
       var repaints = 0;
       c.addListener(() => repaints++);
       // a hand edit leaves it broken: the window keeps drawing what it drew, not System in match-system
       file.writeAsStringSync('{"mode": "dark", "themes": ');
       await Future<void>.delayed(const Duration(milliseconds: 120));
-      expect(c.choice, kiwiPlum);
+      expect(c.choice, kiwiSky);
       expect(c.mode, MyDataMode.dark);
       expect(repaints, 0);
-      await expectLater(c.use(kiwiDusk), throwsA(isA<DeviceStoreUnreadable>()));
+      await expectLater(c.use(kiwiViolet), throwsA(isA<DeviceStoreUnreadable>()));
       await expectLater(c.setMode(MyDataMode.light), throwsA(isA<DeviceStoreUnreadable>()));
       expect(c.mode, MyDataMode.dark, reason: 'the mode that could not be stored is not drawn');
       expect(file.readAsStringSync(), '{"mode": "dark", "themes": ');
@@ -485,8 +489,8 @@ void main() {
       await contacts.start();
       var repaints = 0;
       contacts.addListener(() => repaints++);
-      await mydata.use(kiwiPlum, app: 'mycontacts');
-      await _until(() => contacts.choice == kiwiPlum);
+      await mydata.use(journalPlum, app: 'mycontacts');
+      await _until(() => contacts.choice == journalPlum);
       expect(repaints, greaterThan(0));
       expect(mydata.choice, ThemeChoice.system);
       mydata.dispose();
@@ -501,7 +505,7 @@ void main() {
       await contacts.start();
       await mydata.setMode(MyDataMode.light);
       await _until(() => contacts.mode == MyDataMode.light);
-      await contacts.use(kiwiDusk);
+      await contacts.use(frostedDusk);
       expect((await store.read())['mode'], 'light');
       mydata.dispose();
       contacts.dispose();
@@ -518,10 +522,10 @@ void main() {
       await contacts.start();
       // let the folder watches start
       await Future<void>.delayed(const Duration(milliseconds: 300));
-      await mydata.use(kiwiPlum, app: 'mycontacts');
-      await _until(() => contacts.choice == kiwiPlum);
-      await contacts.useEverywhere(kiwiDusk);
-      await _until(() => mydata.choice == kiwiDusk);
+      await mydata.use(journalPlum, app: 'mycontacts');
+      await _until(() => contacts.choice == journalPlum);
+      await contacts.useEverywhere(frostedDusk);
+      await _until(() => mydata.choice == frostedDusk);
       mydata.dispose();
       contacts.dispose();
     }, skip: Platform.isMacOS || Platform.isLinux || Platform.isWindows ? false : 'no folder events here');

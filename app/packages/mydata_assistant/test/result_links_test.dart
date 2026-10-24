@@ -116,7 +116,7 @@ void main() {
           .widgetList<AnimatedContainer>(
             find.ancestor(of: find.text('Dentist (invented)'), matching: find.byType(AnimatedContainer)),
           )
-          .map((c) => (c.decoration as BoxDecoration?)?.color)
+          .map((c) => c.decoration?.box.color)
           .whereType<Color>();
       expect(fill, contains(MyDataTheme.data('kiwi', Brightness.light).extension<MyDataColors>()!.surfaceHover));
     });
