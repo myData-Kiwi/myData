@@ -820,12 +820,15 @@ class _CellState extends State<_Cell> {
     final shape = widget.shape.resolve(Directionality.of(context));
     final sorted = MonthGrid.sortEvents(widget.events);
     final shown = widget.notRead ? <MonthGridEvent>[] : sorted;
-    final ground = widget.notRead
-        ? DataGround.surfaceSunken
-        : (widget.selected ? DataGround.accentSoft : DataGround.surface);
     // The selected day in the theme's selection style, or today's whole cell when today is `inverse`.
     final day = DaySelection.of(context);
     final inverseToday = widget.today && !widget.selected && context.variants.today == TodayStyle.inverse;
+    // What the swatches sit on, for their 3:1 edge: the cell's own fill (an `ink` cell in dark is near white).
+    final ground = widget.notRead
+        ? DataGround.surfaceSunken
+        : (widget.selected ? day.ground : (inverseToday ? DataGround.ink : DataGround.surface));
+    // Read here, above the cell's own text colours (inkAs), where `ink` is still `ink`.
+    final groundColour = ground.of(c);
     final fill = widget.notRead
         ? c.surfaceSunken
         : (widget.selected ? day.fill : (inverseToday ? c.ink : null));
@@ -865,7 +868,7 @@ class _CellState extends State<_Cell> {
               crossAxisAlignment: WrapCrossAlignment.center,
               spacing: MonthGrid.markGap(context.look),
               children: [
-                for (final e in visible) DataDot(colour: e.colour, ground: ground),
+                for (final e in visible) DataDot(colour: e.colour, ground: ground, groundColour: groundColour),
                 ?more,
               ],
             ),
@@ -879,7 +882,7 @@ class _CellState extends State<_Cell> {
       marks = [
         for (final e in visible)
           Row(children: [
-            DataBar(colour: e.colour, ground: ground, height: captionLine),
+            DataBar(colour: e.colour, ground: ground, groundColour: groundColour, height: captionLine),
             SizedBox(width: MonthGrid.markGap(context.look)),
             if (initials && DataPattern.initialOf(e.calendarName).isNotEmpty) ...[
               Text(DataPattern.initialOf(e.calendarName),
@@ -1037,19 +1040,24 @@ class _DayNumber extends StatelessWidget {
 /// with its text in `on-selection` or `bg`, and need no ring.
 @immutable
 class DaySelection {
-  const DaySelection({this.fill, this.foreground, this.ring});
+  const DaySelection({this.fill, this.foreground, this.ring, this.ground = DataGround.surface});
   final Color? fill;
   final Color? foreground;
   final Color? ring;
+
+  /// The fill as the ground the day's data swatches sit on.
+  final DataGround ground;
 
   factory DaySelection.of(BuildContext context) {
     final c = context.colors;
     final style = SelectionMark.isMacSystem(context) ? SelectionStyle.tint : context.variants.selection;
     return switch (style) {
-      SelectionStyle.tint || SelectionStyle.bar => DaySelection(fill: c.accentSoft, ring: c.ink),
+      SelectionStyle.tint || SelectionStyle.bar =>
+        DaySelection(fill: c.accentSoft, ring: c.ink, ground: DataGround.accentSoft),
       SelectionStyle.outline => DaySelection(ring: c.selection),
-      SelectionStyle.solid || SelectionStyle.highlighter => DaySelection(fill: c.selection, foreground: c.onSelection),
-      SelectionStyle.inverse => DaySelection(fill: c.ink, foreground: c.bg),
+      SelectionStyle.solid || SelectionStyle.highlighter =>
+        DaySelection(fill: c.selection, foreground: c.onSelection, ground: DataGround.selection),
+      SelectionStyle.inverse => DaySelection(fill: c.ink, foreground: c.bg, ground: DataGround.ink),
     };
   }
 }

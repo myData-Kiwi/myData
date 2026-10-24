@@ -503,6 +503,32 @@ void main() {
     // The selected day in each selection style, focused by keyboard.
     variantGoldens('selection', (focus) => MonthSpecimen(focus: focus), size: size, name: 'month');
 
+    testWidgets("swatches on today's inverse cell and a filled selected day take the edge rule against that fill",
+        (tester) async {
+      await pumpVariant(tester, kiwiWith(all([component('today', 'inverse'), component('selection', 'solid')])),
+          Brightness.dark, const MonthSpecimen(),
+          size: const Size(900, 840));
+      List<DataGround> groundsBeside(String title) => [
+            for (final e in find
+                .ancestor(of: find.text(title), matching: find.byType(Row))
+                .first
+                .evaluate()) ...[
+              for (final b in find.descendant(of: find.byWidget(e.widget), matching: find.byType(DataBar)).evaluate())
+                (b.widget as DataBar).ground,
+            ],
+          ];
+      expect(groundsBeside('Dentist'), [DataGround.ink]);
+      expect(groundsBeside('Dinner'), [DataGround.selection]);
+      expect(groundsBeside('Market'), [DataGround.surface]);
+      // Dentist's cyan on dark Kiwi's near-white ink is under 3:1, so it gets the edge: measured on the
+      // cell's ink, not on the `bg` its text takes there.
+      final look = tester.element(find.byType(MonthGrid)).look;
+      final dentist = tester.widget<DataBar>(
+          find.descendant(of: find.ancestor(of: find.text('Dentist'), matching: find.byType(Row)).first, matching: find.byType(DataBar)));
+      expect(dentist.groundColour, look.colors.ink);
+      expect(dataColourNeedsEdge(parseDataColour('#1BADF8')!, look.colors.ink), isTrue);
+    });
+
     test('a pattern gives every default calendar colour its own mark', () {
       // The schema's data-* roles in Kiwi's palette, and the usual calendar colours.
       const kiwi = {

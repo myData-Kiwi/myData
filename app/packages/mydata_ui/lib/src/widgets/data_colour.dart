@@ -52,7 +52,13 @@ enum DataGround {
   surfaceSunken,
 
   /// A hovered or pressed list row: `surface-hover`.
-  surfaceHover;
+  surfaceHover,
+
+  /// A day filled in `selection` (a solid or highlighter selection).
+  selection,
+
+  /// A day filled in `ink` (an inverse selection, or today drawn `inverse`).
+  ink;
 
   /// Spec: "less than 3:1 contrast with the ground it sits on" gets the edge.
   static const minContrast = 3.0;
@@ -64,6 +70,8 @@ enum DataGround {
         accentSoft => c.accentSoft,
         surfaceSunken => c.surfaceSunken,
         surfaceHover => c.surfaceHover,
+        selection => c.selection,
+        ink => c.ink,
       };
 }
 
@@ -72,7 +80,7 @@ enum DataGround {
 /// has less than 3:1 contrast with any of those grounds. In a pattern theme, its [DataPattern]: a grey
 /// (or none) with the edge, and dots ([dots]: their colour) over it.
 ({Color fill, bool edge, Color? dots}) _swatch(
-    MyDataLook look, MyDataColors c, Color? colour, DataGround ground, List<DataGround> alsoOn) {
+    MyDataLook look, MyDataColors c, Color? colour, DataGround ground, List<DataGround> alsoOn, Color? groundColour) {
   if (colour == null) return (fill: c.lineStrong, edge: false, dots: null);
   if (look.variants.dataColours == DataColourStyle.pattern) {
     final p = DataPattern.of(colour);
@@ -80,7 +88,8 @@ enum DataGround {
     return (fill: fill, edge: true, dots: p.dotted ? (p.level >= 0.5 ? c.surface : c.ink) : null);
   }
   final fill = colour.withValues(alpha: 1);
-  final edge = dataColourNeedsEdge(fill, ground.of(c)) || alsoOn.any((g) => dataColourNeedsEdge(fill, g.of(c)));
+  final edge = dataColourNeedsEdge(fill, groundColour ?? ground.of(c)) ||
+      alsoOn.any((g) => dataColourNeedsEdge(fill, g.of(c)));
   return (fill: fill, edge: edge, dots: null);
 }
 
@@ -200,12 +209,14 @@ Border? _edge(BuildContext context, MyDataColors c, bool edge) => edge
 /// rows that have tiles.
 class DataDot extends StatelessWidget {
   /// The bare 8px dot, as a MonthGrid cell under 600px uses it.
-  const DataDot({super.key, required this.colour, this.ground = DataGround.surface, this.alsoOn = const []})
+  const DataDot(
+      {super.key, required this.colour, this.ground = DataGround.surface, this.alsoOn = const [], this.groundColour})
       : slot = false;
 
   /// The dot centred in an `icon-tile` (36px) square, where a row's icon tile would be.
   const DataDot.slot({super.key, required this.colour, this.ground = DataGround.surface, this.alsoOn = const []})
-      : slot = true;
+      : slot = true,
+        groundColour = null;
 
   /// The colour from the data ([parseDataColour]); null for none.
   final Color? colour;
@@ -221,13 +232,17 @@ class DataDot extends StatelessWidget {
   /// Whether the dot is centred in an `icon-tile` square.
   final bool slot;
 
+  /// [ground]'s colour, given where the context's colours are not the ground's own: a month cell whose text
+  /// takes its fill's colours (`inkAs`), so its `ink` reads as `bg` there.
+  final Color? groundColour;
+
   /// Spec: "an 8px circle" (the `space-2` step).
   static double diameter(MyDataLook look) => look.space(2);
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final s = _swatch(context.look, c, colour, ground, alsoOn);
+    final s = _swatch(context.look, c, colour, ground, alsoOn, groundColour);
     Widget dot = Container(
         width: diameter(context.look),
         height: diameter(context.look),
@@ -255,7 +270,12 @@ class DataDot extends StatelessWidget {
 /// - It has no accessible name.
 class DataBar extends StatelessWidget {
   const DataBar(
-      {super.key, required this.colour, this.ground = DataGround.surface, this.alsoOn = const [], this.height});
+      {super.key,
+      required this.colour,
+      this.ground = DataGround.surface,
+      this.alsoOn = const [],
+      this.height,
+      this.groundColour});
 
   /// The colour from the data ([parseDataColour]); null for none.
   final Color? colour;
@@ -270,6 +290,9 @@ class DataBar extends StatelessWidget {
   /// A fixed height; null to take the height the parent gives.
   final double? height;
 
+  /// [ground]'s colour where the context's colours are not the ground's own ([DataDot.groundColour]).
+  final Color? groundColour;
+
   /// Spec: "`space-1` (4px) wide".
   static double width(MyDataLook look) => look.space(1);
 
@@ -279,7 +302,7 @@ class DataBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final s = _swatch(context.look, c, colour, ground, alsoOn);
+    final s = _swatch(context.look, c, colour, ground, alsoOn, groundColour);
     Widget bar = DecoratedBox(
         decoration: context.radius.decorate(BoxDecoration(
             color: s.fill, borderRadius: MyDataRadii.pill(context.look), border: _edge(context, c, s.edge))),
