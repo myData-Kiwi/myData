@@ -259,7 +259,7 @@ class MacStatusDot extends StatelessWidget {
 }
 
 /// The system's switch (NSSwitch at its regular size): the accent track when on, `quaternary-label` when off,
-/// a round `on-accent` thumb with a hairline. [onChanged] null disables it (45%). [semanticLabel] names it
+/// a round `on-accent` thumb with a hairline; square, track and thumb, in a drawn theme whose corners are. [onChanged] null disables it (45%). [semanticLabel] names it
 /// when the row's title is not right beside it.
 class MacSwitch extends StatelessWidget {
   const MacSwitch({super.key, required this.value, required this.onChanged, this.semanticLabel});
@@ -273,15 +273,25 @@ class MacSwitch extends StatelessWidget {
   static const inset = MyDataMacSize.tight;
   static const _radius = BorderRadius.all(Radius.circular(MyDataMacRadius.field));
 
+  /// The track's corners: the system's capsule, or none in a drawn theme whose corners are square
+  /// (Terminal, Brutalist), whose thumb is then a square too.
+  static BorderRadius radius(BuildContext context) => square(context) ? BorderRadius.zero : _radius;
+
+  /// Whether the switch is drawn square ([radius]).
+  static bool square(BuildContext context) =>
+      !context.isSystemLook && context.look.shape.corners == CornerStyle.square;
+
   @override
   Widget build(BuildContext context) {
     final mac = context.mac;
     const thumb = height - 2 * inset;
     final target = context.macLook.target;
+    final square = MacSwitch.square(context);
+    final radius = MacSwitch.radius(context);
     final toggle = onChanged == null ? null : () => onChanged!(!value);
     final Widget control = Pressable(
       onPressed: toggle,
-      borderRadius: _radius,
+      borderRadius: radius,
       scaleOnPress: false,
       button: false,
       toggled: value,
@@ -293,13 +303,13 @@ class MacSwitch extends StatelessWidget {
         height: height,
         padding: const EdgeInsets.all(inset),
         alignment: value ? AlignmentDirectional.centerEnd : AlignmentDirectional.centerStart,
-        decoration: BoxDecoration(color: value ? mac.accent : mac.quaternaryLabel, borderRadius: _radius),
+        decoration: BoxDecoration(color: value ? mac.accent : mac.quaternaryLabel, borderRadius: radius),
         child: Container(
           width: thumb,
           height: thumb,
           decoration: BoxDecoration(
             color: mac.onAccent,
-            shape: BoxShape.circle,
+            shape: square ? BoxShape.rectangle : BoxShape.circle,
             border: Border.all(color: mac.separator, width: MyDataMacSize.hairline),
           ),
         ),

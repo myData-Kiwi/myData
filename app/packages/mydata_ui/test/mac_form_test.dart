@@ -89,4 +89,37 @@ void main() {
     expect(controller.text, 'Claude');
     expect(find.bySemanticsLabel(RegExp('^Name')), findsWidgets);
   });
+
+  // A drawn theme's form, in the Mac window: [slug]'s look.
+  Widget drawn(String slug, Widget child, {String heading = 'Included from this Mac'}) => MaterialApp(
+        theme: MacTheme.forChoice(ThemeChoice('mydata.$slug'), Brightness.light, MyDataMacColors.light),
+        themeAnimationDuration: Duration.zero,
+        home: Scaffold(body: MacForm(children: [MacFormSection(heading: heading, rows: [child])])),
+      );
+
+  // "Square: every radius 0": a square theme's switch is a square track with a square thumb, as its other
+  // controls are; System and round themes keep the system's capsule and round thumb.
+  for (final (slug, square) in [('terminal', true), ('brutalist', true), ('hairline', false), ('kiwi', false)]) {
+    testWidgets('a switch in $slug is ${square ? 'square' : 'a capsule'}', (tester) async {
+      await tester.pumpWidget(drawn(slug, MacSwitch(value: true, onChanged: (_) {}, semanticLabel: 'On')));
+      final boxes = tester
+          .widgetList<Container>(find.descendant(of: find.byType(MacSwitch), matching: find.byType(Container)))
+          .map((c) => c.decoration)
+          .whereType<BoxDecoration>()
+          .toList();
+      final track = boxes.firstWhere((d) => d.borderRadius != null);
+      final thumb = boxes.firstWhere((d) => d.borderRadius == null);
+      expect(track.borderRadius, square ? BorderRadius.zero : isNot(BorderRadius.zero));
+      expect(thumb.shape, square ? BoxShape.rectangle : BoxShape.circle);
+    });
+  }
+  testWidgets('a switch in System is the system\'s capsule', (tester) async {
+    await tester.pumpWidget(frame(MacSwitch(value: true, onChanged: (_) {})));
+    final thumb = tester
+        .widgetList<Container>(find.descendant(of: find.byType(MacSwitch), matching: find.byType(Container)))
+        .map((c) => c.decoration)
+        .whereType<BoxDecoration>()
+        .firstWhere((d) => d.borderRadius == null);
+    expect(thumb.shape, BoxShape.circle);
+  });
 }
