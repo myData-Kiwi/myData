@@ -9,7 +9,7 @@ The myData design system in Flutter. `design/` at the repo root is the source of
 - **No literals.** No widget or app may contain a literal colour, radius or font name, nor read a themeable token statically; `test/no_literals_test.dart` scans every app and package and fails if one appears outside the generated file (font names: the font catalogue; static tokens: `lib/src/theme/`).
 - **Motion** (`MyDataMotion`, from `design/motion.md`) and **accessibility**: `MyDataAccessibilityScope` follows the system's reduced motion and reduced transparency (read from macOS over the `mydata/accessibility` channel in each app's Runner; Flutter has no reduced-transparency flag). The web build always uses solid bars.
 - **Fonts:** Plus Jakarta Sans 700, Figtree 400 and 600, JetBrains Mono 400, with their licences (`assets/fonts/OFL-*.txt`, registered by `registerMyDataLicenses()`).
-- **Tests:** goldens for every widget in Kiwi and Graphite, light and dark (`test/widgets/goldens`), using `package:mydata_testing`, which loads the bundled fonts in tests.
+- **Tests:** goldens for every widget in Kiwi and Hairline, light and dark (`test/widgets/goldens`), using `package:mydata_testing`, which loads the bundled fonts in tests.
 
 ## Where design/ disagreed with itself (decided 2026-10-12)
 

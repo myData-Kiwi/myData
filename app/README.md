@@ -10,7 +10,7 @@ A family of separate apps built from shared code. There is no combined app.
 - `packages/mydata_core`: host lifecycle (find, start, wait for `/status`, watch), app tokens, error states.
 - `packages/mydata_ui`: the design system, generated from `design/` at the repo root (the source of truth): tokens, `MyDataTheme` (themes chosen on the host, light and dark per device), motion, accessibility, bundled fonts, the kiwi logo and the shared widgets. See its README for the owner's decisions where `design/` disagreed with itself.
 - `packages/mydata_assistant`: chat, streamed replies, progress lines, the approval card.
-- `packages/mydata_testing`: test helpers, a dev dependency only: loads the bundled fonts in tests (each package's and app's `test/flutter_test_config.dart`), and `goldenMatrix` / `screenMatrix` for one image per theme and mode (Kiwi and Graphite, light and dark).
+- `packages/mydata_testing`: test helpers, a dev dependency only: loads the bundled fonts in tests (each package's and app's `test/flutter_test_config.dart`), and `goldenMatrix` / `screenMatrix` for one image per theme and mode (Kiwi and Hairline, light and dark).
 
 **Design tokens.** `packages/mydata_ui/lib/src/generated/tokens.g.dart` is generated from `design/tokens.json` and Kiwi's theme file by `dart run tool/generate_tokens.dart` (run in `packages/mydata_ui`), which also writes the built-in themes from `design/themes` and copies the logos from `design/assets/Logos`; never edit it by hand. `test/generated_tokens_test.dart` fails when it is stale. `test/no_literals_test.dart` fails when any app or package contains a literal colour, radius or font name outside that file: use `context.colors`, `MyDataSpace`, `MyDataRadius` and `MyDataType`.
 

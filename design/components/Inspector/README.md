@@ -40,7 +40,7 @@ A panel at the side of the window that creates or edits one record, such as a co
   - On a phone the sheet rises with the `spring` motion, follows the finger when dragged and settles with `spring`.
   - With reduced motion it fades in and out over `fast`, and the content's width changes at once.
 - **Light and dark.** Beside the content, the `surface` panel against the `bg` content area is the same pairing as the sidebar: in dark mode the panel is the lighter of the two. Covering the content, it adds `shadow-2`, which barely shows in dark mode, so the lighter surface does the work there.
-- **Kiwi and Graphite.** Save is the only control in the theme's colour: kiwi green in Kiwi, near black (light) or near white (dark) in Graphite. Fields, headings and lines are the same in every theme.
+- **Kiwi and Hairline.** Save is the only control in the theme's colour: kiwi green in Kiwi, near black (light) or near white (dark) in Hairline's Graphite. Fields, headings and lines are the same in every theme.
 - **Sizes.** One width, `inspector-width`, or the detail pane's. Controls are `control-height`, or `control-height-compact` in Compact density.
 - **Copy.**
   - The title says what is being done to what kind of record, in sentence case with no full stop: "New contact", "Edit contact", "New event", "Edit event". The record's own name is in the form, and it may change while the user types.

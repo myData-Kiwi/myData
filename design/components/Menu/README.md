@@ -37,7 +37,7 @@ A short list of actions that opens over the screen: on a right-click or long-pre
 - **Screen readers** hear a menu with its items, how many there are and which one has focus. Each item is read by its label, then its shortcut ("Delete contact, Command Delete"), then "dimmed" and the reason when it is disabled. A checked item in a Select's list is read as selected. Separators are skipped. A destructive item's label carries the meaning; its colour is never the only signal.
 - **Motion.** It fades in and grows from 97%, from the corner nearest its pointer or button, over `base` with the `standard` curve. It closes with a `fast` fade, and at once when an item is chosen. With reduced motion it only fades, over `fast`, and closes at once.
 - **Light and dark.** In light mode the white panel lifts off white cards by `shadow-2`. In dark mode `surface-raised` is lighter than the `surface` it opens over, and the shadow barely shows.
-- **Kiwi and Graphite.** Only a Select's check mark takes the theme's colour. Everything else is neutral or `danger`, the same in every theme.
+- **Kiwi and Hairline.** Only a Select's check mark takes the theme's colour. Everything else is neutral or `danger`, the same in every theme.
 - **Under 600px (phones).** It opens on a long-press, at the finger, with the same look, and the platform's light tap when it opens. Items are `control-height`. Shortcuts are not shown, since there is no keyboard. The overflow button sits in the screen's header.
 - **Sizes.** One, with Compact density on desktop only.
 - **Copy.**

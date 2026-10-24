@@ -7,7 +7,7 @@ A box the user ticks to include something: an option that goes with an action, o
   - unchecked: `surface` fill and a 1px `line-strong` edge;
   - checked: `accent` fill and a check mark in `on-accent`, drawn as an icon (1.75px rounded stroke);
   - mixed (only on a select-all box, below): `accent` fill and a short dash in `on-accent`.
-  - The mark, not the fill, carries the state, so Graphite (whose `accent` is close to `ink`) and a reader who cannot see the colour lose nothing.
+  - The mark, not the fill, carries the state, so Hairline's Graphite (whose `accent` is close to `ink`) and a reader who cannot see the colour lose nothing.
 - **On its own,** the box sits at the start of its label, `space-3` from it, centred on the label's first line:
   - the label in `body` and `ink`, with an optional second line in `caption` and `ink-muted` that names exactly what it covers ("Ava Fictional, Ben Sample and Chloe Example");
   - the box and its label are one target, at least `control-height` tall; a click anywhere on either toggles it;

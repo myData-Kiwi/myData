@@ -87,7 +87,7 @@ Only contacts myData owns are merged or changed. A followed contact is never one
 - The buttons are a bar at the bottom: the filled one full width, the plain one under it.
 - The Review section's list is its own screen; a row pushes its pair.
 
-## Light and dark, Kiwi and Graphite
+## Light and dark, Kiwi and Hairline
 
 Only tokens. The band is `surface-sunken` inside a `surface` card: a darker strip in light mode and a darker strip in dark mode (`surface-sunken` is near black), with the word carrying the meaning in every theme. Only the filled button takes the theme's colour.
 

@@ -136,11 +136,11 @@ Those are Kiwi's sizes. Under System on macOS the icons are Lucide at 16px, and 
 
 ## Themes
 
-System is the default; the built-ins are in `themes/` and `theming.md`. Until phase 3 the code reads today's values: `tokens.json` is Kiwi, and `themes.json` gives the other five their `accent`, `on-accent` and `accent-soft`. From phase 3 the theme files are the source and `themes.json` goes.
+System is the default; the built-ins are in `themes/` and `theming.md`. The theme files are the source (phase 3): the generator writes each `themes/<slug>/theme.json` into the apps, and `tokens.json`'s colours must equal Kiwi's default palette (the first frame's). `themes.json` is gone.
 
 ## For implementers
 
-- Today `MyDataTheme` is built from a theme id and a mode, reading `tokens.json` and `themes.json`. From phase 1 it is built from a resolved look (`MyDataLook`, `themes/ARCHITECTURE.md` 3.1), read by widgets through `context`. No widget reads a theme file or a literal colour directly, and no app passes style overrides to a widget.
+- `MyDataTheme` is built from a resolved look (`MyDataLook`, `themes/ARCHITECTURE.md` 3.1), read by widgets through `context`. No widget reads a theme file or a literal colour directly, and no app passes style overrides to a widget.
 - Token names map one to one to the Flutter package: `accent` becomes `MyDataColors.accent`, `space-4` becomes `MyDataSpace.s4` (phase 1's codemod makes it `context.space(4)`).
 - Components here are specifications with HTML previews; the Flutter widgets are the implementation.
-- `tokens.json` is the source of truth for values a theme does not set, and until phase 3 for Kiwi's; from phase 3 a theme's values come from its `themes/<slug>/theme.json`.
+- `tokens.json` is the source of truth for values a theme does not set (the Mac frame, layout widths, the toast's time); a theme's values come from its `themes/<slug>/theme.json`, Kiwi's included.
