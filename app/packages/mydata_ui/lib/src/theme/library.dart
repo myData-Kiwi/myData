@@ -48,8 +48,18 @@ abstract final class ThemeLibrary {
   static ThemeFile? byId(String? id) => switch (id) {
         systemId => system,
         kiwiId => kiwi,
-        _ => null,
+        _ => _testing[id],
       };
+
+  static final _testing = <String?, ThemeFile>{};
+
+  /// Makes [theme] known to [byId] until [clearForTesting], for tests of a theme the shipped library does
+  /// not offer yet (one that needs fonts loaded on demand, until phase 3 offers the designed six).
+  @visibleForTesting
+  static void addForTesting(ThemeFile theme) => _testing[theme.id] = theme;
+
+  @visibleForTesting
+  static void clearForTesting() => _testing.clear();
 
   /// [choice] as it is drawn: a theme this build has (else System) and, for a theme with palettes, one it
   /// has (else its default); never a palette for System (ARCHITECTURE.md 4.1). Null is System.

@@ -384,7 +384,7 @@ Today `tool/generate_tokens.dart` writes `tokens.g.dart`: static `MyDataColors.l
 ### 3.6 Fonts and icons at run time
 
 - `FontCatalogue` maps an id to its asset, its weights or variable range, its licence, and whether it is display-only.
-- `ThemeController` awaits `FontCatalogue.ensure(families)` before swapping themes, so text never reflows in a fallback font.
+- `ThemeController` awaits `FontCatalogue.ensure(families)` before swapping themes, so text never reflows in a fallback font. **As built:** `ThemeFonts.ensure`; a stored theme is drawn once its fonts are, a preview overtaken while loading is never drawn, and a font that cannot be read is reported and the theme drawn in its fallback fonts (`mydata_core/test/theme_fonts_test.dart`, with a gated asset bundle). No shipped app reaches this path until phase 3 offers the designed six (`ThemeLibrary.byId` knows System and Kiwi only).
 - `registerMyDataLicenses()` registers every bundled font's and icon set's licence.
 - Icons go through `MyDataIcon` semantic ids, resolved as `IconData(codePoint, fontFamily: <set-weight>)` from `context.icons`.
 - Glyphs drawn as characters (`›`, `$`) for decoration are excluded from semantics.

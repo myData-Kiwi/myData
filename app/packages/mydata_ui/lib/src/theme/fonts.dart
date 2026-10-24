@@ -42,7 +42,7 @@ abstract final class ThemeFonts {
     for (final id in ids) {
       final f = fontCatalogue[id];
       if (f == null || !f.variable || _loaded.contains(id)) continue;
-      waits.add(_loading[id] ??= _load(f, bundle ?? rootBundle));
+      waits.add(_loading[id] ??= _load(f, bundle ?? testBundle ?? rootBundle));
     }
     if (waits.isNotEmpty) await Future.wait(waits);
   }
@@ -51,14 +51,30 @@ abstract final class ThemeFonts {
   static Future<void> ensureFor(ThemeFile theme, {AssetBundle? bundle}) =>
       ensure(of(theme.style.type), bundle: bundle);
 
+  /// The bundle fonts load from instead of the app's, for a test that controls when a load completes.
+  @visibleForTesting
+  static AssetBundle? testBundle;
+
+  /// Forgets every font loaded or loading, so a test sees the app as it starts, and [testBundle].
+  @visibleForTesting
+  static void resetForTesting() {
+    _loading.clear();
+    _loaded.clear();
+    testBundle = null;
+  }
+
   /// Every bundled font, for tests and for a gallery that shows every theme.
   static Future<void> ensureAll({AssetBundle? bundle}) => ensure(fontCatalogue.keys, bundle: bundle);
 
   static Future<void> _load(CatalogueFont f, AssetBundle bundle) async {
     try {
+      // Every file is read first, together, so a file that cannot be read is one error here and never an
+      // unhandled one inside FontLoader (which would leave its other files' errors unseen).
+      final reads = [for (final a in f.assets) bundle.load('packages/$fontPackage/$a')];
+      await Future.wait(reads);
       final loader = FontLoader(familyOf(f));
-      for (final a in f.assets) {
-        loader.addFont(bundle.load('packages/$fontPackage/$a'));
+      for (final read in reads) {
+        loader.addFont(read);
       }
       await loader.load();
       _loaded.add(f.id);
