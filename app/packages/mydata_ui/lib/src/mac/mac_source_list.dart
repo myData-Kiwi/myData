@@ -248,6 +248,14 @@ class MacSidebar extends StatelessWidget {
   /// False: no connection line (the content says what is wrong).
   final bool showConnection;
 
+  /// The text size the sidebar's width is drawn for: a drawn theme's rows up to 16 px fit the Mac's width.
+  static const fitsBody = 16.0;
+
+  /// The sidebar's width: the Mac's, widened in proportion for a drawn theme whose rows are set larger than
+  /// [fitsBody] (Large's 19 px), so a section's name is never cut off. The skeleton stays the same.
+  static double width(MacLookMetrics m) =>
+      MyDataMacSize.sidebarWidth * math.max(1, (m.body.fontSize ?? fitsBody) / fitsBody);
+
   @override
   Widget build(BuildContext context) {
     final mac = context.mac;
@@ -290,7 +298,7 @@ class MacSidebar extends StatelessWidget {
       ),
     );
     final column = SizedBox(
-      width: MyDataMacSize.sidebarWidth,
+      width: width(m),
       child: CustomPaint(painter: _AroundPanel(color: mac.contentBackground, radius: radius, shape: shape), child: panel),
     );
     return solid ? column : chrome.sidebar!(column);
