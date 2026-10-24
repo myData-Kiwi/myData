@@ -22,7 +22,7 @@ Circle, square, triangle; red, yellow, blue. Confident and structural: square bo
 
 ## Shape and density
 
-- Square everywhere (radius 0). Shapes appear only in avatars: a circle, a square or a triangle, chosen from the name.
+- Square everywhere (radius 0). Shapes appear only in avatars (a circle, a square or a triangle, chosen from the name) and in today's mark, a disc (a capsule round a two-digit day), which stays round in the square grid.
 - Regular: 40 px controls, 52 px rows, 20 px icons on the desktop; phones 48 / 56 / 22.
 
 ## Colour use

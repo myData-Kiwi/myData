@@ -39,8 +39,9 @@ void main() {
     // 0.17: both draw the month as one boxed card with thin rules; Arcade's cut cells of the prototype are not
     // the Mac month's, so here they differ in type, colour, the grid floor in the gutters and the today ring.
     'arcade and kiwi': (0.17, 'one boxed month, other type'),
-    // 0.15: both draw the month as one boxed grid ruled in 2 px ink; here they differ in type (Jost against
-    // Atkinson Hyperlegible), today (a blue disc against an inverse block) and the yellow selection.
+    // 0.15: both draw the month as one boxed grid ruled in 2 px ink, and the selected day as the same thin
+    // accent outline (the Mac month's selection in every drawn theme); here they differ in type (Jost against
+    // Atkinson Hyperlegible) and today (a blue disc against an ink block).
     'geometric and high-contrast': (0.15, 'the same 2 px ink grid, other type'),
   });
 
@@ -74,11 +75,13 @@ void main() {
     });
   }
 
-  // Today's shape is the theme's mark (`components.today`) in its corners: a disc or a ring is a circle in a
-  // round theme (Hairline's filled disc, Notebook's ring in pen), a square where the corners are square
-  // (Journal's ring); an inverse mark takes the control corners (High Contrast's 8 px, Terminal's square).
+  // Today's shape is the theme's mark (`components.today`) in its corners: a disc is always a circle (Hairline's,
+  // and Geometric's in its square grid, where the disc is one of its three shapes); a ring is a circle in a
+  // round theme (Notebook's ring in pen) and a square where the corners are square (Journal's ring); an inverse
+  // mark takes the control corners (High Contrast's 8 px, Terminal's square).
   for (final (slug, style, square) in [
     ('hairline', TodayStyle.disc, false),
+    ('geometric', TodayStyle.disc, false),
     ('paperback', TodayStyle.disc, false),
     ('large', TodayStyle.disc, false),
     ('notebook', TodayStyle.ring, false),

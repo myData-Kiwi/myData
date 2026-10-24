@@ -159,15 +159,23 @@ class MacMonthGrid extends StatefulWidget {
   }
 
   /// Today's mark's corners in a drawn theme ([m] its Mac metrics), by its `components.today` and the theme's
-  /// corners: a disc or a ring is round (a circle, a capsule round "1 Nov") unless the theme's corners are
-  /// square (Terminal, Brutalist, Journal), where it is a square; an inverse mark is a control, in the
-  /// theme's control corners (High Contrast's 8 px, square in Terminal). System's is the system's capsule.
+  /// corners: a disc is always round (a circle, a capsule round "1 Nov"), Geometric's square grid included,
+  /// since a disc is the shape itself; a ring is round unless the theme's corners are square (Journal), where
+  /// it is a square; an inverse mark is a control, in the theme's control corners (High Contrast's 8 px,
+  /// square in Terminal and Brutalist). System's is the system's capsule.
   static BorderRadius todayRadius(MacLookMetrics m, TodayStyle style) {
     if (m.system) return const BorderRadius.all(Radius.circular(MyDataMacRadius.field));
     if (style == TodayStyle.inverse) return m.controlRadius;
-    if (m.shape?.corners == CornerStyle.square) return BorderRadius.zero;
+    if (style == TodayStyle.ring && m.shape?.corners == CornerStyle.square) return BorderRadius.zero;
     return const BorderRadius.all(Radius.circular(MyDataShape.capsule));
   }
+
+  /// Whether today's mark is drawn round as it is, not in the theme's corner style: a disc in every drawn
+  /// theme, and a ring where the corners are cut (Arcade; cut at the theme's size, the small capsule came
+  /// out as a lozenge).
+  static bool todayRound(MacLookMetrics m, TodayStyle style) =>
+      !m.system &&
+      (style == TodayStyle.disc || (style == TodayStyle.ring && m.shape?.corners == CornerStyle.cut));
 
   /// How many event lines a cell [height] tall holds at [scaler].
   static int linesFor(MyDataLook look, double height, TextScaler scaler, [MacLookMetrics? m]) {
@@ -518,7 +526,7 @@ class _CellState extends State<_Cell> {
 
 /// The day number at a cell's top end; today's in a capsule in the system red, as Calendar.app marks it.
 /// In a drawn theme today is the theme's (`components.today`): a disc in the accent with `on-accent`, a
-/// ring in the accent (both round unless the theme's corners are square), or (inverse) an `ink` box with `bg`
+/// ring in the accent (the disc always round, the ring unless the theme's corners are square), or (inverse) an `ink` box with `bg`
 /// in the theme's control corners ([MacMonthGrid.todayRadius]); the system red is System's alone, and in a
 /// theme whose danger is close to it (Sticker) it would read as an error.
 class _Number extends StatelessWidget {
@@ -550,9 +558,7 @@ class _Number extends StatelessWidget {
         border: ring,
         borderRadius: MacMonthGrid.todayRadius(context.macLook, style),
       );
-      // A disc or ring stays round in a theme with cut corners too (Arcade): cut at the theme's size, the
-      // small capsule came out as a lozenge.
-      final round = !system && style != TodayStyle.inverse && context.macLook.shape?.corners == CornerStyle.cut;
+      final round = MacMonthGrid.todayRound(context.macLook, style);
       return DecoratedBox(
         decoration: round ? mark : context.macLook.decorate(mark),
         child: ConstrainedBox(
