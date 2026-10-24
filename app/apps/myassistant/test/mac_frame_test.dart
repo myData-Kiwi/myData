@@ -48,7 +48,7 @@ Widget app(
   systemAccentOf(t);
   return MyAssistantApp(
     host: FakeHost(phaseOnConnect: phase, statusOnConnect: status),
-    store: MemoryDeviceStore({'mode': t.brightness.name, 'lastTheme': t.themeId}),
+    store: MemoryDeviceStore({'mode': t.brightness.name, 'lastTheme': t.themeId, ...t.macThemes}),
     backend: backend,
     apps: apps,
     openLink: openLink ?? (_) async => true,

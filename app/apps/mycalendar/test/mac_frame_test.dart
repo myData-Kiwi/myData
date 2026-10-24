@@ -44,7 +44,12 @@ class Harness {
     this.theme = const ThemeCase('kiwi', Brightness.light),
   }) : backend = backend ?? FakeBackend(),
        store = store ??
-           MemoryDeviceStore({'mode': theme.brightness.name, 'lastTheme': theme.themeId, 'hiddenCalendars': hidden}),
+           MemoryDeviceStore({
+             'mode': theme.brightness.name,
+             'lastTheme': theme.themeId,
+             ...theme.macThemes,
+             'hiddenCalendars': hidden,
+           }),
       host = FakeHost(phaseOnConnect: HostPhase.running, statusOnConnect: hostStatus(theme: theme.themeId));
 
   final ThemeCase theme;

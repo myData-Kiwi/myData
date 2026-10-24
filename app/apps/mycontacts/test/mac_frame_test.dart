@@ -76,6 +76,7 @@ Widget app(ThemeCase t, {String? lastOpened, FakeBackend? backend, bool anyOn = 
     store: MemoryDeviceStore({
       'mode': t.brightness.name,
       'lastTheme': t.themeId,
+      ...t.macThemes,
       ContactsController.lastOpenedKey: ?lastOpened,
     }),
     backend: backend ?? people(),

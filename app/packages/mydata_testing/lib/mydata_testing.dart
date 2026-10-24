@@ -171,11 +171,15 @@ extension DecorationAsBox on Decoration? {
 /// slug (`hairline`, in its default palette unless [palette] says), or one of today's old colours, which the
 /// Mac frame's tests use as the accent set in System Settings (`graphite` draws Hairline in Graphite off the
 /// Mac shell).
+///
+/// In the Mac frame's tests a case is System with its accent set in System Settings, unless [drawnOnMac]: then
+/// the device has chosen the theme itself, and the Mac window draws it inside ([macThemes]).
 class ThemeCase {
-  const ThemeCase(this.themeId, this.brightness, {this.palette});
+  const ThemeCase(this.themeId, this.brightness, {this.palette, this.drawnOnMac = false});
   final String themeId;
   final Brightness brightness;
   final String? palette;
+  final bool drawnOnMac;
   String get label => palette == null ? '$themeId-${brightness.name}' : '$themeId-$palette-${brightness.name}';
 
   /// The theme and palette this case draws.
@@ -185,6 +189,14 @@ class ThemeCase {
   }
 
   ThemeData get data => MyDataTheme.dataFor(choice, brightness);
+
+  /// What a Mac frame test adds to the device's settings: this case's theme everywhere when [drawnOnMac],
+  /// else nothing (the Mac shell draws System).
+  Map<String, Object?> get macThemes => drawnOnMac
+      ? {
+          'themes': {'everywhere': choice.toJson()},
+        }
+      : const {};
 
   /// A device's settings that draw this case in every app: its mode, and its theme everywhere.
   Map<String, Object?> get deviceSettings => {
@@ -204,6 +216,16 @@ const themeMatrix = [
 
 /// The six drawn built-ins, by slug, in the gallery's order.
 const drawnThemes = ['kiwi', 'hairline', 'frosted', 'journal', 'sticker', 'paperback'];
+
+/// Each drawn built-in in its default palette, light and dark, drawn in the Mac window.
+final drawnMacMatrix = [
+  for (final slug in drawnThemes)
+    for (final b in Brightness.values) ThemeCase(slug, b, drawnOnMac: true),
+];
+
+/// Where `--dart-define=MYDATA_SHOTS=<folder>` asks the theme screens to write every screen of every theme
+/// and palette, off-screen (with `--update-goldens`); empty when not asked, and those tests are skipped.
+const shotsFolder = String.fromEnvironment('MYDATA_SHOTS');
 
 /// The Mac frame's two appearances. Its accent is the system's, not the host's theme, so one theme is enough.
 const macMatrix = [
@@ -292,4 +314,79 @@ void screenMatrix(String name, Widget Function(ThemeCase theme) build,
       }
     });
   }
+}
+
+/// One of an app's key screens for the theme screenshots ([themeScreens]).
+class ThemeScreen {
+  const ThemeScreen(this.name, this.build, {this.before});
+
+  /// Its name in file names (`people`).
+  final String name;
+
+  /// The app in a case's theme and mode, on this screen's data.
+  final Widget Function(ThemeCase theme) build;
+
+  /// What to do before the picture (open a tab, wait for the data).
+  final Future<void> Function(WidgetTester tester)? before;
+}
+
+/// The app's key screens in each drawn built-in, inside the Mac window (design/themes/ARCHITECTURE.md 5,
+/// phase 3: every theme on an app scene in both modes):
+///
+/// - **Goldens:** the first of [screens] in each theme's default palette, light and dark, into
+///   `screenshots/theme_<screen>.<theme>-<mode>.png` (12 per app).
+/// - **Shots** (`--dart-define=MYDATA_SHOTS=<folder>` with `--update-goldens`, never on screen): every screen
+///   in every theme's default palette, and the first screen in every palette, into
+///   `<folder>/<app>/<theme>/<palette>-<screen>-<mode>.png`, for review side by side.
+void themeScreens(String app, List<ThemeScreen> screens, {Size size = const Size(1280, 800)}) {
+  Future<void> shoot(WidgetTester tester, ThemeScreen screen, ThemeCase theme, String file) async {
+    tester.view.physicalSize = size;
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    painting.debugDisableShadows = false;
+    try {
+      await tester.pumpWidget(screen.build(theme));
+      if (screen.before != null) await screen.before!(tester);
+      await tester.pump(const Duration(seconds: 1));
+      await expectLater(find.byType(MaterialApp).first, matchesGoldenFile(file));
+    } finally {
+      painting.debugDisableShadows = true;
+    }
+  }
+
+  bool? macBefore;
+  setUp(() {
+    macBefore = MacLook.debugOverride;
+    MacLook.debugOverride = true;
+    EditableText.debugDeterministicCursor = true;
+  });
+  tearDown(() {
+    MacLook.debugOverride = macBefore;
+    EditableText.debugDeterministicCursor = false;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(MacSystemColorsScope.channel, null);
+  });
+
+  final key = screens.first;
+  for (final theme in drawnMacMatrix) {
+    macTestWidgets('theme screenshot: ${key.name} (${theme.label})',
+        (tester) => shoot(tester, key, theme, 'screenshots/theme_${key.name}.${theme.label}.png'));
+  }
+
+  group('shots', skip: shotsFolder.isEmpty ? 'only with --dart-define=MYDATA_SHOTS=<folder>' : null, () {
+    for (final slug in drawnThemes) {
+      final file = ThemeLibrary.byId('mydata.$slug')!;
+      for (final palette in file.palettes) {
+        final isDefault = palette.id == file.defaultPaletteId;
+        for (final screen in isDefault ? screens : [key]) {
+          for (final b in Brightness.values) {
+            final theme = ThemeCase(slug, b, palette: palette.id, drawnOnMac: true);
+            macTestWidgets('shot: $slug ${palette.id} ${screen.name} ${b.name}',
+                (tester) => shoot(tester, screen, theme,
+                    '$shotsFolder/$app/$slug/${palette.id}-${screen.name}-${b.name}.png'));
+          }
+        }
+      }
+    }
+  });
 }

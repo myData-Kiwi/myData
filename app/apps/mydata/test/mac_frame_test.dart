@@ -56,7 +56,7 @@ Widget app(
   useAccent(t.themeId);
   return MyDataApp(
     controller: host.controller(),
-    store: MemoryDeviceStore({'mode': t.brightness.name, 'lastTheme': host.theme}),
+    store: MemoryDeviceStore({'mode': t.brightness.name, 'lastTheme': host.theme, ...t.macThemes}),
     macSystem: FakeMacSystem(),
     installedApps: FakeLaunchServices(installed).apps(),
     openApp: (_) async => true,

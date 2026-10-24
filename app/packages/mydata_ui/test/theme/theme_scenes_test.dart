@@ -1,5 +1,5 @@
 // Each designed theme as a whole (design/themes/ARCHITECTURE.md 5, phase 3): one app scene per drawn built-in
-// in its default palette, light and dark, in its own type, shape, density, borders, elevation, materials and
+// in each of its palettes (18), light and dark (36 images; the default palette's as scene.<theme>.<mode>), in its own type, shape, density, borders, elevation, materials and
 // every component variant together, so a look can be judged against its RULES.md and the variants' meeting
 // points show (Approve in a brutal theme, a near-red palette, the window ground).
 import 'package:flutter/material.dart';
@@ -110,28 +110,32 @@ class _ThemeSceneState extends State<ThemeScene> {
 
 void main() {
   for (final id in drawnBuiltIns) {
-    for (final b in Brightness.values) {
-      final slug = id.substring('mydata.'.length);
-      testWidgets('theme scene golden: $slug, ${b.name}', (tester) async {
-        tester.view.physicalSize = const Size(1280, 860);
-        tester.view.devicePixelRatio = 1;
-        addTearDown(tester.view.reset);
-        debugDisableShadows = false;
-        try {
-          final look = designedLook(id, b, platform: TargetPlatform.linux);
-          await tester.pumpWidget(MaterialApp(
-            debugShowCheckedModeBanner: false,
-            theme: MyDataTheme.fromLook(look).copyWith(platform: TargetPlatform.linux),
-            home: const ThemeScene(),
-          ));
-          await tester.pumpAndSettle();
-          expect(tester.takeException(), isNull);
-          await expectLater(tester, meetsGuideline(const MinimumTapTargetGuideline(size: Size(24, 24), link: '')));
-          await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/scene.$slug.${b.name}.png'));
-        } finally {
-          debugDisableShadows = true;
-        }
-      });
+    final theme = designedTheme(id);
+    for (final palette in theme.palettes) {
+      for (final b in Brightness.values) {
+        final slug = id.substring('mydata.'.length);
+        final name = palette.id == theme.defaultPaletteId ? slug : '$slug-${palette.id}';
+        testWidgets('theme scene golden: $name, ${b.name}', (tester) async {
+          tester.view.physicalSize = const Size(1280, 860);
+          tester.view.devicePixelRatio = 1;
+          addTearDown(tester.view.reset);
+          debugDisableShadows = false;
+          try {
+            final look = designedLook(id, b, palette: palette.id, platform: TargetPlatform.linux);
+            await tester.pumpWidget(MaterialApp(
+              debugShowCheckedModeBanner: false,
+              theme: MyDataTheme.fromLook(look).copyWith(platform: TargetPlatform.linux),
+              home: const ThemeScene(),
+            ));
+            await tester.pumpAndSettle();
+            expect(tester.takeException(), isNull);
+            await expectLater(tester, meetsGuideline(const MinimumTapTargetGuideline(size: Size(24, 24), link: '')));
+            await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/scene.$name.${b.name}.png'));
+          } finally {
+            debugDisableShadows = true;
+          }
+        });
+      }
     }
   }
 }
