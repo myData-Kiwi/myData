@@ -99,6 +99,8 @@ const acceptedGaps = {
   'atkinson-hyperlegible-next': 'ʼ$vietnamese',
   'atkinson-hyperlegible-mono': 'ʼ$vietnamese',
   'manrope': 'ʼ',
+  // Retro Desktop's titles: Pixelify Sans, and Atkinson Hyperlegible Next behind it, have neither.
+  'pixelify-sans': 'ʼ$vietnamese',
 };
 
 /// A bundled font's files: a core font's static weights, a font loaded on demand and its italic.

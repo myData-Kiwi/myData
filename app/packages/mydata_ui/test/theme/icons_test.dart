@@ -140,6 +140,7 @@ void main() {
       'mydata.terminal': ('lucide', 'regular'),
       'mydata.notebook': ('phosphor', 'regular'),
       'mydata.brutalist': ('phosphor', 'bold'),
+      'mydata.retro-desktop': ('pixelarticons', 'regular'),
     });
   });
 
