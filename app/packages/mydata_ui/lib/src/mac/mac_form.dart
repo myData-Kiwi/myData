@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -129,10 +131,9 @@ class MacFormSection extends StatelessWidget {
               children: [
                 for (final (i, row) in rows.indexed) ...[
                   if (i > 0 && !bare)
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: ruled ? 0 : context.space(3)),
-                      child: Container(height: ruled ? rule.width : 1, color: ruled ? rule.color : mac.separator),
-                    ),
+                    ruled
+                        ? Container(height: rule.width, color: rule.color)
+                        : MacRowRule(indent: context.space(3), end: context.space(3)),
                   row,
                 ],
               ],
@@ -540,6 +541,38 @@ class MacDisclosure extends StatelessWidget {
         ),
         if (open) child,
       ],
+    );
+  }
+}
+
+/// The rule between two rows of a Mac list or form: the system's `separator` hairline, or, in a drawn theme
+/// whose separators are full, the theme's own line at its width (High Contrast's 2 px of ink, Large's 2 px
+/// of `line-strong`, Brutalist's 3 px of ink), as its shared lists rule their rows. [indent] and [end] keep
+/// it off the edges, as the rows' text is.
+class MacRowRule extends StatelessWidget {
+  const MacRowRule({super.key, this.indent = 0, this.end = 0});
+
+  final double indent;
+  final double end;
+
+  /// The system's rule, and the least a theme's is: one pixel.
+  static const thinnest = 1.0;
+
+  /// The rule's colour and width in [context].
+  static BorderSide sideOf(BuildContext context) {
+    final edges = context.look.edges;
+    if (context.isSystemLook || edges.separators != Separators.full) {
+      return BorderSide(color: context.mac.separator, width: thinnest);
+    }
+    return BorderSide(color: edges.colour, width: math.max(thinnest, edges.width));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final side = sideOf(context);
+    return Padding(
+      padding: EdgeInsetsDirectional.only(start: indent, end: end),
+      child: Container(height: side.width, color: side.color),
     );
   }
 }

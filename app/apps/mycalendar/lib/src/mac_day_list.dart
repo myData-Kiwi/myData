@@ -77,10 +77,7 @@ class MacDayList extends StatelessWidget {
           ),
           for (var i = 0; i < rows.length; i++) ...[
             if (i > 0)
-              Padding(
-                padding: EdgeInsetsDirectional.only(start: context.space(4)),
-                child: Divider(height: 1, thickness: 1, color: mac.separator),
-              ),
+              MacRowRule(indent: context.space(4)),
             rows[i],
           ],
         ],

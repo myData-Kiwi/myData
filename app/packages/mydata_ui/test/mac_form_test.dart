@@ -232,4 +232,30 @@ void main() {
     expect(disabled.width, m.itemSide!.width);
     expect(disabled.color, isNot(m.itemSide!.color));
   });
+
+  // The rule between a form's rows is the theme's own where its separators are full (Brutalist's 3 px and
+  // High Contrast's 2 px of ink, Large's 2 px of line-strong), the system's hairline in System and where the
+  // theme's separators are inset (Sticker).
+  for (final (slug, width) in [('brutalist', 3.0), ('high-contrast', 2.0), ('large', 2.0), ('sticker', 1.0), (null, 1.0)]) {
+    testWidgets('a form\'s rows are ruled ${slug ?? 'System'}\'s way', (tester) async {
+      await tester.pumpWidget(MaterialApp(
+        theme: slug == null
+            ? MacTheme.data('kiwi', Brightness.light, MyDataMacColors.light)
+            : MacTheme.forChoice(ThemeChoice('mydata.$slug'), Brightness.light, MyDataMacColors.light),
+        themeAnimationDuration: Duration.zero,
+        home: const Scaffold(
+          body: MacForm(children: [
+            MacFormSection(heading: 'Group', rows: [MacFormRow(title: 'One'), MacFormRow(title: 'Two')]),
+          ]),
+        ),
+      ));
+      await tester.pumpAndSettle();
+      final context = tester.element(find.text('One'));
+      final rule = tester.widget<Container>(
+          find.descendant(of: find.byType(MacRowRule), matching: find.byType(Container)));
+      final edges = context.look.edges;
+      final colour = slug == null || edges.separators != Separators.full ? context.mac.separator : edges.colour;
+      expect((rule.constraints?.maxHeight, (rule.color)), (width, colour));
+    });
+  }
 }
