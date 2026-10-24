@@ -362,16 +362,13 @@ class _FieldLineState extends State<_FieldLine> {
           child: LayoutBuilder(
             builder: (context, box) => box.maxWidth >= MacFieldTable.besideMinWidth(context.look)
                 ? Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    // The label sits on the value's first line: on its baseline, whatever the two roles'
+                    // sizes and line heights (Notebook's 14 px labels on a 20 px line beside 16 px values
+                    // on a 28 px one).
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
                     children: [
-                      SizedBox(
-                        width: MyDataMacSize.labelColumn,
-                        child: Padding(
-                          // The label sits on the value's first line.
-                          padding: const EdgeInsets.only(top: MyDataMacSize.tight),
-                          child: label,
-                        ),
-                      ),
+                      SizedBox(width: MyDataMacSize.labelColumn, child: label),
                       SizedBox(width: MacFieldTable.gap(context.look) - context.space(1)),
                       Flexible(child: value),
                     ],
