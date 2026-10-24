@@ -181,7 +181,7 @@ class _MacPairTableState extends State<MacPairTable> {
               label: '${col.title}, ${col.caption}',
               excludeSemantics: true,
               child: Row(children: [
-                if (col.version != null) ...[
+                if (col.version != null && Avatar.shown(context)) ...[
                   Avatar(
                     name: col.version!.personName ?? col.version!.name,
                     givenName: col.version!.givenName,

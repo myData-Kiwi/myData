@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../generated/tokens.g.dart' show MyDataColors;
+import '../generated/tokens.g.dart' show MyDataColors, MyDataMacColors;
 import '../theme/theme.dart';
 
 /// How the current item is marked in a look (`components.selection`, design/themes/ARCHITECTURE.md 3.2): a
@@ -75,10 +75,12 @@ class SelectionPaint {
     return (la > lb ? la + 0.05 : lb + 0.05) / (la > lb ? lb + 0.05 : la + 0.05);
   }
 
-  /// The selection in [look].
-  factory SelectionPaint.of(MyDataLook look) {
+  /// The selection in [look]. [macSystem]: System as the Mac shell draws it, whose selection is the
+  /// system's own fill, with no mark of ours.
+  factory SelectionPaint.of(MyDataLook look, {bool macSystem = false}) {
     final c = look.colors;
     final style = look.variants.selection;
+    if (macSystem) return SelectionPaint(style: SelectionStyle.tint, fill: c.accentSoft);
     final marker = BorderSide(color: c.selection, width: outlineWidth);
     return switch (style) {
       SelectionStyle.tint => SelectionPaint(
@@ -132,6 +134,10 @@ class SelectionMark extends StatelessWidget {
   /// [SelectionPaint.fill] itself) and wants only the bar, the outline and the colours here.
   final bool fill;
 
+  /// Whether [context] draws System in the Mac shell's colours (the Mac window, or a gallery card of it).
+  static bool isMacSystem(BuildContext context) =>
+      context.look.frame == LookFrame.system && Theme.of(context).extension<MyDataMacColors>() != null;
+
   /// Whether [context] is inside a selected [SelectionMark].
   static SelectionPaint? of(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<_SelectionScope>()?.paint;
@@ -140,7 +146,7 @@ class SelectionMark extends StatelessWidget {
   Widget build(BuildContext context) {
     if (!selected) return child;
     final look = context.look;
-    final paint = SelectionPaint.of(look);
+    final paint = SelectionPaint.of(look, macSystem: isMacSystem(context));
     final s = shape ?? look.shape;
     Widget body = child;
     final fg = paint.foreground;

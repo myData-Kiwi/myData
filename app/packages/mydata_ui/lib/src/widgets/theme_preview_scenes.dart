@@ -5,6 +5,7 @@ import '../theme/theme.dart';
 import 'avatar.dart';
 import 'badge.dart';
 import 'button.dart';
+import 'selection.dart';
 import 'icon_tile.dart';
 import 'status.dart';
 import 'switch.dart';
@@ -81,25 +82,42 @@ class _SceneWindow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 for (var i = 0; i < sections.length; i++)
-                  Container(
-                    margin: EdgeInsets.only(bottom: context.space(1)),
-                    padding: EdgeInsets.symmetric(horizontal: context.space(3), vertical: context.space(2)),
-                    decoration: context.radius.decorate(BoxDecoration(color: i == 0 ? c.accentSoft : null, borderRadius: r)),
-                    child: Row(
-                      children: [
-                        Icon(context.icon(icons[i]), size: context.density.icon, color: i == 0 ? c.accent : c.inkMuted),
-                        SizedBox(width: context.space(2)),
-                        Expanded(
-                          child: Text(
-                            sections[i],
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: context
-                                .type(i == 0 ? MyDataTypeRole.bodyStrong : MyDataTypeRole.body)
-                                .copyWith(color: c.ink),
+                  Padding(
+                    padding: EdgeInsets.only(bottom: context.space(1)),
+                    // The current section in the theme's selection style, as the frame marks it.
+                    child: SelectionMark(
+                      selected: i == 0,
+                      borderRadius: r,
+                      child: Builder(
+                        builder: (context) => Padding(
+                          padding: EdgeInsets.symmetric(horizontal: context.space(3), vertical: context.space(2)),
+                          child: Row(
+                            children: [
+                              Icon(context.icon(icons[i]),
+                                  size: context.density.icon,
+                                  color: i == 0 ? (SelectionMark.of(context)?.foreground ?? c.accent) : c.inkMuted),
+                              SizedBox(width: context.space(2)),
+                              Expanded(
+                                child: Align(
+                                  alignment: AlignmentDirectional.centerStart,
+                                  child: SelectionHighlight(
+                                    child: Builder(
+                                      builder: (context) => Text(
+                                        sections[i],
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: context
+                                            .type(i == 0 ? MyDataTypeRole.bodyStrong : MyDataTypeRole.body)
+                                            .copyWith(color: context.colors.ink),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
+                      ),
                     ),
                   ),
               ],
@@ -155,22 +173,33 @@ class _ContactsScene extends StatelessWidget {
           child: Column(
             children: [
               for (var i = 0; i < people.length; i++)
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: context.space(2), vertical: context.space(2)),
-                  decoration: context.radius.decorate(BoxDecoration(color: i == 0 ? c.selection : null, borderRadius: r)),
-                  child: Row(
-                    children: [
-                      Avatar(name: people[i]),
-                      SizedBox(width: context.space(2)),
-                      Expanded(
-                        child: Text(
-                          people[i],
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: context.type(MyDataTypeRole.body).copyWith(color: i == 0 ? c.onSelection : c.ink),
-                        ),
+                SelectionMark(
+                  selected: i == 0,
+                  borderRadius: r,
+                  child: Builder(
+                    builder: (context) => Padding(
+                      padding: EdgeInsets.symmetric(horizontal: context.space(2), vertical: context.space(2)),
+                      child: Row(
+                        children: [
+                          if (Avatar.shown(context)) ...[Avatar(name: people[i]), SizedBox(width: context.space(2))],
+                          Expanded(
+                            child: Align(
+                              alignment: AlignmentDirectional.centerStart,
+                              child: SelectionHighlight(
+                                child: Builder(
+                                  builder: (context) => Text(
+                                    people[i],
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: context.type(MyDataTypeRole.body).copyWith(color: context.colors.ink),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
             ],
@@ -184,8 +213,10 @@ class _ContactsScene extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const Avatar(name: 'Ava Fictional', size: AvatarSize.large),
-                    SizedBox(width: context.space(4)),
+                    if (Avatar.shown(context)) ...[
+                      const Avatar(name: 'Ava Fictional', size: AvatarSize.large),
+                      SizedBox(width: context.space(4)),
+                    ],
                     Expanded(
                       child: Text('Ava Fictional', style: context.type(MyDataTypeRole.title).copyWith(color: c.ink)),
                     ),

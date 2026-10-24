@@ -234,8 +234,10 @@ class _TrashViewState extends State<TrashView> {
     if (t == null) return const SizedBox.shrink();
     final contact = t.contact;
     return Row(children: [
-      Avatar(name: t.title, givenName: contact?.givenName ?? '', familyName: contact?.familyName ?? ''),
-      SizedBox(width: GroupedRow.gap(context.look)),
+      if (Avatar.shown(context)) ...[
+        Avatar(name: t.title, givenName: contact?.givenName ?? '', familyName: contact?.familyName ?? ''),
+        SizedBox(width: GroupedRow.gap(context.look)),
+      ],
       Expanded(
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
           Text(t.title,

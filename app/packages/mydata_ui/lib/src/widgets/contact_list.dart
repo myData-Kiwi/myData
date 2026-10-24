@@ -1362,8 +1362,10 @@ class _ContactRowState extends State<_ContactRow> {
       padding: GroupedRow.padding(context.look),
       child: Row(
         children: [
-          Avatar(name: e.name, givenName: e.givenName, familyName: e.familyName, photo: e.photo),
-          SizedBox(width: GroupedRow.gap(context.look)),
+          if (Avatar.shown(context)) ...[
+            Avatar(name: e.name, givenName: e.givenName, familyName: e.familyName, photo: e.photo),
+            SizedBox(width: GroupedRow.gap(context.look)),
+          ],
           Expanded(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -1516,7 +1518,7 @@ class _ContactRowState extends State<_ContactRow> {
           if (!widget.first && !cards)
             EdgeRule(
                 extent: GroupFrame.dividerWidth,
-                inset: GroupFrame.textStart(look, lead: true),
+                inset: GroupFrame.textStart(look, lead: Avatar.shown(context)),
                 separators: list == ListStyle.table || list == ListStyle.ruled ? Separators.full : null,
                 colour: widget.joinsUp ? (selectedFill ?? ground ?? c.bg) : null),
           Expanded(child: content),

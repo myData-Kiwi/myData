@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 
 import '../generated/tokens.g.dart';
 import '../theme/theme.dart';
+import '../widgets/avatar.dart' show Avatar;
 import '../widgets/menu.dart';
 import 'mac_overlays.dart' show MacMenuLook;
 import 'mac_theme.dart';
@@ -43,8 +44,8 @@ class MacRecordHeader extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        avatar,
-        SizedBox(width: gap(context.look)),
+        // A drawn theme without avatars leaves out its place too.
+        if (Avatar.shown(context)) ...[avatar, SizedBox(width: gap(context.look))],
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

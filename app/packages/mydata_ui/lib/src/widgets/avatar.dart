@@ -46,10 +46,13 @@ enum AvatarSize {
       };
 }
 
-/// A round picture of a person: their photo when the host has one, otherwise their initials
-/// (design/components/Avatar).
+/// A picture of a person: their photo when the host has one, otherwise their initials
+/// (design/components/Avatar), in the theme's avatar style (`components.avatar`): a circle (Kiwi), a rounded
+/// tile (`radius-sm`, `radius-lg` at 96px), a square, a `shape` (a red circle, a blue square or a yellow
+/// triangle, the same for the same name; Geometric) or `none`, where nothing is drawn and the row or header
+/// leaves out the avatar's place too ([shown]).
 ///
-/// - A circle (`radius-pill`) in two sizes ([AvatarSize]). Every contact gets the same `kiwi-wash` fill;
+/// - In Kiwi a circle (`radius-pill`) in two sizes ([AvatarSize]). Every contact gets the same `kiwi-wash` fill;
 ///   there is no colour per person. It is not an icon tile and does not count toward a screen's tile tones.
 /// - **Photo:** [photo], cropped to fill the circle and centred, with no border or ring. Pass it only when the
 ///   contact has one (the host's `has_photo`), so nothing is fetched otherwise. Until it arrives, and when it
@@ -92,42 +95,125 @@ class Avatar extends StatelessWidget {
   /// The letters shown, or null for the person icon.
   String? get initials => avatarInitials(name: name, givenName: givenName, familyName: familyName);
 
+  /// Whether avatars are drawn in [context]'s look: not in a theme whose avatar is `none` (the name is the
+  /// content). A row or header that holds one leaves out the avatar and its gap when this is false.
+  static bool shown(BuildContext context) => context.look.variants.avatar != AvatarStyle.none;
+
+  /// The shape a `shape` avatar takes for [name]: the same every time for the same name.
+  static AvatarShape shapeFor(String name) {
+    var h = 0;
+    for (final unit in name.codeUnits) {
+      h = (h * 31 + unit) & 0x7fffffff;
+    }
+    return AvatarShape.values[h % AvatarShape.values.length];
+  }
+
   @override
   Widget build(BuildContext context) {
+    final look = context.look;
+    final style = look.variants.avatar;
+    if (style == AvatarStyle.none) return const SizedBox.shrink();
     final c = context.colors;
-    final letters = _Letters(initials: initials, size: size);
+    final diameter = size.diameter(look);
     final photo = this.photo;
+    // `shape`: a circle, a square or a triangle from the name, each in its own calendar colour (red, blue,
+    // yellow), the initials in `ink` or `surface`, whichever reads better on it.
+    final geometric = style == AvatarStyle.shape ? shapeFor(name) : null;
+    final fill = switch (geometric) {
+      AvatarShape.circle => c.dataRed,
+      AvatarShape.square => c.dataBlue,
+      AvatarShape.triangle => c.dataYellow,
+      null => c.kiwiWash,
+    };
+    final onFill = geometric == null ? c.onAvatar : _readableOn(fill, c);
+    final letters = _Letters(initials: initials, size: size, colour: onFill, low: geometric == AvatarShape.triangle);
 
-    Widget body = DecoratedBox(
-      decoration: context.radius.decorate(BoxDecoration(color: c.kiwiWash, borderRadius: MyDataRadii.pill(context.look))),
-      child: photo == null
-          ? letters
-          : context.radius.clip(
-              MyDataRadii.pill(context.look),
-              child: _Photo(image: photo, diameter: size.diameter(context.look), letters: letters),
-            ),
-    );
-    body = SizedBox.square(dimension: size.diameter(context.look), child: body);
+    final (MyDataShape shape, BorderRadius radius) = switch (style) {
+      AvatarStyle.rounded => (look.shape, BorderRadius.circular(size == AvatarSize.small ? look.shape.sm : look.shape.lg)),
+      AvatarStyle.square => (look.shape.withCorners(CornerStyle.square), BorderRadius.zero),
+      AvatarStyle.shape when geometric == AvatarShape.square => (look.shape.withCorners(CornerStyle.square), BorderRadius.zero),
+      // A circle: round whatever the theme's corners.
+      _ => (look.shape.withCorners(CornerStyle.round), MyDataRadii.pill(look)),
+    };
+    final Widget body;
+    if (geometric == AvatarShape.triangle) {
+      body = DecoratedBox(
+        decoration: ShapeDecoration(color: fill, shape: const _TriangleBorder()),
+        child: photo == null
+            ? letters
+            : ClipPath(
+                clipper: const ShapeBorderClipper(shape: _TriangleBorder()),
+                child: _Photo(image: photo, diameter: diameter, letters: letters)),
+      );
+    } else {
+      body = DecoratedBox(
+        decoration: shape.decorate(BoxDecoration(color: fill, borderRadius: radius)),
+        child: photo == null
+            ? letters
+            : shape.clip(radius, child: _Photo(image: photo, diameter: diameter, letters: letters)),
+      );
+    }
+    final sized = SizedBox.square(dimension: diameter, child: body);
 
-    if (decorative) return ExcludeSemantics(child: body);
-    return Semantics(container: true, image: true, label: name, child: ExcludeSemantics(child: body));
+    if (decorative) return ExcludeSemantics(child: sized);
+    return Semantics(container: true, image: true, label: name, child: ExcludeSemantics(child: sized));
+  }
+
+  /// `ink` or `surface`, whichever has the more contrast on [fill].
+  static Color _readableOn(Color fill, MyDataColors c) {
+    double contrast(Color a, Color b) {
+      final la = a.computeLuminance(), lb = b.computeLuminance();
+      return (math.max(la, lb) + 0.05) / (math.min(la, lb) + 0.05);
+    }
+
+    return contrast(c.ink, fill) >= contrast(c.surface, fill) ? c.ink : c.surface;
   }
 }
 
-/// The initials, or the person icon when there are none, centred in the circle.
+/// The three shapes of a `shape` avatar (Geometric).
+enum AvatarShape { circle, square, triangle }
+
+/// An upward triangle filling its box, its apex at the top middle.
+class _TriangleBorder extends ShapeBorder {
+  const _TriangleBorder();
+
+  @override
+  EdgeInsetsGeometry get dimensions => EdgeInsets.zero;
+
+  @override
+  Path getInnerPath(Rect rect, {TextDirection? textDirection}) => getOuterPath(rect);
+
+  @override
+  Path getOuterPath(Rect rect, {TextDirection? textDirection}) => Path()
+    ..moveTo(rect.center.dx, rect.top)
+    ..lineTo(rect.right, rect.bottom)
+    ..lineTo(rect.left, rect.bottom)
+    ..close();
+
+  @override
+  void paint(Canvas canvas, Rect rect, {TextDirection? textDirection}) {}
+
+  @override
+  ShapeBorder scale(double t) => this;
+}
+
+/// The initials, or the person icon when there are none, centred in the circle (in a triangle, [low] in its
+/// wide lower part, at two thirds of the size).
 class _Letters extends StatelessWidget {
-  const _Letters({required this.initials, required this.size});
+  const _Letters({required this.initials, required this.size, required this.colour, this.low = false});
 
   final String? initials;
   final AvatarSize size;
+  final Color colour;
+  final bool low;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
     final initials = this.initials;
-    return Center(
-      child: initials == null
-          ? Icon(context.icon(MyDataIcon.person), size: size.iconSize(context.look), color: c.inkMuted)
+    final d = size.diameter(context.look);
+    final Widget inner = initials == null
+          ? Icon(context.icon(MyDataIcon.person), size: size.iconSize(context.look), color: colour == c.onAvatar ? c.inkMuted : colour)
           // At the default text size the letters keep their type size: the preview's 36px circle has no inset,
           // and two wide capitals ("WW", about 30px of body-strong) fit. A small side inset (2.25px at 36px)
           // keeps the corners of letters scaled down for a large system text size inside the circle: they are
@@ -141,10 +227,14 @@ class _Letters extends StatelessWidget {
                   maxLines: 1,
                   softWrap: false,
                   textAlign: TextAlign.center,
-                  style: size.letterStyle(context.look).copyWith(color: c.onAvatar),
+                  style: size.letterStyle(context.look).copyWith(color: colour),
                 ),
               ),
-            ),
+            );
+    if (!low) return Center(child: inner);
+    return Padding(
+      padding: EdgeInsets.fromLTRB(d / 4, d * 0.42, d / 4, d * 0.08),
+      child: Center(child: inner),
     );
   }
 }

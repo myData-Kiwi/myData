@@ -157,14 +157,16 @@ class _ContactHeaderState extends State<ContactHeader> {
         heightFactor: 1,
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          children: [widget.avatar, SizedBox(height: ContactHeader.stackGap(context.look)), text],
+          children: [
+            if (Avatar.shown(context)) ...[widget.avatar, SizedBox(height: ContactHeader.stackGap(context.look))],
+            text,
+          ],
         ),
       );
     }
     return Row(
       children: [
-        widget.avatar,
-        SizedBox(width: ContactHeader.sideGap(context.look)),
+        if (Avatar.shown(context)) ...[widget.avatar, SizedBox(width: ContactHeader.sideGap(context.look))],
         Expanded(child: text),
       ],
     );

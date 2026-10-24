@@ -365,7 +365,7 @@ class _DuplicatePairState extends State<DuplicatePair> {
               label: '${col.title}, ${col.caption}',
               excludeSemantics: true,
               child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                if (col.version != null) ...[
+                if (col.version != null && Avatar.shown(context)) ...[
                   Avatar(
                     name: col.version!.personName ?? col.version!.name,
                     givenName: col.version!.givenName,

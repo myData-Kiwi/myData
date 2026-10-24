@@ -166,6 +166,31 @@ class _InputSpecimenState extends State<InputSpecimen> {
       ]);
 }
 
+/// Small avatars for four people, a large one, and a contact's header.
+class AvatarSpecimen extends StatelessWidget {
+  const AvatarSpecimen({super.key});
+
+  static const names = ['Ava Fictional', 'Ben Sample', 'Cleo Placeholder', 'Dev Example'];
+
+  @override
+  Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Row(children: [
+          for (final n in names) ...[Avatar(name: n), SizedBox(width: context.space(2))],
+          const Avatar(name: 'Ava Fictional', size: AvatarSize.large),
+          SizedBox(width: context.space(2)),
+          const Avatar(name: '+44 7700 900123'),
+        ]),
+        SizedBox(height: context.space(4)),
+        ContactHeader(
+          name: 'Ben Sample',
+          jobTitle: 'Head of research',
+          organisation: 'Example Labs',
+          sourceLine: 'From iCloud, ben@example.org',
+          avatar: const Avatar(name: 'Ben Sample', size: AvatarSize.large),
+        ),
+      ]);
+}
+
 void main() {
   group('buttons', () {
     for (final key in ['button.primary', 'button.secondary', 'button.shape']) {
@@ -274,5 +299,14 @@ void main() {
 
   group('inputs', () {
     variantGoldens('inputs', (focus) => InputSpecimen(focus: focus), size: const Size(640, 260));
+  });
+
+  group('avatars', () {
+    variantGoldens('avatar', (_) => const AvatarSpecimen(), size: const Size(640, 300), focused: false);
+
+    test('a shape avatar is the same shape for the same name, and the four names show all three', () {
+      expect(Avatar.shapeFor('Ava Fictional'), Avatar.shapeFor('Ava Fictional'));
+      expect({for (final n in AvatarSpecimen.names) Avatar.shapeFor(n)}, AvatarShape.values.toSet());
+    });
   });
 }
