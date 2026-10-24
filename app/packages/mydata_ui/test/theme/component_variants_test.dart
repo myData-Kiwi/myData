@@ -684,6 +684,73 @@ void main() {
     });
   });
 
+  // Frosted's gradient and Paperback's grain in the Mac window: behind the content column (not the sidebar),
+  // with Frosted's floating toolbar in its blur material, and beside the window's buttons with no sidebar.
+  group("a drawn theme's material in the Mac window", () {
+    for (final (id, controls) in [('mydata.frosted', false), ('mydata.paperback', false), ('mydata.frosted', true)]) {
+      for (final b in Brightness.values) {
+        final name = '${id.substring('mydata.'.length)}${controls ? '-window-controls' : ''}';
+        testWidgets('variant golden: mac window $name, ${b.name}', (tester) async {
+          debugDisableShadows = false;
+          tester.view.physicalSize = const Size(900, 320);
+          tester.view.devicePixelRatio = 1;
+          addTearDown(tester.view.reset);
+          final look = designedLook(id, b, platform: TargetPlatform.macOS);
+          final pane = MacPane(
+            toolbar: MacToolbar(
+              title: 'Contacts',
+              windowControls: controls,
+              trailing: [MacToolbarButton(icon: MyDataIcon.add, label: 'New contact', onPressed: noop)],
+            ),
+            child: Builder(
+              builder: (context) => Padding(
+                padding: EdgeInsets.all(context.space(4)),
+                child: GroupedList(heading: 'Phone', rows: const [
+                  GroupedRow(icon: MyDataIcon.call, title: 'Mobile', subtitle: '+44 7700 900123'),
+                  GroupedRow(title: 'Open in myContacts', trailing: GroupedChevron(), onPressed: noop),
+                ]),
+              ),
+            ),
+          );
+          await tester.pumpWidget(MaterialApp(
+            debugShowCheckedModeBanner: false,
+            theme: MacTheme.drawn(look),
+            home: Material(
+              color: look.colors.bg,
+              child: controls
+                  ? MacContentGround(child: pane)
+                  : MacAppFrame(
+                      sections: const [
+                        AppSection(icon: MyDataIcon.people, label: 'Contacts'),
+                        AppSection(icon: MyDataIcon.review, label: 'Review', count: 4),
+                      ],
+                      current: 0,
+                      onSelect: (_) {},
+                      connection: const AppConnection.connected(),
+                      child: pane,
+                    ),
+            ),
+          ));
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull);
+          expect(MacContentGround.drawsMaterial(look), isTrue);
+          try {
+            await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/variant.mac-window-$name.${b.name}.png'));
+          } finally {
+            debugDisableShadows = true;
+          }
+        });
+      }
+    }
+
+    test("a solid window keeps the Mac's content background; System always does", () {
+      expect(MacContentGround.drawsMaterial(designedLook('mydata.kiwi', Brightness.light, platform: TargetPlatform.macOS)),
+          isFalse);
+      expect(MacContentGround.drawsMaterial(designedLook('mydata.sticker', Brightness.dark, platform: TargetPlatform.macOS)),
+          isFalse);
+    });
+  });
+
   group('icon tiles', () {
     for (final tiles in ['tinted', 'outlined', 'none']) {
       for (final b in Brightness.values) {

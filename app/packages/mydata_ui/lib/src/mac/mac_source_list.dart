@@ -10,6 +10,7 @@ import '../widgets/app_frame.dart' show AppConnection, AppConnectionState, AppSe
 import '../widgets/pressable.dart' show MyDataRadii;
 import '../widgets/selection.dart';
 import 'mac_chrome.dart';
+import 'mac_shell.dart' show MacContentGround;
 import 'mac_theme.dart';
 
 /// The Mac frame's sidebar: the app's sections as a source list in a [MacSidebar] panel, under the window's
@@ -300,7 +301,7 @@ class MacSidebarFrame extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final content = ColoredBox(color: context.mac.contentBackground, child: child);
+    final content = MacContentGround(child: child);
     final c = connection;
     final panel = sidebar;
     if (c == null || panel == null) return content;

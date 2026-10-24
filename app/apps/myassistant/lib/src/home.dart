@@ -142,8 +142,7 @@ class _AssistantHomeState extends State<AssistantHome> {
         assistantAvailability(status) == AssistantAvailability.ready;
     return ListenableBuilder(
       listenable: _chat,
-      builder: (context, _) => ColoredBox(
-        color: context.mac.contentBackground,
+      builder: (context, _) => MacContentGround(
         child: MacPane(
           toolbar: MacToolbar(
             windowControls: true,

@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../generated/tokens.g.dart';
 import '../theme/theme.dart';
-import '../widgets/pressable.dart' show MyDataRadii;
+import '../widgets/floating_bar.dart' show FloatingBarSurface;
 import 'mac_chrome.dart';
 import 'mac_overlays.dart' show MacMenuLook;
 import 'mac_theme.dart';
@@ -51,24 +51,23 @@ class MacToolbar extends StatelessWidget {
     // band with a rule under it, `floating` a detached capsule with the theme's lift and outline.
     final style = context.isSystemLook || background != null ? ToolbarStyle.native : context.variants.toolbar;
     final c = context.colors;
-    final Decoration decoration = switch (style) {
+    final floating = style == ToolbarStyle.floating;
+    final Decoration? decoration = switch (style) {
       ToolbarStyle.native => BoxDecoration(
           color: background ?? mac.contentBackground,
           border: separator ? Border(bottom: BorderSide(color: mac.separator)) : null,
         ),
       ToolbarStyle.flat => BoxDecoration(color: c.toolbar, border: Border(bottom: context.look.edges.side)),
-      ToolbarStyle.floating => context.radius.decorate(BoxDecoration(
-          color: c.surface,
-          borderRadius: MyDataRadii.pill(context.look),
-          boxShadow: context.shadows.shadow2,
-          border: context.look.edges.card == null ? null : Border.fromBorderSide(context.look.edges.card!),
-        )),
+      // The capsule is a FloatingBarSurface (below), in the theme's bar material.
+      ToolbarStyle.floating => null,
     };
-    final floating = style == ToolbarStyle.floating;
     Widget band = Container(
-      height: floating ? MyDataMacSize.toolbarHeight - 2 * context.space(1) : MyDataMacSize.toolbarHeight,
+      height: floating
+          ? MyDataMacSize.toolbarHeight - 2 * (context.space(1) + FloatingBarSurface.strokeWidth)
+          : MyDataMacSize.toolbarHeight,
       padding: EdgeInsetsDirectional.only(
-        start: MyDataMacSize.toolbarInset + (windowControls ? MyDataMacSize.windowControlsWidth : 0),
+        // A floating capsule leaves the window's buttons their room outside it (below), not inside.
+        start: MyDataMacSize.toolbarInset + (windowControls && !floating ? MyDataMacSize.windowControlsWidth : 0),
         end: MyDataMacSize.toolbarInset,
       ),
       decoration: decoration,
@@ -105,9 +104,17 @@ class MacToolbar extends StatelessWidget {
       ),
     );
     if (floating) {
-      band = ColoredBox(
-        color: mac.contentBackground,
-        child: Padding(padding: EdgeInsets.symmetric(horizontal: context.space(2), vertical: context.space(1)), child: band),
+      // A capsule in the theme's bar material (blur, translucent or solid; solid under reduced transparency)
+      // over the content's own ground, which shows around it. Beside the window's buttons it starts after
+      // them, so none of them sits on the capsule.
+      band = Padding(
+        padding: EdgeInsetsDirectional.only(
+          start: context.space(2) + (windowControls ? MyDataMacSize.windowControlsWidth : 0),
+          end: context.space(2),
+          top: context.space(1),
+          bottom: context.space(1),
+        ),
+        child: FloatingBarSurface(padding: EdgeInsets.zero, child: band),
       );
     }
     return band;

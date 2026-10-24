@@ -4,6 +4,7 @@ import '../accessibility.dart';
 import '../theme/choice.dart';
 import '../theme/theme.dart';
 import '../widgets/app_frame.dart' show AppConnection, AppSection;
+import '../widgets/window_ground.dart';
 import 'mac_overlays.dart' show MacAppIcon;
 import 'mac_source_list.dart';
 import 'mac_system_colors.dart';
@@ -175,7 +176,7 @@ class MacAppFrame extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final content = ColoredBox(color: context.mac.contentBackground, child: child);
+    final content = MacContentGround(child: child);
     final c = connection;
     if (c == null) return content;
     return Row(
@@ -193,6 +194,24 @@ class MacAppFrame extends StatelessWidget {
       ],
     );
   }
+}
+
+/// The ground of the Mac frame's content column: `content-background` (the system's, or a drawn theme's
+/// `surface`), or, for a drawn theme whose window is a gradient or a pattern (Frosted, Paperback), that
+/// window ground ([WindowGround]), so the theme's material is drawn in the Mac window as in the branded frame.
+/// Never under the sidebar, whose panel keeps the window's own material.
+class MacContentGround extends StatelessWidget {
+  const MacContentGround({super.key, required this.child});
+  final Widget child;
+
+  /// Whether [look]'s content column shows its window material rather than `content-background`.
+  static bool drawsMaterial(MyDataLook look) =>
+      look.frame != LookFrame.system && look.materials.spec.window != WindowKind.solid;
+
+  @override
+  Widget build(BuildContext context) => drawsMaterial(context.look)
+      ? WindowGround(child: child)
+      : ColoredBox(color: context.mac.contentBackground, child: child);
 }
 
 /// One column of the Mac frame: its [toolbar] band (`toolbar-height`) over [child].
