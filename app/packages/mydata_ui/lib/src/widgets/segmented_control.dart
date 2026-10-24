@@ -8,9 +8,10 @@ import '../accessibility.dart';
 import '../theme/motion.dart';
 import '../theme/theme.dart';
 import 'pressable.dart';
+import 'tabs.dart' show TabMark;
 
-/// A pill-shaped set of two to five mutually exclusive options that switch or filter the view below it
-/// (design/components/SegmentedControl).
+/// A set of two to five mutually exclusive options that switch or filter the view below it
+/// (design/components/SegmentedControl), drawn as the theme marks the current one ([TabMark]; Kiwi's below).
 ///
 /// - The track is `surface-sunken` with `radius-pill` and no border, padded by `space-1`.
 /// - The selected segment is a separate `surface` thumb with `shadow-1` behind an `ink` label in `body-strong`
@@ -252,9 +253,10 @@ class _SegmentedControlState<T> extends State<SegmentedControl<T>> {
                   padding: EdgeInsets.symmetric(vertical: context.space(1)),
                   child: Pressable(
                     onPressed: choose,
-                    borderRadius: MyDataRadii.pill(context.look),
+                    borderRadius: TabMark.radius(context.look),
                     focusNode: _nodes[i],
                     button: false,
+                    focusOnFill: isSelected && context.look.variants.tabs == TabsStyle.boxed,
                     child: Padding(
                       padding: EdgeInsets.symmetric(horizontal: SegmentedControl.minSidePadding(context.look)),
                       child: Center(
@@ -262,7 +264,7 @@ class _SegmentedControlState<T> extends State<SegmentedControl<T>> {
                           duration: context.motion.fast,
                           curve: context.motion.standard,
                           style: isSelected
-                              ? context.typeScale.bodyStrong.copyWith(color: c.ink)
+                              ? context.typeScale.bodyStrong.copyWith(color: TabMark.current(context.look, segment: true))
                               : context.typeScale.body.copyWith(color: c.inkMuted),
                           child: Text(
                             widget.segments[i].$2,
@@ -289,7 +291,16 @@ class _SegmentedControlState<T> extends State<SegmentedControl<T>> {
           child: Opacity(
             opacity: disabledOpacity,
             child: DecoratedBox(
-              decoration: context.radius.decorate(BoxDecoration(color: c.surfaceSunken, borderRadius: MyDataRadii.pill(context.look))),
+              decoration: switch (context.look.variants.tabs) {
+                TabsStyle.pill => context.radius.decorate(
+                    BoxDecoration(color: c.surfaceSunken, borderRadius: MyDataRadii.pill(context.look))),
+                // No track: a rule under the segments.
+                TabsStyle.underline =>
+                  BoxDecoration(border: Border(bottom: BorderSide(color: c.line, width: context.look.edges.width))),
+                TabsStyle.boxed => context.radius.decorate(BoxDecoration(
+                    borderRadius: TabMark.radius(context.look),
+                    border: Border.fromBorderSide(TabMark.outline(context.look)))),
+              },
             ),
           ),
         ),
@@ -303,13 +314,7 @@ class _SegmentedControlState<T> extends State<SegmentedControl<T>> {
             height: thumbHeight,
             child: Opacity(
               opacity: disabledOpacity,
-              child: DecoratedBox(
-                decoration: context.radius.decorate(BoxDecoration(
-                  color: c.surface,
-                  borderRadius: MyDataRadii.pill(context.look),
-                  boxShadow: context.shadows.shadow1,
-                )),
-              ),
+              child: DecoratedBox(decoration: TabMark.mark(context.look, segment: true)),
             ),
           ),
         Padding(

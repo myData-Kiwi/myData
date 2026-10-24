@@ -8,7 +8,53 @@ import '../theme/motion.dart';
 import '../theme/theme.dart';
 import 'pressable.dart';
 
-/// A row of pill tabs for the sections of one screen (design/components/Tabs).
+/// How tabs and segmented controls mark the current one in a look (`components.tabs`,
+/// design/themes/ARCHITECTURE.md 3.2):
+///
+/// - `pill` (Kiwi): tabs on an `accent-soft` pill with `accent` text; a segmented control's `surface` thumb
+///   with `shadow-1` on a `surface-sunken` track;
+/// - `underline`: a 2px `accent` line under the current one and its label in `accent`; a segmented control
+///   has no track, only a `line` rule under it;
+/// - `boxed`: each tab, or the segmented control's track, in the control outline with `radius-sm`, the
+///   current one filled in `selection` with its label in `on-selection`.
+abstract final class TabMark {
+  /// The underline's width.
+  static const underlineWidth = 2.0;
+
+  /// The corners of a tab, a segment and their mark.
+  static BorderRadius radius(MyDataLook look) => switch (look.variants.tabs) {
+        TabsStyle.pill => MyDataRadii.pill(look),
+        _ => MyDataRadii.sm(look),
+      };
+
+  /// The current tab's mark, under its label ([segment]: a segmented control's thumb).
+  static Decoration mark(MyDataLook look, {bool segment = false}) {
+    final c = look.colors;
+    return switch (look.variants.tabs) {
+      TabsStyle.pill => look.shape.decorate(BoxDecoration(
+          color: segment ? c.surface : c.accentSoft,
+          borderRadius: radius(look),
+          boxShadow: segment ? look.elevation.shadows.shadow1 : null)),
+      TabsStyle.underline =>
+        BoxDecoration(border: Border(bottom: BorderSide(color: c.accent, width: underlineWidth))),
+      TabsStyle.boxed => look.shape.decorate(BoxDecoration(color: c.selection, borderRadius: radius(look))),
+    };
+  }
+
+  /// The colour of the current tab's label ([segment]: a segmented control's).
+  static Color current(MyDataLook look, {bool segment = false}) => switch (look.variants.tabs) {
+        TabsStyle.pill => segment ? look.colors.ink : look.colors.accent,
+        TabsStyle.underline => look.colors.accent,
+        TabsStyle.boxed => look.colors.onSelection,
+      };
+
+  /// The outline of a boxed tab or segmented track: the control outline, at least 1px.
+  static BorderSide outline(MyDataLook look) =>
+      BorderSide(color: look.edges.controlColour, width: math.max(1, look.edges.width));
+}
+
+/// A row of tabs for the sections of one screen (design/components/Tabs), drawn as the theme marks the
+/// current one ([TabMark]; Kiwi's are pills).
 ///
 /// - The current tab sits on an `accent-soft` pill with `accent` text in `body-strong`; the others are
 ///   `ink-muted` with no fill. No underline and no divider beneath the row.
@@ -44,8 +90,10 @@ class MyDataTabs extends StatefulWidget {
   /// What the row is for, read by screen readers ("Settings").
   final String? semanticLabel;
 
-  /// Space between tabs, across and down: the preview's 6px gap snapped to a token (decision 2026-10-12).
-  static double gap(MyDataLook look) => look.space(2);
+  /// Space between tabs, across and down: the preview's 6px gap snapped to a token (decision 2026-10-12);
+  /// boxed tabs share their outlines.
+  static double gap(MyDataLook look) =>
+      look.variants.tabs == TabsStyle.boxed ? -TabMark.outline(look).width : look.space(2);
 
   /// Space either side of a tab's label: the preview's `padding: 0 16px`.
   static double labelPadding(MyDataLook look) => look.space(4);
@@ -156,7 +204,6 @@ class _MyDataTabsState extends State<MyDataTabs> with SingleTickerProviderStateM
   Widget build(BuildContext context) {
     assert(widget.tabs.isNotEmpty, 'Tabs need at least one tab');
     assert(widget.current < widget.tabs.length, 'current must index tabs');
-    final c = context.colors;
     final enabled = widget.onChanged != null;
     return Semantics(
       role: SemanticsRole.tabBar,
@@ -194,7 +241,7 @@ class _MyDataTabsState extends State<MyDataTabs> with SingleTickerProviderStateM
                   child: _sliding
                       ? Opacity(
                           opacity: enabled ? 1 : Pressable.disabledOpacity,
-                          child: DecoratedBox(decoration: context.radius.decorate(BoxDecoration(color: c.accentSoft, borderRadius: MyDataRadii.pill(context.look)))),
+                          child: DecoratedBox(decoration: TabMark.mark(context.look)),
                         )
                       : const SizedBox.shrink(),
                 ),
@@ -209,30 +256,40 @@ class _MyDataTabsState extends State<MyDataTabs> with SingleTickerProviderStateM
 
   Widget _tab(BuildContext context, int i, bool enabled) {
     final c = context.colors;
+    final look = context.look;
     final selected = i == widget.current;
+    final radius = TabMark.radius(look);
+    final boxed = look.variants.tabs == TabsStyle.boxed;
+    // The resting mark sits inside the Pressable, so it presses (and dims when disabled) with the label.
+    Widget body = Center(
+      child: AnimatedDefaultTextStyle(
+        duration: context.motion.fast,
+        curve: context.motion.standard,
+        style: selected
+            ? context.typeScale.bodyStrong.copyWith(color: TabMark.current(look))
+            : context.typeScale.body.copyWith(color: c.inkMuted),
+        child: Text(widget.tabs[i], maxLines: 1, softWrap: false, overflow: TextOverflow.ellipsis),
+      ),
+    );
+    if (selected && !_sliding) body = DecoratedBox(decoration: TabMark.mark(look), child: body);
+    if (boxed) {
+      body = DecoratedBox(
+        position: DecorationPosition.foreground,
+        decoration: context.radius.decorate(BoxDecoration(borderRadius: radius, border: Border.fromBorderSide(TabMark.outline(look)))),
+        child: body,
+      );
+    }
     return MergeSemantics(
       child: Semantics(
         role: SemanticsRole.tab,
         child: Pressable(
           onPressed: enabled ? () => _pick(i) : null,
-          borderRadius: MyDataRadii.pill(context.look),
+          borderRadius: radius,
           focusNode: _nodes[i],
           button: false,
           selected: selected,
-          // The resting pill sits inside the Pressable, so it presses (and dims when disabled) with the label.
-          child: DecoratedBox(
-            decoration: context.radius.decorate(BoxDecoration(
-                color: selected && !_sliding ? c.accentSoft : c.accentSoft.withValues(alpha: 0),
-                borderRadius: MyDataRadii.pill(context.look))),
-            child: Center(
-              child: AnimatedDefaultTextStyle(
-                duration: context.motion.fast,
-                curve: context.motion.standard,
-                style: selected ? context.typeScale.bodyStrong.copyWith(color: c.accent) : context.typeScale.body.copyWith(color: c.inkMuted),
-                child: Text(widget.tabs[i], maxLines: 1, softWrap: false, overflow: TextOverflow.ellipsis),
-              ),
-            ),
-          ),
+          focusOnFill: selected && boxed,
+          child: body,
         ),
       ),
     );

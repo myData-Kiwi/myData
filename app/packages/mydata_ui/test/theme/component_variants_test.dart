@@ -2,6 +2,7 @@
 // `components` key, in light and dark, on a specimen of the shared widgets that draw it. Each look is Kiwi
 // with that one value changed, so the golden shows what the variant does and nothing else.
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mydata_ui/mydata_ui.dart';
 
@@ -308,5 +309,34 @@ void main() {
       expect(Avatar.shapeFor('Ava Fictional'), Avatar.shapeFor('Ava Fictional'));
       expect({for (final n in AvatarSpecimen.names) Avatar.shapeFor(n)}, AvatarShape.values.toSet());
     });
+  });
+
+  group('tabs', () {
+    variantGoldens(
+        'tabs',
+        (focus) => Builder(
+              builder: (context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                MyDataTabs(tabs: const ['General', 'Accounts', 'Privacy'], current: 1, onChanged: (_) {}),
+                SizedBox(height: context.space(4)),
+                SegmentedControl<int>(
+                    segments: const [(0, 'Day'), (1, 'Week'), (2, 'Month')], selected: 2, onChanged: (_) {}),
+                SizedBox(height: context.space(4)),
+                Focus(
+                  focusNode: focus,
+                  skipTraversal: true,
+                  child: SegmentedControl<int>(
+                      segments: const [(0, 'Light'), (1, 'Dark'), (2, 'Match system')], selected: 0, onChanged: (_) {}),
+                ),
+              ]),
+            ),
+        size: const Size(480, 220),
+        focused: false,
+        before: (tester) async {
+          // Keyboard focus on the third control's selected segment, to show its ring.
+          await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+          await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+          await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+          await tester.pumpAndSettle();
+        });
   });
 }
