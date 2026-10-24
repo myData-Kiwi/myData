@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/widgets.dart';
 
 import '../generated/tokens.g.dart';
@@ -25,51 +27,170 @@ enum ButtonVariant {
   /// dialog confirms with a [danger] button.
   plainDanger;
 
-  /// The fill behind the label; null for [plain] and [plainDanger], which have none.
-  Color? fill(MyDataColors c) => switch (this) {
-        filled => c.accent,
-        tonal => c.accentSoft,
-        plain => null,
-        danger => c.danger,
-        plainDanger => null,
-      };
-
   /// Drawn in `danger`: the focus ring is then `ink`, not the red `focus` (design/README.md "Focus and danger").
   bool get isRed => this == danger || this == plainDanger;
-
-  /// A solid fill ([filled], [danger]). Disabled, such a button is drawn on `surface-sunken` with an
-  /// `ink-muted` label (about 4.5:1) instead of fading: faded, its label fell to about 1.5:1
-  /// (design/themes/ARCHITECTURE.md 6a, decided 2026-10-23). The other variants fade to 45%.
-  bool get isSolid => this == filled || this == danger;
-
-  /// The fill of a disabled button: `surface-sunken` for a [isSolid] one, else its usual fill (it fades).
-  Color? disabledFill(MyDataColors c) => isSolid ? c.surfaceSunken : fill(c);
-
-  /// The label of a disabled button: `ink-muted` for a [isSolid] one, else its usual colour (it fades).
-  Color disabledForeground(MyDataColors c) => isSolid ? c.inkMuted : foreground(c);
-
-  /// The colour of the label and the icon.
-  Color foreground(MyDataColors c) => switch (this) {
-        filled => c.onAccent,
-        tonal => c.accent,
-        plain => c.accent,
-        danger => c.onDanger,
-        plainDanger => c.danger,
-      };
 }
 
-/// A pill-shaped control that states the result of pressing it (design/components/Button).
+/// How a [Button] is drawn in a look: its theme's variant for the button's role (design/themes/ARCHITECTURE.md
+/// 3.2). The app picks the role ([ButtonVariant]); the theme's `components.button` picks how it is drawn:
 ///
-/// - Shape `radius-control`, height `control-height`, label `body-strong`; no border on any variant in
-///   Kiwi. A theme that outlines controls (`borders.controls`) outlines the variants with a fill.
-/// - Keyboard focus draws the 2px `focus` ring 2px outside the pill; on [ButtonVariant.danger] and
-///   [ButtonVariant.plainDanger] it is `ink` (design/README.md "Focus and danger").
-/// - Pressing dims to 85% and scales to 97% at once and returns over `fast` ([Pressable]); with reduced
-///   motion it only dims.
+/// - **primary** ([ButtonVariant.filled]), and [ButtonVariant.danger] built the same way in `danger`:
+///   - `filled`: the accent with `on-accent` text (Kiwi);
+///   - `outline`: no fill, a 2px outline and the label in the accent (Journal);
+///   - `brutal`: the accent in a 3px `edge` outline over a solid drop down and to the right (the theme's
+///     hard, offset or bevel drop, else 4px of `edge`), which a press always pushes into (Brutalist);
+///   - `bevel`: the accent in a 1px `edge` ring, a light line top and left and a dark one bottom and right,
+///     swapped while pressed (Retro Desktop);
+///   - `push`: the accent with a faint `edge` line and a 1px soft drop, as the Mac's push button;
+///   when the accent is within 25° of `danger` ([MyDataLook.accentNearDanger]) the primary is drawn in `ink`
+///   with its label in `bg`, so Approve never looks like Delete;
+/// - **secondary** ([ButtonVariant.tonal]): `tonal` (`accent-soft`, accent text), `outline` (no fill, the
+///   control outline, `ink` text) or `text` (the accent label alone, underlined so it reads as an action);
+/// - [ButtonVariant.plain] and [ButtonVariant.plainDanger] stay text in every theme;
+/// - **shape** (`button.shape`): `pill`, `rounded` (the theme's small radius), `square` or `cut`, whatever the
+///   theme's other corners are ([shapeOf]).
+@immutable
+class ButtonPaint {
+  const ButtonPaint({
+    required this.fill,
+    required this.foreground,
+    this.side,
+    this.shadows = const [],
+    this.bevel,
+    this.underline = false,
+    this.solid = false,
+    this.collapses = false,
+  });
+
+  /// Behind the label; null for none.
+  final Color? fill;
+
+  /// The label and the icon.
+  final Color foreground;
+
+  /// The outline; null for none.
+  final BorderSide? side;
+
+  /// The drop and glow under it, at rest.
+  final List<BoxShadow> shadows;
+
+  /// The bevel's two lines.
+  final Bevel? bevel;
+
+  /// The label is underlined (a text secondary).
+  final bool underline;
+
+  /// A solid fill: disabled, it is drawn on `surface-sunken` with an `ink-muted` label (about 4.5:1) and a
+  /// `line-strong` outline instead of fading, since faded its label fell to about 1.5:1
+  /// (ARCHITECTURE.md 6a, decided 2026-10-23). Every other button fades to 45%.
+  final bool solid;
+
+  /// Its drop goes while it is pressed, whatever `elevation.press` says (a brutal button).
+  final bool collapses;
+
+  /// The width of an `outline` primary's line.
+  static const outlineWidth = 2.0;
+
+  /// The width of a `brutal` primary's line.
+  static const brutalWidth = 3.0;
+
+  /// The ring around a `bevel` primary (the default button's outer ring) and a `push` one's faint edge.
+  static const bevelEdgeWidth = 1.0;
+
+  /// A `brutal` primary's drop, when the theme's elevation gives none.
+  static const brutalDrop = Offset(4, 4);
+
+  /// [variant] in [look], at rest and enabled. An [approval] button (the approval card's Approve) is filled
+  /// or outlined only, whatever primary the theme draws: the card's structure never changes with a theme.
+  factory ButtonPaint.of(MyDataLook look, ButtonVariant variant, {bool approval = false}) {
+    final c = look.colors;
+    final v = look.variants;
+    final control = MyDataEdgesPaint.control(look)?.top;
+    final elevation = look.elevation;
+    switch (variant) {
+      case ButtonVariant.plain:
+        return ButtonPaint(fill: null, foreground: c.accent);
+      case ButtonVariant.plainDanger:
+        return ButtonPaint(fill: null, foreground: c.danger);
+      case ButtonVariant.tonal:
+        return switch (v.secondary) {
+          SecondaryStyle.tonal => ButtonPaint(
+              fill: c.accentSoft, foreground: c.accent, side: control, shadows: elevation.control, bevel: elevation.bevel),
+          SecondaryStyle.outline => ButtonPaint(
+              fill: null,
+              foreground: c.ink,
+              side: BorderSide(color: look.edges.controlColour, width: math.max(1, look.edges.width))),
+          SecondaryStyle.text => ButtonPaint(fill: null, foreground: c.accent, underline: true),
+        };
+      case ButtonVariant.filled || ButtonVariant.danger:
+        final danger = variant == ButtonVariant.danger;
+        final ink = !danger && look.accentNearDanger;
+        final base = danger ? c.danger : (ink ? c.ink : c.accent);
+        final on = danger ? c.onDanger : (ink ? c.bg : c.onAccent);
+        final primary = variant == ButtonVariant.filled;
+        final drop = elevation.control;
+        final glow = primary ? elevation.glow : const <BoxShadow>[];
+        final style = approval && v.primary != PrimaryStyle.outline ? PrimaryStyle.filled : v.primary;
+        return switch (style) {
+          PrimaryStyle.filled =>
+            ButtonPaint(fill: base, foreground: on, side: control, shadows: [...drop, ...glow], bevel: elevation.bevel, solid: true),
+          PrimaryStyle.outline => ButtonPaint(
+              fill: null,
+              foreground: base,
+              side: BorderSide(color: base, width: math.max(outlineWidth, look.edges.width)),
+              shadows: glow),
+          PrimaryStyle.brutal => ButtonPaint(
+              fill: base,
+              foreground: on,
+              side: BorderSide(color: c.edge, width: brutalWidth),
+              shadows: [...(drop.isNotEmpty ? drop : [BoxShadow(color: c.edge, offset: brutalDrop)]), ...glow],
+              solid: true,
+              collapses: true),
+          PrimaryStyle.bevel => ButtonPaint(
+              fill: base,
+              foreground: on,
+              side: BorderSide(color: c.edge, width: bevelEdgeWidth),
+              shadows: [...drop, ...glow],
+              bevel: elevation.bevel ?? bevelOf(look),
+              solid: true),
+          PrimaryStyle.push => ButtonPaint(
+              fill: base,
+              foreground: on,
+              side: BorderSide(color: c.edge.withValues(alpha: 0.2), width: bevelEdgeWidth),
+              shadows: [
+                ...drop,
+                BoxShadow(color: c.shadow.withValues(alpha: 0.3), offset: const Offset(0, 1), blurRadius: 1),
+                ...glow,
+              ],
+              solid: true),
+        };
+    }
+  }
+
+  /// A bevel for a `bevel` primary in a theme whose elevation draws none: the elevation's own lines at full
+  /// strength.
+  static Bevel bevelOf(MyDataLook look) {
+    final dark = look.brightness == Brightness.dark;
+    final c = look.colors;
+    return Bevel(
+      light: (dark ? c.ink : c.surface).withValues(alpha: dark ? 0.25 : 0.9),
+      dark: c.shadow.withValues(alpha: dark ? 0.8 : 0.45),
+    );
+  }
+}
+
+/// A control that states the result of pressing it (design/components/Button), drawn in the theme's variant
+/// for its role ([ButtonPaint]).
+///
+/// - Shape from `button.shape` ([shapeOf]; Kiwi's is a pill), height `control-height`, label `body-strong`.
+///   A theme that outlines controls (`borders.controls`) outlines the variants with a fill.
+/// - Keyboard focus draws the 2px `focus` ring 2px outside the shape; on [ButtonVariant.danger] and
+///   [ButtonVariant.plainDanger] it is `ink` (design/README.md "Focus and danger"). Over a drop it is
+///   two-tone.
+/// - Pressing is the theme's press ([Pressable]); a drop that collapses goes while it is held.
 /// - [onPressed] null disables it: not focusable (unless [disabledReason] is given), announced as disabled. A
-///   [ButtonVariant.filled] or [ButtonVariant.danger] button is then drawn on `surface-sunken` with an
-///   `ink-muted` label and a 1px `line-strong` outline ([edgeOf]), in every drawn theme; the others fade
-///   to 45%.
+///   button with a solid fill ([ButtonPaint.solid]) is then drawn on `surface-sunken` with an `ink-muted`
+///   label and a 1px `line-strong` outline ([edgeOf]), in every drawn theme; the others fade to 45%.
 /// - The label is a verb and its object ("Approve and send", "Delete 12 photos"), in sentence case. Never
 ///   "OK" or "Submit".
 /// - Use one [ButtonVariant.filled] per screen or card; other actions are [ButtonVariant.tonal] or
@@ -85,6 +206,7 @@ class Button extends StatelessWidget {
     this.autofocus = false,
     this.disabledReason,
     this.semanticLabel,
+    this.approval = false,
   });
 
   /// What pressing it does: a verb and its object, in sentence case.
@@ -112,6 +234,10 @@ class Button extends StatelessWidget {
   /// on: one "Compare" per row reads "Compare Ben Sample".
   final String? semanticLabel;
 
+  /// The approval card's Approve: drawn filled, or outlined in a theme whose primary is an outline, never
+  /// brutal, bevelled or as a push button (ARCHITECTURE.md 1.2, the card's fixed structure).
+  final bool approval;
+
   /// Space on each side of the label. The preview's 22px lies halfway between `space-5` and `space-6`;
   /// `space-5` (20px) is used.
   static double horizontalPadding(MyDataLook look) => look.space(5);
@@ -119,86 +245,112 @@ class Button extends StatelessWidget {
   /// Space between the leading icon and the label.
   static double iconGap(MyDataLook look) => look.space(2);
 
-  /// A disabled [ButtonVariant.isSolid] button's outline, in `line-strong`: `surface-sunken` is about 1.05:1
-  /// on `bg`, so without it the button read as loose grey text, and vanished on a sunken ground. A theme
-  /// that outlines controls keeps its own outline instead.
+  /// A disabled solid button's outline, in `line-strong`: `surface-sunken` is about 1.05:1 on `bg`, so
+  /// without it the button read as loose grey text, and vanished on a sunken ground. A theme that outlines
+  /// controls keeps its own outline instead.
   static const disabledEdgeWidth = 1.0;
 
-  /// The outline of a button with a fill: the theme's control outline, else a disabled solid button's own.
-  static Border? edgeOf(MyDataLook look, ButtonVariant variant, {required bool disabled}) =>
-      MyDataEdgesPaint.control(look) ??
-      (disabled && variant.isSolid ? Border.all(color: look.colors.lineStrong, width: disabledEdgeWidth) : null);
+  /// The outline of a disabled button with a solid fill, or of an enabled filled one in a theme that
+  /// outlines controls: the theme's control outline, else a disabled solid button's own.
+  static Border? edgeOf(MyDataLook look, ButtonVariant variant, {required bool disabled}) {
+    final paint = ButtonPaint.of(look, variant);
+    if (!disabled) return paint.side == null ? null : Border.fromBorderSide(paint.side!);
+    if (!paint.solid) return null;
+    return MyDataEdgesPaint.control(look) ?? Border.all(color: look.colors.lineStrong, width: disabledEdgeWidth);
+  }
+
+  /// A button's corners in [look] (`button.shape`) and the corner style they are drawn in:
+  /// - pill: a capsule, in the theme's corner style (round where the theme cuts or squares its corners);
+  /// - rounded: the theme's small radius (`radius-sm`, today's when the theme's corners are square);
+  /// - square: none;
+  /// - cut: a chamfer of the theme's `cut-size` on every corner.
+  static (MyDataShape, BorderRadius) shapeOf(MyDataLook look) {
+    final s = look.shape;
+    MyDataShape corners(CornerStyle c) => c == s.corners ? s : s.withCorners(c);
+    final soft = s.corners == CornerStyle.cut || s.corners == CornerStyle.square ? CornerStyle.round : s.corners;
+    return switch (look.variants.buttonShape) {
+      ButtonShapeStyle.pill => (corners(soft), const BorderRadius.all(Radius.circular(MyDataShape.capsule))),
+      ButtonShapeStyle.rounded =>
+        (corners(soft), BorderRadius.all(Radius.circular(s.sm > 0 ? s.sm : MyDataShape.roundedControl))),
+      ButtonShapeStyle.square => (corners(CornerStyle.square), BorderRadius.zero),
+      ButtonShapeStyle.cut => (corners(CornerStyle.cut), BorderRadius.all(Radius.circular(s.cutSize))),
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
     if (context.isSystemLook) return _mac(context);
     final c = context.colors;
+    final look = context.look;
     final disabled = onPressed == null;
+    final paint = ButtonPaint.of(look, variant, approval: approval);
+    final (shape, radius) = shapeOf(look);
+    final solidDisabled = disabled && paint.solid;
     return Pressable(
       onPressed: onPressed,
-      borderRadius: MyDataRadii.control(context.look),
+      borderRadius: radius,
+      shape: shape,
       focusNode: focusNode,
       autofocus: autofocus,
       semanticLabel: semanticLabel ?? label,
       danger: variant.isRed,
       disabledReason: disabledReason,
-      fadeWhenDisabled: !variant.isSolid,
-      // A hard, offset or bevel drop fills the band the ring is drawn in, along the bottom (and the right):
-      // the ring is two-tone there, its `surface` keyline between it and the drop (WCAG C40).
-      focusOnFill: !disabled && variant.fill(c) != null && context.look.elevation.control.isNotEmpty,
+      fadeWhenDisabled: !paint.solid,
+      // A drop fills the band the ring is drawn in, along the bottom (and the right): the ring is two-tone
+      // there, its `surface` keyline between it and the drop (WCAG C40).
+      focusOnFill: !disabled && paint.shadows.any((s) => s.blurRadius == 0 && s.offset != Offset.zero),
       drawsInvert: true,
       child: ExcludeSemantics(
         child: Builder(builder: (context) {
-          // The theme's depth under a button with a fill: a hard, offset or bevel drop that collapses while
-          // pressed (`elevation.press: collapse`), and the glow under the primary button (`glow`).
-          final filled = variant.fill(c) != null;
-          final elevation = context.look.elevation;
           final pressed = PressedScope.of(context);
           // An `invert` press: the roles swap, an `ink` fill with the label in `bg`, in every variant.
           final inverted = PressedScope.invertedOf(context);
-          final fg = inverted ? c.bg : (disabled ? variant.disabledForeground(c) : variant.foreground(c));
+          final fg = inverted ? c.bg : (solidDisabled ? c.inkMuted : paint.foreground);
           final text = Text(
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             softWrap: false,
-            style: context.typeScale.bodyStrong.copyWith(color: fg),
+            style: context.typeScale.bodyStrong.copyWith(
+                color: fg,
+                decoration: paint.underline ? TextDecoration.underline : null,
+                decorationColor: fg),
           );
-          final shadows = filled && !disabled
-              ? elevation.controlShadows(
-                  pressed: pressed,
-                  primary: variant == ButtonVariant.filled,
-                  sinks: context.motion.press == PressStyle.sink)
-              : const <BoxShadow>[];
-          final radius = MyDataRadii.control(context.look);
+          // A drop that collapses while pressed (`elevation.press: collapse`, a brutal button) or that the
+          // button sinks into (`motion.press: sink`); a disabled button has no depth.
+          final sinks = context.motion.press == PressStyle.sink;
+          final shadows = disabled || (pressed && (paint.collapses || look.elevation.collapse || sinks))
+              ? [for (final s in paint.shadows) if (!(disabled || s.blurRadius == 0)) s]
+              : paint.shadows;
+          final side = solidDisabled
+              ? (MyDataEdgesPaint.control(look)?.top ?? BorderSide(color: c.lineStrong, width: disabledEdgeWidth))
+              : paint.side;
           Widget box = Container(
             height: context.density.controlHeight,
             constraints: BoxConstraints(minWidth: context.density.controlHeight),
-            padding: EdgeInsets.symmetric(horizontal: horizontalPadding(context.look)),
-            decoration: context.radius.decorate(BoxDecoration(
-                color: inverted ? c.ink : (disabled ? variant.disabledFill(c) : variant.fill(c)),
+            padding: EdgeInsets.symmetric(horizontal: horizontalPadding(look)),
+            decoration: shape.decorate(BoxDecoration(
+                color: inverted ? c.ink : (solidDisabled ? c.surfaceSunken : paint.fill),
                 borderRadius: radius,
-                boxShadow: shadows.isEmpty ? null : shadows,
-                // A theme that outlines controls outlines every button with a fill; a plain one stays bare.
-                border: filled ? edgeOf(context.look, variant, disabled: disabled) : null)),
+                boxShadow: shadows.isEmpty || disabled ? null : shadows,
+                border: side == null ? null : Border.fromBorderSide(side))),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 if (icon != null) ...[
                   Icon(context.icon(icon!), size: context.density.icon, color: fg),
-                  SizedBox(width: iconGap(context.look)),
+                  SizedBox(width: iconGap(look)),
                 ],
                 Flexible(child: text),
               ],
             ),
           );
-          // A disabled button has no depth: no drop and no bevel.
-          final bevel = elevation.bevel;
-          if (filled && bevel != null && !disabled) {
+          final bevel = paint.bevel;
+          if (bevel != null && paint.fill != null && !disabled) {
             box = CustomPaint(
-                foregroundPainter: BevelPainter(bevel,
-                    shape: context.radius, radius: radius, pressed: pressed, fill: variant.fill(c)),
+                foregroundPainter:
+                    BevelPainter(bevel, shape: shape, radius: radius, pressed: pressed, fill: paint.fill),
                 child: box);
           }
           return box;

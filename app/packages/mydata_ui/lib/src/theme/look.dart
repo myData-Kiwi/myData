@@ -270,6 +270,17 @@ class MyDataShape {
     );
   }
 
+  /// A capsule's radius: more than half of any height.
+  static const capsule = MyDataRadius.pill;
+
+  /// A small radius for a rounded control in a theme whose corners are square (`button.shape: rounded`).
+  static const roundedControl = MyDataRadius.sm;
+
+  /// This shape drawn in [corners] instead (a button whose `button.shape` is cut in a round theme). The radii
+  /// stay as they are: a widget that takes another corner style gives its own.
+  MyDataShape withCorners(CornerStyle corners) => MyDataShape(
+      corners: corners, xs: xs, sm: sm, md: md, lg: lg, xl: xl, control: control, pill: pill, cutSize: cutSize);
+
   /// The outline of a shape with corner [radius], in this look's corner style (3.2).
   OutlinedBorder border(double radius, {BorderSide side = BorderSide.none}) =>
       outline(BorderRadius.circular(radius), side: side);

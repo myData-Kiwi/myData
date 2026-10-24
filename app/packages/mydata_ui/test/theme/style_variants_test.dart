@@ -26,11 +26,29 @@ typedef StyleVariant = ({String name, void Function(Map<String, dynamic> json) e
 void Function(Map<String, dynamic>) _set(String group, Map<String, Object?> values) =>
     (json) => (json[group] as Map<String, dynamic>).addAll(values);
 
+/// Sets [values] in `components.button`.
+void Function(Map<String, dynamic>) _button(Map<String, Object?> values) =>
+    (json) => ((json['components'] as Map<String, dynamic>)['button'] as Map<String, dynamic>).addAll(values);
+
 /// Every value of every rule this file covers.
 final List<StyleVariant> styleVariants = [
+  // Buttons take their own corners from `button.shape`; these set it to match, so the rule shows on them too.
   for (final corners in ['round', 'continuous', 'cut', 'square'])
-    (name: 'corners-$corners', edit: _set('shape', {'corners': corners, 'cut-size': 8})),
-  for (final controls in ['pill', 'match']) (name: 'controls-$controls', edit: _set('shape', {'controls': controls})),
+    (
+      name: 'corners-$corners',
+      edit: (json) {
+        _set('shape', {'corners': corners, 'cut-size': 8})(json);
+        _button({'shape': corners == 'cut' || corners == 'square' ? corners : 'pill'})(json);
+      },
+    ),
+  for (final controls in ['pill', 'match'])
+    (
+      name: 'controls-$controls',
+      edit: (json) {
+        _set('shape', {'controls': controls})(json);
+        _button({'shape': controls == 'pill' ? 'pill' : 'rounded'})(json);
+      },
+    ),
   // Borders: width, style and colour shown on outlined cards and controls; then where they are drawn.
   for (final width in ['hairline', 1, 2, 3])
     (name: 'border-width-$width', edit: _set('borders', {'width': width, 'cards': true, 'controls': true})),
@@ -54,6 +72,7 @@ final List<StyleVariant> styleVariants = [
     edit: (json) {
       _set('elevation', {'style': 'bevel', 'strength': 1, 'offset': 4})(json);
       _set('shape', {'corners': 'cut', 'cut-size': 8, 'controls': 'match'})(json);
+      _button({'shape': 'cut'})(json);
     },
   ),
   // Density: the three presets, on a desktop.

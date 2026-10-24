@@ -39,12 +39,17 @@ class Pressable extends StatefulWidget {
     this.fadeWhenDisabled = true,
     this.focusOnFill = false,
     this.drawsInvert = false,
+    this.shape,
   });
 
   /// Null disables the control: out of the Tab order, or focusable but inert with a [disabledReason].
   final VoidCallback? onPressed;
   final Widget child;
   final BorderRadius borderRadius;
+
+  /// The corner style [borderRadius] is drawn in, when it is not the look's (a cut button in a round theme):
+  /// the hover fill, an inverted press and the focus ring follow it.
+  final MyDataShape? shape;
   final Color? hoverFill;
 
   /// Rows fill instead of shrinking; buttons and chips shrink.
@@ -133,6 +138,7 @@ class _PressableState extends State<Pressable> {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final shape = widget.shape ?? context.radius;
     final reduced = MyDataAccessibility.of(context).reduceMotion;
     final down = _pressed && _enabled;
     final motion = context.motion;
@@ -144,7 +150,7 @@ class _PressableState extends State<Pressable> {
       body = AnimatedContainer(
         duration: context.motion.fast,
         curve: context.motion.standard,
-        decoration: context.radius.decorate(BoxDecoration(
+        decoration: shape.decorate(BoxDecoration(
             color: (_hovered || down) && _enabled ? widget.hoverFill : widget.hoverFill!.withValues(alpha: 0),
             borderRadius: widget.borderRadius)),
         child: body,
@@ -167,7 +173,7 @@ class _PressableState extends State<Pressable> {
       body = KeyedSubtree(key: _bodyKey, child: body);
       if (down) {
         body = DecoratedBox(
-          decoration: context.radius.decorate(BoxDecoration(color: c.ink, borderRadius: widget.borderRadius)),
+          decoration: shape.decorate(BoxDecoration(color: c.ink, borderRadius: widget.borderRadius)),
           child: ColorFiltered(colorFilter: const ColorFilter.matrix(_invert), child: body),
         );
       }
@@ -188,7 +194,8 @@ class _PressableState extends State<Pressable> {
     );
     body = CustomPaint(
       foregroundPainter: _focused && (_enabled || _inert)
-          ? FocusRing.painter(context, widget.borderRadius, danger: widget.danger, onFill: widget.focusOnFill)
+          ? FocusRing.painter(context, widget.borderRadius,
+              danger: widget.danger, onFill: widget.focusOnFill, shape: widget.shape)
           : null,
       child: body,
     );
@@ -389,10 +396,13 @@ class FocusRing extends StatelessWidget {
 
   /// The ring around a shape with [radius]: 2px of [colourFor] 2px outside it, following the look's corner
   /// style; in the Mac frame `focus-ring-width` at `focus-ring-offset` (tokens.json "macos"), round.
-  static CustomPainter painter(BuildContext context, BorderRadius radius, {bool danger = false, bool onFill = false}) {
+  /// [shape] is the corner style the control is drawn in, when it is not the look's.
+  static CustomPainter painter(BuildContext context, BorderRadius radius,
+      {bool danger = false, bool onFill = false, MyDataShape? shape}) {
     final color = colourFor(context, danger: danger);
     if (Theme.of(context).extension<MyDataMacColors>() == null) {
-      return _FocusRingPainter(color, radius, shape: context.radius, keyline: keylineFor(context, onFill: onFill));
+      return _FocusRingPainter(color, radius,
+          shape: shape ?? context.radius, keyline: keylineFor(context, onFill: onFill));
     }
     return _FocusRingPainter(color, radius,
         width: MyDataMacSize.focusRingWidth, offset: MyDataMacSize.focusRingOffset);
