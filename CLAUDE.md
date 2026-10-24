@@ -209,7 +209,7 @@ Built and tested against fakes and synthetic hosts, **never used live by the own
 
 - Where Today, ⌘K and person pages live (proposed: Today in myData, ⌘K and Ask in myAssistant, person pages in myContacts).
 - Where to keep conversation history (in memory now).
-- Themes: a key for View > Theme… on Windows and Linux (Ctrl+T is myCalendar's Go to Today); whether a tinted System exists off macOS (phase 5 or that platform's pass).
+- Themes: a key for View > Theme… on Windows and Linux (Ctrl+T is myCalendar's Go to Today); whether a tinted System exists off macOS (phase 5 or that platform's pass); whether the sidebar's `rail` and `tabs` values stay, since they change layout (decision 9); whether the approval card may take a theme's corners, shadow and Edit style, or only its colours and fonts (ARCHITECTURE.md 5, "component variants as built").
 - Releasing on macOS needs the paid program: Developer ID, hardened runtime, notarisation, and the entitlements in `Reader.entitlements`. Development signing goes through the myData app's git-ignored `Runner/Configs/Signing.local.xcconfig`, which the other three apps include and `build_host_app.sh` reads.
 - Chained requests (26% in round 2) need a planner; start from `host/results/2026-10-11-b-REPORT.md`.
 
