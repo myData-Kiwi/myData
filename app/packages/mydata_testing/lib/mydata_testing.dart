@@ -401,9 +401,14 @@ void themeNarrow(ThemeScreen key, {List<String> slugs = narrowThemes, Size size 
 
 /// The themes [themeNarrow] draws at the smallest window: Large (19 px text, a wider sidebar), High Contrast
 /// (2 px edges), Brutalist (3 px edges, 44 px Archivo Black titles, panels in a gutter), Notebook (Kalam
-/// titles at 26 to 32 px on 56 px rows), Retro Desktop (24 px icons, panels in a gutter) and Terminal (a
-/// monospace face, wider per letter).
-const narrowThemes = ['large', 'high-contrast', 'brutalist', 'notebook', 'retro-desktop', 'terminal'];
+/// titles at 26 to 32 px on 56 px rows), Retro Desktop (24 px icons, panels in a gutter), Terminal (a
+/// monospace face, wider per letter), Swiss (800-weight titles at 28 px), Blueprint (panels in a gutter),
+/// Arcade (cut corners, its rows as cards), Geometric (2 px edges, 52 px rows) and Zen (open tracking, a
+/// 1.75 line height and ×1.35 spacing).
+const narrowThemes = [
+  'large', 'high-contrast', 'brutalist', 'notebook', 'retro-desktop', 'terminal', 'swiss', 'blueprint', 'arcade',
+  'geometric', 'zen',
+];
 
 /// The Mac windows' smallest size (MacShell.swift's `minSize`).
 const macMinSize = Size(720, 480);
