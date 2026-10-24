@@ -28,7 +28,11 @@ void main() {
 
   // The month's grid is the same in every theme (layout stays out of themes), so its pictures differ less
   // than a list's; before the drawn looks reached it the closest two (Frosted and Paperback) scored 0.06.
-  themesDistinct('month', least: 0.18, size: const Size(1280, 900));
+  themesDistinct('month', least: 0.18, size: const Size(1280, 900), alike: {
+    // 0.17: both rule every day in a thin dark line, square, with today an ink block; here they differ in type
+    // (Inter against JetBrains Mono) and colour. They score 0.3 or more on the other three screens.
+    'swiss and terminal': (0.17, 'the same square grid, other type'),
+  });
 
   // Today is the theme's mark in a drawn theme (`components.today`), never System's red, which in Sticker
   // reads as its danger colour; System keeps the red capsule, as Calendar.app does.

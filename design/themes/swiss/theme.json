@@ -1,0 +1,465 @@
+{
+  "format": 1,
+  "id": "mydata.swiss",
+  "name": "Swiss",
+  "version": "1.0.0",
+  "author": "myData",
+  "licence": "CC0-1.0",
+  "description": "A Swiss poster: big tight grotesk titles set flush left, black rules, square corners, strict columns and one colour.",
+  "frame": "drawn",
+  "preview": {
+    "blurb": "Black, white, one colour, strict columns.",
+    "scene": "calendar"
+  },
+  "palettes": [
+    {
+      "id": "red",
+      "name": "Red",
+      "light": {
+        "bg": "#FFFFFF",
+        "surface": "#FFFFFF",
+        "ink": "#111111",
+        "ink-muted": "#555555",
+        "accent": "#D21F17",
+        "on-accent": "#FFFFFF"
+      },
+      "dark": {
+        "bg": "#0E0E0E",
+        "surface": "#161616",
+        "ink": "#F2F2F2",
+        "ink-muted": "#A8A8A8",
+        "accent": "#FF6A5E",
+        "on-accent": "#1A0000"
+      },
+      "overrides": {
+        "light": {
+          "surface-raised": "#FFFFFF",
+          "surface-sunken": "#F2F2F2",
+          "surface-hover": "#E0E0E0",
+          "sidebar": "#FFFFFF",
+          "toolbar": "#FFFFFF",
+          "line": "#D4D4D4",
+          "line-strong": "#767676",
+          "accent-soft": "#FCE4E2",
+          "link": "#C41C14",
+          "selection": "#D21F17",
+          "on-selection": "#FFFFFF",
+          "selection-inactive": "#F2F2F2",
+          "focus": "#0B50D0",
+          "focus-on-danger": "#111111",
+          "success": "#256B29",
+          "success-soft": "#DDF2DF",
+          "warning": "#8A5100",
+          "warning-soft": "#FBEBCF",
+          "danger": "#B3261E",
+          "danger-soft": "#FBE0DD",
+          "on-danger": "#FFFFFF",
+          "info": "#1F5FA8",
+          "info-soft": "#DCE9F8",
+          "data-red": "#D34730",
+          "data-orange": "#EA700F",
+          "data-yellow": "#E7BD1B",
+          "data-green": "#36A462",
+          "data-blue": "#159CE2",
+          "data-purple": "#8B51E1",
+          "data-brown": "#8A6859",
+          "data-grey": "#939393",
+          "scrim": "#14141459",
+          "glass-fill": "#FFFFFFB8",
+          "glass-stroke": "#FFFFFFCC",
+          "shadow": "#000000"
+        },
+        "dark": {
+          "surface-raised": "#1E1E1E",
+          "surface-sunken": "#090909",
+          "surface-hover": "#333333",
+          "sidebar": "#0E0E0E",
+          "toolbar": "#0E0E0E",
+          "line": "#353535",
+          "line-strong": "#8A8A8A",
+          "accent-soft": "#3A1714",
+          "link": "#FF7B70",
+          "selection": "#FF6A5E",
+          "on-selection": "#1A0000",
+          "selection-inactive": "#222222",
+          "focus": "#7FA8FF",
+          "focus-on-danger": "#F2F2F2",
+          "success": "#7BC67E",
+          "success-soft": "#1C3A1F",
+          "warning": "#F0B45A",
+          "warning-soft": "#3D2C0C",
+          "danger": "#F2867E",
+          "danger-soft": "#3E1A19",
+          "on-danger": "#2B0B08",
+          "info": "#8AB8EA",
+          "info-soft": "#17304D",
+          "data-red": "#D34730",
+          "data-orange": "#EA700F",
+          "data-yellow": "#E7BD1B",
+          "data-green": "#36A462",
+          "data-blue": "#159CE2",
+          "data-purple": "#8B51E1",
+          "data-brown": "#8A6859",
+          "data-grey": "#939393",
+          "scrim": "#00000099",
+          "glass-fill": "#1A1A1AB8",
+          "glass-stroke": "#FFFFFF1F",
+          "shadow": "#000000"
+        }
+      }
+    },
+    {
+      "id": "blue",
+      "name": "Blue",
+      "light": {
+        "bg": "#FFFFFF",
+        "surface": "#FFFFFF",
+        "ink": "#111111",
+        "ink-muted": "#555555",
+        "accent": "#1D3FBB",
+        "on-accent": "#FFFFFF"
+      },
+      "dark": {
+        "bg": "#0E0E0E",
+        "surface": "#161616",
+        "ink": "#F2F2F2",
+        "ink-muted": "#A8A8A8",
+        "accent": "#8EA6FF",
+        "on-accent": "#0A1440"
+      },
+      "overrides": {
+        "light": {
+          "surface-raised": "#FFFFFF",
+          "surface-sunken": "#F2F2F2",
+          "surface-hover": "#E0E0E0",
+          "sidebar": "#FFFFFF",
+          "toolbar": "#FFFFFF",
+          "line": "#D4D4D4",
+          "line-strong": "#767676",
+          "accent-soft": "#E4E8F8",
+          "link": "#1D3FBB",
+          "selection": "#1D3FBB",
+          "on-selection": "#FFFFFF",
+          "selection-inactive": "#F2F2F2",
+          "focus": "#B3261E",
+          "focus-on-danger": "#111111",
+          "success": "#256B29",
+          "success-soft": "#DDF2DF",
+          "warning": "#8A5100",
+          "warning-soft": "#FBEBCF",
+          "danger": "#B3261E",
+          "danger-soft": "#FBE0DD",
+          "on-danger": "#FFFFFF",
+          "info": "#1F5FA8",
+          "info-soft": "#DCE9F8",
+          "data-red": "#D34730",
+          "data-orange": "#EA700F",
+          "data-yellow": "#E7BD1B",
+          "data-green": "#36A462",
+          "data-blue": "#159CE2",
+          "data-purple": "#8B51E1",
+          "data-brown": "#8A6859",
+          "data-grey": "#939393",
+          "scrim": "#14141459",
+          "glass-fill": "#FFFFFFB8",
+          "glass-stroke": "#FFFFFFCC",
+          "shadow": "#000000"
+        },
+        "dark": {
+          "surface-raised": "#1E1E1E",
+          "surface-sunken": "#090909",
+          "surface-hover": "#333333",
+          "sidebar": "#0E0E0E",
+          "toolbar": "#0E0E0E",
+          "line": "#353535",
+          "line-strong": "#8A8A8A",
+          "accent-soft": "#1A2142",
+          "link": "#9DB1FF",
+          "selection": "#8EA6FF",
+          "on-selection": "#0A1440",
+          "selection-inactive": "#222222",
+          "focus": "#FF8A80",
+          "focus-on-danger": "#F2F2F2",
+          "success": "#7BC67E",
+          "success-soft": "#1C3A1F",
+          "warning": "#F0B45A",
+          "warning-soft": "#3D2C0C",
+          "danger": "#F2867E",
+          "danger-soft": "#3E1A19",
+          "on-danger": "#2B0B08",
+          "info": "#8AB8EA",
+          "info-soft": "#17304D",
+          "data-red": "#D34730",
+          "data-orange": "#EA700F",
+          "data-yellow": "#E7BD1B",
+          "data-green": "#36A462",
+          "data-blue": "#159CE2",
+          "data-purple": "#8B51E1",
+          "data-brown": "#8A6859",
+          "data-grey": "#939393",
+          "scrim": "#00000099",
+          "glass-fill": "#1A1A1AB8",
+          "glass-stroke": "#FFFFFF1F",
+          "shadow": "#000000"
+        }
+      }
+    },
+    {
+      "id": "green",
+      "name": "Green",
+      "light": {
+        "bg": "#FFFFFF",
+        "surface": "#FFFFFF",
+        "ink": "#111111",
+        "ink-muted": "#555555",
+        "accent": "#00704A",
+        "on-accent": "#FFFFFF"
+      },
+      "dark": {
+        "bg": "#0E0E0E",
+        "surface": "#161616",
+        "ink": "#F2F2F2",
+        "ink-muted": "#A8A8A8",
+        "accent": "#4FCB91",
+        "on-accent": "#00200F"
+      },
+      "overrides": {
+        "light": {
+          "surface-raised": "#FFFFFF",
+          "surface-sunken": "#F2F2F2",
+          "surface-hover": "#E0E0E0",
+          "sidebar": "#FFFFFF",
+          "toolbar": "#FFFFFF",
+          "line": "#D4D4D4",
+          "line-strong": "#767676",
+          "accent-soft": "#DDF0E7",
+          "link": "#00704A",
+          "selection": "#00704A",
+          "on-selection": "#FFFFFF",
+          "selection-inactive": "#F2F2F2",
+          "focus": "#0B50D0",
+          "focus-on-danger": "#111111",
+          "success": "#256B29",
+          "success-soft": "#DDF2DF",
+          "warning": "#8A5100",
+          "warning-soft": "#FBEBCF",
+          "danger": "#B3261E",
+          "danger-soft": "#FBE0DD",
+          "on-danger": "#FFFFFF",
+          "info": "#1F5FA8",
+          "info-soft": "#DCE9F8",
+          "data-red": "#D34730",
+          "data-orange": "#EA700F",
+          "data-yellow": "#E7BD1B",
+          "data-green": "#36A462",
+          "data-blue": "#159CE2",
+          "data-purple": "#8B51E1",
+          "data-brown": "#8A6859",
+          "data-grey": "#939393",
+          "scrim": "#14141459",
+          "glass-fill": "#FFFFFFB8",
+          "glass-stroke": "#FFFFFFCC",
+          "shadow": "#000000"
+        },
+        "dark": {
+          "surface-raised": "#1E1E1E",
+          "surface-sunken": "#090909",
+          "surface-hover": "#333333",
+          "sidebar": "#0E0E0E",
+          "toolbar": "#0E0E0E",
+          "line": "#353535",
+          "line-strong": "#8A8A8A",
+          "accent-soft": "#13301F",
+          "link": "#5ED69C",
+          "selection": "#4FCB91",
+          "on-selection": "#00200F",
+          "selection-inactive": "#222222",
+          "focus": "#7FA8FF",
+          "focus-on-danger": "#F2F2F2",
+          "success": "#7BC67E",
+          "success-soft": "#1C3A1F",
+          "warning": "#F0B45A",
+          "warning-soft": "#3D2C0C",
+          "danger": "#F2867E",
+          "danger-soft": "#3E1A19",
+          "on-danger": "#2B0B08",
+          "info": "#8AB8EA",
+          "info-soft": "#17304D",
+          "data-red": "#D34730",
+          "data-orange": "#EA700F",
+          "data-yellow": "#E7BD1B",
+          "data-green": "#36A462",
+          "data-blue": "#159CE2",
+          "data-purple": "#8B51E1",
+          "data-brown": "#8A6859",
+          "data-grey": "#939393",
+          "scrim": "#00000099",
+          "glass-fill": "#1A1A1AB8",
+          "glass-stroke": "#FFFFFF1F",
+          "shadow": "#000000"
+        }
+      }
+    }
+  ],
+  "default-palette": "red",
+  "colour-use": {
+    "same-as": {
+      "edge": "ink",
+      "avatar-fill": "ink"
+    }
+  },
+  "type": {
+    "display": [
+      "inter",
+      "sans"
+    ],
+    "body": [
+      "inter",
+      "sans"
+    ],
+    "mono": [
+      "jetbrains-mono",
+      "mono"
+    ],
+    "base": 15,
+    "ratio": 1.333,
+    "numerals": "tabular",
+    "secondary-italic": false,
+    "roles": {
+      "display-xl": {
+        "size": 48,
+        "line-height": 1.1,
+        "weight": 800,
+        "tracking": -0.03
+      },
+      "display-lg": {
+        "size": 36,
+        "line-height": 1.1,
+        "weight": 800,
+        "tracking": -0.03
+      },
+      "title": {
+        "size": 28,
+        "line-height": 1.15,
+        "weight": 800,
+        "tracking": -0.02
+      },
+      "heading": {
+        "size": 17,
+        "line-height": 1.3,
+        "weight": 700,
+        "tracking": -0.01,
+        "stack": "display"
+      },
+      "body": {
+        "size": 15,
+        "line-height": 1.47,
+        "weight": 400,
+        "tracking": 0
+      },
+      "body-strong": {
+        "size": 15,
+        "line-height": 1.47,
+        "weight": 700,
+        "tracking": -0.005
+      },
+      "label": {
+        "size": 12.5,
+        "line-height": 1.3,
+        "weight": 700,
+        "tracking": 0.01
+      },
+      "caption": {
+        "size": 12,
+        "line-height": 1.35,
+        "weight": 500,
+        "tracking": 0
+      },
+      "mono": {
+        "size": 12.5,
+        "line-height": 1.4,
+        "weight": 400,
+        "tracking": 0
+      }
+    }
+  },
+  "shape": {
+    "corners": "square",
+    "radius": {
+      "xs": 0,
+      "sm": 0,
+      "md": 0,
+      "lg": 0,
+      "xl": 0
+    },
+    "controls": "match"
+  },
+  "density": {
+    "desktop": {
+      "control": 36,
+      "row": 48,
+      "icon": 20,
+      "space": 1
+    },
+    "phone": {
+      "control": 48,
+      "row": 56,
+      "icon": 22,
+      "space": 1
+    }
+  },
+  "borders": {
+    "width": 1,
+    "style": "solid",
+    "colour": "edge",
+    "cards": false,
+    "controls": true,
+    "separators": "full",
+    "title-rule": "single"
+  },
+  "elevation": {
+    "style": "none",
+    "strength": 0,
+    "press": "none"
+  },
+  "materials": {
+    "window": {
+      "kind": "solid"
+    },
+    "sidebar": "solid",
+    "bars": "solid"
+  },
+  "icons": {
+    "set": "material-sharp",
+    "weight": "regular",
+    "selected": "fill",
+    "tiles": "none"
+  },
+  "motion": {
+    "personality": "crisp",
+    "scale": 0.9,
+    "press": "invert",
+    "enter": "none"
+  },
+  "components": {
+    "button": {
+      "primary": "filled",
+      "secondary": "outline",
+      "shape": "square",
+      "plain": "underline"
+    },
+    "list": "ruled",
+    "sidebar": "column",
+    "toolbar": "flat",
+    "inputs": "underlined",
+    "selection": "bar",
+    "avatar": "square",
+    "tabs": "underline",
+    "chat": "transcript",
+    "month": "table",
+    "today": "inverse",
+    "data-colours": "colour"
+  },
+  "illustration": "flat",
+  "sound": "none"
+}
