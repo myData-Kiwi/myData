@@ -68,6 +68,7 @@ export 'src/widgets/pressable.dart';
 export 'src/widgets/progress_bar.dart';
 export 'src/widgets/role_label.dart';
 export 'src/widgets/segmented_control.dart';
+export 'src/widgets/selection.dart';
 export 'src/widgets/select.dart';
 export 'src/widgets/sheet.dart';
 export 'src/widgets/status.dart';

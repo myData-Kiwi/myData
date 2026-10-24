@@ -18,10 +18,16 @@ Widget _frame(Widget child, {double width = 480, bool reduceMotion = false}) => 
 );
 
 /// The fill a row paints under its content (selected) and the hover fill Pressable animates.
-Color? _rowFill(WidgetTester tester, Finder row) =>
-    (tester.widget<DecoratedBox>(find.descendant(of: row, matching: find.byType(DecoratedBox)).first).decoration
-            as BoxDecoration)
-        .color;
+/// The row's selection fill (SelectionMark's), or null when it has none.
+Color? _rowFill(WidgetTester tester, Finder row) => _fillBox(tester, row)?.color;
+
+BoxDecoration? _fillBox(WidgetTester tester, Finder row) => tester
+    .widgetList<DecoratedBox>(find.descendant(of: row, matching: find.byType(DecoratedBox)))
+    .map((b) => b.decoration)
+    .whereType<BoxDecoration>()
+    // Not the hover fill, which is there, clear, at rest.
+    .where((d) => (d.color?.a ?? 0) > 0)
+    .firstOrNull;
 
 Color? _hoverFill(WidgetTester tester, Finder row) =>
     (tester
@@ -358,7 +364,7 @@ void main() {
       await expectLater(tester, meetsGuideline(iOSTapTargetGuideline));
     });
 
-    testWidgets('selected: accent-soft fill in the group corners', (tester) async {
+    testWidgets('selected: accent-soft fill in the group corners, with a bar since the tint is faint', (tester) async {
       await tester.pumpWidget(
         _frame(
           GroupedList(
@@ -374,18 +380,12 @@ void main() {
       expect(_rowFill(tester, rows.at(0)), _kiwi.accentSoft);
       expect(_rowFill(tester, rows.at(1)), isNull);
       expect(_rowFill(tester, rows.at(2)), _kiwi.accentSoft);
-      final top = tester.widget<DecoratedBox>(
-        find.descendant(of: rows.at(0), matching: find.byType(DecoratedBox)).first,
-      );
       expect(
-        (top.decoration as BoxDecoration).borderRadius,
+        _fillBox(tester, rows.at(0))!.borderRadius,
         const BorderRadius.vertical(top: Radius.circular(MyDataRadius.lg)),
       );
-      final bottom = tester.widget<DecoratedBox>(
-        find.descendant(of: rows.at(2), matching: find.byType(DecoratedBox)).first,
-      );
       expect(
-        (bottom.decoration as BoxDecoration).borderRadius,
+        _fillBox(tester, rows.at(2))!.borderRadius,
         const BorderRadius.vertical(bottom: Radius.circular(MyDataRadius.lg)),
       );
     });

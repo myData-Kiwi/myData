@@ -18,6 +18,7 @@ import 'grouped_list.dart' show GroupedRow;
 import 'menu.dart';
 import 'multi_select.dart' show MultiSelectController;
 import 'pressable.dart' show FocusRing;
+import 'selection.dart';
 import 'text_field.dart' show MyDataSearchField;
 import 'toggle_target.dart' show InsetRingPainter;
 import 'edges.dart';
@@ -108,8 +109,10 @@ class ContactListEntry {
 ///   pointer (preview: `.r.sel:hover`), because the ring, not the fill, marks it.
 /// - **Pressing** a row calls [onOpen] with its id: the app selects it and shows it in the contact pane, or,
 ///   under 600px, pushes its page.
-/// - **Selected** (from 600px, [selectedId]): a [selectionRingWidth] `ink` ring inside the row over the
-///   `accent-soft` fill, and `selected` in the semantics. Under 600px no row is shown selected.
+/// - **Selected** (from 600px, [selectedId]): in the theme's selection style. A tint (Kiwi) is a
+///   [selectionRingWidth] `ink` ring inside the row over the `accent-soft` fill, an outline the same ring in
+///   `selection`; the others are drawn as [SelectionMark] draws them (a solid or inverse fill, a bar, the
+///   highlighter's swipe). `selected` is in the semantics. Under 600px no row is shown selected.
 /// - **Keyboard.** The list is one tab stop, after the search field; Tab from it goes on to the contact pane.
 ///   - From 600px, Up and Down move the selection one row at a time, across the letter groups, calling
 ///     [onOpen] at once so the contact pane follows. Under 600px they move the focus, and Return or Space
@@ -1328,8 +1331,16 @@ class _ContactRowState extends State<_ContactRow> {
       bottom: widget.last ? corner : Radius.zero,
     );
     final caption = e.caption;
+    // The theme's selection: tint keeps the `ink` ring over its fill (the ring marks it), outline draws the
+    // ring in `selection`; the others mark the row through SelectionMark (a fill, a bar, a swipe).
+    final selection = widget.selected ? SelectionPaint.of(context.look) : null;
+    final ringed = selection != null &&
+        (selection.style == SelectionStyle.tint || selection.style == SelectionStyle.outline);
+    final ringColour = selection?.style == SelectionStyle.outline ? c.selection : c.ink;
+    final selectedFill = selection?.fill;
 
-    Widget content = Padding(
+    // Built under the selection's mark, so the text takes its colours.
+    Widget row(BuildContext context) => Padding(
       padding: GroupedRow.padding(context.look),
       child: Row(
         children: [
@@ -1340,12 +1351,16 @@ class _ContactRowState extends State<_ContactRow> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  e.name,
-                  maxLines: 1,
-                  softWrap: false,
-                  overflow: TextOverflow.ellipsis,
-                  style: context.typeScale.bodyStrong.copyWith(color: c.ink),
+                SelectionHighlight(
+                  child: Builder(
+                    builder: (context) => Text(
+                      e.name,
+                      maxLines: 1,
+                      softWrap: false,
+                      overflow: TextOverflow.ellipsis,
+                      style: context.typeScale.bodyStrong.copyWith(color: context.colors.ink),
+                    ),
+                  ),
                 ),
                 if (caption != null)
                   Text(
@@ -1353,20 +1368,24 @@ class _ContactRowState extends State<_ContactRow> {
                     maxLines: 1,
                     softWrap: false,
                     overflow: TextOverflow.ellipsis,
-                    style: context.typeScale.caption.copyWith(color: c.inkMuted),
+                    style: context.typeScale.caption.copyWith(color: context.colors.inkMuted),
                   ),
               ],
             ),
           ),
           if (widget.phone) ...[
             SizedBox(width: GroupedRow.gap(context.look)),
-            Icon(context.icon(MyDataIcon.chevronRight), size: context.density.icon, color: c.inkMuted),
+            Icon(context.icon(MyDataIcon.chevronRight), size: context.density.icon, color: context.colors.inkMuted),
           ],
         ],
       ),
     );
 
-    // Hover and press fill, under the content; a selected row keeps accent-soft.
+    Widget content = ringed || selection == null
+        ? row(context)
+        : SelectionMark(selected: true, borderRadius: shape, fill: false, child: Builder(builder: row));
+
+    // Hover and press fill, under the content; a selected row keeps its selection fill.
     final lit = (_hovered || _pressed || _menuOpen) && !widget.selected;
     content = AnimatedContainer(
       duration: context.motion.fast,
@@ -1391,17 +1410,17 @@ class _ContactRowState extends State<_ContactRow> {
       fit: StackFit.passthrough,
       children: [
         DecoratedBox(
-          decoration: context.radius.decorate(BoxDecoration(color: widget.selected ? c.accentSoft : null, borderRadius: shape)),
+          decoration: context.radius.decorate(BoxDecoration(color: selectedFill, borderRadius: shape)),
           position: DecorationPosition.background,
           child: content,
         ),
         // A row selected on its own: its own ring. A run's ring is drawn over the whole pieces (below).
-        if (widget.selected && !widget.joinsUp && !widget.joinsDown)
+        if (ringed && !widget.joinsUp && !widget.joinsDown)
           Positioned.fill(
             child: IgnorePointer(
               child: DecoratedBox(
                 decoration: context.radius.decorate(BoxDecoration(
-                  border: Border.all(color: c.ink, width: ContactList.selectionRingWidth),
+                  border: Border.all(color: ringColour, width: ContactList.selectionRingWidth),
                   borderRadius: shape,
                 )),
               ),
@@ -1469,10 +1488,10 @@ class _ContactRowState extends State<_ContactRow> {
       painter: _CardPieceShadow(context.shadows.shadow1, radius: context.radius.lg, first: widget.first, last: widget.last),
       // A run of selected rows: one ring over the whole piece (its divider too), open where it joins the
       // next row, so the run's sides have no gap.
-      foregroundPainter: widget.selected && (widget.joinsUp || widget.joinsDown)
+      foregroundPainter: ringed && (widget.joinsUp || widget.joinsDown)
           ? InsetRingPainter(
               shape: context.radius,
-              color: c.ink,
+              color: ringColour,
               width: ContactList.selectionRingWidth,
               borderRadius: shape,
               top: !widget.joinsUp,
@@ -1489,7 +1508,7 @@ class _ContactRowState extends State<_ContactRow> {
               EdgeRule(
                   extent: GroupFrame.dividerWidth,
                   inset: GroupFrame.textStart(context.look, lead: true),
-                  colour: widget.joinsUp ? c.accentSoft : null),
+                  colour: widget.joinsUp ? (selectedFill ?? c.surface) : null),
             Expanded(child: content),
           ],
         ),

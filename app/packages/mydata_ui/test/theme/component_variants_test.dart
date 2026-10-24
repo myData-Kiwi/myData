@@ -32,6 +32,51 @@ class ButtonSpecimen extends StatelessWidget {
       );
 }
 
+/// A frame with its sidebar (the current section marked), a contact list with one selected row, and a grouped
+/// list whose selected row has keyboard focus.
+class SelectionSpecimen extends StatelessWidget {
+  const SelectionSpecimen({super.key, required this.focus});
+  final FocusNode focus;
+
+  static final people = [
+    ContactListEntry(id: 'a1', name: 'Ava Fictional', givenName: 'Ava', familyName: 'Fictional', caption: 'Example Labs'),
+    ContactListEntry(id: 'a2', name: 'Ben Sample', givenName: 'Ben', familyName: 'Sample', caption: 'ben@example.org'),
+    ContactListEntry(id: 'a3', name: 'Cleo Placeholder', givenName: 'Cleo', familyName: 'Placeholder'),
+  ];
+
+  @override
+  Widget build(BuildContext context) => AppFrame(
+        appName: 'myContacts',
+        sections: const [
+          AppSection(icon: MyDataIcon.people, label: 'Contacts'),
+          AppSection(icon: MyDataIcon.review, label: 'Review', count: 4),
+        ],
+        current: 0,
+        onSelect: (_) {},
+        child: Padding(
+          padding: EdgeInsets.all(context.space(4)),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Expanded(child: ContactList(contacts: people, selectedId: 'a2', onOpen: (_) {}, showSearch: false)),
+            SizedBox(width: context.space(4)),
+            Expanded(
+              child: GroupedList(heading: 'Calendars', rows: [
+                const GroupedRow(icon: MyDataIcon.calendar, title: 'Home', subtitle: '12 events', onPressed: noop),
+                GroupedRow(
+                    icon: MyDataIcon.calendar,
+                    title: 'Work',
+                    subtitle: '48 events',
+                    trailing: const GroupedValueChevron('Shown'),
+                    selected: true,
+                    focusNode: focus,
+                    onPressed: noop),
+                const GroupedRow(title: 'Holidays', trailing: GroupedBadge('Read only', tone: MyDataTone.neutral)),
+              ]),
+            ),
+          ]),
+        ),
+      );
+}
+
 void main() {
   group('buttons', () {
     for (final key in ['button.primary', 'button.secondary', 'button.shape']) {
@@ -91,6 +136,37 @@ void main() {
         } else {
           expect((approve.fill, approve.side, approve.collapses), (filled.fill, filled.side, false), reason: value);
           expect(approve.shadows, filled.shadows, reason: value);
+        }
+      }
+    });
+  });
+
+  group('selection', () {
+    variantGoldens('selection', (focus) => SelectionSpecimen(focus: focus), size: const Size(1100, 340));
+    // A theme that outlines its controls marks a faint tint with an outline, not a bar.
+    variantGoldens('selection', (focus) => SelectionSpecimen(focus: focus),
+        size: const Size(1100, 340),
+        values: ['tint'],
+        name: 'outlined',
+        also: styleGroup('borders', {'controls': true, 'cards': true, 'width': 2, 'colour': 'edge'}));
+
+    test('a tint under 3:1 on surface is never colour alone: it draws a bar or an outline', () {
+      final kiwi = ThemeLibrary.look(kiwiWith(component('selection', 'tint')), brightness: Brightness.light);
+      expect(SelectionPaint.tintNeedsMark(kiwi.colors), isTrue);
+      expect(SelectionPaint.of(kiwi).bar, kiwi.colors.selection);
+      final outlined = ThemeLibrary.look(kiwiWith(all([component('selection', 'tint'), styleGroup('borders', {'controls': true})])),
+          brightness: Brightness.light);
+      expect(SelectionPaint.of(outlined).bar, isNull);
+      expect(SelectionPaint.of(outlined).outline?.color, outlined.colors.selection);
+    });
+
+    test('every selection style marks the item by more than a faint fill', () {
+      for (final value in componentValues['selection']!) {
+        for (final b in Brightness.values) {
+          final look = ThemeLibrary.look(kiwiWith(component('selection', value)), brightness: b);
+          final p = SelectionPaint.of(look);
+          final fillMarks = p.fill != null && SelectionPaint.contrastOf(p.fill!, look.colors.surface) >= 3;
+          expect(fillMarks || p.bar != null || p.outline != null, isTrue, reason: '$value ${b.name}');
         }
       }
     });

@@ -5,10 +5,10 @@ import '../generated/tokens.g.dart';
 import '../theme/theme.dart';
 import 'button.dart';
 import 'floating_bar.dart';
-import 'grouped_list.dart' show GroupedRow;
 import 'kiwi.dart';
 import 'pressable.dart';
 import 'role_label.dart';
+import 'selection.dart';
 
 /// Which of the three window layouts a width gets (design/platforms.md "Window layouts").
 enum AppLayout {
@@ -150,7 +150,8 @@ class AppConnection {
 /// - **Unreachable**, in every layout: the warning line, the [AppConnection.lastUpdated] caption under it
 ///   when the app has one, and the Retry button; while a retry runs, the disabled button has the reason next
 ///   to it.
-/// - The current section is an `accent-soft` pill with `accent` text; the others are `ink-muted`. Rows fill
+/// - The current section is marked in the theme's selection style ([SelectionMark]; Kiwi's is an
+///   `accent-soft` pill with a `selection` bar, its text in `accent`); the others are `ink-muted`. Rows fill
 ///   with `surface-hover` on hover and draw the focus ring with the keyboard. Tab reaches every row; the
 ///   up and down arrows move between them (Home and End to the ends); Enter and Space open one.
 /// - The window's title bar and its controls stay the platform's.
@@ -388,40 +389,57 @@ class _SidebarRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final fg = current ? c.accent : c.inkMuted;
+    final paint = current ? SelectionPaint.of(context.look) : null;
+    final fg = paint == null ? c.inkMuted : (paint.foreground ?? c.accent);
+    final radius = MyDataRadii.pill(context.look);
     return AnimatedContainer(
       duration: context.motion.fast,
       curve: context.motion.standard,
-      decoration: context.radius.decorate(BoxDecoration(color: current ? c.accentSoft : c.accentSoft.withValues(alpha: 0), borderRadius: MyDataRadii.pill(context.look))),
-      child: Pressable(
-        onPressed: onPressed,
-        focusNode: focusNode,
-        borderRadius: MyDataRadii.pill(context.look),
-        scaleOnPress: false,
-        hoverFill: current ? c.ink.withValues(alpha: GroupedRow.selectedHoverInk) : c.surfaceHover,
+      decoration: context.radius.decorate(BoxDecoration(
+          color: paint?.fill ?? c.accentSoft.withValues(alpha: 0), borderRadius: radius)),
+      child: SelectionMark(
         selected: current,
-        semanticLabel: section.spoken,
-        child: ExcludeSemantics(
-          child: Container(
-            height: context.density.controlHeight,
-            padding: EdgeInsets.symmetric(horizontal: context.space(3)),
-            child: Row(children: [
-              Icon(context.icon(section.icon, selected: current), size: context.density.icon, color: fg),
-              SizedBox(width: context.space(3)),
-              Expanded(
-                child: Text(
-                  section.label,
-                  maxLines: 1,
-                  softWrap: false,
-                  overflow: TextOverflow.ellipsis,
-                  style: (current ? context.typeScale.bodyStrong : context.typeScale.body).copyWith(color: fg),
+        borderRadius: radius,
+        fill: false,
+        child: Pressable(
+          onPressed: onPressed,
+          focusNode: focusNode,
+          borderRadius: radius,
+          scaleOnPress: false,
+          hoverFill: paint?.hoverOver(c) ?? c.surfaceHover,
+          selected: current,
+          focusOnFill: paint?.fill != null,
+          semanticLabel: section.spoken,
+          child: ExcludeSemantics(
+            child: Container(
+              height: context.density.controlHeight,
+              padding: EdgeInsets.symmetric(horizontal: context.space(3)),
+              child: Row(children: [
+                Icon(context.icon(section.icon, selected: current), size: context.density.icon, color: fg),
+                SizedBox(width: context.space(3)),
+                Expanded(
+                  child: Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: SelectionHighlight(
+                      child: Builder(
+                        builder: (context) => Text(
+                          section.label,
+                          maxLines: 1,
+                          softWrap: false,
+                          overflow: TextOverflow.ellipsis,
+                          style: (current ? context.typeScale.bodyStrong : context.typeScale.body)
+                              .copyWith(color: SelectionMark.of(context)?.highlight != null ? context.colors.ink : fg),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-              if ((section.count ?? 0) > 0) ...[
-                SizedBox(width: context.space(2)),
-                Text(section.countText, style: context.typeScale.caption.copyWith(color: c.inkMuted)),
-              ],
-            ]),
+                if ((section.count ?? 0) > 0) ...[
+                  SizedBox(width: context.space(2)),
+                  Text(section.countText, style: context.typeScale.caption.copyWith(color: paint?.foreground ?? c.inkMuted)),
+                ],
+              ]),
+            ),
           ),
         ),
       ),
@@ -444,7 +462,8 @@ class _RailItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final fg = current ? c.accent : c.inkMuted;
+    final paint = current ? SelectionPaint.of(context.look) : null;
+    final fg = paint == null ? c.inkMuted : (paint.foreground ?? c.accent);
     return Pressable(
       onPressed: onPressed,
       focusNode: focusNode,
@@ -464,9 +483,16 @@ class _RailItem extends StatelessWidget {
               width: indicatorWidth(context.look),
               height: indicatorHeight(context.look),
               decoration: context.radius.decorate(BoxDecoration(
-                  color: current ? c.accentSoft : c.accentSoft.withValues(alpha: 0), borderRadius: MyDataRadii.pill(context.look))),
+                  color: paint?.fill ?? c.accentSoft.withValues(alpha: 0), borderRadius: MyDataRadii.pill(context.look))),
               alignment: Alignment.center,
-              child: Icon(context.icon(section.icon, selected: current), size: context.density.icon, color: fg),
+              child: SelectionMark(
+                selected: current,
+                borderRadius: MyDataRadii.pill(context.look),
+                fill: false,
+                child: Center(
+                  child: Icon(context.icon(section.icon, selected: current), size: context.density.icon, color: fg),
+                ),
+              ),
             ),
             SizedBox(height: context.space(1)),
             RoleLabel(
@@ -476,7 +502,8 @@ class _RailItem extends StatelessWidget {
               softWrap: false,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
-              color: fg,
+              // The label sits on the ground, under the marked pill: the accent, never the fill's own colour.
+              color: current ? c.accent : c.inkMuted,
             ),
           ]),
         ),

@@ -141,7 +141,7 @@ class _Letters extends StatelessWidget {
                   maxLines: 1,
                   softWrap: false,
                   textAlign: TextAlign.center,
-                  style: size.letterStyle(context.look).copyWith(color: c.ink),
+                  style: size.letterStyle(context.look).copyWith(color: c.onAvatar),
                 ),
               ),
             ),

@@ -10,6 +10,7 @@ import 'badge.dart';
 import 'group_frame.dart';
 import 'icon_tile.dart';
 import 'pressable.dart';
+import 'selection.dart';
 import 'status.dart';
 import 'switch.dart';
 
@@ -108,7 +109,8 @@ final class GroupedValueChevron extends GroupedTrailing {
 ///   `ink-muted`, and the [trailing] part (or the switch) at the right end.
 /// - The trailing part takes the width it needs. Only when the title and a long value cannot both fit is
 ///   the value cut short with an ellipsis, and then it keeps at most [maxTrailingFraction] of the row.
-/// - **Selected:** the row fill becomes `accent-soft`.
+/// - **Selected:** marked in the theme's selection style ([SelectionMark]; Kiwi's is an `accent-soft` fill
+///   with a `selection` bar at its leading edge).
 /// - A row that does something ([onPressed], or a switch) is one target: hovering or pressing fills it with
 ///   `surface-hover` over `fast`, a press dims it to 85% without shrinking, keyboard focus draws the focus
 ///   ring, and Enter and Space activate it. A selected row's hover fill is [selectedHoverInk] of `ink`
@@ -185,7 +187,7 @@ class GroupedRow extends StatelessWidget implements LeadingTile {
   /// Called with the new value when the user flips a switch row. Null disables it.
   final ValueChanged<bool>? onSwitchChanged;
 
-  /// Whether this is the current item: an `accent-soft` fill.
+  /// Whether this is the current item, marked in the theme's selection style ([SelectionMark]).
   final bool selected;
 
   /// False disables a row that does something.
@@ -226,16 +228,35 @@ class GroupedRow extends StatelessWidget implements LeadingTile {
 
   @override
   Widget build(BuildContext context) {
-    final c = context.colors;
     final shape = GroupPartShape.of(context);
+    // The Mac frame: a plain list's row, its selection the system's inactive fill.
+    if (context.isSystemLook) {
+      return MergeSemantics(
+        child: DecoratedBox(
+          decoration: BoxDecoration(color: selected ? context.mac.selectionInactive : null, borderRadius: shape),
+          child: _row(context, shape, mac: true),
+        ),
+      );
+    }
+    // Built under the mark, so the row's text takes the selection's colours (on a solid or inverse fill).
+    return MergeSemantics(
+      child: SelectionMark(
+        selected: selected,
+        borderRadius: shape,
+        child: Builder(builder: (context) => _row(context, shape, mac: false)),
+      ),
+    );
+  }
+
+  Widget _row(BuildContext context, BorderRadius shape, {required bool mac}) {
+    final c = context.colors;
     final interactive = isSwitch || onPressed != null;
     final VoidCallback? activate = isSwitch
         ? (onSwitchChanged == null ? null : () => onSwitchChanged!(!switchValue!))
         : (enabled ? onPressed : null);
+    final selection = selected && !mac ? SelectionMark.of(context) : null;
 
     final end = isSwitch ? SwitchTrack(value: switchValue!) : (trailing == null ? null : _trailing(context, trailing!));
-    // The Mac frame: a plain list's row, `row-height` at least, its text in the system's styles.
-    final mac = context.isSystemLook;
     Widget content = ConstrainedBox(
       constraints: BoxConstraints(minHeight: mac ? MyDataMacSize.rowHeight : context.density.rowHeight),
       child: Padding(
@@ -252,7 +273,14 @@ class GroupedRow extends StatelessWidget implements LeadingTile {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(title, style: context.type(mac ? MyDataTypeRole.body : MyDataTypeRole.bodyStrong).copyWith(color: c.ink)),
+                      SelectionHighlight(
+                        child: Builder(
+                          builder: (context) => Text(title,
+                              style: context
+                                  .type(mac ? MyDataTypeRole.body : MyDataTypeRole.bodyStrong)
+                                  .copyWith(color: context.colors.ink)),
+                        ),
+                      ),
                       if (subtitle != null)
                         Text(subtitle!, style: context.type(MyDataTypeRole.caption).copyWith(color: c.inkMuted)),
                     ],
@@ -271,30 +299,21 @@ class GroupedRow extends StatelessWidget implements LeadingTile {
         onPressed: activate,
         borderRadius: shape,
         // Mac lists do not light up under the pointer.
-        hoverFill: mac ? null : (selected ? c.ink.withValues(alpha: selectedHoverInk) : c.surfaceHover),
+        hoverFill: mac ? null : (selection != null ? selection.hoverOver(c) : c.surfaceHover),
         scaleOnPress: false,
         focusNode: focusNode,
         autofocus: autofocus,
         button: !isSwitch,
         selected: selected ? true : null,
         toggled: switchValue,
-        // A selected row is filled: its ring is two-tone.
-        focusOnFill: selected,
+        // A selected row with a fill: its ring is two-tone.
+        focusOnFill: selection?.fill != null,
         child: content,
       );
     } else if (selected) {
       content = Semantics(selected: true, child: content);
     }
-
-    return MergeSemantics(
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: selected ? (mac ? context.mac.selectionInactive : c.accentSoft) : null,
-          borderRadius: shape,
-        ),
-        child: content,
-      ),
-    );
+    return content;
   }
 
   Widget _trailing(BuildContext context, GroupedTrailing t) {
