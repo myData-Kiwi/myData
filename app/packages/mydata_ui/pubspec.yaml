@@ -52,6 +52,7 @@ flutter:
     - assets/fonts/OFL-archivo-black.txt
     - assets/fonts/OFL-space-grotesk.txt
     - assets/fonts/OFL-pixelify-sans.txt
+    - assets/fonts/OFL-shippori-mincho.txt
     - assets/fonts/OFL-jost.txt
     - assets/fonts/OFL-outfit.txt
     - assets/fonts/OFL-chakra-petch.txt

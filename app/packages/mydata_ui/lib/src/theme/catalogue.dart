@@ -74,7 +74,8 @@ const fontPackage = 'mydata_ui';
 /// phase 3 bundles the fonts the six built-ins name, as Latin subsets cut by tool/subset_fonts.sh; the fonts
 /// of the thirteen new themes come with them in phase 4 (Atkinson Hyperlegible Next and Mono with High
 /// Contrast and Large, Kalam and Newsreader with Notebook, Archivo Black and Space Grotesk with Brutalist,
-/// Pixelify Sans with Retro Desktop, Chakra Petch and Outfit with Arcade, Jost with Geometric).
+/// Pixelify Sans with Retro Desktop, Chakra Petch and Outfit with Arcade, Jost with Geometric, Shippori
+/// Mincho with Zen).
 const fontCatalogue = <String, CatalogueFont>{
   'figtree': CatalogueFont('figtree', 'Figtree', family: 'Figtree', core: true),
   'plus-jakarta-sans': CatalogueFont('plus-jakarta-sans', 'Plus Jakarta Sans', family: 'PlusJakartaSans', core: true),
@@ -106,7 +107,8 @@ const fontCatalogue = <String, CatalogueFont>{
       CatalogueFont('chakra-petch', 'Chakra Petch', family: 'ChakraPetch', displayOnly: true, staticWeight: 600),
   'outfit': CatalogueFont('outfit', 'Outfit', family: 'Outfit'),
   'jost': CatalogueFont('jost', 'Jost', family: 'Jost'),
-  'shippori-mincho': CatalogueFont('shippori-mincho', 'Shippori Mincho'),
+  'shippori-mincho': CatalogueFont('shippori-mincho', 'Shippori Mincho',
+      family: 'ShipporiMincho', displayOnly: true, staticWeight: 600),
   'zen-kaku-gothic-new': CatalogueFont('zen-kaku-gothic-new', 'Zen Kaku Gothic New'),
 };
 

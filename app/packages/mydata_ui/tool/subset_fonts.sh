@@ -48,6 +48,7 @@ pixelify-sans|pixelifysans|PixelifySans[wght].ttf|9ba86cd010a4de309d263ceff8e804
 chakra-petch|chakrapetch|ChakraPetch-SemiBold.ttf|45264de3204ddbd5fb3e14a2402acd5c630d16650ae5fc221d2c52da46a6734b||
 outfit|outfit|Outfit[wght].ttf|fc7287273e66929776e2ba54f144fe699080bec29f61bf649d70d871468aeade||
 jost|jost|Jost[wght].ttf|6343b70971000b04c5d401c96ae08ce371086135e999d5e1e1413039c0213076||
+shippori-mincho|shipporimincho|ShipporiMincho-SemiBold.ttf|bc7925544894a91466449adb73c6d943f50c3e53eb1c74d0673fe2dbafcd4d2d||
 EOF
 )
 # The core fonts' extra static weights (declared in the pubspec and registered when the app starts): the
