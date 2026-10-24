@@ -184,9 +184,14 @@ void main() {
   }
 
   // Material Symbols, Outlined and Rounded, in every weight they are cut in (the fill as the selected row),
-  // on Kiwi's look: the glyphs as the sets draw them, whichever theme names them.
-  for (final set in ['material-outlined', 'material-rounded']) {
-    for (final weight in ['light', 'regular', 'bold']) {
+  // and Pixelarticons in its one weight, on Kiwi's look: the glyphs as the sets draw them, whichever theme
+  // names them.
+  for (final (set, weights) in [
+    ('material-outlined', ['light', 'regular', 'bold']),
+    ('material-rounded', ['light', 'regular', 'bold']),
+    ('pixelarticons', ['regular']),
+  ]) {
+    for (final weight in weights) {
       testWidgets('icon golden ($set-$weight)', (tester) async {
         tester.view.physicalSize = const Size(480, 300);
         tester.view.devicePixelRatio = 1;

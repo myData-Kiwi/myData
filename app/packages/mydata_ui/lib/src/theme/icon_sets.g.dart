@@ -464,6 +464,63 @@ const phosphorFillIcons = <MyDataIcon, IconData>{
   MyDataIcon.upDown: IconData(0xe140, fontFamily: 'PhosphorFill', fontPackage: fontPackage), // caret-up-down
 };
 
+/// Pixelarticons: pixelarticons, regular.
+const pixelarticonsIcons = <MyDataIcon, IconData>{
+  MyDataIcon.people: IconData(0xede1, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // users
+  MyDataIcon.person: IconData(0xeddf, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // user
+  MyDataIcon.personAdd: IconData(0xeddb, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // user-plus
+  MyDataIcon.contact: IconData(0xeb45, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // contact
+  MyDataIcon.calendar: IconData(0xeaed, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // calendar
+  MyDataIcon.calendarMonth: IconData(0xeaec, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // calendar-weeks
+  MyDataIcon.calendarCheck: IconData(0xeaea, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // calendar-text
+  MyDataIcon.clock: IconData(0xeb2f, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // clock
+  MyDataIcon.photo: IconData(0xebfb, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // image
+  MyDataIcon.assistant: IconData(0xed4d, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // sparkles
+  MyDataIcon.chat: IconData(0xec92, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // message-text
+  MyDataIcon.status: IconData(0xea48, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // analytics
+  MyDataIcon.importFile: IconData(0xebff, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // inbox
+  MyDataIcon.settings: IconData(0xebb7, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // gear
+  MyDataIcon.layers: IconData(0xeab8, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // blocks
+  MyDataIcon.review: IconData(0xec66, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // list-box
+  MyDataIcon.list: IconData(0xeadd, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // bulletlist
+  MyDataIcon.note: IconData(0xecc4, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // pen-square
+  MyDataIcon.trash: IconData(0xedbe, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // trash
+  MyDataIcon.thisMac: IconData(0xec1e, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // laptop
+  MyDataIcon.host: IconData(0xed20, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // server
+  MyDataIcon.cloud: IconData(0xeb34, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // cloud
+  MyDataIcon.sync: IconData(0xecfa, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // reload
+  MyDataIcon.agents: IconData(0xed07, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // robot
+  MyDataIcon.key: IconData(0xec0f, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // key
+  MyDataIcon.add: IconData(0xecd8, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // plus
+  MyDataIcon.remove: IconData(0xec99, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // minus-box
+  MyDataIcon.edit: IconData(0xecc5, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // pencil
+  MyDataIcon.copy: IconData(0xeb49, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // copy
+  MyDataIcon.search: IconData(0xed18, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // search
+  MyDataIcon.clear: IconData(0xeb30, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // close
+  MyDataIcon.close: IconData(0xeb30, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // close
+  MyDataIcon.more: IconData(0xeca3, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // more-horizontal
+  MyDataIcon.send: IconData(0xea7a, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // arrow-up
+  MyDataIcon.check: IconData(0xeb0a, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // check
+  MyDataIcon.fileCheck: IconData(0xeb99, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // file-text
+  MyDataIcon.report: IconData(0xeba0, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // flag
+  MyDataIcon.download: IconData(0xeb7f, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // download
+  MyDataIcon.message: IconData(0xec93, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // message
+  MyDataIcon.call: IconData(0xeccc, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // phone
+  MyDataIcon.video: IconData(0xede8, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // video
+  MyDataIcon.mail: IconData(0xec77, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // mail
+  MyDataIcon.map: IconData(0xec7b, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // map-pin
+  MyDataIcon.info: IconData(0xec05, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // info-box
+  MyDataIcon.warning: IconData(0xedf6, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // warning-diamond
+  MyDataIcon.error: IconData(0xed5a, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // square-alert
+  MyDataIcon.success: IconData(0xeb0c, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // checkbox-on
+  MyDataIcon.sidebar: IconData(0xec25, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // layout
+  MyDataIcon.back: IconData(0xea70, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // arrow-left
+  MyDataIcon.chevronLeft: IconData(0xeb14, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // chevron-left
+  MyDataIcon.chevronRight: IconData(0xeb16, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // chevron-right
+  MyDataIcon.chevronDown: IconData(0xeb12, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // chevron-down
+  MyDataIcon.upDown: IconData(0xeb1c, fontFamily: 'Pixelarticons', fontPackage: fontPackage), // chevrons-vertical
+};
+
 /// MaterialOutlinedLight: material-outlined, light.
 const materialOutlinedLightIcons = <MyDataIcon, IconData>{
   MyDataIcon.people: IconData(0xea21, fontFamily: 'MaterialOutlinedLight', fontPackage: fontPackage), // group
@@ -925,6 +982,7 @@ const iconTables = <String, Map<String, Map<MyDataIcon, IconData>>>{
   'lucide': {'regular': lucideIcons},
   'tabler': {'thin': tablerThinIcons, 'light': tablerLightIcons, 'regular': tablerIcons},
   'phosphor': {'light': phosphorLightIcons, 'regular': phosphorIcons, 'bold': phosphorBoldIcons, 'fill': phosphorFillIcons},
+  'pixelarticons': {'regular': pixelarticonsIcons},
   'material-outlined': {'light': materialOutlinedLightIcons, 'regular': materialOutlinedIcons, 'bold': materialOutlinedBoldIcons, 'fill': materialOutlinedFillIcons},
   'material-rounded': {'light': materialRoundedLightIcons, 'regular': materialRoundedIcons, 'bold': materialRoundedBoldIcons, 'fill': materialRoundedFillIcons},
 };

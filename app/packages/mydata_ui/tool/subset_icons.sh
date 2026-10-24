@@ -4,8 +4,7 @@
 # lib/src/theme/icon_sets.g.dart, the const IconData tables (const, so release builds can tree-shake them).
 #   tool/subset_icons.sh            (from app/packages/mydata_ui; needs curl, python3 and uv)
 #
-# Sets and weights bundled (Pixelarticons, Iconoir and Material Symbols Sharp come with the first theme that
-# draws them):
+# Sets and weights bundled (Iconoir and Material Symbols Sharp come with the first theme that draws them):
 # - Lucide (ISC): one weight, `Lucide`. Also System's icons on macOS, in place of SF Symbols, which may only
 #   be used through Apple's own frameworks (docs/2026-10-23-plan.md, 3(d)).
 # - Tabler Icons (MIT): stroke 200, 300 and 400 as thin, light and regular (`TablerThin`, `TablerLight`,
@@ -15,6 +14,8 @@
 #   size 20, grade 0) at weight 300, 400 and 600 as light, regular and bold, and filled at 400 as fill
 #   (`MaterialOutlinedLight` ... `MaterialRoundedFill`). From google/material-design-icons at one commit,
 #   checked against its SHA-256; names from the font's own `.codepoints` file (`material` in tool/icons.json).
+# - Pixelarticons (MIT): one weight, `Pixelarticons`, drawn on a 24 px grid (Retro Desktop). Its glyphs are
+#   the font the package ships, with names from its CSS.
 # A weight a set lacks is drawn in the nearest one it has (lib/src/theme/icons.dart).
 # Add an icon: its id in MyDataIcon (lib/src/theme/icons.dart) and its line in tool/icons.json, then run this.
 set -euo pipefail
@@ -25,6 +26,7 @@ PACKAGES=$(cat <<'EOF'
 lucide-static|1.61.0|yLAiQB3MWUJEstsEDAwenSA3m7vr1tdLvgnC16Q/XMxRRma0DWwMs8M2bWlvgShrIs1m2mWMJ+0AiahqQO4GrA==|LICENSE
 @tabler/icons-webfont|3.49.0|kWgnmEzo17dzQyMqRmlfj+TiGV0clLMYfUtKp2WG7M+TH5418o6fsoaSlrOTK3lwESg0xS7jVfOozYrR02Ryxw==|LICENSE
 @phosphor-icons/web|2.1.2|rPAR9o/bEcp4Cw4DEeZHXf+nlGCMNGkNDRizYHM47NLxz9vvEHp/Tt6FMK1NcWadzw/pFDPnRBGi/ofRya958A==|LICENSE
+pixelarticons|2.4.2|BZKSU5ckLuioZCzES4fEmdQfnI8XEiQlHljdIVk+N6+KH7vTBQJNtMs+V0LQF7nC7cZbKT0qBXFOsT35sl8uhg==|LICENSE
 EOF
 )
 
@@ -75,6 +77,7 @@ curl -sSfLo "$WORK/material/LICENSE" "https://raw.githubusercontent.com/google/m
 cp "$WORK/lucide-static/package/LICENSE" "$HERE/assets/fonts/ISC-lucide.txt"
 cp "$WORK/icons-webfont/package/LICENSE" "$HERE/assets/fonts/MIT-tabler.txt"
 cp "$WORK/web/package/LICENSE" "$HERE/assets/fonts/MIT-phosphor.txt"
+cp "$WORK/pixelarticons/package/LICENSE" "$HERE/assets/fonts/MIT-pixelarticons.txt"
 cp "$WORK/material/LICENSE" "$HERE/assets/fonts/Apache-material-symbols.txt"
 
 cat > "$WORK/script/cut.py" <<'EOF'
@@ -86,9 +89,10 @@ from fontTools.varLib import instancer
 work, here = sys.argv[1:3]
 icons = json.load(open(f'{here}/tool/icons.json'))['icons']
 
-def css(path):
+def css(path, prefix='ti-', colons=':'):
     text = open(path).read()
-    return {m[1]: int(m[2], 16) for m in re.finditer(r'\.ti-([a-z0-9-]+):before\s*\{\s*content:\s*"\\([0-9a-f]+)"', text)}
+    pattern = r'\.' + re.escape(prefix) + r'([a-z0-9-]+)' + colons + r'before\s*\{\s*content:\s*"\\([0-9a-f]+)"'
+    return {m[1]: int(m[2], 16) for m in re.finditer(pattern, text)}
 
 def phosphor(weight):
     folder = 'regular' if weight == 'regular' else weight
@@ -107,6 +111,7 @@ def material(style):
 
 lucide = json.load(open(f'{work}/lucide-static/package/font/codepoints.json'))
 tabler = css(f'{work}/icons-webfont/package/dist/tabler-icons.css')
+pixel = css(f'{work}/pixelarticons/package/fonts/pixelart-icons-font.css', 'pixelart-icons-font-', '::')
 fonts = [
     # family, set, weight, source font, name -> code point, tool/icons.json key, variable instance (or None)
     ('Lucide', 'lucide', 'regular', f'{work}/lucide-static/package/font/lucide.ttf', lucide, 'lucide', None),
@@ -120,6 +125,8 @@ fonts = [
     ('Phosphor', 'phosphor', 'regular', ttf('regular'), phosphor('regular'), 'phosphor', None),
     ('PhosphorBold', 'phosphor', 'bold', ttf('bold'), phosphor('bold'), 'phosphor', None),
     ('PhosphorFill', 'phosphor', 'fill', ttf('fill'), phosphor('fill'), 'phosphor', None),
+    ('Pixelarticons', 'pixelarticons', 'regular', f'{work}/pixelarticons/package/fonts/pixelart-icons-font.ttf', pixel,
+     'pixelarticons', None),
 ]
 for style in ('Outlined', 'Rounded'):
     for weight, fill, wght in (('light', 0, 300), ('regular', 0, 400), ('bold', 0, 600), ('fill', 1, 400)):

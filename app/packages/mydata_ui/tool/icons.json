@@ -7,7 +7,8 @@
       "lucide": "users-round",
       "tabler": "users",
       "phosphor": "users",
-      "material": "group"
+      "material": "group",
+      "pixelarticons": "users"
     },
     {
       "id": "person",
@@ -15,7 +16,8 @@
       "lucide": "user-round",
       "tabler": "user",
       "phosphor": "user",
-      "material": "person"
+      "material": "person",
+      "pixelarticons": "user"
     },
     {
       "id": "personAdd",
@@ -23,7 +25,8 @@
       "lucide": "user-plus",
       "tabler": "user-plus",
       "phosphor": "user-plus",
-      "material": "person_add"
+      "material": "person_add",
+      "pixelarticons": "user-plus"
     },
     {
       "id": "contact",
@@ -31,7 +34,8 @@
       "lucide": "contact",
       "tabler": "address-book",
       "phosphor": "address-book",
-      "material": "contacts"
+      "material": "contacts",
+      "pixelarticons": "contact"
     },
     {
       "id": "calendar",
@@ -39,7 +43,8 @@
       "lucide": "calendar",
       "tabler": "calendar",
       "phosphor": "calendar-blank",
-      "material": "calendar_today"
+      "material": "calendar_today",
+      "pixelarticons": "calendar"
     },
     {
       "id": "calendarMonth",
@@ -47,7 +52,8 @@
       "lucide": "calendar-days",
       "tabler": "calendar-month",
       "phosphor": "calendar-dots",
-      "material": "calendar_month"
+      "material": "calendar_month",
+      "pixelarticons": "calendar-weeks"
     },
     {
       "id": "calendarCheck",
@@ -55,7 +61,8 @@
       "lucide": "calendar-check",
       "tabler": "calendar-check",
       "phosphor": "calendar-check",
-      "material": "event_available"
+      "material": "event_available",
+      "pixelarticons": "calendar-text"
     },
     {
       "id": "clock",
@@ -63,7 +70,8 @@
       "lucide": "clock",
       "tabler": "clock",
       "phosphor": "clock",
-      "material": "schedule"
+      "material": "schedule",
+      "pixelarticons": "clock"
     },
     {
       "id": "photo",
@@ -71,7 +79,8 @@
       "lucide": "image",
       "tabler": "photo",
       "phosphor": "image",
-      "material": "image"
+      "material": "image",
+      "pixelarticons": "image"
     },
     {
       "id": "assistant",
@@ -79,7 +88,8 @@
       "lucide": "sparkles",
       "tabler": "sparkles",
       "phosphor": "sparkle",
-      "material": "auto_awesome"
+      "material": "auto_awesome",
+      "pixelarticons": "sparkles"
     },
     {
       "id": "chat",
@@ -87,7 +97,8 @@
       "lucide": "message-square",
       "tabler": "message",
       "phosphor": "chat-centered",
-      "material": "chat"
+      "material": "chat",
+      "pixelarticons": "message-text"
     },
     {
       "id": "status",
@@ -95,7 +106,8 @@
       "lucide": "activity",
       "tabler": "activity",
       "phosphor": "pulse",
-      "material": "monitor_heart"
+      "material": "monitor_heart",
+      "pixelarticons": "analytics"
     },
     {
       "id": "importFile",
@@ -103,7 +115,8 @@
       "lucide": "inbox",
       "tabler": "inbox",
       "phosphor": "tray",
-      "material": "inbox"
+      "material": "inbox",
+      "pixelarticons": "inbox"
     },
     {
       "id": "settings",
@@ -111,7 +124,8 @@
       "lucide": "settings",
       "tabler": "settings",
       "phosphor": "gear",
-      "material": "settings"
+      "material": "settings",
+      "pixelarticons": "gear"
     },
     {
       "id": "layers",
@@ -119,7 +133,8 @@
       "lucide": "layers",
       "tabler": "stack-2",
       "phosphor": "stack",
-      "material": "layers"
+      "material": "layers",
+      "pixelarticons": "blocks"
     },
     {
       "id": "review",
@@ -127,7 +142,8 @@
       "lucide": "list-checks",
       "tabler": "list-check",
       "phosphor": "list-checks",
-      "material": "checklist"
+      "material": "checklist",
+      "pixelarticons": "list-box"
     },
     {
       "id": "list",
@@ -135,7 +151,8 @@
       "lucide": "list",
       "tabler": "list",
       "phosphor": "list",
-      "material": "list"
+      "material": "list",
+      "pixelarticons": "bulletlist"
     },
     {
       "id": "note",
@@ -143,7 +160,8 @@
       "lucide": "square-pen",
       "tabler": "edit",
       "phosphor": "note-pencil",
-      "material": "edit_square"
+      "material": "edit_square",
+      "pixelarticons": "pen-square"
     },
     {
       "id": "trash",
@@ -151,7 +169,8 @@
       "lucide": "trash-2",
       "tabler": "trash",
       "phosphor": "trash",
-      "material": "delete"
+      "material": "delete",
+      "pixelarticons": "trash"
     },
     {
       "id": "thisMac",
@@ -159,7 +178,8 @@
       "lucide": "laptop",
       "tabler": "device-laptop",
       "phosphor": "laptop",
-      "material": "laptop"
+      "material": "laptop",
+      "pixelarticons": "laptop"
     },
     {
       "id": "host",
@@ -167,7 +187,8 @@
       "lucide": "server",
       "tabler": "server",
       "phosphor": "hard-drives",
-      "material": "dns"
+      "material": "dns",
+      "pixelarticons": "server"
     },
     {
       "id": "cloud",
@@ -175,7 +196,8 @@
       "lucide": "cloud",
       "tabler": "cloud",
       "phosphor": "cloud",
-      "material": "cloud"
+      "material": "cloud",
+      "pixelarticons": "cloud"
     },
     {
       "id": "sync",
@@ -183,7 +205,8 @@
       "lucide": "refresh-cw",
       "tabler": "refresh",
       "phosphor": "arrows-clockwise",
-      "material": "sync"
+      "material": "sync",
+      "pixelarticons": "reload"
     },
     {
       "id": "agents",
@@ -191,7 +214,8 @@
       "lucide": "network",
       "tabler": "network",
       "phosphor": "graph",
-      "material": "lan"
+      "material": "lan",
+      "pixelarticons": "robot"
     },
     {
       "id": "key",
@@ -199,7 +223,8 @@
       "lucide": "key-round",
       "tabler": "key",
       "phosphor": "key",
-      "material": "key"
+      "material": "key",
+      "pixelarticons": "key"
     },
     {
       "id": "add",
@@ -207,7 +232,8 @@
       "lucide": "plus",
       "tabler": "plus",
       "phosphor": "plus",
-      "material": "add"
+      "material": "add",
+      "pixelarticons": "plus"
     },
     {
       "id": "remove",
@@ -215,7 +241,8 @@
       "lucide": "circle-minus",
       "tabler": "circle-minus",
       "phosphor": "minus-circle",
-      "material": "do_not_disturb_on"
+      "material": "do_not_disturb_on",
+      "pixelarticons": "minus-box"
     },
     {
       "id": "edit",
@@ -223,7 +250,8 @@
       "lucide": "pencil",
       "tabler": "pencil",
       "phosphor": "pencil-simple",
-      "material": "edit"
+      "material": "edit",
+      "pixelarticons": "pencil"
     },
     {
       "id": "copy",
@@ -231,7 +259,8 @@
       "lucide": "copy",
       "tabler": "copy",
       "phosphor": "copy",
-      "material": "content_copy"
+      "material": "content_copy",
+      "pixelarticons": "copy"
     },
     {
       "id": "search",
@@ -239,7 +268,8 @@
       "lucide": "search",
       "tabler": "search",
       "phosphor": "magnifying-glass",
-      "material": "search"
+      "material": "search",
+      "pixelarticons": "search"
     },
     {
       "id": "clear",
@@ -247,7 +277,8 @@
       "lucide": "circle-x",
       "tabler": "circle-x",
       "phosphor": "x-circle",
-      "material": "cancel"
+      "material": "cancel",
+      "pixelarticons": "close"
     },
     {
       "id": "close",
@@ -255,7 +286,8 @@
       "lucide": "x",
       "tabler": "x",
       "phosphor": "x",
-      "material": "close"
+      "material": "close",
+      "pixelarticons": "close"
     },
     {
       "id": "more",
@@ -263,7 +295,8 @@
       "lucide": "ellipsis",
       "tabler": "dots",
       "phosphor": "dots-three",
-      "material": "more_horiz"
+      "material": "more_horiz",
+      "pixelarticons": "more-horizontal"
     },
     {
       "id": "send",
@@ -271,7 +304,8 @@
       "lucide": "arrow-up",
       "tabler": "arrow-up",
       "phosphor": "arrow-up",
-      "material": "arrow_upward"
+      "material": "arrow_upward",
+      "pixelarticons": "arrow-up"
     },
     {
       "id": "check",
@@ -279,7 +313,8 @@
       "lucide": "check",
       "tabler": "check",
       "phosphor": "check",
-      "material": "check"
+      "material": "check",
+      "pixelarticons": "check"
     },
     {
       "id": "fileCheck",
@@ -287,7 +322,8 @@
       "lucide": "file-check",
       "tabler": "file-check",
       "phosphor": "file-text",
-      "material": "task"
+      "material": "task",
+      "pixelarticons": "file-text"
     },
     {
       "id": "report",
@@ -295,7 +331,8 @@
       "lucide": "flag",
       "tabler": "flag",
       "phosphor": "flag",
-      "material": "flag"
+      "material": "flag",
+      "pixelarticons": "flag"
     },
     {
       "id": "download",
@@ -303,7 +340,8 @@
       "lucide": "download",
       "tabler": "download",
       "phosphor": "download-simple",
-      "material": "download"
+      "material": "download",
+      "pixelarticons": "download"
     },
     {
       "id": "message",
@@ -311,7 +349,8 @@
       "lucide": "message-circle",
       "tabler": "message-circle",
       "phosphor": "chat-circle",
-      "material": "chat_bubble"
+      "material": "chat_bubble",
+      "pixelarticons": "message"
     },
     {
       "id": "call",
@@ -319,7 +358,8 @@
       "lucide": "phone",
       "tabler": "phone",
       "phosphor": "phone",
-      "material": "call"
+      "material": "call",
+      "pixelarticons": "phone"
     },
     {
       "id": "video",
@@ -327,7 +367,8 @@
       "lucide": "video",
       "tabler": "video",
       "phosphor": "video-camera",
-      "material": "videocam"
+      "material": "videocam",
+      "pixelarticons": "video"
     },
     {
       "id": "mail",
@@ -335,7 +376,8 @@
       "lucide": "mail",
       "tabler": "mail",
       "phosphor": "envelope-simple",
-      "material": "mail"
+      "material": "mail",
+      "pixelarticons": "mail"
     },
     {
       "id": "map",
@@ -343,7 +385,8 @@
       "lucide": "map-pin",
       "tabler": "map-pin",
       "phosphor": "map-pin",
-      "material": "location_on"
+      "material": "location_on",
+      "pixelarticons": "map-pin"
     },
     {
       "id": "info",
@@ -351,7 +394,8 @@
       "lucide": "info",
       "tabler": "info-circle",
       "phosphor": "info",
-      "material": "info"
+      "material": "info",
+      "pixelarticons": "info-box"
     },
     {
       "id": "warning",
@@ -359,7 +403,8 @@
       "lucide": "triangle-alert",
       "tabler": "alert-triangle",
       "phosphor": "warning",
-      "material": "warning"
+      "material": "warning",
+      "pixelarticons": "warning-diamond"
     },
     {
       "id": "error",
@@ -367,7 +412,8 @@
       "lucide": "circle-alert",
       "tabler": "alert-circle",
       "phosphor": "warning-circle",
-      "material": "error"
+      "material": "error",
+      "pixelarticons": "square-alert"
     },
     {
       "id": "success",
@@ -375,7 +421,8 @@
       "lucide": "circle-check",
       "tabler": "circle-check",
       "phosphor": "check-circle",
-      "material": "check_circle"
+      "material": "check_circle",
+      "pixelarticons": "checkbox-on"
     },
     {
       "id": "sidebar",
@@ -383,7 +430,8 @@
       "lucide": "panel-left",
       "tabler": "layout-sidebar",
       "phosphor": "sidebar-simple",
-      "material": "side_navigation"
+      "material": "side_navigation",
+      "pixelarticons": "layout"
     },
     {
       "id": "back",
@@ -391,7 +439,8 @@
       "lucide": "arrow-left",
       "tabler": "arrow-left",
       "phosphor": "arrow-left",
-      "material": "arrow_back"
+      "material": "arrow_back",
+      "pixelarticons": "arrow-left"
     },
     {
       "id": "chevronLeft",
@@ -399,7 +448,8 @@
       "lucide": "chevron-left",
       "tabler": "chevron-left",
       "phosphor": "caret-left",
-      "material": "chevron_left"
+      "material": "chevron_left",
+      "pixelarticons": "chevron-left"
     },
     {
       "id": "chevronRight",
@@ -407,7 +457,8 @@
       "lucide": "chevron-right",
       "tabler": "chevron-right",
       "phosphor": "caret-right",
-      "material": "chevron_right"
+      "material": "chevron_right",
+      "pixelarticons": "chevron-right"
     },
     {
       "id": "chevronDown",
@@ -415,7 +466,8 @@
       "lucide": "chevron-down",
       "tabler": "chevron-down",
       "phosphor": "caret-down",
-      "material": "expand_more"
+      "material": "expand_more",
+      "pixelarticons": "chevron-down"
     },
     {
       "id": "upDown",
@@ -423,7 +475,8 @@
       "lucide": "chevrons-up-down",
       "tabler": "selector",
       "phosphor": "caret-up-down",
-      "material": "unfold_more"
+      "material": "unfold_more",
+      "pixelarticons": "chevrons-vertical"
     }
   ]
 }
