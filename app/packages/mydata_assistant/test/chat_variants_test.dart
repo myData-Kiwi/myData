@@ -157,4 +157,28 @@ void main() {
       }
     });
   }
+
+  // A result is a card: where a theme's lists are plain but its cards are outlined (Terminal), the result's
+  // rows sit in the card outline, as its rules box the result card; Notebook (no card outlines) and Sticker
+  // (a bordered list that outlines itself) take no extra edge.
+  for (final (slug, boxed) in [('terminal', true), ('notebook', false), ('sticker', false)]) {
+    for (final b in Brightness.values) {
+      testWidgets('a result is ${boxed ? '' : 'not '}boxed by its card edge in $slug, ${b.name}', (tester) async {
+        final look = ThemeLibrary.lookFor(ThemeChoice('mydata.$slug'), b, platform: TargetPlatform.linux);
+        await tester.pumpWidget(MaterialApp(
+          theme: MyDataTheme.fromLook(look).copyWith(platform: TargetPlatform.linux),
+          home: Material(
+            color: look.colors.bg,
+            child: const ResultCard(kind: 'events', header: '1 event: Dentist', items: [
+              {'title': 'Dentist', 'date': '2026-03-20', 'start': '09:30', 'end': '10:15'},
+            ]),
+          ),
+        ));
+        await tester.pumpAndSettle();
+        final edge = find.ancestor(of: find.text('Dentist'), matching: find.byType(CardEdge));
+        expect(edge, boxed ? findsOneWidget : findsNothing);
+        if (boxed) expect(look.edges.card, isNotNull);
+      });
+    }
+  }
 }

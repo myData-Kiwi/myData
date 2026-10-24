@@ -154,16 +154,27 @@ class ResultCard extends StatelessWidget {
     );
   }
 
+  /// [list] in a box where the theme's lists are plain but its cards are outlined (Terminal: "1 px boxes
+  /// ... around the result card"): a result is a card, though the theme's lists stand bare on the ground.
+  static Widget _card(BuildContext context, Widget list) {
+    final look = context.look;
+    if (look.variants.list != ListStyle.plain || look.edges.card == null) return list;
+    return CardEdge(radius: MyDataRadii.md(look), child: list);
+  }
+
   @override
   Widget build(BuildContext context) {
     if (context.isSystemLook) return _mac(context);
     final c = context.colors;
     if (kind == 'event_created') {
       // The header says what was added; the list's one row carries it.
-      return GroupedList(
-        rows: [
-          _ResultRow(icon: iconFor(kind), tone: toneFor(kind), kind: kind, lines: [_Line.strong(header)]),
-        ],
+      return _card(
+        context,
+        GroupedList(
+          rows: [
+            _ResultRow(icon: iconFor(kind), tone: toneFor(kind), kind: kind, lines: [_Line.strong(header)]),
+          ],
+        ),
       );
     }
     final headerLine = Semantics(
@@ -177,7 +188,7 @@ class ResultCard extends StatelessWidget {
       children: [
         headerLine,
         SizedBox(height: headerGap(context.look)),
-        GroupedList(rows: [for (final item in items) _row(item)]),
+        _card(context, GroupedList(rows: [for (final item in items) _row(item)])),
       ],
     );
   }

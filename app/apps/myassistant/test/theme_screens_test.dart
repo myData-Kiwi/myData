@@ -23,5 +23,10 @@ void main() {
   themeNarrow(approval);
 
   // The pictures above differ by more than colour between every two themes.
-  themesDistinct('approval');
+  themesDistinct('approval', alike: {
+    // 0.29: both box each result and the approval card in a thin dark line on the same rows; Retro Desktop's
+    // dotted desk is fainter than the metric's step, and its bevels and pixel titles are a pixel or two of
+    // edge in the same blocks. Terminal's rules beside each turn and its one face are what set it apart.
+    'retro-desktop and terminal': (0.29, 'the same thin boxes, other type'),
+  });
 }
