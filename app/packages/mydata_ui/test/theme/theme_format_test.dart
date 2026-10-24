@@ -349,6 +349,23 @@ void main() {
       expect(builtIn.errors, contains(contains('a built-in palette gives every role')));
     });
 
+    test('a coloured danger keeps to the red; one without colour is told by its word, with a notice', () {
+      final green = check(drawn(palettes: [
+        palette(overrides: {
+          'light': {'danger': '#1F6B2A', 'danger-soft': '#E3F1E5', 'on-danger': '#FFFFFF'},
+        }),
+      ]));
+      expect(green.errors, contains(contains('from the red it has always been')));
+      final grey = check(drawn(palettes: [
+        palette(overrides: {
+          'light': {'danger': '#1A1A19', 'danger-soft': '#EDEDEB', 'on-danger': '#FFFFFF'},
+          'dark': {'danger': '#EDEDEB', 'danger-soft': '#262626', 'on-danger': '#111111'},
+        }),
+      ]));
+      expect(grey.errors, isEmpty, reason: grey.errors.join('\n'));
+      expect(grey.notices, contains(contains('danger has no colour; it is told by its word alone.')));
+    });
+
     test('palette ids are unique and the default names one of them', () {
       final r = check({
         ...drawn(palettes: [palette(), palette()]),

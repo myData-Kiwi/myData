@@ -143,7 +143,11 @@ List<ThemeFinding> checkColours(ThemeFile theme, ResolvedPalette p, RoleDefaults
 
   // Meanings that stay.
   final danger = Oklch.of(v(ColourRole.danger)), todayDanger = Oklch.of(defaults.of(p.mode)[ColourRole.danger]!);
-  if (hueDistance(danger.h, todayDanger.h) > 25) {
+  // A danger without colour (E-ink's, in ink) cannot be taken for another status: it has no hue to move, and
+  // danger always carries its word (2.3). Only a coloured danger keeps to the red.
+  if (danger.c < 0.04) {
+    out.add(ThemeFinding('$where: danger has no colour; it is told by its word alone.', notice: true));
+  } else if (hueDistance(danger.h, todayDanger.h) > 25) {
     out.add(ThemeFinding('$where: danger is ${hueDistance(danger.h, todayDanger.h).round()}° from the red it '
         'has always been; it may move at most 25°.'));
   }
