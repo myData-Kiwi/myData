@@ -122,4 +122,33 @@ void main() {
         .firstWhere((d) => d.borderRadius == null);
     expect(thumb.shape, BoxShape.circle);
   });
+
+  // A bare group (a theme whose lists are plain with no separators: Terminal, Notebook) has no box to say
+  // where it starts, so its heading is set apart from the rows' titles: Terminal's in its label role, in
+  // capitals at 700 (read as written); Notebook's in its heading role. A boxed group keeps body-emphasized.
+  testWidgets('a bare group\'s heading stands apart from its rows', (tester) async {
+    const row = MacFormRow(title: 'iCloud');
+    await tester.pumpWidget(drawn('terminal', row));
+    var look = MyDataLook.of(tester.element(find.text('iCloud')));
+    expect(find.text('INCLUDED FROM THIS MAC'), findsOneWidget);
+    expect(find.bySemanticsLabel('Included from this Mac'), findsOneWidget);
+    final terminal = tester.widget<Text>(find.text('INCLUDED FROM THIS MAC')).style!;
+    expect(terminal.fontWeight, FontWeight.w700);
+    expect(terminal.fontSize, look.typeScale.label.fontSize);
+    expect(tester.widget<Text>(find.text('iCloud')).style!.fontWeight, isNot(FontWeight.w700));
+
+    await tester.pumpWidget(drawn('notebook', row));
+    await tester.pumpAndSettle();
+    look = MyDataLook.of(tester.element(find.text('iCloud')));
+    final notebook = tester.widget<Text>(find.text('Included from this Mac')).style!;
+    expect(notebook.fontFamily, look.typeScale.heading.fontFamily);
+    expect(notebook.fontSize, look.typeScale.heading.fontSize);
+
+    await tester.pumpWidget(drawn('high-contrast', row));
+    await tester.pumpAndSettle();
+    look = MyDataLook.of(tester.element(find.text('iCloud')));
+    final boxed = tester.widget<Text>(find.text('Included from this Mac')).style!;
+    expect(boxed.fontSize, look.typeScale.bodyStrong.fontSize);
+    expect(boxed.fontWeight, look.typeScale.bodyStrong.fontWeight);
+  });
 }

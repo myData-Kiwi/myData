@@ -5,6 +5,7 @@ import '../generated/tokens.g.dart';
 import '../theme/motion.dart';
 import '../theme/theme.dart';
 import '../widgets/pressable.dart';
+import '../widgets/role_label.dart';
 import 'mac_chrome.dart';
 import 'mac_metrics.dart';
 import 'mac_theme.dart';
@@ -98,7 +99,15 @@ class MacFormSection extends StatelessWidget {
             padding: EdgeInsets.fromLTRB(context.space(3), 0, context.space(3), context.space(2)),
             child: Semantics(
               header: true,
-              child: Text(heading!, style: context.macLook.bodyEmphasized.copyWith(color: mac.label)),
+              child: bare
+                  // With no box round it, the heading alone says where a group starts, so it is set apart
+                  // from the rows' titles: in the label role where the theme sets labels in upper case
+                  // (Terminal's 700 capitals; a form's headings are never names), else in its heading
+                  // (Notebook's handwriting).
+                  ? (context.typeScale.upper.contains(MyDataTypeRole.label)
+                      ? RoleLabel(heading!, style: context.macLook.callout, color: mac.label)
+                      : Text(heading!, style: context.macLook.sectionHeader.copyWith(color: mac.label)))
+                  : Text(heading!, style: context.macLook.bodyEmphasized.copyWith(color: mac.label)),
             ),
           ),
         if (rows.isNotEmpty)
