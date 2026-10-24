@@ -52,6 +52,8 @@ class TypeSpecimen extends StatelessWidget {
         line(MyDataTypeRole.title, 'Merge 2 contacts?'),
         line(MyDataTypeRole.heading, 'After merging'),
         line(MyDataTypeRole.body, 'Lunch with Ava at the café, 12:30 to 13:45. Łódź, Dvořák, Ærøskøbing.'),
+        // Names a font may lack (fonts_test.dart, acceptedGaps) and the keys menus write.
+        line(MyDataTypeRole.bodyStrong, 'Ștefan Erdős · Nguyễn · O’Brien · ⌘⇧E'),
         line(MyDataTypeRole.bodyStrong, 'Restore 3 contacts'),
         line(MyDataTypeRole.label, 'Email'),
         Text('ava@example.org, added 11 Oct 2026', style: t.secondary(t.body).copyWith(color: c.inkMuted)),

@@ -9,7 +9,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mydata_ui/mydata_ui.dart';
 import 'package:mydata_ui/src/theme/catalogue.dart';
+import 'package:mydata_ui/src/theme/theme_file.dart';
 
+import 'cmap.dart';
 import 'designed_themes.dart';
 
 /// The font files an app built with this package carries: every font and icon font in assets/fonts (the
@@ -42,6 +44,32 @@ Map<String, (double, double, double)> fvarAxes(Uint8List font) {
   return const {};
 }
 
+/// Names the fonts must draw (Latin Extended-A and -B, the apostrophes names use) and Vietnamese, which
+/// names hold too (`Nguyễn`). A glyph the role's first font lacks must come from a later font of its stack.
+const nameCorpus = 'ŞşȘșȚțŐőŰűĚěŠšČčŘřŽžŮůİıĞğŁłŃńŹźŻżĄąĘęßẞÆæØøÅåŒœĐđÉéÑñ’‘“”ʼ';
+const vietnamese = 'ễệỗộữựằẳẵặấầẩẫậắơưƠƯ';
+
+/// What a font lacks and leaves to the system's fonts, accepted with its reason (they draw these
+/// letters in the platform's font, mid-word). Anything else missing fails the test.
+const acceptedGaps = {
+  // Kiwi's body, before phase 3: no modifier apostrophe and no Vietnamese.
+  'figtree': 'ʼ$vietnamese',
+  'plus-jakarta-sans': 'ʼ',
+  // Journal's body.
+  'instrument-sans': 'ʼ$vietnamese',
+  // Frosted's titles and body.
+  'sora': 'ʼ$vietnamese',
+  'manrope': 'ʼ',
+};
+
+/// A bundled font's files: a core font's static weights, a font loaded on demand and its italic.
+List<String> fontFiles(CatalogueFont f) => f.core
+    ? [
+        for (final e in Directory('assets/fonts').listSync().whereType<File>())
+          if (e.uri.pathSegments.last.startsWith('${f.family}-')) e.path,
+      ]
+    : f.assets;
+
 void main() {
   final pubspec = File('pubspec.yaml').readAsStringSync();
   final script = File('tool/subset_fonts.sh').readAsStringSync();
@@ -71,6 +99,45 @@ void main() {
         expect(axes.keys.toSet(), {'wght', if (f.opticalSizes != null) 'opsz'}, reason: asset);
         if (f.opticalSizes case (final lo, final hi)) expect((axes['opsz']!.$1, axes['opsz']!.$3), (lo, hi), reason: asset);
         expect(axes['wght']!.$2, 400, reason: '$asset: a style without its wght variation is drawn regular');
+      }
+    }
+  });
+
+  test("every role of the six built-ins draws people's names in its own fonts, or in a later font of its "
+      'stack, but for the gaps accepted above', () {
+    final maps = <String, Set<int>>{};
+    Set<int> mapped(CatalogueFont f) => maps[f.id] ??= {
+          for (final file in fontFiles(f)) ...codePoints(File(file).readAsBytesSync()),
+        };
+    for (final id in drawnBuiltIns) {
+      final type = designedTheme(id).style.type;
+      for (final role in TypeRole.values) {
+        final r = type.roles[role]!;
+        final fonts = <CatalogueFont>[];
+        for (final fid in type.stack(r.stack)) {
+          final f = fontCatalogue[fid];
+          if (f == null || !f.bundled) break;
+          if (f.displayOnly && r.size < 16) continue;
+          fonts.add(f);
+        }
+        expect(fonts, isNotEmpty, reason: '$id ${role.key}');
+        final missing = [
+          for (final c in (nameCorpus + vietnamese).runes)
+            if (!fonts.any((f) => mapped(f).contains(c))) String.fromCharCode(c),
+        ].join();
+        final accepted = acceptedGaps[fonts.first.id] ?? '';
+        expect(missing.runes.where((c) => !accepted.runes.contains(c)).map(String.fromCharCode).join(), isEmpty,
+            reason: '$id ${role.key} (${fonts.map((f) => f.id).join(', ')}) cannot draw these');
+      }
+    }
+  });
+
+  test('every accepted gap is still a gap: a font that gains the glyphs loses its entry', () {
+    for (final e in acceptedGaps.entries) {
+      final f = fontCatalogue[e.key]!;
+      final map = {for (final file in fontFiles(f)) ...codePoints(File(file).readAsBytesSync())};
+      for (final c in e.value.runes) {
+        expect(map.contains(c), isFalse, reason: '${e.key} has ${String.fromCharCode(c)} now');
       }
     }
   });
