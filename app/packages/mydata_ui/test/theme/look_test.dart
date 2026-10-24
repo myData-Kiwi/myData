@@ -300,6 +300,9 @@ void main() {
       expect(of(ElevationStyle.hard, collapse: true).controlShadows(pressed: true), isEmpty);
       expect(of(ElevationStyle.hard).controlShadows(pressed: true), isNotEmpty);
       expect(of(ElevationStyle.hard, collapse: true).sink, const Offset(0, 4));
+      // A sinking control drops its shadow even without collapse, or the shadow would sink with it.
+      expect(of(ElevationStyle.hard).controlShadows(pressed: true, sinks: true), isEmpty);
+      expect(of(ElevationStyle.hard).controlShadows(sinks: true), isNotEmpty);
     });
 
     test('a bevel\'s light line is lifted to 1.5:1 against its fill where it can reach it', () {

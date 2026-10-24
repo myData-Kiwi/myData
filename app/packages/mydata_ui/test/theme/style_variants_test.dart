@@ -65,13 +65,14 @@ final List<StyleVariant> styleVariants = [
 final List<StyleVariant> pressedVariants = [
   for (final press in ['none', 'collapse'])
     (name: 'elevation-press-$press', edit: _set('elevation', {'style': 'hard', 'strength': 1, 'offset': 4, 'press': press})),
-  // Motion's press styles; sink on a hard shadow that collapses, so the button takes the shadow's place.
+  // Motion's press styles; sink on a hard shadow that does not collapse by itself: sinking drops it anyway,
+  // so the button takes the shadow's place.
   for (final press in ['none', 'dim', 'dim-scale', 'sink', 'invert'])
     (
       name: 'motion-press-$press',
       edit: (json) {
         _set('motion', {'press': press})(json);
-        if (press == 'sink') _set('elevation', {'style': 'hard', 'strength': 1, 'offset': 4, 'press': 'collapse'})(json);
+        if (press == 'sink') _set('elevation', {'style': 'hard', 'strength': 1, 'offset': 4, 'press': 'none'})(json);
       },
     ),
 ];

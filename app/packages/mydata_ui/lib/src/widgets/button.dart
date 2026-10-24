@@ -154,7 +154,10 @@ class Button extends StatelessWidget {
             style: context.typeScale.bodyStrong.copyWith(color: fg),
           );
           final shadows = filled && !disabled
-              ? elevation.controlShadows(pressed: pressed, primary: variant == ButtonVariant.filled)
+              ? elevation.controlShadows(
+                  pressed: pressed,
+                  primary: variant == ButtonVariant.filled,
+                  sinks: context.motion.press == PressStyle.sink)
               : const <BoxShadow>[];
           final radius = MyDataRadii.control(context.look);
           Widget box = Container(

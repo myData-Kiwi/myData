@@ -583,9 +583,11 @@ class MyDataElevation {
   /// the bottom and right; swapped while pressed.
   final Bevel? bevel;
 
-  /// The shadows under a control with a fill, resting or [pressed]; the primary button adds [glow].
-  List<BoxShadow> controlShadows({bool pressed = false, bool primary = false}) => [
-        if (!(pressed && collapse)) ...control,
+  /// The shadows under a control with a fill, resting or [pressed]; the primary button adds [glow]. A
+  /// control that [sinks] when pressed (`motion.press: sink`) moves into where its drop was, so the drop
+  /// goes with or without `press: collapse`: kept, it would move with the control to twice its offset.
+  List<BoxShadow> controlShadows({bool pressed = false, bool primary = false, bool sinks = false}) => [
+        if (!(pressed && (collapse || sinks))) ...control,
         if (primary) ...glow,
       ];
 
