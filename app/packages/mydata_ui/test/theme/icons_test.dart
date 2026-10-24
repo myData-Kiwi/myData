@@ -137,6 +137,7 @@ void main() {
       'mydata.high-contrast': ('material-outlined', 'bold'),
       'mydata.e-ink': ('phosphor', 'regular'),
       'mydata.large': ('material-rounded', 'regular'),
+      'mydata.terminal': ('lucide', 'regular'),
     });
   });
 
